@@ -98,7 +98,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | fixed | `shoe_color` | Fills the shoe with a single color
 | colorstop | `colorstop` list with at least 2 values | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
 | colorstopgradient | `colorstop` list with at least 2 values | Same as `colorstop`, but a gradient is used between colorstops
-| lineargradient | `colorstop` list with at least 2 values | Uses the first and last entry in the `colorstop` list to display a linear gradient. NTS: Differnence with autominmax ??
+| lineargradient | `colorstop` list with at least 2 values | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 
 #### Entities list
