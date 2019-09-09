@@ -19,6 +19,8 @@ The main perk of this card is it's flexibility. It is able to position a number 
 ## Some examples
 
 ### Normal, flat UI
+Cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
+
 ![](https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
 
 Legend:
@@ -30,10 +32,12 @@ Legend:
 All cards use different styling for filling the horseshoe with a color.
 
 ### Some extreme, industrial look, 3D UI
-Using the same cards as above, but with different styling.
+Using the same cards as above, but with different styling. Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
 ![Another Example](	https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 ![](https://tweakers.net/ext/f/3wRqCSI3EXdysHVFAwYzqpWl/full.png)
+
+### It scales, as it is based on SVG
 
 ## Install
 
