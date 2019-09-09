@@ -88,8 +88,18 @@ The preferred method of using this card is by decluttering card templates. You d
 | scale_width | pixels | 6 |size in pixels| v1.0.0 | Width of scale
 | shoe_color | color | **required** |any # or var() color| v1.0.0 | Color of shoe if `shoe_fill_style` = `fixed`
 | shoe_width | pixels | optional |size in pixels| v1.0.0 | Width of shoe
-| shoe_fill_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v1.0.0 | Fill style. Most fill styles need the colorstop list to be specified.
+| shoe_fill_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v1.0.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 | colorstops | list | **required** || v1.0.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
+
+#### Shoe fill styles
+| Option | Requires | Description
+|--------|----------|-------------|
+| autominmax | `colorstop` list with at least 2 values | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
+| fixed | `shoe_color` | Fills the shoe with a single color
+| colorstop | `colorstop` list with at least 2 values | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
+| colorstopgradient | `colorstop` list with at least 2 values | Same as `colorstop`, but a gradient is used between colorstops
+| lineargradient | `colorstop` list with at least 2 values | Uses the first and last entry in the `colorstop` list to display a linear gradient. NTS: Differnence with autominmax ??
+
 
 #### Entities list
 Providing options are optional, entities can be listed directly, see example below.
