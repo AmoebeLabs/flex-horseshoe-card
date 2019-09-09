@@ -201,6 +201,7 @@ Card example nr 7 is configured as follows:
 		0: 'var(--adc-gradient-color-01)'
 		7800: 'var(--adc-gradient-color-10)'
 	gradient: false
+
 ```
 
 ## License
