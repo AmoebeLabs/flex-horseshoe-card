@@ -36,13 +36,13 @@ Using the same cards as above, but with different styling.
 
 Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
-![Another Example](	https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 ![](https://tweakers.net/ext/f/3wRqCSI3EXdysHVFAwYzqpWl/full.png)
 
 ### It scales, as it is based on SVG
 Using a single card in a row. Card scales to maximum width of the vertical stack card. No changes required for text size, icons, lines and state & attribute values. All thanks to SVG.
 
-[](	https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
+![](https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
 
 ## Install
 
@@ -99,6 +99,85 @@ All options are optional.
 | scale | true | `true` / `false` | Display scale
 
 ### Example usage
+
+#### Card example 7
+![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+
+Card example nr 7 is configured as follows:
+
+```yaml
+- type: 'custom:flex-horseshoe-card'
+	entities:
+		- sensor.disk_use
+		- sensor.disk_use_percent
+		- sensor.disk_free
+	decimals:
+		- 1
+		- 1
+		- 1
+	icons:
+		- mdi:harddisk
+	names:
+		- '7: Disk Usage'
+	areas:
+		- Hestia
+	scaleTickSize: 50
+	show:
+		scale: true
+	layout:
+		icons:
+			- index: 0
+				xpos: 50
+				ypos: 20
+				size: 3
+		hlines:
+			- xpos: 50
+				ypos: 48
+				length: 80
+				color: white
+				opacity: 0.5
+		dots:
+			- xpos: 50
+				ypos: 61
+				radius: 3
+				color: white
+				opacity: 0.5
+		states:
+			- index: 0
+				xpos: 50
+				ypos: 40
+				font_size: 3
+				opacity: 0.9
+			- index: 1
+				xpos: 46
+				ypos: 64
+				align: end
+				font_size: 1.7
+			- index: 2
+				xpos: 54
+				ypos: 64
+				align: start
+				font_size: 1.7
+		names:
+			- index: 0
+				xpos: 50
+				ypos: 100
+		areas:
+			- index: 0
+				xpos: 50
+				ypos: 80
+	name: 'SSD in gebruik'
+	fill: 'rgb(0,0,0,0.0)'
+	min: 0
+	max: 215
+	stroke_color: 'var(--adc-gradient-color-01)'
+	stroke_back: 'var(--primary-background-color)'
+	area: hestia
+	color_stops:
+		0: 'var(--adc-gradient-color-01)'
+		7800: 'var(--adc-gradient-color-10)'
+	gradient: false
+```
 
 ## License
 This project is under the MIT license.
