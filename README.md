@@ -166,7 +166,6 @@ Card example nr 7 is configured as follows:
 			- index: 0
 				xpos: 50
 				ypos: 80
-	name: 'SSD in gebruik'
 	fill: 'rgb(0,0,0,0.0)'
 	min: 0
 	max: 215
