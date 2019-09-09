@@ -207,9 +207,19 @@ Card example nr 7 is configured as follows:
   gradient: false
 ```
 ## Future plans / ideas
+There are already plans / ideas to extend this card with other functionality like switch states and actions.
 
+### Add switch state with color
+This means adding switches to the currently supported sensor values.
+This also means able to configure a color depending on the switch state of an entity or attribute.
 
+Layout wise, these cards can already be made, but parts are fixed, like the orange circle and the "AAN (ON)" state.
 
+![](/images/horseshoe-future-idea-1.png)
+
+### Add button actions if 'switch' pressed.
+See previous image.
+Pressing the button should toggle a ligh switch or something like that.
 
 ## License
 This project is under the MIT license.
