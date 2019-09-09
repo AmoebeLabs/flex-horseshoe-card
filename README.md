@@ -1,6 +1,6 @@
 # Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
-
+ 
 ### You are looking at the first version of this card. It is not yet fully documented and tested
 
 The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
@@ -27,7 +27,7 @@ Legend:
 - (3), showing a single attribute from a darksky sensor, a unit (temperature), an area and horizontal line
 - (4), showing three attributes from a darksky sensor (temperature, humidity and air pressure), units, two icons, a name and a horizontal line
 - (5), showing trhee sensors from system monitoring (ram used, ram used percentage and ram free), extra free text below the sensor values ("in use" and "free"), a horizontal line and a vertical line.
-- (6), same as (5), bit with different horizontal and vertical line.
+- (6), same as (5), bit with different horizontal and vertical line and different fill style for the horseshoe.
 
 All cards use different styling for filling the horseshoe with a color.
 
@@ -62,7 +62,7 @@ Not yet supported. Will be in the future.
   ```
 ## Using the card
 
-The preferred method of using this card is by decluttering card templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
+The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
 ### Options
 
