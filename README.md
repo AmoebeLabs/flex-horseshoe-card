@@ -6,22 +6,15 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state.
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it:
-- Any number of entities.
 
-  *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.*
-- Any number of atributes (linked to an entity via their index in the lists).
-- Any number of Units
-
-  *Units are currently NOT linked to the entity or attribute, you just specify a list of units.*
-- Any number of Icons
-
-  *Icons are currently NOT linked to the entity or attribute, you just specify a list of icons.*
-- Any number of names and area's.
-
-  *These are just strings, which can be placed anywhere on the card*
-- Any number of dots, horizontal and vertical lines
-
-  To function as a divider between values.
+| Feature | Note        |
+|---------|-------------|
+| Any number of entities | *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.*
+| Any number of atributes | Attributes are linked to an entity via their index in the lists.
+| Any number of Units | Units are currently NOT linked to the entity or attribute, you just specify a list of units.
+| Any number of Icons | Icons are currently NOT linked to the entity or attribute, you just specify a list of icons.
+| Any number of names and area's | These are treated as text strings, which can be placed anywhere on the card
+| Any number of dots, horizontal and vertical lines | To function as a divider between values.
 
 ## Some examples
 
