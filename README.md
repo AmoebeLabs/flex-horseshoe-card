@@ -3,7 +3,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 
 ### You are looking at the first version of this card. It is not yet fully documented and tested
 
-The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state.
+The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it:
 
@@ -52,6 +52,8 @@ Not yet supported. Will be in the future.
       type: module
   ```
 ## Using the card
+
+The preferred method of using this card is by decluttering card templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
 ### Options
 
