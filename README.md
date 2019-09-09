@@ -206,6 +206,10 @@ Card example nr 7 is configured as follows:
     7800: 'var(--adc-gradient-color-10)'
   gradient: false
 ```
+## Future plans / ideas
+
+
+
 
 ## License
 This project is under the MIT license.
