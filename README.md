@@ -10,8 +10,8 @@ The main perk of this card is it's flexibility. It is able to position a number 
 | Feature | Note        |
 |---------|-------------|
 | Any number of entities | *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.*
-| Any number of atributes | Attributes are linked to an entity via their index in the lists.
-| Any number of Units | Units are currently NOT linked to the entity or attribute, you just specify a list of units.
+| Any number of attributes | Attributes are linked to an entity via their index in the lists.
+| List of units | To override the unit defined by the entity/attribute. Linked via index in list.
 | Any number of Icons | Icons are currently NOT linked to the entity or attribute, you just specify a list of icons.
 | Any number of names and area's | These are treated as text strings, which can be placed anywhere on the card
 | Any number of dots, horizontal and vertical lines | To function as a divider between values.
@@ -66,15 +66,30 @@ The preferred method of using this card is by decluttering card templates. You d
 
 ### Options
 
-#### Card options
+#### Main Card options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | type | string | **required** | v1.0.0 | `custom:flex-horseshoe-card`.
 | entities | list | **required** | v1.0.0 | One or more sensor entities in a list
 | attributes | list | optional | v1.0.0 | One or more sensor attributes in a list, see [attibutes list](#attibutes-list) for requirements.
-| units | list | optional | v1.0.0 | Specify the units to be displayed. The index points to the entity or attribute.
+| units | list | optional | v1.0.0 | Overrides the entity or attribute unit to be displayed. The position in the list is the index that points to the entity or attribute. 
+| decimals | list | optional | v1.0.0 | Specifies the decimals to format the entity or attribute value. The position in the list is the index that points to the entity or attribute. 
+| names | list | optional | v1.0.0 | List of names to be displayed. No relation with entity or attribute friendly name.
+| areas | list | optional | v1.0.0 | List of areas to be displayed. No relation with entity or attribute area.
 | color_stops | list | optional | v1.0.0 | Set thresholds for horseshoe gradients and colormapping.
 | decimals | list | optional | v1.0.0 | Specify the exact number of decimals to show for states.
+
+#### Horseshoe Card options
+| Name | Type | Default | Options | Since | Description |
+|------|------|---------|---------|-------|-------------|
+| min | number | **required** || v1.0.0 | Minimum number of the scale / horseshoe
+| max | number | **required** || v1.0.0 | Maximum number of the scale / horseshoe
+| scale_color | color | `var(--background-color)`|any # or var color| v1.0.0 | 
+| scale_width | pixels | 6 |size in pixels| v1.0.0 | Width of scale
+| shoe_color | color | **required** |any # or var() color| v1.0.0 | Color of shoe if `shoe_fill_style` = `fixed`
+| shoe_width | pixels | optional |size in pixels| v1.0.0 | Width of shoe
+| shoe_fill_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v1.0.0 | Fill style. Most fill styles need the colorstop list to be specified.
+| colorstops | list | **required** || v1.0.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
 
 #### Entities list
 Providing options are optional, entities can be listed directly, see example below.
