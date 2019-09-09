@@ -1,3 +1,7 @@
+# TODO:
+filter optie toevoegen die het css filternaam aangeeft. Dan wat standaard filters in de card doen, en de rest kan eventueel ook in de style | gedaan worden, dan kunnen mensen ook hun eigen custom css filter definieren en gebruiken.
+
+
 # Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
  
