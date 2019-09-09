@@ -1,9 +1,46 @@
 # Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
 
+### You are looking at the first version of this card. It is not yet fully documented and tested
+
 The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state.
 
-![Example](	https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
+The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it:
+- Any number of entities.
+
+  *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.*
+- Any number of atributes (linked to an entity via their index in the lists).
+- Any number of Units
+
+  *Units are currently NOT linked to the entity or attribute, you just specify a list of units.*
+- Any number of Icons
+
+  *Icons are currently NOT linked to the entity or attribute, you just specify a list of icons.*
+- Any number of names and area's.
+
+  *These are just strings, which can be placed anywhere on the card*
+- Any number of dots, horizontal and vertical lines
+
+  To function as a divider between values.
+
+## Some examples
+
+### Normal, flat UI
+![](https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
+
+Legend:
+- (3), showing a single attribute from a darksky sensor, a unit (temperature), an area and horizontal line
+- (4), showing three attributes from a darksky sensor (temperature, humidity and air pressure), units, two icons, a name and a horizontal line
+- (5), showing trhee sensors from system monitoring (ram used, ram used percentage and ram free), extra free text below the sensor values ("in use" and "free"), a horizontal line and a vertical line.
+- (6), same as (5), bit with different horizontal and vertical line.
+
+All cards use different styling for filling the horseshoe with a color.
+
+### Some extreme, industrial look, 3D UI
+Using the same cards as above, but with different styling.
+
+![Another Example](	https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+![](https://tweakers.net/ext/f/3wRqCSI3EXdysHVFAwYzqpWl/full.png)
 
 ## Install
 
