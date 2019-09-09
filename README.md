@@ -32,12 +32,17 @@ Legend:
 All cards use different styling for filling the horseshoe with a color.
 
 ### Some extreme, industrial look, 3D UI
-Using the same cards as above, but with different styling. Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
+Using the same cards as above, but with different styling.
+
+Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
 ![Another Example](	https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 ![](https://tweakers.net/ext/f/3wRqCSI3EXdysHVFAwYzqpWl/full.png)
 
 ### It scales, as it is based on SVG
+Using a single card in a row. Card scales to maximum width of the vertical stack card. No changes required for text size, icons, lines and state & attribute values. All thanks to SVG.
+
+[](	https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
 
 ## Install
 
