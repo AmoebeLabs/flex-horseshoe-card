@@ -75,13 +75,16 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 |------|------|---------|-------|-------------|
 | type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
 | entities | list | **required** | v0.8.0 | One or more sensor entities in a list
-| attributes | list | optional | v0.8.0 | One or more sensor attributes in a list, see [attibutes list](#attibutes-list) for requirements.
-| units | list | optional | v0.8.0 | Overrides the entity or attribute unit to be displayed. The position in the list is the index that points to the entity or attribute. 
-| decimals | list | optional | v0.8.0 | Specifies the decimals to format the entity or attribute value. The position in the list is the index that points to the entity or attribute. 
-| names | list | optional | v0.8.0 | List of names to be displayed. No relation with entity or attribute friendly name.
-| areas | list | optional | v0.8.0 | List of areas to be displayed. No relation with entity or attribute area.
 | color_stops | list | optional | v0.8.0 | Set thresholds for horseshoe gradients and colormapping.
-| decimals | list | optional | v0.8.0 | Specify the exact number of decimals to show for states.
+
+#### Entities options
+| Name | Type | Default | Since | Description |
+|------|------|---------|-------|-------------|
+| attribute | string | optional | v0.8.0 | The attribute to be used for the entity. See [attibutes list](#attibutes-list) for requirements.
+| unit | string | optional | v0.8.0 | Overrides the entity or attribute unit to be displayed.
+| decimals | number | optional | v0.8.0 | Specifies the decimals to format the entity or attribute value.
+| name | string | optional | v0.8.0 | Name used for entity or attribute. Overwrites the `friendly_name` attribute.
+| area | string | optional | v0.8.0 | Area used for entity or attribute.
 
 #### Horseshoe Card options
 | Name | Type | Default | Options | Since | Description |
