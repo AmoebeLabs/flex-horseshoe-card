@@ -73,27 +73,27 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 #### Main Card options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
-| type | string | **required** | v1.0.0 | `custom:flex-horseshoe-card`.
-| entities | list | **required** | v1.0.0 | One or more sensor entities in a list
-| attributes | list | optional | v1.0.0 | One or more sensor attributes in a list, see [attibutes list](#attibutes-list) for requirements.
-| units | list | optional | v1.0.0 | Overrides the entity or attribute unit to be displayed. The position in the list is the index that points to the entity or attribute. 
-| decimals | list | optional | v1.0.0 | Specifies the decimals to format the entity or attribute value. The position in the list is the index that points to the entity or attribute. 
-| names | list | optional | v1.0.0 | List of names to be displayed. No relation with entity or attribute friendly name.
-| areas | list | optional | v1.0.0 | List of areas to be displayed. No relation with entity or attribute area.
-| color_stops | list | optional | v1.0.0 | Set thresholds for horseshoe gradients and colormapping.
-| decimals | list | optional | v1.0.0 | Specify the exact number of decimals to show for states.
+| type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
+| entities | list | **required** | v0.8.0 | One or more sensor entities in a list
+| attributes | list | optional | v0.8.0 | One or more sensor attributes in a list, see [attibutes list](#attibutes-list) for requirements.
+| units | list | optional | v0.8.0 | Overrides the entity or attribute unit to be displayed. The position in the list is the index that points to the entity or attribute. 
+| decimals | list | optional | v0.8.0 | Specifies the decimals to format the entity or attribute value. The position in the list is the index that points to the entity or attribute. 
+| names | list | optional | v0.8.0 | List of names to be displayed. No relation with entity or attribute friendly name.
+| areas | list | optional | v0.8.0 | List of areas to be displayed. No relation with entity or attribute area.
+| color_stops | list | optional | v0.8.0 | Set thresholds for horseshoe gradients and colormapping.
+| decimals | list | optional | v0.8.0 | Specify the exact number of decimals to show for states.
 
 #### Horseshoe Card options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
-| min | number | **required** || v1.0.0 | Minimum number of the scale / horseshoe
-| max | number | **required** || v1.0.0 | Maximum number of the scale / horseshoe
-| scale_color | color | `var(--background-color)`|any # or var color| v1.0.0 | 
-| scale_width | pixels | 6 |size in pixels| v1.0.0 | Width of scale
-| shoe_color | color | **required** |any # or var() color| v1.0.0 | Color of shoe if `shoe_fill_style` = `fixed`
-| shoe_width | pixels | optional |size in pixels| v1.0.0 | Width of shoe
-| shoe_fill_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v1.0.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
-| colorstops | list | **required** || v1.0.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
+| min | number | **required** || v0.8.0 | Minimum number of the scale / horseshoe
+| max | number | **required** || v0.8.0 | Maximum number of the scale / horseshoe
+| scale_color | color | `var(--background-color)`|any # or var color| v0.8.0 | 
+| scale_width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+| shoe_color | color | **required** |any # or var() color| v0.8.0 | Color of shoe if `shoe_fill_style` = `fixed`
+| shoe_width | pixels | optional |size in pixels| v0.8.0 | Width of shoe
+| shoe_fill_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
+| colorstops | list | **required** || v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
 
 #### Shoe fill styles
 | Option | Requires | Description
@@ -110,14 +110,14 @@ Providing options are optional, entities can be listed directly, see example bel
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| entity | string | **required** | v1.0.0 | Entity id of the sensor.
+| entity | string | **required** | v0.8.0 | Entity id of the sensor.
 
 #### Attributes list
 Attributes are optional, but if an attribute is given, the entitie must be listed too.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| attribute | string | **required** | v1.0.0 | Attribute id of the sensor.
+| attribute | string | **required** | v0.8.0 | Attribute id of the sensor.
 
 
 #### Available show options
