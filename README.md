@@ -138,19 +138,19 @@ Attributes are optional, but if an attribute is given, the entitie must be liste
 #### Predefined animations
 | Name | Type | Since | Description |
 |------|:----:|-------|-------------|
-| bounce | attention | v0.8.0 | styles:<br/>- animation: bounce 1s ease-in-out both; <br/>- transform-origin: center bottom;
-| flash | attention | v0.8.0 | styles:<br/>- animation: flash 1s ease-in-out both; <br/>- transform-origin: center;
-| headShake | attention | v0.8.0 | styles:<br/>- animation: headShake 1s ease-in-out both; <br/>- transform-origin: center;
-| heartBeat | attention | v0.8.0 | styles:<br/>- animation: heartBeat 1.3s ease-in-out both; <br/>- transform-origin: center;
-| jello | attention | v0.8.0 | styles:<br/>- animation: jello 1s ease-in-out both; <br/>- transform-origin: center;
-| pulse | attention | v0.8.0 | styles:<br/>- animation: pulse 1s ease-in-out both; <br/>- transform-origin: center;
-| rubberBand | attention | v0.8.0 | styles:<br/>- animation: rubberBand 1s ease-in-out both; <br/>- transform-origin: center;
-| shake| attention | v0.8.0 | styles:<br/>- animation: shake 1s ease-in-out both; <br/>- transform-origin: center;
-| swing | attention | v0.8.0 | styles:<br/>- animation: swing 1s ease-in-out both; <br/>- transform-origin: top center;
-| tada | attention | v0.8.0 | styles:<br/>- animation: tada 1s ease-in-out both; <br/>- transform-origin: center;
-| wobble | attention | v0.8.0 | styles:<br/>- animation: wobble 1s ease-in-out both; <br/>- transform-origin: center;
-| zoomOut | zooming | v0.8.0 | styles:<br/>- animation: zoomOut 1s ease-out both; </br>- transform-origin: center;
-| zoomIn | zooming | v0.8.0 | styles:<br/>- animation: zoomIn 1s ease-out both; </br>- transform-origin: center;
+| bounce | attention | v0.8.0 | `styles:<br/>- animation: bounce 1s ease-in-out both; <br/>- transform-origin: center bottom;`
+| flash | attention | v0.8.0 | `styles:<br/>- animation: flash 1s ease-in-out both; <br/>- transform-origin: center;`
+| headShake | attention | v0.8.0 | `styles:<br/>- animation: headShake 1s ease-in-out both; <br/>- transform-origin: center;`
+| heartBeat | attention | v0.8.0 | `styles:<br/>- animation: heartBeat 1.3s ease-in-out both; <br/>- transform-origin: center;`
+| jello | attention | v0.8.0 | `styles:<br/>- animation: jello 1s ease-in-out both; <br/>- transform-origin: center;`
+| pulse | attention | v0.8.0 | `styles:<br/>- animation: pulse 1s ease-in-out both; <br/>- transform-origin: center;`
+| rubberBand | attention | v0.8.0 | `styles:<br/>- animation: rubberBand 1s ease-in-out both; <br/>- transform-origin: center;`
+| shake| attention | v0.8.0 | `styles:<br/>- animation: shake 1s ease-in-out both; <br/>- transform-origin: center;`
+| swing | attention | v0.8.0 | `styles:<br/>- animation: swing 1s ease-in-out both; <br/>- transform-origin: top center;`
+| tada | attention | v0.8.0 | `styles:<br/>- animation: tada 1s ease-in-out both; <br/>- transform-origin: center;`
+| wobble | attention | v0.8.0 | `styles:<br/>- animation: wobble 1s ease-in-out both; <br/>- transform-origin: center;`
+| zoomOut | zooming | v0.8.0 | `styles:<br/>- animation: zoomOut 1s ease-out both; </br>- transform-origin: center;`
+| zoomIn | zooming | v0.8.0 | `styles:<br/>- animation: zoomIn 1s ease-out both; </br>- transform-origin: center;`
 
 
 #### Available show options
