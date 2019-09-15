@@ -48,6 +48,15 @@ Using a single card in a row. Card scales to maximum width of the vertical stack
 
 ![](https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
 
+### Yes, you can interact with it. Switching lights is no problem
+![](https://tweakers.net/ext/f/gnprFbnq3DoJC75CNu1KtxmR/full.png)
+
+![](	https://tweakers.net/ext/f/ECM2VGPbYyO9kMjAmsqsCFFq/full.png)
+
+And it can be animated too!
+
+![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
+
 ## Install
 
 ### Install via HACS
