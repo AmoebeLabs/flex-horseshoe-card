@@ -86,40 +86,43 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | layout | list/map | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [layout options](#layout-options) for requirements.
 | animations | list/map | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depedning on the state of a given entity. See [animation options](#animation-options) for requirements.
 | show | list/map | optional | | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [show options](#showr-options) for requirements.
-| horseshoe_scale | map | v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
-| horseshoe_state | map | v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
-| color_stops | list | optional | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
+| horseshoe_scale | map | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
+| horseshoe_state | map | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
+| horseshoe color_stops | list | optional | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
 
 #### Available entity options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
-| attribute | string | optional | v0.8.0 | The attribute to be used for the entity. See [attibutes list](#attibutes-list) for requirements.
+| attribute | string | optional | v0.8.0 | The attribute to be used for the entity.
 | unit | string | optional | v0.8.0 | Overrides the entity or attribute unit to be displayed.
 | decimals | number | optional | v0.8.0 | Specifies the decimals to format the entity or attribute value.
 | name | string | optional | v0.8.0 | Name used for entity or attribute. Overwrites the `friendly_name` attribute.
 | area | string | optional | v0.8.0 | Area used for entity or attribute.
-| tap_action | list/map | optional | v0.8.0 | How to respond to a mouse-click or tap.
+| tap_action | list/map | optional | v0.8.0 | How to respond to a mouse-click or tap.  See [available tap actions](#available-tap-actions) for requirements.
 
-#### Horseshoe Card options
+#### Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
 | scale_min | number | **required** || v0.8.0 | Minimum number of the scale / horseshoe
 | scale_max | number | **required** || v0.8.0 | Maximum number of the scale / horseshoe
 | scale_color | color | `var(--background-color)`|any # or var color| v0.8.0 | 
 | scale_width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+
+#### Horseshoe state options
+| Name | Type | Default | Options | Since | Description |
+|------|------|---------|---------|-------|-------------|
 | horseshoe_color | color | **required** |any # or var() color| v0.8.0 | Color of shoe if `shoe_fill_style` = `fixed`
 | horseshoe_width | pixels | optional |size in pixels| v0.8.0 | Width of shoe
-| horseshoe_style | string | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 | colorstops | list | **required** || v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
 
 #### Shoe fill styles
-| Option | Requires | Description
-|--------|----------|-------------|
-| autominmax | `colorstop` list with at least 2 values | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
+| Option | Requires | Since | Description
+|--------|----------|-------|-------------|
+| autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
 | fixed | `shoe_color` | Fills the shoe with a single color
-| colorstop | `colorstop` list with at least 2 values | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
-| colorstopgradient | `colorstop` list with at least 2 values | Same as `colorstop`, but a gradient is used between colorstops
-| lineargradient | `colorstop` list with at least 2 values | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
+| colorstop | `colorstop` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
+| colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
+| lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 
 #### Entities list
@@ -143,6 +146,7 @@ All options are optional.
 | Name | Default | Parameter | Description |
 |------|:-------:|:---------:|-------------|
 | scale | true | `true` / `false` | Display scale
+| horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 
 ### Example usage
 
