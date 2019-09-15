@@ -1,7 +1,3 @@
-# TODO:
-filter optie toevoegen die het css filternaam aangeeft. Dan wat standaard filters in de card doen, en de rest kan eventueel ook in de style | gedaan worden, dan kunnen mensen ook hun eigen custom css filter definieren en gebruiken.
-
-
 # Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
  
@@ -83,18 +79,18 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 |------|------|---------|-------|-------------|
 | type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
 | entities | list | **required** | v0.8.0 | One or more sensor entities in a list. See [available entity options](#available-entity-options) for requirements.
-| layout | list/map | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [layout options](#layout-options) for requirements.
-| animations | list/map | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depedning on the state of a given entity. See [animation options](#animation-options) for requirements.
-| show | list/map | optional | | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [show options](#showr-options) for requirements.
+| layout | list/map | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.
+| animations | list/map | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements.
+| show | list/map | optional | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [availableshow options](#available-show-options) for requirements.
 | horseshoe_scale | map | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
 | horseshoe_state | map | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
-| horseshoe color_stops | list | optional | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
+| horseshoe color_stops | list | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
 
 #### Available entity options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | attribute | string | optional | v0.8.0 | The attribute to be used for the entity.
-| unit | string | optional | v0.8.0 | Overrides the entity or attribute unit to be displayed.
+| unit | string | optional | v0.8.0 | Specifies the entity or attribute unit to be displayed.
 | decimals | number | optional | v0.8.0 | Specifies the decimals to format the entity or attribute value.
 | name | string | optional | v0.8.0 | Name used for entity or attribute. Overwrites the `friendly_name` attribute.
 | area | string | optional | v0.8.0 | Area used for entity or attribute.
@@ -119,25 +115,31 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | Option | Requires | Since | Description
 |--------|----------|-------|-------------|
 | autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
-| fixed | `shoe_color` | Fills the shoe with a single color
+| fixed | `shoe_color` | v0.8.0 | Fills the shoe with a single color
 | colorstop | `colorstop` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
 | colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
 | lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 
-#### Entities list
+#### Available layout options
 Providing options are optional, entities can be listed directly, see example below.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | entity | string | **required** | v0.8.0 | Entity id of the sensor.
 
-#### Attributes list
+#### Available animation options
 Attributes are optional, but if an attribute is given, the entitie must be listed too.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | attribute | string | **required** | v0.8.0 | Attribute id of the sensor.
+
+#### Predefined animations
+| Name | Type | Since | Description |
+|------|:----:|-------|-------------|
+| jello | attention | v0.8.0 | - animation: jello 1s ease-in-out both; <br/>- transform-origin: center;
+| zoomOut | zoom | v0.8.0 | - animation: zoomOut 1s ease-out both; </br>- transform-origin: center;
 
 
 #### Available show options
