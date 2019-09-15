@@ -122,43 +122,52 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 
 
 #### Available layout options
-Providing options are optional, entities can be listed directly, see example below.
+The layout options determine where the objects are located on the card, and their initial appearance like font, font size, color, width, fill color, stroke color, etc.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| entity | string | **required** | v0.8.0 | Entity id of the sensor.
+| <object> | string | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
 
 #### Available animation options
-Attributes are optional, but if an attribute is given, the entitie must be listed too.
+Animations are optional, and are driven by state changes of a given entity or attributge.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| attribute | string | **required** | v0.8.0 | Attribute id of the sensor.
+| entity.<x> | string | **required** | v0.8.0 | Entity id which triggers the animation. In the form of entity.1 for the SECOND entity in the entity list. If an attribute is specified, the attribute triggers the animation.
+| state | string | **required** | v0.8.0 | specifies the state like 'on', or 'off' the animation is meant for
+| circles, hlines, vlines, icons | list | v0.8.0 | list of objects with animations
+
+#### Available circle, hline, vline, icon animation styles
+| Name | Type | Default | Since | Description |
+|------|:----:|:-------:|-------|-------------|
+| animation_id | number | **required** | v0.8.0 | the unique (for this card) animation_id. Is also referred to by the layout.
+| styles | list | **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!
+| reuse | boolean | `false` | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out.
 
 #### Predefined animations
 | Name | Type | Since | Description |
 |------|:----:|-------|-------------|
 | bounce | attention | v0.8.0 | `styles:`<br/>`- animation: bounce 1s ease-in-out both;`<br/>`- transform-origin: center bottom;`
-| flash | attention | v0.8.0 | `styles:<br/>- animation: flash 1s ease-in-out both; <br/>- transform-origin: center;`
-| headShake | attention | v0.8.0 | `styles:<br/>- animation: headShake 1s ease-in-out both; <br/>- transform-origin: center;`
-| heartBeat | attention | v0.8.0 | `styles:<br/>- animation: heartBeat 1.3s ease-in-out both; <br/>- transform-origin: center;`
-| jello | attention | v0.8.0 | `styles:<br/>- animation: jello 1s ease-in-out both; <br/>- transform-origin: center;`
-| pulse | attention | v0.8.0 | `styles:<br/>- animation: pulse 1s ease-in-out both; <br/>- transform-origin: center;`
-| rubberBand | attention | v0.8.0 | `styles:<br/>- animation: rubberBand 1s ease-in-out both; <br/>- transform-origin: center;`
-| shake| attention | v0.8.0 | `styles:<br/>- animation: shake 1s ease-in-out both; <br/>- transform-origin: center;`
-| swing | attention | v0.8.0 | `styles:<br/>- animation: swing 1s ease-in-out both; <br/>- transform-origin: top center;`
-| tada | attention | v0.8.0 | `styles:<br/>- animation: tada 1s ease-in-out both; <br/>- transform-origin: center;`
-| wobble | attention | v0.8.0 | `styles:<br/>- animation: wobble 1s ease-in-out both; <br/>- transform-origin: center;`
-| zoomOut | zooming | v0.8.0 | `styles:<br/>- animation: zoomOut 1s ease-out both; </br>- transform-origin: center;`
-| zoomIn | zooming | v0.8.0 | `styles:<br/>- animation: zoomIn 1s ease-out both; </br>- transform-origin: center;`
+| flash | attention | v0.8.0 | `styles:`<br/>`- animation: flash 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| headShake | attention | v0.8.0 | `styles:`<br/>`- animation: headShake 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| heartBeat | attention | v0.8.0 | `styles:`<br/>`- animation: heartBeat 1.3s ease-in-out both;`<br/>`- transform-origin: center;`
+| jello | attention | v0.8.0 | `styles:`<br/>`- animation: jello 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| pulse | attention | v0.8.0 | `styles:`<br/>`- animation: pulse 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| rubberBand | attention | v0.8.0 | `styles:`<br/>`- animation: rubberBand 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| shake| attention | v0.8.0 | `styles:`<br/>`- animation: shake 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| swing | attention | v0.8.0 | `styles:`<br/>`- animation: swing 1s ease-in-out both;`<br/>`- transform-origin: top center;`
+| tada | attention | v0.8.0 | `styles:`<br/>`- animation: tada 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| wobble | attention | v0.8.0 | `styles:`<br/>`- animation: wobble 1s ease-in-out both;`<br/>`- transform-origin: center;`
+| zoomOut | zooming | v0.8.0 | `styles:`<br/>`- animation: zoomOut 1s ease-out both;`</br>`- transform-origin: center;`
+| zoomIn | zooming | v0.8.0 | `styles:`<br/>`- animation: zoomIn 1s ease-out both;`</br>`- transform-origin: center;`
 
 
 #### Available show options
 All options are optional.
 
-| Name | Default | Parameter | Description |
-|------|:-------:|:---------:|-------------|
-| scale | true | `true` / `false` | Display scale
+| Name | Default | Parameter | Since |Description |
+|------|:-------:|:---------:|-------|-------------|
+| scale | true | `true` / `false` |  v0.8.0 |Display scale
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 
 ### Example usage
