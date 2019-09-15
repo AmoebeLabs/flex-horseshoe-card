@@ -94,6 +94,38 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | area | string | optional | v0.8.0 | Area used for entity or attribute.
 | tap_action | list/map | optional | v0.8.0 | How to respond to a mouse-click or tap.  See [available tap actions](#available-tap-actions) for requirements.
 
+Example 1, displaying an entity:
+```yaml
+entities:
+  - entity: sensor.memory_use_percent
+    decimals: 0
+    icon: mdi:memory
+    name: '5: RAM Usage'
+    area: Hestia
+```
+
+Example 2, displaying an attribute:
+```yaml
+entities:
+  - entity: weather.dark_sky
+    attribute: temperature
+    units: '°C'
+    icon: mdi:temperature
+    decimals: 1
+    name: 'Temperature'
+```
+Example 3: a light switch:
+```yaml
+entities:
+  - entity: light.1st_floor_hall_light
+    name: 'hall'
+    icon: mdi:lightbulb
+    tap_action:
+      action: call-service
+      service: light.toggle
+      service_data: { "entity_id" : "light.1st_floor_hall_light" }
+```
+
 ### Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
