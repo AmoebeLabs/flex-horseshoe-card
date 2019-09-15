@@ -15,9 +15,9 @@ The main perk of this card is it's flexibility. It is able to position a number 
 | Animations, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
 | Several ways to color the horseshoe | From single, fixed color, to a gradient depending on a list of colorstops |
 
-## Some examples
+# Some examples
 
-### Normal, flat UI
+## Normal, flat UI
 Cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
 ![](https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
@@ -30,7 +30,7 @@ Legend:
 
 All cards use different styling for filling the horseshoe with a color.
 
-### Some extreme, industrial look, 3D UI
+## Some extreme, industrial look, 3D UI
 Using the same cards as above, but with a predefined set of filters applied.
 
 Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
@@ -38,26 +38,24 @@ Again, cards in a standard vertical stack / horizontal stack - 2 cards per row -
 ![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 ![](https://tweakers.net/ext/f/3wRqCSI3EXdysHVFAwYzqpWl/full.png)
 
-### It scales, as it is based on SVG
+## It scales, as it is based on SVG
 Using a single card in a row. Card scales to maximum width of the vertical stack card. No changes required for text size, icons, lines and state & attribute values. All thanks to SVG.
 
 ![](https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
 
-### Yes, you can interact with it. Switching lights is no problem
-![](https://tweakers.net/ext/f/gnprFbnq3DoJC75CNu1KtxmR/full.png)
-
-![](	https://tweakers.net/ext/f/ECM2VGPbYyO9kMjAmsqsCFFq/full.png)
+## Yes, you can interact with it. Switching lights is no problem
+For each entity a `tap_action` can be defined. The default is the known show-more info dialog. This can be changed in executing a service for instance.
 
 And it can be animated too using predefined animations, or just your own!
 
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
-## Install
+# Install
 
-### Install via HACS
+## Install via HACS
 Not yet supported. Will be in the future.
 
-### Manual install
+## Manual install
 
 1. Download and copy `flex-horseshoe-card.js` from github into your `config/www` directory.
 
@@ -68,13 +66,13 @@ Not yet supported. Will be in the future.
   - url: /community_plugin/flex-horseshoe-card/flex-horseshoe-card.js
       type: module
   ```
-## Using the card
+# Using the card
 
 The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
-### Options
+## Options
 
-#### Main Card options
+### Main Card options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
@@ -86,7 +84,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | horseshoe_state | map | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
 | horseshoe color_stops | list | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
 
-#### Available entity options
+### Available entity options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | attribute | string | optional | v0.8.0 | The attribute to be used for the entity.
@@ -96,7 +94,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | area | string | optional | v0.8.0 | Area used for entity or attribute.
 | tap_action | list/map | optional | v0.8.0 | How to respond to a mouse-click or tap.  See [available tap actions](#available-tap-actions) for requirements.
 
-#### Horseshoe scale options
+### Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
 | scale_min | number | **required** || v0.8.0 | Minimum number of the scale / horseshoe
@@ -104,14 +102,14 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | scale_color | color | `var(--background-color)`|any # or var color| v0.8.0 | 
 | scale_width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
 
-#### Horseshoe state options
+### Horseshoe state options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
 | horseshoe_color | color | **required** |any # or var() color| v0.8.0 | Color of shoe if `shoe_fill_style` = `fixed`
 | horseshoe_width | pixels | optional |size in pixels| v0.8.0 | Width of shoe
 | colorstops | list | **required** || v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
 
-#### Shoe fill styles
+### Shoe fill styles
 | Option | Requires | Since | Description
 |--------|----------|-------|-------------|
 | autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
@@ -121,14 +119,14 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 
-#### Available layout options
+### Available layout options
 The layout options determine where the objects are located on the card, and their initial appearance like font, font size, color, width, fill color, stroke color, etc.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | <object> | string | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
 
-#### Available animation options
+### Available animation options
 Animations are optional, and are driven by state changes of a given entity or attributge.
 
 | Name | Type | Default | Since | Description |
@@ -137,14 +135,14 @@ Animations are optional, and are driven by state changes of a given entity or at
 | state | string | **required** | v0.8.0 | specifies the state like 'on', or 'off' the animation is meant for
 | circles, hlines, vlines, icons | list | v0.8.0 | list of objects with animations
 
-#### Available circle, hline, vline, icon animation styles
+### Available circle, hline, vline, icon animation styles
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | animation_id | number | **required** | v0.8.0 | the unique (for this card) animation_id. Is also referred to by the layout.
 | styles | list | **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!
 | reuse | boolean | `false` | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out.
 
-#### Predefined animations
+### Predefined animations
 | Name | Type | Since | Description |
 |------|:----:|-------|-------------|
 | bounce | attention | v0.8.0 | `styles:`<br/>`- animation: bounce 1s ease-in-out both;`<br/>`- transform-origin: center bottom;`
@@ -162,7 +160,7 @@ Animations are optional, and are driven by state changes of a given entity or at
 | zoomIn | zooming | v0.8.0 | `styles:`<br/>`- animation: zoomIn 1s ease-out both;`</br>`- transform-origin: center;`
 
 
-#### Available show options
+### Available show options
 All options are optional.
 
 | Name | Default | Parameter | Since |Description |
@@ -170,9 +168,9 @@ All options are optional.
 | scale | true | `true` / `false` |  v0.8.0 |Display scale
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 
-### Example usage
+## Example usage
 
-#### Card example 5
+### Card example 5
 ![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 
 Card example nr 7 is configured as follows:
@@ -328,20 +326,7 @@ Card example nr 7 is configured as follows:
       box-shadow: var(--theme-card-box-shadow);
     }
 ```
-## Future plans / ideas
-There are already plans / ideas to extend this card with other functionality like switch states and actions.
-
-### Add switch state with color
-This means adding switches to the currently supported sensor values.
-This also means able to configure a color depending on the switch state of an entity or attribute.
-
-Layout wise, these cards can already be made, but parts are fixed, like the orange circle and the "AAN (ON)" state.
-
-![](/images/horseshoe-future-idea-1.png)
-
-### Add button actions if 'switch' pressed.
-See previous image.
-Pressing the button should toggle a ligh switch or something like that.
+# End notes
 
 ## License
 This project is under the MIT license.
