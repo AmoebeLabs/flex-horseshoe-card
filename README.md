@@ -138,7 +138,7 @@ Attributes are optional, but if an attribute is given, the entitie must be liste
 #### Predefined animations
 | Name | Type | Since | Description |
 |------|:----:|-------|-------------|
-| bounce | attention | v0.8.0 | `styles:<br/>- animation: bounce 1s ease-in-out both; <br/>- transform-origin: center bottom;`
+| bounce | attention | v0.8.0 | `styles:`<br/>`- animation: bounce 1s ease-in-out both;`<br/>`- transform-origin: center bottom;`
 | flash | attention | v0.8.0 | `styles:<br/>- animation: flash 1s ease-in-out both; <br/>- transform-origin: center;`
 | headShake | attention | v0.8.0 | `styles:<br/>- animation: headShake 1s ease-in-out both; <br/>- transform-origin: center;`
 | heartBeat | attention | v0.8.0 | `styles:<br/>- animation: heartBeat 1.3s ease-in-out both; <br/>- transform-origin: center;`
