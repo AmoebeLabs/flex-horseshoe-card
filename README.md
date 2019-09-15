@@ -157,155 +157,154 @@ Card example nr 7 is configured as follows:
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
-  
   entities:
-  - entity: sensor.memory_use_percent
-    decimals: 0
-    icon: mdi:memory
-    name: '5: RAM Usage'
-    area: Hestia
-  - entity: sensor.memory_use
-    decimals: 0
-    name: '(In Use)'
-  - entity: weather.dark_sky
-    attribute: temperature
-    decimals: 1
-    name: '(temp)'
-  - entity: light.1st_floor_hall_light              
-    name: 'hall'
+    - entity: sensor.memory_use_percent
+      decimals: 0
+      icon: mdi:memory
+      name: '5: RAM Usage'
+      area: Hestia
+    - entity: sensor.memory_use
+      decimals: 0
+      name: '(In Use)'
+    - entity: weather.dark_sky
+      attribute: temperature
+      decimals: 1
+      name: '(temp)'
+    - entity: light.1st_floor_hall_light              
+      name: 'hall'
   animations:
-  entity.3:
-    - state: 'on'
-    vlines:
-      - animation_id: 0
-      styles:
-        - stroke: red;
-        - opacity: 0.9;
-        - stroke-width: 5;
-        - stroke-dasharray: 7;
-        - animation: dash 5s linear;
-    hlines:
-      - animation_id: 0
-      styles:
-        - stroke: var(--theme-gradient-color-01);
-        - opacity: 0.9;
-    - state: 'off'
-    vlines:
-      - animation_id: 0
-      styles:
-        - stroke: blue;
-        - opacity: 0.9;
-    hlines:
-      - animation_id: 0
-      styles:
-        - stroke: var(--primary-background-color);
-        - opacity: 0.9;
+    entity.3:
+      - state: 'on'
+        vlines:
+          - animation_id: 0
+            styles:
+              - stroke: red;
+              - opacity: 0.9;
+              - stroke-width: 5;
+              - stroke-dasharray: 7;
+              - animation: dash 5s linear;
+        hlines:
+          - animation_id: 0
+            styles:
+              - stroke: var(--theme-gradient-color-01);
+              - opacity: 0.9;
+      - state: 'off'
+        vlines:
+          - animation_id: 0
+            styles:
+              - stroke: blue;
+              - opacity: 0.9;
+        hlines:
+          - animation_id: 0
+            styles:
+              - stroke: var(--primary-background-color);
+              - opacity: 0.9;
   card_filter: card--dropshadow-heavy--sepia90
   show:
-  scale_tickmarks: true
+    scale_tickmarks: true
   layout:
-  hlines:
-    - animation_id: 0
-    xpos: 50
-    ypos: 38
-    length: 40
-    styles:
-      - stroke: var(--theme-gradient-color-01);
-      - stroke-width: 5;
-      - opacity: 0.9;
-      - stroke-linecap: round;
-    color: 'var(--theme-gradient-color-01)'
-    width: 5
-    opacity: 0.9
-  vlines:
-    - animation_id: 0
-    xpos: 50
-    ypos: 56
-    length: 20
-    styles:
-      - stroke: white;
-      - opacity: 0.5;
-      - stroke-width: 2;
-      - stroke-linecap: round;
-    color: white
-    opacity: 0.5
-  states:
-    - id: 0
-    entity_index: 0
-    xpos: 50
-    ypos: 30
-    uom_font_size: 1.8
-    styles:
-      - font-size: 3em;
-      - opacity: 0.9;
-    - id: 1
-    entity_index: 1
-    xpos: 46
-    ypos: 54
-    uom_font_size: 0.9
-    styles:
-      - font-size: 1.5em;
-      - text-anchor: end;
-    - id: 2
-    entity_index: 2
-    xpos: 54
-    ypos: 54
-    uom_font_size: 0.9
-    styles:
-      - font-size: 1.5em;
-      - text-anchor: start;
-  names:
-    - id: 0
-    entity_index: 0
-    xpos: 50
-    ypos: 100
-    styles:
-      - font-size: 1.2em;
-    - id: 1
-    entity_index: 1
-    xpos: 46
-    ypos: 62
-    styles:
-      - font-size: 0.8em;
-      - text-anchor: end;
-      - opacity: 0.7;
-    - id: 2
-    entity_index: 2
-    xpos: 54
-    ypos: 62
-    styles:
-      - font-size: 0.8em;
-      - text-anchor: start;
-      - opacity: 0.7;
-  areas:
-    - id: 0
-    entity_index: 0
-    xpos: 50
-    ypos: 85
-    styles:
-      - font-size: 1.2em;
+    hlines:
+      - animation_id: 0
+        xpos: 50
+        ypos: 38
+        length: 40
+        styles:
+          - stroke: var(--theme-gradient-color-01);
+          - stroke-width: 5;
+          - opacity: 0.9;
+          - stroke-linecap: round;
+        color: 'var(--theme-gradient-color-01)'
+        width: 5
+        opacity: 0.9
+    vlines:
+      - animation_id: 0
+        xpos: 50
+        ypos: 56
+        length: 20
+        styles:
+          - stroke: white;
+          - opacity: 0.5;
+          - stroke-width: 2;
+          - stroke-linecap: round;
+        color: white
+        opacity: 0.5
+    states:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 30
+        uom_font_size: 1.8
+        styles:
+          - font-size: 3em;
+          - opacity: 0.9;
+      - id: 1
+        entity_index: 1
+        xpos: 46
+        ypos: 54
+        uom_font_size: 0.9
+        styles:
+          - font-size: 1.5em;
+          - text-anchor: end;
+      - id: 2
+        entity_index: 2
+        xpos: 54
+        ypos: 54
+        uom_font_size: 0.9
+        styles:
+          - font-size: 1.5em;
+          - text-anchor: start;
+    names:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 100
+        styles:
+          - font-size: 1.2em;
+      - id: 1
+        entity_index: 1
+        xpos: 46
+        ypos: 62
+        styles:
+          - font-size: 0.8em;
+          - text-anchor: end;
+          - opacity: 0.7;
+      - id: 2
+        entity_index: 2
+        xpos: 54
+        ypos: 62
+        styles:
+          - font-size: 0.8em;
+          - text-anchor: start;
+          - opacity: 0.7;
+    areas:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 85
+        styles:
+          - font-size: 1.2em;
   horseshoe_state:
-  color:  'var(--theme-gradient-color-01)'
+    color:  'var(--theme-gradient-color-01)'
   horseshoe_scale:
-  min: 0
-  max: 100
-  color: 'var(--primary-background-color)'
-  width: 6
+    min: 0
+    max: 100
+    color: 'var(--primary-background-color)'
+    width: 6
   color_stops:
-  0: 'var(--theme-gradient-color-01)'
-  10: 'var(--theme-gradient-color-02)'
-  20: 'var(--theme-gradient-color-03)'
-  30: 'var(--theme-gradient-color-04)'
-  40: 'var(--theme-gradient-color-05)'
-  50: 'var(--theme-gradient-color-06)'
-  60: 'var(--theme-gradient-color-07)'
-  70: 'var(--theme-gradient-color-08)'
-  80: 'var(--theme-gradient-color-09)'
-  90: 'var(--theme-gradient-color-10)'
+    0: 'var(--theme-gradient-color-01)'
+    10: 'var(--theme-gradient-color-02)'
+    20: 'var(--theme-gradient-color-03)'
+    30: 'var(--theme-gradient-color-04)'
+    40: 'var(--theme-gradient-color-05)'
+    50: 'var(--theme-gradient-color-06)'
+    60: 'var(--theme-gradient-color-07)'
+    70: 'var(--theme-gradient-color-08)'
+    80: 'var(--theme-gradient-color-09)'
+    90: 'var(--theme-gradient-color-10)'
   style: |
-  ha-card {
-    box-shadow: var(--theme-card-box-shadow);
-  }
+    ha-card {
+      box-shadow: var(--theme-card-box-shadow);
+    }
 ```
 ## Future plans / ideas
 There are already plans / ideas to extend this card with other functionality like switch states and actions.
