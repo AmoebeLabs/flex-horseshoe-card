@@ -9,16 +9,15 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 
 The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
 
-The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it:
+The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it using a layout specification for each object you want on the card:
 
 | Feature | Note        |
 |---------|-------------|
-| Any number of entities | *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.*
-| Any number of attributes | Attributes are linked to an entity via their index in the lists.
-| List of units | To override the unit defined by the entity/attribute. Linked via index in list.
-| Any number of Icons | Icons are currently NOT linked to the entity or attribute, you just specify a list of icons.
-| Any number of names and area's | These are treated as text strings, which can be placed anywhere on the card
-| Any number of dots, horizontal and vertical lines | To function as a divider between values.
+| Any number of entities | *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.* <br /><br />For each entity, the attribute, units, icon, name and area can be specified.
+| Any number of circles, horizontal and vertical lines | To function as a divider between values or background for values.
+| The layout of the card | YOu can specify each object with a relative position on the card |
+| Animations, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
+| Several ways to color the horseshoe | From single, fixed color, to a gradient depending on a list of colorstops |
 
 ## Some examples
 
