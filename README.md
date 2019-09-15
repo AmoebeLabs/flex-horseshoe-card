@@ -150,82 +150,193 @@ All options are optional.
 
 ### Example usage
 
-#### Card example 7
+#### Card example 5
 ![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 
 Card example nr 7 is configured as follows:
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
+  
+  # Toch handiger om samen te voegen. Veel minder foutgevoelig, en ook normaal in andere cards.
+  # daar spec je per entity de data. Is ook qua verwerking niet lastig denk ik zomaar.
+  #
+  # Dan dus wel losse 'text', freetext: ofzo voor vrije tekst die niks te maken heeft met entity.
+  # geen probleem natuurlijk. Is gewoon extra functie...
+  
   entities:
-    - sensor.disk_use
-    - sensor.disk_use_percent
-    - sensor.disk_free
-  decimals:
-    - 1
-    - 1
-    - 1
-  icons:
-    - mdi:harddisk
-  names:
-    - '7: Disk Usage'
-  areas:
-    - Hestia
-  scaleTickSize: 50
-  show:
-    scale: true
-  layout:
-    icons:
-      - index: 0
-        xpos: 50
-        ypos: 20
-        size: 3
+  - entity: sensor.memory_use_percent
+    decimals: 0
+    icon: mdi:memory
+    name: '5: RAM Usage'
+    area: Hestia
+  - entity: sensor.memory_use
+    decimals: 0
+    name: '(In Use)'
+  - entity: weather.dark_sky
+    attribute: temperature
+    decimals: 1
+    name: '(temp)'
+  - entity: light.1st_floor_hall_light              
+    name: 'hall'
+
+  # is nu vanuit de line/dot etc. wat nu als vanuit state van entity of attribute.
+  # dan alles bij elkaar als je meer wilt veranderen...
+  # dan ook mogelijk om in this. de kleuren van de objecten bij te houden. dan in de set hass kunnen deze gewijzigd worden.
+  # dat zou dan ook een automatische update geven omdat de var is veranderd die bij het renderen wordt gebruikt...
+  #
+  # button-card:
+  # - doet state: en dan value: on/off/etc. en dan styles: en dan letterlijk css stijlen. Tja zo kan het ook natuurlijk...
+  # dan kun je ook css transitions gaan doen met bewegen etc. erg leuk en makkelijk natuurlijk, toch ??
+  # dan geen aparte dinge met on/off van de fill. Je kunt van een cirkel dan ook de stroke zetten, althans als dat allemaal
+  # werkt met SVG en css. Lijkt me wel als de class goed zit? Toch wat complexer dan??????
+  # of als je de svg genereert ook de style genereren erbij. Doen we toch al, dan lijst erbij. Fouten bij de gebruiker laten liggen!!!!
+  #
+  # De button-card gebruikt de lit spullen met een styleMap(). Beetje complex lijkt dat nu... Voegt de style toe aan de shadowdom,
+  # dus niet inline zoals ik het nu doe...
+
+  animations:
+  entity.3:
+    - state: 'on'
+    vlines:
+      - animation_id: 0
+      styles:
+        - stroke: red;
+        - opacity: 0.9;
+        - stroke-width: 5;
+        - stroke-dasharray: 7;
+        - animation: dash 5s linear;
     hlines:
-      - xpos: 50
-        ypos: 48
-        length: 80
-        color: white
-        opacity: 0.5
-    dots:
-      - xpos: 50
-        ypos: 61
-        radius: 3
-        color: white
-        opacity: 0.5
-    states:
-      - index: 0
-        xpos: 50
-        ypos: 40
-        font_size: 3
-        opacity: 0.9
-      - index: 1
-        xpos: 46
-        ypos: 64
-        align: end
-        font_size: 1.7
-      - index: 2
-        xpos: 54
-        ypos: 64
-        align: start
-        font_size: 1.7
-    names:
-      - index: 0
-        xpos: 50
-        ypos: 100
-    areas:
-      - index: 0
-        xpos: 50
-        ypos: 80
-  fill: 'rgb(0,0,0,0.0)'
+      - animation_id: 0
+      styles:
+        - stroke: var(--theme-gradient-color-01);
+        - opacity: 0.9;
+    - state: 'off'
+    vlines:
+      - animation_id: 0
+      styles:
+        - stroke: blue;
+        - opacity: 0.9;
+    hlines:
+      - animation_id: 0
+      styles:
+        - stroke: var(--primary-background-color);
+        - opacity: 0.9;
+      
+  texts:
+
+  show:
+  scale_tickmarks: true
+  layout:
+  hlines:
+    - animation_id: 0
+    xpos: 50
+    ypos: 38
+    length: 40
+    styles:
+      - stroke: var(--theme-gradient-color-01);
+      - stroke-width: 5;
+      - opacity: 0.9;
+      - stroke-linecap: round;
+    color: 'var(--theme-gradient-color-01)'
+    width: 5
+    opacity: 0.9
+  vlines:
+    - animation_id: 0
+    xpos: 50
+    ypos: 56
+    length: 20
+    styles:
+      - stroke: white;
+      - opacity: 0.5;
+      - stroke-width: 2;
+      - stroke-linecap: round;
+    color: white
+    opacity: 0.5
+  states:
+    - id: 0
+    entity_index: 0
+    xpos: 50
+    ypos: 30
+    uom_font_size: 1.8
+    styles:
+      - font-size: 3em;
+      - opacity: 0.9;
+    - id: 1
+    entity_index: 1
+    xpos: 46
+    ypos: 54
+    uom_font_size: 0.9
+    styles:
+      - font-size: 1.5em;
+      - text-anchor: end;
+    - id: 2
+    entity_index: 2
+    xpos: 54
+    ypos: 54
+    uom_font_size: 0.9
+    styles:
+      - font-size: 1.5em;
+      - text-anchor: start;
+  names:
+    - id: 0
+    entity_index: 0
+    xpos: 50
+    ypos: 100
+    styles:
+      - font-size: 1.2em;
+    - id: 1
+    entity_index: 1
+    xpos: 46
+    ypos: 62
+    styles:
+      - font-size: 0.8em;
+      - text-anchor: end;
+      - opacity: 0.7;
+    - id: 2
+    entity_index: 2
+    xpos: 54
+    ypos: 62
+    styles:
+      - font-size: 0.8em;
+      - text-anchor: start;
+      - opacity: 0.7;
+  areas:
+    - id: 0
+    entity_index: 0
+    xpos: 50
+    ypos: 85
+    styles:
+      - font-size: 1.2em;
+  freetexts:
+  
+
+  horseshoe_state:
+  color:  'var(--theme-gradient-color-01)'
+  horseshoe_scale:
   min: 0
-  max: 215
-  stroke_color: 'var(--adc-gradient-color-01)'
-  stroke_back: 'var(--primary-background-color)'
-  area: hestia
+  max: 100
+  color: 'var(--primary-background-color)'
+  width: 6
   color_stops:
-    0: 'var(--adc-gradient-color-01)'
-    7800: 'var(--adc-gradient-color-10)'
+  0: 'var(--theme-gradient-color-01)'
+  10: 'var(--theme-gradient-color-02)'
+  20: 'var(--theme-gradient-color-03)'
+  30: 'var(--theme-gradient-color-04)'
+  40: 'var(--theme-gradient-color-05)'
+  50: 'var(--theme-gradient-color-06)'
+  60: 'var(--theme-gradient-color-07)'
+  70: 'var(--theme-gradient-color-08)'
+  80: 'var(--theme-gradient-color-09)'
+  90: 'var(--theme-gradient-color-10)'
+  # Gradients don't work if value/state is less then color_stops list
+  # if list until 23, and value is 22.01 -> crash. If value is until 22, then ok.
   gradient: false
+  style: |
+  ha-card {
+    box-shadow: var(--theme-card-box-shadow);
+  }
+
 ```
 ## Future plans / ideas
 There are already plans / ideas to extend this card with other functionality like switch states and actions.
