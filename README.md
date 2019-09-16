@@ -1,9 +1,7 @@
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
 
-![](	https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
-![](https://tweakers.net/ext/f/L4RSnEg8fGsOzojc5kfKaqCO/full.png)
-![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+![](https://tweakers.net/ext/f/IdGw6UgY96oDFQykpdHDb36C/full.png)
 
 ### You are looking at the first version of this card. It is not yet fully documented and tested
 * * *
