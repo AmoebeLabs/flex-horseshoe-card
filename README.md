@@ -3,7 +3,12 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
-### v0.8.0 is the first public version of this card. Be gentle with it!
+
+*The Lovelace view of the above examples is in the repository in the example configuration folder.
+</br>So you can see how these layouts are done*
+***
+
+### v0.8.0 is the first public release of this card. Be gentle with it!
 * * *
 
 ## Introduction
@@ -158,51 +163,6 @@ entities:
       service_data: { "entity_id" : "light.1st_floor_hall_light" }
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Horseshoe section
-
-## Horseshoe scale options
-| Name | Type | Default | Options | Since | Description |
-|------|:----:|---------|---------|-------|-------------|
-| min | number | **required** | | v0.8.0 | Minimum number of the scale / horseshoe
-| max | number | **required** | | v0.8.0 | Maximum number of the scale / horseshoe
-| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled
-| width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
-
-#### Example:
-```yaml
-horseshoe_scale:
-  min: 0
-  max: 100
-  width: 6
-  color: 'var(--primary-background-color)'
-```
-## Horseshoe state options
-| Name | Type | Default | Options | Since | Description |
-|------|:----:|---------|---------|-------|-------------|
-| color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `shoe_fill_style` = `fixed`
-| width | pixels | optional |size in pixels| v0.8.0 | Width of shoe
-| colorstops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
-
-#### Example:
-```yaml
-horseshoe_state:
-  width: 12
-  color: 'var(--theme-gradient-color-01)'
-```
-## Horseshoe fill styles
-| Option | Requires | Since | Description
-|--------|----------|-------|-------------|
-| autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
-| fixed | `shoe_color` | v0.8.0 | Fills the shoe with a single color
-| colorstop | `colorstop` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
-| colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
-| lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
-
-#### The fill style is set in the show section of the card:
-```yaml
-show:
-  horseshoe_style: 'lineargradient'
-```
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Layout section
 
 ## Available layout options
@@ -210,7 +170,22 @@ The layout options determine where the objects are located on the card, and thei
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| Layout object | layout | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
+| Layout object | [layout object](#layout-object-options) | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
+
+## Layout object options
+
+| Name | Type | Default | Options | Since | Description |
+|------|:----:|---------|---------|-------|-------------|
+| id | number | *not used* | | v0.8.0 | Identifies the object.
+| xpos | percentage | **required** | percentage 0..100 | v0.8.0 | Relative x-position in card. A value of 50 (%) places the object in the middle of the x-axis
+| ypos | percentage | **required** | percentage 0..100 | v0.8.0 | Relative y-position in card. A value of 50 (%) places the object in the middle of the y-axis
+| length</br>*(lines only)* | percentage | **required** | percentage 0.100 | v0.8.0 | Relative length of a line. A value of 50 (%) means the line is half the size of the card's width
+| radius</br>*(circles only)* | pixels | **required** | > 1 / < 200 | v0.8.0 | Specifies the radius of the circle in pixels.
+| icon_size</br> *(icons only)* | em value | **required for icon**| a value of 1 = 12px | v0.8.0 | Specifies the size of the icon in em units. A calculation takes care of positioning the icon
+| align</br> *(icons only)* | position | `middle` | `start`/ `middle`/ `end` | v0.8.0 | Specifies the alignment of the icon relative to the xpos and ypos. Functions idential to the `text-anchor`css property. Used in positioning calculations for the icon.
+| entity_index | number | **required** | N/A | v0.8.0 | Refers to the 0-based index in the entity list which the layout is connected to |
+| animation_id | number | optional | an Id | v0.8.0 | Identifies an animation in the animations section. It connects this layout object with dynamic behaviour 
+| styles | list | optional | any valid css entry | v0.8.0 | specify a list of css values to style the object. Must be terminated with a semicolon `;`
 
 #### Example layout entry
 The following layout is a part of card 5 (hline, vline, state(28%) and name (5: RAM USAGE):
@@ -262,6 +237,64 @@ layout:
       styles:
         - font-size: 1.2em;
 
+```
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Horseshoe section
+
+## Horseshoe scale options
+| Name | Type | Default | Options | Since | Description |
+|------|:----:|---------|---------|-------|-------------|
+| min | number | **required** | | v0.8.0 | Minimum number of the scale / horseshoe
+| max | number | **required** | | v0.8.0 | Maximum number of the scale / horseshoe
+| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled
+| width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+
+#### Example:
+```yaml
+horseshoe_scale:
+  min: 0
+  max: 100
+  width: 6
+  color: 'var(--primary-background-color)'
+```
+## Horseshoe state options
+| Name | Type | Default | Options | Since | Description |
+|------|:----:|---------|---------|-------|-------------|
+| color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `shoe_fill_style` = `fixed`
+| width | pixels | 12 |size in pixels| v0.8.0 | Width of shoe
+| colorstops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
+
+#### Example:
+```yaml
+horseshoe_state:
+  width: 12
+  color: 'var(--theme-gradient-color-01)'
+
+color_stops:
+  0: 'var(--theme-gradient-color-01)'
+  10: 'var(--theme-gradient-color-02)'
+  20: 'var(--theme-gradient-color-03)'
+  30: 'var(--theme-gradient-color-04)'
+  40: 'var(--theme-gradient-color-05)'
+  50: 'var(--theme-gradient-color-06)'
+  60: 'var(--theme-gradient-color-07)'
+  70: 'var(--theme-gradient-color-08)'
+  80: 'var(--theme-gradient-color-09)'
+  90: 'var(--theme-gradient-color-10)'
+```
+## Horseshoe fill styles
+| Option | Requires | Since | Description
+|--------|----------|-------|-------------|
+| autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
+| fixed | `horseshoe_state .color` | v0.8.0 | Fills the shoe with a single color
+| colorstop | `colorstop` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
+| colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
+| lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
+
+#### The fill style is set in the show section of the card:
+```yaml
+show:
+  horseshoe_style: 'lineargradient'
 ```
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Animations section
