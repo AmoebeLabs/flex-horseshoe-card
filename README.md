@@ -1,21 +1,30 @@
-# Flexible Horseshoe Card, named after it's look & feel
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card, named after it's look & feel
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
- 
-### You are looking at the first version of this card. It is not yet fully documented and tested
 
-The card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
+![](	https://tweakers.net/ext/f/JRnq6D0rODy48SUOsUcFH1Bb/full.png)
+![](https://tweakers.net/ext/f/L4RSnEg8fGsOzojc5kfKaqCO/full.png)
+![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+
+### You are looking at the first version of this card. It is not yet fully documented and tested
+* * *
+
+## Introduction
+The flexible horseshoe card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it using a layout specification for each object you want on the card:
 
-| Feature | Note        |
+| Feature | Description        |
 |---------|-------------|
-| Any number of entities | *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.* <br /><br />For each entity, the attribute, units, icon, name and area can be specified.
-| Any number of circles, horizontal and vertical lines | To function as a divider between values or background for values.
-| The layout of the card | YOu can specify each object with a relative position on the card |
-| Animations, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
-| Several ways to color the horseshoe | From single, fixed color, to a gradient depending on a list of colorstops |
+| **Any** number of **entities** |For each entity, the attribute, units, icon, name, area and tap action can be specified.<br /><br /> *There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more.* 
+| **Any** number of **circles**, **horizontal** and **vertical** **lines** | To function as a divider between values or background for values.
+| The **layout** of the card | You can specify each object with a relative position on the card |
+| **Animations**, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
+| Several ways to **color** the **horseshoe** | From single, fixed color, to a gradient depending on a list of colorstops |
 
-# Some examples
+* * *
+## Table of contents
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Some examples
 
 ## Normal, flat UI
 Cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
@@ -50,7 +59,7 @@ And it can be animated too using predefined animations, or just your own!
 
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
-# Install
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Install
 
 ## Install via HACS
 Not yet supported. Will be in the future.
@@ -66,13 +75,13 @@ Not yet supported. Will be in the future.
   - url: /community_plugin/flex-horseshoe-card/flex-horseshoe-card.js
       type: module
   ```
-# Using the card
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Using the card
 
 The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
-## Options
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
-### Main Card options
+## Main Card options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
@@ -84,7 +93,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | horseshoe_state | map | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
 | horseshoe color_stops | list | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
 
-### Available entity options
+## Available entity options
 | Name | Type | Default | Since | Description |
 |------|------|---------|-------|-------------|
 | attribute | string | optional | v0.8.0 | The attribute to be used for the entity.
@@ -94,7 +103,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 | area | string | optional | v0.8.0 | Area used for entity or attribute.
 | tap_action | list/map | optional | v0.8.0 | How to respond to a mouse-click or tap.  See [available tap actions](#available-tap-actions) for requirements.
 
-Example 1, displaying an entity:
+#### Example 1, displaying an entity:
 ```yaml
 entities:
   - entity: sensor.memory_use_percent
@@ -104,7 +113,7 @@ entities:
     area: Hestia
 ```
 
-Example 2, displaying an attribute:
+#### Example 2, displaying an attribute:
 ```yaml
 entities:
   - entity: weather.dark_sky
@@ -114,7 +123,7 @@ entities:
     decimals: 1
     name: 'Temperature'
 ```
-Example 3: a light switch:
+#### Example 3: a light switch:
 ```yaml
 entities:
   - entity: light.1st_floor_hall_light
@@ -126,22 +135,38 @@ entities:
       service_data: { "entity_id" : "light.1st_floor_hall_light" }
 ```
 
-### Horseshoe scale options
-| Name | Type | Default | Options | Since | Description |
-|------|------|---------|---------|-------|-------------|
-| scale_min | number | **required** || v0.8.0 | Minimum number of the scale / horseshoe
-| scale_max | number | **required** || v0.8.0 | Maximum number of the scale / horseshoe
-| scale_color | color | `var(--background-color)`|any # or var color| v0.8.0 | 
-| scale_width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Horseshoe section
 
-### Horseshoe state options
+## Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|------|---------|---------|-------|-------------|
-| horseshoe_color | color | **required** |any # or var() color| v0.8.0 | Color of shoe if `shoe_fill_style` = `fixed`
+| min | number | **required** | | v0.8.0 | Minimum number of the scale / horseshoe
+| max | number | **required** | | v0.8.0 | Maximum number of the scale / horseshoe
+| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled
+| width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+
+#### Example:
+```yaml
+horseshoe_scale:
+  min: 0
+  max: 100
+  width: 6
+  color: 'var(--primary-background-color)'
+```
+## Horseshoe state options
+| Name | Type | Default | Options | Since | Description |
+|------|------|---------|---------|-------|-------------|
+| horseshoe_color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `shoe_fill_style` = `fixed`
 | horseshoe_width | pixels | optional |size in pixels| v0.8.0 | Width of shoe
-| colorstops | list | **required** || v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
+| colorstops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
 
-### Shoe fill styles
+#### Example:
+```yaml
+horseshoe_state:
+  width: 12
+  color: 'var(--theme-gradient-color-01)'
+```
+## Horseshoe fill styles
 | Option | Requires | Since | Description
 |--------|----------|-------|-------------|
 | autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
@@ -150,32 +175,91 @@ entities:
 | colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
 | lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
+#### The fill style is set in the show section of the card:
+```yaml
+show:
+  horseshoe_style: 'lineargradient'
+```
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Layout section
 
-### Available layout options
+## Available layout options
 The layout options determine where the objects are located on the card, and their initial appearance like font, font size, color, width, fill color, stroke color, etc.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| <object> | string | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
+| Layout object | layout | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
 
-### Available animation options
+#### Example layout entry
+The following layout is a part of card 5 (hline, vline, state(28%) and name (5: RAM USAGE):
+
+![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
+
+- xpos, ypos and length are **percentages**
+- both the hline and vline respond to the same animation (have id 0), ie state.
+- state layout 0 is connected to entity 0, ie the first entity in the entities section
+- name layout 0 is also connected to entity 0
+
+```yaml
+layout:
+  hlines:
+    - id: 0
+      animation_id: 0
+      xpos: 50
+      ypos: 38
+      length: 40
+      styles:
+        - stroke: var(--theme-gradient-color-01);
+        - stroke-width: 5;
+        - opacity: 0.9;
+        - stroke-linecap: round;
+  vlines:
+    - id: 0
+      animation_id: 0
+      xpos: 50
+      ypos: 56
+      length: 20
+      styles:
+        - stroke: white;
+        - opacity: 0.5;
+        - stroke-width: 2;
+        - stroke-linecap: round;
+  states:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 30
+      styles:
+        - font-size: 3em;
+        - opacity: 0.9;
+  names:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 100
+      styles:
+        - font-size: 1.2em;
+
+```
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Animations section
+## Available animation options
 Animations are optional, and are driven by state changes of a given entity or attributge.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| entity.<x> | string | **required** | v0.8.0 | Entity id which triggers the animation. In the form of entity.1 for the SECOND entity in the entity list. If an attribute is specified, the attribute triggers the animation.
+| entity.<x> | string | **required** | v0.8.0 | Entity index (zero based) which triggers the animation. In the form of entity.1 for the SECOND entity in the entity list. If an attribute is specified, the attribute triggers the animation.
 | state | string | **required** | v0.8.0 | specifies the state like 'on', or 'off' the animation is meant for
-| circles, hlines, vlines, icons | list | v0.8.0 | list of objects with animations
+| circles, hlines, vlines, icons | list| **required** | v0.8.0 | list of objects with animations
 
-### Available circle, hline, vline, icon animation styles
+## Available circle, hline, vline, icon animation styles
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | animation_id | number | **required** | v0.8.0 | the unique (for this card) animation_id. Is also referred to by the layout.
 | styles | list | **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!
 | reuse | boolean | `false` | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out.
 
-### Predefined animations
-| Name | Type | Since | Description |
+## Predefined animations
+| Name | Type | Since | Example definition in the styles section of the animation |
 |------|:----:|-------|-------------|
 | bounce | attention | v0.8.0 | `styles:`<br/>`- animation: bounce 1s ease-in-out both;`<br/>`- transform-origin: center bottom;`
 | flash | attention | v0.8.0 | `styles:`<br/>`- animation: flash 1s ease-in-out both;`<br/>`- transform-origin: center;`
@@ -191,21 +275,58 @@ Animations are optional, and are driven by state changes of a given entity or at
 | zoomOut | zooming | v0.8.0 | `styles:`<br/>`- animation: zoomOut 1s ease-out both;`</br>`- transform-origin: center;`
 | zoomIn | zooming | v0.8.0 | `styles:`<br/>`- animation: zoomIn 1s ease-out both;`</br>`- transform-origin: center;`
 
+#### Example of animation for card 11:
 
-### Available show options
+![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: sensor.memory_use_percent
+    - entity: light.1st_floor_hall_light              
+  animations:
+    entity.1:
+      - state: 'on'
+        circles:
+          - animation_id: 10
+            styles:
+              - fill: var(--theme-gradient-color-08);
+              - opacity: 0.9;
+              - animation: jello 1s ease-in-out both;
+              - transform-origin: center;
+        icons:
+          - animation_id: 0
+            styles:
+              - fill: black;
+      - state: 'off'
+        circles:
+          - animation_id: 10
+            reuse: true
+            styles:
+              - transform-origin: center;
+              - animation: zoomOut 1s ease-out both;
+        icons:
+          - animation_id: 0
+            styles:
+              - fill: var(--primary-text-color);
+```
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Show section
+
+## Available show options
 All options are optional.
 
 | Name | Default | Parameter | Since |Description |
 |------|:-------:|:---------:|-------|-------------|
-| scale | true | `true` / `false` |  v0.8.0 |Display scale
+| scale_tickmarks | true | `true` / `false` |  v0.8.0 |Display scale
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
 
-## Example usage
 
-### Card example 5
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Examples section
+
+## Card example 5
 ![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 
-Card example nr 7 is configured as follows:
+Card example nr  is configured as follows:
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -358,7 +479,7 @@ Card example nr 7 is configured as follows:
       box-shadow: var(--theme-card-box-shadow);
     }
 ```
-# End notes
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) End notes
 
 ## License
 This project is under the MIT license.
