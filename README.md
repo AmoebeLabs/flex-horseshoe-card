@@ -3,7 +3,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
-### You are looking at the first version of this card. It is not yet fully documented and tested
+### v0.8.0 is the first public version of this card. Be gentle with it!
 * * *
 
 ## Introduction
