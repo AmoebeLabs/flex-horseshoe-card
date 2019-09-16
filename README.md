@@ -437,7 +437,7 @@ The definition of the simplest card, the first - unnumbered - one, is showen bel
       box-shadow: var(--theme-card-box-shadow);
     }
 ```
-## Example 2: Card 5 (the weather with temperature, humidity and air pressure)
+## Example 2: Card 5 (system monitoring: RAM usage, usage in %, and free RAM)
 
 An example with 3 entities and some lines is as follows:
 
