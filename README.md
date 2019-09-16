@@ -18,6 +18,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 | The **layout** of the card | You can specify each object with a relative position on the card |
 | **Animations**, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
 | Several ways to **color** the **horseshoe** | From single, fixed color, to a gradient depending on a list of colorstops |
+| **Actions** | Handle click actions per entity to for instance switch a light on/off |
 
 * * *
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
@@ -71,7 +72,7 @@ And it can be animated too using predefined animations, or just your own!
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Install
 
 ## Install via HACS
-Not yet supported. Will be in the future.
+This **IS** on the to-do list :smile: No worries!
 
 ## Manual install
 
