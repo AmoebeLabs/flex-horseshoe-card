@@ -22,7 +22,18 @@ The main perk of this card is it's flexibility. It is able to position a number 
 | Several ways to **color** the **horseshoe** | From single, fixed color, to a gradient depending on a list of colorstops |
 
 * * *
-## Table of contents
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
+- [Some examples](#some-examples)
+- [Install](#install)
+- [Using the card](#using-the-card)
+- [Card Options](#card-options)
+  - [Horseshoe Section](#horseshoe-section)
+  - [Layout Section](#layout-section)
+  - [Animations Section](#animations-section)
+  - [Show Section](#show-section)
+  - [Examples](#example-section)
+- [End notes](#end-notes)
+***
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Some examples
 
@@ -78,6 +89,8 @@ Not yet supported. Will be in the future.
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Using the card
 
 The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
+
+The advice will become obvious once you scroll throught the list of card options :smile:
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
