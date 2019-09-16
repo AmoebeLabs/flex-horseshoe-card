@@ -137,6 +137,7 @@ entities:
 
 ## Action object options
 (changed to be identical to mini graph card)
+
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
 | action | string | `more-info` | `more-info`, `navigate`, `call-service`, `none` | v0.8.0 |Action to perform
@@ -264,7 +265,7 @@ layout:
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Animations section
 ## Available animation options
-Animations are optional, and are driven by state changes of a given entity or attributge.
+Animations are optional, and are driven by state changes of a given entity or attribute.
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
