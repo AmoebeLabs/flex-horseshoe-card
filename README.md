@@ -387,6 +387,8 @@ There are some predefined css filters which you can use to give the full card a 
 
 The full view with all 12 examples is in the examples folder of this repository.
 
+Three examples are included in this readme for easy access.
+
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
 
