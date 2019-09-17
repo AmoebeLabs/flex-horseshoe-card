@@ -35,7 +35,8 @@ The main perk of this card is it's flexibility. It is able to position a number 
   - [Layout Section](#-layout-section)
   - [Animations Section](#-animations-section)
   - [Show Section](#-show-section)
-  - [Examples](#-example-section)
+  - [Card filter Section](#-card-filter-section)
+  - [Examples](#-examples-section)
 - [Design your OWN card](#-design-your-own-card)
 - [End notes](#-end-notes)
 ***
