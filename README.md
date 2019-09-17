@@ -109,9 +109,9 @@ The advice will become obvious once you scroll throught the list of card options
 | layout | [layout object](#available-layout-options) | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.
 | animations | [animations object](#available-animation-options) | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements.
 | show | [show object](#available-show-options) | optional | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.
-| horseshoe_scale | [horseshoe scale object](#horseshoe-scale) | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
-| horseshoe_state | [horseshoe state object](#horseshoe-state) | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
-| horseshoe color_stops | list of [color stops](#color-stops) | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
+| horseshoe_scale | [horseshoe scale object](#horseshoe-scale-options) | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale-options) for requirements.
+| horseshoe_state | [horseshoe state object](#horseshoe-state-options) | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state-options) for requirements.
+| horseshoe color_stops | list of [color stops](#horseshoe-state-options) | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#horseshoe-state-options) for requirements.
 
 ## Available entity options
 | Name | Type | Default | Since | Description |
@@ -377,7 +377,7 @@ All options are optional.
 | Name | Default | Parameter | Since |Description |
 |------|:-------:|:---------:|-------|-------------|
 | scale_tickmarks | true | `true` / `false` |  v0.8.0 |Display scale
-| horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe-fill-styles) for a description.
+| horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [horseshoe fill style list](#horseshoe-fill-styles) for a description.
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Filter section
 There are some predefined css filters which you can use to give the full card a different look. Besides the predefined, you can also define you rown using the style: section of the yaml card definition and refer to that class as the card_filter:
