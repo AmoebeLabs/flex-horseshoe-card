@@ -4,7 +4,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
 
-*The Lovelace view of the above examples is in the repository in the example configuration folder.
+*The Lovelace view of the above examples is in the repository in the examples folder.
 </br>So you can see how these layouts are done*
 ***
 
