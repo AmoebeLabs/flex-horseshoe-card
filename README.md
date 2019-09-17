@@ -27,17 +27,17 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 * * *
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
-- [Some examples](#normal,-flat-UI)
-- [Install](#install-via-hacs)
-- [Using the card](#using-the-card)
-- [Card Options](#card-options)
-  - [Horseshoe Section](#horseshoe-section)
-  - [Layout Section](#layout-section)
-  - [Animations Section](#animations-section)
-  - [Show Section](#show-section)
-  - [Examples](#example-section)
-- [Design your OWN card](#design-your-own-card)
-- [End notes](#end-notes)
+- [Some examples](#-some-examples)
+- [Install](#-install)
+- [Using the card](#-using-the-card)
+- [Card Options](#-card-options)
+  - [Horseshoe Section](#-horseshoe-section)
+  - [Layout Section](#-layout-section)
+  - [Animations Section](#-animations-section)
+  - [Show Section](#-show-section)
+  - [Examples](#-example-section)
+- [Design your OWN card](#-design-your-own-card)
+- [End notes](#-end-notes)
 ***
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Some examples
