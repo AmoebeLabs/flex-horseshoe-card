@@ -395,7 +395,11 @@ Three examples are included in this readme for easy access.
 
 
 ## Example 1: Card 1 (the weather)
+
 The definition of the simplest card, the first - unnumbered - one, is shown below:
+![](https://tweakers.net/ext/f/918jrsvvexcj1C4nDIOEpGFv/full.png)
+
+
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -444,6 +448,7 @@ The definition of the simplest card, the first - unnumbered - one, is shown belo
 ## Example 2: Card 5 (RAM usage, usage in %, and free RAM)
 
 An example with 3 entities and some lines is as follows:
+![](https://tweakers.net/ext/f/hPQCMWekPor8PLxsTH43kmFV/full.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -563,6 +568,7 @@ An example with 3 entities and some lines is as follows:
 ```
 ## Example 3: Card 11 (NUC memory % used as wattage, switching light)
 This example combines switching a light or appliance, and the power consumption of the light or appliance. This might be a typical monitoring situation.
+![](https://tweakers.net/ext/f/or9vrW7DisJzx6gI85mnvdxc/full.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
