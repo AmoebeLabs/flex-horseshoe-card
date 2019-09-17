@@ -28,7 +28,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 * * *
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
 - [Some examples](#normal,-flat-UI)
-- [Install](#install)
+- [Install](#install-via-hacs)
 - [Using the card](#using-the-card)
 - [Card Options](#card-options)
   - [Horseshoe Section](#horseshoe-section)
