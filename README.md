@@ -12,7 +12,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 * * *
 
 ## Introduction
-The flexible horseshoe card can display data from entities and attributes from the sensor domain. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
+The flexible horseshoe card can display data from entities and attributes from the sensor and other domains. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it using a layout specification for each object you want on the card:
 
@@ -51,13 +51,13 @@ Cards in a standard vertical stack / horizontal stack - 2 cards per row - combin
 Legend:
 - (3), showing a single attribute from a darksky sensor, a unit (temperature), an area and horizontal line
 - (4), showing three attributes from a darksky sensor (temperature, humidity and air pressure), units, two icons, a name and a horizontal line
-- (5), showing trhee sensors from system monitoring (ram used, ram used percentage and ram free), two sensor names ("in use" and "free"), a horizontal line and a vertical line.
+- (5), showing three sensors from system monitoring (ram used, ram used percentage and ram free), two sensor names ("in use" and "free"), a horizontal line and a vertical line.
 - (6), same as (5), bit with different horizontal and vertical line and different fill style for the horseshoe.
 
 All cards use different styling for filling the horseshoe with a color.
 
 ## Some extreme, industrial look, 3D UI
-Using the same cards as above, but with a predefined set of filters applied. In this case the `card--dropshadow-heavy--sepia90` filter for the card_filter variable.
+Using the same cards as above, but with a predefined set of filters applied. In this case the `card--dropshadow-heavy--sepia90` class filter for the card_filter variable.
 
 Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
@@ -69,10 +69,10 @@ Using a single card in a row. Card scales to maximum width of the vertical stack
 
 ![](https://tweakers.net/ext/f/JNXii52PVqvVIIKA8wWZjGla/full.png)
 
-## Yes, you can interact with it. Switching lights is no problem
+## Yes, you can interact with it. Switching lights is no problem!
 For each entity a `tap_action` can be defined. The default is the known show-more info dialog. This can be changed in executing a service for instance.
 
-And it can be animated too using predefined animations, or just your own!
+Combined with animations and states, you can alter the appearance of objects. The card containts  a list of [predefined animations](#predefined-animations), or you just create your own!
 
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
@@ -191,12 +191,11 @@ The layout options determine where the objects are located on the card, and thei
 | styles | list | optional | any valid css entry | v0.8.0 | specify a list of css values to style the object. Must be terminated with a semicolon `;`
 
 #### Example layout entry
-The following layout is a part of card 5 (hline, vline, state(28%) and name (5: RAM USAGE):
+The following layout is a part of card 5. For more complete examples, see the [examples section](#-examples-section)
 
 ![Another Example](https://tweakers.net/ext/f/xjuaTt3620GPgQyMnrrIIfth/full.png)
 
 - xpos, ypos and length are **percentages**
-- both the hline and vline respond to the same animation (have id 0), ie state.
 - state layout 0 is connected to entity 0, ie the first entity in the entities section
 - name layout 0 is also connected to entity 0
 
@@ -204,7 +203,6 @@ The following layout is a part of card 5 (hline, vline, state(28%) and name (5: 
 layout:
   hlines:
     - id: 0
-      animation_id: 0
       xpos: 50
       ypos: 38
       length: 40
@@ -215,7 +213,6 @@ layout:
         - stroke-linecap: round;
   vlines:
     - id: 0
-      animation_id: 0
       xpos: 50
       ypos: 56
       length: 20
@@ -391,6 +388,30 @@ There are some predefined css filters which you can use to give the full card a 
 The full view with all 12 examples is in the examples folder of this repository.
 
 Three examples are included in this readme for easy access.
+Most examples use the [Darksy sensor](https://www.home-assistant.io/components/darksky/) or the Home Assistant [system monitor](https://www.home-assistant.io/components/systemmonitor/).
+A few use lights, which you have to replace with your own of course.
+
+Furthermore, theme defined variables are used:
+```yaml
+  theme-card-box-shadow: 'var(--shadow-elevation-2dp_-_box-shadow)'
+  ```
+
+and:
+```yaml
+  theme-gradient-color-01: '#FFF6E3'
+  theme-gradient-color-02: '#FFE9B9'
+  theme-gradient-color-03: '#FFDA8A'
+  theme-gradient-color-04: '#FFCB5B' 
+  theme-gradient-color-05: '#FFBF37' 
+  theme-gradient-color-06: '#ffb414' 
+  theme-gradient-color-07: '#FFAD12' 
+  theme-gradient-color-08: '#FFA40E' 
+  theme-gradient-color-09: '#FF9C0B' 
+  theme-gradient-color-10: '#FF8C06' 
+  theme-gradient-color-11: '#FF8305' 
+```
+
+Define your own, or alter the example cards!
 
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
