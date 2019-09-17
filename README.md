@@ -27,7 +27,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 * * *
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
-- [Some examples](#some-examples)
+- [Some examples](#normal,-flat-UI)
 - [Install](#install)
 - [Using the card](#using-the-card)
 - [Card Options](#card-options)
@@ -183,7 +183,7 @@ The layout options determine where the objects are located on the card, and thei
 | ypos | percentage | **required** | percentage 0..100 | v0.8.0 | Relative y-position in card. A value of 50 (%) places the object in the middle of the y-axis
 | length</br>*(lines only)* | percentage | **required** | percentage 0.100 | v0.8.0 | Relative length of a line. A value of 50 (%) means the line is half the size of the card's width
 | radius</br>*(circles only)* | pixels | **required** | > 1 / < 200 | v0.8.0 | Specifies the radius of the circle in pixels.
-| icon_size</br> *(icons only)* | em value | **required for icon**| a value of 1 = 12px | v0.8.0 | Specifies the size of the icon in em units. A calculation takes care of positioning the icon
+| icon_size</br> *(icons only)* | em value | **required**| a value of 1 = 12px | v0.8.0 | Specifies the size of the icon in em units. A calculation takes care of positioning the icon
 | align</br> *(icons only)* | position | `middle` | `start`/ `middle`/ `end` | v0.8.0 | Specifies the alignment of the icon relative to the xpos and ypos. Functions idential to the `text-anchor`css property. Used in positioning calculations for the icon.
 | entity_index | number | **required** | N/A | v0.8.0 | Refers to the 0-based index in the entity list which the layout is connected to |
 | animation_id | number | optional | an Id | v0.8.0 | Identifies an animation in the animations section. It connects this layout object with dynamic behaviour 
@@ -248,7 +248,7 @@ layout:
 |------|:----:|---------|---------|-------|-------------|
 | min | number | **required** | | v0.8.0 | Minimum value of the scale / horseshoe
 | max | number | **required** | | v0.8.0 | Maximum value of the scale / horseshoe
-| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled through `show.scale_tickmarks` option.
+| color | color | `var(--primary-background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled through `show.scale_tickmarks` option.
 | width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
 
 #### Example:
