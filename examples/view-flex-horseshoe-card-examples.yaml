@@ -1,0 +1,1303 @@
+#
+#
+# View			: flex-horseshoe-card-examples (fhce)
+# Project   : Home Assistant
+# Repository: https://github.com/AmoebeLabs/
+#
+# Author    : Mars @ AmoebeLabs.com
+# 
+# License   : CC BY-SA, https://creativecommons.org/licenses/by/4.0/
+#
+# -----
+# Description:
+#   The Flexible Horseshoe Card examples view.
+#
+# Refs:
+#   - https://github.com/AmoebeLabs/flex-horseshoe-card
+#   
+###############################################################################
+
+title: FHCE
+path: fhce
+cards:
+#------------------------------------------------------------------------------
+#- type: vertical-stack
+#  cards:
+    - type: horizontal-stack
+      cards:
+
+        # Example 1::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: weather.dark_sky
+              attribute: temperature
+              decimals: 1
+              name: '1: Ut Weer'
+              area: De Maan
+              unit: '°C'
+
+          show:
+            horseshoe_style: 'lineargradient'
+          layout:
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 60
+                styles:
+                  - font-size: 3.5em;
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 35
+                styles:
+                  - font-size: 1.5em;
+                  - opacity: 0.8;
+
+          horseshoe_scale:
+            min: -10
+            max: 40
+          horseshoe_state:
+            width: 12
+            color: purple
+          color_stops:
+            10: '#ff0000'
+            15: '#008000'
+            18: '#0000FF'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 2::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: weather.dark_sky
+              attribute: temperature
+              decimals: 1
+              name: '2: Ut Weer'
+              area: De Maan
+              unit: '°C'
+            - entity: weather.dark_sky
+              attribute: humidity
+              decimals: 0
+              unit: '%'
+            - entity: weather.dark_sky
+              attribute: pressure
+              decimals: 0
+              unit: 'hPa'
+          show:
+            horseshoe_style: 'lineargradient'
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 48
+                length: 40
+                styles:
+                  - stroke: var(--primary-text-color);
+                  - stroke-width: 2;
+                  - opacity: 0.5;
+              - id: 1
+                xpos: 50
+                ypos: 20
+                length: 40
+                styles:
+                  - stroke: var(--primary-text-color);
+                  - stroke-width: 2;
+                  - opacity: 0.5;
+            circles:
+              - xpos: 50
+                ypos: 61
+                radius: 5
+                styles:
+                  - fill: var(--primary-text-color);
+                  - opacity: 0.5;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 40
+                styles:
+                  - font-size: 3em;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 64
+                styles:
+                  - text-anchor: end;
+                  - font-size: 1.6em;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 64
+                styles:
+                  - text-anchor: start;
+                  - font-size: 1.6em;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 80
+           
+          horseshoe_scale:
+            min: 10
+            max: 14
+            ticksize: 1
+          color_stops:
+            16: 'var(--theme-gradient-color-01)'
+            17: 'var(--theme-gradient-color-02)'
+            18: 'var(--theme-gradient-color-03)'
+            19: 'var(--theme-gradient-color-04)'
+            20: 'var(--theme-gradient-color-05)'
+            21: 'var(--theme-gradient-color-06)'
+            22: 'var(--theme-gradient-color-07)'
+            23: 'var(--theme-gradient-color-08)'
+            24: 'var(--theme-gradient-color-09)'
+            25: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+
+    - type: horizontal-stack
+      cards:
+
+        # Example 3::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: weather.dark_sky
+              attribute: temperature
+              decimals: 1
+              name: 'Ut Weer'
+              area: '3: De Maan'
+              unit: '°C'
+          show:
+            horseshoe_style: 'autominmax'
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 39
+                length: 40
+                styles:
+                  - stroke: var(--primary-text-color);
+                  - stroke-width: 2;
+                  - opacity: 0.5;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 65
+                styles:
+                  - font-size: 3.5em;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 30
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 95
+                styles:
+                  - font-size: 1.8em;
+          horseshoe_scale:
+            min: -10
+            max: 40
+          color_stops:
+            16: 'var(--theme-gradient-color-01)'
+            17: 'var(--theme-gradient-color-02)'
+            18: 'var(--theme-gradient-color-03)'
+            19: 'var(--theme-gradient-color-04)'
+            20: 'var(--theme-gradient-color-05)'
+            21: 'var(--theme-gradient-color-06)'
+            22: 'var(--theme-gradient-color-07)'
+            23: 'var(--theme-gradient-color-08)'
+            24: 'var(--theme-gradient-color-09)'
+            25: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 4::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: weather.dark_sky
+              attribute: temperature
+              decimals: 1
+              name: '4: Ut Weer'
+              area: De Maan
+              unit: '°C'
+            - entity: weather.dark_sky
+              attribute: humidity
+              decimals: 0
+              unit: '%'
+              icon: mdi:water-percent
+            - entity: weather.dark_sky
+              attribute: pressure
+              decimals: 0
+              unit: 'hPa'
+              icon: mdi:gauge
+          show:
+            horseshoe_style: 'lineargradient'
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 42
+                length: 40
+                styles:
+                  - stroke: var(--primary-text-color);
+                  - stroke-width: 5;
+                  - stroke-linecap: round;
+                  - opacity: 0.7;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 34
+                styles:
+                  - font-size: 3em;
+              - id: 1
+                entity_index: 1
+                xpos: 40
+                ypos: 57
+                styles:
+                  - text-anchor: start;
+                  - font-size: 1.5em;
+              - id: 2
+                entity_index: 2
+                xpos: 40
+                ypos: 72
+                styles:
+                  - text-anchor: start;
+                  - font-size: 1.5em;
+            icons:
+              - id: 0
+                entity_index: 1
+                xpos: 37
+                ypos: 57
+                align: end
+                size: 1.3
+              - id: 1
+                entity_index: 2
+                xpos: 37
+                ypos: 72
+                align: end
+                size: 1.3
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 95
+            
+          horseshoe_scale:
+            min: -10
+            max: 40
+          color_stops:
+            16: 'var(--theme-gradient-color-01)'
+            17: 'var(--theme-gradient-color-02)'
+            18: 'var(--theme-gradient-color-03)'
+            19: 'var(--theme-gradient-color-04)'
+            20: 'var(--theme-gradient-color-05)'
+            21: 'var(--theme-gradient-color-06)'
+            22: 'var(--theme-gradient-color-07)'
+            23: 'var(--theme-gradient-color-08)'
+            24: 'var(--theme-gradient-color-09)'
+            25: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+    - type: horizontal-stack
+      cards:
+
+        # Example 5::
+        #
+        #######################################################################
+              
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.memory_use_percent
+              decimals: 0
+              icon: mdi:memory
+              name: '5: RAM Usage'
+              area: Hestia
+            - entity: sensor.memory_use
+              decimals: 0
+              name: '(In Use)'
+            - entity: sensor.memory_free
+              decimals: 0
+              name: '(free)'
+
+          show:
+            scale_tickmarks: true
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 38
+                length: 40
+                styles:
+                  - stroke: var(--theme-gradient-color-01);
+                  - stroke-width: 5;
+                  - opacity: 0.9;
+                  - stroke-linecap: round;
+                color: 'var(--theme-gradient-color-01)'
+            vlines:
+              - id: 0
+                xpos: 50
+                ypos: 56
+                length: 20
+                styles:
+                  - stroke: white;
+                  - opacity: 0.5;
+                  - stroke-width: 2;
+                  - stroke-linecap: round;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 30
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.2em;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: end;
+                  - opacity: 0.7;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: start;
+                  - opacity: 0.7;
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 85
+                styles:
+                  - font-size: 1.2em;
+
+          horseshoe_state:
+            color:  'var(--theme-gradient-color-01)'
+          horseshoe_scale:
+            min: 0
+            max: 100
+            color: 'var(--primary-background-color)'
+            width: 6
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 6::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.memory_use_percent
+              decimals: 0
+              icon: mdi:memory
+              name: '6: RAM Usage'
+              area: Hestia
+            - entity: sensor.memory_use
+              decimals: 0
+              name: '(In Use)'
+            - entity: sensor.memory_free
+              decimals: 0
+              name: '(free)'
+
+          show:
+            scale_tickmarks: true
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 38
+                length: 70
+                styles:
+                  - opacity: 0.2;
+            vlines:
+              - id: 0
+                xpos: 50
+                ypos: 58
+                length: 38
+                styles:
+                  - opacity: 0.2;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 30
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 54
+                styles:
+                  - font-size: 1.6em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 54
+                styles:
+                  - font-size: 1.6em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.3em;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 62
+                styles:
+                  - font-size: 0.9em;
+                  - text-anchor: end;
+                  - opacity: 0.7;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 62
+                styles:
+                  - font-size: 0.9em;
+                  - text-anchor: start;
+                  - opacity: 0.7;
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 85
+
+          horseshoe_state:
+            color:  'var(--theme-gradient-color-04)'
+          horseshoe_scale:
+            min: 0
+            max: 100
+            color: 'var(--primary-background-color)'
+            width: 6
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+    - type: horizontal-stack
+      cards:
+
+        # Example 7::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.disk_use
+              decimals: 1
+              icon: mdi:harddisk
+              name: '7: Disk Usage'
+              area: Hestia
+            - entity: sensor.disk_use_percent
+              decimals: 1
+            - entity: sensor.disk_free
+              decimals: 1
+
+          scaleTickSize: 50
+          show:
+            scale_tickmarks: true
+
+          layout:
+            icons:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 20
+                size: 3
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 48
+                length: 80
+                styles:
+                  - opacity: 0.5;
+            circles:
+              - id: 0
+                xpos: 50
+                ypos: 61
+                radius: 3
+                styles:
+                  - fill : white;
+                  - opacity: 0.5;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 40
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 0
+                entity_index: 1
+                xpos: 46
+                ypos: 64
+                styles:
+                  - font-size: 1.7em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 64
+                styles:
+                  - font-size: 1.7em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 80
+          horseshoe_scale:
+            min: 0
+            max: 215
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            215: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 8::
+        #
+        #######################################################################
+              
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.processor_use
+              decimals: 0
+              icon: mdi:memory
+              name: '8: CPU Load'
+              area: Hestia
+            - entity: sensor.load_1m
+              decimals: 2
+              unit: '1m'
+            - entity: sensor.load_5m
+              decimals: 2
+              unit: '5m'
+
+          show:
+            scale_tickmarks: true
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 38
+                length: 40
+                styles:
+                  - stroke: var(--theme-gradient-color-01);
+                  - stroke-width: 5;
+                  - opacity: 0.9;
+                  - stroke-linecap: round;
+                color: 'var(--theme-gradient-color-01)'
+            vlines:
+              - id: 0
+                xpos: 50
+                ypos: 56
+                length: 20
+                styles:
+                  - stroke: white;
+                  - opacity: 0.5;
+                  - stroke-width: 2;
+                  - stroke-linecap: round;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 30
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.2em;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: end;
+                  - opacity: 0.7;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: start;
+                  - opacity: 0.7;
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 85
+                styles:
+                  - font-size: 1.2em;
+
+          horseshoe_state:
+            color:  'var(--theme-gradient-color-01)'
+          horseshoe_scale:
+            min: 0
+            max: 100
+            color: 'var(--primary-background-color)'
+            width: 6
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+
+    - type: horizontal-stack
+      cards:
+
+        # Example 11::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: sensor.memory_use_percent
+              decimals: 0
+              name: '11: One Bulb'
+              area: Hestia
+              unit: W
+              decimals: 0
+              tap_action:
+                action: more-info
+            - entity: light.1st_floor_hall_light              
+              name: 'hall'
+              icon: mdi:lightbulb
+              tap_action:
+                action: call-service
+                service: light.toggle
+                service_data: { "entity_id" : "light.1st_floor_hall_light" }
+
+          texts:
+          
+          card_filter: card--dropshadow-none
+          
+          animations:
+            entity.1:
+              - state: 'on'
+                circles:
+                  - animation_id: 10
+                    styles:
+                      - fill: var(--theme-gradient-color-08);
+                      - opacity: 0.9;
+                      - animation: jello 1s ease-in-out both;
+                      - transform-origin: center;
+                icons:
+                  - animation_id: 0
+                    styles:
+                      - fill: black;
+              - state: 'off'
+                circles:
+                  - animation_id: 10
+                    reuse: true
+                    styles:
+                      - transform-origin: center;
+                      - animation: zoomOut 1s ease-out both;
+                icons:
+                  - animation_id: 0
+                    styles:
+                      - fill: var(--primary-text-color);
+
+          show:
+            horseshoe_style: 'lineargradient'
+            
+          layout:
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 28
+                uom_font_size: 1.5
+                styles:
+                  - font-size: 2.5em;
+                  - opacity: 0.9;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.2em;
+                  - opacity: 0.7;
+              - id: 1
+                entity_index: 1
+                xpos: 50
+                ypos: 78
+                styles:
+                  - font-size: 1.5em;
+            icons:
+              - id: 0
+                animation_id: 0
+                xpos: 50
+                ypos: 55
+                entity_index: 1
+                icon_size: 3.5
+                styles:
+                  - color: white;
+            circles:
+              - id: 0
+                animation_id: 0
+                xpos: 50
+                ypos: 50
+                radius: 35
+                styles:
+                  - fill: var(--primary-background-color);
+              - id: 1
+                animation_id: 10
+                xpos: 50
+                ypos: 50
+                radius: 30
+                entity_index: 1
+                styles:
+                  - fill: var(--primary-background-color);
+
+          horseshoe_scale:
+            min: 0
+            max: 100
+            width: 6
+            color: 'var(--primary-background-color)'
+          horseshoe_state:
+            width: 12
+            color: 'var(--theme-gradient-color-01)'
+          color_stops:
+            0:  'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 12::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          entities:
+            - entity: sensor.memory_use_percent
+              decimals: 0
+              name: '12: Two Bulbs'
+              area: Hestia
+              unit: W
+              decimals: 0
+              tap_action:
+                action: more-info
+            - entity: light.1st_floor_hall_light              
+              name: 'hall'
+              icon: mdi:lightbulb
+              tap_action:
+                action: call-service
+                service: light.toggle
+                service_data: { "entity_id" : "light.1st_floor_hall_light" }
+            - entity: light.gledopto
+              name: 'opto'
+              icon: mdi:lightbulb
+              tap_action:
+                action: call-service
+                service: light.toggle
+                service_data: { "entity_id" : "light.gledopto" }
+
+          texts:
+
+          animations:
+            entity.1:
+              - state: 'on'
+                circles:
+                  - animation_id: 1
+                    styles:
+                      - fill: var(--theme-gradient-color-03);
+                      - opacity: 0.9;
+                icons:
+                  - animation_id: 0
+                    styles:
+                      - fill: black;
+
+              - state: 'off'
+                circles:
+                  - animation_id: 1
+                    styles:
+                      - fill: var(--primary-background-color);
+                      - opacity: 0.7;
+                icons:
+                  - animation_id: 0
+                    styles:
+                      - fill: var(--primary-text-color);
+            entity.2:
+              - state: 'on'
+                circles:
+                  - animation_id: 3
+                    styles:
+                      - fill: var(--theme-gradient-color-03);
+                      - stroke-width: 1;
+                      - stroke: blue;
+                      - opacity: 0.9;
+                      - stroke-dasharray: 100;
+                      - stroke-dashoffset: 1000;
+                      - animation: stroke 2s ease-out forwards;
+
+                icons:
+                  - animation_id: 1
+                    styles:
+                      - fill: black;
+
+              - state: 'off'
+                circles:
+                  - animation_id: 3
+                    styles:
+                      - fill: var(--primary-background-color);
+                      - opacity: 0.7;
+                icons:
+                  - animation_id: 1
+                    styles:
+                      - fill: var(--primary-text-color);
+
+          show:
+            horseshoe_style: 'fixed'
+          layout:
+            states:
+              - id: 0
+                entity_index: 0
+                animation_id: 0
+                xpos: 50
+                ypos: 28
+                uom_font_size: 1.5
+                styles:
+                  - font-size: 2.5em;
+                  - opacity: 0.9;
+            names:
+              - id: 0
+                animation_id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.2em;
+                  - opacity: 0.7;
+              - id: 1
+                animation_id: 1
+                entity_index: 1
+                xpos: 30
+                ypos: 78
+                styles:
+                  - font-size: 1.2em;
+              - id: 2
+                animation_id: 2
+                entity_index: 2
+                xpos: 70
+                ypos: 78
+                styles:
+                  - font-size: 1.2em;
+            icons:
+              - id: 0
+                animation_id: 0
+                xpos: 30
+                ypos: 55
+                entity_index: 1
+                icon_size: 3.5
+                styles:
+                  - color: white;
+              - id: 1
+                animation_id: 1
+                xpos: 70
+                ypos: 55
+                entity_index: 2
+                icon_size: 3.5
+                styles:
+                  - color: white;
+            circles:
+              - animation_id: 0
+                xpos: 30
+                ypos: 50
+                radius: 35
+                styles:
+                  - fill: var(--primary-background-color);
+              - animation_id: 1
+                xpos: 30
+                ypos: 50
+                radius: 30
+                entity_index: 1
+                styles:
+                  - fill: yellow;
+              - animation_id: 2
+                xpos: 70
+                ypos: 50
+                radius: 35
+                styles:
+                  - fill: var(--primary-background-color);
+              - animation_id: 3
+                xpos: 70
+                ypos: 50
+                radius: 30
+                entity_index: 2
+                styles:
+                  - fill: yellow;
+
+          horseshoe_scale:
+            min: 0
+            max: 100
+            color: 'var(--primary-background-color)'
+          horseshoe_state:
+            color: 'var(--theme-gradient-color-03)'
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+            
+    - type: horizontal-stack
+      cards:
+
+        # Example 9:: or 5b::
+        #
+        #######################################################################
+              
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.memory_use_percent
+              decimals: 0
+              icon: mdi:memory
+              name: '5b: RAM Usage'
+              area: Hestia
+            - entity: sensor.memory_use
+              decimals: 0
+              name: '(In Use)'
+            - entity: sensor.memory_free
+              decimals: 0
+              name: '(free)'
+
+          card_filter: card--dropshadow-heavy--sepia90
+          show:
+            scale_tickmarks: true
+          layout:
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 38
+                length: 40
+                styles:
+                  - stroke: var(--theme-gradient-color-01);
+                  - stroke-width: 5;
+                  - opacity: 0.9;
+                  - stroke-linecap: round;
+                color: 'var(--theme-gradient-color-01)'
+            vlines:
+              - id: 0
+                xpos: 50
+                ypos: 56
+                length: 20
+                styles:
+                  - stroke: white;
+                  - opacity: 0.5;
+                  - stroke-width: 2;
+                  - stroke-linecap: round;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 30
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 54
+                styles:
+                  - font-size: 1.5em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+                styles:
+                  - font-size: 1.2em;
+              - id: 1
+                entity_index: 1
+                xpos: 46
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: end;
+                  - opacity: 0.7;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 62
+                styles:
+                  - font-size: 0.8em;
+                  - text-anchor: start;
+                  - opacity: 0.7;
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 85
+                styles:
+                  - font-size: 1.2em;
+
+          horseshoe_state:
+            color:  'var(--theme-gradient-color-01)'
+          horseshoe_scale:
+            min: 0
+            max: 100
+            color: 'var(--primary-background-color)'
+            width: 6
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            10: 'var(--theme-gradient-color-02)'
+            20: 'var(--theme-gradient-color-03)'
+            30: 'var(--theme-gradient-color-04)'
+            40: 'var(--theme-gradient-color-05)'
+            50: 'var(--theme-gradient-color-06)'
+            60: 'var(--theme-gradient-color-07)'
+            70: 'var(--theme-gradient-color-08)'
+            80: 'var(--theme-gradient-color-09)'
+            90: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
+
+        # Example 10:: or 7b::
+        #
+        #######################################################################
+
+        - type: 'custom:flex-horseshoe-card'
+          
+          entities:
+            - entity: sensor.disk_use
+              decimals: 1
+              icon: mdi:harddisk
+              name: '7b: Disk Usage'
+              area: Hestia
+            - entity: sensor.disk_use_percent
+              decimals: 1
+            - entity: sensor.disk_free
+              decimals: 1
+
+          show:
+            scale_tickmarks: true
+          card_filter: card--dropshadow-light--sepia90
+
+          layout:
+            icons:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 20
+                size: 3
+            hlines:
+              - id: 0
+                xpos: 50
+                ypos: 48
+                length: 80
+                styles:
+                  - opacity: 0.5;
+            circles:
+              - id: 0
+                xpos: 50
+                ypos: 61
+                radius: 3
+                styles:
+                  - fill : white;
+                  - opacity: 0.5;
+            states:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 40
+                styles:
+                  - font-size: 3em;
+                  - opacity: 0.9;
+              - id: 0
+                entity_index: 1
+                xpos: 46
+                ypos: 64
+                styles:
+                  - font-size: 1.7em;
+                  - text-anchor: end;
+              - id: 2
+                entity_index: 2
+                xpos: 54
+                ypos: 64
+                styles:
+                  - font-size: 1.7em;
+                  - text-anchor: start;
+            names:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 100
+            areas:
+              - id: 0
+                entity_index: 0
+                xpos: 50
+                ypos: 80
+          horseshoe_scale:
+            min: 0
+            max: 215
+            ticksize: 50
+            
+          color_stops:
+            0: 'var(--theme-gradient-color-01)'
+            215: 'var(--theme-gradient-color-10)'
+          style: |
+            ha-card {
+              box-shadow: var(--theme-card-box-shadow);
+            }
