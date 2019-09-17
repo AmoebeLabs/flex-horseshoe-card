@@ -36,6 +36,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
   - [Animations Section](#animations-section)
   - [Show Section](#show-section)
   - [Examples](#example-section)
+- [Design your OWN card](#design-your-own-card)
 - [End notes](#end-notes)
 ***
 
@@ -49,13 +50,13 @@ Cards in a standard vertical stack / horizontal stack - 2 cards per row - combin
 Legend:
 - (3), showing a single attribute from a darksky sensor, a unit (temperature), an area and horizontal line
 - (4), showing three attributes from a darksky sensor (temperature, humidity and air pressure), units, two icons, a name and a horizontal line
-- (5), showing trhee sensors from system monitoring (ram used, ram used percentage and ram free), extra free text below the sensor values ("in use" and "free"), a horizontal line and a vertical line.
+- (5), showing trhee sensors from system monitoring (ram used, ram used percentage and ram free), two sensor names ("in use" and "free"), a horizontal line and a vertical line.
 - (6), same as (5), bit with different horizontal and vertical line and different fill style for the horseshoe.
 
 All cards use different styling for filling the horseshoe with a color.
 
 ## Some extreme, industrial look, 3D UI
-Using the same cards as above, but with a predefined set of filters applied.
+Using the same cards as above, but with a predefined set of filters applied. In this case the `card--dropshadow-heavy--sepia90` filter for the card_filter variable.
 
 Again, cards in a standard vertical stack / horizontal stack - 2 cards per row - combination.
 
@@ -83,12 +84,13 @@ This **IS** on the to-do list :smile: No worries!
 
 1. Download and copy `flex-horseshoe-card.js` from github into your `config/www` directory.
 
-2. Add a reference to `flex-horseshoe-card.js` inside your `ui-lovelace.yaml` or at the top of the *raw config editor UI*.
+2. If using the editor UI: Add a reference to `flex-horseshoe-card.js` inside your `ui-lovelace.yaml` or at the top of the *raw config editor UI*.
+3. If using yaml mode, add a reference in the resources.yaml file that is !included in your `ui-lovelac.yaml` file
 
   ```yaml
   resources:
   - url: /community_plugin/flex-horseshoe-card/flex-horseshoe-card.js
-      type: module
+    type: module
   ```
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Using the card
 
@@ -106,9 +108,9 @@ The advice will become obvious once you scroll throught the list of card options
 | layout | [layout object](#available-layout-options) | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.
 | animations | [animations object](#available-animation-options) | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements.
 | show | [show object](#available-show-options) | optional | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.
-| horseshoe_scale | map | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
+| horseshoe_scale | [horseshoe scale object](#horseshoe-scale) | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale) for requirements.
 | horseshoe_state | [horseshoe state object](#horseshoe-state) | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state) for requirements.
-| horseshoe color_stops | list | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
+| horseshoe color_stops | list of [color stops](#color-stops) | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#color-stops) for requirements.
 
 ## Available entity options
 | Name | Type | Default | Since | Description |
@@ -170,13 +172,13 @@ The layout options determine where the objects are located on the card, and thei
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| Layout object | [layout object](#layout-object-options) | **required** | v0.8.0 | Can be `states` for displaying a entity or attribute value.<br/>`names` for the name of the entity.<br/>`icons` for the entity icons.<br/>`circles` for circles.<br/>`hlines` and `vlines` for drawing lines.
+| Layout object | [layout object](#layout-object-options) | **required** | v0.8.0 | Can be <ul><li>`states` for displaying a entity or attribute value</li><li>`names` for the name of the entity.e</li><li>`icons` for the entity icons</li><li>`circles` for circles</li><li>`hlines` and `vlines` for drawing lines.</li></ul>
 
 ## Layout object options
 
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| id | number | *not used* | | v0.8.0 | Identifies the object.
+| id | number | *not used yet* | | v0.8.0 | Identifies the object.
 | xpos | percentage | **required** | percentage 0..100 | v0.8.0 | Relative x-position in card. A value of 50 (%) places the object in the middle of the x-axis
 | ypos | percentage | **required** | percentage 0..100 | v0.8.0 | Relative y-position in card. A value of 50 (%) places the object in the middle of the y-axis
 | length</br>*(lines only)* | percentage | **required** | percentage 0.100 | v0.8.0 | Relative length of a line. A value of 50 (%) means the line is half the size of the card's width
@@ -244,9 +246,9 @@ layout:
 ## Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| min | number | **required** | | v0.8.0 | Minimum number of the scale / horseshoe
-| max | number | **required** | | v0.8.0 | Maximum number of the scale / horseshoe
-| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled
+| min | number | **required** | | v0.8.0 | Minimum value of the scale / horseshoe
+| max | number | **required** | | v0.8.0 | Maximum value of the scale / horseshoe
+| color | color | `var(--background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled through `show.scale_tickmarks` option.
 | width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
 
 #### Example:
@@ -260,9 +262,9 @@ horseshoe_scale:
 ## Horseshoe state options
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `shoe_fill_style` = `fixed`
-| width | pixels | 12 |size in pixels| v0.8.0 | Width of shoe
-| colorstops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex #RRGGBB color or CSS variable (defined in the theme), ie something like var(--color)
+| color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `show.horseshoe_style` = `fixed`
+| width | pixels | 12 |size in pixels| v0.8.0 | Width of horseshoe
+| color_stops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex `#RRGGBB` color or CSS variable (defined in the theme), ie something like `var(--color)`
 
 #### Example:
 ```yaml
@@ -285,11 +287,11 @@ color_stops:
 ## Horseshoe fill styles
 | Option | Requires | Since | Description
 |--------|----------|-------|-------------|
-| autominmax | `colorstop` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
+| autominmax | `color_stops` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
 | fixed | `horseshoe_state .color` | v0.8.0 | Fills the shoe with a single color
-| colorstop | `colorstop` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
-| colorstopgradient | `colorstop` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
-| lineargradient | `colorstop` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `colorstop` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
+| colorstop | `color_stops` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
+| colorstopgradient | `color_stops` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
+| lineargradient | `color_stops` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `color_stops` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 #### The fill style is set in the show section of the card:
 ```yaml
@@ -311,7 +313,7 @@ Animations are optional, and are driven by state changes of a given entity or at
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
 | animation_id | number | **required** | v0.8.0 | the unique (for this card) animation_id. Is also referred to by the layout.
-| styles | list | **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!
+| styles | css properties list| **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!
 | reuse | boolean | `false` | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out.
 
 ## Predefined animations
@@ -374,7 +376,7 @@ All options are optional.
 | Name | Default | Parameter | Since |Description |
 |------|:-------:|:---------:|-------|-------------|
 | scale_tickmarks | true | `true` / `false` |  v0.8.0 |Display scale
-| horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe fill styles) for a description.
+| horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient`| v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [shoe fill style list](#shoe-fill-styles) for a description.
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Filter section
 There are some predefined css filters which you can use to give the full card a different look. Besides the predefined, you can also define you rown using the style: section of the yaml card definition and refer to that class as the card_filter:
@@ -393,7 +395,7 @@ Three examples are included in this readme for easy access.
 
 
 ## Example 1: Card 1 (the weather)
-The definition of the simplest card, the first - unnumbered - one, is showen below:
+The definition of the simplest card, the first - unnumbered - one, is shown below:
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -439,7 +441,7 @@ The definition of the simplest card, the first - unnumbered - one, is showen bel
       box-shadow: var(--theme-card-box-shadow);
     }
 ```
-## Example 2: Card 5 (system monitoring: RAM usage, usage in %, and free RAM)
+## Example 2: Card 5 (RAM usage, usage in %, and free RAM)
 
 An example with 3 entities and some lines is as follows:
 
@@ -488,7 +490,6 @@ An example with 3 entities and some lines is as follows:
         entity_index: 0
         xpos: 50
         ypos: 30
-        uom_font_size: 1.8
         styles:
           - font-size: 3em;
           - opacity: 0.9;
@@ -496,7 +497,6 @@ An example with 3 entities and some lines is as follows:
         entity_index: 1
         xpos: 46
         ypos: 54
-        uom_font_size: 0.9
         styles:
           - font-size: 1.5em;
           - text-anchor: end;
@@ -504,7 +504,6 @@ An example with 3 entities and some lines is as follows:
         entity_index: 2
         xpos: 54
         ypos: 54
-        uom_font_size: 0.9
         styles:
           - font-size: 1.5em;
           - text-anchor: start;
@@ -562,7 +561,7 @@ An example with 3 entities and some lines is as follows:
       box-shadow: var(--theme-card-box-shadow);
     }
 ```
-## Example 3: Card 11 (NUC memory % used as wattage, switching a single light)
+## Example 3: Card 11 (NUC memory % used as wattage, switching light)
 This example combines switching a light or appliance, and the power consumption of the light or appliance. This might be a typical monitoring situation.
 
 ```yaml
@@ -584,6 +583,8 @@ This example combines switching a light or appliance, and the power consumption 
         service: light.toggle
         service_data: { "entity_id" : "light.1st_floor_hall_light" }
 
+  texts:
+  
   card_filter: card--dropshadow-none
   
   animations:
@@ -627,7 +628,6 @@ This example combines switching a light or appliance, and the power consumption 
           - opacity: 0.9;
     names:
       - id: 0
-        index: 0
         entity_index: 0
         xpos: 50
         ypos: 100
@@ -635,7 +635,6 @@ This example combines switching a light or appliance, and the power consumption 
           - font-size: 1.2em;
           - opacity: 0.7;
       - id: 1
-        index: 1
         entity_index: 1
         xpos: 50
         ypos: 78
@@ -692,6 +691,9 @@ This example combines switching a light or appliance, and the power consumption 
     }
 ```
 
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Design your OWN card
+I hope you have found enough examples and inspiration to design your own horseshoe layout, with nice colors and functional animations. I just might include some of the community designs in this section :smile:
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) End notes
 
 ## License
@@ -707,5 +709,9 @@ The making of this card wouldn't be possible without an incredible number of res
 - Stackoverflow for so many solutions for specific problems
 - [Codepen](https://codepen.io/) for so many, many, many small CSS, SVG and HTML examples for things I didn't now how they worked
 - [jsfiddle](https://jsfiddle.net/) for so many, many, many small CSS, SVG and HTML examples for things I didn't now how they worked
-- [designschack](https://designshack.net) for all sorts of inspirations & designs
+- [designshack](https://designshack.net) for all sorts of inspirations & designs
 - [pinterest](https://nl.pinterest.com/) for color palettes and more
+
+## Personal Note
+Many, many, many years ago in the last century I learned to code C and Pascal. To make this card I had to learn the basics of a lot of new things like Javascript, HTML, CSS and the lit-element web component.
+The above resources where invaluable to accomplish this.
