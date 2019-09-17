@@ -449,7 +449,7 @@ The definition of the simplest card, the first - unnumbered - one, is shown belo
 ## Example 2: Card 5 (RAM usage, usage in %, and free RAM)
 
 An example with 3 entities and some lines is as follows:
-![](https://tweakers.net/ext/f/hPQCMWekPor8PLxsTH43kmFV/full.png)
+![](https://tweakers.net/ext/f/4DqIo9jJ1yel6QhADm1nwLFj/full.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
