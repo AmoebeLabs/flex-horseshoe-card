@@ -1,6 +1,5 @@
 #
-#
-# View			: flex-horseshoe-card-examples (fhce)
+# View		  : flex-horseshoe-card-examples (fhce)
 # Project   : Home Assistant
 # Repository: https://github.com/AmoebeLabs/
 #
@@ -11,6 +10,7 @@
 # -----
 # Description:
 #   The Flexible Horseshoe Card examples view.
+#   See: https://github.com/AmoebeLabs/flex-horseshoe-card/tree/master/examples
 #
 # Refs:
 #   - https://github.com/AmoebeLabs/flex-horseshoe-card
@@ -965,10 +965,10 @@ cards:
                   - animation_id: 3
                     styles:
                       - fill: var(--theme-gradient-color-03);
-                      - stroke-width: 1;
-                      - stroke: blue;
+                      - stroke-width: 2;
+                      - stroke: var(--primary-background-color);
                       - opacity: 0.9;
-                      - stroke-dasharray: 100;
+                      - stroke-dasharray: 94;
                       - stroke-dashoffset: 1000;
                       - animation: stroke 2s ease-out forwards;
 
@@ -1086,10 +1086,14 @@ cards:
             70: 'var(--theme-gradient-color-08)'
             80: 'var(--theme-gradient-color-09)'
             90: 'var(--theme-gradient-color-10)'
+          # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
           style: |
             ha-card {
               box-shadow: var(--theme-card-box-shadow);
             }
+            @keyframes stroke { to { stroke-dashoffset: 0; } }
+
+
             
     - type: horizontal-stack
       cards:
