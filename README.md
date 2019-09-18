@@ -365,7 +365,59 @@ Animations are optional, and are driven by state changes of a given entity or at
             styles:
               - fill: var(--primary-text-color);
 ```
+## User defined animations
+You can define your own animations too.
+Pick a unique name, add the animation to the style: section of the card, and off you go.
+Example Card 12, the bulb named "OPTO" has such a user defined animation: you see something running around if the light is switched on.
 
+There are at least a few great places for example animations and a create your own WYSIWYG animation site:
+- [CSS animations for beginners](https://thoughtbot.com/blog/css-animation-for-beginners)
+- [Animate.css](https://daneden.github.io/animate.css/), where de predefined animations come from!
+- The interactive site from Ana Travis, [Animista](http://animista.net/). A great site for creating all sorts of animations.
+#### Example of Card 12
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: sensor.memory_use_percent
+    - entity: light.1st_floor_hall_light              
+    - entity: light.gledopto
+
+  animations:
+    entity.2:
+      - state: 'on'
+        circles:
+          - animation_id: 3
+            styles:
+              - fill: var(--theme-gradient-color-03);
+              - stroke-width: 2;
+              - stroke: var(--primary-background-color);
+              - opacity: 0.9;
+              - stroke-dasharray: 94;
+              - stroke-dashoffset: 1000;
+              - animation: stroke 2s ease-out forwards;
+
+        icons:
+          - animation_id: 1
+            styles:
+              - fill: black;
+
+      - state: 'off'
+        circles:
+          - animation_id: 3
+            styles:
+              - fill: var(--primary-background-color);
+              - opacity: 0.7;
+        icons:
+          - animation_id: 1
+            styles:
+              - fill: var(--primary-text-color);
+  # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
+  style: |
+    ha-card {
+      box-shadow: var(--theme-card-box-shadow);
+    }
+    @keyframes stroke { to { stroke-dashoffset: 0; } }
+```
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Show section
 
 ## Available show options
