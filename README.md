@@ -83,7 +83,7 @@ Combined with animations and states, you can alter the appearance of objects. Th
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Install
 
 ## Install via HACS
-This **IS** on the to-do list :smile: No worries!
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
 ## Manual install
 
