@@ -791,6 +791,9 @@ The making of this card wouldn't be possible without an incredible number of res
 - [jsfiddle](https://jsfiddle.net/) for so many, many, many small CSS, SVG and HTML examples for things I didn't now how they worked
 - [designshack](https://designshack.net) for all sorts of inspirations & designs
 - [pinterest](https://nl.pinterest.com/) for color palettes and more
+- [CSS animations for beginners](https://thoughtbot.com/blog/css-animation-for-beginners)
+- [Animate.css](https://daneden.github.io/animate.css/), where de predefined animations come from!
+- The interactive site from Ana Travis, [Animista](http://animista.net/).
 
 ## Personal Note
 Many, many, many years ago in the last century I learned to code C and Pascal. To make this card I had to learn the basics of a lot of new things like Javascript, HTML, CSS and the lit-element web component.
