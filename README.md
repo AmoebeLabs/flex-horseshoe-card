@@ -803,6 +803,7 @@ The making of this card wouldn't be possible without an incredible number of res
 - [Animate.css](https://daneden.github.io/animate.css/), where the predefined animations come from!
 - The interactive site from Ana Travis, [Animista](http://animista.net/) for all your animations.
 - [The Material design palette generator](http://mcg.mbitson.com) which saved me a lot of time.
+- An [RGB Color Gradient Maker](http://www.perbang.dk/rgbgradient/)
 
 ## Personal Note
 Many, many, many years ago in the last century I learned to code C and Pascal. To make this card I had to learn the basics of a lot of new things like Javascript, HTML, CSS and the lit-element web component.
