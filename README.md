@@ -262,7 +262,11 @@ horseshoe_scale:
 |------|:----:|---------|---------|-------|-------------|
 | color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `show.horseshoe_style` = `fixed`
 | width | pixels | 12 |size in pixels| v0.8.0 | Width of horseshoe
-| color_stops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using a standard hex `#RRGGBB` color or CSS variable (defined in the theme), ie something like `var(--color)`
+
+## Horseshoe color stops
+| Name | Type | Default | Options | Since | Description |
+|------|:----:|---------|---------|-------|-------------|
+| color_stops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using:<ul><li>A standard hex `#RRGGBB` color</li><li>An `RGB()` or `RGBA()` color</li><li>A `HSL()`or `HSLA()` color</li><li>A named CSS color, ie `white`</li><li>A css variable defined in the theme, ie something like `var(--color)`</li></ul>
 
 #### Example:
 ```yaml
