@@ -1,3 +1,7 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
+![GitHub Release Date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
 
