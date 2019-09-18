@@ -378,9 +378,9 @@ You can define your own animations too.
 Pick a unique name, add the animation to the style: section of the card, and off you go.
 Example Card 12, the bulb named "OPTO" has such a user defined animation: you see something running around if the light is switched on.
 
-There are at least a few great places for example animations and a create your own WYSIWYG animation site:
+There are at least a few great places for example animations:
 - [CSS animations for beginners](https://thoughtbot.com/blog/css-animation-for-beginners)
-- [Animate.css](https://daneden.github.io/animate.css/), where de predefined animations come from!
+- [Animate.css](https://daneden.github.io/animate.css/), where the predefined animations come from!
 - The interactive site from Ana Travis, [Animista](http://animista.net/). A great site for creating all sorts of animations.
 #### Example of Card 12
 ```yaml
