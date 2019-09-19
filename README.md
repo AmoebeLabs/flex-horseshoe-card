@@ -107,7 +107,7 @@ The advice will become obvious once you scroll throught the list of card options
 ## A basic example
 This is the first card of the examples. It shows the basic definition for the flexible horseshoe card using the darksky sensor with the temperature attribute and its unit and decimals.
 
-![](https://tweakers.net/ext/f/918jrsvvexcj1C4nDIOEpGFv/full.png)
+![](https://tweakers.net/ext/f/E7UEN0oV3NIXCktT0Pr2bpjA/full.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
