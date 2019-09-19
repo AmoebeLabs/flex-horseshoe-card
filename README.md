@@ -108,11 +108,13 @@ The advice will become obvious once you scroll throught the list of card options
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
 ## Main Card required, defaulted and pure optional sections
-To give a clear overview of which of the sheer number of options are required, optional with defaults and optional the following table is made.
+The Card Options are divided into Sections. To give a clear overview of which of the sheer number of sections are required, optional with defaults and optional, the following table is made.
 
 The [examples section](#-examples-section) shows 12 examples of card definitions, from basic to using all available options!
 
 Note: The examples will get decluttering templates as an example too, to show how you can better manage and maintain the all the card layouts without loosing overview in the Lovelace views.
+
+Each section might have it's own required, defaulted and optional properties.
 
 | Name | Required | Optional /w </br> defaults | Optional | Since | Description |
 |------|:--------:|:---------:|:--------:|-------|-------------|
