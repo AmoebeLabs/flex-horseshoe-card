@@ -157,7 +157,7 @@ This is the first card of the examples. It shows the basic definition for the fl
 ```
 
 ## Extending the basic example with two more entities and a horizontal line
-This is the fourth card of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider.
+This is the fourth card of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider. We also swap the `area` with the `name` of the first entity.
 
 ![](/examples/flex-horseshoe-card--example-card-4.png)
 
