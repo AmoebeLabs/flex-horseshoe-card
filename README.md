@@ -110,6 +110,8 @@ The advice will become obvious once you scroll throught the list of card options
 ## Main Card required, defaulted and pure optional sections
 To give a clear overview of which of the sheer options are required, optional with defaults and optional the following table is made.
 
+The [examples section](#-examples-section) shows 12 examples of card definitions, from basic to using all available options!
+
 | Name | Required | Optional /w </br> defaults | Optional | Since | Description |
 |------|:--------:|:---------:|:--------:|-------|-------------|
 | type | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | | v0.8.0 |  `custom:flex-horseshoe-card`.
