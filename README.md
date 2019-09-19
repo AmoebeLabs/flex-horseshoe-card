@@ -35,12 +35,13 @@ The main perk of this card is it's flexibility. It is able to position a number 
 - [Install](#-install)
 - [Using the card](#-using-the-card)
 - [Card Options](#-card-options)
-  - [Horseshoe Section](#-horseshoe-section)
+  - [Enities Section](#-entities-section)
   - [Layout Section](#-layout-section)
-  - [Animations Section](#-animations-section)
+  - [Horseshoe Section](#-horseshoe-section)
   - [Show Section](#-show-section)
   - [Card filter Section](#-card-filter-section)
-  - [Examples](#-examples-section)
+  - [Animations Section](#-animations-section)
+- [12 reusable Examples](#-examples-section)
 - [Design your OWN card](#-design-your-own-card)
 - [End notes](#-end-notes)
 ***
@@ -103,19 +104,28 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 
 The advice will become obvious once you scroll throught the list of card options :smile:
 
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
-## Main Card options
-| Name | Type | Default | Since | Description |
-|------|:----:|---------|-------|-------------|
-| type | string | **required** | v0.8.0 | `custom:flex-horseshoe-card`.
-| entities | [entity object](#available-entity-options) | **required** | v0.8.0 | One or more sensor entities in a list. See [available entity options](#available-entity-options) for requirements.
-| layout | [layout object](#available-layout-options) | **required** | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.
-| animations | [animations object](#available-animation-options) | optional | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements.
-| show | [show object](#available-show-options) | optional | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.
-| horseshoe_scale | [horseshoe scale object](#horseshoe-scale-options) | **required** |v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale-options) for requirements.
-| horseshoe_state | [horseshoe state object](#horseshoe-state-options) | **required** |v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state-options) for requirements.
-| horseshoe color_stops | list of [color stops](#horseshoe-state-options) | **required** | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#horseshoe-state-options) for requirements.
+## Main Card required, defaulted and pure optional sections
+To give a clear overview of which of the sheer options are required, optional with defaults and optional the following table is made.
+
+| Name | Required | Optional /w </br> defaults | Optional | Since | Description |
+|------|:--------:|:---------:|:--------:|-------|-------------|
+| type | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | | v0.8.0 |  `custom:flex-horseshoe-card`.
+| entities | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | | v0.8.0 | One or more sensor entities in a list. See [entities section](#-entities-section) for requirements.
+| layout | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.
+| horseshoe_scale | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | some | | v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale-options) for requirements.
+| color_stops | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | | v0.8.0 |  Set thresholds for horseshoe gradients and colormapping. See [color stops](#horseshoe-state-options) for requirements.
+| | | | | |
+| horseshoe_state | | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | v0.8.0 |  Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state-options) for requirements.
+| show | | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.
+| card_filter | | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | v0.8.0 | 
+| entities tap_action |  | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | | v0.8.0 | How to respond to a mouse-click or tap.  See [available tap actions](#action-object-optionss) for requirements.
+| | | | | |
+| animations | | | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements.
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Entities section
 
 ## Available entity options
 | Name | Type | Default | Since | Description |
