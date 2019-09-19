@@ -246,16 +246,16 @@ This is card 4 of the examples. It extends the basic definition of card 1 with t
   # color stop list with 10 colors defined in the theme. With the `lineargradient` fill style, only the
   # first (16:) and last (25:) colors are used. The thresholds are ignored with this setting.
   color_stops:
-    16: 'var(--theme-gradient-color-01)'
-    17: 'var(--theme-gradient-color-02)'
-    18: 'var(--theme-gradient-color-03)'
-    19: 'var(--theme-gradient-color-04)'
-    20: 'var(--theme-gradient-color-05)'
-    21: 'var(--theme-gradient-color-06)'
-    22: 'var(--theme-gradient-color-07)'
-    23: 'var(--theme-gradient-color-08)'
-    24: 'var(--theme-gradient-color-09)'
-    25: 'var(--theme-gradient-color-10)'
+    16: '#FFF6E3'
+    17: '#FFE9B9'
+    18: '#FFDA8A'
+    19: '#FFCB5B'
+    20: '#FFBF37'
+    21: '#ffb414'
+    22: '#FFAD12'
+    23: '#FFA40E'
+    24: '#FF9C0B' 
+    25: '#FF8C06' 
 ```
 
 ## Extending the basic example with a lot more options like actions and animations
@@ -397,7 +397,7 @@ Let's see how that looks :smile:
         entity_index: 1
         icon_size: 3.5
         styles:
-          - color: white;
+          - color: var(--primary-text-color);;
       - id: 1
         animation_id: 20
         xpos: 70
@@ -405,32 +405,26 @@ Let's see how that looks :smile:
         entity_index: 2
         icon_size: 3.5
         styles:
-          - color: white;
+          - color: var(--primary-text-color);;
     circles:
-      # Circle index 0, belongs to left lightbulb. Is the background
-      # Required for zoomOut animation to provide background
       - animation_id: 3
         xpos: 30
         ypos: 50
         radius: 35
         styles:
           - fill: var(--primary-background-color);
-      # Circle index 1, belongs to left lightbulb. Is animated
       - animation_id: 11
         xpos: 30
         ypos: 50
         radius: 30
         entity_index: 1
 
-      # Circle index 2, belongs to right lightbulb. Is the background
-      # Required for zoomOut animation to provide background
       - animation_id: 2
         xpos: 70
         ypos: 50
         radius: 35
         styles:
           - fill: var(--primary-background-color);
-      # Circle index 3, belongs to right lightbulb. Is animated
       - animation_id: 21
         xpos: 70
         ypos: 50
@@ -442,18 +436,18 @@ Let's see how that looks :smile:
     max: 100
     color: 'var(--primary-background-color)'
   horseshoe_state:
-    color: 'var(--theme-gradient-color-03)'
+    color: '#FFDA8A'
   color_stops:
-    0: 'var(--theme-gradient-color-01)'
-    10: 'var(--theme-gradient-color-02)'
-    20: 'var(--theme-gradient-color-03)'
-    30: 'var(--theme-gradient-color-04)'
-    40: 'var(--theme-gradient-color-05)'
-    50: 'var(--theme-gradient-color-06)'
-    60: 'var(--theme-gradient-color-07)'
-    70: 'var(--theme-gradient-color-08)'
-    80: 'var(--theme-gradient-color-09)'
-    90: 'var(--theme-gradient-color-10)'
+    0: '#FFF6E3'
+    10: '#FFE9B9'
+    20: '#FFDA8A'
+    30: '#FFCB5B'
+    40: '#FFBF37'
+    50: '#ffb414'
+    60: '#FFAD12'
+    70: '#FFA40E'
+    80: '#FF9C0B' 
+    90: '#FF8C06' 
   # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
   style: |
     @keyframes stroke { to { stroke-dashoffset: 0; } }
