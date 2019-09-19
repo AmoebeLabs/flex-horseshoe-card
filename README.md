@@ -105,7 +105,7 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 The advice will become obvious once you scroll throught the list of card options :smile:
 
 ## A basic example
-This is the first card of the examples. It shows the basic definition for the flexible horseshoe card using the darksky sensor with the temperature attribute and its unit and decimals.
+This is the card 1 of the examples. It shows the basic definition for the flexible horseshoe card using the darksky sensor with the temperature attribute and its unit and decimals.
 
 ![](/examples/flex-horseshoe-card--example-card-1.png)
 
@@ -121,11 +121,11 @@ This is the first card of the examples. It shows the basic definition for the fl
     horseshoe_style: 'lineargradient'
   layout:
     states:
-       # Refers to the first entity in the list with entity_index: 0
+       # Refers to the first entity in the list, ie index 0
        # State value is positioned at (50%,60%) with a large font size
        # The size of the units are automatically calculated at 60% of the
        # state value font size and shifted upwards.
-       # The default font color is the primary-text-color css variable.
+       # The default font color is the theme defined primary-text-color.
       - id: 0
         entity_index: 0
         xpos: 50
@@ -133,10 +133,10 @@ This is the first card of the examples. It shows the basic definition for the fl
         styles:
           - font-size: 3.5em;
     areas:
-       # Refers to the first entity in the list with entity_index: 0
+       # Refers to the first entity in the list, ie index 1
        # Area value is positioned at (50%,35%) with font-size 1.5 and
-       # and opacity of 80%.
-       # The default font color is the primary-text-color css variable.
+       # an opacity of 80%.
+       # The default font color is the theme defined primary-text-color.
       - id: 0
         entity_index: 0
         xpos: 50
@@ -157,7 +157,7 @@ This is the first card of the examples. It shows the basic definition for the fl
 ```
 
 ## Extending the basic example with two more entities and a horizontal line
-This is the fourth card of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider. We also swap the `area` with the `name` of the first entity.
+This is card 4 of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider. We also swap the `area` with the `name` of the first entity.
 
 ![](/examples/flex-horseshoe-card--example-card-4.png)
 
@@ -257,6 +257,202 @@ This is the fourth card of the examples. It extends the basic definition of card
     24: 'var(--theme-gradient-color-09)'
     25: 'var(--theme-gradient-color-10)'
 ```
+
+## Extending the basic example with a lot more options like actions and animations
+This is the card 12 of the examples. It displays the wattage (memory sensor is used for this value) and the state of two lights. Both ligts can be switched on and off. The left light uses a predefined animation (yello and zoomout), the right light uses a user defined animation.
+
+Let's see how that looks :smile:
+
+![](/examples/flex-horseshoe-card--example-card-12.png)
+
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    # Abuse the memory_use_percent sensor as the wattage the bulbs use. Just to show the possibilities
+    - entity: sensor.memory_use_percent
+      decimals: 0
+      name: '12: Two Bulbs'
+      area: Hestia
+      unit: W
+      decimals: 0
+      tap_action:
+        action: more-info
+
+    # The left light displayed on the card. Index 1
+    - entity: light.1st_floor_hall_light              
+      name: 'hall'
+      icon: mdi:lightbulb
+      tap_action:
+        action: call-service
+        service: light.toggle
+        service_data: { "entity_id" : "light.1st_floor_hall_light" }
+
+    # The right light displayed on the card. Index 2
+    - entity: light.gledopto
+      name: 'opto'
+      icon: mdi:lightbulb
+      tap_action:
+        action: call-service
+        service: light.toggle
+        service_data: { "entity_id" : "light.gledopto" }
+
+  animations:
+    # Animations for the second entity, index 1
+    entity.1:
+      - state: 'on'
+        circles:
+          - animation_id: 11
+            styles:
+              - fill: var(--theme-gradient-color-03);
+              - opacity: 0.9;
+              - transform-origin: 30% 50%;
+              - animation: jello 1s ease-in-out both;
+        icons:
+          - animation_id: 10
+            styles:
+              - fill: black;
+      - state: 'off'
+        circles:
+          - animation_id: 11
+            reuse: true
+            styles:
+              - transform-origin: 30% 50%;
+              - animation: zoomOut 1s ease-out both;
+        icons:
+          - animation_id: 10
+            styles:
+              - fill: var(--primary-text-color);
+
+    # Animations for the third entity, index 2
+    entity.2:
+      - state: 'on'
+        circles:
+          - animation_id: 21
+            styles:
+              - fill: var(--theme-gradient-color-03);
+              - stroke-width: 2;
+              - stroke: var(--primary-background-color);
+              - opacity: 0.9;
+              - stroke-dasharray: 94;
+              - stroke-dashoffset: 1000;
+              - animation: stroke 2s ease-out forwards;
+
+        icons:
+          - animation_id: 20
+            styles:
+              - fill: black;
+
+      - state: 'off'
+        circles:
+          - animation_id: 21
+            styles:
+              - fill: var(--primary-background-color);
+              - opacity: 0.7;
+        icons:
+          - animation_id: 20
+            styles:
+              - fill: var(--primary-text-color);
+
+  show:
+    horseshoe_style: 'fixed'
+  layout:
+    states:
+      - id: 0
+        entity_index: 0
+        animation_id: 0
+        xpos: 50
+        ypos: 28
+        uom_font_size: 1.5
+        styles:
+          - font-size: 2.5em;
+          - opacity: 0.9;
+    names:
+      - id: 0
+        animation_id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 100
+        styles:
+          - font-size: 1.2em;
+          - opacity: 0.7;
+      - id: 1
+        animation_id: 1
+        entity_index: 1
+        xpos: 30
+        ypos: 78
+        styles:
+          - font-size: 1.2em;
+      - id: 2
+        animation_id: 2
+        entity_index: 2
+        xpos: 70
+        ypos: 78
+        styles:
+          - font-size: 1.2em;
+    icons:
+      - id: 0
+        animation_id: 10
+        xpos: 30
+        ypos: 55
+        entity_index: 1
+        icon_size: 3.5
+        styles:
+          - color: white;
+      - id: 1
+        animation_id: 20
+        xpos: 70
+        ypos: 55
+        entity_index: 2
+        icon_size: 3.5
+        styles:
+          - color: white;
+    circles:
+      - animation_id: 3
+        xpos: 30
+        ypos: 50
+        radius: 35
+        styles:
+          - fill: var(--primary-background-color);
+      - animation_id: 11
+        xpos: 30
+        ypos: 50
+        radius: 30
+        entity_index: 1
+
+      - animation_id: 2
+        xpos: 70
+        ypos: 50
+        radius: 35
+        styles:
+          - fill: var(--primary-background-color);
+      - animation_id: 21
+        xpos: 70
+        ypos: 50
+        radius: 30
+        entity_index: 2
+
+  horseshoe_scale:
+    min: 0
+    max: 100
+    color: 'var(--primary-background-color)'
+  horseshoe_state:
+    color: 'var(--theme-gradient-color-03)'
+  color_stops:
+    0: 'var(--theme-gradient-color-01)'
+    10: 'var(--theme-gradient-color-02)'
+    20: 'var(--theme-gradient-color-03)'
+    30: 'var(--theme-gradient-color-04)'
+    40: 'var(--theme-gradient-color-05)'
+    50: 'var(--theme-gradient-color-06)'
+    60: 'var(--theme-gradient-color-07)'
+    70: 'var(--theme-gradient-color-08)'
+    80: 'var(--theme-gradient-color-09)'
+    90: 'var(--theme-gradient-color-10)'
+  # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
+  style: |
+    @keyframes stroke { to { stroke-dashoffset: 0; } }
+```
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
 ## Main Card required, defaulted and pure optional sections
