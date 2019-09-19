@@ -156,6 +156,107 @@ This is the first card of the examples. It shows the basic definition for the fl
     18: 'blue'
 ```
 
+## Extending the basic example with two more entities and a horizontal line
+This is the fourth card of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider.
+
+![](/examples/flex-horseshoe-card--example-card-4.png)
+
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: weather.dark_sky
+      attribute: temperature
+      decimals: 1
+      name: '4: Ut Weer'
+      unit: '°C'
+    - entity: weather.dark_sky
+      attribute: humidity
+      decimals: 0
+      unit: '%'
+      icon: mdi:water-percent
+    - entity: weather.dark_sky
+      attribute: pressure
+      decimals: 0
+      unit: 'hPa'
+      icon: mdi:gauge
+  show:
+    horseshoe_style: 'lineargradient'
+  layout:
+    hlines:
+      # A horizontal line. Not connected to an entity
+      - id: 0
+        xpos: 50
+        ypos: 42
+        length: 40
+        styles:
+          - stroke: var(--primary-text-color);
+          - stroke-width: 5;
+          - stroke-linecap: round;
+          - opacity: 0.7;
+    states:
+      # States 0 refers to the first entity in the list, ie index 0
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 34
+        styles:
+          - font-size: 3em;
+      # States 1 refers to the second entity in the list, ie index 1
+      - id: 1
+        entity_index: 1
+        xpos: 40
+        ypos: 57
+        styles:
+          - text-anchor: start;
+          - font-size: 1.5em;
+      # States 2 refers to the third entity in the list, ie index 2
+      - id: 2
+        entity_index: 2
+        xpos: 40
+        ypos: 72
+        styles:
+          - text-anchor: start;
+          - font-size: 1.5em;
+    icons:
+      # Icons 0 refers to the second entity in the list, ie index 1
+      - id: 0
+        entity_index: 1
+        xpos: 37
+        ypos: 57
+        align: end
+        size: 1.3
+      # Icons 1 refers to the third entity in the list, ie index 2
+      - id: 1
+        entity_index: 2
+        xpos: 37
+        ypos: 72
+        align: end
+        size: 1.3
+    names:
+      # Names 0 refers to the first entity in the list, ie index 0
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 95
+    
+  # Scale set to -10 to +40 degrees celcius
+  horseshoe_scale:
+    min: -10
+    max: 40
+  # color stop list with 10 colors defined in the theme. With the `lineargradient` fill style, only the
+  # first (16:) and last (25:) colors are used. The thresholds are ignored with this setting.
+  color_stops:
+    16: 'var(--theme-gradient-color-01)'
+    17: 'var(--theme-gradient-color-02)'
+    18: 'var(--theme-gradient-color-03)'
+    19: 'var(--theme-gradient-color-04)'
+    20: 'var(--theme-gradient-color-05)'
+    21: 'var(--theme-gradient-color-06)'
+    22: 'var(--theme-gradient-color-07)'
+    23: 'var(--theme-gradient-color-08)'
+    24: 'var(--theme-gradient-color-09)'
+    25: 'var(--theme-gradient-color-10)'
+```
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
 ## Main Card required, defaulted and pure optional sections
