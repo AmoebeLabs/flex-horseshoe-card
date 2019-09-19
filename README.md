@@ -280,8 +280,15 @@ horseshoe_scale:
 ## Horseshoe state options
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| color | color | **required** |any # or var() color| v0.8.0 | Color of horseshoe if `show.horseshoe_style` = `fixed`
+| color | color | **required** |any valid color| v0.8.0 | Color of horseshoe if `show.horseshoe_style` = `fixed`
 | width | pixels | 12 |size in pixels| v0.8.0 | Width of horseshoe
+
+#### Example:
+```yaml
+horseshoe_state:
+  width: 12
+  color: 'var(--theme-gradient-color-01)'
+```
 
 ## Horseshoe color stops
 | Name | Type | Default | Options | Since | Description |
@@ -289,11 +296,8 @@ horseshoe_scale:
 | color_stops | list | **required** | | v0.8.0 | List of colorstop value and colors. Colors can be specified using:<ul><li>A standard hex `#RRGGBB` color</li><li>An `RGB()` or `RGBA()` color</li><li>A `HSL()`or `HSLA()` color</li><li>A named CSS color, ie `white`</li><li>A css variable defined in the theme, ie something like `var(--color)`</li></ul>
 
 #### Example:
+Showing a list of colorstop thresholds (0..90) and the colorstop colors, in this case a gradient colorlist from the theme
 ```yaml
-horseshoe_state:
-  width: 12
-  color: 'var(--theme-gradient-color-01)'
-
 color_stops:
   0: 'var(--theme-gradient-color-01)'
   10: 'var(--theme-gradient-color-02)'
@@ -307,13 +311,17 @@ color_stops:
   90: 'var(--theme-gradient-color-10)'
 ```
 ## Horseshoe fill styles
-| Option | Requires | Since | Description
-|--------|----------|-------|-------------|
-| autominmax | `color_stops` list with at least 2 values | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last entry in the colorstop list depening on the value of the entity or attribute.
-| fixed | `horseshoe_state .color` | v0.8.0 | Fills the shoe with a single color
-| colorstop | `color_stops` list with at least 2 values | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
-| colorstopgradient | `color_stops` list with at least 2 values | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
-| lineargradient | `color_stops` list with at least 2 values | v0.8.0 | Uses the first and last entry in the `color_stops` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
+The horseshoe can be filled in different ways. Almost all use the color_stop colors to determine the color of the horseshoe. Not all use the actual color_stop thresholds to determine the color, but just use the color_stop colors.
+
+The next table describes how the fill styles work:
+
+| Option | Requires | uses color_stop threshold | Uses entity value | Since | Description |
+|--------|----------|-----------------------|-------------------|-------|-------------|
+| autominmax | `color_stops` list with at least 2 values | uses `min` and `max` of scale | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last color in the colorstop list and the actual value of the entity or attribute.
+| fixed | `horseshoe_state .color` | | | v0.8.0 | Fills the shoe with a single color
+| colorstop | `color_stops` list with at least 2 values | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state
+| colorstopgradient | `color_stops` list with at least 2 values | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops
+| lineargradient | `color_stops` list with at least 2 values | | | v0.8.0 | Uses the first and last entry in the `color_stops` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value.
 
 #### The fill style is set in the show section of the card:
 ```yaml
