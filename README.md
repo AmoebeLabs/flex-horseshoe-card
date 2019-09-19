@@ -407,24 +407,30 @@ Let's see how that looks :smile:
         styles:
           - color: white;
     circles:
+      # Circle index 0, belongs to left lightbulb. Is the background
+      # Required for zoomOut animation to provide background
       - animation_id: 3
         xpos: 30
         ypos: 50
         radius: 35
         styles:
           - fill: var(--primary-background-color);
+      # Circle index 1, belongs to left lightbulb. Is animated
       - animation_id: 11
         xpos: 30
         ypos: 50
         radius: 30
         entity_index: 1
 
+      # Circle index 2, belongs to right lightbulb. Is the background
+      # Required for zoomOut animation to provide background
       - animation_id: 2
         xpos: 70
         ypos: 50
         radius: 35
         styles:
           - fill: var(--primary-background-color);
+      # Circle index 3, belongs to right lightbulb. Is animated
       - animation_id: 21
         xpos: 70
         ypos: 50
