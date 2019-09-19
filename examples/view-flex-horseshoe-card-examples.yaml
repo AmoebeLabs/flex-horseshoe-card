@@ -935,7 +935,7 @@ cards:
                 circles:
                   - animation_id: 11
                     styles:
-                      - fill: var(--theme-gradient-color-03);
+                      - fill: #FFDA8A;
                       - opacity: 0.9;
                       - transform-origin: 30% 50%;
                       - animation: jello 1s ease-in-out both;
@@ -961,7 +961,7 @@ cards:
                 circles:
                   - animation_id: 21
                     styles:
-                      - fill: var(--theme-gradient-color-03);
+                      - fill: #FFDA8A;
                       - stroke-width: 2;
                       - stroke: var(--primary-background-color);
                       - opacity: 0.9;
