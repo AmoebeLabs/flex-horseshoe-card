@@ -104,6 +104,57 @@ The preferred method of using this card is by [`decluttering card`](https://gith
 
 The advice will become obvious once you scroll throught the list of card options :smile:
 
+## A basic example
+This is the first card of the examples. It shows the basic definition for the flexible horseshoe card using the darksky sensor with the temperature attribute and its unit and decimals.
+
+![](https://tweakers.net/ext/f/918jrsvvexcj1C4nDIOEpGFv/full.png)
+
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: weather.dark_sky
+      attribute: temperature
+      decimals: 1
+      unit: '°C'
+      area: De Maan
+  show:
+    horseshoe_style: 'lineargradient'
+  layout:
+    states:
+       # Refers to the first entity in the list with entity_index: 0
+       # State value is positioned at (50%,60%) with a large font size
+       # The size of the units are automatically calculated at 60% of the
+       # state value font size and shifted upwards.
+       # The default font color is the primary-text-color css variable.
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 60
+        styles:
+          - font-size: 3.5em;
+    areas:
+       # Refers to the first entity in the list with entity_index: 0
+       # Area value is positioned at (50%,35%) with font-size 1.5 and
+       # and opacity of 80%.
+       # The default font color is the primary-text-color css variable.
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 35
+        styles:
+          - font-size: 1.5em;
+          - opacity: 0.8;
+
+  # Scale set to -10 to +40 degrees celcius
+  horseshoe_scale:
+    min: -10
+    max: 40
+  # color stop list with two colors. With the `lineargradient` fill style, only the
+  # colors are used. The thresholds are ignored with this setting.
+  color_stops:
+    10: 'red'
+    18: 'blue'
+```
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
 
@@ -193,7 +244,7 @@ The layout options determine where the objects are located on the card, and thei
 
 | Name | Type | Default | Since | Description |
 |------|:----:|:-------:|-------|-------------|
-| Layout object | [layout object](#layout-object-options) | **required** | v0.8.0 | Can be <ul><li>`states` for displaying a entity or attribute value</li><li>`names` for the name of the entity.e</li><li>`icons` for the entity icons</li><li>`circles` for circles</li><li>`hlines` and `vlines` for drawing lines.</li></ul>
+| Layout object | [layout object](#layout-object-options) | **required** | v0.8.0 | Entity objects:<ul><li>`states` for displaying a entity or attribute value</li><li>`names` for the name of the entity</li><li>`icons` for the entity icons</li></ul>Graphic objects:<ul><li>`circles` for circles</li><li>`hlines` and `vlines` for drawing lines.</li></ul>
 
 ## Layout object options
 
