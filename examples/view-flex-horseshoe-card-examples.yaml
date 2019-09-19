@@ -1,5 +1,6 @@
 #
-# View		  : flex-horseshoe-card-examples (fhce)
+#
+# View			: flex-horseshoe-card-examples (fhce)
 # Project   : Home Assistant
 # Repository: https://github.com/AmoebeLabs/
 #
@@ -15,6 +16,19 @@
 # Refs:
 #   - https://github.com/AmoebeLabs/flex-horseshoe-card
 #   
+# Them colors are replaced with hardcoded colors:
+# - theme-gradient-color-01: '#FFF6E3'
+# - theme-gradient-color-02: '#FFE9B9'
+# - theme-gradient-color-03: '#FFDA8A'
+# - theme-gradient-color-04: '#FFCB5B' 
+# - theme-gradient-color-05: '#FFBF37' 
+# - theme-gradient-color-06: '#ffb414' 
+# - theme-gradient-color-07: '#FFAD12' 
+# - theme-gradient-color-08: '#FFA40E' 
+# - theme-gradient-color-09: '#FF9C0B' 
+# - theme-gradient-color-10: '#FF8C06' 
+# - theme-gradient-color-11: '#FF8305' 
+#
 ###############################################################################
 
 title: FHCE
@@ -35,14 +49,17 @@ cards:
             - entity: weather.dark_sky
               attribute: temperature
               decimals: 1
-              name: '1: Ut Weer'
               area: De Maan
               unit: '°C'
-
           show:
             horseshoe_style: 'lineargradient'
           layout:
             states:
+              # Refers to the first entity in the list, ie index 0
+              # State value is positioned at (50%,60%) with a large font size
+              # The size of the units are automatically calculated at 60% of the
+              # state value font size and shifted upwards.
+              # The default font color is the theme defined primary-text-color.
               - id: 0
                 entity_index: 0
                 xpos: 50
@@ -50,6 +67,10 @@ cards:
                 styles:
                   - font-size: 3.5em;
             areas:
+              # Refers to the first entity in the list, ie index 1
+              # Area value is positioned at (50%,35%) with font-size 1.5 and
+              # an opacity of 80%.
+              # The default font color is the theme defined primary-text-color.
               - id: 0
                 entity_index: 0
                 xpos: 50
@@ -57,21 +78,16 @@ cards:
                 styles:
                   - font-size: 1.5em;
                   - opacity: 0.8;
-
+  
+          # Scale set to -10 to +40 degrees celcius
           horseshoe_scale:
             min: -10
             max: 40
-          horseshoe_state:
-            width: 12
-            color: purple
+          # color stop list with two colors. With the `lineargradient` fill style, only the
+          # colors are used. The thresholds are ignored with this setting.
           color_stops:
-            10: '#ff0000'
-            15: '#008000'
-            18: '#0000FF'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            10: 'red'
+            18: 'blue'
 
         # Example 2::
         #
@@ -157,21 +173,16 @@ cards:
             max: 14
             ticksize: 1
           color_stops:
-            16: 'var(--theme-gradient-color-01)'
-            17: 'var(--theme-gradient-color-02)'
-            18: 'var(--theme-gradient-color-03)'
-            19: 'var(--theme-gradient-color-04)'
-            20: 'var(--theme-gradient-color-05)'
-            21: 'var(--theme-gradient-color-06)'
-            22: 'var(--theme-gradient-color-07)'
-            23: 'var(--theme-gradient-color-08)'
-            24: 'var(--theme-gradient-color-09)'
-            25: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
-
+            16: '#FFF6E3'
+            17: '#FFE9B9'
+            18: '#FFDA8A'
+            19: '#FFCB5B'
+            20: '#FFBF37'
+            21: '#ffb414'
+            22: '#FFAD12'
+            23: '#FFA40E'
+            24: '#FF9C0B' 
+            25: '#FF8C06' 
 
     - type: horizontal-stack
       cards:
@@ -223,20 +234,16 @@ cards:
             min: -10
             max: 40
           color_stops:
-            16: 'var(--theme-gradient-color-01)'
-            17: 'var(--theme-gradient-color-02)'
-            18: 'var(--theme-gradient-color-03)'
-            19: 'var(--theme-gradient-color-04)'
-            20: 'var(--theme-gradient-color-05)'
-            21: 'var(--theme-gradient-color-06)'
-            22: 'var(--theme-gradient-color-07)'
-            23: 'var(--theme-gradient-color-08)'
-            24: 'var(--theme-gradient-color-09)'
-            25: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            16: '#FFF6E3'
+            17: '#FFE9B9'
+            18: '#FFDA8A'
+            19: '#FFCB5B'
+            20: '#FFBF37'
+            21: '#ffb414'
+            22: '#FFAD12'
+            23: '#FFA40E'
+            24: '#FF9C0B' 
+            25: '#FF8C06' 
 
         # Example 4::
         #
@@ -264,6 +271,7 @@ cards:
             horseshoe_style: 'lineargradient'
           layout:
             hlines:
+              # A horizontal line. Not connected to an entity
               - id: 0
                 xpos: 50
                 ypos: 42
@@ -274,12 +282,14 @@ cards:
                   - stroke-linecap: round;
                   - opacity: 0.7;
             states:
+              # States 0 refers to the first entity in the list, ie index 0
               - id: 0
                 entity_index: 0
                 xpos: 50
                 ypos: 34
                 styles:
                   - font-size: 3em;
+              # States 1 refers to the second entity in the list, ie index 1
               - id: 1
                 entity_index: 1
                 xpos: 40
@@ -287,6 +297,7 @@ cards:
                 styles:
                   - text-anchor: start;
                   - font-size: 1.5em;
+              # States 2 refers to the third entity in the list, ie index 2
               - id: 2
                 entity_index: 2
                 xpos: 40
@@ -295,12 +306,14 @@ cards:
                   - text-anchor: start;
                   - font-size: 1.5em;
             icons:
+              # Icons 0 refers to the second entity in the list, ie index 1
               - id: 0
                 entity_index: 1
                 xpos: 37
                 ypos: 57
                 align: end
                 size: 1.3
+              # Icons 1 refers to the third entity in the list, ie index 2
               - id: 1
                 entity_index: 2
                 xpos: 37
@@ -308,29 +321,29 @@ cards:
                 align: end
                 size: 1.3
             names:
+              # Names 0 refers to the first entity in the list, ie index 0
               - id: 0
                 entity_index: 0
                 xpos: 50
                 ypos: 95
-            
+
+          # Scale set to -10 to +40 degrees celcius            
           horseshoe_scale:
             min: -10
             max: 40
+          # color stop list with 10 colors defined in the theme. With the `lineargradient` fill style, only the
+          # first (16:) and last (25:) colors are used. The thresholds are ignored with this setting.
           color_stops:
-            16: 'var(--theme-gradient-color-01)'
-            17: 'var(--theme-gradient-color-02)'
-            18: 'var(--theme-gradient-color-03)'
-            19: 'var(--theme-gradient-color-04)'
-            20: 'var(--theme-gradient-color-05)'
-            21: 'var(--theme-gradient-color-06)'
-            22: 'var(--theme-gradient-color-07)'
-            23: 'var(--theme-gradient-color-08)'
-            24: 'var(--theme-gradient-color-09)'
-            25: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            16: '#FFF6E3'
+            17: '#FFE9B9'
+            18: '#FFDA8A'
+            19: '#FFCB5B'
+            20: '#FFBF37'
+            21: '#ffb414'
+            22: '#FFAD12'
+            23: '#FFA40E'
+            24: '#FF9C0B' 
+            25: '#FF8C06' 
 
     - type: horizontal-stack
       cards:
@@ -367,14 +380,14 @@ cards:
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
-                color: 'var(--theme-gradient-color-01)'
+                color: '#FFF6E3'
             vlines:
               - id: 0
                 xpos: 50
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: white;
+                  - stroke: var(--primary-text-color);;
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -432,27 +445,23 @@ cards:
                   - font-size: 1.2em;
 
           horseshoe_state:
-            color:  'var(--theme-gradient-color-01)'
+            color:  '#FFF6E3'
           horseshoe_scale:
             min: 0
             max: 100
             color: 'var(--primary-background-color)'
             width: 6
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
 
         # Example 6::
         #
@@ -542,27 +551,23 @@ cards:
                 ypos: 85
 
           horseshoe_state:
-            color:  'var(--theme-gradient-color-04)'
+            color:  '#FFCB5B'
           horseshoe_scale:
             min: 0
             max: 100
             color: 'var(--primary-background-color)'
             width: 6
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
 
     - type: horizontal-stack
       cards:
@@ -608,7 +613,7 @@ cards:
                 ypos: 61
                 radius: 3
                 styles:
-                  - fill : white;
+                  - fill : var(--primary-text-color);;
                   - opacity: 0.5;
             states:
               - id: 0
@@ -646,12 +651,8 @@ cards:
             min: 0
             max: 215
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            215: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            215: '#FF8C06' 
 
         # Example 8::
         #
@@ -685,14 +686,14 @@ cards:
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
-                color: 'var(--theme-gradient-color-01)'
+                color: '#FFF6E3'
             vlines:
               - id: 0
                 xpos: 50
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: white;
+                  - stroke: var(--primary-text-color);;
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -750,27 +751,23 @@ cards:
                   - font-size: 1.2em;
 
           horseshoe_state:
-            color:  'var(--theme-gradient-color-01)'
+            color:  '#FFF6E3'
           horseshoe_scale:
             min: 0
             max: 100
             color: 'var(--primary-background-color)'
             width: 6
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
 
 
     - type: horizontal-stack
@@ -798,15 +795,11 @@ cards:
                 service: light.toggle
                 service_data: { "entity_id" : "light.1st_floor_hall_light" }
 
-          texts:
-          
-          card_filter: card--dropshadow-none
-          
           animations:
             entity.1:
               - state: 'on'
                 circles:
-                  - animation_id: 10
+                  - animation_id: 11
                     styles:
                       - fill: var(--theme-gradient-color-08);
                       - opacity: 0.9;
@@ -818,7 +811,7 @@ cards:
                       - fill: black;
               - state: 'off'
                 circles:
-                  - animation_id: 10
+                  - animation_id: 11
                     reuse: true
                     styles:
                       - transform-origin: center;
@@ -863,7 +856,7 @@ cards:
                 entity_index: 1
                 icon_size: 3.5
                 styles:
-                  - color: white;
+                  - color: var(--primary-text-color);;
             circles:
               - id: 0
                 animation_id: 0
@@ -873,7 +866,7 @@ cards:
                 styles:
                   - fill: var(--primary-background-color);
               - id: 1
-                animation_id: 10
+                animation_id: 11
                 xpos: 50
                 ypos: 50
                 radius: 30
@@ -888,22 +881,18 @@ cards:
             color: 'var(--primary-background-color)'
           horseshoe_state:
             width: 12
-            color: 'var(--theme-gradient-color-01)'
+            color: '#FFF6E3'
           color_stops:
-            0:  'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0:  '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
 
         # Example 12::
         #
@@ -911,6 +900,7 @@ cards:
 
         - type: 'custom:flex-horseshoe-card'
           entities:
+            # Abuse the memory_use_percent sensor as the wattage the bulbs use. Just to show the possibilities
             - entity: sensor.memory_use_percent
               decimals: 0
               name: '12: Two Bulbs'
@@ -919,6 +909,8 @@ cards:
               decimals: 0
               tap_action:
                 action: more-info
+
+            # The left light displayed on the card. Index 1
             - entity: light.1st_floor_hall_light              
               name: 'hall'
               icon: mdi:lightbulb
@@ -926,6 +918,8 @@ cards:
                 action: call-service
                 service: light.toggle
                 service_data: { "entity_id" : "light.1st_floor_hall_light" }
+
+            # The right light displayed on the card. Index 2
             - entity: light.gledopto
               name: 'opto'
               icon: mdi:lightbulb
@@ -934,35 +928,38 @@ cards:
                 service: light.toggle
                 service_data: { "entity_id" : "light.gledopto" }
 
-          texts:
-
           animations:
+            # Animations for the second entity, index 1
             entity.1:
               - state: 'on'
                 circles:
-                  - animation_id: 1
+                  - animation_id: 11
                     styles:
                       - fill: var(--theme-gradient-color-03);
                       - opacity: 0.9;
+                      - transform-origin: 30% 50%;
+                      - animation: jello 1s ease-in-out both;
                 icons:
-                  - animation_id: 0
+                  - animation_id: 10
                     styles:
                       - fill: black;
-
               - state: 'off'
                 circles:
-                  - animation_id: 1
+                  - animation_id: 11
+                    reuse: true
                     styles:
-                      - fill: var(--primary-background-color);
-                      - opacity: 0.7;
+                      - transform-origin: 30% 50%;
+                      - animation: zoomOut 1s ease-out both;
                 icons:
-                  - animation_id: 0
+                  - animation_id: 10
                     styles:
                       - fill: var(--primary-text-color);
+
+            # Animations for the third entity, index 2
             entity.2:
               - state: 'on'
                 circles:
-                  - animation_id: 3
+                  - animation_id: 21
                     styles:
                       - fill: var(--theme-gradient-color-03);
                       - stroke-width: 2;
@@ -973,18 +970,18 @@ cards:
                       - animation: stroke 2s ease-out forwards;
 
                 icons:
-                  - animation_id: 1
+                  - animation_id: 20
                     styles:
                       - fill: black;
 
               - state: 'off'
                 circles:
-                  - animation_id: 3
+                  - animation_id: 21
                     styles:
                       - fill: var(--primary-background-color);
                       - opacity: 0.7;
                 icons:
-                  - animation_id: 1
+                  - animation_id: 20
                     styles:
                       - fill: var(--primary-text-color);
 
@@ -1026,71 +1023,65 @@ cards:
                   - font-size: 1.2em;
             icons:
               - id: 0
-                animation_id: 0
+                animation_id: 10
                 xpos: 30
                 ypos: 55
                 entity_index: 1
                 icon_size: 3.5
                 styles:
-                  - color: white;
+                  - color: var(--primary-text-color);;
               - id: 1
-                animation_id: 1
+                animation_id: 20
                 xpos: 70
                 ypos: 55
                 entity_index: 2
                 icon_size: 3.5
                 styles:
-                  - color: white;
+                  - color: var(--primary-text-color);;
             circles:
-              - animation_id: 0
+              - animation_id: 3
                 xpos: 30
                 ypos: 50
                 radius: 35
                 styles:
                   - fill: var(--primary-background-color);
-              - animation_id: 1
+              - animation_id: 11
                 xpos: 30
                 ypos: 50
                 radius: 30
                 entity_index: 1
-                styles:
-                  - fill: yellow;
+
               - animation_id: 2
                 xpos: 70
                 ypos: 50
                 radius: 35
                 styles:
                   - fill: var(--primary-background-color);
-              - animation_id: 3
+              - animation_id: 21
                 xpos: 70
                 ypos: 50
                 radius: 30
                 entity_index: 2
-                styles:
-                  - fill: yellow;
 
           horseshoe_scale:
             min: 0
             max: 100
             color: 'var(--primary-background-color)'
           horseshoe_state:
-            color: 'var(--theme-gradient-color-03)'
+            color: '#FFDA8A'
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
+            0: '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
           # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
           style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
             @keyframes stroke { to { stroke-dashoffset: 0; } }
 
 
@@ -1131,14 +1122,14 @@ cards:
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
-                color: 'var(--theme-gradient-color-01)'
+                color: '#FFF6E3'
             vlines:
               - id: 0
                 xpos: 50
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: white;
+                  - stroke: var(--primary-text-color);;
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -1196,27 +1187,23 @@ cards:
                   - font-size: 1.2em;
 
           horseshoe_state:
-            color:  'var(--theme-gradient-color-01)'
+            color:  '#FFF6E3'
           horseshoe_scale:
             min: 0
             max: 100
             color: 'var(--primary-background-color)'
             width: 6
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            10: 'var(--theme-gradient-color-02)'
-            20: 'var(--theme-gradient-color-03)'
-            30: 'var(--theme-gradient-color-04)'
-            40: 'var(--theme-gradient-color-05)'
-            50: 'var(--theme-gradient-color-06)'
-            60: 'var(--theme-gradient-color-07)'
-            70: 'var(--theme-gradient-color-08)'
-            80: 'var(--theme-gradient-color-09)'
-            90: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            10: '#FFE9B9'
+            20: '#FFDA8A'
+            30: '#FFCB5B'
+            40: '#FFBF37'
+            50: '#ffb414'
+            60: '#FFAD12'
+            70: '#FFA40E'
+            80: '#FF9C0B' 
+            90: '#FF8C06' 
 
         # Example 10:: or 7b::
         #
@@ -1259,7 +1246,7 @@ cards:
                 ypos: 61
                 radius: 3
                 styles:
-                  - fill : white;
+                  - fill : var(--primary-text-color);;
                   - opacity: 0.5;
             states:
               - id: 0
@@ -1299,9 +1286,5 @@ cards:
             ticksize: 50
             
           color_stops:
-            0: 'var(--theme-gradient-color-01)'
-            215: 'var(--theme-gradient-color-10)'
-          style: |
-            ha-card {
-              box-shadow: var(--theme-card-box-shadow);
-            }
+            0: '#FFF6E3'
+            215: '#FF8C06' 
