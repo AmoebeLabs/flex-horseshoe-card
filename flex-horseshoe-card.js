@@ -13,7 +13,7 @@
 *   The Flexible Horseshoe Card.
 *
 * Refs:
-*   - https://github.com/AmoebeLabs/Material-Design-Theme-Colors
+*   - https://github.com/AmoebeLabs/flex-horseshoe-card
 *   
 *******************************************************************************
 */
@@ -499,27 +499,27 @@ class FlexHorseshoeCard extends LitElement {
 
 			.nam {
 				alignment-baseline: central;
-				fill: white;
+				fill: var(--primary-text-color);
 			}
 			
 			.state__uom {
 				font-size: 20px;
 				opacity: 0.7;
 				margin: 0;
-				fill : white;
+				fill : var(--primary-text-color);
 			}
 
 			.state__value {
 				font-size: 3em;
 				opacity: 1;
-				fill : white;
+				fill : var(--primary-text-color);
 				text-anchor: middle;
 			}
 			.entity__name {
 				text-anchor: middle;
 				overflow: hidden;
 				opacity: 0.8;
-				fill : white;
+				fill : var(--primary-text-color);
 				font-size: 1.5em;
 				text-transform: uppercase;
 				letter-spacing: 0.1em;
@@ -529,7 +529,7 @@ class FlexHorseshoeCard extends LitElement {
 				font-size: 12px;
 				opacity: 0.7;
 				overflow: hidden;
-				fill : white;
+				fill : var(--primary-text-color);
 				text-anchor: middle;
 				text-transform: uppercase;
 				letter-spacing: 0.1em;
@@ -634,19 +634,19 @@ class FlexHorseshoeCard extends LitElement {
 			}
 			
 			.line__horizontal {
-				stroke: white;
+				stroke: var(--primary-text-color);
 				opacity: 0.3;
 				stroke-width: 2;
 			}
 
 			.line__vertical {
-				stroke: white;
+				stroke: var(--primary-text-color);
 				opacity: 0.3;
 				stroke-width: 2;
 			}
 			
 			.svg__dot {
-				fill: white;
+				fill: var(--primary-text-color);
 				opacity: 0.5;
 				align-self: center;
 				transform-origin: 50% 50%;
