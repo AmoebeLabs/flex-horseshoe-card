@@ -376,7 +376,7 @@ cards:
                 ypos: 38
                 length: 40
                 styles:
-                  - stroke: var(--theme-gradient-color-01);
+                  - stroke: var(--primary-text-color);
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
@@ -387,7 +387,7 @@ cards:
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: var(--primary-text-color);;
+                  - stroke: var(--primary-text-color);
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -613,7 +613,7 @@ cards:
                 ypos: 61
                 radius: 3
                 styles:
-                  - fill : var(--primary-text-color);;
+                  - fill : var(--primary-text-color);
                   - opacity: 0.5;
             states:
               - id: 0
@@ -682,7 +682,7 @@ cards:
                 ypos: 38
                 length: 40
                 styles:
-                  - stroke: var(--theme-gradient-color-01);
+                  - stroke: var(--primary-text-color);
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
@@ -693,7 +693,7 @@ cards:
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: var(--primary-text-color);;
+                  - stroke: var(--primary-text-color);
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -801,14 +801,14 @@ cards:
                 circles:
                   - animation_id: 11
                     styles:
-                      - fill: var(--theme-gradient-color-08);
+                      - fill: var(--secondary-text-color);
                       - opacity: 0.9;
                       - animation: jello 1s ease-in-out both;
                       - transform-origin: center;
                 icons:
                   - animation_id: 0
                     styles:
-                      - fill: black;
+                      - fill: white;
               - state: 'off'
                 circles:
                   - animation_id: 11
@@ -856,7 +856,7 @@ cards:
                 entity_index: 1
                 icon_size: 3.5
                 styles:
-                  - color: var(--primary-text-color);;
+                  - color: var(--primary-text-color);
             circles:
               - id: 0
                 animation_id: 0
@@ -935,14 +935,14 @@ cards:
                 circles:
                   - animation_id: 11
                     styles:
-                      - fill: #FFDA8A;
+                      - fill: var(--secondary-text-color);
                       - opacity: 0.9;
                       - transform-origin: 30% 50%;
                       - animation: jello 1s ease-in-out both;
                 icons:
                   - animation_id: 10
                     styles:
-                      - fill: black;
+                      - fill: white;
               - state: 'off'
                 circles:
                   - animation_id: 11
@@ -961,7 +961,7 @@ cards:
                 circles:
                   - animation_id: 21
                     styles:
-                      - fill: #FFDA8A;
+                      - fill: var(--secondary-text-color);
                       - stroke-width: 2;
                       - stroke: var(--primary-background-color);
                       - opacity: 0.9;
@@ -972,7 +972,7 @@ cards:
                 icons:
                   - animation_id: 20
                     styles:
-                      - fill: black;
+                      - fill: white;
 
               - state: 'off'
                 circles:
@@ -1029,7 +1029,7 @@ cards:
                 entity_index: 1
                 icon_size: 3.5
                 styles:
-                  - color: var(--primary-text-color);;
+                  - color: var(--primary-text-color);
               - id: 1
                 animation_id: 20
                 xpos: 70
@@ -1037,7 +1037,7 @@ cards:
                 entity_index: 2
                 icon_size: 3.5
                 styles:
-                  - color: var(--primary-text-color);;
+                  - color: var(--primary-text-color);
             circles:
               - animation_id: 3
                 xpos: 30
@@ -1118,18 +1118,17 @@ cards:
                 ypos: 38
                 length: 40
                 styles:
-                  - stroke: var(--theme-gradient-color-01);
+                  - stroke: var(--primary-text-color);
                   - stroke-width: 5;
                   - opacity: 0.9;
                   - stroke-linecap: round;
-                color: '#FFF6E3'
             vlines:
               - id: 0
                 xpos: 50
                 ypos: 56
                 length: 20
                 styles:
-                  - stroke: var(--primary-text-color);;
+                  - stroke: var(--primary-text-color);
                   - opacity: 0.5;
                   - stroke-width: 2;
                   - stroke-linecap: round;
@@ -1246,7 +1245,7 @@ cards:
                 ypos: 61
                 radius: 3
                 styles:
-                  - fill : var(--primary-text-color);;
+                  - fill : var(--primary-text-color);
                   - opacity: 0.5;
             states:
               - id: 0
