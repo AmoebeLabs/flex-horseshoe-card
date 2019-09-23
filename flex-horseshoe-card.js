@@ -1,6 +1,6 @@
 /*
 *
-* Card			: flex-horseshoe-card.js
+* Card      : flex-horseshoe-card.js
 * Project   : Home Assistant
 * Repository: https://github.com/AmoebeLabs/
 *
@@ -34,6 +34,7 @@ const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
 const HORSESHOE_PATH_LENGTH = 2 * 260/360 * Math.PI * HORSESHOE_RADIUS_SIZE;
 
 const DEFAULT_SHOW = {
+	horseshoe: true,
   scale_tickmarks: false,
 	horseshoe_style: 'fixed',
 }
@@ -629,7 +630,7 @@ class FlexHorseshoeCard extends LitElement {
 			.card--filter-none {
 			}
 
-			#horseshoe__svg__group {
+			.horseshoe__svg__group {
 				transform: translateY(15%);
 			}
 			
@@ -762,7 +763,6 @@ class FlexHorseshoeCard extends LitElement {
 			this.color0 = stroke;
 			this.color1 = stroke;
 			this.color1_offset = '0%';
-
 		}
 		else if (strokeStyle == 'lineargradient') {
 			// This has taken a lot of time to get a satisfying result, and it appeared much simpler than anticipated.
@@ -787,9 +787,8 @@ class FlexHorseshoeCard extends LitElement {
 		if (this.config.animations) Object.keys(this.config.animations).map(animation => {
       const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
       this.config.animations[animation].map(item => {
-        
         // if animation state not equals sensor state, return... Nothing to animate for this state...
-				if (!(this.entities[entityIndex].state === item.state)) return;
+				if (this.entities[entityIndex].state.toLowerCase() != item.state.toLowerCase()) return;
         
         if (item.vlines) {
           item.vlines.map(item2 => {
@@ -1087,8 +1086,10 @@ class FlexHorseshoeCard extends LitElement {
 
   _renderHorseShoe() {
 
+	if (!this.config.show.horseshoe) return;
+	
 	return svg`
-			<g id="horseshoe__svg__group">
+			<g id="horseshoe__svg__group" class="horseshoe__svg__group">
 				<circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
 					fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
 					stroke="${this.config.horseshoe_scale.color || '#000000'}"
@@ -1287,7 +1288,7 @@ class FlexHorseshoeCard extends LitElement {
   
   let uomStyle = {...configStyle, ...UOM_STYLES, ...fsuomStr};
   const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
+	
   const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
 
   const state = (this.config.entities[item.entity_index].attribute &&
@@ -1652,7 +1653,6 @@ class FlexHorseshoeCard extends LitElement {
 
   handlePopup(e, entity) {
     e.stopPropagation();
-//    console.log('handlePopup', e, entity);
 
     this._handleClick(this, this._hass, this.config,
       this.config.entities[this.config.entities.findIndex(
@@ -1731,7 +1731,6 @@ class FlexHorseshoeCard extends LitElement {
 	*/
 
   _buildState(inState, entityConfig) {
-//    console.log('buildstate', inState, entityConfig);
 		if (isNaN(inState))
       return inState;
 
