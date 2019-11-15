@@ -1104,7 +1104,8 @@ class FlexHorseshoeCard extends LitElement {
 					stroke-dasharray="${this.dashArray}"
 					stroke-width="${this.config.horseshoe_state.width || 12}" 
 					stroke-linecap="round"
-					transform="rotate(-220 100 100)"/>
+					transform="rotate(-220 100 100)"
+					style="transition: all 2.5s ease-out;"/>
 				
 				${this._renderTickMarks()}
 			</g>
