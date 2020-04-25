@@ -20,7 +20,7 @@
 
 import {
 	LitElement, html, css, svg
-  } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+  } from "https://cdn.pika.dev/lit-element";
   //++ Consts ++++++++++
   const FONT_SIZE = 12;
   const SVG_VIEW_BOX = 200;
@@ -415,7 +415,7 @@ import {
 			  }
   
 			:host ha-card {
-			  padding: 10px 10px 10px 10px;
+			  padding: 10px 10px 0px 10px;
 			}
 			
 			  .container {
