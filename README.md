@@ -1,3 +1,14 @@
+**Personal Note, september 2020**
+
+I'm currently recovering from a year of illness.
+This means I try to catchup with the current Home Assistant version and work on the horseshoe card again.
+
+I'm still a bit slow, so be patient...
+
+I will merge all PR, test the new version, and release a new version for HACS.
+
+***
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
 ![GitHub Release Date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
