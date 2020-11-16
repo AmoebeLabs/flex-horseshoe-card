@@ -61,12 +61,12 @@ import {
 	  super();
   
 	  // Get cardId for unique SVG gradient Id
-		  this.cardId = Math.random().toString(36).substr(2, 9);
-		  this.entities = [];
-		  this.entitiesStr = [];
-		  this.attributesStr = [];
-		  this.viewBoxSize = SVG_VIEW_BOX;
-		  this.colorStops = {};
+		this.cardId = Math.random().toString(36).substr(2, 9);
+		this.entities = [];
+		this.entitiesStr = [];
+		this.attributesStr = [];
+		this.viewBoxSize = SVG_VIEW_BOX;
+		this.colorStops = {};
 	  this.animations = {};
 	  this.animations.vlines = {};
 	  this.animations.hlines = {};
@@ -76,11 +76,22 @@ import {
 	  this.animations.areas = {};
 	  this.animations.states = {};
 		  
-		  this.colorCache = {};
-		  
-		  // http://jsfiddle.net/jlubean/dL5cLjxt/
-		  this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-		  this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+		this.colorCache = {};
+		
+		// http://jsfiddle.net/jlubean/dL5cLjxt/
+		//this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
+		// this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+		
+		// 2020.11.16
+		// See: https://javascriptio.com/view/10924/detect-if-device-is-ios
+		// After iOS 13 you should detect iOS devices like this, since iPad will not be detected as iOS devices
+		// by old ways (due to new "desktop" options, enabled by default)
+		
+		this.isSafari = !!navigator.userAgent.match(/Safari/i);
+
+		this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+								(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+								!window.MSStream;
 	}
   
    /*******************************************************************************
@@ -1148,7 +1159,7 @@ import {
 		const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
   
 		const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-  
+		
 			  return svg`
 			<text>
 			  <tspan class="entity__name" x="${item.xpos}%" y="${item.ypos}%" style="${configStyleStr}">${name}</tspan>
@@ -1415,7 +1426,7 @@ import {
 		  <foreignObject width="${iconSize}em" height="${iconSize}em" x="${xpx}" y="${ypx}">
 			  <body>
 				  <div class="icon">
-					  <ha-icon .icon=${icon} style="width:100%; height:100%;align-self:center;${configStyleStr}";></ha-icon>
+					  <ha-icon .icon=${icon} style="line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";></ha-icon>
 				  </div>
 			  </body>
 		  </foreignObject>
