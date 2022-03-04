@@ -797,8 +797,15 @@ import {
       if (this.config.animations) Object.keys(this.config.animations).map(animation => {
     const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
     this.config.animations[animation].map(item => {
+
+      state = this.entities[entityIndex].state.toLowerCase();
+      if ((this.config.entities[entityIndex].attribute)) {
+        var attrState = this.entities[entityIndex].attributes[this.config.entities[entityIndex].attribute];
+        if (attrState) state = attrState.toLowerCase();
+      }
+
       // if animation state not equals sensor state, return... Nothing to animate for this state...
-          if (this.entities[entityIndex].state.toLowerCase() != item.state.toLowerCase()) return;
+      if (state != item.state.toLowerCase()) return;
       
       if (item.vlines) {
       item.vlines.map(item2 => {
