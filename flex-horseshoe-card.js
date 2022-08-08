@@ -23,7 +23,7 @@ import {
   html,
   css,
   svg
-  } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+  } from 'lit';
   //++ Consts ++++++++++
   const FONT_SIZE = 12;
   const SVG_VIEW_BOX = 200;
