@@ -1,4 +1,4 @@
-**Personal Note, may 2023**
+**Personal Note, april 2023**
 
 Getting up to speed again with my custom cards after some difficult years!
 
