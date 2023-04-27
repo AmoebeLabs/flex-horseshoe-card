@@ -1813,6 +1813,19 @@ import {
     return (Math.min(Math.max(val, start), end) - start) / (end - start);
   }
   
+  _getLovelacePanel() {
+    var root = document.querySelector('home-assistant');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('home-assistant-main');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+    root = (root && root.shadowRoot) || root;
+    root = root && root.querySelector('ha-panel-lovelace');
+    if (root) {
+      return root;
+    }
+    return null;
+  }
    /*******************************************************************************
     * _getColorVariable()
     *
@@ -1826,11 +1839,12 @@ import {
       const newColor = inColor.substr(4, inColor.length-5);
   
       if (!this.lovelace) {
-        const root = document.querySelector('home-assistant');
-        const main = root.shadowRoot.querySelector('home-assistant-main');
-        const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-        const pages = drawer_layout.querySelector('partial-panel-resolver');
-        this.lovelace = pages.querySelector('ha-panel-lovelace');
+        this.lovelace = this._getLovelacePanel();
+        // const root = document.querySelector('home-assistant');
+        // const main = root.shadowRoot.querySelector('home-assistant-main');
+        // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+        // const pages = drawer_layout.querySelector('partial-panel-resolver');
+        // this.lovelace = pages.querySelector('ha-panel-lovelace');
       } else { }
   
       const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
