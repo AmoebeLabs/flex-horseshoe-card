@@ -1,12 +1,8 @@
-**Personal Note, september 2020**
+**Personal Note, may 2023**
 
-I'm currently recovering from a year of illness.
-This means I try to catchup with the current Home Assistant version and work on the horseshoe card again.
+Getting up to speed again with my custom cards after some difficult years!
 
-I'm still a bit slow, so be patient...
-
-I will merge all PR, test the new version, and release a new version for HACS.
-
+First commit is compatibility for Home Assistant 2023.4. I missed that one in my testcard view. For some reason I fixed the HA version to some 2023.3 version in my docker compose file. And in that case you can `docker compose pull` but nothing is updated...
 ***
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
