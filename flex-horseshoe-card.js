@@ -24,6 +24,13 @@ import {
   css,
   svg
   } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+
+  console.info(
+    `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.1       `,
+    'color: yellow; font-weight: bold; background: black',
+    'color: white; font-weight: bold; background: dimgray',
+  );
+
   //++ Consts ++++++++++
   const FONT_SIZE = 12;
   const SVG_VIEW_BOX = 200;
@@ -842,8 +849,9 @@ import {
     });
     });
   
-      // For now, always force update to render the card if any of the states or attributes have changed...
-    if (entityHasChanged) { this.requestUpdate();}
+    // For now, always force update to render the card if any of the states or attributes have changed...
+    // if (entityHasChanged) { this.requestUpdate();}
+    this.requestUpdate();
   }
   
    /*******************************************************************************
@@ -855,7 +863,7 @@ import {
     */
   
     setConfig(config) {
-      config = JSON.parse(JSON.stringify(config))
+      config = JSON.parse(JSON.stringify(config));
       
     if (!config.entities) {
     throw Error('No entities defined');
@@ -892,7 +900,7 @@ import {
         show: { ...DEFAULT_SHOW, ...config.show },
         horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
         horseshoe_state: { ...DEFAULT_HORSESHOE_STATE, ...config.horseshoe_state },
-      }
+      };
   
     for (var entityValue of newConfig.entities) {
       if (!entityValue.tap_action) {
@@ -1060,7 +1068,7 @@ import {
   _renderSvg() {
       // For some reason, using a var/const for the viewboxsize doesn't work.
       // Even if the Chrome inspector shows 200 200. So hardcode for now!
-      const { viewBoxSize, } = this;
+      // const { viewBoxSize, } = this;
       
       const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
       
@@ -1290,7 +1298,7 @@ import {
   var fsuomStr = configStyle["font-size"];
   
   var fsuomValue = 0.5;
-  var fsuomType = 'em;'
+  var fsuomType = 'em;';
   const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
   if (fsuomSplit.length == 2) {
     fsuomValue = Number(fsuomSplit[0]) * .6;
