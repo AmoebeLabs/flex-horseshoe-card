@@ -52,6 +52,10 @@ import {
   color: 'var(--primary-color)',
   }
   
+  const DEFAULT_TAP_ACTION = {
+    action: "more-info"
+  }
+
   //--
   
   //++ Class ++++++++++
@@ -890,6 +894,12 @@ import {
         horseshoe_state: { ...DEFAULT_HORSESHOE_STATE, ...config.horseshoe_state },
       }
   
+    for (var entityValue of newConfig.entities) {
+      if (!entityValue.tap_action) {
+        entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
+      }
+    }
+
     let colorStops = {};
   //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
     if (newConfig.color_stops) {
