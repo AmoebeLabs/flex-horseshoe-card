@@ -26,7 +26,7 @@ import {
   } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
   console.info(
-    `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.1       `,
+    `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.2       `,
     'color: yellow; font-weight: bold; background: black',
     'color: white; font-weight: bold; background: dimgray',
   );
@@ -98,10 +98,13 @@ import {
     // After iOS 13 you should detect iOS devices like this, since iPad will not be detected as iOS devices
     // by old ways (due to new "desktop" options, enabled by default)
     
-    this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-    this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
-                !window.MSStream;
+    this.isAndroid = !!navigator.userAgent.match(/Android/);
+    if (!this.isAndroid) {
+      this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
+      this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+                  !window.MSStream;
+    }
   }
   
    /*******************************************************************************
