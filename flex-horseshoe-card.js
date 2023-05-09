@@ -739,6 +739,9 @@ import {
       
       // #TODO: only if state or attribute has changed.
       var state = this.entities[0].state;
+      if (state == 'unavailable') {
+         state=0;
+      }
       if ((this.config.entities[0].attribute)) {
         if (this.entities[0].attributes[this.config.entities[0].attribute]) {
           state = this.entities[0].attributes[this.config.entities[0].attribute];
