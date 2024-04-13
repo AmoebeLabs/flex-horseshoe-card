@@ -1,0 +1,31 @@
+{
+  "name": "flex-horseshoe",
+  "version": "2.0",
+  "description": "Flexible Horseshoe Card for Lovelace",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "npm run lint && npm run rollup",
+    "rollup": "rollup -c",
+    "lint": "eslint src/*.js",
+    "watch": "rollup -c --watch",
+    "postversion": "npm run build",
+    "audit-fix": "npx yarn-audit-fix",
+    "serve": "rollup -c serve.config.js --watch"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.1.0",
+    "@rollup/plugin-json": "^6.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-terser": "^0.4.1",
+    "eslint": "^8.39.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "rollup": "^3.21.4",
+    "rollup-plugin-serve": "^2.0.2"
+  },
+  "dependencies": {
+    "home-assistant-js-websocket": "^5.7.0",
+    "lit-element": "^2.5.1",
+    "lit-html": "^1.4.1"
+  }
+}

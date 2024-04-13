@@ -1,0 +1,99 @@
+extends: airbnb-base
+parserOptions:
+  ecmaVersion: 2022
+  sourceType: module
+ignorePatterns:
+  - /distjs/*
+  - /dist/*
+  - /src/flex-horseshoe-card.js
+rules:
+  no-else-return: 0
+  no-underscore-dangle: 0
+  nonblock-statement-body-position: 0
+  # curly checks for all {} after if for instance
+  curly: 0
+  no-return-assign: 0
+  consistent-return: 0
+  no-mixed-operators: 0
+  class-methods-use-this: 0
+  no-nested-ternary: 0
+  camelcase: 0
+  # Added for convenience to check eslint...
+  # Settings handled:
+  no-param-reassign: 0
+  max-len:
+    - warn
+    - code: 220
+      ignoreComments: true
+  eqeqeq: 1
+  brace-style: 1
+  # - Prevent warnings in logging and multiple params on one line
+  function-call-argument-newline: 0
+  function-paren-newline: 0
+  # - Allow i++ / i-- in for loops
+  no-plusplus:
+    - warn
+    - allowForLoopAfterthoughts: true
+  no-irregular-whitespace: 0
+  no-bitwise:
+    - warn
+    - allow:
+        - "~"
+  # - Disable .js import warnings
+  import/extensions: 0
+  # - Allow the use of console.()
+  no-console: 0
+  # - Allow for calling .hasOwnProperty for instance directly
+  no-prototype-builtins: 0
+  # - Allow as-needed function names
+  func-names:
+    - warn
+    - as-needed
+  # - Just let me index arrays and get data from them
+  prefer-destructuring: 0
+  # - For now, keep using things like isNaN() as Number.isNan() is incompatible.
+  #   Ignore the eslint advice to replace them. As a result everything crashes...
+  no-restricted-globals: 0
+  # Ignore identiation for now
+  indent: 0
+  no-unreachable: 0
+  # THINGS THAT MUST BE HANDLED LATER...
+  # - This is a thing from the segmented-arc, the only file with errors/warnings!
+  # - Status as of 2023.05.06 13:00
+  block-scoped-var: 0
+  vars-on-top: 0
+  no-var: 0
+  no-redeclare: 0
+  no-setter-return: 0
+  no-multi-assign: 0
+  no-empty: 0
+  no-unused-vars: 0
+  prefer-const: 0
+  no-lonely-if: 0
+  no-shadow: 0
+  no-loop-func: 0
+  # Settings handled and NOT occuring anymore!
+  no-undef: 2
+  no-use-before-define: 1
+  no-case-declarations: 1
+  no-inner-declarations: 1
+  array-callback-return: 1
+  max-classes-per-file: 1
+  no-new-func: 1
+  no-constant-condition: 1
+  default-case: 1
+  default-case-last: 1
+  operator-assignment: 1
+  no-sequences: 1
+  no-restricted-syntax: 1
+  no-unused-expressions: 1
+  no-useless-escape: 1
+  import/no-unresolved: 1
+  no-template-curly-in-string: 1
+  # Settings disabled for now, until handled
+    
+globals:
+  browser: true
+  window: true
+  Event: true
+  customElements: true
