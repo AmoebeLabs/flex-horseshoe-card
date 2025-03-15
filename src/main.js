@@ -103,6 +103,8 @@ import { version } from '../package.json';
       this.iOS = (/iPad|iPhone|iPod/.test(window.navigator.userAgent)
                   || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1))
                   && !window.MSStream;
+
+      // Testing
     }
   }
 
