@@ -104,7 +104,24 @@ import { version } from '../package.json';
                   || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1))
                   && !window.MSStream;
 
-      // Testing
+      this.isSafari = !!window.navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
+      this.iOS = (/iPad|iPhone|iPod/.test(window.navigator.userAgent)
+                  || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1))
+                  && !window.MSStream;
+      this.isSafari14 = this.isSafari && /Version\/14\.[0-9]/.test(window.navigator.userAgent);
+      this.isSafari15 = this.isSafari && /Version\/15\.[0-9]/.test(window.navigator.userAgent);
+      this.isSafari16 = this.isSafari && /Version\/16\.[0-9]/.test(window.navigator.userAgent);
+      this.isSafari17 = this.isSafari && /Version\/17\.[0-9]/.test(window.navigator.userAgent);
+      this.isSafari18 = this.isSafari && /Version\/18\.[0-9]/.test(window.navigator.userAgent);
+
+      // The iOS app does not use a standard agent string...
+      // See: https://github.com/home-assistant/iOS/blob/master/Sources/Shared/API/HAAPI.swift
+      // It contains strings like "like Safari" and "OS 14_2", and "iOS 14.2.0"
+      this.isSafari14 = this.isSafari14 || /os 14.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      this.isSafari15 = this.isSafari15 || /os 15.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      this.isSafari16 = this.isSafari16 || /os 16.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      this.isSafari17 = this.isSafari17 || /os 17.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      this.isSafari18 = this.isSafari18 || /os 18.*like safari/.test(window.navigator.userAgent.toLowerCase());
     }
   }
 
@@ -1413,8 +1430,8 @@ import { version } from '../package.json';
     var xpx = (x * SVG_VIEW_BOX);
     var ypx = (y * SVG_VIEW_BOX);
 
-    if ((this.isSafari) || (this.iOS)) {
-      iconSize *= correction;
+    if ((this.isSafari && !this.isSafari18) || (this.iOS)) {
+        iconSize *= correction;
 
       xpx = (xpx * correction) - (iconPixels * adjust * correction);
       ypx = (ypx * correction) - (iconPixels * 0.5 * correction) - (iconPixels * 0.25 * correction);// - (iconPixels * 0.25 / 1.86);
