@@ -159,8 +159,10 @@ This is the card 1 of the examples. It shows the basic definition for the flexib
   # color stop list with two colors. With the `lineargradient` fill style, only the
   # colors are used. The thresholds are ignored with this setting.
   color_stops:
-    10: 'red'
-    18: 'blue'
+    - value: 10
+      color: red
+    - value: 18
+      color: blue
 ```
 
 ## Extending the basic example with two more entities and a horizontal line
@@ -253,16 +255,26 @@ This is card 4 of the examples. It extends the basic definition of card 1 with t
   # color stop list with 10 colors defined in the theme. With the `lineargradient` fill style, only the
   # first (16:) and last (25:) colors are used. The thresholds are ignored with this setting.
   color_stops:
-    16: '#FFF6E3'
-    17: '#FFE9B9'
-    18: '#FFDA8A'
-    19: '#FFCB5B'
-    20: '#FFBF37'
-    21: '#ffb414'
-    22: '#FFAD12'
-    23: '#FFA40E'
-    24: '#FF9C0B' 
-    25: '#FF8C06' 
+    - value: 16
+      color: '#FFF6E3'
+    - value: 17
+      color: '#FFE9B9'
+    - value: 18
+      color: '#FFDA8A'
+    - value: 19
+      color: '#FFCB5B'
+    - value: 20
+      color: '#ffb414'
+    - value: 21
+      color: '#ffb414'
+    - value: 22
+      color: '#FFAD12'
+    - value: 23
+      color: '#FFA40E'
+    - value: 24
+      color: '#FF9C0B'
+    - value: 25
+      color: '#FF8C06'
 ```
 
 ## Extending the basic example with a lot more options like actions and animations
@@ -445,16 +457,26 @@ Let's see how that looks :smile:
   horseshoe_state:
     color: '#FFDA8A'
   color_stops:
-    0: '#FFF6E3'
-    10: '#FFE9B9'
-    20: '#FFDA8A'
-    30: '#FFCB5B'
-    40: '#FFBF37'
-    50: '#ffb414'
-    60: '#FFAD12'
-    70: '#FFA40E'
-    80: '#FF9C0B' 
-    90: '#FF8C06' 
+    - value: 0
+      color: '#FFF6E3'
+    - value: 10
+      color: '#FFE9B9'
+    - value: 20
+      color: '#FFDA8A'
+    - value: 30
+      color: '#FFCB5B'
+    - value: 40
+      color: '#ffb414'
+    - value: 50
+      color: '#ffb414'
+    - value: 60
+      color: '#FFAD12'
+    - value: 70
+      color: '#FFA40E'
+    - value: 80
+      color: '#FF9C0B'
+    - value: 90
+      color: '#FF8C06'
   # The @keyframes stroke runs the stroke animation for the second lightbulb, entity light.gledopto
   style: |
     @keyframes stroke { to { stroke-dashoffset: 0; } }
@@ -524,7 +546,7 @@ entities:
 
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| action | string | `more-info` | `more-info`, `navigate`, `call-service`, `none` | v0.8.0 |Action to perform
+| action | string | `more-info` | `more-info`, `navigate`, `call-service`, `fire-dom-event`, `none` | v0.8.0 |Action to perform
 | service | string | none | Any service | v0.8.0 |Service to call (e.g. `media_player.toggle`) when `action` is defined as `call-service`
 | service_data | object | none | Any service data | v0.8.0 |Service data to include with the service call (e.g. `entity_id: media_player.office`) 
 | navigation_path | string | none | Any path | v0.8.0 |Path to navigate to (e.g. `/lovelace/0/`) when `action` is defined as `navigate`
@@ -654,16 +676,26 @@ horseshoe_state:
 Showing a list of colorstop thresholds (0..90) and the colorstop colors, in this case a gradient colorlist from the theme
 ```yaml
 color_stops:
-  0: 'var(--theme-gradient-color-01)'
-  10: 'var(--theme-gradient-color-02)'
-  20: 'var(--theme-gradient-color-03)'
-  30: 'var(--theme-gradient-color-04)'
-  40: 'var(--theme-gradient-color-05)'
-  50: 'var(--theme-gradient-color-06)'
-  60: 'var(--theme-gradient-color-07)'
-  70: 'var(--theme-gradient-color-08)'
-  80: 'var(--theme-gradient-color-09)'
-  90: 'var(--theme-gradient-color-10)'
+  - value: 0
+    color: 'var(--theme-gradient-color-01)'
+  - value: 10
+    color: 'var(--theme-gradient-color-02)'
+  - value: 20
+    color: 'var(--theme-gradient-color-03)'
+  - value: 30
+    color: 'var(--theme-gradient-color-04)'
+  - value: 40
+    color: 'var(--theme-gradient-color-05)'
+  - value: 50
+    color: 'var(--theme-gradient-color-06)'
+  - value: 60
+    color: 'var(--theme-gradient-color-07)'
+  - value: 70
+    color: 'var(--theme-gradient-color-08)'
+  - value: 80
+    color: 'var(--theme-gradient-color-09)'
+  - value: 90
+    color: 'var(--theme-gradient-color-10)'
 ```
 ## Horseshoe fill styles
 The horseshoe can be filled in different ways. Almost all use the color_stop colors to determine the color of the horseshoe. Not all use the actual color_stop thresholds to determine the color, but just use the color_stop colors.

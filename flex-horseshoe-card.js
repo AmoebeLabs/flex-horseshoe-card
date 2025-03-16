@@ -914,9 +914,9 @@ import {
     let colorStops = {};
   //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
     if (newConfig.color_stops) {
-    Object.keys(newConfig.color_stops).forEach((key) => {
-      colorStops[key] = newConfig.color_stops[key];
-    });
+      newConfig.color_stops.forEach((item) => {
+        colorStops[item.value] = item.color;
+      });
     }
   
       const sortedStops = Object.keys(colorStops).map(n => Number(n)).sort((a, b) => a - b);
@@ -1657,6 +1657,12 @@ import {
           const [domain, service] = actionConfig.service.split('.', 2);
           const serviceData = { ...actionConfig.service_data };
           hass.callService(domain, service, serviceData);
+        }
+        case 'fire-dom-event': {
+          e = new Event('ll-custom', { composed: true, bubbles: true });
+          e.detail = actionConfig;
+          node.dispatchEvent(e);
+          break;
         }
       }
     }
