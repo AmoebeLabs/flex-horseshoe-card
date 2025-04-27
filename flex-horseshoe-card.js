@@ -5,6 +5,8 @@
 * Repository: https://github.com/AmoebeLabs/
 *
 * Author    : Mars @ AmoebeLabs.com
+* Modied by : Pietro @ Ndrinta.com
+* Date      : 2025.04.26
 * 
 * License   : MIT
 *
@@ -23,54 +25,55 @@ import {
   html,
   css,
   svg
-  } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+} from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-  console.info(
-    `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.2       `,
-    'color: yellow; font-weight: bold; background: black',
-    'color: white; font-weight: bold; background: dimgray',
-  );
+console.info(
+  `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.3.0       `,
+  'color: yellow; font-weight: bold; background: black',
+  'color: white; font-weight: bold; background: dimgray',
+);
 
-  //++ Consts ++++++++++
-  const FONT_SIZE = 12;
-  const SVG_VIEW_BOX = 200;
-  
-  // Donut starts at -220 degrees and is 260 degrees in size.
-  // zero degrees is at 3 o'clock.
-  const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
-  const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
-  const HORSESHOE_PATH_LENGTH = 2 * 260/360 * Math.PI * HORSESHOE_RADIUS_SIZE;
-  
-  const DEFAULT_SHOW = {
-    horseshoe: true,
+//++ Consts ++++++++++
+const FONT_SIZE = 12;
+const SVG_VIEW_BOX = 200;
+
+// Donut starts at -220 degrees and is 260 degrees in size.
+// zero degrees is at 3 o'clock.
+const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
+const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
+const HORSESHOE_PATH_LENGTH = 2 * 260 / 360 * Math.PI * HORSESHOE_RADIUS_SIZE;
+const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
+
+const DEFAULT_SHOW = {
+  horseshoe: true,
   scale_tickmarks: false,
-    horseshoe_style: 'fixed',
-  }
-  
-  const DEFAULT_HORSESHOE_SCALE = {
-    min: 0,
+  horseshoe_style: 'fixed',
+}
+
+const DEFAULT_HORSESHOE_SCALE = {
+  min: 0,
   max: 100,
   width: 6,
   color: 'var(--primary-background-color)',
-  }
-  
-  const DEFAULT_HORSESHOE_STATE = {
+}
+
+const DEFAULT_HORSESHOE_STATE = {
   width: 12,
   color: 'var(--primary-color)',
-  }
-  
-  const DEFAULT_TAP_ACTION = {
-    action: "more-info"
-  }
+}
 
-  //--
-  
-  //++ Class ++++++++++
-  
-  class FlexHorseshoeCard extends LitElement {
+const DEFAULT_TAP_ACTION = {
+  action: "more-info"
+}
+
+//--
+
+//++ Class ++++++++++
+
+class FlexHorseshoeCard extends LitElement {
   constructor() {
     super();
-  
+
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this.entities = [];
@@ -86,32 +89,33 @@ import {
     this.animations.names = {};
     this.animations.areas = {};
     this.animations.states = {};
-      
+
     this.colorCache = {};
-    
+
     // http://jsfiddle.net/jlubean/dL5cLjxt/
     //this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
     // this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
+
     // 2020.11.16
     // See: https://javascriptio.com/view/10924/detect-if-device-is-ios
     // After iOS 13 you should detect iOS devices like this, since iPad will not be detected as iOS devices
     // by old ways (due to new "desktop" options, enabled by default)
-    
+
     this.isAndroid = !!navigator.userAgent.match(/Android/);
     if (!this.isAndroid) {
       this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
       this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
-                  !window.MSStream;
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+        !window.MSStream;
     }
+    this.bar_mode = "normal"; // default
   }
-  
-   /*******************************************************************************
-    * Summary.
-    *  Implements the properties method
-    *
-    */
+
+  /*******************************************************************************
+   * Summary.
+   *  Implements the properties method
+   *
+   */
   /*
   static get properties() {
     return {
@@ -127,20 +131,20 @@ import {
         angleCoords: Object
     }
   }
-  */  
-   /*******************************************************************************
-    * styles()
-    *
-    * Summary.
-    *  Returns the static CSS styles for the lit-element
-    *
-    * Note:
-    *  - The BEM (http://getbem.com/naming/) naming style for CSS is used
-    *    Of course, if no mistakes are made ;-)
-    *
-    */
+  */
+  /*******************************************************************************
+   * styles()
+   *
+   * Summary.
+   *  Returns the static CSS styles for the lit-element
+   *
+   * Note:
+   *  - The BEM (http://getbem.com/naming/) naming style for CSS is used
+   *    Of course, if no mistakes are made ;-)
+   *
+   */
   static get styles() {
-      
+
     return css`
         :host {
           cursor: pointer;
@@ -684,227 +688,255 @@ import {
         
       `;
   }
-  
-   /*******************************************************************************
-    * hass()
-    *
-    * Summary.
-    *  Updates hass data for the card
-    *
-    */
-  
+
+  /*******************************************************************************
+   * hass()
+   *
+   * Summary.
+   *  Updates hass data for the card
+   *
+   */
+
   set hass(hass) { // This is a safe and fast method  // Set ref to hass, use "_"for the name ;-)
-      this._hass = hass;
-    
-      var entityHasChanged = false;
-      
-      // Update state strings and check for changes.
-      // Only if changed, continue and force render
-      var value;
-      var index = 0;
-      var attrSet = false;
-      var newStateStr;
-      for (value of this.config.entities) {
-        this.entities[index] = hass.states[this.config.entities[index].entity];
-  
-        // Get attribute state if specified and available
-        if (this.config.entities[index].attribute) {
-          if (this.entities[index].attributes[this.config.entities[index].attribute]) {
-            newStateStr = this._buildState(this.entities[index].attributes[this.config.entities[index].attribute], this.config.entities[index]);
-            if (newStateStr != this.attributesStr[index]) {
-              this.attributesStr[index] = newStateStr;
-              entityHasChanged = true;
-            }
-            attrSet = true;
-          }
-        }
-        if (!attrSet) {
-          newStateStr = this._buildState(this.entities[index].state, this.config.entities[index]);
-          if (newStateStr != this.entitiesStr[index]) {
-            this.entitiesStr[index] = newStateStr;
+    this._hass = hass;
+
+    var entityHasChanged = false;
+
+    // Update state strings and check for changes.
+    // Only if changed, continue and force render
+    var value;
+    var index = 0;
+    var attrSet = false;
+    var newStateStr;
+    for (value of this.config.entities) {
+      this.entities[index] = hass.states[this.config.entities[index].entity];
+
+      // Get attribute state if specified and available
+      if (this.config.entities[index].attribute) {
+        if (this.entities[index].attributes[this.config.entities[index].attribute]) {
+          newStateStr = this._buildState(this.entities[index].attributes[this.config.entities[index].attribute], this.config.entities[index]);
+          if (newStateStr != this.attributesStr[index]) {
+            this.attributesStr[index] = newStateStr;
             entityHasChanged = true;
           }
-        }
-        
-        index++;
-      }
-  
-      if (!entityHasChanged) {
-        return;
-      }
-      else {
-      }
-  
-      // Use first state or attribute for displaying the horseshoe
-      
-      // #TODO: only if state or attribute has changed.
-      var state = this.entities[0].state;
-      if ((this.config.entities[0].attribute)) {
-        if (this.entities[0].attributes[this.config.entities[0].attribute]) {
-          state = this.entities[0].attributes[this.config.entities[0].attribute];
+          attrSet = true;
         }
       }
-      
-      // Calculate the size of the arc to fill the dasharray with this 
-      // value. It will fill the horseshoe relative to the state and min/max
-      // values given in the configuration.
-      
+      if (!attrSet) {
+        newStateStr = this._buildState(this.entities[index].state, this.config.entities[index]);
+        if (newStateStr != this.entitiesStr[index]) {
+          this.entitiesStr[index] = newStateStr;
+          entityHasChanged = true;
+        }
+      }
+
+      index++;
+    }
+
+    if (!entityHasChanged) {
+      return;
+    }
+    else {
+    }
+
+    // Use first state or attribute for displaying the horseshoe
+
+    // #TODO: only if state or attribute has changed.
+    var state = this.entities[0].state;
+    if ((this.config.entities[0].attribute)) {
+      if (this.entities[0].attributes[this.config.entities[0].attribute]) {
+        state = this.entities[0].attributes[this.config.entities[0].attribute];
+      }
+    }
+
+    // Calculate the size of the arc to fill the dasharray with this 
+    // value. It will fill the horseshoe relative to the state and min/max
+    // values given in the configuration.
+
     const min = this.config.horseshoe_scale.min || 0;
     const max = this.config.horseshoe_scale.max || 100;
-    const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-    const score = val * HORSESHOE_PATH_LENGTH;
-    const total = 10 * HORSESHOE_RADIUS_SIZE;
-    this.dashArray = `${score} ${total}`;
-  
-      // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop 
-      // #TODO: only if state or attribute has changed.
-  
-      const strokeStyle = this.config.show.horseshoe_style;
-    
-      if (strokeStyle == 'fixed') {
-        this.stroke_color = this.config.horseshoe_state.color;
-        this.color0 = this.config.horseshoe_state.color;
-        this.color1 = this.config.horseshoe_state.color;
-        this.color1_offset = '0%';
-        //  We could set the circle attributes, but we do it with a variable as we are using a gradient
-        //  to display the horseshoe circle  .. <horseshoe circle>.setAttribute('stroke', stroke);
+    const barMode = this.config.bar_mode || "normal";
+    let dashArray = "";
+    if (barMode === "bidirectional") {
+      // Bidirectional: zero at top, positive CW, negative CCW
+      // Assume min < 0 < max
+      const zeroPos = 0; // zero at top center
+      const totalLength = HORSESHOE_PATH_LENGTH;
+      let val = Number(state);
+      let posLen = 0, negLen = 0;
+      if (val >= 0) {
+        posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
+        console.log("posLen", posLen);
+        this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
+        this._bidirectional_negative = false;
+      } else {
+        console.log("min", Math.min(this._calculateValueBetween(min, 0, val), 1));
+        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
+        this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
+        this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
+        console.log("negLen", negLen);
+        this._bidirectional_negative = true;
       }
-      else if (strokeStyle == 'autominmax') {
-        // Use color0 and color1 for autoranging the color of the horseshoe
-        const stroke = this._calculateStrokeColor(state, this.colorStopsMinMax, true);
-  
-        // We now use a gradient for the horseshoe, using two colors
-        // Set these colors to the colorstop color...
-        this.color0 = stroke;
-        this.color1 = stroke;
-        this.color1_offset = '0%';
-      }
-      else if (strokeStyle == 'colorstop' || strokeStyle == 'colorstopgradient') {
-        const stroke = this._calculateStrokeColor(state, this.colorStops, strokeStyle === 'colorstopgradient');
-  
-        // We now use a gradient for the horseshoe, using two colors
-        // Set these colors to the colorstop color...
-        this.color0 = stroke;
-        this.color1 = stroke;
-        this.color1_offset = '0%';
-      }
-      else if (strokeStyle == 'lineargradient') {
-        // This has taken a lot of time to get a satisfying result, and it appeared much simpler than anticipated.
-        // I don't understand it, but for a circle, a gradient from left/right with adjusted stop is enough ?!?!?!
-        // No calculations to adjust the angle of the gradient, or rotating the gradient itself.
-        // Weird, but it works. Not a 100% match, but it is good enough for now...
-  
-        // According to stackoverflow, these calculations / adjustments would be needed, but it isn't ;-)
-        // Added from https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-        const angleCoords = {'x1' : '0%', 'y1' : '0%', 'x2': '100%', 'y2' : '0%'};
-        this.color1_offset = `${Math.round((1-val)*100)}%`;
-  
-        this.angleCoords = angleCoords;
-      }
-  
+    } else {
+      // Normal mode
+      const val = Math.min(this._calculateValueBetween(min, max, state), 1);
+      const score = val * HORSESHOE_PATH_LENGTH;
+      const total = 10 * HORSESHOE_RADIUS_SIZE;
+      this.dashArray = `${score} ${total}`;
+      this._bidirectional_negative = false;
+    }
+    console.log("dashArray", this.dashArray);
+
+    // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop 
+    // #TODO: only if state or attribute has changed.
+
+    const strokeStyle = this.config.show.horseshoe_style;
+
+    if (strokeStyle == 'fixed') {
+      this.stroke_color = this.config.horseshoe_state.color;
+      this.color0 = this.config.horseshoe_state.color;
+      this.color1 = this.config.horseshoe_state.color;
+      this.color1_offset = '0%';
+      //  We could set the circle attributes, but we do it with a variable as we are using a gradient
+      //  to display the horseshoe circle  .. <horseshoe circle>.setAttribute('stroke', stroke);
+    }
+    else if (strokeStyle == 'autominmax') {
+      // Use color0 and color1 for autoranging the color of the horseshoe
+      const stroke = this._calculateStrokeColor(state, this.colorStopsMinMax, true);
+
+      // We now use a gradient for the horseshoe, using two colors
+      // Set these colors to the colorstop color...
+      this.color0 = stroke;
+      this.color1 = stroke;
+      this.color1_offset = '0%';
+    }
+    else if (strokeStyle == 'colorstop' || strokeStyle == 'colorstopgradient') {
+      const stroke = this._calculateStrokeColor(state, this.colorStops, strokeStyle === 'colorstopgradient');
+
+      // We now use a gradient for the horseshoe, using two colors
+      // Set these colors to the colorstop color...
+      this.color0 = stroke;
+      this.color1 = stroke;
+      this.color1_offset = '0%';
+    }
+    else if (strokeStyle == 'lineargradient') {
+      // This has taken a lot of time to get a satisfying result, and it appeared much simpler than anticipated.
+      // I don't understand it, but for a circle, a gradient from left/right with adjusted stop is enough ?!?!?!
+      // No calculations to adjust the angle of the gradient, or rotating the gradient itself.
+      // Weird, but it works. Not a 100% match, but it is good enough for now...
+
+      // According to stackoverflow, these calculations / adjustments would be needed, but it isn't ;-)
+      // Added from https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
+      const angleCoords = { 'x1': '0%', 'y1': '0%', 'x2': '100%', 'y2': '0%' };
+      this.color1_offset = `${Math.round((1 - val) * 100)}%`;
+
+      this.angleCoords = angleCoords;
+    }
+
     // Check for animations linked to an entity or attribute.
-      // Set the dynamic animation depending on the state.
-      // If the card is rendered, the render() functions will take this dynamic animation into account.
-      //
-      // #TODO: Determine animation only if specific state or attribute has changed...
-    
-      if (this.config.animations) Object.keys(this.config.animations).map(animation => {
-    const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
-    this.config.animations[animation].map(item => {
-      // if animation state not equals sensor state, return... Nothing to animate for this state...
-          if (this.entities[entityIndex].state.toLowerCase() != item.state.toLowerCase()) return;
-      
-      if (item.vlines) {
-      item.vlines.map(item2 => {
-        if (!this.animations.vlines[item2.animation_id] || !item2.reuse) this.animations.vlines[item2.animation_id] = {};
-        this.animations.vlines[item2.animation_id] = Object.assign(this.animations.vlines[item2.animation_id], ...item2.styles);
-      })
-      }
-      
-      if (item.hlines) {
-      item.hlines.map(item2 => {
-        if (!this.animations.hlines[item2.animation_id] || !item2.reuse) this.animations.hlines[item2.animation_id] = {};
-        this.animations.hlines[item2.animation_id] = Object.assign(this.animations.hlines[item2.animation_id], ...item2.styles);
-      })
-      }
-  
-      if (item.circles) {
-      item.circles.map(item2 => {
-        if (!this.animations.circles[item2.animation_id]  || !item2.reuse) this.animations.circles[item2.animation_id] = {};
-        this.animations.circles[item2.animation_id] = Object.assign(this.animations.circles[item2.animation_id], ...item2.styles);
-      })
-      }
-  
-      if (item.icons) {
-      item.icons.map(item2 => {
-        if (!this.animations.icons[item2.animation_id] || !item2.reuse) this.animations.icons[item2.animation_id] = {};
-        this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
-      })
-      }
-  
-      if (item.states) {
-      item.states.map(item2 => {
-        if (!this.animations.states[item2.animation_id] || !item2.reuse) this.animations.states[item2.animation_id] = {};
-        this.animations.states[item2.animation_id] = Object.assign(this.animations.states[item2.animation_id], ...item2.styles);
-      })
-      }
-      
+    // Set the dynamic animation depending on the state.
+    // If the card is rendered, the render() functions will take this dynamic animation into account.
+    //
+    // #TODO: Determine animation only if specific state or attribute has changed...
+
+    if (this.config.animations) Object.keys(this.config.animations).map(animation => {
+      const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
+      this.config.animations[animation].map(item => {
+        // if animation state not equals sensor state, return... Nothing to animate for this state...
+        if (this.entities[entityIndex].state.toLowerCase() != item.state.toLowerCase()) return;
+
+        if (item.vlines) {
+          item.vlines.map(item2 => {
+            if (!this.animations.vlines[item2.animation_id] || !item2.reuse) this.animations.vlines[item2.animation_id] = {};
+            this.animations.vlines[item2.animation_id] = Object.assign(this.animations.vlines[item2.animation_id], ...item2.styles);
+          })
+        }
+
+        if (item.hlines) {
+          item.hlines.map(item2 => {
+            if (!this.animations.hlines[item2.animation_id] || !item2.reuse) this.animations.hlines[item2.animation_id] = {};
+            this.animations.hlines[item2.animation_id] = Object.assign(this.animations.hlines[item2.animation_id], ...item2.styles);
+          })
+        }
+
+        if (item.circles) {
+          item.circles.map(item2 => {
+            if (!this.animations.circles[item2.animation_id] || !item2.reuse) this.animations.circles[item2.animation_id] = {};
+            this.animations.circles[item2.animation_id] = Object.assign(this.animations.circles[item2.animation_id], ...item2.styles);
+          })
+        }
+
+        if (item.icons) {
+          item.icons.map(item2 => {
+            if (!this.animations.icons[item2.animation_id] || !item2.reuse) this.animations.icons[item2.animation_id] = {};
+            this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
+          })
+        }
+
+        if (item.states) {
+          item.states.map(item2 => {
+            if (!this.animations.states[item2.animation_id] || !item2.reuse) this.animations.states[item2.animation_id] = {};
+            this.animations.states[item2.animation_id] = Object.assign(this.animations.states[item2.animation_id], ...item2.styles);
+          })
+        }
+
+      });
     });
-    });
-  
+
     // For now, always force update to render the card if any of the states or attributes have changed...
     // if (entityHasChanged) { this.requestUpdate();}
     this.requestUpdate();
   }
-  
-   /*******************************************************************************
-    * setConfig()
-    *
-    * Summary.
-    *  Sets/Updates the card configuration. Rarely called if the doc is right 
-    *
-    */
-  
-    setConfig(config) {
-      config = JSON.parse(JSON.stringify(config));
-      
+
+  /*******************************************************************************
+   * setConfig()
+   *
+   * Summary.
+   *  Sets/Updates the card configuration. Rarely called if the doc is right 
+   *
+   */
+
+  setConfig(config) {
+    config = JSON.parse(JSON.stringify(config));
+
     if (!config.entities) {
-    throw Error('No entities defined');
+      throw Error('No entities defined');
     }
     if (!config.layout) {
-    throw Error('No layout defined');
+      throw Error('No layout defined');
     }
     if (!config.horseshoe_scale) {
-    throw Error('No horseshoe scale defined');
+      throw Error('No horseshoe scale defined');
     } else {
-        if ((!config.horseshoe_scale.min) && (!config.horseshoe_scale.min == 0) || (!config.horseshoe_scale.max)) {
-          throw Error('No horseshoe min/max for scale defined');
-        }
+      if ((!config.horseshoe_scale.min) && (!config.horseshoe_scale.min == 0) || (!config.horseshoe_scale.max)) {
+        throw Error('No horseshoe min/max for scale defined');
       }
-    if ((!config.color_stops) || (config.color_stops.length < 2)) {
-    throw Error('No color_stops defined or not at least two colorstops');
     }
-  
+    if ((!config.color_stops) || (config.color_stops.length < 2)) {
+      throw Error('No color_stops defined or not at least two colorstops');
+    }
+
     // testing
     if (config.entities) {
-    const newdomain = this._computeDomain(config.entities[0].entity);
-    if (newdomain != 'sensor') {
-      // If not a sensor, check if attribute is a number. If so, continue, otherwise Error...
-      if (config.entities[0].attribute && !isNaN(config.entities[0].attribute)) {
-      throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
+      const newdomain = this._computeDomain(config.entities[0].entity);
+      if (newdomain != 'sensor') {
+        // If not a sensor, check if attribute is a number. If so, continue, otherwise Error...
+        if (config.entities[0].attribute && !isNaN(config.entities[0].attribute)) {
+          throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
+        }
       }
-    }        
     }
-  
-      const newConfig = {
-    texts: [],
-        card_filter: 'card--filter-none',
-        ...config,
-        show: { ...DEFAULT_SHOW, ...config.show },
-        horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
-        horseshoe_state: { ...DEFAULT_HORSESHOE_STATE, ...config.horseshoe_state },
-      };
-  
+
+    const newConfig = {
+      texts: [],
+      card_filter: 'card--filter-none',
+      bar_mode: config.bar_mode || "normal", // add bar_mode to config
+      ...config,
+      show: { ...DEFAULT_SHOW, ...config.show },
+      horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
+      horseshoe_state: { ...DEFAULT_HORSESHOE_STATE, ...config.horseshoe_state },
+    };
+
     for (var entityValue of newConfig.entities) {
       if (!entityValue.tap_action) {
         entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
@@ -912,67 +944,69 @@ import {
     }
 
     let colorStops = {};
-  //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
+    //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
     if (newConfig.color_stops) {
-    Object.keys(newConfig.color_stops).forEach((key) => {
-      colorStops[key] = newConfig.color_stops[key];
-    });
+      Object.keys(newConfig.color_stops).forEach((key) => {
+        colorStops[key] = newConfig.color_stops[key];
+      });
     }
-  
-      const sortedStops = Object.keys(colorStops).map(n => Number(n)).sort((a, b) => a - b);
-      this.colorStops = colorStops;
-      this.sortedStops = sortedStops;
-  
-      // Create a colorStopsMinMax list for autominmax color determination
-      let colorStopsMinMax = {};
-      colorStopsMinMax[newConfig.horseshoe_scale.min] = colorStops[sortedStops[0]];
-      colorStopsMinMax[newConfig.horseshoe_scale.max] = colorStops[sortedStops[(sortedStops.length)-1]];
-  
-      this.colorStopsMinMax = colorStopsMinMax;
-  
-      // Now set the color0 and color1 for the gradient used in the horseshoe to the colors
-      // Use default for now!!
-      this.color0 = colorStops[sortedStops[0]];
-      this.color1 = colorStops[sortedStops[(sortedStops.length)-1]];
-      
-      const angleCoords = {'x1' : '0%', 'y1' : '0%', 'x2': '100%', 'y2' : '0%'};
-      this.angleCoords = angleCoords;
-      this.color1_offset = '0%';
-  
-      this.config = newConfig;
-    }
-  
-   /*******************************************************************************
-    * connectedCallback()
-    *
-    * Summary.
-    *
-    */
+
+    const sortedStops = Object.keys(colorStops).map(n => Number(n)).sort((a, b) => a - b);
+    this.colorStops = colorStops;
+    this.sortedStops = sortedStops;
+
+    // Create a colorStopsMinMax list for autominmax color determination
+    let colorStopsMinMax = {};
+    colorStopsMinMax[newConfig.horseshoe_scale.min] = colorStops[sortedStops[0]];
+    colorStopsMinMax[newConfig.horseshoe_scale.max] = colorStops[sortedStops[(sortedStops.length) - 1]];
+
+    this.colorStopsMinMax = colorStopsMinMax;
+
+    // Now set the color0 and color1 for the gradient used in the horseshoe to the colors
+    // Use default for now!!
+    this.color0 = colorStops[sortedStops[0]];
+    this.color1 = colorStops[sortedStops[(sortedStops.length) - 1]];
+
+    const angleCoords = { 'x1': '0%', 'y1': '0%', 'x2': '100%', 'y2': '0%' };
+    this.angleCoords = angleCoords;
+    this.color1_offset = '0%';
+
+    this.config = newConfig;
+    this.bar_mode = newConfig.bar_mode || "normal";
+  }
+
+  /*******************************************************************************
+   * connectedCallback()
+   *
+   * Summary.
+   *
+   */
   connectedCallback() {
     super.connectedCallback();
   }
-  
-   /*******************************************************************************
-    * disconnectedCallback()
-    *
-    * Summary.
-    *
-    */
+
+  /*******************************************************************************
+   * disconnectedCallback()
+   *
+   * Summary.
+   *
+   */
   disconnectedCallback() {
     super.disconnectedCallback();
   }
-  
-   /*******************************************************************************
-    * render()
-    *
-    * Summary.
-    * Renders the complete SVG based card according to the specified layout in which
-    * the user can specify name, area, entities, lines and dots.
-    * The horseshoe is rendered on the full card. This one can be moved a bit via CSS.
-    *
-    */
-  
+
+  /*******************************************************************************
+   * render()
+   *
+   * Summary.
+   * Renders the complete SVG based card according to the specified layout in which
+   * the user can specify name, area, entities, lines and dots.
+   * The horseshoe is rendered on the full card. This one can be moved a bit via CSS.
+   *
+   */
+
   render({ config } = this) {
+    if (!this.config) return html``; // Prevent rendering if config is not set
     return html`
     <ha-card
       @click=${e => this.handlePopup(e, this.entities[0])}
@@ -990,7 +1024,7 @@ import {
     </ha-card>
     `;
   }
-  
+
   /*******************************************************************************
     * renderTickMarks()
     *
@@ -998,50 +1032,50 @@ import {
     * Renders the tick marks on the scale.
     *
     */
-  
+
   _renderTickMarks() {
-      const { config, } = this;
-      if (!config) return;
-      if (!config.show) return;
-      if (!config.show.scale_tickmarks) return;
-      
-      const stroke = config.horseshoe_scale.color ? config.horseshoe_scale.color : 'var(--primary-background-color)';
-      const tickSize = config.horseshoe_scale.ticksize ? config.horseshoe_scale.ticksize
-                      : (config.horseshoe_scale.max - config.horseshoe_scale.min) / 10;
-      
-      // fullScale is 260 degrees. Hard coded for now...
-      const fullScale = 260;
-      const remainder = config.horseshoe_scale.min % tickSize;
-      const startTickValue = config.horseshoe_scale.min + (remainder == 0 ? 0 : (tickSize - remainder));
-      const startAngle = ((startTickValue - config.horseshoe_scale.min) /
-                          (config.horseshoe_scale.max - config.horseshoe_scale.min)) * fullScale;
-      var tickSteps = ((config.horseshoe_scale.max - startTickValue) / tickSize);
-      
-      // new
-      var steps = Math.floor(tickSteps);
-      const angleStepSize = (fullScale - startAngle) / tickSteps;
-      
-      // If steps exactly match the max. value/range, add extra step for that max value.
-      if ((Math.floor(((steps) * tickSize) + startTickValue)) <= (config.horseshoe_scale.max)) {steps++;}
-      
-      const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6/2;
-      var angle;
-      var scaleItems = [];
-  
+    const { config, } = this;
+    if (!config) return;
+    if (!config.show) return;
+    if (!config.show.scale_tickmarks) return;
+
+    const stroke = config.horseshoe_scale.color ? config.horseshoe_scale.color : 'var(--primary-background-color)';
+    const tickSize = config.horseshoe_scale.ticksize ? config.horseshoe_scale.ticksize
+      : (config.horseshoe_scale.max - config.horseshoe_scale.min) / 10;
+
+    // fullScale is 260 degrees. Hard coded for now...
+    const fullScale = 260;
+    const remainder = config.horseshoe_scale.min % tickSize;
+    const startTickValue = config.horseshoe_scale.min + (remainder == 0 ? 0 : (tickSize - remainder));
+    const startAngle = ((startTickValue - config.horseshoe_scale.min) /
+      (config.horseshoe_scale.max - config.horseshoe_scale.min)) * fullScale;
+    var tickSteps = ((config.horseshoe_scale.max - startTickValue) / tickSize);
+
+    // new
+    var steps = Math.floor(tickSteps);
+    const angleStepSize = (fullScale - startAngle) / tickSteps;
+
+    // If steps exactly match the max. value/range, add extra step for that max value.
+    if ((Math.floor(((steps) * tickSize) + startTickValue)) <= (config.horseshoe_scale.max)) { steps++; }
+
+    const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6 / 2;
+    var angle;
+    var scaleItems = [];
+
     // NTS:
     // Value of -230 is weird. Should be -220. Can't find why...
-      var i;
-      for (i = 0; i < steps; i++) {
-        angle = startAngle + ((-230 + (360 - i*angleStepSize)) * Math.PI / 180);
-        scaleItems[i] = svg`
-          <circle cx="${50 + 50 - Math.sin(angle)*TICKMARKS_RADIUS_SIZE}"
-                  cy="${50 + 50 - Math.cos(angle)*TICKMARKS_RADIUS_SIZE}" r="${radius}"
+    var i;
+    for (i = 0; i < steps; i++) {
+      angle = startAngle + ((-230 + (360 - i * angleStepSize)) * Math.PI / 180);
+      scaleItems[i] = svg`
+          <circle cx="${50 + 50 - Math.sin(angle) * TICKMARKS_RADIUS_SIZE}"
+                  cy="${50 + 50 - Math.cos(angle) * TICKMARKS_RADIUS_SIZE}" r="${radius}"
                   fill="${stroke}">
         `;
-      }
-      return svg`${scaleItems}`;
     }
-      
+    return svg`${scaleItems}`;
+  }
+
   /*******************************************************************************
     * _renderSvg()
     *
@@ -1069,12 +1103,12 @@ import {
     *
     */
   _renderSvg() {
-      // For some reason, using a var/const for the viewboxsize doesn't work.
-      // Even if the Chrome inspector shows 200 200. So hardcode for now!
-      // const { viewBoxSize, } = this;
-      
-      const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
-      
+    // For some reason, using a var/const for the viewboxsize doesn't work.
+    // Even if the Chrome inspector shows 200 200. So hardcode for now!
+    // const { viewBoxSize, } = this;
+
+    const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
+
     return svg`
         <svg xmlns=http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}" 
@@ -1092,6 +1126,7 @@ import {
         </svg>
       `;
   }
+
   /*******************************************************************************
     * _renderHorseShoe()
     *
@@ -1104,38 +1139,91 @@ import {
     *
     * The foreground horseshoe is always rendered as a gradient with two colors.
     *
-    * The horseshoes are rotated 220 degrees and are 2 * 26/36 * Math.PI * r in size 
-    * There you get your value of 408.4070449 ;-)
+    * The horseshoes are rotated 220 degrees and are 2 * 260 / 360 * Math.PI * r in size 
+    * There you get your value of 408.40704496667314 for the dasharray.)
     */
-  
+
   _renderHorseShoe() {
-  
-    if (!this.config.show.horseshoe) return;
-    
+    if (!this.config) return;
+    // Bidirectional: zero at top, positive CW, negative CCW
+    const barMode = this.config.bar_mode || "normal";
+    if (barMode === "bidirectional") {
+      // The horseshoe arc is always 260deg, but we want zero at top (270deg)
+      // So rotate -90deg (top center), and for negative values, use stroke-dashoffset to fill CCW
+      if (this._bidirectional_negative) {
+        // stroke-dashoffset = half the arc length (start at top, fill CCW)
+        // But SVG circles always fill CW, so we use dashoffset to "reverse" the fill
+        // The arc is 260deg, so half is 130deg, which is HORSESHOE_PATH_LENGTH/2
+        // For negative, offset by half the arc
+        return svg`
+          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="${this.config.horseshoe_scale.color || '#000000'}"
+              stroke-dasharray="408.40704496667314,180"
+              stroke-width="${this.config.horseshoe_scale.width || 6}" 
+              stroke-linecap="round"
+              transform="rotate(-220 100 100)"/>
+            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="url('#horseshoe__gradient-${this.cardId}')"
+              stroke-dasharray="${this.dashArray}"
+              stroke-dashoffset="${this.dashOffset}"
+              stroke-width="${this.config.horseshoe_state.width || 12}" 
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              style="transition: all 2.5s ease-out;"/>
+            ${this._renderTickMarks()}
+          </g>
+        `;
+      } else {
+        // stroke-dashoffset = 0 (start at top, fill CW)
+        return svg`
+          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="${this.config.horseshoe_scale.color || '#000000'}"
+              stroke-dasharray="408.40704496667314,180"
+              stroke-width="${this.config.horseshoe_scale.width || 6}" 
+              stroke-linecap="round"
+              transform="rotate(-220 100 100)"/>
+            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="url('#horseshoe__gradient-${this.cardId}')"
+              stroke-dasharray="${this.dashArray}"
+              stroke-width="${this.config.horseshoe_state.width || 12}" 
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              style="transition: all 2.5s ease-out;"/>
+            ${this._renderTickMarks()}
+          </g>
+        `;
+      }
+    }
+
+    // Normal mode (default)
     return svg`
-        <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-          <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-            fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-            stroke="${this.config.horseshoe_scale.color || '#000000'}"
-            stroke-dasharray="408.4070449,180"
-            stroke-width="${this.config.horseshoe_scale.width || 6}" 
-            stroke-linecap="round"
-            transform="rotate(-220 100 100)"/>
-  
-          <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-            fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-            stroke="url('#horseshoe__gradient-${this.cardId}')"
-            stroke-dasharray="${this.dashArray}"
-            stroke-width="${this.config.horseshoe_state.width || 12}" 
-            stroke-linecap="round"
-            transform="rotate(-220 100 100)"
-            style="transition: all 2.5s ease-out;"/>
-          
-          ${this._renderTickMarks()}
-        </g>
-      `;
+      <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+        <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+          stroke="${this.config.horseshoe_scale.color || '#000000'}"
+          stroke-dasharray="408.40704496667314,180"
+          stroke-width="${this.config.horseshoe_scale.width || 6}" 
+          stroke-linecap="round"
+          transform="rotate(-220 100 100)"/>
+        <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+          stroke="url('#horseshoe__gradient-${this.cardId}')"
+          stroke-dasharray="${this.dashArray}"
+          stroke-width="${this.config.horseshoe_state.width || 12}" 
+          stroke-linecap="round"
+          transform="rotate(-220 100 100)"
+          style="transition: all 2.5s ease-out;"/>
+        ${this._renderTickMarks()}
+      </g>
+    `;
   }
-  
+
   /*******************************************************************************
     * _renderEntityNames()
     *
@@ -1144,52 +1232,52 @@ import {
     * The location of the name is specified in the layout.
     *
     */
-   
+
   _renderEntityNames() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.names) return;
-  
-      const svgItems = layout.names.map(item => {
-  
-        // compute some styling elements if configured for this name item
-    const ENTITY_NAME_STYLES = {
-      "font-size": '1.5em;',
-      "color": 'var(--primary-text-color);',
-      "opacity": '1.0;',
-      "text-anchor": 'middle;'
-    };
-  
-    // Get configuration styles as the default styles
-    let configStyle = {...ENTITY_NAME_STYLES};
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-    
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    if (this.animations.names[item.index])
-      stateStyle = Object.assign(stateStyle, this.animations.names[item.index]);
-  
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle};
-    
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-    const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-    
-        return svg`
+
+    if (!layout) return;
+    if (!layout.names) return;
+
+    const svgItems = layout.names.map(item => {
+
+      // compute some styling elements if configured for this name item
+      const ENTITY_NAME_STYLES = {
+        "font-size": '1.5em;',
+        "color": 'var(--primary-text-color);',
+        "opacity": '1.0;',
+        "text-anchor": 'middle;'
+      };
+
+      // Get configuration styles as the default styles
+      let configStyle = { ...ENTITY_NAME_STYLES };
+      if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+      // Get the runtime styles, caused by states & animation settings
+      let stateStyle = {};
+      if (this.animations.names[item.index])
+        stateStyle = Object.assign(stateStyle, this.animations.names[item.index]);
+
+      // Merge the two, where the runtime styles may overwrite the statically configured styles
+      configStyle = { ...configStyle, ...stateStyle };
+
+      // Convert javascript records to plain text, without "{}" and "," between the styles.
+      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+      const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+      return svg`
       <text>
         <tspan class="entity__name" x="${item.xpos}%" y="${item.ypos}%" style="${configStyleStr}">${name}</tspan>
       </text>
           `;
-      })
-  
-      return svg`${svgItems}`;
+    })
+
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _renderEntityAreas()
     *
@@ -1198,50 +1286,50 @@ import {
     * The location of the area is specified in the layout.
     *
     */
-   
+
   _renderEntityAreas() {
     const {
-    layout, 
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.areas) return;
-      
-      const svgItems = layout.areas.map(item => {
-    const AREA_STYLES = {
-      "font-size": '1em;',
-      "color": 'var(--primary-text-color);',
-      "opacity": '1.0;',
-      "text-anchor": 'middle;'
-    };
-  
-    // Get configuration styles as the default styles
-    let configStyle = {...AREA_STYLES};
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-    
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    if (this.animations.areas[item.index])
-      stateStyle = Object.assign(stateStyle, this.animations.areas[item.index]);
-  
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle};
-    
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-    const area = this._buildArea(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-  
-        return svg`
+
+    if (!layout) return;
+    if (!layout.areas) return;
+
+    const svgItems = layout.areas.map(item => {
+      const AREA_STYLES = {
+        "font-size": '1em;',
+        "color": 'var(--primary-text-color);',
+        "opacity": '1.0;',
+        "text-anchor": 'middle;'
+      };
+
+      // Get configuration styles as the default styles
+      let configStyle = { ...AREA_STYLES };
+      if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+      // Get the runtime styles, caused by states & animation settings
+      let stateStyle = {};
+      if (this.animations.areas[item.index])
+        stateStyle = Object.assign(stateStyle, this.animations.areas[item.index]);
+
+      // Merge the two, where the runtime styles may overwrite the statically configured styles
+      configStyle = { ...configStyle, ...stateStyle };
+
+      // Convert javascript records to plain text, without "{}" and "," between the styles.
+      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+      const area = this._buildArea(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+      return svg`
       <text class="entity__area">
         <tspan class="entity__area" x="${item.xpos}%" y="${item.ypos}%" style="${configStyleStr}">${area}</tspan>
       </text>
           `;
-      })
-  
-      return svg`${svgItems}`;
+    })
+
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _renderState()
     *
@@ -1249,105 +1337,105 @@ import {
     * Renders the entity or attribute state of a single item.
     *
     */
-  
-    _renderState(item) {
-  
+
+  _renderState(item) {
+
     if (!item) return;
-    
+
     // compute x,y or dx,dy positions. Spec none if not specified.
     const x = item.xpos ? item.xpos : '';
     const y = item.ypos ? item.ypos : '';
     const dx = item.dx ? item.dx : '0';
     const dy = item.dy ? item.dy : '0';
-  
+
     // compute some styling elements if configured for this state item
-  const STATE_STYLES = {
-    "font-size": '1em;',
-    "color": 'var(--primary-text-color);',
-    "opacity": '1.0;',
-    "text-anchor": 'middle;'
-  };
-  
-  const UOM_STYLES = {
-    "opacity": '0.7;'
-  };
-  
-  // Get configuration styles as the default styles
-  let configStyle = {...STATE_STYLES};
-  if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-  
-  // Get the runtime styles, caused by states & animation settings
-  let stateStyle = {};
-  if (this.animations.states[item.index])
-    stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
-  
-  // Merge the two, where the runtime styles may overwrite the statically configured styles
-  configStyle = { ...configStyle, ...stateStyle};
-  
-  // Convert javascript records to plain text, without "{}" and "," between the styles.
-  const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-  // Get font-size of state in configStyle.
-  // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
-  // For floats and strings:
-  //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
-  
-  // 2019.09.12
-  // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
-  // https://regex101.com/r/QYfDtB/1
-  // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
-  // in twee stukken, dus 1.27 en em;
-  
-  var fsuomStr = configStyle["font-size"];
-  
-  var fsuomValue = 0.5;
-  var fsuomType = 'em;';
-  const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
-  if (fsuomSplit.length == 2) {
-    fsuomValue = Number(fsuomSplit[0]) * .6;
-    fsuomType = fsuomSplit[1];
-  }
-  else console.error('Cannot determine font-size for state', fsuomStr);
-  
-  fsuomStr = { "font-size": fsuomValue + fsuomType};
-  
-  let uomStyle = {...configStyle, ...UOM_STYLES, ...fsuomStr};
-  const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-    
-  const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-  
-  const state = (this.config.entities[item.entity_index].attribute &&
-                  this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
-                  ? this.attributesStr[item.entity_index]
-                  : this.entitiesStr[item.entity_index];
-    
-    if (this._computeDomain(this.entities[item.entity_index].entity_id) == 'sensor') {
-    return svg`
-    <text @click=${e => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  } else {
-    // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
-    // Still check for using an attribute value for the domain...
-    return svg`
-    <text @click=${e => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  }
+    const STATE_STYLES = {
+      "font-size": '1em;',
+      "color": 'var(--primary-text-color);',
+      "opacity": '1.0;',
+      "text-anchor": 'middle;'
+    };
+
+    const UOM_STYLES = {
+      "opacity": '0.7;'
+    };
+
+    // Get configuration styles as the default styles
+    let configStyle = { ...STATE_STYLES };
+    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+    // Get the runtime styles, caused by states & animation settings
+    let stateStyle = {};
+    if (this.animations.states[item.index])
+      stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
+
+    // Merge the two, where the runtime styles may overwrite the statically configured styles
+    configStyle = { ...configStyle, ...stateStyle };
+
+    // Convert javascript records to plain text, without "{}" and "," between the styles.
+    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+    // Get font-size of state in configStyle.
+    // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
+    // For floats and strings:
+    //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
+
+    // 2019.09.12
+    // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
+    // https://regex101.com/r/QYfDtB/1
+    // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
+    // in twee stukken, dus 1.27 en em;
+
+    var fsuomStr = configStyle["font-size"];
+
+    var fsuomValue = 0.5;
+    var fsuomType = 'em;';
+    const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
+    if (fsuomSplit.length == 2) {
+      fsuomValue = Number(fsuomSplit[0]) * .6;
+      fsuomType = fsuomSplit[1];
     }
-    
+    else console.error('Cannot determine font-size for state', fsuomStr);
+
+    fsuomStr = { "font-size": fsuomValue + fsuomType };
+
+    let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
+    const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+    const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+    const state = (this.config.entities[item.entity_index].attribute &&
+      this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
+      ? this.attributesStr[item.entity_index]
+      : this.entitiesStr[item.entity_index];
+
+    if (this._computeDomain(this.entities[item.entity_index].entity_id) == 'sensor') {
+      return svg`
+    <text @click=${e => this.handlePopup(e, this.entities[item.entity_index])}>
+      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+      style="${configStyleStr}">
+      ${state}</tspan>
+      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+      style="${uomStyleStr}">
+      ${uom}</tspan>
+    </text>
+    `;
+    } else {
+      // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
+      // Still check for using an attribute value for the domain...
+      return svg`
+    <text @click=${e => this.handlePopup(e, this.entities[item.entity_index])}>
+      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+      style="${configStyleStr}">
+      ${state}</tspan>
+      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+      style="${uomStyleStr}">
+      ${uom}</tspan>
+    </text>
+    `;
+    }
+  }
+
   /*******************************************************************************
     * _renderStates()
     *
@@ -1355,24 +1443,24 @@ import {
     * Renders the states.
     *
     */
-  
+
   _renderStates() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.states) return;
-      
-      const svgItems = layout.states.map(item => {
-        return svg`
+
+    if (!layout) return;
+    if (!layout.states) return;
+
+    const svgItems = layout.states.map(item => {
+      return svg`
             ${this._renderState(item)}
           `;
-      })
-  
-      return svg`${svgItems}`;
+    })
+
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _renderIcon()
     *
@@ -1380,13 +1468,13 @@ import {
     * Renders a single icon.
     *
     */
-  
-    _renderIcon(item) {
-  
+
+  _renderIcon(item) {
+
     if (!item) return;
-  
-  item.entity = item.entity ? item.entity : 0;
-  
+
+    item.entity = item.entity ? item.entity : 0;
+
     // get icon size, and calculate the foreignObject position and size. This must match the icon size
     // 1em = FONT_SIZE pixels, so we can calculate the icon size, and x/y positions of the foreignObject
     // the viewport is 200x200, so we can calulate the offset.
@@ -1394,26 +1482,26 @@ import {
     // NOTE:
     // Safari doesn't use the svg viewport for rendering of the foreignObject, but the real clientsize.
     // So positioning an icon doesn't work correctly...
-    
+
     var iconSize = item.icon_size ? item.icon_size : 2;
     var iconPixels = iconSize * FONT_SIZE;
     const x = item.xpos ? item.xpos / 100 : 0.5;
     const y = item.ypos ? item.ypos / 100 : 0.5;
-    
+
     const align = item.align ? item.align : 'center';
     const adjust = (align == 'center' ? 0.5 : (align == 'start' ? -1 : +1));
-  
-  //  const parentClientWidth = this.parentElement.clientWidth;
+
+    //  const parentClientWidth = this.parentElement.clientWidth;
     const clientWidth = this.clientWidth - 20; // hard coded adjust for padding...
     const correction = clientWidth / SVG_VIEW_BOX;
-  
+
     var xpx = (x * SVG_VIEW_BOX);
     var ypx = (y * SVG_VIEW_BOX);
-  
-    
+
+
     if ((this.isSafari) || (this.iOS)) {
       iconSize = iconSize * correction;
-  
+
       xpx = (xpx * correction) - (iconPixels * adjust * correction);
       ypx = (ypx * correction) - (iconPixels * 0.5 * correction) - (iconPixels * 0.25 * correction);// - (iconPixels * 0.25 / 1.86);
     } else {
@@ -1423,24 +1511,24 @@ import {
       xpx = xpx - (iconPixels * adjust);
       ypx = ypx - (iconPixels * 0.5) - (iconPixels * 0.25);
     }
-  
-  // Get configuration styles as the default styles
-  let configStyle = {};
-  if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-  
-  // Get the runtime styles, caused by states & animation settings
-  let stateStyle = {};
-  if (this.animations.icons[item.animation_id])
-    stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
-  
-  // Merge the two, where the runtime styles may overwrite the statically configured styles
-  configStyle = { ...configStyle, ...stateStyle};
-  
-  // Convert javascript records to plain text, without "{}" and "," between the styles.
-  const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-  const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-    
+
+    // Get configuration styles as the default styles
+    let configStyle = {};
+    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+    // Get the runtime styles, caused by states & animation settings
+    let stateStyle = {};
+    if (this.animations.icons[item.animation_id])
+      stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+
+    // Merge the two, where the runtime styles may overwrite the statically configured styles
+    configStyle = { ...configStyle, ...stateStyle };
+
+    // Convert javascript records to plain text, without "{}" and "," between the styles.
+    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+    const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
     return svg`
     <g @click=${e => this.handlePopup(e, this.entities[item.entity_index])}>
       <foreignObject width="${iconSize}em" height="${iconSize}em" x="${xpx}" y="${ypx}">
@@ -1452,8 +1540,8 @@ import {
       </foreignObject>
       <g>
       `;
-    }
-  
+  }
+
   /*******************************************************************************
     * _renderIcons()
     *
@@ -1461,24 +1549,24 @@ import {
     * Renders all the icons in the list.
     *
     */
-    
+
   _renderIcons() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.icons) return;    
-      
-      const svgItems = layout.icons.map(item => {
-        return svg`
+
+    if (!layout) return;
+    if (!layout.icons) return;
+
+    const svgItems = layout.icons.map(item => {
+      return svg`
             ${this._renderIcon(item)}
           `;
-      })
-  
-      return svg`${svgItems}`;  
+    })
+
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _renderHorizontalLines()
     *
@@ -1486,49 +1574,49 @@ import {
     * Renders the specified lines in the grid.
     *
     */
-  
+
   _renderHorizontalLines() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.hlines) return;
-  
-      // compute some styling elements if configured for this state item
-      const HLINES_STYLES = {
-        "stroke-linecap": 'round;',
-        "stroke": 'var(--primary-text-color);',
-        "opacity": '1.0;',
-        "stroke-width": '2;'
-      };
-  
-      const svgItems = layout.hlines.map(item => {
-    // Get configuration styles as the default styles
-    let configStyle = {...HLINES_STYLES};
-    configStyle = Object.assign(configStyle, ...item.styles);
-    
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    if (this.animations.hlines[item.animation_id])
-      stateStyle = Object.assign(stateStyle, this.animations.hlines[item.animation_id]);
-  
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle};
-    
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-    item.entity_index = item.entity_index ? item.entity_index : 0;
-  
-        return svg`
-          <line @click=${e => this.handlePopup(e, this.entities[item.entity_index])} class="line__horizontal" x1="${item.xpos-item.length/2}%" y1="${item.ypos}%" x2="${item.xpos+item.length/2}%" y2="${item.ypos}%" style="${configStyleStr}"/>
+
+    if (!layout) return;
+    if (!layout.hlines) return;
+
+    // compute some styling elements if configured for this state item
+    const HLINES_STYLES = {
+      "stroke-linecap": 'round;',
+      "stroke": 'var(--primary-text-color);',
+      "opacity": '1.0;',
+      "stroke-width": '2;'
+    };
+
+    const svgItems = layout.hlines.map(item => {
+      // Get configuration styles as the default styles
+      let configStyle = { ...HLINES_STYLES };
+      configStyle = Object.assign(configStyle, ...item.styles);
+
+      // Get the runtime styles, caused by states & animation settings
+      let stateStyle = {};
+      if (this.animations.hlines[item.animation_id])
+        stateStyle = Object.assign(stateStyle, this.animations.hlines[item.animation_id]);
+
+      // Merge the two, where the runtime styles may overwrite the statically configured styles
+      configStyle = { ...configStyle, ...stateStyle };
+
+      // Convert javascript records to plain text, without "{}" and "," between the styles.
+      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+      item.entity_index = item.entity_index ? item.entity_index : 0;
+
+      return svg`
+          <line @click=${e => this.handlePopup(e, this.entities[item.entity_index])} class="line__horizontal" x1="${item.xpos - item.length / 2}%" y1="${item.ypos}%" x2="${item.xpos + item.length / 2}%" y2="${item.ypos}%" style="${configStyleStr}"/>
           `;
-      })
-  
-      return svg`${svgItems}`;
+    })
+
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _renderVerticalLines()
     *
@@ -1536,48 +1624,48 @@ import {
     * Renders the specified lines in the grid.
     *
     */
-  
+
   _renderVerticalLines() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.vlines) return;
-  
-      const VLINES_STYLES = {
-        "stroke-linecap": 'round;',
-        "stroke": 'var(--primary-text-color);',
-        "opacity": '1.0;',
-        "stroke-width": '2;'
-      };
-  
-      const svgItems = layout.vlines.map(item => {
-    // Get configuration styles as the default styles
-    let configStyle = {...VLINES_STYLES};
-    configStyle = Object.assign(configStyle, ...item.styles);
-    
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    if (this.animations.vlines[item.animation_id])
-      stateStyle = Object.assign(stateStyle, this.animations.vlines[item.animation_id]);
-  
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle};
-    
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-    item.entity_index = item.entity_index ? item.entity_index : 0;
-  
-        return svg`
-          <line @click=${e => this.handlePopup(e, this.entities[item.entity_index])} class="line__vertical" x1="${item.xpos}%" y1="${item.ypos-item.length/2}%" x2="${item.xpos}%" y2="${item.ypos+item.length/2}%" style="${configStyleStr}"/>
+
+    if (!layout) return;
+    if (!layout.vlines) return;
+
+    const VLINES_STYLES = {
+      "stroke-linecap": 'round;',
+      "stroke": 'var(--primary-text-color);',
+      "opacity": '1.0;',
+      "stroke-width": '2;'
+    };
+
+    const svgItems = layout.vlines.map(item => {
+      // Get configuration styles as the default styles
+      let configStyle = { ...VLINES_STYLES };
+      configStyle = Object.assign(configStyle, ...item.styles);
+
+      // Get the runtime styles, caused by states & animation settings
+      let stateStyle = {};
+      if (this.animations.vlines[item.animation_id])
+        stateStyle = Object.assign(stateStyle, this.animations.vlines[item.animation_id]);
+
+      // Merge the two, where the runtime styles may overwrite the statically configured styles
+      configStyle = { ...configStyle, ...stateStyle };
+
+      // Convert javascript records to plain text, without "{}" and "," between the styles.
+      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+      item.entity_index = item.entity_index ? item.entity_index : 0;
+
+      return svg`
+          <line @click=${e => this.handlePopup(e, this.entities[item.entity_index])} class="line__vertical" x1="${item.xpos}%" y1="${item.ypos - item.length / 2}%" x2="${item.xpos}%" y2="${item.ypos + item.length / 2}%" style="${configStyleStr}"/>
           `;
-      })
-  
-      return svg`${svgItems}`;
+    })
+
+    return svg`${svgItems}`;
   }
-   
+
   /*******************************************************************************
     * _renderCircles()
     *
@@ -1585,42 +1673,42 @@ import {
     * Renders the specified circles in the grid.
     *
     */
-   
+
   _renderCircles() {
     const {
-    layout,
+      layout,
     } = this.config;
-  
-      if (!layout) return;
-      if (!layout.circles) return;
-      
-      const svgItems = layout.circles.map(item => {
-    // Get configuration styles as the default styles
-    let configStyle = {};
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-    
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    if (this.animations.circles[item.animation_id])
-      stateStyle = Object.assign(stateStyle, this.animations.circles[item.animation_id]);
-  
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle};
-    
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g,"").replace(/,/g,"");
-  
-    item.entity_index = item.entity_index ? item.entity_index : 0;
-  
-        return svg`
+
+    if (!layout) return;
+    if (!layout.circles) return;
+
+    const svgItems = layout.circles.map(item => {
+      // Get configuration styles as the default styles
+      let configStyle = {};
+      if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+      // Get the runtime styles, caused by states & animation settings
+      let stateStyle = {};
+      if (this.animations.circles[item.animation_id])
+        stateStyle = Object.assign(stateStyle, this.animations.circles[item.animation_id]);
+
+      // Merge the two, where the runtime styles may overwrite the statically configured styles
+      configStyle = { ...configStyle, ...stateStyle };
+
+      // Convert javascript records to plain text, without "{}" and "," between the styles.
+      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, "").replace(/,/g, "");
+
+      item.entity_index = item.entity_index ? item.entity_index : 0;
+
+      return svg`
           <circle class="svg__dot" @click=${e => this.handlePopup(e, this.entities[item.entity_index])}
           cx="${item.xpos}%" cy="${item.ypos}%" r="${item.radius}"
           style="${configStyleStr}"/>          
           `;
-      })
-      return svg`${svgItems}`;
+    })
+    return svg`${svgItems}`;
   }
-  
+
   /*******************************************************************************
     * _handleClick()
     *
@@ -1633,34 +1721,34 @@ import {
     *  All credits to the mini-graph-card for this function.
     *
     */
-  
-    _handleClick(node, hass, config, actionConfig, entityId) {
-      let e;
-      // eslint-disable-next-line default-case
-      switch (actionConfig.action) {
-        case 'more-info': {
-          e = new Event('hass-more-info', { composed: true });
-          e.detail = { entityId };
-          node.dispatchEvent(e);
-          break;
-        }
-        case 'navigate': {
-          if (!actionConfig.navigation_path) return;
-          window.history.pushState(null, '', actionConfig.navigation_path);
-          e = new Event('location-changed', { composed: true });
-          e.detail = { replace: false };
-          window.dispatchEvent(e);
-          break;
-        }
-        case 'call-service': {
-          if (!actionConfig.service) return;
-          const [domain, service] = actionConfig.service.split('.', 2);
-          const serviceData = { ...actionConfig.service_data };
-          hass.callService(domain, service, serviceData);
-        }
+
+  _handleClick(node, hass, config, actionConfig, entityId) {
+    let e;
+    // eslint-disable-next-line default-case
+    switch (actionConfig.action) {
+      case 'more-info': {
+        e = new Event('hass-more-info', { composed: true });
+        e.detail = { entityId };
+        node.dispatchEvent(e);
+        break;
+      }
+      case 'navigate': {
+        if (!actionConfig.navigation_path) return;
+        window.history.pushState(null, '', actionConfig.navigation_path);
+        e = new Event('location-changed', { composed: true });
+        e.detail = { replace: false };
+        window.dispatchEvent(e);
+        break;
+      }
+      case 'call-service': {
+        if (!actionConfig.service) return;
+        const [domain, service] = actionConfig.service.split('.', 2);
+        const serviceData = { ...actionConfig.service_data };
+        hass.callService(domain, service, serviceData);
       }
     }
-  
+  }
+
   /*******************************************************************************
     * handlePopup()
     *
@@ -1675,16 +1763,16 @@ import {
     *  Almost all credits to the mini-graph-card for this function.
     *
     */
-  
+
   handlePopup(e, entity) {
     e.stopPropagation();
-  
+
     this._handleClick(this, this._hass, this.config,
-    this.config.entities[this.config.entities.findIndex(
-      function(element, index, array){return element.entity == entity.entity_id})]
-      .tap_action, entity.entity_id);
+      this.config.entities[this.config.entities.findIndex(
+        function (element, index, array) { return element.entity == entity.entity_id })]
+        .tap_action, entity.entity_id);
   }
-  
+
   /*******************************************************************************
     * _buildArea()
     *
@@ -1692,14 +1780,14 @@ import {
     * Builds the Area string.
     *
     */
-  
+
   _buildArea(entityState, entityConfig) {
     return (
-    entityConfig.area
-    || '?'
+      entityConfig.area
+      || '?'
     );
   }
-  
+
   /*******************************************************************************
     * _buildName()
     *
@@ -1707,14 +1795,14 @@ import {
     * Builds the Name string.
     *
     */
-  
+
   _buildName(entityState, entityConfig) {
     return (
-    entityConfig.name
-    || entityState.attributes.friendly_name
+      entityConfig.name
+      || entityState.attributes.friendly_name
     );
   }
-  
+
   /*******************************************************************************
     * _buildIcon()
     *
@@ -1724,27 +1812,27 @@ import {
     */
   _buildIcon(entityState, entityConfig) {
     return (
-    entityConfig.icon
-    || entityState.attributes.icon
+      entityConfig.icon
+      || entityState.attributes.icon
     );
   }
-   
-   /*******************************************************************************
-    * _buildUom()
-    *
-    * Summary.
-    * Builds the Unit of Measurement string.
-    *
-    */
-  
+
+  /*******************************************************************************
+   * _buildUom()
+   *
+   * Summary.
+   * Builds the Unit of Measurement string.
+   *
+   */
+
   _buildUom(entityState, entityConfig) {
     return (
-    entityConfig.unit
-    || entityState.attributes.unit_of_measurement
-    || ''
+      entityConfig.unit
+      || entityState.attributes.unit_of_measurement
+      || ''
     );
   }
-  
+
   /*******************************************************************************
     * _buildState()
     *
@@ -1754,86 +1842,86 @@ import {
     * is build according to the specified number of decimals.
     *
     */
-  
+
   _buildState(inState, entityConfig) {
-      if (isNaN(inState))
-    return inState;
-  
+    if (isNaN(inState))
+      return inState;
+
     const state = Number(inState);
-  
+
     if (entityConfig.decimals === undefined || Number.isNaN(entityConfig.decimals) || Number.isNaN(state))
-    return Math.round(state * 100) / 100;
-  
+      return Math.round(state * 100) / 100;
+
     const x = 10 ** entityConfig.decimals;
     return (Math.round(state * x) / x).toFixed(entityConfig.decimals);
   }
-      
-   
-   /*******************************************************************************
-    * _computeState()
-    *
-    * Summary.
-    *
-    */
-  
+
+
+  /*******************************************************************************
+   * _computeState()
+   *
+   * Summary.
+   *
+   */
+
   _computeState(inState, dec) {
-    
+
     if (isNaN(inState))
-    return inState;
-  
+      return inState;
+
     const state = Number(inState);
-  
+
     if (dec === undefined || Number.isNaN(dec) || Number.isNaN(state))
-    return Math.round(state * 100) / 100;
-  
+      return Math.round(state * 100) / 100;
+
     const x = 10 ** dec;
     return (Math.round(state * x) / x).toFixed(dec);
   }
-  
-   /*******************************************************************************
-    * _calculateStrokeColor()
-    *
-    * Summary.
-    *
-    */
-  
+
+  /*******************************************************************************
+   * _calculateStrokeColor()
+   *
+   * Summary.
+   *
+   */
+
   _calculateStrokeColor(state, stops, gradient) {
     const sortedStops = Object.keys(stops).map(n => Number(n)).sort((a, b) => a - b);
     let start, end, val;
     const l = sortedStops.length;
     if (state <= sortedStops[0]) {
-    return stops[sortedStops[0]];
+      return stops[sortedStops[0]];
     } else if (state >= sortedStops[l - 1]) {
-    return stops[sortedStops[l - 1]];
+      return stops[sortedStops[l - 1]];
     } else {
-    for (let i = 0; i < l - 1; i++) {
-      const s1 = sortedStops[i];
-      const s2 = sortedStops[i + 1];
-      if (state >= s1 && state < s2) {
-      [start, end] = [stops[s1], stops[s2]];
-      if (!gradient) {
-        return start;
+      for (let i = 0; i < l - 1; i++) {
+        const s1 = sortedStops[i];
+        const s2 = sortedStops[i + 1];
+        if (state >= s1 && state < s2) {
+          [start, end] = [stops[s1], stops[s2]];
+          if (!gradient) {
+            return start;
+          }
+          val = this._calculateValueBetween(s1, s2, state);
+          break;
+        }
       }
-      val = this._calculateValueBetween(s1, s2, state);
-      break;
-      }
-    }
     }
     return this._getGradientValue(start, end, val);
   }
-  
-   /*******************************************************************************
-    * _calculateValueBetween()
-    *
-    * Summary.
-    *  Clips the val value between start and end, and returns the between value ;-)
-    *
-    */
-  
+
+  /*******************************************************************************
+   * _calculateValueBetween()
+   *
+   * Summary.
+   *  Clips the val value between start and end, and returns the between value ;-)
+   *
+   */
+
   _calculateValueBetween(start, end, val) {
     return (Math.min(Math.max(val, start), end) - start) / (end - start);
   }
-  
+
   _getLovelacePanel() {
     var root = document.querySelector('home-assistant');
     root = root && root.shadowRoot;
@@ -1847,64 +1935,64 @@ import {
     }
     return null;
   }
-   /*******************************************************************************
-    * _getColorVariable()
-    *
-    * Summary.
-    *  Get value of CSS color variable, specified as var(--color-value)
-    * These variables are defined in the lovelace element so it appears...
-    *
-    */
-  
-    _getColorVariable(inColor) {
-      const newColor = inColor.substr(4, inColor.length-5);
-  
-      if (!this.lovelace) {
-        this.lovelace = this._getLovelacePanel();
-        // const root = document.querySelector('home-assistant');
-        // const main = root.shadowRoot.querySelector('home-assistant-main');
-        // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-        // const pages = drawer_layout.querySelector('partial-panel-resolver');
-        // this.lovelace = pages.querySelector('ha-panel-lovelace');
-      } else { }
-  
-      const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-      return returnColor;
-    }
-  
-   /*******************************************************************************
-    * _getGradientValue()
-    *
-    * Summary.
-    *  Get gradient value of color as a result of a color_stop.
-    * An RGBA value is calculated, so transparancy is possible...
-    *
-    * The colors (colorA and colorB) can be specified as:
-    *  - a css variable, var(--color-value)
-    *  - a hex value, #fff or #ffffff
-    *  -  an rgb() or rgba() value
-    *  - a hsl() or hsla() value 
-    *  - a named css color value, such as white.
-    *
-    */
-    
+  /*******************************************************************************
+   * _getColorVariable()
+   *
+   * Summary.
+   *  Get value of CSS color variable, specified as var(--color-value)
+   * These variables are defined in the lovelace element so it appears...
+   *
+   */
+
+  _getColorVariable(inColor) {
+    const newColor = inColor.substr(4, inColor.length - 5);
+
+    if (!this.lovelace) {
+      this.lovelace = this._getLovelacePanel();
+      // const root = document.querySelector('home-assistant');
+      // const main = root.shadowRoot.querySelector('home-assistant-main');
+      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+      // const pages = drawer_layout.querySelector('partial-panel-resolver');
+      // this.lovelace = pages.querySelector('ha-panel-lovelace');
+    } else { }
+
+    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
+    return returnColor;
+  }
+
+  /*******************************************************************************
+   * _getGradientValue()
+   *
+   * Summary.
+   *  Get gradient value of color as a result of a color_stop.
+   * An RGBA value is calculated, so transparancy is possible...
+   *
+   * The colors (colorA and colorB) can be specified as:
+   *  - a css variable, var(--color-value)
+   *  - a hex value, #fff or #ffffff
+   *  -  an rgb() or rgba() value
+   *  - a hsl() or hsla() value 
+   *  - a named css color value, such as white.
+   *
+   */
+
   _getGradientValue(colorA, colorB, val) {
-    
-      const resultColorA = this._colorToRGBA(colorA);
-      const resultColorB = this._colorToRGBA(colorB);
-      
-      // We have a rgba() color array from cache or canvas.
-      // Calculate color in between, and return #hex value as a result.
-      // 
-  
+
+    const resultColorA = this._colorToRGBA(colorA);
+    const resultColorB = this._colorToRGBA(colorB);
+
+    // We have a rgba() color array from cache or canvas.
+    // Calculate color in between, and return #hex value as a result.
+    // 
+
     const v1 = 1 - val;
     const v2 = val;
     const rDec = Math.floor((resultColorA[0] * v1) + (resultColorB[0] * v2));
     const gDec = Math.floor((resultColorA[1] * v1) + (resultColorB[1] * v2));
     const bDec = Math.floor((resultColorA[2] * v1) + (resultColorB[2] * v2));
-      const aDec = Math.floor((resultColorA[3] * v1) + (resultColorB[3] * v2));
-  
-      // And convert full RRGGBBAA value to #hex.
+    const aDec = Math.floor((resultColorA[3] * v1) + (resultColorB[3] * v2));
+
+    // And convert full RRGGBBAA value to #hex.
     const rHex = this._padZero(rDec.toString(16));
     const gHex = this._padZero(gDec.toString(16));
     const bHex = this._padZero(bDec.toString(16));
@@ -1913,65 +2001,64 @@ import {
   }
   _padZero(val) {
     if (val.length < 2) {
-    val = `0${val}`;
+      val = `0${val}`;
     }
     return val.substr(0, 2);
   }
-  
+
   _computeDomain(entityId) {
     return entityId.substr(0, entityId.indexOf('.'));
   }
-  
+
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
-  
-   /*******************************************************************************
-    * _colorToRGBA()
-    *
-    * Summary.
-    *  Get RGBA color value of inColor.
-    *
-    * The inColor can be specified as:
-    *  - a css variable, var(--color-value)
-    *  - a hex value, #fff or #ffffff
-    *  -  an rgb() or rgba() value
-    *  - a hsl() or hsla() value 
-    *  - a named css color value, such as white.
-    *
-    */
-    
-    _colorToRGBA(inColor) {
-      // return color if found in colorCache...
-      if (inColor in this.colorCache) {
-        return this.colorCache[inColor];
-      }
-      
-      var theColor = inColor;
-      // Check for 'var' colors
-      let a0 = inColor.substr(0,3);
-      if (a0.valueOf() === 'var') {
-        theColor = this._getColorVariable(inColor);
-      }
-  
-      // Get color from canvas. This always returns an rgba() value...
-      var canvas = document.createElement('canvas');
-      canvas.width = canvas.height = 1;
-      var ctx = canvas.getContext('2d');
-  
-      ctx.clearRect(0, 0, 1, 1);
-      ctx.fillStyle = theColor;
-      ctx.fillRect(0, 0, 1, 1);
-      const outColor = [ ...ctx.getImageData(0, 0, 1, 1).data ];
-      
-      this.colorCache[inColor] = outColor;
-      return outColor;
+
+  /*******************************************************************************
+   * _colorToRGBA()
+   *
+   * Summary.
+   *  Get RGBA color value of inColor.
+   *
+   * The inColor can be specified as:
+   *  - a css variable, var(--color-value)
+   *  - a hex value, #fff or #ffffff
+   *  -  an rgb() or rgba() value
+   *  - a hsl() or hsla() value 
+   *  - a named css color value, such as white.
+   *
+   */
+
+  _colorToRGBA(inColor) {
+    // return color if found in colorCache...
+    if (inColor in this.colorCache) {
+      return this.colorCache[inColor];
     }
-  
+
+    var theColor = inColor;
+    // Check for 'var' colors
+    let a0 = inColor.substr(0, 3);
+    if (a0.valueOf() === 'var') {
+      theColor = this._getColorVariable(inColor);
+    }
+
+    // Get color from canvas. This always returns an rgba() value...
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    var ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = theColor;
+    ctx.fillRect(0, 0, 1, 1);
+    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
+
+    this.colorCache[inColor] = outColor;
+    return outColor;
+  }
+
   getCardSize() {
     return (4);
   }
-  }
-  
-  customElements.define('flex-horseshoe-card', FlexHorseshoeCard);
-  
+}
+
+customElements.define('flex-horseshoe-card', FlexHorseshoeCard);
