@@ -766,15 +766,12 @@ class FlexHorseshoeCard extends LitElement {
       let posLen = 0, negLen = 0;
       if (val >= 0) {
         posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
-        console.log("posLen", posLen);
         this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
         this._bidirectional_negative = false;
       } else {
-        console.log("min", Math.min(this._calculateValueBetween(min, 0, val), 1));
         negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
         this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
         this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
-        console.log("negLen", negLen);
         this._bidirectional_negative = true;
       }
     } else {
@@ -785,7 +782,6 @@ class FlexHorseshoeCard extends LitElement {
       this.dashArray = `${score} ${total}`;
       this._bidirectional_negative = false;
     }
-    console.log("dashArray", this.dashArray);
 
     // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop 
     // #TODO: only if state or attribute has changed.
