@@ -93,6 +93,8 @@ Combined with animations and states, you can alter the appearance of objects. Th
 ## Install via HACS
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AmoebeLabs&repository=flex-horseshoe-card&category=Dashboard)
+
 ## Manual install
 
 1. Download and copy `flex-horseshoe-card.js` from github into your `config/www` directory.
