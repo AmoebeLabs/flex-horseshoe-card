@@ -748,13 +748,22 @@ import {
       // Calculate the size of the arc to fill the dasharray with this 
       // value. It will fill the horseshoe relative to the state and min/max
       // values given in the configuration.
+      const min = this.config.horseshoe_scale.min || 0;
+      const max = this.config.horseshoe_scale.max || 100;
+      const start_value = this.config.horseshoe_scale?.start != null ? 
+                   this.config.horseshoe_scale.start : 
+                   min;
+      const start_score = Math.min(this._calculateValueBetween(min, max, start_value), 1);
+
       
-    const min = this.config.horseshoe_scale.min || 0;
-    const max = this.config.horseshoe_scale.max || 100;
-    const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-    const score = val * HORSESHOE_PATH_LENGTH;
-    const total = 10 * HORSESHOE_RADIUS_SIZE;
-    this.dashArray = `${score} ${total}`;
+      var val = Math.min(this._calculateValueBetween(min, max, state), 1);
+
+      val = Math.abs(start_score - val);
+      const score = val * HORSESHOE_PATH_LENGTH;
+
+
+      const total = 10 * HORSESHOE_RADIUS_SIZE;
+      this.dashArray = `${score} ${total}`;
   
       // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop 
       // #TODO: only if state or attribute has changed.
@@ -1112,6 +1121,14 @@ import {
   
     if (!this.config.show.horseshoe) return;
     
+    const min = this.config.horseshoe_scale.min || 0;
+    const max = this.config.horseshoe_scale.max || 100;
+    const start_value = this.config.horseshoe_scale?.start != null ? 
+                   this.config.horseshoe_scale.start : 
+                   min;
+    const start_score = Math.min(this._calculateValueBetween(min, max, start_value), 1);
+    const start_value_angle = -220 + 260 * start_score;
+
     return svg`
         <g id="horseshoe__svg__group" class="horseshoe__svg__group">
           <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
@@ -1121,14 +1138,23 @@ import {
             stroke-width="${this.config.horseshoe_scale.width || 6}" 
             stroke-linecap="round"
             transform="rotate(-220 100 100)"/>
-  
+
           <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
             fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
             stroke="url('#horseshoe__gradient-${this.cardId}')"
-            stroke-dasharray="${this.dashArray}"
+            stroke-dasharray="${this.entities[0].state >= start_value ? this.dashArray : '0,' + 900}"
             stroke-width="${this.config.horseshoe_state.width || 12}" 
             stroke-linecap="round"
-            transform="rotate(-220 100 100)"
+            transform="rotate(${start_value_angle} 100 100)"
+            style="transition: all 2.5s ease-out;"/>
+
+          <circle id="horseshoe__state__value_mirrored" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+            fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+            stroke="url('#horseshoe__gradient-${this.cardId}')"
+            stroke-dasharray="${this.entities[0].state < start_value ? this.dashArray : '0,' + 900}"
+            stroke-width="${this.config.horseshoe_state.width || 12}" 
+            stroke-linecap="round"
+            transform="rotate(${start_value_angle + 180} 100 100) scale(-1, 1) translate(-200, 0)"
             style="transition: all 2.5s ease-out;"/>
           
           ${this._renderTickMarks()}
