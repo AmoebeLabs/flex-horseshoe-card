@@ -748,11 +748,9 @@ import {
       // Calculate the size of the arc to fill the dasharray with this 
       // value. It will fill the horseshoe relative to the state and min/max
       // values given in the configuration.
-      const min = this.config.horseshoe_scale.min || 0;
-      const max = this.config.horseshoe_scale.max || 100;
-      const start_value = this.config.horseshoe_scale?.start != null ? 
-                   this.config.horseshoe_scale.start : 
-                   min;
+      const min = this.config.horseshoe_scale.min ?? 0;
+      const max = this.config.horseshoe_scale.max ?? 100;
+      const start_value = this.config.horseshoe_scale?.start ?? min;
       const start_score = Math.min(this._calculateValueBetween(min, max, start_value), 1);
 
       
@@ -1120,12 +1118,10 @@ import {
   _renderHorseShoe() {
   
     if (!this.config.show.horseshoe) return;
-    
-    const min = this.config.horseshoe_scale.min || 0;
-    const max = this.config.horseshoe_scale.max || 100;
-    const start_value = this.config.horseshoe_scale?.start != null ? 
-                   this.config.horseshoe_scale.start : 
-                   min;
+
+    const min = this.config.horseshoe_scale.min ?? 0;
+    const max = this.config.horseshoe_scale.max ?? 100;
+    const start_value = this.config.horseshoe_scale?.start ?? min;
     const start_score = Math.min(this._calculateValueBetween(min, max, start_value), 1);
     const start_value_angle = -220 + 260 * start_score;
 
