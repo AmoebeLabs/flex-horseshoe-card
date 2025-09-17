@@ -753,7 +753,6 @@ import {
       const start_value = this.config.horseshoe_scale?.start ?? min;
       const start_score = Math.min(this._calculateValueBetween(min, max, start_value), 1);
 
-      
       var val = Math.min(this._calculateValueBetween(min, max, state), 1);
 
       val = Math.abs(start_score - val);
