@@ -758,7 +758,6 @@ import {
       val = Math.abs(start_score - val);
       const score = val * HORSESHOE_PATH_LENGTH;
 
-
       const total = 10 * HORSESHOE_RADIUS_SIZE;
       this.dashArray = `${score} ${total}`;
   
