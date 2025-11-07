@@ -769,7 +769,7 @@ class FlexHorseshoeCard extends LitElement {
         this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
         this._bidirectional_negative = false;
       } else {
-        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), -1)) * (totalLength / 2);
+        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
         this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
         this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
         this._bidirectional_negative = true;
