@@ -753,9 +753,15 @@ class FlexHorseshoeCard extends LitElement {
     // value. It will fill the horseshoe relative to the state and min/max
     // values given in the configuration.
 
-    const min = this.config.horseshoe_scale.min || 0;
-    const max = this.config.horseshoe_scale.max || 100;
     const barMode = this.config.bar_mode || "normal";
+    if (barMode == "bidirectional") {
+      const min = this.config.horseshoe_scale.min || -100;
+      const max = this.config.horseshoe_scale.max || 100;
+    } else {
+      const min = this.config.horseshoe_scale.min || 0;
+      const max = this.config.horseshoe_scale.max || 100;
+    }
+
     let dashArray = "";
     if (barMode === "bidirectional") {
       // Bidirectional: zero at top, positive CW, negative CCW
