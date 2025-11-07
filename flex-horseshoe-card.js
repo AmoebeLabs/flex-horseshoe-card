@@ -754,14 +754,13 @@ class FlexHorseshoeCard extends LitElement {
     // values given in the configuration.
 
     const barMode = this.config.bar_mode || "normal";
-    if (barMode === "bidirectional") {
-      const min = this.config.horseshoe_scale.min || -100;
-      const max = this.config.horseshoe_scale.max || 100;
-    } else {
-      const min = this.config.horseshoe_scale.min || 0;
-      const max = this.config.horseshoe_scale.max || 100;
-    }
+    const min = this.config.horseshoe_scale.min || 0;
+    const max = this.config.horseshoe_scale.max || 100;
 
+    if (barMode === "bidirectional") {
+      min = this.config.horseshoe_scale.min || -100;
+    }
+    
     let dashArray = "";
     if (barMode === "bidirectional") {
       // Bidirectional: zero at top, positive CW, negative CCW
