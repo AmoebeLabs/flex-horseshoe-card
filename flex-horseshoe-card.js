@@ -753,9 +753,15 @@ class FlexHorseshoeCard extends LitElement {
     // value. It will fill the horseshoe relative to the state and min/max
     // values given in the configuration.
 
-    const min = this.config.horseshoe_scale.min || 0;
-    const max = this.config.horseshoe_scale.max || 100;
     const barMode = this.config.bar_mode || "normal";
+    if (barMode == "bidirectional") {
+      const min = this.config.horseshoe_scale.min || -100;
+      const max = this.config.horseshoe_scale.max || 100;
+    } else {
+      const min = this.config.horseshoe_scale.min || 0;
+      const max = this.config.horseshoe_scale.max || 100;
+    }
+
     let dashArray = "";
     if (barMode === "bidirectional") {
       // Bidirectional: zero at top, positive CW, negative CCW
@@ -766,15 +772,12 @@ class FlexHorseshoeCard extends LitElement {
       let posLen = 0, negLen = 0;
       if (val >= 0) {
         posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
-        console.log("posLen", posLen);
         this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
         this._bidirectional_negative = false;
       } else {
-        console.log("min", Math.min(this._calculateValueBetween(min, 0, val), 1));
         negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
         this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
         this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
-        console.log("negLen", negLen);
         this._bidirectional_negative = true;
       }
     } else {
@@ -785,7 +788,6 @@ class FlexHorseshoeCard extends LitElement {
       this.dashArray = `${score} ${total}`;
       this._bidirectional_negative = false;
     }
-    console.log("dashArray", this.dashArray);
 
     // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop 
     // #TODO: only if state or attribute has changed.
