@@ -1,6 +1,6 @@
 {
   "name": "flex-horseshoe",
-  "version": "5.3.1-dev.2",
+  "version": "5.3.1-dev.3",
   "description": "Flexible Horseshoe Card for Lovelace",
   "main": "src/main.js",
   "type": "module",
@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "home-assistant-js-websocket": "^9.6.0",
-    "lit-element": "^2.5.1",
-    "lit-html": "^1.4.1"
+    "lit": "^3.3.2"
   }
 }
