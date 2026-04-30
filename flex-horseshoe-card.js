@@ -24,6 +24,13 @@ import {
   css,
   svg
   } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+
+  console.info(
+    `%c   FLEX-HORSESHOE-CARD   \n%c       Version 1.2       `,
+    'color: yellow; font-weight: bold; background: black',
+    'color: white; font-weight: bold; background: dimgray',
+  );
+
   //++ Consts ++++++++++
   const FONT_SIZE = 12;
   const SVG_VIEW_BOX = 200;
@@ -52,6 +59,10 @@ import {
   color: 'var(--primary-color)',
   }
   
+  const DEFAULT_TAP_ACTION = {
+    action: "more-info"
+  }
+
   //--
   
   //++ Class ++++++++++
@@ -87,10 +98,13 @@ import {
     // After iOS 13 you should detect iOS devices like this, since iPad will not be detected as iOS devices
     // by old ways (due to new "desktop" options, enabled by default)
     
-    this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-    this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
-                !window.MSStream;
+    this.isAndroid = !!navigator.userAgent.match(/Android/);
+    if (!this.isAndroid) {
+      this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
+      this.iOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+                  !window.MSStream;
+    }
   }
   
    /*******************************************************************************
@@ -838,8 +852,9 @@ import {
     });
     });
   
-      // For now, always force update to render the card if any of the states or attributes have changed...
-    if (entityHasChanged) { this.requestUpdate();}
+    // For now, always force update to render the card if any of the states or attributes have changed...
+    // if (entityHasChanged) { this.requestUpdate();}
+    this.requestUpdate();
   }
   
    /*******************************************************************************
@@ -851,7 +866,7 @@ import {
     */
   
     setConfig(config) {
-      config = JSON.parse(JSON.stringify(config))
+      config = JSON.parse(JSON.stringify(config));
       
     if (!config.entities) {
     throw Error('No entities defined');
@@ -888,8 +903,14 @@ import {
         show: { ...DEFAULT_SHOW, ...config.show },
         horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
         horseshoe_state: { ...DEFAULT_HORSESHOE_STATE, ...config.horseshoe_state },
-      }
+      };
   
+    for (var entityValue of newConfig.entities) {
+      if (!entityValue.tap_action) {
+        entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
+      }
+    }
+
     let colorStops = {};
   //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
     if (newConfig.color_stops) {
@@ -1050,7 +1071,7 @@ import {
   _renderSvg() {
       // For some reason, using a var/const for the viewboxsize doesn't work.
       // Even if the Chrome inspector shows 200 200. So hardcode for now!
-      const { viewBoxSize, } = this;
+      // const { viewBoxSize, } = this;
       
       const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
       
@@ -1280,7 +1301,7 @@ import {
   var fsuomStr = configStyle["font-size"];
   
   var fsuomValue = 0.5;
-  var fsuomType = 'em;'
+  var fsuomType = 'em;';
   const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
   if (fsuomSplit.length == 2) {
     fsuomValue = Number(fsuomSplit[0]) * .6;
@@ -1813,6 +1834,19 @@ import {
     return (Math.min(Math.max(val, start), end) - start) / (end - start);
   }
   
+  _getLovelacePanel() {
+    var root = document.querySelector('home-assistant');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('home-assistant-main');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+    root = (root && root.shadowRoot) || root;
+    root = root && root.querySelector('ha-panel-lovelace');
+    if (root) {
+      return root;
+    }
+    return null;
+  }
    /*******************************************************************************
     * _getColorVariable()
     *
@@ -1826,11 +1860,12 @@ import {
       const newColor = inColor.substr(4, inColor.length-5);
   
       if (!this.lovelace) {
-        const root = document.querySelector('home-assistant');
-        const main = root.shadowRoot.querySelector('home-assistant-main');
-        const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-        const pages = drawer_layout.querySelector('partial-panel-resolver');
-        this.lovelace = pages.querySelector('ha-panel-lovelace');
+        this.lovelace = this._getLovelacePanel();
+        // const root = document.querySelector('home-assistant');
+        // const main = root.shadowRoot.querySelector('home-assistant-main');
+        // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+        // const pages = drawer_layout.querySelector('partial-panel-resolver');
+        // this.lovelace = pages.querySelector('ha-panel-lovelace');
       } else { }
   
       const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
