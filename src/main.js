@@ -1267,8 +1267,11 @@ import { version } from '../package.json';
     };
 
     // Get configuration styles as the default styles
-    let configStyle = { ...ENTITY_NAME_STYLES };
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+
+    // Replace with merge function to allow JavaScript templating.
+    // let configStyle = { ...ENTITY_NAME_STYLES };
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(ENTITY_NAME_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
@@ -1319,8 +1322,9 @@ import { version } from '../package.json';
     };
 
     // Get configuration styles as the default styles
-    let configStyle = { ...AREA_STYLES };
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    // let configStyle = { ...AREA_STYLES };
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(AREA_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
@@ -1375,8 +1379,9 @@ import { version } from '../package.json';
   };
 
   // Get configuration styles as the default styles
-  let configStyle = { ...STATE_STYLES };
-  if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+  // let configStyle = { ...STATE_STYLES };
+  // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+  let configStyle = this._mergeStyles(STATE_STYLES, item);
 
   // Get the runtime styles, caused by states & animation settings
   let stateStyle = {};
@@ -1552,10 +1557,10 @@ import { version } from '../package.json';
     }
 
     // Get configuration styles as the default styles
-    let configStyle = {};
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    // let configStyle = {};
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles({}, item);
 
-    // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
     if (this.animations.icons[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
@@ -1659,8 +1664,9 @@ import { version } from '../package.json';
 
       const svgItems = layout.hlines.map((item) => {
     // Get configuration styles as the default styles
-    let configStyle = { ...HLINES_STYLES };
-    configStyle = Object.assign(configStyle, ...item.styles);
+    // let configStyle = { ...HLINES_STYLES };
+    // configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(HLINES_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
@@ -1709,8 +1715,9 @@ import { version } from '../package.json';
 
       const svgItems = layout.vlines.map((item) => {
     // Get configuration styles as the default styles
-    let configStyle = { ...VLINES_STYLES };
-    configStyle = Object.assign(configStyle, ...item.styles);
+    // let configStyle = { ...VLINES_STYLES };
+    // configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(VLINES_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
@@ -1752,8 +1759,9 @@ import { version } from '../package.json';
 
       const svgItems = layout.circles.map((item) => {
     // Get configuration styles as the default styles
-    let configStyle = {};
-    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    // let configStyle = {};
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles({}, item);
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
@@ -2125,6 +2133,136 @@ val;
 
     getCardSize() {
       return (4);
+    }
+
+    _getItemEntityIndex(item = {}) {
+      const entityIndex = Number(item.entity_index);
+      return Number.isFinite(entityIndex) ? entityIndex : 0;
+    }
+
+    _getTemplateState(item = {}) {
+      const entityIndex = this._getItemEntityIndex(item);
+      const entityState = this.entities?.[entityIndex];
+      const entityConfig = this.config?.entities?.[entityIndex] || {};
+
+      if (!entityState) return undefined;
+
+      const attribute = entityConfig.attribute;
+
+      if (
+        attribute
+        && entityState.attributes
+        && Object.prototype.hasOwn.call(entityState.attributes, attribute)
+      ) {
+        return entityState.attributes[attribute];
+      }
+
+      return entityState.state;
+    }
+
+    _evaluateJsTemplate(item, jsTemplate) {
+      const entityIndex = this._getItemEntityIndex(item);
+      const state = this._getTemplateState(item);
+      const entity = this.entities?.[entityIndex];
+      const entityConfig = this.config?.entities?.[entityIndex];
+
+      try {
+        // eslint-disable-next-line no-new-func
+        return new Function(
+          'state',
+          'states',
+          'entity',
+          'user',
+          'hass',
+          'tool_config',
+          'entity_config',
+          'states_str',
+          'attributes_str',
+          `"use strict";\n${jsTemplate}`,
+        ).call(
+          this,
+          state,
+          this._hass?.states || {},
+          entity,
+          this._hass?.user,
+          this._hass,
+          item,
+          entityConfig,
+          this.entitiesStr,
+          this.attributesStr,
+        );
+      } catch (e) {
+        e.name = 'FlexHorseshoeCard-evaluateJsTemplate-Error';
+        console.error('Error evaluating JS template', {
+          item,
+          jsTemplate,
+          error: e,
+        });
+        throw e;
+      }
+    }
+
+    _getJsTemplateOrValue(item, value) {
+      if (value === undefined || value === null) return value;
+
+      if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
+        return value;
+      }
+
+      if (Array.isArray(value)) {
+        return value.map((entry) => this._getJsTemplateOrValue(item, entry));
+      }
+
+      if (typeof value === 'object') {
+        return Object.fromEntries(
+          Object.entries(value).map(([key, entryValue]) => [
+            key,
+            this._getJsTemplateOrValue(item, entryValue),
+          ]),
+        );
+      }
+
+      if (typeof value !== 'string') return value;
+
+      const trimmedValue = value.trim();
+
+      if (trimmedValue.startsWith('[[[') && trimmedValue.endsWith(']]]')) {
+        return this._evaluateJsTemplate(item, trimmedValue.slice(3, -3).trim());
+      }
+
+      return value;
+    }
+
+    _mergeStyles(baseStyle = {}, item = {}) {
+      if (!item.styles) {
+        return { ...baseStyle };
+      }
+
+      const resolvedStyles = this._getJsTemplateOrValue(item, item.styles);
+
+      if (Array.isArray(resolvedStyles)) {
+        return Object.assign(
+          {},
+          baseStyle,
+          ...resolvedStyles.filter((style) => style && typeof style === 'object'),
+        );
+      }
+
+      if (resolvedStyles && typeof resolvedStyles === 'object') {
+        return {
+          ...baseStyle,
+          ...resolvedStyles,
+        };
+      }
+
+      return { ...baseStyle };
+    }
+
+    _styleToString(style = {}) {
+      return Object.entries(style)
+        .filter(([, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => `${key}: ${String(value).trim()}`)
+        .join(' ');
     }
   }
 
