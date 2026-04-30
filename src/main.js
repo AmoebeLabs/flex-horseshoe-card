@@ -1064,9 +1064,12 @@ import { version } from '../package.json';
     */
 
   render({ config } = this) {
+    const cardStyle = this._buildStyleString(this.config.styles);
+
     return html`
     <ha-card
       @click=${(e) => this.handlePopup(e, this.entities[0])}
+      style="${cardStyle}"
     >
           <div class="container" id="container">
             ${this._renderSvg()}
@@ -1081,6 +1084,15 @@ import { version } from '../package.json';
         </svg>
     </ha-card>
     `;
+  }
+
+  _buildStyleString(styles) {
+  console.log('Building style string for styles: ', styles);
+  if (!styles) return '';
+
+  return Object.entries(Object.assign({}, ...styles))
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(' ');
   }
 
   /** *****************************************************************************
