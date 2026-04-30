@@ -20,7 +20,7 @@
     "@rollup/plugin-terser": "^0.4.1",
     "eslint": "^8.39.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "rollup": "^3.21.4",
+    "rollup": "^3.30.0",
     "rollup-plugin-serve": "^2.0.2"
   },
   "dependencies": {
