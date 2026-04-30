@@ -104,7 +104,6 @@ import { version } from '../package.json';
 
     this.isAndroid = !!window.navigator.userAgent.match(/Android/);
     if (!this.isAndroid) {
-        // eslint-disable-next-line no-useless-escape
       const ua = window.navigator.userAgent || '';
       const uaLower = ua.toLowerCase();
       const platform = window.navigator.platform || '';
@@ -945,6 +944,29 @@ import { version } from '../package.json';
     this.requestUpdate();
   }
 
+    _prepareItemColorStops(config) {
+      const layoutSections = [
+        'states',
+        'names',
+        'areas',
+        'circles',
+        'hlines',
+        'vlines',
+        'icons',
+      ];
+
+      layoutSections.forEach((section) => {
+        const items = config.layout?.[section];
+
+        if (!Array.isArray(items)) return;
+
+        items.forEach((item) => {
+          if (!item.color_stops) return;
+
+          item._colorStops = item.color_stops;
+        });
+      });
+    }
    /** *****************************************************************************
     * setConfig()
     *
@@ -1030,7 +1052,51 @@ import { version } from '../package.json';
       this.angleCoords = angleCoords;
       this.color1_offset = '0%';
 
+      // console.log('Prepared color stops', newConfig);
+      this._prepareItemColorStops(newConfig);
       this.config = newConfig;
+    }
+
+    _getItemEntityIndex(item = {}) {
+      const entityIndex = Number(item.entity_index);
+      return Number.isFinite(entityIndex) ? entityIndex : 0;
+    }
+
+    _getItemStateValue(item = {}) {
+      const entityIndex = item.entity_index ?? 0;
+      const entity = this.entities?.[entityIndex];
+      const entityConfig = this.config?.entities?.[entityIndex];
+
+      if (!entity) return undefined;
+
+      const attribute = entityConfig?.attribute;
+
+      if (
+        attribute
+        && entity.attributes
+        && entity.attributes[attribute] !== undefined
+      ) {
+        return entity.attributes[attribute];
+      }
+
+      return entity.state;
+    }
+
+    _getItemColorFromStops(item = {}) {
+      if (!item._colorStops) return undefined;
+
+      const rawState = this._getItemStateValue(item);
+      const stateNumber = Number(rawState);
+
+      if (!Number.isFinite(stateNumber)) {
+        return undefined;
+      }
+
+      return this._calculateStrokeColor(
+        stateNumber,
+        item._colorStops,
+        item.colorstop_gradient === true,
+      );
     }
 
    /** *****************************************************************************
@@ -1087,7 +1153,7 @@ import { version } from '../package.json';
   }
 
   _buildStyleString(styles) {
-  console.log('Building style string for styles: ', styles);
+  // console.log('Building style string for styles: ', styles);
   if (!styles) return '';
 
   return Object.entries(Object.assign({}, ...styles))
@@ -1126,7 +1192,7 @@ import { version } from '../package.json';
       const angleStepSize = (fullScale - startAngle) / tickSteps;
 
       // If steps exactly match the max. value/range, add extra step for that max value.
-      // eslint-disable-next-line no-plusplus
+      // eslint-disable-next-line no-plusplus, @stylistic/brace-style, brace-style
       if ((Math.floor(((steps) * tickSize) + startTickValue)) <= (config.horseshoe_scale.max)) { steps++; }
 
       const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6 / 2;
@@ -1278,6 +1344,10 @@ import { version } from '../package.json';
     if (this.animations.names[item.index])
       stateStyle = Object.assign(stateStyle, this.animations.names[item.index]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1331,6 +1401,11 @@ import { version } from '../package.json';
     if (this.animations.areas[item.index])
       stateStyle = Object.assign(stateStyle, this.animations.areas[item.index]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1367,91 +1442,96 @@ import { version } from '../package.json';
     const dy = item.dy ? item.dy : '0';
 
     // compute some styling elements if configured for this state item
-  const STATE_STYLES = {
-    'font-size': '1em;',
-    color: 'var(--primary-text-color);',
-    opacity: '1.0;',
-    'text-anchor': 'middle;',
-  };
+    const STATE_STYLES = {
+      'font-size': '1em;',
+      color: 'var(--primary-text-color);',
+      opacity: '1.0;',
+      'text-anchor': 'middle;',
+    };
 
-  const UOM_STYLES = {
-    opacity: '0.7;',
-  };
+    const UOM_STYLES = {
+      opacity: '0.7;',
+    };
 
-  // Get configuration styles as the default styles
-  // let configStyle = { ...STATE_STYLES };
-  // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-  let configStyle = this._mergeStyles(STATE_STYLES, item);
+    // Get configuration styles as the default styles
+    // let configStyle = { ...STATE_STYLES };
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(STATE_STYLES, item);
 
-  // Get the runtime styles, caused by states & animation settings
-  let stateStyle = {};
-  if (this.animations.states[item.index])
-    stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
+    // Get the runtime styles, caused by states & animation settings
+    let stateStyle = {};
+    if (this.animations.states[item.index])
+      stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
 
-  // Merge the two, where the runtime styles may overwrite the statically configured styles
-  configStyle = { ...configStyle, ...stateStyle };
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
-  // Convert javascript records to plain text, without "{}" and "," between the styles.
-  const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+    // Merge the two, where the runtime styles may overwrite the statically configured styles
+    configStyle = { ...configStyle, ...stateStyle };
 
-  // Get font-size of state in configStyle.
-  // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
-  // For floats and strings:
-  //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
+    // Convert javascript records to plain text, without "{}" and "," between the styles.
+    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
 
-  // 2019.09.12
-  // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
-  // https://regex101.com/r/QYfDtB/1
-  // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
-  // in twee stukken, dus 1.27 en em;
+    // Get font-size of state in configStyle.
+    // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
+    // For floats and strings:
+    //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
 
-  var fsuomStr = configStyle['font-size'];
+    // 2019.09.12
+    // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
+    // https://regex101.com/r/QYfDtB/1
+    // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
+    // in twee stukken, dus 1.27 en em;
 
-  var fsuomValue = 0.5;
-  var fsuomType = 'em;';
-  const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
-  if (fsuomSplit.length === 2) {
-    fsuomValue = Number(fsuomSplit[0]) * 0.6;
-    fsuomType = fsuomSplit[1];
-  } else console.error('Cannot determine font-size for state', fsuomStr);
+    var fsuomStr = configStyle['font-size'];
 
-  fsuomStr = { 'font-size': fsuomValue + fsuomType };
+    var fsuomValue = 0.5;
+    var fsuomType = 'em;';
+    const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
+    if (fsuomSplit.length === 2) {
+      fsuomValue = Number(fsuomSplit[0]) * 0.6;
+      fsuomType = fsuomSplit[1];
+    } else console.error('Cannot determine font-size for state', fsuomStr);
 
-  let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
-  const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+    fsuomStr = { 'font-size': fsuomValue + fsuomType };
 
-  const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+    let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
+    const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
 
-  const state = (this.config.entities[item.entity_index].attribute
-                  && this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
-                  ? this.attributesStr[item.entity_index]
-                  : this.entitiesStr[item.entity_index];
+    const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
 
-    if (this._computeDomain(this.entities[item.entity_index].entity_id) === 'sensor') {
-    return svg`
-    <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  } else {
-    // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
-    // Still check for using an attribute value for the domain...
-    return svg`
-    <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  }
+    const state = (this.config.entities[item.entity_index].attribute
+                    && this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
+                    ? this.attributesStr[item.entity_index]
+                    : this.entitiesStr[item.entity_index];
+
+      if (this._computeDomain(this.entities[item.entity_index].entity_id) === 'sensor') {
+      return svg`
+      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+        style="${configStyleStr}">
+        ${state}</tspan>
+        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+        style="${uomStyleStr}">
+        ${uom}</tspan>
+      </text>
+      `;
+    } else {
+      // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
+      // Still check for using an attribute value for the domain...
+      return svg`
+      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+        style="${configStyleStr}">
+        ${state}</tspan>
+        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+        style="${uomStyleStr}">
+        ${uom}</tspan>
+      </text>
+      `;
+    }
     }
 
   /** *****************************************************************************
@@ -1533,7 +1613,9 @@ import { version } from '../package.json';
       this.animationFired = false;
       this.hide = true;
 //      return svg``;
-    } else { this.hide = false; }
+    } else {
+      this.hide = false;
+    }
 
     var xpx = (x * SVG_VIEW_BOX);
     var ypx = (y * SVG_VIEW_BOX);
@@ -1564,6 +1646,11 @@ import { version } from '../package.json';
     let stateStyle = {};
     if (this.animations.icons[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
@@ -1673,6 +1760,11 @@ import { version } from '../package.json';
     if (this.animations.hlines[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.hlines[item.animation_id]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1724,6 +1816,11 @@ import { version } from '../package.json';
     if (this.animations.vlines[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.vlines[item.animation_id]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1767,6 +1864,11 @@ import { version } from '../package.json';
     let stateStyle = {};
     if (this.animations.circles[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.circles[item.animation_id]);
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
@@ -2133,11 +2235,6 @@ val;
 
     getCardSize() {
       return (4);
-    }
-
-    _getItemEntityIndex(item = {}) {
-      const entityIndex = Number(item.entity_index);
-      return Number.isFinite(entityIndex) ? entityIndex : 0;
     }
 
     _getTemplateState(item = {}) {
