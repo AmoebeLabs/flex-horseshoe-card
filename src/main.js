@@ -113,6 +113,7 @@ import { version } from '../package.json';
       this.isSafari16 = this.isSafari && /Version\/16\.[0-9]/.test(window.navigator.userAgent);
       this.isSafari17 = this.isSafari && /Version\/17\.[0-9]/.test(window.navigator.userAgent);
       this.isSafari18 = this.isSafari && /Version\/18\.[0-9]/.test(window.navigator.userAgent);
+      this.isSafari126 = this.isSafari && /Version\/26\.[0-9]/.test(window.navigator.userAgent);
 
       // The iOS app does not use a standard agent string...
       // See: https://github.com/home-assistant/iOS/blob/master/Sources/Shared/API/HAAPI.swift
@@ -122,6 +123,7 @@ import { version } from '../package.json';
       this.isSafari16 = this.isSafari16 || /os 16.*like safari/.test(window.navigator.userAgent.toLowerCase());
       this.isSafari17 = this.isSafari17 || /os 17.*like safari/.test(window.navigator.userAgent.toLowerCase());
       this.isSafari18 = this.isSafari18 || /os 18.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      this.isSafari26 = this.isSafari26 || /os 26.*like safari/.test(window.navigator.userAgent.toLowerCase());
     }
   }
 
@@ -1099,7 +1101,7 @@ import { version } from '../package.json';
       // For some reason, using a var/const for the viewboxsize doesn't work.
       // Even if the Chrome inspector shows 200 200. So hardcode for now!
       // const { viewBoxSize, } = this;
-
+//    console.log('Rendering SVG!!!!!!!!!!');
       const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
 
     return svg`
@@ -1394,6 +1396,13 @@ import { version } from '../package.json';
       return svg`${svgItems}`;
   }
 
+  async _handleBoundingBoxTimeout(argThis, item) {
+//    console.log('Handling Box Timeout for Icon', argThis._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
+//    console.log('Handling Box Timeout for Icon', item);
+    argThis.animationFired = false;
+    argThis._card.requestUpdate();
+  }
+
   /** *****************************************************************************
     * _renderIcon()
     *
@@ -1404,9 +1413,15 @@ import { version } from '../package.json';
 
     _renderIcon(item) {
     if (!item) return;
+//    console.log('rendering icon', this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
 
-  item.entity = item.entity ? item.entity : 0;
-
+    item.entity = item.entity ? item.entity : 0;
+    if (!this.hasOwnProperty('animationFired')) {
+      this.animationFired = false;
+    }
+    if (!this.hasOwnProperty('hide')) {
+      this.hide = true;
+    }
     // get icon size, and calculate the foreignObject position and size. This must match the icon size
     // 1em = FONT_SIZE pixels, so we can calculate the icon size, and x/y positions of the foreignObject
     // the viewport is 200x200, so we can calulate the offset.
@@ -1423,18 +1438,35 @@ import { version } from '../package.json';
     const align = item.align ? item.align : 'center';
     const adjust = (align === 'center' ? 0.5 : (align === 'start' ? -1 : +1));
 
-  //  const parentClientWidth = this.parentElement.clientWidth;
+    //  const parentClientWidth = this.parentElement.clientWidth;
     const clientWidth = this.clientWidth - 20; // hard coded adjust for padding...
     const correction = clientWidth / SVG_VIEW_BOX;
+    const boundingBox = this.getBoundingClientRect();
+    const clientRects = this.getClientRects();
+//    console.log('boundingbox = ', boundingBox);
+//    console.log('clientRects = ', clientRects[0]);
+    // Do some stuff for Safari (Testing)
+    if ((boundingBox.height / boundingBox.width) < 0.9) {
+//      console.log('boundingBox NOT right', boundingBox.height / boundingBox.width);
+      // setInterval(this._handleBoundingBoxTimeout, 2000, this, item);
+      this.animationFired = false;
+      this.hide = true;
+//      return svg``;
+    } else { this.hide = false; }
 
     var xpx = (x * SVG_VIEW_BOX);
     var ypx = (y * SVG_VIEW_BOX);
+//    console.log('x,y=', x, y);
+//    console.log('xpx, ypx =', xpx, ypx);
+//    console.log('clientWidth, correction=', clientWidth, correction);
 
-    if ((this.isSafari && !this.isSafari18) || (this.iOS)) {
-        iconSize *= correction;
+    if ((this.isSafari) || (this.iOS)) {
+    //    if ((this.isSafari && !this.isSafari18)) {
+      iconSize *= correction;
 
       xpx = (xpx * correction) - (iconPixels * adjust * correction);
       ypx = (ypx * correction) - (iconPixels * 0.5 * correction) - (iconPixels * 0.25 * correction);// - (iconPixels * 0.25 / 1.86);
+//      console.log('xpx, ypx NEW=', xpx, ypx);
     } else {
       // Get x,y in viewbox dimensions and center with half of size of icon.
       // Adjust horizontal for aligning. Can be 1, 0.5 and -1
@@ -1443,36 +1475,65 @@ import { version } from '../package.json';
       ypx = ypx - (iconPixels * 0.5) - (iconPixels * 0.25);
     }
 
-  // Get configuration styles as the default styles
-  let configStyle = {};
-  if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    // Get configuration styles as the default styles
+    let configStyle = {};
+    if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
 
-  // Get the runtime styles, caused by states & animation settings
-  let stateStyle = {};
-  if (this.animations.icons[item.animation_id])
-    stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+    // Get the runtime styles, caused by states & animation settings
+    let stateStyle = {};
+    if (this.animations.icons[item.animation_id])
+      stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
 
-  // Merge the two, where the runtime styles may overwrite the statically configured styles
-  configStyle = { ...configStyle, ...stateStyle };
+    // Merge the two, where the runtime styles may overwrite the statically configured styles
+    configStyle = { ...configStyle, ...stateStyle };
 
-  // Convert javascript records to plain text, without "{}" and "," between the styles.
-  const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+    // Convert javascript records to plain text, without "{}" and "," between the styles.
+    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+ //   console.log('configStyleStr =', configStyleStr);
 
-  const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+    const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+//    console.log('icon Name =', icon);
+    // if (!this.animationFired) { iconSize = 0; }
 
+    if (!this.animationFired) {
     return svg`
-    <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-      <foreignObject width="${iconSize}em" height="${iconSize}em" x="${xpx}" y="${ypx}">
-        <body>
-          <div class="icon">
-            <ha-icon .icon=${icon} style="line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";></ha-icon>
-          </div>
-        </body>
-      </foreignObject>
-      <g>
-      `;
+      <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <foreignObject width="0" height="0" x="${xpx}" y="${ypx}" visibility="${this.hide ? 'hidden' : 'visible'}">
+          <body>
+            <div class="icon">
+              <ha-icon .icon=${icon} style="animation: flash 0.15s 1;line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";
+                  @animationend=${(e) => this._handleAnimationEvent(e, this)}
+                  >
+              </ha-icon>
+            </div>
+          </body>
+        </foreignObject>
+        <g>
+        `;
+    } else {
+      return svg`
+      <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <foreignObject width="${iconSize}em" height="${iconSize}em" x="${xpx}" y="${ypx}">
+          <body>
+            <div class="icon">
+              <ha-icon .icon=${icon} style="line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";
+                  >
+              </ha-icon>
+            </div>
+          </body>
+        </foreignObject>
+        <g>
+        `;
     }
+  }
 
+    _handleAnimationEvent(argEvent, argThis) {
+      argEvent.stopPropagation();
+      argEvent.preventDefault();
+      argThis.animationFired = true;
+//      console.log('Handling Animation Event!!!!!');
+      argThis.requestUpdate();
+    }
   /** *****************************************************************************
     * _renderIcons()
     *

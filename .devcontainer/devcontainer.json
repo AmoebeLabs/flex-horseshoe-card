@@ -38,5 +38,8 @@
       "**/.hg/store/**": true,
       "**/.rpt2_cache/**": true
     }
+  },
+  "containerEnv": {
+    "NODE_OPTIONS": "--dns-result-order=ipv4first"
   }
 }
