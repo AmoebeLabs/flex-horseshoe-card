@@ -20,7 +20,7 @@
 
 import {
     LitElement, html, css, svg,
-} from 'lit-element';
+} from 'lit';
 import { version } from '../package.json';
 
   console.info(
