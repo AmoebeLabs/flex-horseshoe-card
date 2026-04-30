@@ -41,20 +41,20 @@ import { version } from '../package.json';
 
   const DEFAULT_SHOW = {
     horseshoe: true,
-  scale_tickmarks: false,
+    scale_tickmarks: false,
     horseshoe_style: 'fixed',
   };
 
   const DEFAULT_HORSESHOE_SCALE = {
     min: 0,
-  max: 100,
-  width: 6,
-  color: 'var(--primary-background-color)',
+    max: 100,
+    width: 6,
+    color: 'var(--primary-background-color)',
   };
 
   const DEFAULT_HORSESHOE_STATE = {
-  width: 12,
-  color: 'var(--primary-color)',
+    width: 12,
+    color: 'var(--primary-color)',
   };
 
   const DEFAULT_TAP_ACTION = {
@@ -86,7 +86,13 @@ import { version } from '../package.json';
     this.animations.states = {};
 
     this.colorCache = {};
+    this.isAndroid = false;
+    this.isSafari = false;
+    this.iOS = false;
 
+    this.dev = {
+      debug: false,
+    };
     // http://jsfiddle.net/jlubean/dL5cLjxt/
     // this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
     // this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -98,32 +104,84 @@ import { version } from '../package.json';
 
     this.isAndroid = !!window.navigator.userAgent.match(/Android/);
     if (!this.isAndroid) {
-      // eslint-disable-next-line no-useless-escape
-      this.isSafari = !!window.navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-      this.iOS = (/iPad|iPhone|iPod/.test(window.navigator.userAgent)
-                  || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1))
-                  && !window.MSStream;
+        // eslint-disable-next-line no-useless-escape
+      const ua = window.navigator.userAgent || '';
+      const uaLower = ua.toLowerCase();
+      const platform = window.navigator.platform || '';
 
-      this.isSafari = !!window.navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-      this.iOS = (/iPad|iPhone|iPod/.test(window.navigator.userAgent)
-                  || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1))
-                  && !window.MSStream;
-      this.isSafari14 = this.isSafari && /Version\/14\.[0-9]/.test(window.navigator.userAgent);
-      this.isSafari15 = this.isSafari && /Version\/15\.[0-9]/.test(window.navigator.userAgent);
-      this.isSafari16 = this.isSafari && /Version\/16\.[0-9]/.test(window.navigator.userAgent);
-      this.isSafari17 = this.isSafari && /Version\/17\.[0-9]/.test(window.navigator.userAgent);
-      this.isSafari18 = this.isSafari && /Version\/18\.[0-9]/.test(window.navigator.userAgent);
-      this.isSafari126 = this.isSafari && /Version\/26\.[0-9]/.test(window.navigator.userAgent);
+      const isIOS = (
+        /iPad|iPhone|iPod/.test(ua)
+        || (
+          platform === 'MacIntel'
+          && window.navigator.maxTouchPoints > 1
+        )
+      ) && !window.MSStream;
 
+      // Detect real Safari:
+      // Safari normally has "Version/17.4 ... Safari/605.1.15".
+      // Chrome uses this as strings "Safari/537.36", but doesn't have "Version/x ... Safari".
+      const safariVersionMatch = ua.match(/Version\/(\d+)(?:\.[\d.]+)?.*Safari/i);
+      const realSafariMajorVersion = safariVersionMatch
+        ? Number(safariVersionMatch[1])
+        : undefined;
+
+      // Home Assistant iOS companion app
       // The iOS app does not use a standard agent string...
       // See: https://github.com/home-assistant/iOS/blob/master/Sources/Shared/API/HAAPI.swift
       // It contains strings like "like Safari" and "OS 14_2", and "iOS 14.2.0"
-      this.isSafari14 = this.isSafari14 || /os 14.*like safari/.test(window.navigator.userAgent.toLowerCase());
-      this.isSafari15 = this.isSafari15 || /os 15.*like safari/.test(window.navigator.userAgent.toLowerCase());
-      this.isSafari16 = this.isSafari16 || /os 16.*like safari/.test(window.navigator.userAgent.toLowerCase());
-      this.isSafari17 = this.isSafari17 || /os 17.*like safari/.test(window.navigator.userAgent.toLowerCase());
-      this.isSafari18 = this.isSafari18 || /os 18.*like safari/.test(window.navigator.userAgent.toLowerCase());
-      this.isSafari26 = this.isSafari26 || /os 26.*like safari/.test(window.navigator.userAgent.toLowerCase());
+      const haOsLikeSafariMatch = uaLower.match(/\bos\s+(\d+)(?:[._]\d+)*.*like safari/);
+      const haIosVersionMatch = uaLower.match(/\bios\s+(\d+)(?:[._]\d+)*/);
+
+      const haAppMajorVersion = haIosVersionMatch
+        ? Number(haIosVersionMatch[1])
+        : haOsLikeSafariMatch
+          ? Number(haOsLikeSafariMatch[1])
+          : undefined;
+
+      const isRealSafari = Number.isFinite(realSafariMajorVersion);
+      const isHomeAssistantLikeSafari = Number.isFinite(haAppMajorVersion)
+        && uaLower.includes('like safari');
+
+      const safariMajorVersion = isRealSafari
+        ? realSafariMajorVersion
+        : isHomeAssistantLikeSafari
+          ? haAppMajorVersion
+          : undefined;
+
+      this.iOS = isIOS;
+
+      // Now, tell me if this is Safari...
+      this.isSafari = Number.isFinite(safariMajorVersion);
+
+      this.safariMajorVersion = safariMajorVersion;
+      this.isHomeAssistantLikeSafari = isHomeAssistantLikeSafari;
+      this.isRealSafari = isRealSafari;
+
+      this.isSafari14 = this.isSafari && safariMajorVersion === 14;
+      this.isSafari15 = this.isSafari && safariMajorVersion === 15;
+      this.isSafari16 = this.isSafari && safariMajorVersion === 16;
+      this.isSafari17 = this.isSafari && safariMajorVersion === 17;
+      this.isSafari18 = this.isSafari && safariMajorVersion === 18;
+      this.isSafari26 = this.isSafari && safariMajorVersion === 26;
+      this.isSafari27 = this.isSafari && safariMajorVersion === 27;
+      this.isSafari28 = this.isSafari && safariMajorVersion === 28;
+      this.isSafari29 = this.isSafari && safariMajorVersion === 29;
+      this.isSafari30 = this.isSafari && safariMajorVersion === 30;
+
+      this.isSafariGte16 = this.isSafari && safariMajorVersion >= 16;
+
+      if (this.dev?.debug) {
+        console.log('browser detection', {
+          ua,
+          isAndroid: this.isAndroid,
+          isIOS: this.iOS,
+          isSafari: this.isSafari,
+          isRealSafari: this.isRealSafari,
+          isHomeAssistantLikeSafari: this.isHomeAssistantLikeSafari,
+          safariMajorVersion: this.safariMajorVersion,
+          isSafariGte16: this.isSafariGte16,
+        });
+      }
     }
   }
 
@@ -2047,9 +2105,9 @@ val;
       return outColor;
     }
 
-  getCardSize() {
-    return (4);
-  }
+    getCardSize() {
+      return (4);
+    }
   }
 
   customElements.define('flex-horseshoe-card', FlexHorseshoeCard);
