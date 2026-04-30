@@ -725,7 +725,7 @@ import { version } from '../package.json';
   
         .card--dropshadow-down-and-distant {
           filter: drop-shadow(0px 0.05em 0px #b2a98f)
-                  drop-shadow(0px 14px 10px rgba(0,0,0,0.15)
+                  drop-shadow(0px 14px 10px rgba(0,0,0,0.15))
                   drop-shadow(0px 24px 2px rgba(0,0,0,0.1))
                   drop-shadow(0px 34px 30px rgba(0,0,0,0.1));
         }
@@ -733,7 +733,12 @@ import { version } from '../package.json';
         }
   
         .horseshoe__svg__group {
-          transform: translateY(15%);
+          /*
+          * Was transform: translateY(15%).
+          * After fixing SVG viewBox/namespace parsing, this offset became visible
+          * and moved the horseshoe down.
+          * A nice 6 year old bug ;-)
+          */
         }
         
         .line__horizontal {
@@ -872,8 +877,8 @@ import { version } from '../package.json';
         // According to stackoverflow, these calculations / adjustments would be needed, but it isn't ;-)
         // Added from https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
         const angleCoords = {
- x1: '0%', y1: '0%', x2: '100%', y2: '0%',
-};
+          x1: '0%', y1: '0%', x2: '100%', y2: '0%',
+      };
         this.color1_offset = `${Math.round((1 - val) * 100)}%`;
 
         this.angleCoords = angleCoords;
@@ -886,8 +891,8 @@ import { version } from '../package.json';
       // #TODO: Determine animation only if specific state or attribute has changed...
 
       if (this.config.animations) Object.keys(this.config.animations).map((animation) => {
-    const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
-    this.config.animations[animation].map((item) => {
+      const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
+      this.config.animations[animation].map((item) => {
       // if animation state not equals sensor state, return... Nothing to animate for this state...
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
@@ -1020,8 +1025,8 @@ import { version } from '../package.json';
       this.color1 = colorStops[sortedStops[(sortedStops.length) - 1]];
 
       const angleCoords = {
- x1: '0%', y1: '0%', x2: '100%', y2: '0%',
-};
+        x1: '0%', y1: '0%', x2: '100%', y2: '0%',
+      };
       this.angleCoords = angleCoords;
       this.color1_offset = '0%';
 
@@ -1068,7 +1073,8 @@ import { version } from '../package.json';
           </div>
   
         <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}", y1="${this.angleCoords.y1}", x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
+          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}"
+           x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
             <stop offset="${this.color1_offset}" stop-color="${this.color1}" />
             <stop offset="100%" stop-color="${this.color0}" />
           </linearGradient>
@@ -1163,9 +1169,9 @@ import { version } from '../package.json';
       const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
 
     return svg`
-        <svg xmlns=http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
+        <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}" 
-          viewbox='0 0 200 200'>
+          viewBox='0 0 200 200'>
             ${this._renderHorseShoe()}
             <g id="datagroup" class="datagroup">
               ${this._renderCircles()}
@@ -1566,7 +1572,7 @@ import { version } from '../package.json';
             </div>
           </body>
         </foreignObject>
-        <g>
+        </g>
         `;
     } else {
       return svg`
@@ -1580,7 +1586,7 @@ import { version } from '../package.json';
             </div>
           </body>
         </foreignObject>
-        <g>
+        </g>
         `;
     }
   }

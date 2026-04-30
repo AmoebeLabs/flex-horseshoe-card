@@ -19,7 +19,7 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */class at extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const s=i?.renderBefore??e;let o=s._$litPart$;if(void 0===o){const t=i?.renderBefore??null;s._$litPart$=o=new Q(e.insertBefore(N(),t),t,void 0,i??{})}return o._$AI(t),o})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return q}}at._$litElement$=!0,at.finalized=!0,nt.litElementHydrateSupport?.({LitElement:at});const ht=nt.litElementPolyfillSupport;ht?.({LitElement:at}),(nt.litElementVersions??=[]).push("4.2.2");console.info("%c   FLEX-HORSESHOE-CARD   \n%c       Version 5.3.1-dev.4   ","color: yellow; font-weight: bold; background: black","color: white; font-weight: bold; background: dimgray");const lt=200,ct=520/360*Math.PI*90,dt={horseshoe:!0,scale_tickmarks:!1,horseshoe_style:"fixed"},pt={min:0,max:100,width:6,color:"var(--primary-background-color)"},mt={width:12,color:"var(--primary-color)"},ft={action:"more-info"};customElements.define("flex-horseshoe-card",class extends at{constructor(){if(super(),this.cardId=Math.random().toString(36).substr(2,9),this.entities=[],this.entitiesStr=[],this.attributesStr=[],this.viewBoxSize=lt,this.colorStops={},this.animations={},this.animations.vlines={},this.animations.hlines={},this.animations.circles={},this.animations.icons={},this.animations.names={},this.animations.areas={},this.animations.states={},this.colorCache={},this.isAndroid=!1,this.isSafari=!1,this.iOS=!1,this.dev={debug:!1},this.isAndroid=!!window.navigator.userAgent.match(/Android/),!this.isAndroid){const t=window.navigator.userAgent||"",e=t.toLowerCase(),i=window.navigator.platform||"",s=(/iPad|iPhone|iPod/.test(t)||"MacIntel"===i&&window.navigator.maxTouchPoints>1)&&!window.MSStream,o=t.match(/Version\/(\d+)(?:\.[\d.]+)?.*Safari/i),r=o?Number(o[1]):void 0,n=e.match(/\bos\s+(\d+)(?:[._]\d+)*.*like safari/),a=e.match(/\bios\s+(\d+)(?:[._]\d+)*/),h=a?Number(a[1]):n?Number(n[1]):void 0,l=Number.isFinite(r),c=Number.isFinite(h)&&e.includes("like safari"),d=l?r:c?h:void 0;this.iOS=s,this.isSafari=Number.isFinite(d),this.safariMajorVersion=d,this.isHomeAssistantLikeSafari=c,this.isRealSafari=l,this.isSafari14=this.isSafari&&14===d,this.isSafari15=this.isSafari&&15===d,this.isSafari16=this.isSafari&&16===d,this.isSafari17=this.isSafari&&17===d,this.isSafari18=this.isSafari&&18===d,this.isSafari26=this.isSafari&&26===d,this.isSafari27=this.isSafari&&27===d,this.isSafari28=this.isSafari&&28===d,this.isSafari29=this.isSafari&&29===d,this.isSafari30=this.isSafari&&30===d,this.isSafariGte16=this.isSafari&&d>=16,this.dev?.debug&&console.log("browser detection",{ua:t,isAndroid:this.isAndroid,isIOS:this.iOS,isSafari:this.isSafari,isRealSafari:this.isRealSafari,isHomeAssistantLikeSafari:this.isHomeAssistantLikeSafari,safariMajorVersion:this.safariMajorVersion,isSafariGte16:this.isSafariGte16})}}static get styles(){return r`
+ */class at extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const s=i?.renderBefore??e;let o=s._$litPart$;if(void 0===o){const t=i?.renderBefore??null;s._$litPart$=o=new Q(e.insertBefore(N(),t),t,void 0,i??{})}return o._$AI(t),o})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return q}}at._$litElement$=!0,at.finalized=!0,nt.litElementHydrateSupport?.({LitElement:at});const ht=nt.litElementPolyfillSupport;ht?.({LitElement:at}),(nt.litElementVersions??=[]).push("4.2.2");console.info("%c   FLEX-HORSESHOE-CARD   \n%c       Version 5.3.1-dev.5   ","color: yellow; font-weight: bold; background: black","color: white; font-weight: bold; background: dimgray");const lt=200,ct=520/360*Math.PI*90,dt={horseshoe:!0,scale_tickmarks:!1,horseshoe_style:"fixed"},pt={min:0,max:100,width:6,color:"var(--primary-background-color)"},mt={width:12,color:"var(--primary-color)"},ft={action:"more-info"};customElements.define("flex-horseshoe-card",class extends at{constructor(){if(super(),this.cardId=Math.random().toString(36).substr(2,9),this.entities=[],this.entitiesStr=[],this.attributesStr=[],this.viewBoxSize=lt,this.colorStops={},this.animations={},this.animations.vlines={},this.animations.hlines={},this.animations.circles={},this.animations.icons={},this.animations.names={},this.animations.areas={},this.animations.states={},this.colorCache={},this.isAndroid=!1,this.isSafari=!1,this.iOS=!1,this.dev={debug:!1},this.isAndroid=!!window.navigator.userAgent.match(/Android/),!this.isAndroid){const t=window.navigator.userAgent||"",e=t.toLowerCase(),i=window.navigator.platform||"",s=(/iPad|iPhone|iPod/.test(t)||"MacIntel"===i&&window.navigator.maxTouchPoints>1)&&!window.MSStream,o=t.match(/Version\/(\d+)(?:\.[\d.]+)?.*Safari/i),r=o?Number(o[1]):void 0,n=e.match(/\bos\s+(\d+)(?:[._]\d+)*.*like safari/),a=e.match(/\bios\s+(\d+)(?:[._]\d+)*/),h=a?Number(a[1]):n?Number(n[1]):void 0,l=Number.isFinite(r),c=Number.isFinite(h)&&e.includes("like safari"),d=l?r:c?h:void 0;this.iOS=s,this.isSafari=Number.isFinite(d),this.safariMajorVersion=d,this.isHomeAssistantLikeSafari=c,this.isRealSafari=l,this.isSafari14=this.isSafari&&14===d,this.isSafari15=this.isSafari&&15===d,this.isSafari16=this.isSafari&&16===d,this.isSafari17=this.isSafari&&17===d,this.isSafari18=this.isSafari&&18===d,this.isSafari26=this.isSafari&&26===d,this.isSafari27=this.isSafari&&27===d,this.isSafari28=this.isSafari&&28===d,this.isSafari29=this.isSafari&&29===d,this.isSafari30=this.isSafari&&30===d,this.isSafariGte16=this.isSafari&&d>=16,this.dev?.debug&&console.log("browser detection",{ua:t,isAndroid:this.isAndroid,isIOS:this.iOS,isSafari:this.isSafari,isRealSafari:this.isRealSafari,isHomeAssistantLikeSafari:this.isHomeAssistantLikeSafari,safariMajorVersion:this.safariMajorVersion,isSafariGte16:this.isSafariGte16})}}static get styles(){return r`
         :host {
           cursor: pointer;
         }
@@ -526,7 +526,7 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
   
         .card--dropshadow-down-and-distant {
           filter: drop-shadow(0px 0.05em 0px #b2a98f)
-                  drop-shadow(0px 14px 10px rgba(0,0,0,0.15)
+                  drop-shadow(0px 14px 10px rgba(0,0,0,0.15))
                   drop-shadow(0px 24px 2px rgba(0,0,0,0.1))
                   drop-shadow(0px 34px 30px rgba(0,0,0,0.1));
         }
@@ -534,7 +534,12 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
         }
   
         .horseshoe__svg__group {
-          transform: translateY(15%);
+          /*
+          * Was transform: translateY(15%).
+          * After fixing SVG viewBox/namespace parsing, this offset became visible
+          * and moved the horseshoe down.
+          * A nice 6 year old bug ;-)
+          */
         }
         
         .line__horizontal {
@@ -569,7 +574,8 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
           </div>
   
         <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}", y1="${this.angleCoords.y1}", x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
+          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}"
+           x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
             <stop offset="${this.color1_offset}" stop-color="${this.color1}" />
             <stop offset="100%" stop-color="${this.color0}" />
           </linearGradient>
@@ -580,9 +586,9 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
                   cy="${100-86*Math.cos(c)}" r="${l}"
                   fill="${e}">
         `;return V`${p}`}_renderSvg(){const t=this.config.card_filter?this.config.card_filter:"card--filter-none";return V`
-        <svg xmlns=http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
+        <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${t}" 
-          viewbox='0 0 200 200'>
+          viewBox='0 0 200 200'>
             ${this._renderHorseShoe()}
             <g id="datagroup" class="datagroup">
               ${this._renderCircles()}
@@ -645,7 +651,7 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
             </div>
           </body>
         </foreignObject>
-        <g>
+        </g>
         `:V`
       <g @click=${e=>this.handlePopup(e,this.entities[t.entity_index])}>
         <foreignObject width="0" height="0" x="${l}" y="${c}" visibility="${this.hide?"hidden":"visible"}">
@@ -658,7 +664,7 @@ const w=globalThis,v=w.trustedTypes,S=v?v.createPolicy("lit-html",{createHTML:t=
             </div>
           </body>
         </foreignObject>
-        <g>
+        </g>
         `}_handleAnimationEvent(t,e){t.stopPropagation(),t.preventDefault(),e.animationFired=!0,e.requestUpdate()}_renderIcons(){const{layout:t}=this.config;if(!t)return;if(!t.icons)return;const e=t.icons.map((t=>V`
             ${this._renderIcon(t)}
           `));return V`${e}`}_renderHorizontalLines(){const{layout:t}=this.config;if(!t)return;if(!t.hlines)return;const e={"stroke-linecap":"round;",stroke:"var(--primary-text-color);",opacity:"1.0;","stroke-width":"2;"},i=t.hlines.map((t=>{let i={...e};i=Object.assign(i,...t.styles);let s={};this.animations.hlines[t.animation_id]&&(s=Object.assign(s,this.animations.hlines[t.animation_id])),i={...i,...s};const o=JSON.stringify(i).slice(1,-1).replace(/"/g,"").replace(/,/g,"");return t.entity_index=t.entity_index?t.entity_index:0,V`
