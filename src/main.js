@@ -24,9 +24,9 @@ import {
 import { version } from '../package.json';
 
   console.info(
-    `%c   FLEX-HORSESHOE-CARD   \n%c       Version ${version}   `,
-    'color: yellow; font-weight: bold; background: black',
-    'color: white; font-weight: bold; background: dimgray',
+    `%c FLEX-HORSESHOE-CARD %c Version ${version} `,
+    'color: white; font-weight: bold; background: darkgreen',
+    'color: darkgreen; font-weight: bold; background: white',
   );
 
   // ++ Consts ++++++++++
