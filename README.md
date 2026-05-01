@@ -1,13 +1,14 @@
-**Personal Note, april 2023**
+**Personal Note, april 2026**
 
-Getting up to speed again with my custom cards after some difficult years!
+Card is again up-to-date with latest Home Assistant and NPM modules, and got some extra features like JavaScript templating and color stops for states/names/areas/hlines/vlines/circles.
 
-First commit is compatibility for Home Assistant 2023.4. I missed that one in my testcard view. For some reason I fixed the HA version to some 2023.3 version in my docker compose file. And in that case you can `docker compose pull` but nothing is updated...
 ***
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
-![GitHub Release Date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
+[![HACS](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![Stable](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?label=stable&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
+[![Stable date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?label=date&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
+[![Latest](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?include_prereleases&label=latest&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases)
+
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI

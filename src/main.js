@@ -104,7 +104,6 @@ import { version } from '../package.json';
 
     this.isAndroid = !!window.navigator.userAgent.match(/Android/);
     if (!this.isAndroid) {
-        // eslint-disable-next-line no-useless-escape
       const ua = window.navigator.userAgent || '';
       const uaLower = ua.toLowerCase();
       const platform = window.navigator.platform || '';
@@ -945,6 +944,29 @@ import { version } from '../package.json';
     this.requestUpdate();
   }
 
+    _prepareItemColorStops(config) {
+      const layoutSections = [
+        'states',
+        'names',
+        'areas',
+        'circles',
+        'hlines',
+        'vlines',
+        'icons',
+      ];
+
+      layoutSections.forEach((section) => {
+        const items = config.layout?.[section];
+
+        if (!Array.isArray(items)) return;
+
+        items.forEach((item) => {
+          if (!item.color_stops) return;
+
+          item._colorStops = item.color_stops;
+        });
+      });
+    }
    /** *****************************************************************************
     * setConfig()
     *
@@ -1030,7 +1052,51 @@ import { version } from '../package.json';
       this.angleCoords = angleCoords;
       this.color1_offset = '0%';
 
+      // console.log('Prepared color stops', newConfig);
+      this._prepareItemColorStops(newConfig);
       this.config = newConfig;
+    }
+
+    _getItemEntityIndex(item = {}) {
+      const entityIndex = Number(item.entity_index);
+      return Number.isFinite(entityIndex) ? entityIndex : 0;
+    }
+
+    _getItemStateValue(item = {}) {
+      const entityIndex = item.entity_index ?? 0;
+      const entity = this.entities?.[entityIndex];
+      const entityConfig = this.config?.entities?.[entityIndex];
+
+      if (!entity) return undefined;
+
+      const attribute = entityConfig?.attribute;
+
+      if (
+        attribute
+        && entity.attributes
+        && entity.attributes[attribute] !== undefined
+      ) {
+        return entity.attributes[attribute];
+      }
+
+      return entity.state;
+    }
+
+    _getItemColorFromStops(item = {}) {
+      if (!item._colorStops) return undefined;
+
+      const rawState = this._getItemStateValue(item);
+      const stateNumber = Number(rawState);
+
+      if (!Number.isFinite(stateNumber)) {
+        return undefined;
+      }
+
+      return this._calculateStrokeColor(
+        stateNumber,
+        item._colorStops,
+        item.colorstop_gradient === true,
+      );
     }
 
    /** *****************************************************************************
@@ -1064,7 +1130,8 @@ import { version } from '../package.json';
     */
 
   render({ config } = this) {
-    const cardStyle = this._buildStyleString(this.config.styles);
+    const configStyle = this._mergeStyles({}, { styles: this.config?.styles });
+    const cardStyle = this._buildStyleString([configStyle]);
 
     return html`
     <ha-card
@@ -1087,7 +1154,7 @@ import { version } from '../package.json';
   }
 
   _buildStyleString(styles) {
-  console.log('Building style string for styles: ', styles);
+  // console.log('Building style string for styles: ', styles);
   if (!styles) return '';
 
   return Object.entries(Object.assign({}, ...styles))
@@ -1126,7 +1193,7 @@ import { version } from '../package.json';
       const angleStepSize = (fullScale - startAngle) / tickSteps;
 
       // If steps exactly match the max. value/range, add extra step for that max value.
-      // eslint-disable-next-line no-plusplus
+      // eslint-disable-next-line no-plusplus, @stylistic/brace-style, brace-style
       if ((Math.floor(((steps) * tickSize) + startTickValue)) <= (config.horseshoe_scale.max)) { steps++; }
 
       const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6 / 2;
@@ -1278,6 +1345,10 @@ import { version } from '../package.json';
     if (this.animations.names[item.index])
       stateStyle = Object.assign(stateStyle, this.animations.names[item.index]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1331,6 +1402,11 @@ import { version } from '../package.json';
     if (this.animations.areas[item.index])
       stateStyle = Object.assign(stateStyle, this.animations.areas[item.index]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1367,91 +1443,96 @@ import { version } from '../package.json';
     const dy = item.dy ? item.dy : '0';
 
     // compute some styling elements if configured for this state item
-  const STATE_STYLES = {
-    'font-size': '1em;',
-    color: 'var(--primary-text-color);',
-    opacity: '1.0;',
-    'text-anchor': 'middle;',
-  };
+    const STATE_STYLES = {
+      'font-size': '1em;',
+      color: 'var(--primary-text-color);',
+      opacity: '1.0;',
+      'text-anchor': 'middle;',
+    };
 
-  const UOM_STYLES = {
-    opacity: '0.7;',
-  };
+    const UOM_STYLES = {
+      opacity: '0.7;',
+    };
 
-  // Get configuration styles as the default styles
-  // let configStyle = { ...STATE_STYLES };
-  // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-  let configStyle = this._mergeStyles(STATE_STYLES, item);
+    // Get configuration styles as the default styles
+    // let configStyle = { ...STATE_STYLES };
+    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
+    let configStyle = this._mergeStyles(STATE_STYLES, item);
 
-  // Get the runtime styles, caused by states & animation settings
-  let stateStyle = {};
-  if (this.animations.states[item.index])
-    stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
+    // Get the runtime styles, caused by states & animation settings
+    let stateStyle = {};
+    if (this.animations.states[item.index])
+      stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
 
-  // Merge the two, where the runtime styles may overwrite the statically configured styles
-  configStyle = { ...configStyle, ...stateStyle };
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
-  // Convert javascript records to plain text, without "{}" and "," between the styles.
-  const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+    // Merge the two, where the runtime styles may overwrite the statically configured styles
+    configStyle = { ...configStyle, ...stateStyle };
 
-  // Get font-size of state in configStyle.
-  // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
-  // For floats and strings:
-  //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
+    // Convert javascript records to plain text, without "{}" and "," between the styles.
+    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
 
-  // 2019.09.12
-  // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
-  // https://regex101.com/r/QYfDtB/1
-  // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
-  // in twee stukken, dus 1.27 en em;
+    // Get font-size of state in configStyle.
+    // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
+    // For floats and strings:
+    //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
 
-  var fsuomStr = configStyle['font-size'];
+    // 2019.09.12
+    // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
+    // https://regex101.com/r/QYfDtB/1
+    // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
+    // in twee stukken, dus 1.27 en em;
 
-  var fsuomValue = 0.5;
-  var fsuomType = 'em;';
-  const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
-  if (fsuomSplit.length === 2) {
-    fsuomValue = Number(fsuomSplit[0]) * 0.6;
-    fsuomType = fsuomSplit[1];
-  } else console.error('Cannot determine font-size for state', fsuomStr);
+    var fsuomStr = configStyle['font-size'];
 
-  fsuomStr = { 'font-size': fsuomValue + fsuomType };
+    var fsuomValue = 0.5;
+    var fsuomType = 'em;';
+    const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
+    if (fsuomSplit.length === 2) {
+      fsuomValue = Number(fsuomSplit[0]) * 0.6;
+      fsuomType = fsuomSplit[1];
+    } else console.error('Cannot determine font-size for state', fsuomStr);
 
-  let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
-  const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+    fsuomStr = { 'font-size': fsuomValue + fsuomType };
 
-  const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+    let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
+    const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
 
-  const state = (this.config.entities[item.entity_index].attribute
-                  && this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
-                  ? this.attributesStr[item.entity_index]
-                  : this.entitiesStr[item.entity_index];
+    const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
 
-    if (this._computeDomain(this.entities[item.entity_index].entity_id) === 'sensor') {
-    return svg`
-    <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  } else {
-    // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
-    // Still check for using an attribute value for the domain...
-    return svg`
-    <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-      <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-      style="${configStyleStr}">
-      ${state}</tspan>
-      <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-      style="${uomStyleStr}">
-      ${uom}</tspan>
-    </text>
-    `;
-  }
+    const state = (this.config.entities[item.entity_index].attribute
+                    && this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute])
+                    ? this.attributesStr[item.entity_index]
+                    : this.entitiesStr[item.entity_index];
+
+      if (this._computeDomain(this.entities[item.entity_index].entity_id) === 'sensor') {
+      return svg`
+      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+        style="${configStyleStr}">
+        ${state}</tspan>
+        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+        style="${uomStyleStr}">
+        ${uom}</tspan>
+      </text>
+      `;
+    } else {
+      // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
+      // Still check for using an attribute value for the domain...
+      return svg`
+      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
+        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
+        style="${configStyleStr}">
+        ${state}</tspan>
+        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
+        style="${uomStyleStr}">
+        ${uom}</tspan>
+      </text>
+      `;
+    }
     }
 
   /** *****************************************************************************
@@ -1533,7 +1614,9 @@ import { version } from '../package.json';
       this.animationFired = false;
       this.hide = true;
 //      return svg``;
-    } else { this.hide = false; }
+    } else {
+      this.hide = false;
+    }
 
     var xpx = (x * SVG_VIEW_BOX);
     var ypx = (y * SVG_VIEW_BOX);
@@ -1564,6 +1647,11 @@ import { version } from '../package.json';
     let stateStyle = {};
     if (this.animations.icons[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
@@ -1673,6 +1761,11 @@ import { version } from '../package.json';
     if (this.animations.hlines[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.hlines[item.animation_id]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1724,6 +1817,11 @@ import { version } from '../package.json';
     if (this.animations.vlines[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.vlines[item.animation_id]);
 
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
 
@@ -1767,6 +1865,11 @@ import { version } from '../package.json';
     let stateStyle = {};
     if (this.animations.circles[item.animation_id])
       stateStyle = Object.assign(stateStyle, this.animations.circles[item.animation_id]);
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
 
     // Merge the two, where the runtime styles may overwrite the statically configured styles
     configStyle = { ...configStyle, ...stateStyle };
@@ -2135,31 +2238,61 @@ val;
       return (4);
     }
 
-    _getItemEntityIndex(item = {}) {
-      const entityIndex = Number(item.entity_index);
-      return Number.isFinite(entityIndex) ? entityIndex : 0;
-    }
-
+    /** *****************************************************************************
+     * Returns the state value that should be used for JavaScript templates.
+     *
+     * If the configured entity uses an attribute, that attribute value is returned.
+     * Otherwise the normal entity state is returned.
+     *
+     * This allows templates to simply use `state`, regardless of whether the card
+     * displays the entity state itself or one of its attributes.
+     */
     _getTemplateState(item = {}) {
       const entityIndex = this._getItemEntityIndex(item);
       const entityState = this.entities?.[entityIndex];
       const entityConfig = this.config?.entities?.[entityIndex] || {};
 
+      // Entity may not be available yet during initial render or reload.
       if (!entityState) return undefined;
 
       const attribute = entityConfig.attribute;
 
+      // If an attribute is configured and available, use that as template state.
+      // The explicit !== undefined check keeps valid values like 0, false and ''
+      // from being ignored.
       if (
         attribute
         && entityState.attributes
-        && Object.prototype.hasOwn.call(entityState.attributes, attribute)
+        && entityState.attributes[attribute] !== undefined
       ) {
         return entityState.attributes[attribute];
       }
 
+      // Fallback to the regular Home Assistant entity state.
       return entityState.state;
     }
 
+    /** *****************************************************************************
+     * Evaluates a JavaScript template.
+     *
+     * Templates are written in YAML between [[[ and ]]], for example:
+     *
+     *   fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *
+     * The template receives a limited set of useful runtime values:
+     *
+     * - state          The current state value for this item
+     * - states         The full hass.states object
+     * - entity         The current Home Assistant entity object
+     * - user           The currently logged-in Home Assistant user
+     * - hass           The full Home Assistant hass object
+     * - tool_config    The current item configuration from YAML
+     * - entity_config  The matching entity configuration from config.entities
+     * - states_str     Cached rendered state strings
+     * - attributes_str Cached rendered attribute strings
+     *
+     * The template must return the value that should be used.
+     */
     _evaluateJsTemplate(item, jsTemplate) {
       const entityIndex = this._getItemEntityIndex(item);
       const state = this._getTemplateState(item);
@@ -2167,6 +2300,8 @@ val;
       const entityConfig = this.config?.entities?.[entityIndex];
 
       try {
+        // JavaScript templates are intentionally evaluated at runtime.
+        // Users are expected to control their own dashboard configuration.
         // eslint-disable-next-line no-new-func
         return new Function(
           'state',
@@ -2192,27 +2327,53 @@ val;
           this.attributesStr,
         );
       } catch (e) {
+        // Rename the error so template issues are easier to recognize
+        // in the browser console.
         e.name = 'FlexHorseshoeCard-evaluateJsTemplate-Error';
+
         console.error('Error evaluating JS template', {
           item,
           jsTemplate,
           error: e,
         });
+
         throw e;
       }
     }
 
+    /** *****************************************************************************
+     * Resolves a value that may contain JavaScript templates.
+     *
+     * This function is recursive:
+     *
+     * - primitive values are returned as-is
+     * - arrays are resolved item by item
+     * - objects are resolved property by property
+     * - strings surrounded by [[[ and ]]] are evaluated as JavaScript templates
+     * - normal strings are returned unchanged
+     *
+     * This makes it usable for complete style arrays such as:
+     *
+     * styles:
+     *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *   - opacity: 0.5;
+     */
     _getJsTemplateOrValue(item, value) {
+      // Keep undefined and null unchanged.
       if (value === undefined || value === null) return value;
 
+      // Primitive non-string values cannot contain templates.
       if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
         return value;
       }
 
+      // Resolve every item in an array.
+      // This is used heavily by YAML styles arrays.
       if (Array.isArray(value)) {
         return value.map((entry) => this._getJsTemplateOrValue(item, entry));
       }
 
+      // Resolve every value in an object without mutating the original config.
       if (typeof value === 'object') {
         return Object.fromEntries(
           Object.entries(value).map(([key, entryValue]) => [
@@ -2222,24 +2383,58 @@ val;
         );
       }
 
+      // At this point only strings can contain template syntax.
       if (typeof value !== 'string') return value;
 
       const trimmedValue = value.trim();
 
+      // JavaScript templates must occupy the full string and be wrapped in:
+      // [[[ ... ]]]
       if (trimmedValue.startsWith('[[[') && trimmedValue.endsWith(']]]')) {
         return this._evaluateJsTemplate(item, trimmedValue.slice(3, -3).trim());
       }
 
+      // Plain string, no template.
       return value;
     }
 
+    /** *****************************************************************************
+     * Merges configured styles into a single style object.
+     *
+     * baseStyle contains default styles from the card code.
+     * item.styles contains YAML styles from the configuration.
+     *
+     * JavaScript templates inside item.styles are resolved before merging.
+     *
+     * Example YAML:
+     *
+     * styles:
+     *   - font-size: 3em;
+     *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *
+     * Result:
+     *
+     * {
+     *   "font-size": "3em;",
+     *   "fill": "red;"
+     * }
+     */
     _mergeStyles(baseStyle = {}, item = {}) {
+      // No configured styles, return a copy of the defaults.
       if (!item.styles) {
         return { ...baseStyle };
       }
 
+      // Resolve possible JavaScript templates before merging the styles.
       const resolvedStyles = this._getJsTemplateOrValue(item, item.styles);
 
+      // Existing YAML style format:
+      //
+      // styles:
+      //   - fill: white;
+      //   - opacity: 0.5;
+      //
+      // This becomes an array of objects and is merged into one object.
       if (Array.isArray(resolvedStyles)) {
         return Object.assign(
           {},
@@ -2248,6 +2443,7 @@ val;
         );
       }
 
+      // Also support an already merged style object.
       if (resolvedStyles && typeof resolvedStyles === 'object') {
         return {
           ...baseStyle,
@@ -2255,9 +2451,24 @@ val;
         };
       }
 
+      // Unsupported style format. Keep defaults.
       return { ...baseStyle };
     }
 
+    /** *****************************************************************************
+     * Converts a style object into an inline CSS string.
+     *
+     * Example input:
+     *
+     * {
+     *   fill: "red;",
+     *   opacity: "0.5;"
+     * }
+     *
+     * Example output:
+     *
+     * "fill: red; opacity: 0.5;"
+     */
     _styleToString(style = {}) {
       return Object.entries(style)
         .filter(([, value]) => value !== undefined && value !== null)
