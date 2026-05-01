@@ -2,5 +2,5 @@
   "name": "Flexible Horseshoe Card for Lovelace",
   "render_readme": true,
   "content_in_root": false,
-  "filename": "flex-horseshoe-card.js"
+  "filename": "dist/flex-horseshoe-card.js"
 }
