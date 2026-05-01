@@ -2238,26 +2238,61 @@ val;
       return (4);
     }
 
+    /**
+     * Returns the state value that should be used for JavaScript templates.
+     *
+     * If the configured entity uses an attribute, that attribute value is returned.
+     * Otherwise the normal entity state is returned.
+     *
+     * This allows templates to simply use `state`, regardless of whether the card
+     * displays the entity state itself or one of its attributes.
+     */
     _getTemplateState(item = {}) {
       const entityIndex = this._getItemEntityIndex(item);
       const entityState = this.entities?.[entityIndex];
       const entityConfig = this.config?.entities?.[entityIndex] || {};
 
+      // Entity may not be available yet during initial render or reload.
       if (!entityState) return undefined;
 
       const attribute = entityConfig.attribute;
 
+      // If an attribute is configured and available, use that as template state.
+      // The explicit !== undefined check keeps valid values like 0, false and ''
+      // from being ignored.
       if (
         attribute
         && entityState.attributes
-        && Object.prototype.hasOwn.call(entityState.attributes, attribute)
+        && entityState.attributes[attribute] !== undefined
       ) {
         return entityState.attributes[attribute];
       }
 
+      // Fallback to the regular Home Assistant entity state.
       return entityState.state;
     }
 
+    /**
+     * Evaluates a JavaScript template.
+     *
+     * Templates are written in YAML between [[[ and ]]], for example:
+     *
+     *   fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *
+     * The template receives a limited set of useful runtime values:
+     *
+     * - state          The current state value for this item
+     * - states         The full hass.states object
+     * - entity         The current Home Assistant entity object
+     * - user           The currently logged-in Home Assistant user
+     * - hass           The full Home Assistant hass object
+     * - tool_config    The current item configuration from YAML
+     * - entity_config  The matching entity configuration from config.entities
+     * - states_str     Cached rendered state strings
+     * - attributes_str Cached rendered attribute strings
+     *
+     * The template must return the value that should be used.
+     */
     _evaluateJsTemplate(item, jsTemplate) {
       const entityIndex = this._getItemEntityIndex(item);
       const state = this._getTemplateState(item);
@@ -2265,6 +2300,8 @@ val;
       const entityConfig = this.config?.entities?.[entityIndex];
 
       try {
+        // JavaScript templates are intentionally evaluated at runtime.
+        // Users are expected to control their own dashboard configuration.
         // eslint-disable-next-line no-new-func
         return new Function(
           'state',
@@ -2290,27 +2327,53 @@ val;
           this.attributesStr,
         );
       } catch (e) {
+        // Rename the error so template issues are easier to recognize
+        // in the browser console.
         e.name = 'FlexHorseshoeCard-evaluateJsTemplate-Error';
+
         console.error('Error evaluating JS template', {
           item,
           jsTemplate,
           error: e,
         });
+
         throw e;
       }
     }
 
+    /**
+     * Resolves a value that may contain JavaScript templates.
+     *
+     * This function is recursive:
+     *
+     * - primitive values are returned as-is
+     * - arrays are resolved item by item
+     * - objects are resolved property by property
+     * - strings surrounded by [[[ and ]]] are evaluated as JavaScript templates
+     * - normal strings are returned unchanged
+     *
+     * This makes it usable for complete style arrays such as:
+     *
+     * styles:
+     *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *   - opacity: 0.5;
+     */
     _getJsTemplateOrValue(item, value) {
+      // Keep undefined and null unchanged.
       if (value === undefined || value === null) return value;
 
+      // Primitive non-string values cannot contain templates.
       if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
         return value;
       }
 
+      // Resolve every item in an array.
+      // This is used heavily by YAML styles arrays.
       if (Array.isArray(value)) {
         return value.map((entry) => this._getJsTemplateOrValue(item, entry));
       }
 
+      // Resolve every value in an object without mutating the original config.
       if (typeof value === 'object') {
         return Object.fromEntries(
           Object.entries(value).map(([key, entryValue]) => [
@@ -2320,24 +2383,58 @@ val;
         );
       }
 
+      // At this point only strings can contain template syntax.
       if (typeof value !== 'string') return value;
 
       const trimmedValue = value.trim();
 
+      // JavaScript templates must occupy the full string and be wrapped in:
+      // [[[ ... ]]]
       if (trimmedValue.startsWith('[[[') && trimmedValue.endsWith(']]]')) {
         return this._evaluateJsTemplate(item, trimmedValue.slice(3, -3).trim());
       }
 
+      // Plain string, no template.
       return value;
     }
 
+    /**
+     * Merges configured styles into a single style object.
+     *
+     * baseStyle contains default styles from the card code.
+     * item.styles contains YAML styles from the configuration.
+     *
+     * JavaScript templates inside item.styles are resolved before merging.
+     *
+     * Example YAML:
+     *
+     * styles:
+     *   - font-size: 3em;
+     *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
+     *
+     * Result:
+     *
+     * {
+     *   "font-size": "3em;",
+     *   "fill": "red;"
+     * }
+     */
     _mergeStyles(baseStyle = {}, item = {}) {
+      // No configured styles, return a copy of the defaults.
       if (!item.styles) {
         return { ...baseStyle };
       }
 
+      // Resolve possible JavaScript templates before merging the styles.
       const resolvedStyles = this._getJsTemplateOrValue(item, item.styles);
 
+      // Existing YAML style format:
+      //
+      // styles:
+      //   - fill: white;
+      //   - opacity: 0.5;
+      //
+      // This becomes an array of objects and is merged into one object.
       if (Array.isArray(resolvedStyles)) {
         return Object.assign(
           {},
@@ -2346,6 +2443,7 @@ val;
         );
       }
 
+      // Also support an already merged style object.
       if (resolvedStyles && typeof resolvedStyles === 'object') {
         return {
           ...baseStyle,
@@ -2353,9 +2451,24 @@ val;
         };
       }
 
+      // Unsupported style format. Keep defaults.
       return { ...baseStyle };
     }
 
+    /**
+     * Converts a style object into an inline CSS string.
+     *
+     * Example input:
+     *
+     * {
+     *   fill: "red;",
+     *   opacity: "0.5;"
+     * }
+     *
+     * Example output:
+     *
+     * "fill: red; opacity: 0.5;"
+     */
     _styleToString(style = {}) {
       return Object.entries(style)
         .filter(([, value]) => value !== undefined && value !== null)
