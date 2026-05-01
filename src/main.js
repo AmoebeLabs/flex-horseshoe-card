@@ -1130,7 +1130,8 @@ import { version } from '../package.json';
     */
 
   render({ config } = this) {
-    const cardStyle = this._buildStyleString(this.config.styles);
+    const configStyle = this._mergeStyles({}, { styles: this.config?.styles });
+    const cardStyle = this._buildStyleString([configStyle]);
 
     return html`
     <ha-card
