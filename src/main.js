@@ -2238,7 +2238,7 @@ val;
       return (4);
     }
 
-    /**
+    /** *****************************************************************************
      * Returns the state value that should be used for JavaScript templates.
      *
      * If the configured entity uses an attribute, that attribute value is returned.
@@ -2272,7 +2272,7 @@ val;
       return entityState.state;
     }
 
-    /**
+    /** *****************************************************************************
      * Evaluates a JavaScript template.
      *
      * Templates are written in YAML between [[[ and ]]], for example:
@@ -2341,7 +2341,7 @@ val;
       }
     }
 
-    /**
+    /** *****************************************************************************
      * Resolves a value that may contain JavaScript templates.
      *
      * This function is recursive:
@@ -2398,7 +2398,7 @@ val;
       return value;
     }
 
-    /**
+    /** *****************************************************************************
      * Merges configured styles into a single style object.
      *
      * baseStyle contains default styles from the card code.
@@ -2455,7 +2455,7 @@ val;
       return { ...baseStyle };
     }
 
-    /**
+    /** *****************************************************************************
      * Converts a style object into an inline CSS string.
      *
      * Example input:
