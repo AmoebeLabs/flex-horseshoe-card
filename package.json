@@ -14,19 +14,20 @@
     "serve": "rollup -c serve.config.js --watch"
   },
   "devDependencies": {
-    "eslint": "^9",
-    "eslint-config-airbnb-extended": "^3",
     "@eslint/eslintrc": "",
     "@eslint/js": "",
-    "rollup": "^4.60",
-    "rollup-plugin-serve": "^3",
+    "@rollup/plugin-alias": "",
     "@rollup/plugin-commonjs": "^29",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^16",
     "@rollup/plugin-terser": "^1",
-    "@rollup/plugin-alias": ""
+    "eslint": "^9",
+    "eslint-config-airbnb-extended": "^3",
+    "rollup": "^4.60",
+    "rollup-plugin-serve": "^3"
   },
   "dependencies": {
+    "globals": "^17.5.0",
     "home-assistant-js-websocket": "^9.6.0",
     "lit": "^3.3.2"
   }
