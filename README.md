@@ -644,8 +644,8 @@ horseshoe_scale:
   color: 'var(--primary-background-color)'
 ```
 
-#### Bidrectional Example:
-![](https://github.com/AmoebeLabs/flex-horseshoe-card/blob/1e7106a71a8fae8694a24d91b0e8c1fd9a05a51d/images/horseshoe-bidirectional-example-Ndrinta.png)
+#### Bidrectional Example (thanks to @Ndrinta):
+![](images/horseshoe-bidirectional-example-Ndrinta.png)
 
 ```yaml
 type: custom:flex-horseshoe-card
