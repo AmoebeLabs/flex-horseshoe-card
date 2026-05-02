@@ -92,7 +92,7 @@ import { version } from '../package.json';
     this.iOS = false;
 
     // Determines if horseshoe has full range, or is split in right/left from the top middle
-    this.bar_mode = "normal"; // default
+    this.bar_mode = 'normal'; // default
 
     this.dev = {
       debug: false,
@@ -838,16 +838,16 @@ import { version } from '../package.json';
     const min = this.config.horseshoe_scale.min || 0;
     const max = this.config.horseshoe_scale.max || 100;
 
-    const barMode = this.config.bar_mode || "normal";
+    const barMode = this.config.bar_mode || 'normal';
 
-    let dashArray = "";
-    if (barMode === "bidirectional") {
+    let dashArray = '';
+    if (barMode === 'bidirectional') {
       // Bidirectional: zero at top, positive CW, negative CCW
       // Assume min < 0 < max
       const zeroPos = 0; // zero at top center
       const totalLength = HORSESHOE_PATH_LENGTH;
       let val = Number(state);
-      let posLen = 0, negLen = 0;
+      let posLen = 0; let negLen = 0;
       if (val >= 0) {
         posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
         this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
@@ -870,7 +870,6 @@ import { version } from '../package.json';
     const val = Math.min(this._calculateValueBetween(min, max, state), 1);
     const score = val * HORSESHOE_PATH_LENGTH;
     const total = 10 * HORSESHOE_RADIUS_SIZE;
-
 
       // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop
       // #TODO: only if state or attribute has changed.
@@ -1043,7 +1042,7 @@ import { version } from '../package.json';
       const newConfig = {
     texts: [],
         card_filter: 'card--filter-none',
-        bar_mode: config.bar_mode || "normal", // add bar_mode to config
+        bar_mode: config.bar_mode || 'normal', // add bar_mode to config
         ...config,
         show: { ...DEFAULT_SHOW, ...config.show },
         horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
@@ -1090,7 +1089,7 @@ import { version } from '../package.json';
       // console.log('Prepared color stops', newConfig);
       this._prepareItemColorStops(newConfig);
       this.config = newConfig;
-      this.bar_mode = newConfig.bar_mode || "normal";      
+      this.bar_mode = newConfig.bar_mode || 'normal';
     }
 
     _getItemEntityIndex(item = {}) {
@@ -1320,8 +1319,8 @@ import { version } from '../package.json';
     if (!this.config.show.horseshoe) return;
 
     // Bidirectional: zero at top, positive CW, negative CCW
-    const barMode = this.config.bar_mode || "normal";
-    if (barMode === "bidirectional") {
+    const barMode = this.config.bar_mode || 'normal';
+    if (barMode === 'bidirectional') {
       // The horseshoe arc is always 260deg, but we want zero at top (270deg)
       // So rotate -90deg (top center), and for negative values, use stroke-dashoffset to fill CCW
       if (this._bidirectional_negative) {
@@ -1396,7 +1395,6 @@ import { version } from '../package.json';
         ${this._renderTickMarks()}
       </g>
     `;
-
   }
 
   /** *****************************************************************************
