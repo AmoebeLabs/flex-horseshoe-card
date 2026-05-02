@@ -629,10 +629,11 @@ layout:
 ## Horseshoe scale options
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
-| min | number | **required** | | v0.8.0 | Minimum value of the scale / horseshoe
-| max | number | **required** | | v0.8.0 | Maximum value of the scale / horseshoe
-| color | color | `var(--primary-background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled through `show.scale_tickmarks` option.
-| width | pixels | 6 |size in pixels| v0.8.0 | Width of scale
+| min | number | **required** | | v0.8.0 | Minimum value of the scale / horseshoe |
+| max | number | **required** | | v0.8.0 | Maximum value of the scale / horseshoe |
+| color | color | `var(--primary-background-color)`|any # or var color| v0.8.0 | Color of the scale and tickmarks, if enabled through `show.scale_tickmarks` option. |
+| width | pixels | 6 |size in pixels| v0.8.0 | Width of scale |
+| bar_mode | string | `normal` | `normal`, `bidirectional` | 5.4.3 | Horseshoe can go "bidirectionally" CV and CCW from the top/center which is always 0 |
 
 #### Example:
 ```yaml
@@ -642,6 +643,90 @@ horseshoe_scale:
   width: 6
   color: 'var(--primary-background-color)'
 ```
+
+#### Bidrectional Example:
+![](https://github.com/AmoebeLabs/flex-horseshoe-card/blob/1e7106a71a8fae8694a24d91b0e8c1fd9a05a51d/images/horseshoe-bidirectional-example-Ndrinta.png)
+
+```yaml
+type: custom:flex-horseshoe-card
+view_layout:
+  grid-area: block1
+entities:
+  - entity: sensor.grid_ct_w
+    decimals: 0
+    unit: W
+    name: GRID
+  - entity: sensor.grid_daily
+    decimals: 1
+    unit: kWh
+    icon: mdi:transmission-tower-export
+  - entity: sensor.feed_in_energy_today
+    decimals: 1
+    unit: kWh
+    icon: mdi:transmission-tower-import
+show:
+  horseshoe_style: colorstopgradient
+layout:
+  hlines:
+    - id: 0
+      xpos: 50
+      ypos: 42
+      length: 40
+      styles:
+        - stroke: grey;
+        - stroke-width: 5;
+        - stroke-linecap: round;
+        - opacity: 0.7;
+  states:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 34
+      styles:
+        - font-size: 3em;
+    - id: 1
+      entity_index: 1
+      xpos: 40
+      ypos: 57
+      styles:
+        - text-anchor: start;
+        - font-size: 1.7em;
+    - id: 2
+      entity_index: 2
+      xpos: 40
+      ypos: 72
+      styles:
+        - text-anchor: start;
+        - font-size: 1.7em;
+  icons:
+    - id: 0
+      entity_index: 1
+      xpos: 37
+      ypos: 57
+      align: end
+      size: 1.3
+    - id: 1
+      entity_index: 2
+      xpos: 37
+      ypos: 72
+      align: end
+      size: 1.3
+  names:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 95
+horseshoe_scale:
+  min: -6500
+  max: 6500
+  color: lightgrey
+bar_mode: bidirectional
+color_stops:
+  "0": var(--energy-grid-consumption-color)
+  "100": var(--energy-grid-return-color)
+```
+
+
 ## Horseshoe state options
 | Name | Type | Default | Options | Since | Description |
 |------|:----:|---------|---------|-------|-------------|
