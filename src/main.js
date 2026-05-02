@@ -840,7 +840,6 @@ import { version } from '../package.json';
 
     const barMode = this.config.bar_mode || 'normal';
 
-    let dashArray = '';
     if (barMode === 'bidirectional') {
       // Bidirectional: zero at top, positive CW, negative CCW
       // Assume min < 0 < max
