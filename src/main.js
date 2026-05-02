@@ -844,7 +844,6 @@ import { version } from '../package.json';
     if (barMode === 'bidirectional') {
       // Bidirectional: zero at top, positive CW, negative CCW
       // Assume min < 0 < max
-      const zeroPos = 0; // zero at top center
       const totalLength = HORSESHOE_PATH_LENGTH;
       let val = Number(state);
       let posLen = 0; let negLen = 0;
