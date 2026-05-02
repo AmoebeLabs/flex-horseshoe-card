@@ -38,6 +38,7 @@ import { version } from '../package.json';
   const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
   const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
   const HORSESHOE_PATH_LENGTH = 2 * 260 / 360 * Math.PI * HORSESHOE_RADIUS_SIZE;
+  const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
 
   const DEFAULT_SHOW = {
     horseshoe: true,
@@ -89,6 +90,9 @@ import { version } from '../package.json';
     this.isAndroid = false;
     this.isSafari = false;
     this.iOS = false;
+
+    // Determines if horseshoe has full range, or is split in right/left from the top middle
+    this.bar_mode = 'normal'; // default
 
     this.dev = {
       debug: false,
@@ -833,10 +837,37 @@ import { version } from '../package.json';
 
     const min = this.config.horseshoe_scale.min || 0;
     const max = this.config.horseshoe_scale.max || 100;
+
+    const barMode = this.config.bar_mode || 'normal';
+
+    if (barMode === 'bidirectional') {
+      // Bidirectional: zero at top, positive CW, negative CCW
+      // Assume min < 0 < max
+      const totalLength = HORSESHOE_PATH_LENGTH;
+      let val = Number(state);
+      let posLen = 0; let negLen = 0;
+      if (val >= 0) {
+        posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
+        this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
+        this._bidirectional_negative = false;
+      } else {
+        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
+        this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
+        this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
+        this._bidirectional_negative = true;
+      }
+    } else {
+      // Normal mode
+      const val = Math.min(this._calculateValueBetween(min, max, state), 1);
+      const score = val * HORSESHOE_PATH_LENGTH;
+      const total = 10 * HORSESHOE_RADIUS_SIZE;
+      this.dashArray = `${score} ${total}`;
+      this._bidirectional_negative = false;
+    }
+
     const val = Math.min(this._calculateValueBetween(min, max, state), 1);
     const score = val * HORSESHOE_PATH_LENGTH;
     const total = 10 * HORSESHOE_RADIUS_SIZE;
-    this.dashArray = `${score} ${total}`;
 
       // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop
       // #TODO: only if state or attribute has changed.
@@ -1009,6 +1040,7 @@ import { version } from '../package.json';
       const newConfig = {
     texts: [],
         card_filter: 'card--filter-none',
+        bar_mode: config.bar_mode || 'normal', // add bar_mode to config
         ...config,
         show: { ...DEFAULT_SHOW, ...config.show },
         horseshoe_scale: { ...DEFAULT_HORSESHOE_SCALE, ...config.horseshoe_scale },
@@ -1055,6 +1087,7 @@ import { version } from '../package.json';
       // console.log('Prepared color stops', newConfig);
       this._prepareItemColorStops(newConfig);
       this.config = newConfig;
+      this.bar_mode = newConfig.bar_mode || 'normal';
     }
 
     _getItemEntityIndex(item = {}) {
@@ -1283,28 +1316,83 @@ import { version } from '../package.json';
   _renderHorseShoe() {
     if (!this.config.show.horseshoe) return;
 
+    // Bidirectional: zero at top, positive CW, negative CCW
+    const barMode = this.config.bar_mode || 'normal';
+    if (barMode === 'bidirectional') {
+      // The horseshoe arc is always 260deg, but we want zero at top (270deg)
+      // So rotate -90deg (top center), and for negative values, use stroke-dashoffset to fill CCW
+      if (this._bidirectional_negative) {
+        // stroke-dashoffset = half the arc length (start at top, fill CCW)
+        // But SVG circles always fill CW, so we use dashoffset to "reverse" the fill
+        // The arc is 260deg, so half is 130deg, which is HORSESHOE_PATH_LENGTH/2
+        // For negative, offset by half the arc
+        return svg`
+          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="${this.config.horseshoe_scale.color || '#000000'}"
+              stroke-dasharray="408.40704496667314,180"
+              stroke-width="${this.config.horseshoe_scale.width || 6}" 
+              stroke-linecap="round"
+              transform="rotate(-220 100 100)"/>
+            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="url('#horseshoe__gradient-${this.cardId}')"
+              stroke-dasharray="${this.dashArray}"
+              stroke-dashoffset="${this.dashOffset}"
+              stroke-width="${this.config.horseshoe_state.width || 12}" 
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              style="transition: all 2.5s ease-out;"/>
+            ${this._renderTickMarks()}
+          </g>
+        `;
+      } else {
+        // stroke-dashoffset = 0 (start at top, fill CW)
+        return svg`
+          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="${this.config.horseshoe_scale.color || '#000000'}"
+              stroke-dasharray="408.40704496667314,180"
+              stroke-width="${this.config.horseshoe_scale.width || 6}" 
+              stroke-linecap="round"
+              transform="rotate(-220 100 100)"/>
+            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+              stroke="url('#horseshoe__gradient-${this.cardId}')"
+              stroke-dasharray="${this.dashArray}"
+              stroke-width="${this.config.horseshoe_state.width || 12}" 
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              style="transition: all 2.5s ease-out;"/>
+            ${this._renderTickMarks()}
+          </g>
+        `;
+      }
+    }
+
+    // Normal mode (default)
     return svg`
-        <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-          <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-            fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-            stroke="${this.config.horseshoe_scale.color || '#000000'}"
-            stroke-dasharray="408.4070449,180"
-            stroke-width="${this.config.horseshoe_scale.width || 6}" 
-            stroke-linecap="round"
-            transform="rotate(-220 100 100)"/>
-  
-          <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-            fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-            stroke="url('#horseshoe__gradient-${this.cardId}')"
-            stroke-dasharray="${this.dashArray}"
-            stroke-width="${this.config.horseshoe_state.width || 12}" 
-            stroke-linecap="round"
-            transform="rotate(-220 100 100)"
-            style="transition: all 2.5s ease-out;"/>
-          
-          ${this._renderTickMarks()}
-        </g>
-      `;
+      <g id="horseshoe__svg__group" class="horseshoe__svg__group">
+        <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
+          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+          stroke="${this.config.horseshoe_scale.color || '#000000'}"
+          stroke-dasharray="408.40704496667314,180"
+          stroke-width="${this.config.horseshoe_scale.width || 6}" 
+          stroke-linecap="round"
+          transform="rotate(-220 100 100)"/>
+        <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
+          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
+          stroke="url('#horseshoe__gradient-${this.cardId}')"
+          stroke-dasharray="${this.dashArray}"
+          stroke-width="${this.config.horseshoe_state.width || 12}" 
+          stroke-linecap="round"
+          transform="rotate(-220 100 100)"
+          style="transition: all 2.5s ease-out;"/>
+        ${this._renderTickMarks()}
+      </g>
+    `;
   }
 
   /** *****************************************************************************
