@@ -1,4 +1,4 @@
-Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modules, and got some extra features like JavaScript templating and color stops for states, icons, names, areas, hlines, vlines and circles.
+Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modules, and got some extra features like JavaScript templating, color stops for states, icons, names, areas, hlines, vlines and circles, and a bidirectional mode.
 
 ***
 
@@ -18,7 +18,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 </br>So you can see how these layouts are done*
 ***
 
-### v5.4.1 is the latest stable release of this card. Be gentle with it!
+### v5.4.3 is the latest stable release of this card. Be gentle with it!
 * * *
 
 ## Introduction
