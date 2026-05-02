@@ -1,13 +1,14 @@
-**Personal Note, april 2023**
+**Personal Note, april 2026**
 
-Getting up to speed again with my custom cards after some difficult years!
+Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modules, and got some extra features like JavaScript templating and color stops for states, icons, names, areas, hlines, vlines and circles.
 
-First commit is compatibility for Home Assistant 2023.4. I missed that one in my testcard view. For some reason I fixed the HA version to some 2023.3 version in my docker compose file. And in that case you can `docker compose pull` but nothing is updated...
 ***
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
-![GitHub Release Date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?style=for-the-badge)
+[![HACS](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![Stable](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?label=stable&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
+[![Stable date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?label=date&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
+[![Latest](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?include_prereleases&label=latest&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases)
+
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
@@ -19,7 +20,7 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 </br>So you can see how these layouts are done*
 ***
 
-### v0.8.0 is the first public release of this card. Be gentle with it!
+### v5.4.1 is the latest stable release of this card. Be gentle with it!
 * * *
 
 ## Introduction
@@ -35,7 +36,9 @@ The main perk of this card is it's flexibility. It is able to position a number 
 | **Animations**, dynamic behaviour | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations. |
 | Several ways to **color** the **horseshoe** | From single, fixed color, to a gradient depending on a list of colorstops |
 | **Actions** | Handle click actions per entity to for instance switch a light on/off |
-
+| **Color Stops** | New since v5.x: Handle color transitions using the state of the entity by defining a color stops. |
+| **JavaScript templates** | New since v5.x: Add JavaScript templates (between [[[ and ]]]) in the `styles` section to dynamically change formatting styles based on states. |
+| **Card styling** | New since v5.x: Add `styles` section to card to define custom styles for the (background) of the card: color, background images, etc. |
 * * *
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
 - [Some examples](#-some-examples)
@@ -48,6 +51,9 @@ The main perk of this card is it's flexibility. It is able to position a number 
   - [Show Section](#-show-section)
   - [Card filter Section](#-card-filter-section)
   - [Animations Section](#-animations-section)
+  - [Card styling (**NEW** as of v5.4.1)](#-card-styling-section)
+  - [Colorstops for states, icons, etc. (**NEW** as of v5.4.1)](#-colorstops-for-states-section)
+  - [JavaScript templates (**NEW** as of v5.4.1)](#-javascript-templates-section)
 - [12 reusable Examples](#-examples-section)
 - [Design your OWN card](#-design-your-own-card)
 - [End notes](#-end-notes)
@@ -97,14 +103,14 @@ Combined with animations and states, you can alter the appearance of objects. Th
 
 ## Manual install
 
-1. Download and copy `flex-horseshoe-card.js` from github into your `config/www` directory.
+1. Download and copy `dist/flex-horseshoe-card.js` from github into your `config/www` directory.
 
 2. If using the editor UI: Add a reference to `flex-horseshoe-card.js` inside your `ui-lovelace.yaml` or at the top of the *raw config editor UI*.
 3. If using yaml mode, add a reference in the resources.yaml file that is !included in your `ui-lovelac.yaml` file
 
   ```yaml
   resources:
-  - url: /community_plugin/flex-horseshoe-card/flex-horseshoe-card.js
+  - url: /community/flex-horseshoe-card/flex-horseshoe-card.js
     type: module
   ```
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Using the card
@@ -565,7 +571,9 @@ The layout options determine where the objects are located on the card, and thei
 | align</br> *(icons only)* | position | `middle` | `start`/ `middle`/ `end` | v0.8.0 | Specifies the alignment of the icon relative to the xpos and ypos. Functions idential to the `text-anchor`css property. Used in positioning calculations for the icon.
 | entity_index | number | **required** | N/A | v0.8.0 | Refers to the 0-based index in the entity list which the layout is connected to |
 | animation_id | number | optional | an Id | v0.8.0 | Identifies an animation in the animations section. It connects this layout object with dynamic behaviour 
-| styles | list | optional | any valid css entry | v0.8.0 | specify a list of css values to style the object. Must be terminated with a semicolon `;`
+| styles | list | optional | any valid css entry | v0.8.0 | specify a list of css values to style the object. Must be terminated with a semicolon `;`.<br> Since v5.4.1 the `styles` section supports JavaScript templates for dynamic behaviour based on states or other logic |
+| color_stops | list | optional | N/A | v5.4.1 | specify a list of colors. The color of the object will change accordingly to the state of the entity |
+
 
 #### Example layout entry
 The following layout is a part of card 5. For more complete examples, see the [examples section](#-examples-section)
@@ -807,6 +815,141 @@ There are at least a few great places for example animations:
     }
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Styling section
+As of v5.4.1
+
+You can styule the (background) of the card using CSS styles.
+<br>The first example shows how to add an image, and center it.
+
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: sensor.memory_use_percent
+    - entity: light.1st_floor_hall_light              
+...
+  styles:
+    - background-color: rgba(20, 20, 20, 0.05);
+    - background-image: url('/local/images/backgrounds/pollen-background-hd-3x1.png');
+    - background-size: cover;
+    - background-position: center;
+    - background-repeat: no-repeat;
+    - overflow: hidden;
+```
+
+The second example shows the combination of card style and JavaScript templating.
+<br>The background color is changed - in this case - depending on the state of entity_index 0.
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: sensor.memory_use_percent
+    - entity: light.1st_floor_hall_light              
+...
+  styles:
+    - background-color: |
+        [[[
+          const value = Number(state);
+          return value >= 5
+            ? 'var(--error-color);'
+            : 'var(--primary-text-color);';
+        ]]]
+    - transition: background-color 1s ease-in-out;    
+
+```
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Colorstops for states, icons etc section
+As of v5.4.1
+
+This example shows how to to define a colorstop for an entity. The first one is a `state`, the second one an `area`.
+<br>In both cases, **the numeric** state of the entity determines the color.
+```yaml
+- type: 'custom:flex-horseshoe-card'
+  entities:
+    - entity: sensor.memory_use_percent
+    - entity: light.1st_floor_hall_light              
+...
+  states:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 30
+      styles:
+        - font-size: 3em;
+      color_stops:
+        0: 'blue'
+        1: 'green'
+        2: 'yellow'
+        3: 'orange'
+        4: 'red'
+        5: 'purple'
+
+  areas:
+    - id: 0
+      entity_index: 0
+      xpos: 50
+      ypos: 85
+      styles:
+        - font-size: 1.2em;
+      color_stops:
+        0: 'blue'
+        1: 'green'
+        2: 'yellow'
+        3: 'orange'
+        4: 'red'
+        5: 'purple'
+```
+
+
+# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) JavaScript Templates section
+As of v5.4.1
+
+Support for JavaScript templates in the `styles` section to get dynamic styling based on entity or attribute values.
+
+The following variables are availeble in the JavaScript part:
+
+| Variable | Description |
+|----------|-------------|
+| `state`  | State of entity |
+| `states` | All the state values from hass: index them with the name of the sensor, ie `states[sensor.my-sensor]` for instance |
+
+
+The example shows that the `fill` of an entities `name` depends on the value of the state.
+<br>If state >= 4 then `fill` = `error-color`, else `primary-text-color`
+
+```yaml
+    names:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 100
+        styles:
+          - font-size: 1.2em;
+          - fill: |
+              [[[
+                const value = Number(state);
+                return value >= 4
+                  ? 'var(--error-color);'
+                  : 'var(--primary-text-color);';
+              ]]] 
+```
+Using `states` to evaluate a color. If state < 0 then some red color, else green color.
+
+```yaml
+    names:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 100
+        styles:
+          - font-size: 1.2em;
+          - fill: |
+              [[[
+                const v = Number(states['sensor.battery_power'].state);
+                if (v < 0) return '#ff4d4d';
+                if (v > 0) return '#00c853';
+                return 'var(--primary-text-color)';
+              ]]]
+```
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Show section
 
 ## Available show options

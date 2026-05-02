@@ -1,0 +1,20 @@
+# .github/labeler.yml
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - README.md
+          - docs/**
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - package-lock.json
+
+maintenance:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - rollup.config.js
+          - eslint.config.js

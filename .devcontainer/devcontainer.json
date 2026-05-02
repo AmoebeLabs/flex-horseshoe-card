@@ -1,22 +1,45 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
 {
-	"name": "Node.js",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/javascript-node:0-20"
+  "name": "Flex Horseshoe Development",
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+  // Open the sub-folder with the source code
+  "workspaceFolder": "/workspaces/flex-horseshoe-card",
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+  "remoteUser": "vscode",
+  "appPort": ["5005:5000", "9123:8123"],
+//  "postCreateCommand": "yarn install && sudo container install",
+//  "runArgs": ["-v", "${localWorkspaceFolder}/.devcontainer/www:/config/www"],
+  "customizations/vscode/extensions": [
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bierner.lit-html",
+    "runem.lit-plugin",
+    "davidanson.vscode-markdownlint",
+    "redhat.vscode-yaml",
+    "msjsdiag.debugger-for-chrome",
+    "yzhang.markdown-all-in-one"
+  ],
+  "customizations/vscode/settings": {
+    "files.eol": "\n",
+    "editor.tabSize": 2,
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "markdown.extension.toc.githubCompatibility": true,
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/.hg/store/**": true,
+      "**/.rpt2_cache/**": true
+    }
+  },
+  "containerEnv": {
+    "NODE_OPTIONS": "--dns-result-order=ipv4first"
+  }
 }
