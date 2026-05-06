@@ -19,18 +19,6 @@ const serveopts = {
   },
 };
 
-const litTrustedTypesPatch = replace({
-  preventAssignment: true,
-  include: [
-    'node_modules/lit-html/**/*.js',
-    'node_modules/lit-html/*.js',
-  ],
-  values: {
-    "'lit-html'": "'flex-horseshoe-card-lit-html'",
-    '"lit-html"': '"flex-horseshoe-card-lit-html"',
-  },
-});
-
 export default {
   input: 'src/main.js',
   output: {
