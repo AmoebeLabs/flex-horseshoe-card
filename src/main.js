@@ -2565,4 +2565,6 @@ val;
     }
   }
 
-  customElements.define('flex-horseshoe-card', FlexHorseshoeCard);
+  if (!customElements.get('flex-horseshoe-card')) {
+    customElements.define('flex-horseshoe-card', FlexHorseshoeCard);
+}
