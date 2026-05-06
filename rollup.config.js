@@ -4,6 +4,7 @@ import json from '@rollup/plugin-json';
 import serve from 'rollup-plugin-serve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
+import replace from '@rollup/plugin-replace';
 
 const dev = process.env.ROLLUP_WATCH || process.env.DEV;
 
@@ -39,6 +40,13 @@ export default {
     exclude: 'node_modules/**',
   },
   plugins: [
+  replace({
+    preventAssignment: true,
+    values: {
+      'createPolicy("lit-html"': 'createPolicy("flex-horseshoe-card-lit-html"',
+      "createPolicy('lit-html'": "createPolicy('flex-horseshoe-card-lit-html'",
+    },
+  }),
     commonjs(),
     //   json({
     //   include: 'package.json',

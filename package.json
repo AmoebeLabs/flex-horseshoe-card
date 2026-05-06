@@ -1,6 +1,6 @@
 {
   "name": "flex-horseshoe",
-  "version": "5.4.3",
+  "version": "5.4.3-dev.1",
   "description": "Flexible Horseshoe Card for Lovelace",
   "main": "src/main.js",
   "type": "module",
@@ -21,6 +21,7 @@
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^16",
     "@rollup/plugin-terser": "^1",
+    "@rollup/plugin-replace": "",
     "eslint": "^9",
     "eslint-config-airbnb-extended": "^3",
     "rollup": "^4.60",
