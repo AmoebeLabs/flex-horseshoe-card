@@ -2,11 +2,14 @@ Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modul
 
 ***
 
-[![HACS](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![Stable](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?label=stable&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
-[![Stable date](https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?label=date&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases/latest)
-[![Latest](https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?include_prereleases&label=latest&style=for-the-badge)](https://github.com/AmoebeLabs/flex-horseshoe-card/releases)
+[![hacs][hacs-badge]][hacs-url] [![hacs][maintain_badge]][hacs-url]
 
+Stable and Latest available versions where the latest can be a pre-release (DEV) version are as follows:
+<br>[![stable][stable-badge]][release-url]
+[![stable-date][stable-date-badge]][release-url]
+[![latest][latest-badge]][release-url]
+[![latest-date][latest-date-badge]][release-url]
+[![downloads][downloads-badge]][release-url]
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
@@ -1111,3 +1114,23 @@ The making of this card wouldn't be possible without an incredible number of res
 ## Personal Note
 Many, many, many years ago in the last century I learned to code C and Pascal. To make this card I had to learn the basics of a lot of new things like Javascript, HTML, CSS and the lit-element web component.
 The above resources where invaluable to accomplish this.
+
+<!-- Badges -->
+
+[hacs-url]: https://github.com/hacs/integration
+[hacs-badge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge&logo=homeassistantcommunitystore
+[beta_badge]: https://img.shields.io/badge/State-Beta-orange?style=for-the-badge&logo=homeassistantcommunitystore
+[rc_badge]: https://img.shields.io/badge/State-Release%20Candidate-orange?style=for-the-badge&logo=homeassistantcommunitystore
+[maintain_badge]: https://img.shields.io/maintenance/yes/2100?style=for-the-badge&logo=homeassistantcommunitystore
+[release-badge]: https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&include_prereleases&logo=github
+[latest-badge]: https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&include_prereleases&logo=github&label=latest
+[latest-date-badge]: <https://img.shields.io/github/release-date-pre/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&logo=github&label=latest%20date>
+[stable-badge]: <https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&logo=github&label=stable&cacheSeconds=3600>
+[stable-date-badge]: <https://img.shields.io/github/release-date/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&logo=github&label=stable%20date>
+[downloads-badge]: <https://img.shields.io/github/downloads/AmoebeLabs/flex-horseshoe-card/total?style=for-the-badge&logo=github&label=downloads%20since%20May%202026>
+
+<!-- References -->
+
+[home-assistant]: https://www.home-assistant.io/
+[hacs]: https://hacs.xyz
+[release-url]: https://github.com/AmoebeLabs/swiss-army-knife-card/releases
