@@ -4,12 +4,15 @@ Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modul
 
 [![hacs][hacs-badge]][hacs-url] [![hacs][maintain_badge]][hacs-url]
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AmoebeLabs&repository=flex-horseshoe-card&category=Dashboard)
+
 Stable and Latest available versions where the latest can be a pre-release (DEV) version are as follows:
 <br>[![stable][stable-badge]][release-url]
 [![stable-date][stable-date-badge]][release-url]
 <br>[![latest][latest-badge]][release-url]
 [![latest-date][latest-date-badge]][release-url]
 <br>[![downloads][downloads-badge]][release-url]
+
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
