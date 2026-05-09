@@ -91,6 +91,11 @@ import { version } from '../package.json';
     this.isSafari = false;
     this.iOS = false;
 
+    this.iconCache = {};
+    this.iconsSvg = [];
+    this.pendingIconPath = [];
+    this.iconsId = [];
+
     // Determines if horseshoe has full range, or is split in right/left from the top middle
     this.bar_mode = 'normal'; // default
 
@@ -787,8 +792,8 @@ import { version } from '../package.json';
       // Only if changed, continue and force render
       var value;
       var index = 0;
-      var attrSet = false;
       var newStateStr;
+      var attrSet = false;
       // eslint-disable-next-line no-restricted-syntax
       for (value of this.config.entities) {
         this.entities[index] = hass.states[this.config.entities[index].entity];
@@ -1088,6 +1093,12 @@ import { version } from '../package.json';
       this._prepareItemColorStops(newConfig);
       this.config = newConfig;
       this.bar_mode = newConfig.bar_mode || 'normal';
+
+      if (this.config.layout?.icons) {
+        this.config.layout.icons.forEach((iconConfig, index) => {
+          this.iconsId[index] = Math.random().toString(36).substr(2, 9);
+        });
+      }
     }
 
     _getItemEntityIndex(item = {}) {
@@ -1646,12 +1657,12 @@ import { version } from '../package.json';
       return svg`${svgItems}`;
   }
 
-  async _handleBoundingBoxTimeout(argThis, item) {
-//    console.log('Handling Box Timeout for Icon', argThis._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
-//    console.log('Handling Box Timeout for Icon', item);
-    argThis.animationFired = false;
-    argThis._card.requestUpdate();
-  }
+//   async _handleBoundingBoxTimeout(argThis, item) {
+// //    console.log('Handling Box Timeout for Icon', argThis._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
+// //    console.log('Handling Box Timeout for Icon', item);
+//     argThis.animationFired = false;
+//     argThis._card.requestUpdate();
+//   }
 
   /** *****************************************************************************
     * _renderIcon()
@@ -1661,7 +1672,190 @@ import { version } from '../package.json';
     *
     */
 
-    _renderIcon(item) {
+_renderIcon(item, index) {
+  if (!item) return;
+
+  item.entity = item.entity ? item.entity : 0;
+
+  this.iconCache ||= {};
+  this.iconsSvg ||= [];
+  this.pendingIconPath ||= [];
+
+  // const icon = this._buildIcon(
+  //   this.entities[item.entity_index],
+  //   this.config.entities[item.entity_index],
+  // );
+
+  const iconSize = item.icon_size ? item.icon_size : 2;
+  const iconPixels = iconSize * FONT_SIZE;
+
+  const x = item.xpos ? item.xpos / 100 : 0.5;
+  const y = item.ypos ? item.ypos / 100 : 0.5;
+
+  const cx = x * SVG_VIEW_BOX;
+  const cy = y * SVG_VIEW_BOX;
+
+  const align = item.align ? item.align : 'center';
+  const adjust = align === 'center' ? 0.5 : align === 'start' ? -1 : 1;
+
+  let xpx = cx - iconPixels * adjust;
+  let ypx = cy - iconPixels * adjust;
+  let foIconPixels = iconPixels;
+
+  // if ((this.isSafari || this.iOS) && !this.isSafari16) {
+  //   const clientWidth = this.clientWidth || 400;
+  //   const correction = clientWidth / SVG_VIEW_BOX;
+
+  //   foIconPixels = iconPixels * correction;
+  //   xpx = cx * correction - foIconPixels * adjust;
+  //   ypx = cy * correction - foIconPixels * adjust;
+  // }
+
+  let configStyle = this._mergeStyles({}, item);
+
+  let stateStyle = {};
+  if (this.animations.icons[item.animation_id])
+    stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+
+  const stopColor = this._getItemColorFromStops(item);
+  if (stopColor) {
+    configStyle.fill = stopColor;
+  }
+
+  // Merge the two, where the runtime styles may overwrite the statically configured styles
+  configStyle = { ...configStyle, ...stateStyle };
+
+  const configStyleStr = JSON.stringify(configStyle)
+    .slice(1, -1)
+    .replace(/"/g, '')
+    .replace(/,/g, '');
+
+  // ##TODO
+  // nope. moet op animation_id ofzo. niet op index
+  // const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
+  const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+  if (this.iconCache[icon]) {
+    this.iconsSvg[index] = this.iconCache[icon];
+  } else {
+    this.iconsSvg[index] = undefined;
+
+    if (this.pendingIconPath[index] !== icon) {
+      this.pendingIconPath[index] = icon;
+
+      let attempts = 0;
+      const maxAttempts = 40;
+      const delay = 50;
+
+      const readIconPath = () => {
+        if (this.pendingIconPath[index] !== icon) return;
+
+        const iconSvg = this._getRenderedHaIconPath(index);
+
+        if (iconSvg) {
+          this.iconsSvg[index] = iconSvg;
+          this.iconCache[icon] = iconSvg;
+          this.pendingIconPath[index] = undefined;
+
+          this.requestUpdate();
+          return;
+        }
+
+        attempts += 1;
+
+        if (attempts >= maxAttempts) {
+          this.pendingIconPath[index] = undefined;
+          return;
+        }
+
+        window.setTimeout(readIconPath, delay);
+      };
+
+      const afterRender = this._card?.updateComplete
+        && typeof this.updateComplete.then === 'function'
+          ? this.updateComplete
+          : this.updateComplete
+              && typeof this.updateComplete.then === 'function'
+            ? this.updateComplete
+            // eslint-disable-next-line no-promise-executor-return
+            : new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+      afterRender.then(() => {
+        window.setTimeout(readIconPath, 0);
+      });
+    }
+  }
+
+  const iconSvg = this.iconsSvg[index];
+
+  if (iconSvg) {
+    // const x1 = cx - iconPixels * 0.5;
+    // const y1 = cy - iconPixels * 0.5;
+    // const scale = iconPixels / 24;
+
+    const x1 = cx - iconPixels * adjust;
+    const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const scale = iconPixels / 24;
+
+    return svg`
+      <g
+        id="icon-rendered-${this.iconsId[index]}"
+        style="${configStyleStr}"
+        x="${x1}px"
+        y="${y1}px"
+        transform-origin="${cx} ${cy}"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${x1}"
+          y="${y1}"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <path
+          d="${iconSvg}"
+          transform="translate(${x1},${y1}) scale(${scale})"
+        ></path>
+      </g>
+    `;
+  }
+
+  return svg`
+    <foreignObject
+      width="0px"
+      height="0px"
+      x="${xpx}"
+      y="${ypx}"
+      overflow="hidden"
+    >
+      <body>
+        <div
+          xmlns="http://www.w3.org/1999/xhtml"
+          class="div__icon hover"
+          style="
+            line-height: ${foIconPixels}px;
+            position: relative;
+            border-style: solid;
+            border-width: 0px;
+            border-color: rgba(0,0,0,0);
+            fill: rgba(0,0,0,0);
+            color: rgba(0,0,0,0);
+          "
+        >
+          <ha-icon
+            .icon=${icon}
+            id="icon-${this.iconsId[index]}"
+          ></ha-icon>
+        </div>
+      </body>
+    </foreignObject>
+  `;
+}
+
+    _renderIcon2(item, index) {
     if (!item) return;
 //    console.log('rendering icon', this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
 
@@ -1752,6 +1946,12 @@ import { version } from '../package.json';
 //    console.log('icon Name =', icon);
     // if (!this.animationFired) { iconSize = 0; }
 
+    if (this.iconCache[icon]) {
+      this.iconsSvg[index] = this.iconCache[icon];
+    } else {
+      this.iconsSvg[index] = undefined;
+      this._scheduleIconPathRead(icon, index);
+    }
     if (!this.animationFired) {
     return svg`
       <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
@@ -1760,6 +1960,7 @@ import { version } from '../package.json';
             <div class="icon">
               <ha-icon .icon=${icon} style="animation: flash 0.15s 1;line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";
                   @animationend=${(e) => this._handleAnimationEvent(e, this)}
+                  id="icon-${this.iconsId[index]}"
                   >
               </ha-icon>
             </div>
@@ -1784,13 +1985,81 @@ import { version } from '../package.json';
     }
   }
 
-    _handleAnimationEvent(argEvent, argThis) {
-      argEvent.stopPropagation();
-      argEvent.preventDefault();
-      argThis.animationFired = true;
-//      console.log('Handling Animation Event!!!!!');
-      argThis.requestUpdate();
+_getRenderedHaIconPath(index) {
+  const iconElement = this.shadowRoot.getElementById(`icon-${this.iconsId[index]}`);
+
+  return iconElement?.shadowRoot?.querySelector('*')?.path;
+}
+
+  _scheduleIconPathRead(icon, index) {
+    if (!icon) return;
+
+    if (this.iconCache[icon]) {
+      this.iconsSvg[index] = this.iconCache[icon];
+      return;
     }
+
+    if (this.pendingIconPath[index] === icon) {
+      return;
+    }
+
+    this.pendingIconPath[index] = icon;
+
+    let attempts = 0;
+    const maxAttempts = 40;
+    const delay = 50;
+
+    const readIconPath = () => {
+      if (this.pendingIconPath[index] !== icon) {
+        return;
+      }
+
+      if (this.iconCache[icon]) {
+        this.iconsSvg[index] = this.iconCache[icon];
+        this.pendingIconPath[index] = undefined;
+        this._card.requestUpdate();
+        return;
+      }
+
+      const iconSvg = this._getRenderedHaIconPath();
+
+      if (iconSvg) {
+        this.iconsSvg[index] = iconSvg;
+        this.iconCache[icon] = iconSvg;
+        this.pendingIconPath[index] = undefined;
+        this._card.requestUpdate();
+        return;
+      }
+
+      attempts += 1;
+
+      if (attempts >= maxAttempts) {
+        this.pendingIconPath[index] = undefined;
+        return;
+      }
+
+      this._iconPathTimer = window.setTimeout(readIconPath, delay);
+    };
+
+    const afterRender = this._card.updateComplete
+      && typeof this._card.updateComplete.then === 'function'
+      ? this._card.updateComplete
+      : new Promise((resolve) => {
+        window.requestAnimationFrame(resolve);
+      });
+
+    afterRender.then(() => {
+      this._iconPathTimer = window.setTimeout(readIconPath, 0);
+    });
+  }
+
+//     _handleAnimationEvent(argEvent, argThis) {
+//       argEvent.stopPropagation();
+//       argEvent.preventDefault();
+//       argThis.animationFired = true;
+// //      console.log('Handling Animation Event!!!!!');
+//       argThis.requestUpdate();
+//     }
   /** *****************************************************************************
     * _renderIcons()
     *
@@ -1807,8 +2076,8 @@ import { version } from '../package.json';
       if (!layout) return;
       if (!layout.icons) return;
 
-      const svgItems = layout.icons.map((item) => svg`
-            ${this._renderIcon(item)}
+      const svgItems = layout.icons.map((item, index) => svg`
+            ${this._renderIcon(item, index)}
           `);
 
       return svg`${svgItems}`;
