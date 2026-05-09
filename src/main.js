@@ -82,6 +82,7 @@ import { version } from '../package.json';
     this.animations.hlines = {};
     this.animations.circles = {};
     this.animations.icons = {};
+    this.animations.iconsIcon = {};
     this.animations.names = {};
     this.animations.areas = {};
     this.animations.states = {};
@@ -793,26 +794,46 @@ import { version } from '../package.json';
       var value;
       var index = 0;
       var newStateStr;
-      var attrSet = false;
+      var newAttributeStr;
+
       // eslint-disable-next-line no-restricted-syntax
       for (value of this.config.entities) {
-        this.entities[index] = hass.states[this.config.entities[index].entity];
+        const entityConfig = this.config.entities[index];
+        const entity = hass.states[entityConfig.entity];
 
-        // Get attribute state if specified and available
-        if (this.config.entities[index].attribute) {
-          if (this.entities[index].attributes[this.config.entities[index].attribute]) {
-            newStateStr = this._buildState(this.entities[index].attributes[this.config.entities[index].attribute], this.config.entities[index]);
-            if (newStateStr !== this.attributesStr[index]) {
-              this.attributesStr[index] = newStateStr;
-              entityHasChanged = true;
-            }
-            attrSet = true;
-          }
+        if (!entity) {
+          // eslint-disable-next-line no-plusplus
+          index++;
+          // eslint-disable-next-line no-continue
+          continue;
         }
-        if (!attrSet) {
-          newStateStr = this._buildState(this.entities[index].state, this.config.entities[index]);
-          if (newStateStr !== this.entitiesStr[index]) {
-            this.entitiesStr[index] = newStateStr;
+
+        this.entities[index] = entity;
+
+        /**
+         * Check both entity states and entity attributes
+         */
+        newStateStr = this._buildState(entity.state, entityConfig);
+        if (newStateStr !== this.entitiesStr[index]) {
+          this.entitiesStr[index] = newStateStr;
+          entityHasChanged = true;
+        }
+
+        /**
+         * Check attribute if present
+         */
+        if (
+          entityConfig.attribute
+          // eslint-disable-next-line prefer-object-has-own
+          && Object.prototype.hasOwnProperty.call(entity.attributes, entityConfig.attribute)
+        ) {
+          newAttributeStr = this._buildState(
+            entity.attributes[entityConfig.attribute],
+            entityConfig,
+          );
+
+          if (newAttributeStr !== this.attributesStr[index]) {
+            this.attributesStr[index] = newAttributeStr;
             entityHasChanged = true;
           }
         }
@@ -955,10 +976,15 @@ import { version } from '../package.json';
       });
       }
 
+      // Fetch icon too besides the default styles section
       if (item.icons) {
       item.icons.map((item2) => {
-        if (!this.animations.icons[item2.animation_id] || !item2.reuse) this.animations.icons[item2.animation_id] = {};
+        if (!this.animations.icons[item2.animation_id] || !item2.reuse) {
+          this.animations.icons[item2.animation_id] = {};
+          this.animations.iconsIcon[item2.animation_id] = {};
+        }
         this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
+        this.animations.iconsIcon[item2.animation_id] = item2?.icon;
         return true;
       });
       }
@@ -1433,10 +1459,7 @@ import { version } from '../package.json';
     };
 
     // Get configuration styles as the default styles
-
     // Replace with merge function to allow JavaScript templating.
-    // let configStyle = { ...ENTITY_NAME_STYLES };
-    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
     let configStyle = this._mergeStyles(ENTITY_NAME_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
@@ -1492,8 +1515,6 @@ import { version } from '../package.json';
     };
 
     // Get configuration styles as the default styles
-    // let configStyle = { ...AREA_STYLES };
-    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
     let configStyle = this._mergeStyles(AREA_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
@@ -1554,8 +1575,6 @@ import { version } from '../package.json';
     };
 
     // Get configuration styles as the default styles
-    // let configStyle = { ...STATE_STYLES };
-    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
     let configStyle = this._mergeStyles(STATE_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
@@ -1657,13 +1676,6 @@ import { version } from '../package.json';
       return svg`${svgItems}`;
   }
 
-//   async _handleBoundingBoxTimeout(argThis, item) {
-// //    console.log('Handling Box Timeout for Icon', argThis._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
-// //    console.log('Handling Box Timeout for Icon', item);
-//     argThis.animationFired = false;
-//     argThis._card.requestUpdate();
-//   }
-
   /** *****************************************************************************
     * _renderIcon()
     *
@@ -1681,11 +1693,6 @@ _renderIcon(item, index) {
   this.iconsSvg ||= [];
   this.pendingIconPath ||= [];
 
-  // const icon = this._buildIcon(
-  //   this.entities[item.entity_index],
-  //   this.config.entities[item.entity_index],
-  // );
-
   const iconSize = item.icon_size ? item.icon_size : 2;
   const iconPixels = iconSize * FONT_SIZE;
 
@@ -1701,15 +1708,6 @@ _renderIcon(item, index) {
   let xpx = cx - iconPixels * adjust;
   let ypx = cy - iconPixels * adjust;
   let foIconPixels = iconPixels;
-
-  // if ((this.isSafari || this.iOS) && !this.isSafari16) {
-  //   const clientWidth = this.clientWidth || 400;
-  //   const correction = clientWidth / SVG_VIEW_BOX;
-
-  //   foIconPixels = iconPixels * correction;
-  //   xpx = cx * correction - foIconPixels * adjust;
-  //   ypx = cy * correction - foIconPixels * adjust;
-  // }
 
   let configStyle = this._mergeStyles({}, item);
 
@@ -1730,10 +1728,7 @@ _renderIcon(item, index) {
     .replace(/"/g, '')
     .replace(/,/g, '');
 
-  // ##TODO
-  // nope. moet op animation_id ofzo. niet op index
-  // const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
-  const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+  const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
 
   if (this.iconCache[icon]) {
     this.iconsSvg[index] = this.iconCache[icon];
@@ -1789,10 +1784,6 @@ _renderIcon(item, index) {
   const iconSvg = this.iconsSvg[index];
 
   if (iconSvg) {
-    // const x1 = cx - iconPixels * 0.5;
-    // const y1 = cy - iconPixels * 0.5;
-    // const scale = iconPixels / 24;
-
     const x1 = cx - iconPixels * adjust;
     const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
     const scale = iconPixels / 24;
@@ -1854,136 +1845,6 @@ _renderIcon(item, index) {
     </foreignObject>
   `;
 }
-
-    _renderIcon2(item, index) {
-    if (!item) return;
-//    console.log('rendering icon', this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]));
-
-    item.entity = item.entity ? item.entity : 0;
-    if (!this.hasOwnProperty('animationFired')) {
-      this.animationFired = false;
-    }
-    if (!this.hasOwnProperty('hide')) {
-      this.hide = true;
-    }
-    // get icon size, and calculate the foreignObject position and size. This must match the icon size
-    // 1em = FONT_SIZE pixels, so we can calculate the icon size, and x/y positions of the foreignObject
-    // the viewport is 200x200, so we can calulate the offset.
-    //
-    // NOTE:
-    // Safari doesn't use the svg viewport for rendering of the foreignObject, but the real clientsize.
-    // So positioning an icon doesn't work correctly...
-
-    var iconSize = item.icon_size ? item.icon_size : 2;
-    var iconPixels = iconSize * FONT_SIZE;
-    const x = item.xpos ? item.xpos / 100 : 0.5;
-    const y = item.ypos ? item.ypos / 100 : 0.5;
-
-    const align = item.align ? item.align : 'center';
-    const adjust = (align === 'center' ? 0.5 : (align === 'start' ? -1 : +1));
-
-    //  const parentClientWidth = this.parentElement.clientWidth;
-    const clientWidth = this.clientWidth - 20; // hard coded adjust for padding...
-    const correction = clientWidth / SVG_VIEW_BOX;
-    const boundingBox = this.getBoundingClientRect();
-    const clientRects = this.getClientRects();
-//    console.log('boundingbox = ', boundingBox);
-//    console.log('clientRects = ', clientRects[0]);
-    // Do some stuff for Safari (Testing)
-    if ((boundingBox.height / boundingBox.width) < 0.9) {
-//      console.log('boundingBox NOT right', boundingBox.height / boundingBox.width);
-      // setInterval(this._handleBoundingBoxTimeout, 2000, this, item);
-      this.animationFired = false;
-      this.hide = true;
-//      return svg``;
-    } else {
-      this.hide = false;
-    }
-
-    var xpx = (x * SVG_VIEW_BOX);
-    var ypx = (y * SVG_VIEW_BOX);
-//    console.log('x,y=', x, y);
-//    console.log('xpx, ypx =', xpx, ypx);
-//    console.log('clientWidth, correction=', clientWidth, correction);
-
-    if ((this.isSafari) || (this.iOS)) {
-    //    if ((this.isSafari && !this.isSafari18)) {
-      iconSize *= correction;
-
-      xpx = (xpx * correction) - (iconPixels * adjust * correction);
-      ypx = (ypx * correction) - (iconPixels * 0.5 * correction) - (iconPixels * 0.25 * correction);// - (iconPixels * 0.25 / 1.86);
-//      console.log('xpx, ypx NEW=', xpx, ypx);
-    } else {
-      // Get x,y in viewbox dimensions and center with half of size of icon.
-      // Adjust horizontal for aligning. Can be 1, 0.5 and -1
-      // Adjust vertical for half of height... and correct for 0.25em textfont to align.
-      xpx -= (iconPixels * adjust);
-      ypx = ypx - (iconPixels * 0.5) - (iconPixels * 0.25);
-    }
-
-    // Get configuration styles as the default styles
-    // let configStyle = {};
-    // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-    let configStyle = this._mergeStyles({}, item);
-
-    let stateStyle = {};
-    if (this.animations.icons[item.animation_id])
-      stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.fill = stopColor;
-    }
-
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle };
-
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
- //   console.log('configStyleStr =', configStyleStr);
-
-    const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-//    console.log('icon Name =', icon);
-    // if (!this.animationFired) { iconSize = 0; }
-
-    if (this.iconCache[icon]) {
-      this.iconsSvg[index] = this.iconCache[icon];
-    } else {
-      this.iconsSvg[index] = undefined;
-      this._scheduleIconPathRead(icon, index);
-    }
-    if (!this.animationFired) {
-    return svg`
-      <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-        <foreignObject width="0" height="0" x="${xpx}" y="${ypx}" visibility="${this.hide ? 'hidden' : 'visible'}">
-          <body>
-            <div class="icon">
-              <ha-icon .icon=${icon} style="animation: flash 0.15s 1;line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";
-                  @animationend=${(e) => this._handleAnimationEvent(e, this)}
-                  id="icon-${this.iconsId[index]}"
-                  >
-              </ha-icon>
-            </div>
-          </body>
-        </foreignObject>
-        </g>
-        `;
-    } else {
-      return svg`
-      <g @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-        <foreignObject width="${iconSize}em" height="${iconSize}em" x="${xpx}" y="${ypx}">
-          <body>
-            <div class="icon">
-              <ha-icon .icon=${icon} style="line-height:${iconSize}em;--mdc-icon-size:${iconSize}em;width:100%; height:100%;align-self:center;${configStyleStr}";
-                  >
-              </ha-icon>
-            </div>
-          </body>
-        </foreignObject>
-        </g>
-        `;
-    }
-  }
 
 _getRenderedHaIconPath(index) {
   const iconElement = this.shadowRoot.getElementById(`icon-${this.iconsId[index]}`);
@@ -2053,13 +1914,6 @@ _getRenderedHaIconPath(index) {
     });
   }
 
-//     _handleAnimationEvent(argEvent, argThis) {
-//       argEvent.stopPropagation();
-//       argEvent.preventDefault();
-//       argThis.animationFired = true;
-// //      console.log('Handling Animation Event!!!!!');
-//       argThis.requestUpdate();
-//     }
   /** *****************************************************************************
     * _renderIcons()
     *
@@ -2096,21 +1950,18 @@ _getRenderedHaIconPath(index) {
     layout,
     } = this.config;
 
-      if (!layout) return;
-      if (!layout.hlines) return;
+    if (!layout) return;
+    if (!layout.hlines) return;
 
-      // compute some styling elements if configured for this state item
-      const HLINES_STYLES = {
-        'stroke-linecap': 'round;',
-        stroke: 'var(--primary-text-color);',
-        opacity: '1.0;',
-        'stroke-width': '2;',
-      };
+    // compute some styling elements if configured for this state item
+    const HLINES_STYLES = {
+      'stroke-linecap': 'round;',
+      stroke: 'var(--primary-text-color);',
+      opacity: '1.0;',
+      'stroke-width': '2;',
+    };
 
-      const svgItems = layout.hlines.map((item) => {
-    // Get configuration styles as the default styles
-    // let configStyle = { ...HLINES_STYLES };
-    // configStyle = Object.assign(configStyle, ...item.styles);
+    const svgItems = layout.hlines.map((item) => {
     let configStyle = this._mergeStyles(HLINES_STYLES, item);
 
     // Get the runtime styles, caused by states & animation settings
@@ -2153,17 +2004,17 @@ _getRenderedHaIconPath(index) {
     layout,
     } = this.config;
 
-      if (!layout) return;
-      if (!layout.vlines) return;
+    if (!layout) return;
+    if (!layout.vlines) return;
 
-      const VLINES_STYLES = {
-        'stroke-linecap': 'round;',
-        stroke: 'var(--primary-text-color);',
-        opacity: '1.0;',
-        'stroke-width': '2;',
-      };
+    const VLINES_STYLES = {
+      'stroke-linecap': 'round;',
+      stroke: 'var(--primary-text-color);',
+      opacity: '1.0;',
+      'stroke-width': '2;',
+    };
 
-      const svgItems = layout.vlines.map((item) => {
+    const svgItems = layout.vlines.map((item) => {
     // Get configuration styles as the default styles
     // let configStyle = { ...VLINES_STYLES };
     // configStyle = Object.assign(configStyle, ...item.styles);
@@ -2209,10 +2060,10 @@ _getRenderedHaIconPath(index) {
     layout,
     } = this.config;
 
-      if (!layout) return;
-      if (!layout.circles) return;
+    if (!layout) return;
+    if (!layout.circles) return;
 
-      const svgItems = layout.circles.map((item) => {
+    const svgItems = layout.circles.map((item) => {
     // Get configuration styles as the default styles
     // let configStyle = {};
     // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
@@ -2236,13 +2087,13 @@ _getRenderedHaIconPath(index) {
 
     item.entity_index = item.entity_index ? item.entity_index : 0;
 
-        return svg`
-          <circle class="svg__dot" @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-          cx="${item.xpos}%" cy="${item.ypos}%" r="${item.radius}"
-          style="${configStyleStr}"/>          
-          `;
-      });
-      return svg`${svgItems}`;
+    return svg`
+        <circle class="svg__dot" @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+        cx="${item.xpos}%" cy="${item.ypos}%" r="${item.radius}"
+        style="${configStyleStr}"/>          
+        `;
+    });
+    return svg`${svgItems}`;
   }
 
   /** *****************************************************************************
@@ -2292,8 +2143,8 @@ _getRenderedHaIconPath(index) {
     * Handles the first part of mouse click processing.
     * It stops propagation to the parent and processes the event.
     *
-  * The action can be configured per entity. Look-up the entity, and handle the click
-  * event for further processing.
+    * The action can be configured per entity. Look-up the entity, and handle the click
+    * event for further processing.
     *
     * Credits:
     *  Almost all credits to the mini-graph-card for this function.
@@ -2346,9 +2197,10 @@ _getRenderedHaIconPath(index) {
     * Builds the Icon specification name.
     *
     */
-  _buildIcon(entityState, entityConfig) {
+  _buildIcon(entityState, entityConfig, entityAnimation) {
     return (
-    entityConfig.icon
+    entityAnimation
+    || entityConfig.icon
     || entityState.attributes.icon
     );
   }
@@ -2421,8 +2273,7 @@ _getRenderedHaIconPath(index) {
 
   _calculateStrokeColor(state, stops, gradient) {
     const sortedStops = Object.keys(stops).map((n) => Number(n)).sort((a, b) => a - b);
-    let start; let end; let
-val;
+    let start; let end; let val;
     const l = sortedStops.length;
     if (state <= sortedStops[0]) {
     return stops[sortedStops[0]];
