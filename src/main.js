@@ -21,7 +21,10 @@
 import {
     LitElement, html, css, svg,
 } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
 import { version } from '../package.json';
+import ConfigHelper from './config-helper.js';
+import Templates from './templates.js';
 
   console.info(
     `%c FLEX-HORSESHOE-CARD %c Version ${version} `,
@@ -1498,7 +1501,65 @@ import { version } from '../package.json';
     *
     */
 
-  _renderEntityAreas() {
+    _renderEntityAreas() {
+    const { layout } = this.config;
+
+    if (!layout?.areas) return svg``;
+
+    const AREA_STYLES = {
+      'font-size': '1em',
+      color: 'var(--primary-text-color)',
+      opacity: '1.0',
+      'text-anchor': 'middle',
+    };
+
+    const svgItems = layout.areas.map((item) => {
+      const entityIndex = item.entity_index ?? 0;
+
+      const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+      const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+      const configStyle = {
+        ...AREA_STYLES,
+        ...itemStyleDict,
+      };
+
+      const animationStyle = this.animations?.areas?.[item.animation_id] ?? {};
+
+      const stateStyle = {
+        ...animationStyle,
+      };
+
+      const stopColor = this._getItemColorFromStops(item);
+      if (stopColor) {
+        stateStyle.stroke = stopColor;
+      }
+
+      const styles = {
+        ...configStyle,
+        ...stateStyle,
+      };
+
+      const area = this._buildArea(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+      return svg`
+        <text
+          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+          class="entity__area">
+            <tspan
+              class="entity__area"
+              x="${item.xpos}%"
+              y="${item.ypos}%"
+              style=${styleMap(styles)}>
+              ${area}</tspan>
+        </text>
+      `;
+      });
+
+    return svg`${svgItems}`;
+  }
+
+  _renderEntityAreasV1() {
     const {
     layout,
     } = this.config;
@@ -1946,6 +2007,61 @@ _getRenderedHaIconPath(index) {
     */
 
   _renderHorizontalLines() {
+  const { layout } = this.config;
+
+  if (!layout?.hlines) return svg``;
+
+  const HLINES_STYLES = {
+    'stroke-linecap': 'round',
+    stroke: 'var(--primary-text-color)',
+    opacity: '1.0',
+    'stroke-width': '2',
+  };
+
+  const svgItems = layout.hlines.map((item) => {
+    const entityIndex = item.entity_index ?? 0;
+
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    const configStyle = {
+      ...HLINES_STYLES,
+      ...itemStyleDict,
+    };
+
+    const animationStyle = this.animations?.hlines?.[item.animation_id] ?? {};
+
+    const stateStyle = {
+      ...animationStyle,
+    };
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.stroke = stopColor;
+    }
+
+    const styles = {
+      ...configStyle,
+      ...stateStyle,
+    };
+
+    return svg`
+      <line
+        @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+        class="line__horizontal"
+        x1="${item.xpos - item.length / 2}%"
+        y1="${item.ypos}%"
+        x2="${item.xpos + item.length / 2}%"
+        y2="${item.ypos}%" 
+        style=${styleMap(styles)}
+      ></line>
+    `;
+  });
+
+  return svg`${svgItems}`;
+}
+
+  _renderHorizontalLinesV1() {
     const {
     layout,
     } = this.config;
@@ -2000,6 +2116,61 @@ _getRenderedHaIconPath(index) {
     */
 
   _renderVerticalLines() {
+  const { layout } = this.config;
+
+  if (!layout?.vlines) return svg``;
+
+  const VLINES_STYLES = {
+    'stroke-linecap': 'round',
+    stroke: 'var(--primary-text-color)',
+    opacity: '1.0',
+    'stroke-width': '2',
+  };
+
+  const svgItems = layout.vlines.map((item) => {
+    const entityIndex = item.entity_index ?? 0;
+
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    const configStyle = {
+      ...VLINES_STYLES,
+      ...itemStyleDict,
+    };
+
+    const animationStyle = this.animations?.vlines?.[item.animation_id] ?? {};
+
+    const stateStyle = {
+      ...animationStyle,
+    };
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.stroke = stopColor;
+    }
+
+    const styles = {
+      ...configStyle,
+      ...stateStyle,
+    };
+
+    return svg`
+      <line
+        @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+        class="line__vertical"
+        x1="${item.xpos}%"
+        y1="${item.ypos - item.length / 2}%"
+        x2="${item.xpos}%"
+        y2="${item.ypos + item.length / 2}%"
+        style=${styleMap(styles)}
+      ></line>
+    `;
+  });
+
+  return svg`${svgItems}`;
+}
+
+  _renderVerticalLinesV1() {
     const {
     layout,
     } = this.config;
@@ -2056,6 +2227,56 @@ _getRenderedHaIconPath(index) {
     */
 
   _renderCircles() {
+  const { layout } = this.config;
+
+  if (!layout?.circles) return svg``;
+
+  const CIRCLES_STYLES = {
+  };
+
+  const svgItems = layout.circles.map((item) => {
+    const entityIndex = item.entity_index ?? 0;
+
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    const configStyle = {
+      ...CIRCLES_STYLES,
+      ...itemStyleDict,
+    };
+
+    const animationStyle = this.animations?.circles?.[item.animation_id] ?? {};
+
+    const stateStyle = {
+      ...animationStyle,
+    };
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.stroke = stopColor;
+    }
+
+    const styles = {
+      ...configStyle,
+      ...stateStyle,
+    };
+
+    return svg`
+      <circle
+        @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+        class="svg__dot"
+        cx="${item.xpos}%"
+        cy="${item.ypos}%"
+        r="${item.radius}"
+        style=${styleMap(styles)}
+      ></circle>
+    `;
+  });
+
+  return svg`${svgItems}`;
+}
+
+  _renderCirclesV1() {
     const {
     layout,
     } = this.config;
