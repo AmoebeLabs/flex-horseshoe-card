@@ -3,11 +3,65 @@
 export default class Templates {
   static context = {};
 
-  static setContext(context = {}) {
-    Templates.context = context;
+  // static setContext(context = {}) {
+  //   Templates.context = context;
+  // }
+
+  static getJsTemplateOrValue(item, value, options = {}) {
+    const {
+      resolveKeys = true,
+    } = options;
+
+    if (value === undefined || value === null) return value;
+
+    if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry) => (
+        Templates.getJsTemplateOrValue(item, entry, options)
+      ));
+    }
+
+    if (Templates.isPlainObject(value)) {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entryValue]) => {
+          const resolvedKey = resolveKeys
+            ? Templates.getJsTemplateOrValue(item, key, options)
+            : key;
+
+          const resolvedValue = Templates.getJsTemplateOrValue(
+            item,
+            entryValue,
+            options,
+          );
+
+          return [
+            String(resolvedKey),
+            resolvedValue,
+          ];
+        }),
+      );
+    }
+
+    if (typeof value !== 'string') return value;
+
+    const trimmedValue = value.trim();
+
+    if (Templates.isJsTemplate(trimmedValue)) {
+      const evaluatedValue = Templates.evaluateJsTemplate(
+        item,
+        Templates.extractJsTemplateCode(trimmedValue),
+      );
+
+      return Templates.getJsTemplateOrValue(item, evaluatedValue, options);
+    }
+
+    return value;
   }
 
-  static getJsTemplateOrValue(item, value) {
+  static getJsTemplateOrValueV1(item, value) {
     // Keep undefined and null unchanged.
     if (value === undefined || value === null) return value;
 

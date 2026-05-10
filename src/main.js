@@ -194,7 +194,65 @@ import Templates from './templates.js';
           isSafariGte16: this.isSafariGte16,
         });
       }
-    }
+
+    console.log('style test 1', ConfigHelper.toStyleDict([
+      { 'font-size': '2.8em;' },
+      { 'text-anchor': 'start;' },
+      { opacity: '0.7;' },
+    ]));
+
+    console.log('style test 2', ConfigHelper.toStyleDict([
+      'font-size: 2.8em;',
+      'text-anchor: start;',
+      'opacity: 0.7;',
+    ]));
+
+    console.log('style test 3', ConfigHelper.toStyleDict([
+      'font-size: 2.8em',
+      'text-anchor: start',
+      'opacity: 0.7',
+    ]));
+
+    console.log('style test 4', ConfigHelper.toStyleDict({
+      'font-size': '2.8em;',
+      'text-anchor': 'start;',
+      opacity: '0.7;',
+    }));
+
+    console.log('style test 5', ConfigHelper.toStyleDict({
+      'font-size': '2.8em',
+      'text-anchor': 'start',
+      opacity: 0.7,
+    }));
+
+    console.log('style test 6', ConfigHelper.toStyleDict(
+      'font-size: 2.8em; text-anchor: start; opacity: 0.7;',
+    ));
+
+    console.log('style test 7', ConfigHelper.toStyleDict([
+        `[[[
+          return { 'font-size': '2.8em' };
+        ]]]`,
+        'text-anchor: start;',
+        'opacity: 0.7;',
+    ]));
+
+    const rawStyles = [
+      `[[[
+        return { 'font-size': '2.8em' };
+      ]]]`,
+      'text-anchor: start;',
+      'opacity: 0.7;',
+    ];
+    const item = {
+      entity_index: 0,
+    };
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    console.log('style test 8 - resolvedStyles', resolvedStyles);
+    console.log('style test 8 - itemStyleDict', itemStyleDict);
+  }
   }
 
    /** *****************************************************************************
@@ -1444,7 +1502,65 @@ import Templates from './templates.js';
     *
     */
 
-  _renderEntityNames() {
+    _renderEntityNames() {
+    const { layout } = this.config;
+
+    if (!layout?.names) return svg``;
+
+    const ENTITY_NAME_STYLES = {
+      'font-size': '1em',
+      color: 'var(--primary-text-color)',
+      opacity: '1.0',
+      'text-anchor': 'middle',
+    };
+
+    const svgItems = layout.names.map((item) => {
+      const entityIndex = item.entity_index ?? 0;
+
+      const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+      const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+      const configStyle = {
+        ...ENTITY_NAME_STYLES,
+        ...itemStyleDict,
+      };
+
+      const animationStyle = this.animations?.names?.[item.animation_id] ?? {};
+
+      const stateStyle = {
+        ...animationStyle,
+      };
+
+      const stopColor = this._getItemColorFromStops(item);
+      if (stopColor) {
+        stateStyle.stroke = stopColor;
+      }
+
+      const styles = {
+        ...configStyle,
+        ...stateStyle,
+      };
+
+      const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+
+      return svg`
+        <text
+          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+          class="entity__name">
+            <tspan
+              class="entity__name"
+              x="${item.xpos}%"
+              y="${item.ypos}%"
+              style=${styleMap(styles)}>
+              ${name}</tspan>
+        </text>
+      `;
+      });
+
+    return svg`${svgItems}`;
+  }
+
+  _renderEntityNamesV1() {
     const {
     layout,
     } = this.config;
@@ -1524,7 +1640,7 @@ import Templates from './templates.js';
         ...itemStyleDict,
       };
 
-      const animationStyle = this.animations?.areas?.[item.animation_id] ?? {};
+      const animationStyle = ConfigHelper.toStyleDict(this.animations?.areas?.[item.animation_id] ?? {});
 
       const stateStyle = {
         ...animationStyle,
@@ -1939,7 +2055,7 @@ _getRenderedHaIconPath(index) {
       if (this.iconCache[icon]) {
         this.iconsSvg[index] = this.iconCache[icon];
         this.pendingIconPath[index] = undefined;
-        this._card.requestUpdate();
+        this.requestUpdate();
         return;
       }
 
@@ -1949,7 +2065,7 @@ _getRenderedHaIconPath(index) {
         this.iconsSvg[index] = iconSvg;
         this.iconCache[icon] = iconSvg;
         this.pendingIconPath[index] = undefined;
-        this._card.requestUpdate();
+        this.requestUpdate();
         return;
       }
 
@@ -1963,9 +2079,9 @@ _getRenderedHaIconPath(index) {
       this._iconPathTimer = window.setTimeout(readIconPath, delay);
     };
 
-    const afterRender = this._card.updateComplete
-      && typeof this._card.updateComplete.then === 'function'
-      ? this._card.updateComplete
+    const afterRender = this.updateComplete
+      && typeof this.updateComplete.then === 'function'
+      ? this.updateComplete
       : new Promise((resolve) => {
         window.requestAnimationFrame(resolve);
       });
@@ -2029,7 +2145,7 @@ _getRenderedHaIconPath(index) {
       ...itemStyleDict,
     };
 
-    const animationStyle = this.animations?.hlines?.[item.animation_id] ?? {};
+    const animationStyle = ConfigHelper.toStyleDict(this.animations?.hlines?.[item.animation_id] ?? {});
 
     const stateStyle = {
       ...animationStyle,
@@ -2138,7 +2254,7 @@ _getRenderedHaIconPath(index) {
       ...itemStyleDict,
     };
 
-    const animationStyle = this.animations?.vlines?.[item.animation_id] ?? {};
+    const animationStyle = ConfigHelper.toStyleDict(this.animations?.vlines?.[item.animation_id] ?? {});
 
     const stateStyle = {
       ...animationStyle,
@@ -2245,7 +2361,7 @@ _getRenderedHaIconPath(index) {
       ...itemStyleDict,
     };
 
-    const animationStyle = this.animations?.circles?.[item.animation_id] ?? {};
+    const animationStyle = ConfigHelper.toStyleDict(this.animations?.circles?.[item.animation_id] ?? {});
 
     const stateStyle = {
       ...animationStyle,

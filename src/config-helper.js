@@ -2,7 +2,7 @@ export default class ConfigHelper {
   static toStyleDict(value) {
     return ConfigHelper.toDict(value, {
       stringToDict: ConfigHelper.cssStringToDict,
-      mapValue: String,
+      mapValue: ConfigHelper.toStyleValue,
     });
   }
 
@@ -64,6 +64,14 @@ export default class ConfigHelper {
     return convert(value);
   }
 
+  static toStyleValue(value) {
+  if (value === undefined || value === null) return value;
+
+  return String(value)
+    .trim()
+    .replace(/;+$/, '');
+  }
+
   static cssStringToDict(cssText) {
     return String(cssText)
       .split(';')
@@ -84,6 +92,29 @@ export default class ConfigHelper {
           [property]: value,
         };
       }, {});
+  }
+
+  static toColorStopDict(value) {
+    return ConfigHelper.toDict(value, {
+      stringToDict: ConfigHelper.keyValueStringToDict,
+      mapValue: String,
+    });
+  }
+
+  static keyValueStringToDict(value) {
+    const text = String(value).trim();
+    const colonIndex = text.indexOf(':');
+
+    if (colonIndex <= 0) return {};
+
+    const key = text.slice(0, colonIndex).trim();
+    const dictValue = text.slice(colonIndex + 1).trim();
+
+    if (!key || !dictValue) return {};
+
+    return {
+      [key]: dictValue,
+    };
   }
 
   static classStringToDict(classText) {
