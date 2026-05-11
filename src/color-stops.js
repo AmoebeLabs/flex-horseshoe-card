@@ -1,4 +1,54 @@
 // color-stops.js
+//
+// color_stops:
+//   0: var(--theme-gradient-color-01)
+//   10: var(--theme-gradient-color-02)
+
+// colorstops:
+//   colors:
+//     0: '#49ce4b'
+//     600: '#fed125'
+
+// colorstops:
+//   scales:
+//     default:
+//       min: 0
+//       max: 5000
+//   colors:
+//     - value: 0
+//       color: '#49ce4b'
+//       rank: 1
+//     - value: 600
+//       color: '#fed125'
+//       rank: 1
+
+// Using templates in color stops is fully supported.
+// color_stops:
+//   "[[[ return states['input_number.low'].state; ]]]": |
+//     [[[
+//       return states['input_boolean.warning'].state === 'on'
+//         ? 'red'
+//         : 'green';
+//     ]]]
+
+// colorstops:
+//   scales:
+//     default:
+//       min: |
+//         [[[
+//           return Number(states['input_number.scale_min'].state);
+//         ]]]
+//       max: |
+//         [[[
+//           return Number(states['input_number.scale_max'].state);
+//         ]]]
+//   colors:
+//     - value: |
+//         [[[
+//           return Number(states['input_number.low'].state);
+//         ]]]
+//       color: '#49ce4b'
+//       rank: 1
 
 export default class ColorStops {
   static normalize(value) {
