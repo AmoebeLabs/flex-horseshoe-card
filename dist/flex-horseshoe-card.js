@@ -31,568 +31,518 @@ const ht=1;let ct=class{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */const dt="important",pt=" !"+dt,mt=(t=>(...e)=>({_$litDirective$:t,values:e}))(class extends ct{constructor(t){if(super(t),t.type!==ht||"style"!==t.name||t.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(t){return Object.keys(t).reduce(((e,s)=>{const i=t[s];return null==i?e:e+`${s=s.includes("-")?s:s.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,"-$&").toLowerCase()}:${i};`}),"")}update(t,[e]){const{style:s}=t.element;if(void 0===this.ft)return this.ft=new Set(Object.keys(e)),this.render(e);for(const i of this.ft)null==e[i]&&(this.ft.delete(i),i.includes("-")?s.removeProperty(i):s[i]=null);for(const i in e){const t=e[i];if(null!=t){this.ft.add(i);const e="string"==typeof t&&t.endsWith(pt);i.includes("-")||e?s.setProperty(i,e?t.slice(0,-11):t,e?dt:""):s[i]=t}}return B}});class ut{static toStyleDict(t){return ut.toDict(t,{stringToDict:ut.cssStringToDict,mapValue:ut.toStyleValue})}static toClassDict(t){return ut.toDict(t,{stringToDict:ut.classStringToDict,mapValue:Boolean})}static toIconDict(t){return ut.toDict(t,{stringToDict:ut.stringToDefaultDict("default"),mapValue:String})}static toDict(t,e={}){const{stringToDict:s=ut.stringToDefaultDict("default"),mapValue:i=(t=>t),skipNull:r=!0,skipFalse:o=!0}=e,n=t=>null==t&&r||!1===t&&o?{}:Array.isArray(t)?t.reduce(((t,e)=>({...t,...n(e)})),{}):ut.isPlainObject(t)?Object.fromEntries(Object.entries(t).filter((([,t])=>(null!=t||!r)&&(!1!==t||!o))).map((([t,e])=>[t,i(e,t)]))):"string"==typeof t?s(t):{};return n(t)}static toStyleValue(t){return null==t?t:String(t).trim().replace(/;+$/,"")}static cssStringToDict(t){return String(t).split(";").map((t=>t.trim())).filter(Boolean).reduce(((t,e)=>{const s=e.indexOf(":");if(s<=0)return t;const i=e.slice(0,s).trim(),r=e.slice(s+1).trim();return i&&r?{...t,[i]:r}:t}),{})}static toColorStopDict(t){return ut.toDict(t,{stringToDict:ut.keyValueStringToDict,mapValue:String})}static keyValueStringToDict(t){const e=String(t).trim(),s=e.indexOf(":");if(s<=0)return{};const i=e.slice(0,s).trim(),r=e.slice(s+1).trim();return i&&r?{[i]:r}:{}}static classStringToDict(t){return String(t).trim().split(/\s+/).filter(Boolean).reduce(((t,e)=>({...t,[e]:!0})),{})}static stringToDefaultDict(t="default"){return e=>({[t]:String(e)})}static requireArray(t,e="value"){if(null==t)return[];if(!Array.isArray(t))throw new Error(`[config-helper] "${e}" must be an array.`);return t}static ensureArray(t){return null==t?[]:Array.isArray(t)?t:[t]}static isPlainObject(t){return null!==t&&"object"==typeof t&&!Array.isArray(t)}}class ft{static context={};static getJsTemplateOrValue(t,e,s={}){const{resolveKeys:i=!0}=s;if(null==e)return e;if(["number","boolean","bigint","symbol"].includes(typeof e))return e;if(Array.isArray(e))return e.map((e=>ft.getJsTemplateOrValue(t,e,s)));if(ft.isPlainObject(e))return Object.fromEntries(Object.entries(e).map((([e,r])=>{const o=i?ft.getJsTemplateOrValue(t,e,s):e,n=ft.getJsTemplateOrValue(t,r,s);return[String(o),n]})));if("string"!=typeof e)return e;const r=e.trim();if(ft.isJsTemplate(r)){const e=ft.evaluateJsTemplate(t,ft.extractJsTemplateCode(r));return ft.getJsTemplateOrValue(t,e,s)}return e}static getJsTemplateOrValueV1(t,e){if(null==e)return e;if(["number","boolean","bigint","symbol"].includes(typeof e))return e;if(Array.isArray(e))return e.map((e=>ft.getJsTemplateOrValue(t,e)));if(ft.isPlainObject(e))return Object.fromEntries(Object.entries(e).map((([e,s])=>[e,ft.getJsTemplateOrValue(t,s)])));if("string"!=typeof e)return e;const s=e.trim();if(ft.isJsTemplate(s)){const e=ft.extractJsTemplateCode(s),i=ft.evaluateJsTemplate(t,e);return ft.getJsTemplateOrValue(t,i)}return e}static isJsTemplate(t){return"string"==typeof t&&t.trim().startsWith("[[[")&&t.trim().endsWith("]]]")}static extractJsTemplateCode(t){return String(t).trim().slice(3,-3).trim()}static evaluateJsTemplate(t,e){const{hass:s,config:i,entities:r=[]}=ft.context,o=t?.entity_index??0,n=r?.[o],a=s?.states,l=s?.user;try{return new Function("hass","config","entity","entities","states","item","user",`\n          "use strict";\n          ${e}\n        `)(s,i,n,r,a,t,l)}catch(h){return void(i?.dev?.debug&&console.error("[templates] JavaScript template error:",{error:h,item:t,javascript:e}))}}static isPlainObject(t){return null!==t&&"object"==typeof t&&!Array.isArray(t)}}console.info("%c FLEX-HORSESHOE-CARD %c Version 5.4.3-dev.3 ","color: white; font-weight: bold; background: darkgreen","color: darkgreen; font-weight: bold; background: white");const _t=200,gt=520/360*Math.PI*90,yt=2*Math.PI*90,$t={horseshoe:!0,scale_tickmarks:!1,horseshoe_style:"fixed"},xt={min:0,max:100,width:6,color:"var(--primary-background-color)"},bt={width:12,color:"var(--primary-color)"},wt={action:"more-info"};class vt extends at{constructor(){if(super(),this.cardId=Math.random().toString(36).substr(2,9),this.entities=[],this.entitiesStr=[],this.attributesStr=[],this.viewBoxSize=_t,this.colorStops={},this.animations={},this.animations.vlines={},this.animations.hlines={},this.animations.circles={},this.animations.icons={},this.animations.iconsIcon={},this.animations.names={},this.animations.areas={},this.animations.states={},this.colorCache={},this.isAndroid=!1,this.isSafari=!1,this.iOS=!1,this.iconCache={},this.iconsSvg=[],this.pendingIconPath=[],this.iconsId=[],this.bar_mode="normal",this.dev={debug:!1},this.isAndroid=!!window.navigator.userAgent.match(/Android/),!this.isAndroid){const t=window.navigator.userAgent||"",e=t.toLowerCase(),s=window.navigator.platform||"",i=(/iPad|iPhone|iPod/.test(t)||"MacIntel"===s&&window.navigator.maxTouchPoints>1)&&!window.MSStream,r=t.match(/Version\/(\d+)(?:\.[\d.]+)?.*Safari/i),o=r?Number(r[1]):void 0,n=e.match(/\bos\s+(\d+)(?:[._]\d+)*.*like safari/),a=e.match(/\bios\s+(\d+)(?:[._]\d+)*/),l=a?Number(a[1]):n?Number(n[1]):void 0,h=Number.isFinite(o),c=Number.isFinite(l)&&e.includes("like safari"),d=h?o:c?l:void 0;this.iOS=i,this.isSafari=Number.isFinite(d),this.safariMajorVersion=d,this.isHomeAssistantLikeSafari=c,this.isRealSafari=h,this.isSafari14=this.isSafari&&14===d,this.isSafari15=this.isSafari&&15===d,this.isSafari16=this.isSafari&&16===d,this.isSafari17=this.isSafari&&17===d,this.isSafari18=this.isSafari&&18===d,this.isSafari26=this.isSafari&&26===d,this.isSafari27=this.isSafari&&27===d,this.isSafari28=this.isSafari&&28===d,this.isSafari29=this.isSafari&&29===d,this.isSafari30=this.isSafari&&30===d,this.isSafariGte16=this.isSafari&&d>=16,this.dev?.debug&&console.log("browser detection",{ua:t,isAndroid:this.isAndroid,isIOS:this.iOS,isSafari:this.isSafari,isRealSafari:this.isRealSafari,isHomeAssistantLikeSafari:this.isHomeAssistantLikeSafari,safariMajorVersion:this.safariMajorVersion,isSafariGte16:this.isSafariGte16}),console.log("style test 1",ut.toStyleDict([{"font-size":"2.8em;"},{"text-anchor":"start;"},{opacity:"0.7;"}])),console.log("style test 2",ut.toStyleDict(["font-size: 2.8em;","text-anchor: start;","opacity: 0.7;"])),console.log("style test 3",ut.toStyleDict(["font-size: 2.8em","text-anchor: start","opacity: 0.7"])),console.log("style test 4",ut.toStyleDict({"font-size":"2.8em;","text-anchor":"start;",opacity:"0.7;"})),console.log("style test 5",ut.toStyleDict({"font-size":"2.8em","text-anchor":"start",opacity:.7})),console.log("style test 6",ut.toStyleDict("font-size: 2.8em; text-anchor: start; opacity: 0.7;")),console.log("style test 7",ut.toStyleDict(["[[[\n          return { 'font-size': '2.8em' };\n        ]]]","text-anchor: start;","opacity: 0.7;"]));const p=["[[[\n        return { 'font-size': '2.8em' };\n      ]]]","text-anchor: start;","opacity: 0.7;"],m={entity_index:0},u=ft.getJsTemplateOrValue(m,p),f=ut.toStyleDict(u);console.log("style test 8 - resolvedStyles",u),console.log("style test 8 - itemStyleDict",f)}}static get styles(){return o`
-        :host {
-          cursor: pointer;
+      :host {
+        cursor: pointer;
+      }
+
+      @media (print), (prefers-reduced-motion: reduce) {
+        .animated {
+          animation-duration: 1ms !important;
+          transition-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
         }
-  
-        @media (print), (prefers-reduced-motion: reduce) {
-          .animated {
-            animation-duration: 1ms !important;
-            transition-duration: 1ms !important;
-            animation-iteration-count: 1 !important; 
-          }
-        }      
-  
-        @keyframes zoomOut {
-          from {
-            opacity: 1;
-          }
-  
-          50% {
-            opacity: 0;
-            transform: scale3d(0.3, 0.3, 0.3);
-          }
-  
-          to {
-            opacity: 0;
-          }
+      }
+
+      @keyframes zoomOut {
+        from {
+          opacity: 1;
         }
-  
-        @keyframes bounce {
-          from,
-          20%,
-          53%,
-          80%,
-          to {
+
+        50% {
+          opacity: 0;
+          transform: scale3d(0.3, 0.3, 0.3);
+        }
+
+        to {
+          opacity: 0;
+        }
+      }
+
+      @keyframes bounce {
+        from,
+        20%,
+        53%,
+        80%,
+        to {
           animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
           transform: translate3d(0, 0, 0);
-          }
-  
-          40%,
-          43% {
+        }
+
+        40%,
+        43% {
           animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
           transform: translate3d(0, -30px, 0);
-          }
-  
-          70% {
+        }
+
+        70% {
           animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
           transform: translate3d(0, -15px, 0);
-          }
-  
-          90% {
+        }
+
+        90% {
           transform: translate3d(0, -4px, 0);
-          }
         }
-  
-        @keyframes flash {
-          from,
-          50%,
-          to {
+      }
+
+      @keyframes flash {
+        from,
+        50%,
+        to {
           opacity: 1;
-          }
-  
-          25%,
-          75% {
+        }
+
+        25%,
+        75% {
           opacity: 0;
-          }
         }
-  
-        @keyframes headShake {
-          0% {
+      }
+
+      @keyframes headShake {
+        0% {
           transform: translateX(0);
-          }
-  
-          6.5% {
+        }
+
+        6.5% {
           transform: translateX(-6px) rotateY(-9deg);
-          }
-  
-          18.5% {
+        }
+
+        18.5% {
           transform: translateX(5px) rotateY(7deg);
-          }
-  
-          31.5% {
+        }
+
+        31.5% {
           transform: translateX(-3px) rotateY(-5deg);
-          }
-  
-          43.5% {
+        }
+
+        43.5% {
           transform: translateX(2px) rotateY(3deg);
-          }
-  
-          50% {
+        }
+
+        50% {
           transform: translateX(0);
-          }
         }
-  
-        @keyframes heartBeat {
-          0% {
+      }
+
+      @keyframes heartBeat {
+        0% {
           transform: scale(1);
-          }
-  
-          14% {
-          transform: scale(1.3);
-          }
-  
-          28% {
-          transform: scale(1);
-          }
-  
-          42% {
-          transform: scale(1.3);
-          }
-  
-          70% {
-          transform: scale(1);
-          }
         }
-  
-        @keyframes jello {
-          from,
-          11.1%,
-          to {
+
+        14% {
+          transform: scale(1.3);
+        }
+
+        28% {
+          transform: scale(1);
+        }
+
+        42% {
+          transform: scale(1.3);
+        }
+
+        70% {
+          transform: scale(1);
+        }
+      }
+
+      @keyframes jello {
+        from,
+        11.1%,
+        to {
           transform: translate3d(0, 0, 0);
-          }
-  
-          22.2% {
+        }
+
+        22.2% {
           transform: skewX(-12.5deg) skewY(-12.5deg);
-          }
-  
-          33.3% {
+        }
+
+        33.3% {
           transform: skewX(6.25deg) skewY(6.25deg);
-          }
-  
-          44.4% {
+        }
+
+        44.4% {
           transform: skewX(-3.125deg) skewY(-3.125deg);
-          }
-  
-          55.5% {
+        }
+
+        55.5% {
           transform: skewX(1.5625deg) skewY(1.5625deg);
-          }
-  
-          66.6% {
+        }
+
+        66.6% {
           transform: skewX(-0.78125deg) skewY(-0.78125deg);
-          }
-  
-          77.7% {
+        }
+
+        77.7% {
           transform: skewX(0.390625deg) skewY(0.390625deg);
-          }
-  
-          88.8% {
+        }
+
+        88.8% {
           transform: skewX(-0.1953125deg) skewY(-0.1953125deg);
-          }
         }
-  
-        @keyframes pulse {
-          from {
+      }
+
+      @keyframes pulse {
+        from {
           transform: scale3d(1, 1, 1);
-          }
-  
-          50% {
+        }
+
+        50% {
           transform: scale3d(1.05, 1.05, 1.05);
-          }
-  
-          to {
-          transform: scale3d(1, 1, 1);
-          }
         }
-  
-        @keyframes rubberBand {
-          from {
+
+        to {
           transform: scale3d(1, 1, 1);
-          }
-  
-          30% {
+        }
+      }
+
+      @keyframes rubberBand {
+        from {
+          transform: scale3d(1, 1, 1);
+        }
+
+        30% {
           transform: scale3d(1.25, 0.75, 1);
-          }
-  
-          40% {
+        }
+
+        40% {
           transform: scale3d(0.75, 1.25, 1);
-          }
-  
-          50% {
+        }
+
+        50% {
           transform: scale3d(1.15, 0.85, 1);
-          }
-  
-          65% {
+        }
+
+        65% {
           transform: scale3d(0.95, 1.05, 1);
-          }
-  
-          75% {
+        }
+
+        75% {
           transform: scale3d(1.05, 0.95, 1);
-          }
-  
-          to {
-          transform: scale3d(1, 1, 1);
-          }
         }
-  
-        @keyframes shake {
-          from,
-          to {
+
+        to {
+          transform: scale3d(1, 1, 1);
+        }
+      }
+
+      @keyframes shake {
+        from,
+        to {
           transform: translate3d(0, 0, 0);
-          }
-  
-          10%,
-          30%,
-          50%,
-          70%,
-          90% {
+        }
+
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
           transform: translate3d(-10px, 0, 0);
-          }
-  
-          20%,
-          40%,
-          60%,
-          80% {
+        }
+
+        20%,
+        40%,
+        60%,
+        80% {
           transform: translate3d(10px, 0, 0);
-          }
         }
-  
-        @keyframes swing {
-          20% {
+      }
+
+      @keyframes swing {
+        20% {
           transform: rotate3d(0, 0, 1, 15deg);
-          }
-  
-          40% {
+        }
+
+        40% {
           transform: rotate3d(0, 0, 1, -10deg);
-          }
-  
-          60% {
+        }
+
+        60% {
           transform: rotate3d(0, 0, 1, 5deg);
-          }
-  
-          80% {
+        }
+
+        80% {
           transform: rotate3d(0, 0, 1, -5deg);
-          }
-  
-          to {
+        }
+
+        to {
           transform: rotate3d(0, 0, 1, 0deg);
-          }
         }
-  
-        @keyframes tada {
-          from {
+      }
+
+      @keyframes tada {
+        from {
           transform: scale3d(1, 1, 1);
-          }
-          10%,
-          20% {
+        }
+        10%,
+        20% {
           transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg);
-          }
-          30%,
-          50%,
-          70%,
-          90% {
+        }
+        30%,
+        50%,
+        70%,
+        90% {
           transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg);
-          }
-          40%,
-          60%,
-          80% {
+        }
+        40%,
+        60%,
+        80% {
           transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg);
-          }
-          to {
+        }
+        to {
           transform: scale3d(1, 1, 1);
-          }
         }
-  
-  
-        @keyframes wobble {
-          from {
+      }
+
+      @keyframes wobble {
+        from {
           transform: translate3d(0, 0, 0);
-          }
-          15% {
+        }
+        15% {
           transform: translate3d(-25%, 0, 0) rotate3d(0, 0, 1, -5deg);
-          }
-          30% {
+        }
+        30% {
           transform: translate3d(20%, 0, 0) rotate3d(0, 0, 1, 3deg);
-          }
-          45% {
+        }
+        45% {
           transform: translate3d(-15%, 0, 0) rotate3d(0, 0, 1, -3deg);
-          }
-          60% {
+        }
+        60% {
           transform: translate3d(10%, 0, 0) rotate3d(0, 0, 1, 2deg);
-          }
-          75% {
+        }
+        75% {
           transform: translate3d(-5%, 0, 0) rotate3d(0, 0, 1, -1deg);
-          }
-          to {
+        }
+        to {
           transform: translate3d(0, 0, 0);
-          }
         }
-  
-  
-        @media screen and (min-width: 467px) {
+      }
+
+      @media screen and (min-width: 467px) {
         :host {
           font-size: 12px;
         }
-        }
-        @media screen and (max-width: 466px) {
+      }
+      @media screen and (max-width: 466px) {
         :host {
           font-size: 12px;
         }
-        }
-  
+      }
+
       :host ha-card {
         padding: 10px 10px 0px 10px;
       }
-      
-        .container {
-          position: relative;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-  
-        .labelContainer {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 65%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-end;
-        }
-  
-      .ellipsis {
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          overflow: hidden;
-    }          
-  
-      .state {
-          position: relative;
-          display: flex;
-          flex-wrap: wrap;
-          max-width: 100%;
-          min-width: 0px;
+
+      .container {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
       }
-      
-        #label {
-          display: flex;
-          line-height: 1;
-        }
-        
-        #label.bold {
-          font-weight: bold;
-        }
-        
-        #label, #name {
-          margin: 3% 0;
-        }
-  
-        .text {
-          font-size: 100%;
-        }
-      
+
+      .labelContainer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 65%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .ellipsis {
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .state {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 100%;
+        min-width: 0px;
+      }
+
+      #label {
+        display: flex;
+        line-height: 1;
+      }
+
+      #label.bold {
+        font-weight: bold;
+      }
+
+      #label,
+      #name {
+        margin: 3% 0;
+      }
+
+      .text {
+        font-size: 100%;
+      }
+
       #name {
         font-size: 80%;
         font-weight: 300;
       }
-      
-        .unit {
-          font-size: 65%;
-          font-weight: normal;
-          opacity: 0.6;
-          line-height: 2em;
-          vertical-align: bottom;
-          margin-left: 0.25rem;
-    }
-      
-      .entity__area {
-          position: absolute;
-          top: 70%;
-          font-size: 120%;
-          opacity: 0.6;
-          display: flex;
-          line-height: 1;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 20%;
-          flex-direction: column;
+
+      .unit {
+        font-size: 65%;
+        font-weight: normal;
+        opacity: 0.6;
+        line-height: 2em;
+        vertical-align: bottom;
+        margin-left: 0.25rem;
       }
-  
-        .nam {
-          alignment-baseline: central;
-          fill: var(--primary-text-color);
-        }
-        
-        .state__uom {
-          font-size: 20px;
-          opacity: 0.7;
-          margin: 0;
-          fill : var(--primary-text-color);
-        }
-  
-        .state__value {
-          font-size: 3em;
-          opacity: 1;
-          fill : var(--primary-text-color);
-          text-anchor: middle;
-        }
-        .entity__name {
-          text-anchor: middle;
-          overflow: hidden;
-          opacity: 0.8;
-          fill : var(--primary-text-color);
-          font-size: 1.5em;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-        }
-  
-        .entity__area {
-          font-size: 12px;
-          opacity: 0.7;
-          overflow: hidden;
-          fill : var(--primary-text-color);
-          text-anchor: middle;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-        }
-  
-        .shadow {
-          font-size: 30px;
-          font-weight: 700;
-          text-anchor: middle;
-        }
-  
-        .card--dropshadow-5 {
-          filter:  drop-shadow(0 1px 0 #ccc)
-         drop-shadow(0 2px 0 #c9c9c9)
-         drop-shadow(0 3px 0 #bbb)
-         drop-shadow(0 4px 0 #b9b9b9)
-         drop-shadow(0 5px 0 #aaa)
-         drop-shadow(0 6px 1px rgba(0,0,0,.1))
-         drop-shadow(0 0 5px rgba(0,0,0,.1))
-         drop-shadow(0 1px 3px rgba(0,0,0,.3))
-         drop-shadow(0 3px 5px rgba(0,0,0,.2))
-         drop-shadow(0 5px 10px rgba(0,0,0,.25))
-         drop-shadow(0 10px 10px rgba(0,0,0,.2))
-         drop-shadow(0 20px 20px rgba(0,0,0,.15));
-        }
-        .card--dropshadow-medium--opaque--sepia90 {
-          filter: drop-shadow(0.0em 0.05em 0px #b2a98f22)
-                  drop-shadow(0.0em 0.07em 0px #b2a98f55)
-                  drop-shadow(0.0em 0.10em 0px #b2a98f88)
-                  drop-shadow(0px 0.6em 0.9em rgba(0,0,0,0.15))
-                  drop-shadow(0px 1.2em 0.15em rgba(0,0,0,0.1))
-                  drop-shadow(0px 2.4em 2.5em rgba(0,0,0,0.1))
-                  sepia(90%);
-        }
-  
-        .card--dropshadow-heavy--sepia90 {
-          filter: drop-shadow(0.0em 0.05em 0px #b2a98f22)
-                  drop-shadow(0.0em 0.07em 0px #b2a98f55)
-                  drop-shadow(0.0em 0.10em 0px #b2a98f88)
-                  drop-shadow(0px 0.3em 0.45em rgba(0,0,0,0.5))
-                  drop-shadow(0px 0.6em 0.07em rgba(0,0,0,0.3))
-                  drop-shadow(0px 1.2em 1.25em rgba(0,0,0,1))
-                  drop-shadow(0px 1.8em 1.6em rgba(0,0,0,0.1))
-                  drop-shadow(0px 2.4em 2.0em rgba(0,0,0,0.1))
-                  drop-shadow(0px 3.0em 2.5em rgba(0,0,0,0.1))
-                  sepia(90%);
-        }
-  
-        .card--dropshadow-heavy {
-          filter: drop-shadow(0.0em 0.05em 0px #b2a98f22)
-                  drop-shadow(0.0em 0.07em 0px #b2a98f55)
-                  drop-shadow(0.0em 0.10em 0px #b2a98f88)
-                  drop-shadow(0px 0.3em 0.45em rgba(0,0,0,0.5))
-                  drop-shadow(0px 0.6em 0.07em rgba(0,0,0,0.3))
-                  drop-shadow(0px 1.2em 1.25em rgba(0,0,0,1))
-                  drop-shadow(0px 1.8em 1.6em rgba(0,0,0,0.1))
-                  drop-shadow(0px 2.4em 2.0em rgba(0,0,0,0.1))
-                  drop-shadow(0px 3.0em 2.5em rgba(0,0,0,0.1));
-        }
-  
-        .card--dropshadow-medium--sepia90 {
-          filter: drop-shadow(0.0em 0.05em 0px #b2a98f)
-                  drop-shadow(0.0em 0.15em 0px #b2a98f)
-                  drop-shadow(0.0em 0.15em 0px #b2a98f)
-                  drop-shadow(0px 0.6em 0.9em rgba(0,0,0,0.15))
-                  drop-shadow(0px 1.2em 0.15em rgba(0,0,0,0.1))
-                  drop-shadow(0px 2.4em 2.5em rgba(0,0,0,0.1))
-                  sepia(90%);
-        }
-  
-        .card--dropshadow-medium {
-          filter: drop-shadow(0.0em 0.05em 0px #b2a98f)
-                  drop-shadow(0.0em 0.15em 0px #b2a98f)
-                  drop-shadow(0.0em 0.15em 0px #b2a98f)
-                  drop-shadow(0px 0.6em 0.9em rgba(0,0,0,0.15))
-                  drop-shadow(0px 1.2em 0.15em rgba(0,0,0,0.1))
-                  drop-shadow(0px 2.4em 2.5em rgba(0,0,0,0.1));
-        }
-  
-        .card--dropshadow-light--sepia90 {
-          filter: drop-shadow(0px 0.10em 0px #b2a98f)
-                  drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, .5))
-                  sepia(90%);
-        }
-  
-        .card--dropshadow-light {
-          filter: drop-shadow(0px 0.10em 0px #b2a98f)
-                  drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, .5));
-        }
-  
-        .card--dropshadow-down-and-distant {
-          filter: drop-shadow(0px 0.05em 0px #b2a98f)
-                  drop-shadow(0px 14px 10px rgba(0,0,0,0.15))
-                  drop-shadow(0px 24px 2px rgba(0,0,0,0.1))
-                  drop-shadow(0px 34px 30px rgba(0,0,0,0.1));
-        }
-        .card--filter-none {
-        }
-  
-        .horseshoe__svg__group {
-          /*
+
+      .entity__area {
+        position: absolute;
+        top: 70%;
+        font-size: 120%;
+        opacity: 0.6;
+        display: flex;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 20%;
+        flex-direction: column;
+      }
+
+      .nam {
+        alignment-baseline: central;
+        fill: var(--primary-text-color);
+      }
+
+      .state__uom {
+        font-size: 20px;
+        opacity: 0.7;
+        margin: 0;
+        fill: var(--primary-text-color);
+      }
+
+      .state__value {
+        font-size: 3em;
+        opacity: 1;
+        fill: var(--primary-text-color);
+        text-anchor: middle;
+      }
+      .entity__name {
+        text-anchor: middle;
+        overflow: hidden;
+        opacity: 0.8;
+        fill: var(--primary-text-color);
+        font-size: 1.5em;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .entity__area {
+        font-size: 12px;
+        opacity: 0.7;
+        overflow: hidden;
+        fill: var(--primary-text-color);
+        text-anchor: middle;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .shadow {
+        font-size: 30px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+
+      .card--dropshadow-5 {
+        filter: drop-shadow(0 1px 0 #ccc) drop-shadow(0 2px 0 #c9c9c9) drop-shadow(0 3px 0 #bbb) drop-shadow(0 4px 0 #b9b9b9) drop-shadow(0 5px 0 #aaa) drop-shadow(0 6px 1px rgba(0, 0, 0, 0.1))
+          drop-shadow(0 0 5px rgba(0, 0, 0, 0.1)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.2)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.25))
+          drop-shadow(0 10px 10px rgba(0, 0, 0, 0.2)) drop-shadow(0 20px 20px rgba(0, 0, 0, 0.15));
+      }
+      .card--dropshadow-medium--opaque--sepia90 {
+        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
+          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
+      }
+
+      .card--dropshadow-heavy--sepia90 {
+        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.3em 0.45em rgba(0, 0, 0, 0.5))
+          drop-shadow(0px 0.6em 0.07em rgba(0, 0, 0, 0.3)) drop-shadow(0px 1.2em 1.25em rgba(0, 0, 0, 1)) drop-shadow(0px 1.8em 1.6em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2em rgba(0, 0, 0, 0.1))
+          drop-shadow(0px 3em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
+      }
+
+      .card--dropshadow-heavy {
+        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.3em 0.45em rgba(0, 0, 0, 0.5))
+          drop-shadow(0px 0.6em 0.07em rgba(0, 0, 0, 0.3)) drop-shadow(0px 1.2em 1.25em rgba(0, 0, 0, 1)) drop-shadow(0px 1.8em 1.6em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2em rgba(0, 0, 0, 0.1))
+          drop-shadow(0px 3em 2.5em rgba(0, 0, 0, 0.1));
+      }
+
+      .card--dropshadow-medium--sepia90 {
+        filter: drop-shadow(0em 0.05em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
+          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
+      }
+
+      .card--dropshadow-medium {
+        filter: drop-shadow(0em 0.05em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
+          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1));
+      }
+
+      .card--dropshadow-light--sepia90 {
+        filter: drop-shadow(0px 0.1em 0px #b2a98f) drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, 0.5)) sepia(90%);
+      }
+
+      .card--dropshadow-light {
+        filter: drop-shadow(0px 0.1em 0px #b2a98f) drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, 0.5));
+      }
+
+      .card--dropshadow-down-and-distant {
+        filter: drop-shadow(0px 0.05em 0px #b2a98f) drop-shadow(0px 14px 10px rgba(0, 0, 0, 0.15)) drop-shadow(0px 24px 2px rgba(0, 0, 0, 0.1)) drop-shadow(0px 34px 30px rgba(0, 0, 0, 0.1));
+      }
+      .card--filter-none {
+      }
+
+      .horseshoe__svg__group {
+        /*
           * Was transform: translateY(15%).
           * After fixing SVG viewBox/namespace parsing, this offset became visible
           * and moved the horseshoe down.
           * A nice 6 year old bug ;-)
           */
-        }
-        
-        .line__horizontal {
-          stroke: var(--primary-text-color);
-          opacity: 0.3;
-          stroke-width: 2;
-        }
-  
-        .line__vertical {
-          stroke: var(--primary-text-color);
-          opacity: 0.3;
-          stroke-width: 2;
-        }
-        
-        .svg__dot {
-          fill: var(--primary-text-color);
-          opacity: 0.5;
-          align-self: center;
-          transform-origin: 50% 50%;
-        }
-        
-        .icon {
-          align: center;
-        }
-        
-      `}set hass(t){this._hass=t;var e,s,i,r=!1,o=0;for(e of this.config.entities){const e=this.config.entities[o],n=t.states[e.entity];n?(this.entities[o]=n,(s=this._buildState(n.state,e))!==this.entitiesStr[o]&&(this.entitiesStr[o]=s,r=!0),e.attribute&&Object.prototype.hasOwnProperty.call(n.attributes,e.attribute)&&(i=this._buildState(n.attributes[e.attribute],e))!==this.attributesStr[o]&&(this.attributesStr[o]=i,r=!0),o++):o++}if(!r)return;var n=this.entities[0].state;this.config.entities[0].attribute&&this.entities[0].attributes[this.config.entities[0].attribute]&&(n=this.entities[0].attributes[this.config.entities[0].attribute]);const a=this.config.horseshoe_scale.min||0,l=this.config.horseshoe_scale.max||100;if("bidirectional"===(this.config.bar_mode||"normal")){const t=gt;let e=Number(n),s=0,i=0;e>=0?(s=Math.min(this._calculateValueBetween(0,l,e),1)*(t/2),this.dashArray=`${s} ${yt-s}`,this._bidirectional_negative=!1):(i=(1-Math.min(this._calculateValueBetween(a,0,e),1))*(t/2),this.dashArray=`${i} ${yt-i}`,this.dashOffset=-(""+(yt-i)),this._bidirectional_negative=!0)}else{const t=Math.min(this._calculateValueBetween(a,l,n),1)*gt,e=900;this.dashArray=`${t} ${e}`,this._bidirectional_negative=!1}const h=Math.min(this._calculateValueBetween(a,l,n),1),c=this.config.show.horseshoe_style;if("fixed"===c)this.stroke_color=this.config.horseshoe_state.color,this.color0=this.config.horseshoe_state.color,this.color1=this.config.horseshoe_state.color,this.color1_offset="0%";else if("autominmax"===c){const t=this._calculateStrokeColor(n,this.colorStopsMinMax,!0);this.color0=t,this.color1=t,this.color1_offset="0%"}else if("colorstop"===c||"colorstopgradient"===c){const t=this._calculateStrokeColor(n,this.colorStops,"colorstopgradient"===c);this.color0=t,this.color1=t,this.color1_offset="0%"}else if("lineargradient"===c){const t={x1:"0%",y1:"0%",x2:"100%",y2:"0%"};this.color1_offset=`${Math.round(100*(1-h))}%`,this.angleCoords=t}this.config.animations&&Object.keys(this.config.animations).map((t=>{const e=t.substr(Number(t.indexOf(".")+1));return this.config.animations[t].map((t=>{if(this.entities[e].state.toLowerCase()===t.state.toLowerCase())return t.vlines&&t.vlines.map((t=>(this.animations.vlines[t.animation_id]&&t.reuse||(this.animations.vlines[t.animation_id]={}),this.animations.vlines[t.animation_id]=Object.assign(this.animations.vlines[t.animation_id],...t.styles),!0))),t.hlines&&t.hlines.map((t=>(this.animations.hlines[t.animation_id]&&t.reuse||(this.animations.hlines[t.animation_id]={}),this.animations.hlines[t.animation_id]=Object.assign(this.animations.hlines[t.animation_id],...t.styles),!0))),t.circles&&t.circles.map((t=>(this.animations.circles[t.animation_id]&&t.reuse||(this.animations.circles[t.animation_id]={}),this.animations.circles[t.animation_id]=Object.assign(this.animations.circles[t.animation_id],...t.styles),!0))),t.icons&&t.icons.map((t=>(this.animations.icons[t.animation_id]&&t.reuse||(this.animations.icons[t.animation_id]={},this.animations.iconsIcon[t.animation_id]={}),this.animations.icons[t.animation_id]=Object.assign(this.animations.icons[t.animation_id],...t.styles),this.animations.iconsIcon[t.animation_id]=t?.icon,!0))),t.states&&t.states.map((t=>(this.animations.states[t.animation_id]&&t.reuse||(this.animations.states[t.animation_id]={}),this.animations.states[t.animation_id]=Object.assign(this.animations.states[t.animation_id],...t.styles),!0))),!0})),!0})),this.requestUpdate()}_prepareItemColorStops(t){["states","names","areas","circles","hlines","vlines","icons"].forEach((e=>{const s=t.layout?.[e];Array.isArray(s)&&s.forEach((t=>{t.color_stops&&(t._colorStops=t.color_stops)}))}))}setConfig(t){if(!(t=JSON.parse(JSON.stringify(t))).entities)throw Error("No entities defined");if(!t.layout)throw Error("No layout defined");if(!t.horseshoe_scale)throw Error("No horseshoe scale defined");if(!t.horseshoe_scale.min&&0===!t.horseshoe_scale.min||!t.horseshoe_scale.max)throw Error("No horseshoe min/max for scale defined");if(!t.color_stops||t.color_stops.length<2)throw Error("No color_stops defined or not at least two colorstops");if(t.entities){if("sensor"!==this._computeDomain(t.entities[0].entity)&&t.entities[0].attribute&&!isNaN(t.entities[0].attribute))throw Error("First entity or attribute must be a numbered sensorvalue, but is NOT")}const e={texts:[],card_filter:"card--filter-none",bar_mode:t.bar_mode||"normal",...t,show:{...$t,...t.show},horseshoe_scale:{...xt,...t.horseshoe_scale},horseshoe_state:{...bt,...t.horseshoe_state}};for(var s of e.entities)s.tap_action||(s.tap_action={...wt});let i={};e.color_stops&&Object.keys(e.color_stops).forEach((t=>{i[t]=e.color_stops[t]}));const r=Object.keys(i).map((t=>Number(t))).sort(((t,e)=>t-e));this.colorStops=i,this.sortedStops=r;let o={};o[e.horseshoe_scale.min]=i[r[0]],o[e.horseshoe_scale.max]=i[r[r.length-1]],this.colorStopsMinMax=o,this.color0=i[r[0]],this.color1=i[r[r.length-1]];this.angleCoords={x1:"0%",y1:"0%",x2:"100%",y2:"0%"},this.color1_offset="0%",this._prepareItemColorStops(e),this.config=e,this.bar_mode=e.bar_mode||"normal",this.config.layout?.icons&&this.config.layout.icons.forEach(((t,e)=>{this.iconsId[e]=Math.random().toString(36).substr(2,9)}))}_getItemEntityIndex(t={}){const e=Number(t.entity_index);return Number.isFinite(e)?e:0}_getItemStateValue(t={}){const e=t.entity_index??0,s=this.entities?.[e],i=this.config?.entities?.[e];if(!s)return;const r=i?.attribute;return r&&s.attributes&&void 0!==s.attributes[r]?s.attributes[r]:s.state}_getItemColorFromStops(t={}){if(!t._colorStops)return;const e=this._getItemStateValue(t),s=Number(e);return Number.isFinite(s)?this._calculateStrokeColor(s,t._colorStops,!0===t.colorstop_gradient):void 0}connectedCallback(){super.connectedCallback()}disconnectedCallback(){super.disconnectedCallback()}render({config:t}=this){const e=this._mergeStyles({},{styles:this.config?.styles}),s=this._buildStyleString([e]);return J`
-    <ha-card
-      @click=${t=>this.handlePopup(t,this.entities[0])}
-      style="${s}"
-    >
-          <div class="container" id="container">
-            ${this._renderSvg()}
-          </div>
-  
+      }
+
+      .line__horizontal {
+        stroke: var(--primary-text-color);
+        opacity: 0.3;
+        stroke-width: 2;
+      }
+
+      .line__vertical {
+        stroke: var(--primary-text-color);
+        opacity: 0.3;
+        stroke-width: 2;
+      }
+
+      .svg__dot {
+        fill: var(--primary-text-color);
+        opacity: 0.5;
+        align-self: center;
+        transform-origin: 50% 50%;
+      }
+
+      .icon {
+        align: center;
+      }
+    `}set hass(t){this._hass=t;var e,s,i,r=!1,o=0;for(e of this.config.entities){const e=this.config.entities[o],n=t.states[e.entity];n?(this.entities[o]=n,(s=this._buildState(n.state,e))!==this.entitiesStr[o]&&(this.entitiesStr[o]=s,r=!0),e.attribute&&Object.prototype.hasOwnProperty.call(n.attributes,e.attribute)&&(i=this._buildState(n.attributes[e.attribute],e))!==this.attributesStr[o]&&(this.attributesStr[o]=i,r=!0),o++):o++}if(!r)return;var n=this.entities[0].state;this.config.entities[0].attribute&&this.entities[0].attributes[this.config.entities[0].attribute]&&(n=this.entities[0].attributes[this.config.entities[0].attribute]);const a=this.config.horseshoe_scale.min||0,l=this.config.horseshoe_scale.max||100;if("bidirectional"===(this.config.bar_mode||"normal")){const t=gt;let e=Number(n),s=0,i=0;e>=0?(s=Math.min(this._calculateValueBetween(0,l,e),1)*(t/2),this.dashArray=`${s} ${yt-s}`,this._bidirectional_negative=!1):(i=(1-Math.min(this._calculateValueBetween(a,0,e),1))*(t/2),this.dashArray=`${i} ${yt-i}`,this.dashOffset=-(""+(yt-i)),this._bidirectional_negative=!0)}else{const t=Math.min(this._calculateValueBetween(a,l,n),1)*gt,e=900;this.dashArray=`${t} ${e}`,this._bidirectional_negative=!1}const h=Math.min(this._calculateValueBetween(a,l,n),1),c=this.config.show.horseshoe_style;if("fixed"===c)this.stroke_color=this.config.horseshoe_state.color,this.color0=this.config.horseshoe_state.color,this.color1=this.config.horseshoe_state.color,this.color1_offset="0%";else if("autominmax"===c){const t=this._calculateStrokeColor(n,this.colorStopsMinMax,!0);this.color0=t,this.color1=t,this.color1_offset="0%"}else if("colorstop"===c||"colorstopgradient"===c){const t=this._calculateStrokeColor(n,this.colorStops,"colorstopgradient"===c);this.color0=t,this.color1=t,this.color1_offset="0%"}else if("lineargradient"===c){const t={x1:"0%",y1:"0%",x2:"100%",y2:"0%"};this.color1_offset=`${Math.round(100*(1-h))}%`,this.angleCoords=t}this.config.animations&&Object.keys(this.config.animations).map((t=>{const e=t.substr(Number(t.indexOf(".")+1));return this.config.animations[t].map((t=>{if(this.entities[e].state.toLowerCase()===t.state.toLowerCase())return t.vlines&&t.vlines.map((t=>(this.animations.vlines[t.animation_id]&&t.reuse||(this.animations.vlines[t.animation_id]={}),this.animations.vlines[t.animation_id]=Object.assign(this.animations.vlines[t.animation_id],...t.styles),!0))),t.hlines&&t.hlines.map((t=>(this.animations.hlines[t.animation_id]&&t.reuse||(this.animations.hlines[t.animation_id]={}),this.animations.hlines[t.animation_id]=Object.assign(this.animations.hlines[t.animation_id],...t.styles),!0))),t.circles&&t.circles.map((t=>(this.animations.circles[t.animation_id]&&t.reuse||(this.animations.circles[t.animation_id]={}),this.animations.circles[t.animation_id]=Object.assign(this.animations.circles[t.animation_id],...t.styles),!0))),t.icons&&t.icons.map((t=>(this.animations.icons[t.animation_id]&&t.reuse||(this.animations.icons[t.animation_id]={},this.animations.iconsIcon[t.animation_id]={}),this.animations.icons[t.animation_id]=Object.assign(this.animations.icons[t.animation_id],...t.styles),this.animations.iconsIcon[t.animation_id]=t?.icon,!0))),t.states&&t.states.map((t=>(this.animations.states[t.animation_id]&&t.reuse||(this.animations.states[t.animation_id]={}),this.animations.states[t.animation_id]=Object.assign(this.animations.states[t.animation_id],...t.styles),!0))),!0})),!0})),this.requestUpdate()}_prepareItemColorStops(t){["states","names","areas","circles","hlines","vlines","icons"].forEach((e=>{const s=t.layout?.[e];Array.isArray(s)&&s.forEach((t=>{t.color_stops&&(t._colorStops=t.color_stops)}))}))}setConfig(t){if(!(t=JSON.parse(JSON.stringify(t))).entities)throw Error("No entities defined");if(!t.layout)throw Error("No layout defined");if(!t.horseshoe_scale)throw Error("No horseshoe scale defined");if(!t.horseshoe_scale.min&&0===!t.horseshoe_scale.min||!t.horseshoe_scale.max)throw Error("No horseshoe min/max for scale defined");if(!t.color_stops||t.color_stops.length<2)throw Error("No color_stops defined or not at least two colorstops");if(t.entities){if("sensor"!==this._computeDomain(t.entities[0].entity)&&t.entities[0].attribute&&!isNaN(t.entities[0].attribute))throw Error("First entity or attribute must be a numbered sensorvalue, but is NOT")}const e={texts:[],card_filter:"card--filter-none",bar_mode:t.bar_mode||"normal",...t,show:{...$t,...t.show},horseshoe_scale:{...xt,...t.horseshoe_scale},horseshoe_state:{...bt,...t.horseshoe_state}};for(var s of e.entities)s.tap_action||(s.tap_action={...wt});let i={};e.color_stops&&Object.keys(e.color_stops).forEach((t=>{i[t]=e.color_stops[t]}));const r=Object.keys(i).map((t=>Number(t))).sort(((t,e)=>t-e));this.colorStops=i,this.sortedStops=r;let o={};o[e.horseshoe_scale.min]=i[r[0]],o[e.horseshoe_scale.max]=i[r[r.length-1]],this.colorStopsMinMax=o,this.color0=i[r[0]],this.color1=i[r[r.length-1]];this.angleCoords={x1:"0%",y1:"0%",x2:"100%",y2:"0%"},this.color1_offset="0%",this._prepareItemColorStops(e),this.config=e,this.bar_mode=e.bar_mode||"normal",this.config.layout?.icons&&this.config.layout.icons.forEach(((t,e)=>{this.iconsId[e]=Math.random().toString(36).substr(2,9)}))}_getItemEntityIndex(t={}){const e=Number(t.entity_index);return Number.isFinite(e)?e:0}_getItemStateValue(t={}){const e=t.entity_index??0,s=this.entities?.[e],i=this.config?.entities?.[e];if(!s)return;const r=i?.attribute;return r&&s.attributes&&void 0!==s.attributes[r]?s.attributes[r]:s.state}_getItemColorFromStops(t={}){if(!t._colorStops)return;const e=this._getItemStateValue(t),s=Number(e);return Number.isFinite(s)?this._calculateStrokeColor(s,t._colorStops,!0===t.colorstop_gradient):void 0}connectedCallback(){super.connectedCallback()}disconnectedCallback(){super.disconnectedCallback()}render({config:t}=this){const e=this._mergeStyles({},{styles:this.config?.styles}),s=this._buildStyleString([e]);return J`
+      <ha-card @click=${t=>this.handlePopup(t,this.entities[0])} style="${s}">
+        <div class="container" id="container">${this._renderSvg()}</div>
+
         <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}"
-           x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
+          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
             <stop offset="${this.color1_offset}" stop-color="${this.color1}" />
             <stop offset="100%" stop-color="${this.color0}" />
           </linearGradient>
         </svg>
-    </ha-card>
+      </ha-card>
     `}_buildStyleString(t){return t?Object.entries(Object.assign({},...t)).map((([t,e])=>`${t}: ${e}`)).join(" "):""}_renderTickMarks(){const{config:t}=this;if(!t)return;if(!t.show)return;if(!t.show.scale_tickmarks)return;const e=t.horseshoe_scale.color?t.horseshoe_scale.color:"var(--primary-background-color)",s=t.horseshoe_scale.ticksize?t.horseshoe_scale.ticksize:(t.horseshoe_scale.max-t.horseshoe_scale.min)/10,i=t.horseshoe_scale.min%s,r=t.horseshoe_scale.min+(0===i?0:s-i),o=(r-t.horseshoe_scale.min)/(t.horseshoe_scale.max-t.horseshoe_scale.min)*260;var n=(t.horseshoe_scale.max-r)/s,a=Math.floor(n);const l=(260-o)/n;Math.floor(a*s+r)<=t.horseshoe_scale.max&&a++;const h=t.horseshoe_scale.width?t.horseshoe_scale.width/2:3;var c,d,p=[];for(d=0;d<a;d++)c=o+(360-d*l-230)*Math.PI/180,p[d]=L`
           <circle cx="${100-86*Math.sin(c)}"
                   cy="${100-86*Math.cos(c)}" r="${h}"

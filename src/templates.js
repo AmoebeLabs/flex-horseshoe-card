@@ -8,9 +8,7 @@ export default class Templates {
   // }
 
   static getJsTemplateOrValue(item, value, options = {}) {
-    const {
-      resolveKeys = true,
-    } = options;
+    const { resolveKeys = true } = options;
 
     if (value === undefined || value === null) return value;
 
@@ -19,28 +17,17 @@ export default class Templates {
     }
 
     if (Array.isArray(value)) {
-      return value.map((entry) => (
-        Templates.getJsTemplateOrValue(item, entry, options)
-      ));
+      return value.map((entry) => Templates.getJsTemplateOrValue(item, entry, options));
     }
 
     if (Templates.isPlainObject(value)) {
       return Object.fromEntries(
         Object.entries(value).map(([key, entryValue]) => {
-          const resolvedKey = resolveKeys
-            ? Templates.getJsTemplateOrValue(item, key, options)
-            : key;
+          const resolvedKey = resolveKeys ? Templates.getJsTemplateOrValue(item, key, options) : key;
 
-          const resolvedValue = Templates.getJsTemplateOrValue(
-            item,
-            entryValue,
-            options,
-          );
+          const resolvedValue = Templates.getJsTemplateOrValue(item, entryValue, options);
 
-          return [
-            String(resolvedKey),
-            resolvedValue,
-          ];
+          return [String(resolvedKey), resolvedValue];
         }),
       );
     }
@@ -50,10 +37,7 @@ export default class Templates {
     const trimmedValue = value.trim();
 
     if (Templates.isJsTemplate(trimmedValue)) {
-      const evaluatedValue = Templates.evaluateJsTemplate(
-        item,
-        Templates.extractJsTemplateCode(trimmedValue),
-      );
+      const evaluatedValue = Templates.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
 
       return Templates.getJsTemplateOrValue(item, evaluatedValue, options);
     }
@@ -78,12 +62,7 @@ export default class Templates {
 
     // Resolve every value in an object without mutating the original config.
     if (Templates.isPlainObject(value)) {
-      return Object.fromEntries(
-        Object.entries(value).map(([key, entryValue]) => [
-          key,
-          Templates.getJsTemplateOrValue(item, entryValue),
-        ]),
-      );
+      return Object.fromEntries(Object.entries(value).map(([key, entryValue]) => [key, Templates.getJsTemplateOrValue(item, entryValue)]));
     }
 
     // At this point only strings can contain template syntax.
@@ -106,9 +85,7 @@ export default class Templates {
   }
 
   static isJsTemplate(value) {
-    return typeof value === 'string'
-      && value.trim().startsWith('[[[')
-      && value.trim().endsWith(']]]');
+    return typeof value === 'string' && value.trim().startsWith('[[[') && value.trim().endsWith(']]]');
   }
 
   static extractJsTemplateCode(value) {
@@ -116,11 +93,7 @@ export default class Templates {
   }
 
   static evaluateJsTemplate(item, javascript) {
-    const {
-      hass,
-      config,
-      entities = [],
-    } = Templates.context;
+    const { hass, config, entities = [] } = Templates.context;
 
     const entityIndex = item?.entity_index ?? 0;
     const entity = entities?.[entityIndex];
@@ -143,15 +116,7 @@ export default class Templates {
         `,
       );
 
-      return fn(
-        hass,
-        config,
-        entity,
-        entities,
-        states,
-        item,
-        user,
-      );
+      return fn(hass, config, entity, entities, states, item, user);
     } catch (error) {
       if (config?.dev?.debug) {
         console.error('[templates] JavaScript template error:', {

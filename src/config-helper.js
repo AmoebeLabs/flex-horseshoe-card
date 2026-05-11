@@ -21,22 +21,20 @@ export default class ConfigHelper {
   }
 
   static toDict(value, options = {}) {
-    const {
-      stringToDict = ConfigHelper.stringToDefaultDict('default'),
-      mapValue = (entryValue) => entryValue,
-      skipNull = true,
-      skipFalse = true,
-    } = options;
+    const { stringToDict = ConfigHelper.stringToDefaultDict('default'), mapValue = (entryValue) => entryValue, skipNull = true, skipFalse = true } = options;
 
     const convert = (input) => {
       if (input == null && skipNull) return {};
       if (input === false && skipFalse) return {};
 
       if (Array.isArray(input)) {
-        return input.reduce((result, entry) => ({
-          ...result,
-          ...convert(entry),
-        }), {});
+        return input.reduce(
+          (result, entry) => ({
+            ...result,
+            ...convert(entry),
+          }),
+          {},
+        );
       }
 
       if (ConfigHelper.isPlainObject(input)) {
@@ -47,10 +45,7 @@ export default class ConfigHelper {
               if (entryValue === false && skipFalse) return false;
               return true;
             })
-            .map(([key, entryValue]) => [
-              key,
-              mapValue(entryValue, key),
-            ]),
+            .map(([key, entryValue]) => [key, mapValue(entryValue, key)]),
         );
       }
 
@@ -65,11 +60,9 @@ export default class ConfigHelper {
   }
 
   static toStyleValue(value) {
-  if (value === undefined || value === null) return value;
+    if (value === undefined || value === null) return value;
 
-  return String(value)
-    .trim()
-    .replace(/;+$/, '');
+    return String(value).trim().replace(/;+$/, '');
   }
 
   static cssStringToDict(cssText) {
@@ -122,10 +115,13 @@ export default class ConfigHelper {
       .trim()
       .split(/\s+/)
       .filter(Boolean)
-      .reduce((result, className) => ({
-        ...result,
-        [className]: true,
-      }), {});
+      .reduce(
+        (result, className) => ({
+          ...result,
+          [className]: true,
+        }),
+        {},
+      );
   }
 
   static stringToDefaultDict(defaultKey = 'default') {
