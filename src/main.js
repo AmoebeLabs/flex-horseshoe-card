@@ -945,49 +945,75 @@ class FlexHorseshoeCard extends LitElement {
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
           if (item.vlines) {
-            item.vlines.map((item2) => {
-              if (!this.animations.vlines[item2.animation_id] || !item2.reuse) this.animations.vlines[item2.animation_id] = {};
-              this.animations.vlines[item2.animation_id] = Object.assign(this.animations.vlines[item2.animation_id], ...item2.styles);
-              return true;
-            });
+            item.vlines.forEach((item2) => this._updateAnimationStyles('vlines', item2));
           }
 
           if (item.hlines) {
-            item.hlines.map((item2) => {
-              if (!this.animations.hlines[item2.animation_id] || !item2.reuse) this.animations.hlines[item2.animation_id] = {};
-              this.animations.hlines[item2.animation_id] = Object.assign(this.animations.hlines[item2.animation_id], ...item2.styles);
-              return true;
-            });
+            item.hlines.forEach((item2) => this._updateAnimationStyles('hlines', item2));
           }
 
           if (item.circles) {
-            item.circles.map((item2) => {
-              if (!this.animations.circles[item2.animation_id] || !item2.reuse) this.animations.circles[item2.animation_id] = {};
-              this.animations.circles[item2.animation_id] = Object.assign(this.animations.circles[item2.animation_id], ...item2.styles);
-              return true;
-            });
+            item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
           }
-
-          // Fetch icon too besides the default styles section
+          // if (item.icons) {
+          //   item.icons.map((item2) => {
+          //     if (!this.animations.icons[item2.animation_id] || !item2.reuse) {
+          //       this.animations.icons[item2.animation_id] = {};
+          //       this.animations.iconsIcon[item2.animation_id] = {};
+          //     }
+          //     this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
+          //     this.animations.iconsIcon[item2.animation_id] = Templates.getJsTemplateOrValue(item2, item2.icon);
+          //     return true;
+          //   });
+          // }
           if (item.icons) {
-            item.icons.map((item2) => {
-              if (!this.animations.icons[item2.animation_id] || !item2.reuse) {
-                this.animations.icons[item2.animation_id] = {};
-                this.animations.iconsIcon[item2.animation_id] = {};
+            item.icons.forEach((item2) => {
+              const animationId = item2.animation_id;
+
+              if (!this.animations.icons[animationId] || !item2.reuse) {
+                this.animations.icons[animationId] = {};
+                this.animations.iconsIcon[animationId] = {};
               }
-              this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
-              this.animations.iconsIcon[item2.animation_id] = item2?.icon;
-              return true;
+
+              const resolvedStyles = Templates.getJsTemplateOrValue(item2, item2.styles);
+              const animationStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+              this.animations.icons[animationId] = {
+                ...this.animations.icons[animationId],
+                ...animationStyleDict,
+              };
+
+              this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
             });
           }
+          // Fetch icon too besides the default styles section
+          // if (item.icons) {
+          //   item.icons.forEach((item2) => {
+          //     const animationId = item2.animation_id;
+
+          //     if (animationId === undefined || animationId === null) return;
+
+          //     this._updateAnimationStyles('icons', item2);
+
+          //     if (!this.animations.iconsIcon[animationId] || !item2.reuse) {
+          //       this.animations.iconsIcon[animationId] = {};
+          //     }
+
+          //     this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
+          //   });
+          // }
 
           if (item.states) {
-            item.states.map((item2) => {
-              if (!this.animations.states[item2.animation_id] || !item2.reuse) this.animations.states[item2.animation_id] = {};
-              this.animations.states[item2.animation_id] = Object.assign(this.animations.states[item2.animation_id], ...item2.styles);
-              return true;
-            });
+            item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
           }
+
+          // if (item.states) {
+          //   item.states.map((item2) => {
+          //     if (!this.animations.states[item2.animation_id] || !item2.reuse) this.animations.states[item2.animation_id] = {};
+          //     this.animations.states[item2.animation_id] = Object.assign(this.animations.states[item2.animation_id], ...item2.styles);
+          //     return true;
+          //   });
+          // }
           return true;
         });
         return true;
@@ -996,6 +1022,20 @@ class FlexHorseshoeCard extends LitElement {
     // For now, always force update to render the card if any of the states or attributes have changed...
     // if (entityHasChanged) { this.requestUpdate();}
     this.requestUpdate();
+  }
+
+  _updateAnimationStyles(section, item) {
+    const animationId = item.animation_id;
+
+    if (animationId === undefined || animationId === null) return;
+
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const styleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    this.animations[section][animationId] = {
+      ...(item.reuse ? (this.animations[section][animationId] ?? {}) : {}),
+      ...styleDict,
+    };
   }
 
   _prepareItemColorStops(config) {
@@ -1187,6 +1227,28 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render({ config } = this) {
+    const item = {
+      entity_index: 0,
+    };
+
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, config?.styles);
+    const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
+
+    return html`
+      <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style=${styleMap(cardStyle)}>
+        <div class="container" id="container">${this._renderSvg()}</div>
+
+        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
+            <stop offset="${this.color1_offset}" stop-color="${this.color1}"></stop>
+            <stop offset="100%" stop-color="${this.color0}"></stop>
+          </linearGradient>
+        </svg>
+      </ha-card>
+    `;
+  }
+
+  renderV1({ config } = this) {
     const configStyle = this._mergeStyles({}, { styles: this.config?.styles });
     const cardStyle = this._buildStyleString([configStyle]);
 
@@ -1643,8 +1705,223 @@ class FlexHorseshoeCard extends LitElement {
    * Renders the entity or attribute state of a single item.
    *
    */
-
   _renderState(item) {
+    if (!item) return svg``;
+
+    const entityIndex = item.entity_index ?? 0;
+
+    // compute x,y or dx,dy positions. Spec none if not specified.
+    const x = item.xpos ? item.xpos : '';
+    const y = item.ypos ? item.ypos : '';
+    const dx = item.dx ? item.dx : '0';
+    const dy = item.dy ? item.dy : '0';
+
+    const STATE_STYLES = {
+      'font-size': '1em',
+      color: 'var(--primary-text-color)',
+      opacity: '1.0',
+      'text-anchor': 'middle',
+    };
+
+    const UOM_STYLES = {
+      opacity: '0.7',
+    };
+
+    // Config styles for the main state value.
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    // Config styles for the UOM. These are optional and override the implicit UOM styles.
+    const uomConfig = item.uom ?? {};
+
+    const resolvedUomStyles = Templates.getJsTemplateOrValue(item, uomConfig.styles);
+    const itemUomStyleDict = ConfigHelper.toStyleDict(resolvedUomStyles);
+
+    const uomDx = uomConfig.dx ?? '0';
+    const uomDy = uomConfig.dy ?? '-0.45';
+
+    // Runtime animation styles. Animation styles win over normal state styles.
+    let stateStyle = {};
+    if (this.animations?.states?.[item.animation_id]) {
+      stateStyle = {
+        ...this.animations.states[item.animation_id],
+      };
+    }
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
+    // Runtime styles overwrite statically configured styles.
+    const configStyle = {
+      ...STATE_STYLES,
+      ...itemStyleDict,
+      ...stateStyle,
+    };
+
+    // Keep old implicit UOM behavior:
+    // UOM font-size is derived from the final state font-size.
+    const fsuomStr = configStyle['font-size'];
+
+    let fsuomValue = 0.5;
+    let fsuomType = 'em';
+
+    const fsuomSplit = String(fsuomStr).match(/\D+|\d*\.?\d+/g);
+
+    if (fsuomSplit?.length === 2) {
+      fsuomValue = Number(fsuomSplit[0]) * 0.6;
+      fsuomType = fsuomSplit[1];
+    } else {
+      console.error('Cannot determine font-size for state', fsuomStr);
+    }
+
+    const fsuomStyle = {
+      'font-size': `${fsuomValue}${fsuomType}`,
+    };
+
+    // Order matters:
+    // 1. Start from state style.
+    // 2. Apply old default UOM overrides.
+    // 3. Apply old implicit computed UOM font-size.
+    // 4. Let explicit styles_uom override all of that.
+    const uomStyle = {
+      ...configStyle,
+      ...UOM_STYLES,
+      ...fsuomStyle,
+      ...itemUomStyleDict,
+    };
+
+    // console.log('[uom debug]', {
+    //   rawUom: item.uom,
+    //   rawUomStyles: item.uom?.styles,
+    //   resolvedUomStyles,
+    //   itemUomStyleDict,
+    //   uomStyle,
+    // });
+    const uom = this._buildUom(this.entities[entityIndex], this.config.entities[entityIndex]);
+
+    const state = this.config.entities[entityIndex].attribute && this.entities[entityIndex].attributes[this.config.entities[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+
+    return svg`
+      <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
+        <tspan
+          class="state__value"
+          x="${x}%"
+          y="${y}%"
+          dx="${dx}em"
+          dy="${dy}em"
+          style=${styleMap(configStyle)}
+        >${state}</tspan><tspan
+          class="state__uom"
+          dx="${uomDx}em"
+          dy="${uomDy}em"
+          style=${styleMap(uomStyle)}
+        >${uom}</tspan>
+      </text>
+    `;
+  }
+
+  _renderStateV2(item) {
+    if (!item) return svg``;
+
+    const entityIndex = item.entity_index ?? 0;
+
+    // compute x,y or dx,dy positions. Spec none if not specified.
+    const x = item.xpos ? item.xpos : '';
+    const y = item.ypos ? item.ypos : '';
+    const dx = item.dx ? item.dx : '0';
+    const dy = item.dy ? item.dy : '0';
+
+    const STATE_STYLES = {
+      'font-size': '1em',
+      color: 'var(--primary-text-color)',
+      opacity: '1.0',
+      'text-anchor': 'middle',
+    };
+
+    const UOM_STYLES = {
+      opacity: '0.7',
+    };
+
+    // Config styles.
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+
+    // Runtime animation styles. Animation styles win later.
+    let stateStyle = {};
+    if (this.animations?.states?.[item.animation_id]) {
+      stateStyle = {
+        ...this.animations.states[item.animation_id],
+      };
+    }
+
+    const stopColor = this._getItemColorFromStops(item);
+    if (stopColor) {
+      stateStyle.fill = stopColor;
+    }
+
+    // Runtime styles overwrite statically configured styles.
+    const configStyle = {
+      ...STATE_STYLES,
+      ...itemStyleDict,
+      ...stateStyle,
+    };
+
+    // Get font-size of state in configStyle.
+    const fsuomStr = configStyle['font-size'];
+
+    let fsuomValue = 0.5;
+    let fsuomType = 'em';
+
+    const fsuomSplit = String(fsuomStr).match(/\D+|\d*\.?\d+/g);
+
+    if (fsuomSplit?.length === 2) {
+      fsuomValue = Number(fsuomSplit[0]) * 0.6;
+      fsuomType = fsuomSplit[1];
+    } else {
+      console.error('Cannot determine font-size for state', fsuomStr);
+    }
+
+    const fsuomStyle = {
+      'font-size': `${fsuomValue}${fsuomType}`,
+    };
+
+    const uomStyle = {
+      ...configStyle,
+      ...UOM_STYLES,
+      ...fsuomStyle,
+    };
+
+    const uom = this._buildUom(this.entities[entityIndex], this.config.entities[entityIndex]);
+
+    const state = this.config.entities[entityIndex].attribute && this.entities[entityIndex].attributes[this.config.entities[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+
+    return svg`
+    <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
+      <tspan
+        class="state__value"
+        x="${x}%"
+        y="${y}%"
+        dx="${dx}em"
+        dy="${dy}em"
+        style=${styleMap(configStyle)}
+      >
+        ${state}
+      </tspan>
+      <tspan
+        class="state__uom"
+        dx="-0.1em"
+        dy="-0.45em"
+        style=${styleMap(uomStyle)}
+      >
+        ${uom}
+      </tspan>
+    </text>
+  `;
+  }
+
+  _renderStateV1(item) {
     if (!item) return;
 
     // compute x,y or dx,dy positions. Spec none if not specified.
@@ -1670,6 +1947,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Get the runtime styles, caused by states & animation settings
     let stateStyle = {};
+    console.log('Animations for states', this.animations.states, item?.index);
     if (this.animations.states[item.index]) stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
 
     const stopColor = this._getItemColorFromStops(item);
@@ -1799,22 +2077,45 @@ class FlexHorseshoeCard extends LitElement {
     let ypx = cy - iconPixels * adjust;
     let foIconPixels = iconPixels;
 
-    let configStyle = this._mergeStyles({}, item);
+    // let configStyle = this._mergeStyles({}, item);
 
-    let stateStyle = {};
-    if (this.animations.icons[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
+    // let stateStyle = {};
+    // if (this.animations.icons[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
 
+    // const stopColor = this._getItemColorFromStops(item);
+    // if (stopColor) {
+    //   configStyle.fill = stopColor;
+    // }
+
+    // // Merge the two, where the runtime styles may overwrite the statically configured styles
+    // configStyle = { ...configStyle, ...stateStyle };
+
+    // const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
+
+    // const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
+    const entityIndex = item.entity_index ?? 0;
+
+    // Config styles van het icon zelf.
+    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
+    let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
+
+    // Runtime animation styles.
+    const stateStyle = this.animations?.icons?.[item.animation_id] ?? {};
+
+    // Stop color hoort vóór de animation merge,
+    // zodat animation styles uiteindelijk mogen winnen.
     const stopColor = this._getItemColorFromStops(item);
     if (stopColor) {
       configStyle.fill = stopColor;
     }
 
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle };
+    // Runtime animation styles overwrite static/config styles.
+    configStyle = {
+      ...configStyle,
+      ...stateStyle,
+    };
 
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-    const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
+    const icon = this._buildIcon(this.entities[entityIndex], this.config.entities[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -1876,7 +2177,7 @@ class FlexHorseshoeCard extends LitElement {
       return svg`
       <g
         id="icon-rendered-${this.iconsId[index]}"
-        style="${configStyleStr}"
+        style="${styleMap(configStyle)}"
         x="${x1}px"
         y="${y1}px"
         transform-origin="${cx} ${cy}"
