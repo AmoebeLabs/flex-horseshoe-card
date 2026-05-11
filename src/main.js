@@ -848,8 +848,10 @@ class FlexHorseshoeCard extends LitElement {
     // value. It will fill the horseshoe relative to the state and min/max
     // values given in the configuration.
 
-    const min = this.config.horseshoe_scale.min || 0;
-    const max = this.config.horseshoe_scale.max || 100;
+    const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.config.horseshoe_scale);
+
+    const min = horseshoeScale?.min ?? 0;
+    const max = horseshoeScale?.max ?? 100;
 
     const barMode = this.config.bar_mode || 'normal';
 
