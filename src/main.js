@@ -23,6 +23,7 @@ import { styleMap } from 'lit/directives/style-map.js';
 import { version } from '../package.json';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
+import ColorStops from './color-stops.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -224,6 +225,9 @@ class FlexHorseshoeCard extends LitElement {
 
       console.log('style test 8 - resolvedStyles', resolvedStyles);
       console.log('style test 8 - itemStyleDict', itemStyleDict);
+      if (this.config?.dev?.debug || true) {
+        ColorStops._testColorStopsNormalizer();
+      }
     }
   }
 
