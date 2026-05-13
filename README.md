@@ -32,6 +32,8 @@ _The Lovelace view of the above examples is in the repository in the examples fo
 
 ---
 
+---
+
 The flexible horseshoe card can display data from entities and attributes from the sensor and other domains. It displays the current state and for the primary entity it fills the horseshoe with a color depending on the min and max values of the state and the configured color stops and styling.
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it using a layout specification for each object you want on the card:
@@ -145,15 +147,15 @@ This is the card 1 of the examples. It shows the basic definition for the flexib
 ![](/examples/flex-horseshoe-card--example-card-1.png)
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: weather.dark_sky
       attribute: temperature
       decimals: 1
-      unit: '°C'
+      unit: "°C"
       area: De Maan
   show:
-    horseshoe_style: 'lineargradient'
+    horseshoe_style: "lineargradient"
   layout:
     states:
       # Refers to the first entity in the list, ie index 0
@@ -180,15 +182,15 @@ This is the card 1 of the examples. It shows the basic definition for the flexib
           - font-size: 1.5em;
           - opacity: 0.8;
 
-  # Scale set to -10 to +40 degrees celcius
+  # Scale set to -10 to +40 degrees celsius
   horseshoe_scale:
     min: -10
     max: 40
   # color stop list with two colors. With the `lineargradient` fill style, only the
   # colors are used. The thresholds are ignored with this setting.
   color_stops:
-    10: 'red'
-    18: 'blue'
+    10: "red"
+    18: "blue"
 ```
 
 ## Extending the basic example with two more entities and a horizontal line
@@ -198,25 +200,25 @@ This is card 4 of the examples. It extends the basic definition of card 1 with t
 ![](/examples/flex-horseshoe-card--example-card-4.png)
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: weather.dark_sky
       attribute: temperature
       decimals: 1
-      name: '4: Ut Weer'
-      unit: '°C'
+      name: "4: Ut Weer"
+      unit: "°C"
     - entity: weather.dark_sky
       attribute: humidity
       decimals: 0
-      unit: '%'
+      unit: "%"
       icon: mdi:water-percent
     - entity: weather.dark_sky
       attribute: pressure
       decimals: 0
-      unit: 'hPa'
+      unit: "hPa"
       icon: mdi:gauge
   show:
-    horseshoe_style: 'lineargradient'
+    horseshoe_style: "lineargradient"
   layout:
     hlines:
       # A horizontal line. Not connected to an entity
@@ -282,16 +284,16 @@ This is card 4 of the examples. It extends the basic definition of card 1 with t
   # color stop list with 10 colors defined in the theme. With the `lineargradient` fill style, only the
   # first (16:) and last (25:) colors are used. The thresholds are ignored with this setting.
   color_stops:
-    16: '#FFF6E3'
-    17: '#FFE9B9'
-    18: '#FFDA8A'
-    19: '#FFCB5B'
-    20: '#FFBF37'
-    21: '#ffb414'
-    22: '#FFAD12'
-    23: '#FFA40E'
-    24: '#FF9C0B'
-    25: '#FF8C06'
+    16: "#FFF6E3"
+    17: "#FFE9B9"
+    18: "#FFDA8A"
+    19: "#FFCB5B"
+    20: "#FFBF37"
+    21: "#ffb414"
+    22: "#FFAD12"
+    23: "#FFA40E"
+    24: "#FF9C0B"
+    25: "#FF8C06"
 ```
 
 ## Extending the basic example with a lot more options like actions and animations
@@ -537,7 +539,7 @@ entities:
   - entity: sensor.memory_use_percent
     decimals: 0
     icon: mdi:memory
-    name: '5: RAM Usage'
+    name: "5: RAM Usage"
     area: Hestia
 ```
 
@@ -547,10 +549,10 @@ entities:
 entities:
   - entity: weather.dark_sky
     attribute: temperature
-    units: '°C'
+    units: "°C"
     icon: mdi:temperature
     decimals: 1
-    name: 'Temperature'
+    name: "Temperature"
 ```
 
 ## Action object options
@@ -569,12 +571,12 @@ entities:
 ```yaml
 entities:
   - entity: light.1st_floor_hall_light
-    name: 'hall'
+    name: "hall"
     icon: mdi:lightbulb
     tap_action:
       action: call-service
       service: light.toggle
-      service_data: { 'entity_id': 'light.1st_floor_hall_light' }
+      service_data: { "entity_id": "light.1st_floor_hall_light" }
 ```
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Layout section
@@ -671,7 +673,7 @@ horseshoe_scale:
   min: 0
   max: 100
   width: 6
-  color: 'var(--primary-background-color)'
+  color: "var(--primary-background-color)"
 ```
 
 #### Bidrectional Example (thanks to @Ndrinta):
@@ -753,8 +755,8 @@ horseshoe_scale:
   color: lightgrey
 bar_mode: bidirectional
 color_stops:
-  '0': var(--energy-grid-consumption-color)
-  '100': var(--energy-grid-return-color)
+  "0": var(--energy-grid-consumption-color)
+  "100": var(--energy-grid-return-color)
 ```
 
 ## Horseshoe state options
@@ -769,7 +771,7 @@ color_stops:
 ```yaml
 horseshoe_state:
   width: 12
-  color: 'var(--theme-gradient-color-01)'
+  color: "var(--theme-gradient-color-01)"
 ```
 
 ## Horseshoe color stops
@@ -784,16 +786,16 @@ Showing a list of colorstop thresholds (0..90) and the colorstop colors, in this
 
 ```yaml
 color_stops:
-  0: 'var(--theme-gradient-color-01)'
-  10: 'var(--theme-gradient-color-02)'
-  20: 'var(--theme-gradient-color-03)'
-  30: 'var(--theme-gradient-color-04)'
-  40: 'var(--theme-gradient-color-05)'
-  50: 'var(--theme-gradient-color-06)'
-  60: 'var(--theme-gradient-color-07)'
-  70: 'var(--theme-gradient-color-08)'
-  80: 'var(--theme-gradient-color-09)'
-  90: 'var(--theme-gradient-color-10)'
+  0: "var(--theme-gradient-color-01)"
+  10: "var(--theme-gradient-color-02)"
+  20: "var(--theme-gradient-color-03)"
+  30: "var(--theme-gradient-color-04)"
+  40: "var(--theme-gradient-color-05)"
+  50: "var(--theme-gradient-color-06)"
+  60: "var(--theme-gradient-color-07)"
+  70: "var(--theme-gradient-color-08)"
+  80: "var(--theme-gradient-color-09)"
+  90: "var(--theme-gradient-color-10)"
 ```
 
 ## Horseshoe fill styles
@@ -814,7 +816,7 @@ The next table describes how the fill styles work:
 
 ```yaml
 show:
-  horseshoe_style: 'lineargradient'
+  horseshoe_style: "lineargradient"
 ```
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Animations section
@@ -860,13 +862,13 @@ Animations are optional, and are driven by state changes of a given entity or at
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
   animations:
     entity.1:
-      - state: 'on'
+      - state: "on"
         circles:
           - animation_id: 10
             styles:
@@ -878,7 +880,7 @@ Animations are optional, and are driven by state changes of a given entity or at
           - animation_id: 0
             styles:
               - fill: black;
-      - state: 'off'
+      - state: "off"
         circles:
           - animation_id: 10
             reuse: true
@@ -906,7 +908,7 @@ There are at least a few great places for example animations:
 #### Example of Card 12
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
@@ -914,7 +916,7 @@ There are at least a few great places for example animations:
 
   animations:
     entity.2:
-      - state: 'on'
+      - state: "on"
         circles:
           - animation_id: 3
             styles:
@@ -931,7 +933,7 @@ There are at least a few great places for example animations:
             styles:
               - fill: black;
 
-      - state: 'off'
+      - state: "off"
         circles:
           - animation_id: 3
             styles:
@@ -957,7 +959,7 @@ You can styule the (background) of the card using CSS styles.
 <br>The first example shows how to add an image, and center it.
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
@@ -975,7 +977,7 @@ The second example shows the combination of card style and JavaScript templating
 <br>The background color is changed - in this case - depending on the state of entity_index 0.
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
@@ -999,7 +1001,7 @@ This example shows how to to define a colorstop for an entity. The first one is 
 <br>In both cases, **the numeric** state of the entity determines the color.
 
 ```yaml
-- type: 'custom:flex-horseshoe-card'
+- type: "custom:flex-horseshoe-card"
   entities:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
@@ -1012,12 +1014,12 @@ This example shows how to to define a colorstop for an entity. The first one is 
       styles:
         - font-size: 3em;
       color_stops:
-        0: 'blue'
-        1: 'green'
-        2: 'yellow'
-        3: 'orange'
-        4: 'red'
-        5: 'purple'
+        0: "blue"
+        1: "green"
+        2: "yellow"
+        3: "orange"
+        4: "red"
+        5: "purple"
 
   areas:
     - id: 0
@@ -1027,12 +1029,12 @@ This example shows how to to define a colorstop for an entity. The first one is 
       styles:
         - font-size: 1.2em;
       color_stops:
-        0: 'blue'
-        1: 'green'
-        2: 'yellow'
-        3: 'orange'
-        4: 'red'
-        5: 'purple'
+        0: "blue"
+        1: "green"
+        2: "yellow"
+        3: "orange"
+        4: "red"
+        5: "purple"
 ```
 
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) JavaScript Templates section
@@ -1117,23 +1119,23 @@ A few use lights, which you have to replace with your own of course.
 Furthermore, theme defined variables are used:
 
 ```yaml
-theme-card-box-shadow: 'var(--shadow-elevation-2dp_-_box-shadow)'
+theme-card-box-shadow: "var(--shadow-elevation-2dp_-_box-shadow)"
 ```
 
 and:
 
 ```yaml
-theme-gradient-color-01: '#FFF6E3'
-theme-gradient-color-02: '#FFE9B9'
-theme-gradient-color-03: '#FFDA8A'
-theme-gradient-color-04: '#FFCB5B'
-theme-gradient-color-05: '#FFBF37'
-theme-gradient-color-06: '#ffb414'
-theme-gradient-color-07: '#FFAD12'
-theme-gradient-color-08: '#FFA40E'
-theme-gradient-color-09: '#FF9C0B'
-theme-gradient-color-10: '#FF8C06'
-theme-gradient-color-11: '#FF8305'
+theme-gradient-color-01: "#FFF6E3"
+theme-gradient-color-02: "#FFE9B9"
+theme-gradient-color-03: "#FFDA8A"
+theme-gradient-color-04: "#FFCB5B"
+theme-gradient-color-05: "#FFBF37"
+theme-gradient-color-06: "#ffb414"
+theme-gradient-color-07: "#FFAD12"
+theme-gradient-color-08: "#FFA40E"
+theme-gradient-color-09: "#FF9C0B"
+theme-gradient-color-10: "#FF8C06"
+theme-gradient-color-11: "#FF8305"
 ```
 
 Define your own, or alter the example cards!
