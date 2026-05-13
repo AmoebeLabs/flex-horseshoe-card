@@ -1192,4 +1192,4 @@ The above resources where invaluable to accomplish this.
 
 [home-assistant]: https://www.home-assistant.io/
 [hacs]: https://hacs.xyz
-[release-url]: https://github.com/AmoebeLabs/swiss-army-knife-card/releases
+[release-url]: https://github.com/AmoebeLabs/flex-horseshoe-card/releases
