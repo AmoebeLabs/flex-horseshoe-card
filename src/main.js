@@ -1055,6 +1055,24 @@ class FlexHorseshoeCard extends LitElement {
       items.forEach((item) => {
         if (!item.color_stops) return;
 
+        const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
+
+        item._colorStops = ColorStops.normalize(resolvedColorStops);
+      });
+    });
+  }
+
+  _prepareItemColorStopsV1(config) {
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+
+    layoutSections.forEach((section) => {
+      const items = config.layout?.[section];
+
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (!item.color_stops) return;
+
         item._colorStops = item.color_stops;
       });
     });
@@ -1121,31 +1139,50 @@ class FlexHorseshoeCard extends LitElement {
       }
     }
 
-    let colorStops = {};
-    //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
-    if (newConfig.color_stops) {
-      Object.keys(newConfig.color_stops).forEach((key) => {
-        colorStops[key] = newConfig.color_stops[key];
+    // let colorStops = {};
+    // //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
+    // if (newConfig.color_stops) {
+    //   Object.keys(newConfig.color_stops).forEach((key) => {
+    //     colorStops[key] = newConfig.color_stops[key];
+    //   });
+    // }
+
+    // const sortedStops = Object.keys(colorStops)
+    //   .map((n) => Number(n))
+    //   .sort((a, b) => a - b);
+    // this.colorStops = colorStops;
+    // this.sortedStops = sortedStops;
+
+    // // Create a colorStopsMinMax list for autominmax color determination
+    // let colorStopsMinMax = {};
+    // colorStopsMinMax[newConfig.horseshoe_scale.min] = colorStops[sortedStops[0]];
+    // colorStopsMinMax[newConfig.horseshoe_scale.max] = colorStops[sortedStops[sortedStops.length - 1]];
+
+    // this.colorStopsMinMax = colorStopsMinMax;
+
+    // // Now set the color0 and color1 for the gradient used in the horseshoe to the colors
+    // // Use default for now!!
+    // this.color0 = colorStops[sortedStops[0]];
+    // this.color1 = colorStops[sortedStops[sortedStops.length - 1]];
+    const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: 0 }, newConfig.color_stops, { resolveKeys: true });
+
+    this.colorStops = ColorStops.normalize(resolvedColorStops);
+
+    const colorStopColors = this.colorStops.colors;
+    const firstStop = colorStopColors[0];
+    const lastStop = colorStopColors[colorStopColors.length - 1];
+
+    this.colorStopsMinMax = ColorStops.normalize({});
+
+    if (firstStop && lastStop) {
+      this.colorStopsMinMax = ColorStops.normalize({
+        [newConfig.horseshoe_scale.min]: firstStop.color,
+        [newConfig.horseshoe_scale.max]: lastStop.color,
       });
+
+      this.color0 = firstStop.color;
+      this.color1 = lastStop.color;
     }
-
-    const sortedStops = Object.keys(colorStops)
-      .map((n) => Number(n))
-      .sort((a, b) => a - b);
-    this.colorStops = colorStops;
-    this.sortedStops = sortedStops;
-
-    // Create a colorStopsMinMax list for autominmax color determination
-    let colorStopsMinMax = {};
-    colorStopsMinMax[newConfig.horseshoe_scale.min] = colorStops[sortedStops[0]];
-    colorStopsMinMax[newConfig.horseshoe_scale.max] = colorStops[sortedStops[sortedStops.length - 1]];
-
-    this.colorStopsMinMax = colorStopsMinMax;
-
-    // Now set the color0 and color1 for the gradient used in the horseshoe to the colors
-    // Use default for now!!
-    this.color0 = colorStops[sortedStops[0]];
-    this.color1 = colorStops[sortedStops[sortedStops.length - 1]];
 
     const angleCoords = {
       x1: '0%',
@@ -2792,7 +2829,46 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _calculateStrokeColor(state, stops, gradient) {
+  _calculateStrokeColor(state, colorStops, gradient) {
+    const stops = colorStops?.colors ?? [];
+
+    if (!stops.length) return undefined;
+
+    const numericState = Number(state);
+
+    if (!Number.isFinite(numericState)) {
+      return stops[0].color;
+    }
+
+    if (numericState <= stops[0].value) {
+      return stops[0].color;
+    }
+
+    const lastStop = stops[stops.length - 1];
+
+    if (numericState >= lastStop.value) {
+      return lastStop.color;
+    }
+
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const startStop = stops[i];
+      const endStop = stops[i + 1];
+
+      if (numericState >= startStop.value && numericState < endStop.value) {
+        if (!gradient) {
+          return startStop.color;
+        }
+
+        const valueBetween = this._calculateValueBetween(startStop.value, endStop.value, numericState);
+
+        return this._getGradientValue(startStop.color, endStop.color, valueBetween);
+      }
+    }
+
+    return lastStop.color;
+  }
+
+  _calculateStrokeColorV1(state, stops, gradient) {
     const sortedStops = Object.keys(stops)
       .map((n) => Number(n))
       .sort((a, b) => a - b);
