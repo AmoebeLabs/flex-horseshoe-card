@@ -24,7 +24,11 @@ Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/hom
 </br>So you can see how these layouts are done*
 ***
 
+<<<<<<< HEAD
 ### v5.x.y is the latest stable release of this card. Be gentle with it!
+=======
+### v5.4.3 is the latest stable release of this card. Be gentle with it!
+>>>>>>> parent of 229231d (Merge pull request #158 from AmoebeLabs/157-experiment-with-generic-template-and-dictlist-features---part-1)
 * * *
 
 ## Introduction
@@ -258,7 +262,11 @@ This is card 4 of the examples. It extends the basic definition of card 1 with t
         xpos: 50
         ypos: 95
     
+<<<<<<< HEAD
   # Scale set to -10 to +40 degrees celsius
+=======
+  # Scale set to -10 to +40 degrees celcius
+>>>>>>> parent of 229231d (Merge pull request #158 from AmoebeLabs/157-experiment-with-generic-template-and-dictlist-features---part-1)
   horseshoe_scale:
     min: -10
     max: 40

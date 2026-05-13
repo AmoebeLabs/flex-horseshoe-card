@@ -1,10 +1,13 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import { configs, plugins } from 'eslint-config-airbnb-extended';
-import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default defineConfig([
-  globalIgnores(['/distjs/*', '/dist/*', '/src/flex-horseshoe-card.js']),
+  globalIgnores([
+    '/distjs/*',
+    '/dist/*',
+    '/src/flex-horseshoe-card.js',
+  ]),
 
   plugins.stylistic,
   plugins.importX,
@@ -45,50 +48,36 @@ export default defineConfig([
       'no-param-reassign': 0,
 
       '@stylistic/max-statements-per-line': 0,
-      'max-len': [
-        'warn',
-        {
-          code: 220,
-          ignoreComments: true,
-        },
-      ],
+      'max-len': ['warn', {
+        code: 220,
+        ignoreComments: true,
+      }],
 
-      '@stylistic/max-len': [
-        'warn',
-        {
-          code: 220,
-          ignoreComments: true,
-        },
-      ],
+      '@stylistic/max-len': ['warn', {
+        code: 220,
+        ignoreComments: true,
+      }],
 
       eqeqeq: 1,
 
-      'brace-style': 0,
-      '@stylistic/brace-style': 0,
+      'brace-style': 1,
+      '@stylistic/brace-style': 1,
 
       'function-call-argument-newline': 0,
       '@stylistic/function-call-argument-newline': 0,
-      '@stylistic/operator-linebreak': 0,
-      '@stylistic/object-curly-newline': 0,
 
       'function-paren-newline': 0,
       '@stylistic/function-paren-newline': 0,
 
-      'no-plusplus': [
-        'warn',
-        {
-          allowForLoopAfterthoughts: true,
-        },
-      ],
+      'no-plusplus': ['warn', {
+        allowForLoopAfterthoughts: true,
+      }],
 
       'no-irregular-whitespace': 0,
 
-      'no-bitwise': [
-        'warn',
-        {
-          allow: ['~'],
-        },
-      ],
+      'no-bitwise': ['warn', {
+        allow: ['~'],
+      }],
 
       'no-console': 0,
       'no-prototype-builtins': 0,
