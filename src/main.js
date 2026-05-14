@@ -1758,13 +1758,31 @@ class FlexHorseshoeCard extends LitElement {
     if (!range) {
       return svg``;
     }
-
-    const stroke = scale.color || 'var(--primary-background-color)';
-    const tickSize = scale.ticksize || range / 10;
-    const fullScale = horseshoe.arc_degrees || 260;
-
+    const item = {
+      entity_index: horseshoe.entity_index,
+    };
+    const DEFAULT_HORSESHOE_TICKMARKS_STYLE = {};
+    const resolvedTickmarksStyles = Templates.getJsTemplateOrValue(item, horseshoe?.horseshoe_tickmarks?.styles);
+    const tickmarksUserStyle = ConfigHelper.toStyleDict(resolvedTickmarksStyles);
     const centerX = (horseshoe.xpos ?? 50) * 2;
     const centerY = (horseshoe.ypos ?? 50) * 2;
+
+    const protectedTickmarksStyle = {
+      // We protect these styles as they are needed to properly display the tickmarks, and avoid user errors breaking the card.
+      transformOrigin: `${centerX}px ${centerY}px`,
+    };
+    if (horseshoe?.horseshoe_tickmarks?.fill !== undefined) {
+      protectedTickmarksStyle.fill = horseshoe.horseshoe_tickmarks.fill;
+    }
+    const stroke = scale.color || 'var(--primary-background-color)';
+    protectedTickmarksStyle.fill = stroke;
+    const tickmarksStyle = {
+      ...DEFAULT_HORSESHOE_TICKMARKS_STYLE,
+      ...tickmarksUserStyle,
+      ...protectedTickmarksStyle,
+    };
+    const tickSize = scale.ticksize || range / 10;
+    const fullScale = horseshoe.arc_degrees || 260;
 
     const tickRadius = scale.width ? scale.width / 2 : 6 / 2;
 
@@ -1794,7 +1812,7 @@ class FlexHorseshoeCard extends LitElement {
         cx="${centerX - Math.sin(angle) * horseshoe.tickmarksRadiusSize}"
         cy="${centerY - Math.cos(angle) * horseshoe.tickmarksRadiusSize}"
         r="${tickRadius}"
-        fill="${stroke}">
+        style=${styleMap(tickmarksStyle)}>
       </circle>
     `;
     });
@@ -1994,6 +2012,7 @@ class FlexHorseshoeCard extends LitElement {
 
     const barMode = horseshoe.bar_mode || 'normal';
     const radius = `${horseshoe.radius}%`;
+
     const fill = horseshoe.fill || 'rgba(0, 0, 0, 0)';
 
     const scaleStroke = horseshoe.horseshoe_scale.color || '#000000';
@@ -2006,26 +2025,78 @@ class FlexHorseshoeCard extends LitElement {
     // const scaleDashArray = `${horseshoe.horseshoePathLength},180`;
     const gradientId = `horseshoe__gradient-${this.cardId}-${index}`;
 
+    // Get stale styles
+    const item = {
+      entity_index: horseshoe.entity_index,
+    };
+    const resolvedScaleStyles = Templates.getJsTemplateOrValue(item, horseshoe.horseshoe_scale?.styles);
+    const scaleUserStyle = ConfigHelper.toStyleDict(resolvedScaleStyles);
+    const protectedScaleStyle = {
+      stroke: scaleStroke,
+      strokeWidth: scaleStrokeWidth,
+      strokeDasharray: scaleDashArray,
+      strokeLinecap: 'round',
+    };
+    const DEFAULT_HORSESHOE_SCALE_STYLE = {
+      fill: 'none',
+      'stroke-linecap': 'round',
+    };
+    if (horseshoe.horseshoe_scale?.fill !== undefined) {
+      protectedScaleStyle.fill = horseshoe.horseshoe_scale.fill;
+    }
+    const scaleStyle = {
+      ...DEFAULT_HORSESHOE_SCALE_STYLE,
+      ...scaleUserStyle,
+      ...protectedScaleStyle,
+    };
+
+    // Get state styles
+    const DEFAULT_HORSESHOE_STATE_STYLE = {
+      fill: 'none',
+      transition: 'all 2.5s ease-out',
+      strokeLinecap: 'round',
+    };
+    const resolvedStateStyles = Templates.getJsTemplateOrValue(item, horseshoe.horseshoe_state?.styles);
+    const stateUserStyle = ConfigHelper.toStyleDict(resolvedStateStyles);
+    const protectedStateStyle = {
+      stroke: `url('#${gradientId}')`,
+      strokeDasharray: horseshoe.dashArray,
+      strokeDashoffset: horseshoe.dashOffset,
+      strokeWidth: stateStrokeWidth,
+    };
+    if (horseshoe.horseshoe_state?.fill !== undefined) {
+      protectedStateStyle.fill = horseshoe.horseshoe_state.fill;
+    }
+    const stateStyle = {
+      ...DEFAULT_HORSESHOE_STATE_STYLE,
+      ...stateUserStyle,
+      ...protectedStateStyle,
+    };
+    // fill="${fill}"
+    //   stroke="${scaleStroke}"
+    //   stroke-dasharray="${scaleDashArray}"
+    //   stroke-width="${scaleStrokeWidth}"
+    //   stroke-linecap="round"
+
+    // fill="${fill}"
+    // stroke="url('#${gradientId}')"
+    // stroke-dasharray="${horseshoe.dashArray}"
+    // stroke-dashoffset="${horseshoe.dashOffset}"
+    // stroke-width="${stateStrokeWidth}"
+    // stroke-linecap="round"
+    // transform="rotate(-90 ${rotateX} ${rotateY})"
+    // style="transition: all 2.5s ease-out;"/>
+
     if (barMode === 'bidirectional') {
       if (horseshoe.bidirectional_negative) {
         return svg`
         <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-            fill="${fill}"
-            stroke="${scaleStroke}"
-            stroke-dasharray="${scaleDashArray}"
-            stroke-width="${scaleStrokeWidth}"
-            stroke-linecap="round"
+            style=${styleMap(scaleStyle)}  
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-            fill="${fill}"
-            stroke="url('#${gradientId}')"
-            stroke-dasharray="${horseshoe.dashArray}"
-            stroke-dashoffset="${horseshoe.dashOffset}"
-            stroke-width="${stateStrokeWidth}"
-            stroke-linecap="round"
             transform="rotate(-90 ${rotateX} ${rotateY})"
-            style="transition: all 2.5s ease-out;"/>
+            style=${styleMap(stateStyle)} />
           ${this._renderTickMarks(horseshoe)}
         </g>
       `;
@@ -2034,20 +2105,11 @@ class FlexHorseshoeCard extends LitElement {
       return svg`
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
         <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-          fill="${fill}"
-          stroke="${scaleStroke}"
-          stroke-dasharray="${scaleDashArray}"
-          stroke-width="${scaleStrokeWidth}"
-          stroke-linecap="round"
+            style=${styleMap(scaleStyle)}  
           transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
         <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-          fill="${fill}"
-          stroke="url('#${gradientId}')"
-          stroke-dasharray="${horseshoe.dashArray}"
-          stroke-width="${stateStrokeWidth}"
-          stroke-linecap="round"
           transform="rotate(-90 ${rotateX} ${rotateY})"
-          style="transition: all 2.5s ease-out;"/>
+            style=${styleMap(stateStyle)} />
         ${this._renderTickMarks(horseshoe)}
       </g>
     `;
@@ -2056,20 +2118,11 @@ class FlexHorseshoeCard extends LitElement {
     return svg`
     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
       <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-        fill="${fill}"
-        stroke="${scaleStroke}"
-        stroke-dasharray="${scaleDashArray}"
-        stroke-width="${scaleStrokeWidth}"
-        stroke-linecap="round"
+        style=${styleMap(scaleStyle)}
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
       <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
-        fill="${fill}"
-        stroke="url('#${gradientId}')"
-        stroke-dasharray="${horseshoe.dashArray}"
-        stroke-width="${stateStrokeWidth}"
-        stroke-linecap="round"
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-        style="transition: all 2.5s ease-out;"/>
+        style=${styleMap(stateStyle)} />
       ${this._renderTickMarks(horseshoe)}
     </g>
   `;
@@ -2986,7 +3039,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   _buildIcon(entityState, entityConfig, entityAnimation) {
-    return entityAnimation || entityConfig.icon || entityState.attributes.icon;
+    return entityAnimation || entityConfig?.icon || entityState?.attributes?.icon;
   }
 
   /** *****************************************************************************

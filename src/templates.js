@@ -148,16 +148,18 @@ export default class Templates {
     const entity = entities?.[entityIndex];
     const states = hass?.states;
     const user = hass?.user;
-    console.log('Evaluating JavaScript template with context:', {
-      hass,
-      config,
-      entity,
-      entities,
-      states,
-      state,
-      item,
-      user,
-    });
+    if (config?.dev?.debug) {
+      console.log('Evaluating JavaScript template with context:', {
+        hass,
+        config,
+        entity,
+        entities,
+        states,
+        state,
+        item,
+        user,
+      });
+    }
     try {
       // eslint-disable-next-line no-new-func
       const fn = new Function(
