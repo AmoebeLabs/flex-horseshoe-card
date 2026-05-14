@@ -1828,9 +1828,6 @@ class FlexHorseshoeCard extends LitElement {
     const cx = horseshoe.xpos ?? 50;
     const cy = horseshoe.ypos ?? 50;
 
-    const cxPercent = `${cx}%`;
-    const cyPercent = `${cy}%`;
-
     const rotateX = cx * 2;
     const rotateY = cy * 2;
 
