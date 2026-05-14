@@ -143,11 +143,21 @@ export default class Templates {
   static evaluateJsTemplate(item, javascript) {
     const { hass, config, entities = [] } = Templates.context;
 
-    const entityIndex = item?.entity_index ?? 0;
+    const entityIndex = Templates._getItemEntityIndex(item);
+    const state = Templates._getTemplateState(item);
     const entity = entities?.[entityIndex];
     const states = hass?.states;
     const user = hass?.user;
-
+    console.log('Evaluating JavaScript template with context:', {
+      hass,
+      config,
+      entity,
+      entities,
+      states,
+      state,
+      item,
+      user,
+    });
     try {
       // eslint-disable-next-line no-new-func
       const fn = new Function(
@@ -156,6 +166,7 @@ export default class Templates {
         'entity',
         'entities',
         'states',
+        'state',
         'item',
         'user',
         `
@@ -164,7 +175,7 @@ export default class Templates {
         `,
       );
 
-      return fn(hass, config, entity, entities, states, item, user);
+      return fn(hass, config, entity, entities, states, state, item, user);
     } catch (error) {
       if (config?.dev?.debug) {
         console.error('[templates] JavaScript template error:', {
@@ -176,6 +187,41 @@ export default class Templates {
 
       return undefined;
     }
+  }
+  /** *****************************************************************************
+   * Returns the state value that should be used for JavaScript templates.
+   *
+   * If the configured entity uses an attribute, that attribute value is returned.
+   * Otherwise the normal entity state is returned.
+   *
+   * This allows templates to simply use `state`, regardless of whether the card
+   * displays the entity state itself or one of its attributes.
+   */
+
+  static _getTemplateState(item = {}) {
+    const entityIndex = Templates._getItemEntityIndex(item);
+    const entityState = Templates.context.entities?.[entityIndex];
+    const entityConfig = Templates.context.config?.entities?.[entityIndex] || {};
+
+    // Entity may not be available yet during initial render or reload.
+    if (!entityState) return undefined;
+
+    const attribute = entityConfig.attribute;
+
+    // If an attribute is configured and available, use that as template state.
+    // The explicit !== undefined check keeps valid values like 0, false and ''
+    // from being ignored.
+    if (attribute && entityState.attributes && entityState.attributes[attribute] !== undefined) {
+      return entityState.attributes[attribute];
+    }
+
+    // Fallback to the regular Home Assistant entity state.
+    return entityState.state;
+  }
+
+  static _getItemEntityIndex(item = {}) {
+    const entityIndex = Number(item.entity_index);
+    return Number.isFinite(entityIndex) ? entityIndex : 0;
   }
 
   /**

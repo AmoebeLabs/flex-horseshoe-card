@@ -70,6 +70,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
+    this._hass = undefined;
     this.entities = [];
     this.entitiesStr = [];
     this.attributesStr = [];
@@ -84,7 +85,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.names = {};
     this.animations.areas = {};
     this.animations.states = {};
-
+    this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
     this.isSafari = false;
@@ -225,9 +226,12 @@ class FlexHorseshoeCard extends LitElement {
 
       console.log('style test 8 - resolvedStyles', resolvedStyles);
       console.log('style test 8 - itemStyleDict', itemStyleDict);
-      if (this.config?.dev?.debug || true) {
+      if (this.config?.dev?.debug) {
         ColorStops._testColorStopsNormalizer();
       }
+
+      // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
+      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
     }
   }
 
@@ -769,6 +773,20 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
+  _resolveEntityConfigs(config) {
+    if (config?.dev?.debug) {
+      console.log('resolving entity config for', config?.entities);
+    }
+    return (
+      config?.entities?.map((entityConfig, index) => {
+        const item = {
+          entity_index: index,
+        };
+
+        return Templates.getJsTemplateOrValue(item, entityConfig);
+      }) ?? []
+    );
+  }
   /** *****************************************************************************
    * hass()
    *
@@ -780,6 +798,7 @@ class FlexHorseshoeCard extends LitElement {
   set hass(hass) {
     // This is a safe and fast method  // Set ref to hass, use "_"for the name ;-)
     this._hass = hass;
+    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
 
     var entityHasChanged = false;
 
@@ -790,9 +809,11 @@ class FlexHorseshoeCard extends LitElement {
     var newStateStr;
     var newAttributeStr;
 
+    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+
     // eslint-disable-next-line no-restricted-syntax
-    for (value of this.config.entities) {
-      const entityConfig = this.config.entities[index];
+    for (value of this.resolvedEntityConfigs) {
+      const entityConfig = this.resolvedEntityConfigs[index];
       const entity = hass.states[entityConfig.entity];
 
       if (!entity) {
@@ -842,11 +863,12 @@ class FlexHorseshoeCard extends LitElement {
 
     // #TODO: only if state or attribute has changed.
     var state = this.entities[0].state;
-    if (this.config.entities[0].attribute) {
-      if (this.entities[0].attributes[this.config.entities[0].attribute]) {
-        state = this.entities[0].attributes[this.config.entities[0].attribute];
+    if (this.resolvedEntityConfigs[0].attribute) {
+      if (this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute]) {
+        state = this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute];
       }
     }
+    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
     // Calculate the size of the arc to fill the dasharray with this
     // value. It will fill the horseshoe relative to the state and min/max
@@ -961,17 +983,7 @@ class FlexHorseshoeCard extends LitElement {
           if (item.circles) {
             item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
           }
-          // if (item.icons) {
-          //   item.icons.map((item2) => {
-          //     if (!this.animations.icons[item2.animation_id] || !item2.reuse) {
-          //       this.animations.icons[item2.animation_id] = {};
-          //       this.animations.iconsIcon[item2.animation_id] = {};
-          //     }
-          //     this.animations.icons[item2.animation_id] = Object.assign(this.animations.icons[item2.animation_id], ...item2.styles);
-          //     this.animations.iconsIcon[item2.animation_id] = Templates.getJsTemplateOrValue(item2, item2.icon);
-          //     return true;
-          //   });
-          // }
+
           if (item.icons) {
             item.icons.forEach((item2) => {
               const animationId = item2.animation_id;
@@ -992,34 +1004,11 @@ class FlexHorseshoeCard extends LitElement {
               this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
             });
           }
-          // Fetch icon too besides the default styles section
-          // if (item.icons) {
-          //   item.icons.forEach((item2) => {
-          //     const animationId = item2.animation_id;
-
-          //     if (animationId === undefined || animationId === null) return;
-
-          //     this._updateAnimationStyles('icons', item2);
-
-          //     if (!this.animations.iconsIcon[animationId] || !item2.reuse) {
-          //       this.animations.iconsIcon[animationId] = {};
-          //     }
-
-          //     this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
-          //   });
-          // }
 
           if (item.states) {
             item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
           }
 
-          // if (item.states) {
-          //   item.states.map((item2) => {
-          //     if (!this.animations.states[item2.animation_id] || !item2.reuse) this.animations.states[item2.animation_id] = {};
-          //     this.animations.states[item2.animation_id] = Object.assign(this.animations.states[item2.animation_id], ...item2.styles);
-          //     return true;
-          //   });
-          // }
           return true;
         });
         return true;
@@ -1062,21 +1051,6 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
-  _prepareItemColorStopsV1(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
-
-    layoutSections.forEach((section) => {
-      const items = config.layout?.[section];
-
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (!item.color_stops) return;
-
-        item._colorStops = item.color_stops;
-      });
-    });
-  }
   /** *****************************************************************************
    * setConfig()
    *
@@ -1105,12 +1079,14 @@ class FlexHorseshoeCard extends LitElement {
       throw Error('No color_stops defined or not at least two colorstops');
     }
 
+    const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
+
     // testing
-    if (config.entities) {
-      const newdomain = this._computeDomain(config.entities[0].entity);
+    if (resolvedEntitiesConfig) {
+      const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
       if (newdomain !== 'sensor') {
         // If not a sensor, check if attribute is a number. If so, continue, otherwise Error...
-        if (config.entities[0].attribute && !isNaN(config.entities[0].attribute)) {
+        if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
           throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
         }
       }
@@ -1133,37 +1109,12 @@ class FlexHorseshoeCard extends LitElement {
     };
 
     // eslint-disable-next-line no-restricted-syntax
-    for (var entityValue of newConfig.entities) {
+    for (var entityValue of resolvedEntitiesConfig) {
       if (!entityValue.tap_action) {
         entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
       }
     }
 
-    // let colorStops = {};
-    // //    colorStops[newConfig.horseshoe_scale.min] = newConfig.horseshoe_state.color || '#03a9f4';
-    // if (newConfig.color_stops) {
-    //   Object.keys(newConfig.color_stops).forEach((key) => {
-    //     colorStops[key] = newConfig.color_stops[key];
-    //   });
-    // }
-
-    // const sortedStops = Object.keys(colorStops)
-    //   .map((n) => Number(n))
-    //   .sort((a, b) => a - b);
-    // this.colorStops = colorStops;
-    // this.sortedStops = sortedStops;
-
-    // // Create a colorStopsMinMax list for autominmax color determination
-    // let colorStopsMinMax = {};
-    // colorStopsMinMax[newConfig.horseshoe_scale.min] = colorStops[sortedStops[0]];
-    // colorStopsMinMax[newConfig.horseshoe_scale.max] = colorStops[sortedStops[sortedStops.length - 1]];
-
-    // this.colorStopsMinMax = colorStopsMinMax;
-
-    // // Now set the color0 and color1 for the gradient used in the horseshoe to the colors
-    // // Use default for now!!
-    // this.color0 = colorStops[sortedStops[0]];
-    // this.color1 = colorStops[sortedStops[sortedStops.length - 1]];
     const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: 0 }, newConfig.color_stops, { resolveKeys: true });
 
     this.colorStops = ColorStops.normalize(resolvedColorStops);
@@ -1203,11 +1154,9 @@ class FlexHorseshoeCard extends LitElement {
         this.iconsId[index] = Math.random().toString(36).substr(2, 9);
       });
     }
-  }
 
-  _getItemEntityIndex(item = {}) {
-    const entityIndex = Number(item.entity_index);
-    return Number.isFinite(entityIndex) ? entityIndex : 0;
+    // Set context for Template execution, so that templates can access these variables when executed.
+    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
   }
 
   _getItemStateValue(item = {}) {
@@ -1291,32 +1240,14 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
-  renderV1({ config } = this) {
-    const configStyle = this._mergeStyles({}, { styles: this.config?.styles });
-    const cardStyle = this._buildStyleString([configStyle]);
+  // _buildStyleString(styles) {
+  //   // console.log('Building style string for styles: ', styles);
+  //   if (!styles) return '';
 
-    return html`
-      <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style="${cardStyle}">
-        <div class="container" id="container">${this._renderSvg()}</div>
-
-        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
-            <stop offset="${this.color1_offset}" stop-color="${this.color1}" />
-            <stop offset="100%" stop-color="${this.color0}" />
-          </linearGradient>
-        </svg>
-      </ha-card>
-    `;
-  }
-
-  _buildStyleString(styles) {
-    // console.log('Building style string for styles: ', styles);
-    if (!styles) return '';
-
-    return Object.entries(Object.assign({}, ...styles))
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(' ');
-  }
+  //   return Object.entries(Object.assign({}, ...styles))
+  //     .map(([key, value]) => `${key}: ${value}`)
+  //     .join(' ');
+  // }
 
   /** *****************************************************************************
    * renderTickMarks()
@@ -1566,7 +1497,7 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+      const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
 
       return svg`
         <text
@@ -1580,51 +1511,6 @@ class FlexHorseshoeCard extends LitElement {
               ${name}</tspan>
         </text>
       `;
-    });
-
-    return svg`${svgItems}`;
-  }
-
-  _renderEntityNamesV1() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.names) return;
-
-    const svgItems = layout.names.map((item) => {
-      // compute some styling elements if configured for this name item
-      const ENTITY_NAME_STYLES = {
-        'font-size': '1.5em;',
-        color: 'var(--primary-text-color);',
-        opacity: '1.0;',
-        'text-anchor': 'middle;',
-      };
-
-      // Get configuration styles as the default styles
-      // Replace with merge function to allow JavaScript templating.
-      let configStyle = this._mergeStyles(ENTITY_NAME_STYLES, item);
-
-      // Get the runtime styles, caused by states & animation settings
-      let stateStyle = {};
-      if (this.animations.names[item.index]) stateStyle = Object.assign(stateStyle, this.animations.names[item.index]);
-
-      const stopColor = this._getItemColorFromStops(item);
-      if (stopColor) {
-        stateStyle.fill = stopColor;
-      }
-      // Merge the two, where the runtime styles may overwrite the statically configured styles
-      configStyle = { ...configStyle, ...stateStyle };
-
-      // Convert javascript records to plain text, without "{}" and "," between the styles.
-      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-      const name = this._buildName(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-
-      return svg`
-      <text>
-        <tspan class="entity__name" x="${item.xpos}%" y="${item.ypos}%" style="${configStyleStr}">${name}</tspan>
-      </text>
-          `;
     });
 
     return svg`${svgItems}`;
@@ -1678,7 +1564,7 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const area = this._buildArea(this.entities[item.entity_index], this.config.entities[item.entity_index]);
+      const area = this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
 
       return svg`
         <text
@@ -1692,50 +1578,6 @@ class FlexHorseshoeCard extends LitElement {
               ${area}</tspan>
         </text>
       `;
-    });
-
-    return svg`${svgItems}`;
-  }
-
-  _renderEntityAreasV1() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.areas) return;
-
-    const svgItems = layout.areas.map((item) => {
-      const AREA_STYLES = {
-        'font-size': '1em;',
-        color: 'var(--primary-text-color);',
-        opacity: '1.0;',
-        'text-anchor': 'middle;',
-      };
-
-      // Get configuration styles as the default styles
-      let configStyle = this._mergeStyles(AREA_STYLES, item);
-
-      // Get the runtime styles, caused by states & animation settings
-      let stateStyle = {};
-      if (this.animations.areas[item.index]) stateStyle = Object.assign(stateStyle, this.animations.areas[item.index]);
-
-      const stopColor = this._getItemColorFromStops(item);
-      if (stopColor) {
-        stateStyle.fill = stopColor;
-      }
-
-      // Merge the two, where the runtime styles may overwrite the statically configured styles
-      configStyle = { ...configStyle, ...stateStyle };
-
-      // Convert javascript records to plain text, without "{}" and "," between the styles.
-      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-      const area = this._buildArea(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-
-      return svg`
-      <text class="entity__area">
-        <tspan class="entity__area" x="${item.xpos}%" y="${item.ypos}%" style="${configStyleStr}">${area}</tspan>
-      </text>
-          `;
     });
 
     return svg`${svgItems}`;
@@ -1842,9 +1684,10 @@ class FlexHorseshoeCard extends LitElement {
     //   itemUomStyleDict,
     //   uomStyle,
     // });
-    const uom = this._buildUom(this.entities[entityIndex], this.config.entities[entityIndex]);
+    const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
 
-    const state = this.config.entities[entityIndex].attribute && this.entities[entityIndex].attributes[this.config.entities[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+    const state =
+      this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
 
     return svg`
       <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
@@ -1863,205 +1706,6 @@ class FlexHorseshoeCard extends LitElement {
         >${uom}</tspan>
       </text>
     `;
-  }
-
-  _renderStateV2(item) {
-    if (!item) return svg``;
-
-    const entityIndex = item.entity_index ?? 0;
-
-    // compute x,y or dx,dy positions. Spec none if not specified.
-    const x = item.xpos ? item.xpos : '';
-    const y = item.ypos ? item.ypos : '';
-    const dx = item.dx ? item.dx : '0';
-    const dy = item.dy ? item.dy : '0';
-
-    const STATE_STYLES = {
-      'font-size': '1em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-
-    const UOM_STYLES = {
-      opacity: '0.7',
-    };
-
-    // Config styles.
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    // Runtime animation styles. Animation styles win later.
-    let stateStyle = {};
-    if (this.animations?.states?.[item.animation_id]) {
-      stateStyle = {
-        ...this.animations.states[item.animation_id],
-      };
-    }
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.fill = stopColor;
-    }
-
-    // Runtime styles overwrite statically configured styles.
-    const configStyle = {
-      ...STATE_STYLES,
-      ...itemStyleDict,
-      ...stateStyle,
-    };
-
-    // Get font-size of state in configStyle.
-    const fsuomStr = configStyle['font-size'];
-
-    let fsuomValue = 0.5;
-    let fsuomType = 'em';
-
-    const fsuomSplit = String(fsuomStr).match(/\D+|\d*\.?\d+/g);
-
-    if (fsuomSplit?.length === 2) {
-      fsuomValue = Number(fsuomSplit[0]) * 0.6;
-      fsuomType = fsuomSplit[1];
-    } else {
-      console.error('Cannot determine font-size for state', fsuomStr);
-    }
-
-    const fsuomStyle = {
-      'font-size': `${fsuomValue}${fsuomType}`,
-    };
-
-    const uomStyle = {
-      ...configStyle,
-      ...UOM_STYLES,
-      ...fsuomStyle,
-    };
-
-    const uom = this._buildUom(this.entities[entityIndex], this.config.entities[entityIndex]);
-
-    const state = this.config.entities[entityIndex].attribute && this.entities[entityIndex].attributes[this.config.entities[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
-
-    return svg`
-    <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
-      <tspan
-        class="state__value"
-        x="${x}%"
-        y="${y}%"
-        dx="${dx}em"
-        dy="${dy}em"
-        style=${styleMap(configStyle)}
-      >
-        ${state}
-      </tspan>
-      <tspan
-        class="state__uom"
-        dx="-0.1em"
-        dy="-0.45em"
-        style=${styleMap(uomStyle)}
-      >
-        ${uom}
-      </tspan>
-    </text>
-  `;
-  }
-
-  _renderStateV1(item) {
-    if (!item) return;
-
-    // compute x,y or dx,dy positions. Spec none if not specified.
-    const x = item.xpos ? item.xpos : '';
-    const y = item.ypos ? item.ypos : '';
-    const dx = item.dx ? item.dx : '0';
-    const dy = item.dy ? item.dy : '0';
-
-    // compute some styling elements if configured for this state item
-    const STATE_STYLES = {
-      'font-size': '1em;',
-      color: 'var(--primary-text-color);',
-      opacity: '1.0;',
-      'text-anchor': 'middle;',
-    };
-
-    const UOM_STYLES = {
-      opacity: '0.7;',
-    };
-
-    // Get configuration styles as the default styles
-    let configStyle = this._mergeStyles(STATE_STYLES, item);
-
-    // Get the runtime styles, caused by states & animation settings
-    let stateStyle = {};
-    console.log('Animations for states', this.animations.states, item?.index);
-    if (this.animations.states[item.index]) stateStyle = Object.assign(stateStyle, this.animations.states[item.index]);
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.fill = stopColor;
-    }
-
-    // Merge the two, where the runtime styles may overwrite the statically configured styles
-    configStyle = { ...configStyle, ...stateStyle };
-
-    // Convert javascript records to plain text, without "{}" and "," between the styles.
-    const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-    // Get font-size of state in configStyle.
-    // Split value and px/em; See: https://stackoverflow.com/questions/3370263/separate-integers-and-text-in-a-string
-    // For floats and strings:
-    //  - https://stackoverflow.com/questions/17374893/how-to-extract-floating-numbers-from-strings-in-javascript
-
-    // 2019.09.12
-    // https://stackoverflow.com/questions/40758143/regular-expression-to-split-double-and-integer-numbers-in-a-string
-    // https://regex101.com/r/QYfDtB/1
-    // regex \D+|\d*\.?\d+ (met /g van global matches) zou het wel  moeten doen. Deze haalt goed de 1.27em; uit elkaar
-    // in twee stukken, dus 1.27 en em;
-
-    var fsuomStr = configStyle['font-size'];
-
-    var fsuomValue = 0.5;
-    var fsuomType = 'em;';
-    const fsuomSplit = fsuomStr.match(/\D+|\d*\.?\d+/g);
-    if (fsuomSplit.length === 2) {
-      fsuomValue = Number(fsuomSplit[0]) * 0.6;
-      fsuomType = fsuomSplit[1];
-    } else console.error('Cannot determine font-size for state', fsuomStr);
-
-    fsuomStr = { 'font-size': fsuomValue + fsuomType };
-
-    let uomStyle = { ...configStyle, ...UOM_STYLES, ...fsuomStr };
-    const uomStyleStr = JSON.stringify(uomStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-    const uom = this._buildUom(this.entities[item.entity_index], this.config.entities[item.entity_index]);
-
-    const state =
-      this.config.entities[item.entity_index].attribute && this.entities[item.entity_index].attributes[this.config.entities[item.entity_index].attribute]
-        ? this.attributesStr[item.entity_index]
-        : this.entitiesStr[item.entity_index];
-
-    if (this._computeDomain(this.entities[item.entity_index].entity_id) === 'sensor') {
-      return svg`
-      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-        style="${configStyleStr}">
-        ${state}</tspan>
-        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-        style="${uomStyleStr}">
-        ${uom}</tspan>
-      </text>
-      `;
-    } else {
-      // Not a sensor. Might be any other domain. Unit can only be specified using the units: in the configuration.
-      // Still check for using an attribute value for the domain...
-      return svg`
-      <text @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}>
-        <tspan class="state__value" x="${x}%" y="${y}%" dx="${dx}em" dy="${dy}em" 
-        style="${configStyleStr}">
-        ${state}</tspan>
-        <tspan class="state__uom" dx="-0.1em" dy="-0.45em"
-        style="${uomStyleStr}">
-        ${uom}</tspan>
-      </text>
-      `;
-    }
   }
 
   /** *****************************************************************************
@@ -2120,33 +1764,15 @@ class FlexHorseshoeCard extends LitElement {
     let ypx = cy - iconPixels * adjust;
     let foIconPixels = iconPixels;
 
-    // let configStyle = this._mergeStyles({}, item);
-
-    // let stateStyle = {};
-    // if (this.animations.icons[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.icons[item.animation_id]);
-
-    // const stopColor = this._getItemColorFromStops(item);
-    // if (stopColor) {
-    //   configStyle.fill = stopColor;
-    // }
-
-    // // Merge the two, where the runtime styles may overwrite the statically configured styles
-    // configStyle = { ...configStyle, ...stateStyle };
-
-    // const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-    // const icon = this._buildIcon(this.entities[item.entity_index], this.config.entities[item.entity_index], this.animations.iconsIcon[item.animation_id]);
     const entityIndex = item.entity_index ?? 0;
 
-    // Config styles van het icon zelf.
+    // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
 
     // Runtime animation styles.
     const stateStyle = this.animations?.icons?.[item.animation_id] ?? {};
 
-    // Stop color hoort vóór de animation merge,
-    // zodat animation styles uiteindelijk mogen winnen.
     const stopColor = this._getItemColorFromStops(item);
     if (stopColor) {
       configStyle.fill = stopColor;
@@ -2158,7 +1784,7 @@ class FlexHorseshoeCard extends LitElement {
       ...stateStyle,
     };
 
-    const icon = this._buildIcon(this.entities[entityIndex], this.config.entities[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -2429,49 +2055,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`${svgItems}`;
   }
 
-  _renderHorizontalLinesV1() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.hlines) return;
-
-    // compute some styling elements if configured for this state item
-    const HLINES_STYLES = {
-      'stroke-linecap': 'round;',
-      stroke: 'var(--primary-text-color);',
-      opacity: '1.0;',
-      'stroke-width': '2;',
-    };
-
-    const svgItems = layout.hlines.map((item) => {
-      let configStyle = this._mergeStyles(HLINES_STYLES, item);
-
-      // Get the runtime styles, caused by states & animation settings
-      let stateStyle = {};
-      if (this.animations.hlines[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.hlines[item.animation_id]);
-
-      const stopColor = this._getItemColorFromStops(item);
-      if (stopColor) {
-        stateStyle.fill = stopColor;
-      }
-
-      // Merge the two, where the runtime styles may overwrite the statically configured styles
-      configStyle = { ...configStyle, ...stateStyle };
-
-      // Convert javascript records to plain text, without "{}" and "," between the styles.
-      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-      item.entity_index = item.entity_index ? item.entity_index : 0;
-
-      return svg`
-          <line @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-           class="line__horizontal" x1="${item.xpos - item.length / 2}%" y1="${item.ypos}%" x2="${item.xpos + item.length / 2}%" y2="${item.ypos}%" style="${configStyleStr}"/>
-          `;
-    });
-
-    return svg`${svgItems}`;
-  }
-
   /** *****************************************************************************
    * _renderVerticalLines()
    *
@@ -2535,51 +2118,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`${svgItems}`;
   }
 
-  _renderVerticalLinesV1() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.vlines) return;
-
-    const VLINES_STYLES = {
-      'stroke-linecap': 'round;',
-      stroke: 'var(--primary-text-color);',
-      opacity: '1.0;',
-      'stroke-width': '2;',
-    };
-
-    const svgItems = layout.vlines.map((item) => {
-      // Get configuration styles as the default styles
-      // let configStyle = { ...VLINES_STYLES };
-      // configStyle = Object.assign(configStyle, ...item.styles);
-      let configStyle = this._mergeStyles(VLINES_STYLES, item);
-
-      // Get the runtime styles, caused by states & animation settings
-      let stateStyle = {};
-      if (this.animations.vlines[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.vlines[item.animation_id]);
-
-      const stopColor = this._getItemColorFromStops(item);
-      if (stopColor) {
-        stateStyle.fill = stopColor;
-      }
-
-      // Merge the two, where the runtime styles may overwrite the statically configured styles
-      configStyle = { ...configStyle, ...stateStyle };
-
-      // Convert javascript records to plain text, without "{}" and "," between the styles.
-      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-      item.entity_index = item.entity_index ? item.entity_index : 0;
-
-      return svg`
-          <line @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])} 
-           class="line__vertical" x1="${item.xpos}%" y1="${item.ypos - item.length / 2}%" x2="${item.xpos}%" y2="${item.ypos + item.length / 2}%" style="${configStyleStr}"/>
-          `;
-    });
-
-    return svg`${svgItems}`;
-  }
-
   /** *****************************************************************************
    * _renderCircles()
    *
@@ -2634,44 +2172,6 @@ class FlexHorseshoeCard extends LitElement {
     `;
     });
 
-    return svg`${svgItems}`;
-  }
-
-  _renderCirclesV1() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.circles) return;
-
-    const svgItems = layout.circles.map((item) => {
-      // Get configuration styles as the default styles
-      // let configStyle = {};
-      // if (item.styles) configStyle = Object.assign(configStyle, ...item.styles);
-      let configStyle = this._mergeStyles({}, item);
-
-      // Get the runtime styles, caused by states & animation settings
-      let stateStyle = {};
-      if (this.animations.circles[item.animation_id]) stateStyle = Object.assign(stateStyle, this.animations.circles[item.animation_id]);
-
-      const stopColor = this._getItemColorFromStops(item);
-      if (stopColor) {
-        stateStyle.fill = stopColor;
-      }
-
-      // Merge the two, where the runtime styles may overwrite the statically configured styles
-      configStyle = { ...configStyle, ...stateStyle };
-
-      // Convert javascript records to plain text, without "{}" and "," between the styles.
-      const configStyleStr = JSON.stringify(configStyle).slice(1, -1).replace(/"/g, '').replace(/,/g, '');
-
-      item.entity_index = item.entity_index ? item.entity_index : 0;
-
-      return svg`
-        <circle class="svg__dot" @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-        cx="${item.xpos}%" cy="${item.ypos}%" r="${item.radius}"
-        style="${configStyleStr}"/>          
-        `;
-    });
     return svg`${svgItems}`;
   }
 
@@ -2733,7 +2233,7 @@ class FlexHorseshoeCard extends LitElement {
   handlePopup(e, entity) {
     e.stopPropagation();
 
-    this._handleClick(this, this._hass, this.config, this.config.entities[this.config.entities.findIndex((element, index, array) => element.entity === entity.entity_id)].tap_action, entity.entity_id);
+    this._handleClick(this, this._hass, this.config, this.resolvedEntityConfigs[this.resolvedEntityConfigs.findIndex((element, index, array) => element.entity === entity.entity_id)].tap_action, entity.entity_id);
   }
 
   /** *****************************************************************************
@@ -2866,35 +2366,6 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return lastStop.color;
-  }
-
-  _calculateStrokeColorV1(state, stops, gradient) {
-    const sortedStops = Object.keys(stops)
-      .map((n) => Number(n))
-      .sort((a, b) => a - b);
-    let start;
-    let end;
-    let val;
-    const l = sortedStops.length;
-    if (state <= sortedStops[0]) {
-      return stops[sortedStops[0]];
-    } else if (state >= sortedStops[l - 1]) {
-      return stops[sortedStops[l - 1]];
-    } else {
-      for (let i = 0; i < l - 1; i++) {
-        const s1 = sortedStops[i];
-        const s2 = sortedStops[i + 1];
-        if (state >= s1 && state < s2) {
-          [start, end] = [stops[s1], stops[s2]];
-          if (!gradient) {
-            return start;
-          }
-          val = this._calculateValueBetween(s1, s2, state);
-          break;
-        }
-      }
-    }
-    return this._getGradientValue(start, end, val);
   }
 
   /** *****************************************************************************
@@ -3046,220 +2517,6 @@ class FlexHorseshoeCard extends LitElement {
 
   getCardSize() {
     return 4;
-  }
-
-  /** *****************************************************************************
-   * Returns the state value that should be used for JavaScript templates.
-   *
-   * If the configured entity uses an attribute, that attribute value is returned.
-   * Otherwise the normal entity state is returned.
-   *
-   * This allows templates to simply use `state`, regardless of whether the card
-   * displays the entity state itself or one of its attributes.
-   */
-  _getTemplateState(item = {}) {
-    const entityIndex = this._getItemEntityIndex(item);
-    const entityState = this.entities?.[entityIndex];
-    const entityConfig = this.config?.entities?.[entityIndex] || {};
-
-    // Entity may not be available yet during initial render or reload.
-    if (!entityState) return undefined;
-
-    const attribute = entityConfig.attribute;
-
-    // If an attribute is configured and available, use that as template state.
-    // The explicit !== undefined check keeps valid values like 0, false and ''
-    // from being ignored.
-    if (attribute && entityState.attributes && entityState.attributes[attribute] !== undefined) {
-      return entityState.attributes[attribute];
-    }
-
-    // Fallback to the regular Home Assistant entity state.
-    return entityState.state;
-  }
-
-  /** *****************************************************************************
-   * Evaluates a JavaScript template.
-   *
-   * Templates are written in YAML between [[[ and ]]], for example:
-   *
-   *   fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
-   *
-   * The template receives a limited set of useful runtime values:
-   *
-   * - state          The current state value for this item
-   * - states         The full hass.states object
-   * - entity         The current Home Assistant entity object
-   * - user           The currently logged-in Home Assistant user
-   * - hass           The full Home Assistant hass object
-   * - tool_config    The current item configuration from YAML
-   * - entity_config  The matching entity configuration from config.entities
-   * - states_str     Cached rendered state strings
-   * - attributes_str Cached rendered attribute strings
-   *
-   * The template must return the value that should be used.
-   */
-  _evaluateJsTemplate(item, jsTemplate) {
-    const entityIndex = this._getItemEntityIndex(item);
-    const state = this._getTemplateState(item);
-    const entity = this.entities?.[entityIndex];
-    const entityConfig = this.config?.entities?.[entityIndex];
-
-    try {
-      // JavaScript templates are intentionally evaluated at runtime.
-      // Users are expected to control their own dashboard configuration.
-      // eslint-disable-next-line no-new-func
-      return new Function('state', 'states', 'entity', 'user', 'hass', 'tool_config', 'entity_config', 'states_str', 'attributes_str', `"use strict";\n${jsTemplate}`).call(
-        this,
-        state,
-        this._hass?.states || {},
-        entity,
-        this._hass?.user,
-        this._hass,
-        item,
-        entityConfig,
-        this.entitiesStr,
-        this.attributesStr,
-      );
-    } catch (e) {
-      // Rename the error so template issues are easier to recognize
-      // in the browser console.
-      e.name = 'FlexHorseshoeCard-evaluateJsTemplate-Error';
-
-      console.error('Error evaluating JS template', {
-        item,
-        jsTemplate,
-        error: e,
-      });
-
-      throw e;
-    }
-  }
-
-  /** *****************************************************************************
-   * Resolves a value that may contain JavaScript templates.
-   *
-   * This function is recursive:
-   *
-   * - primitive values are returned as-is
-   * - arrays are resolved item by item
-   * - objects are resolved property by property
-   * - strings surrounded by [[[ and ]]] are evaluated as JavaScript templates
-   * - normal strings are returned unchanged
-   *
-   * This makes it usable for complete style arrays such as:
-   *
-   * styles:
-   *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
-   *   - opacity: 0.5;
-   */
-  _getJsTemplateOrValue(item, value) {
-    // Keep undefined and null unchanged.
-    if (value === undefined || value === null) return value;
-
-    // Primitive non-string values cannot contain templates.
-    if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
-      return value;
-    }
-
-    // Resolve every item in an array.
-    // This is used heavily by YAML styles arrays.
-    if (Array.isArray(value)) {
-      return value.map((entry) => this._getJsTemplateOrValue(item, entry));
-    }
-
-    // Resolve every value in an object without mutating the original config.
-    if (typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([key, entryValue]) => [key, this._getJsTemplateOrValue(item, entryValue)]));
-    }
-
-    // At this point only strings can contain template syntax.
-    if (typeof value !== 'string') return value;
-
-    const trimmedValue = value.trim();
-
-    // JavaScript templates must occupy the full string and be wrapped in:
-    // [[[ ... ]]]
-    if (trimmedValue.startsWith('[[[') && trimmedValue.endsWith(']]]')) {
-      return this._evaluateJsTemplate(item, trimmedValue.slice(3, -3).trim());
-    }
-
-    // Plain string, no template.
-    return value;
-  }
-
-  /** *****************************************************************************
-   * Merges configured styles into a single style object.
-   *
-   * baseStyle contains default styles from the card code.
-   * item.styles contains YAML styles from the configuration.
-   *
-   * JavaScript templates inside item.styles are resolved before merging.
-   *
-   * Example YAML:
-   *
-   * styles:
-   *   - font-size: 3em;
-   *   - fill: '[[[ return Number(state) > 50 ? "red;" : "green;"; ]]]'
-   *
-   * Result:
-   *
-   * {
-   *   "font-size": "3em;",
-   *   "fill": "red;"
-   * }
-   */
-  _mergeStyles(baseStyle = {}, item = {}) {
-    // No configured styles, return a copy of the defaults.
-    if (!item.styles) {
-      return { ...baseStyle };
-    }
-
-    // Resolve possible JavaScript templates before merging the styles.
-    const resolvedStyles = this._getJsTemplateOrValue(item, item.styles);
-
-    // Existing YAML style format:
-    //
-    // styles:
-    //   - fill: white;
-    //   - opacity: 0.5;
-    //
-    // This becomes an array of objects and is merged into one object.
-    if (Array.isArray(resolvedStyles)) {
-      return Object.assign({}, baseStyle, ...resolvedStyles.filter((style) => style && typeof style === 'object'));
-    }
-
-    // Also support an already merged style object.
-    if (resolvedStyles && typeof resolvedStyles === 'object') {
-      return {
-        ...baseStyle,
-        ...resolvedStyles,
-      };
-    }
-
-    // Unsupported style format. Keep defaults.
-    return { ...baseStyle };
-  }
-
-  /** *****************************************************************************
-   * Converts a style object into an inline CSS string.
-   *
-   * Example input:
-   *
-   * {
-   *   fill: "red;",
-   *   opacity: "0.5;"
-   * }
-   *
-   * Example output:
-   *
-   * "fill: red; opacity: 0.5;"
-   */
-  _styleToString(style = {}) {
-    return Object.entries(style)
-      .filter(([, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => `${key}: ${String(value).trim()}`)
-      .join(' ');
   }
 }
 
