@@ -2941,6 +2941,16 @@ class FlexHorseshoeCard extends LitElement {
   handlePopup(e, entity) {
     e.stopPropagation();
 
+    const entityConfig = this.resolvedEntityConfigs.find((element) => element.entity === entity.entity_id);
+
+    const actionConfig = entityConfig?.tap_action ?? this.config?.tap_action ?? { action: 'more-info' };
+
+    this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
+  }
+
+  handlePopupV1(e, entity) {
+    e.stopPropagation();
+
     this._handleClick(this, this._hass, this.config, this.resolvedEntityConfigs[this.resolvedEntityConfigs.findIndex((element, index, array) => element.entity === entity.entity_id)].tap_action, entity.entity_id);
   }
 
