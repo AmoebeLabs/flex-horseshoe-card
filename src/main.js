@@ -20,10 +20,22 @@
 
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import { version } from '../package.json';
+import { selectUnit } from '@formatjs/intl-utils';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
+import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js';
+import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetime/format_date';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
+import { formatDuration } from './frontend_mods/datetime/duration.js';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain.js';
+
+import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
+import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
+import Colors from './colors.js';
+import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -2253,7 +2265,8 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      // const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      const name = this.textEllipsis(this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
       return svg`
         <text
@@ -2320,7 +2333,7 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const area = this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      const area = this.textEllipsis(this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
       return svg`
         <text
@@ -2440,10 +2453,14 @@ class FlexHorseshoeCard extends LitElement {
     //   itemUomStyleDict,
     //   uomStyle,
     // });
-    const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
+    // const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
 
-    const state =
-      this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+    // const state =
+    //   this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+    const entity = this.entities[entityIndex];
+    const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
+    const state = this._buildStateText(entity, entityConfig);
+    const uom = this._buildUom(entity, entityConfig);
 
     return svg`
       <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
@@ -2462,6 +2479,199 @@ class FlexHorseshoeCard extends LitElement {
         >${uom}</tspan>
       </text>
     `;
+  }
+
+  formatStateString(inState, entityConfig) {
+    const lang = this._hass.selectedLanguage || this._hass.language;
+    let locale = {};
+    locale.language = lang;
+
+    if (
+      [
+        'relative',
+        'total',
+        'datetime',
+        'datetime-short',
+        'datetime-short_with-year',
+        'datetime_seconds',
+        'datetime-numeric',
+        'date',
+        'date_month',
+        'date_month_year',
+        'date-short',
+        'date-numeric',
+        'date_weekday',
+        'date_weekday_day',
+        'date_weekday-short',
+        'time',
+        'time-24h',
+        'time-24h_date-short',
+        'time_weekday',
+        'time_seconds',
+      ].includes(entityConfig.format)
+    ) {
+      const timestamp = new Date(inState);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+        return inState;
+      }
+
+      // if (!EntityStateTool.testTimeDate) {
+      //   EntityStateTool.testTimeDate = true;
+      //   console.log('datetime', formatDateTime(timestamp, locale));
+      //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
+      //   console.log('date', formatDate(timestamp, locale));
+      //   console.log('date_month', formatDateMonth(timestamp, locale));
+      //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
+      //   console.log('date-short', formatDateShort(timestamp, locale));
+      //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
+      //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
+      //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
+      //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
+      //   console.log('time', formatTime(timestamp, locale));
+      //   console.log('time-24h', formatTime24h(timestamp, locale));
+      //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
+      //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
+      // }
+
+      let retValue;
+      // return date/time according to formatting...
+      switch (entityConfig.format) {
+        case 'relative':
+          // eslint-disable-next-line no-case-declarations
+          const diff = selectUnit(timestamp, new Date());
+          retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+          break;
+        case 'total':
+        case 'precision':
+          retValue = 'Not Yet Supported';
+          break;
+        case 'datetime':
+          retValue = formatDateTime(timestamp, locale);
+          break;
+        case 'datetime-short':
+          retValue = formatShortDateTime(timestamp, locale);
+          break;
+        case 'datetime-short_with-year':
+          retValue = formatShortDateTimeWithYear(timestamp, locale);
+          break;
+        case 'datetime_seconds':
+          retValue = formatDateTimeWithSeconds(timestamp, locale);
+          break;
+        case 'datetime-numeric':
+          retValue = formatDateTimeNumeric(timestamp, locale);
+          break;
+        case 'date':
+          retValue = formatDate(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
+          break;
+        case 'date_month':
+          retValue = formatDateMonth(timestamp, locale);
+          break;
+        case 'date_month_year':
+          retValue = formatDateMonthYear(timestamp, locale);
+          break;
+        case 'date-short':
+          retValue = formatDateShort(timestamp, locale);
+          break;
+        case 'date-numeric':
+          retValue = formatDateNumeric(timestamp, locale);
+          break;
+        case 'date_weekday':
+          retValue = formatDateWeekday(timestamp, locale);
+          break;
+        case 'date_weekday-short':
+          retValue = formatDateWeekdayShort(timestamp, locale);
+          break;
+        case 'date_weekday_day':
+          retValue = formatDateWeekdayDay(timestamp, locale);
+          break;
+        case 'time':
+          retValue = formatTime(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
+          break;
+        case 'time-24h':
+          retValue = formatTime24h(timestamp);
+          break;
+        case 'time-24h_date-short':
+          // eslint-disable-next-line no-case-declarations
+          const diff2 = selectUnit(timestamp, new Date());
+          if (['second', 'minute', 'hour'].includes(diff2.unit)) {
+            retValue = formatTime24h(timestamp);
+          } else {
+            retValue = formatDateShort(timestamp, locale);
+          }
+          break;
+        case 'time_weekday':
+          retValue = formatTimeWeekday(timestamp, locale);
+          break;
+        case 'time_seconds':
+          retValue = formatTimeWithSeconds(timestamp, locale);
+          break;
+        default:
+      }
+      return retValue;
+    }
+
+    if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
+      return inState;
+    }
+    if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
+      return `${Math.round((inState / 255) * 100)} %`;
+    }
+    if (entityConfig.format === 'duration') {
+      return formatDuration(inState, 's');
+    }
+  }
+
+  _buildStateText(stateObj, entityConfig = {}) {
+    if (!stateObj) return '';
+
+    const entityId = stateObj.entity_id;
+    const entity = this._hass.entities?.[entityId];
+    const entity2 = this._hass.states?.[entityId];
+    const domain = computeDomain(entityId);
+
+    let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
+    inState = this._buildState(inState, entityConfig);
+
+    if ([undefined, 'undefined'].includes(inState)) {
+      return '';
+    }
+
+    if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
+      inState = this.formatStateString(inState, entityConfig);
+    }
+
+    const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
+
+    if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
+      inState =
+        (localeTag && this._hass.localize(localeTag)) ||
+        (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
+        (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
+        this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
+        inState;
+
+      inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
+    }
+
+    if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
+      inState = this._hass.localize(`state.default.${inState}`);
+    }
+
+    if (!isNaN(inState)) {
+      let options = {};
+      options = getDefaultFormatOptions(inState, options);
+
+      if (entityConfig.decimals !== undefined) {
+        options.maximumFractionDigits = entityConfig.decimals;
+        options.minimumFractionDigits = options.maximumFractionDigits;
+      }
+
+      inState = formatNumber(inState, this._hass.locale, options);
+    }
+
+    return inState;
   }
 
   /** *****************************************************************************
@@ -3003,6 +3213,21 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /** *****************************************************************************
+   * Summary.
+   * Very simple form of ellipsis, which is not supported by SVG.
+   * Cutoff text at number of characters and add '...'.
+   * This does NOT take into account the actual width of a character!
+   *
+   */
+  textEllipsis(argText, argEllipsis) {
+    if (argEllipsis && argEllipsis < argText.length) {
+      return argText.slice(0, argEllipsis - 1).concat('...');
+    } else {
+      return argText;
+    }
+  }
+
+  /** *****************************************************************************
    * _buildArea()
    *
    * Summary.
@@ -3023,7 +3248,7 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   _buildName(entityState, entityConfig) {
-    return entityConfig.name || entityState.attributes.friendly_name;
+    return entityConfig.name ?? entityState.attributes.friendly_name ?? entityState?.entity_id ?? '?';
   }
 
   /** *****************************************************************************
@@ -3034,7 +3259,9 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   _buildIcon(entityState, entityConfig, entityAnimation) {
-    return entityAnimation || entityConfig?.icon || entityState?.attributes?.icon;
+    return (
+      entityAnimation || entityConfig?.icon || entityState?.attributes?.icon || stateIconName(entityState) // From modified HA files
+    );
   }
 
   /** *****************************************************************************
@@ -3059,7 +3286,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildState(inState, entityConfig) {
+  _buildStateV1(inState, entityConfig) {
     if (isNaN(inState)) return inState;
 
     const state = Number(inState);
@@ -3068,6 +3295,246 @@ class FlexHorseshoeCard extends LitElement {
 
     const x = 10 ** entityConfig.decimals;
     return (Math.round(state * x) / x).toFixed(entityConfig.decimals);
+  }
+
+  /** *****************************************************************************
+   * card::_buildStateString()
+   *
+   * Summary.
+   * Builds the State string.
+   * If state is not a number, the state is returned AS IS, otherwise the state
+   * is converted if specified before it is returned as a string
+   *
+   * IMPORTANT NOTE:
+   * - do NOT replace isNaN() by Number.isNaN(). They are INCOMPATIBLE !!!!!!!!!
+   */
+
+  _buildState(inState, entityConfig) {
+    // Keep undefined as state. Do NOT change this one!!
+    if (typeof inState === 'undefined') return inState;
+    // inState seems to be null when light is off!
+    if (inState === null) return inState;
+
+    // New in v2.5.1: Check for built-in state converters
+    if (entityConfig.convert) {
+      // Match converter with parameter between ()
+      let splitted = entityConfig.convert.match(/(^\w+)\((\d+)\)/);
+      let converter;
+      let parameter;
+      // If no parameters found, just the converter
+      if (splitted === null) {
+        converter = entityConfig.convert;
+      } else if (splitted.length === 3) {
+        // If parameter found, process...
+        converter = splitted[1];
+        parameter = Number(splitted[2]);
+      }
+      switch (converter) {
+        case 'brightness_pct':
+          inState = inState === 'undefined' ? 'undefined' : `${Math.round((inState / 255) * 100)}`;
+          break;
+        case 'multiply':
+          inState = `${Math.round(inState * parameter)}`;
+          break;
+        case 'divide':
+          inState = `${Math.round(inState / parameter)}`;
+          console.log('divide converter', { inState, parameter });
+          break;
+        case 'rgb_csv':
+        case 'rgb_hex':
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/dialogs/more-info/components/lights/ha-favorite-color-button.ts#L39
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/common/color/convert-light-color.ts
+          // private get _rgbColor(): [number, number, number] {
+          //   if (this.color) {
+          //     if ("hs_color" in this.color) {
+          //       return hs2rgb([this.color.hs_color[0], this.color.hs_color[1] / 100]);
+          //     }
+          //     if ("color_temp_kelvin" in this.color) {
+          //       return temperature2rgb(this.color.color_temp_kelvin);
+          //     }
+          //     if ("rgb_color" in this.color) {
+          //       return this.color.rgb_color;
+          //     }
+          //     if ("rgbw_color" in this.color) {
+          //       return rgbw2rgb(this.color.rgbw_color);
+          //     }
+          //     if ("rgbww_color" in this.color) {
+          //       return rgbww2rgb(
+          //         this.color.rgbww_color,
+          //         this.stateObj?.attributes.min_color_temp_kelvin,
+          //         this.stateObj?.attributes.max_color_temp_kelvin
+          //       );
+          //     }
+          //   }
+          //   return [255, 255, 255];
+          // }
+          if (entityConfig.attribute) {
+            let entity = this._hass.states[entityConfig.entity];
+            switch (entity.attributes.color_mode) {
+              case 'unknown':
+                break;
+              case 'onoff':
+                break;
+              case 'brightness':
+                break;
+              case 'color_temp':
+                if (entity.attributes.color_temp_kelvin) {
+                  let rgb = temperature2rgb(entity.attributes.color_temp_kelvin);
+
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
+
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else {
+                  if (converter === 'rgb_csv') {
+                    inState = `${255},${255},${255}`;
+                  } else {
+                    inState = '#ffffff00';
+                  }
+                }
+                break;
+              case 'hs':
+                {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgb':
+                {
+                  const hsvColor = rgb2hsv(this.stateObj.attributes.rgb_color);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  const rgbColor = hsv2rgb(hsvColor);
+                  if (converter === 'rgb_csv') {
+                    inState = rgbColor.toString();
+                  } else {
+                    inState = rgb2hex(rgbColor);
+                  }
+                }
+                break;
+              case 'rgbw':
+                {
+                  let rgb = rgbw2rgb(entity.attributes.rgbw_color);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgbww':
+                {
+                  let rgb = rgbww2rgb(entity.attributes.rgbww_color, entity.attributes?.min_color_temp_kelvin, entity.attributes?.max_color_temp_kelvin);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'white':
+                break;
+              case 'xy':
+                if (entity.attributes.hs_color) {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  // https://github.com/home-assistant/frontend/blob/8580d3f9bf59ffbcbe4187a0d7a58cc23d9822df/src/dialogs/more-info/components/lights/ha-more-info-light-brightness.ts#L76
+                  // background slider has opacity of 0.2. Looks nice also, yes??
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else if (entity.attributes.color) {
+                  // We should have h and s, including brightness...
+                  let hsl = {};
+                  hsl.l = entity.attributes.brightness;
+                  hsl.h = entity.attributes.color.h || entity.attributes.color.hue;
+                  hsl.s = entity.attributes.color.s || entity.attributes.color.saturation;
+                  // Convert HSL value to RGB
+                  // HERE
+                  let { r, g, b } = Colors.hslToRgb(hsl);
+                  if (converter === 'rgb_csv') {
+                    inState = `${r},${g},${b}`;
+                  } else {
+                    const rHex = Colors.padZero(r.toString(16));
+                    const gHex = Colors.padZero(g.toString(16));
+                    const bHex = Colors.padZero(b.toString(16));
+                    inState = `#${rHex}${gHex}${bHex}`;
+                  }
+                } else if (entity.attributes.xy_color) {
+                }
+                break;
+              default:
+                break;
+            }
+          }
+          break;
+        default:
+          console.error(`Unknown converter [${converter}] specified for entity [${entityConfig.entity}]!`);
+          break;
+      }
+    }
+    if (typeof inState === 'undefined') {
+      return undefined;
+    }
+    if (Number.isNaN(inState)) {
+      return inState;
+    }
+    return inState.toString();
   }
 
   /** *****************************************************************************
