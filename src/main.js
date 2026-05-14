@@ -2013,8 +2013,6 @@ class FlexHorseshoeCard extends LitElement {
     const barMode = horseshoe.bar_mode || 'normal';
     const radius = `${horseshoe.radius}%`;
 
-    const fill = horseshoe.fill || 'rgba(0, 0, 0, 0)';
-
     const scaleStroke = horseshoe.horseshoe_scale.color || '#000000';
     const scaleStrokeWidth = horseshoe.horseshoe_scale.width || 6;
     const stateStrokeWidth = horseshoe.horseshoe_state.width || 12;
