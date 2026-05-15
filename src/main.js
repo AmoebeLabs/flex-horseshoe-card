@@ -112,6 +112,7 @@ class FlexHorseshoeCard extends LitElement {
     this.isSafari = false;
     this.iOS = false;
 
+    this.resolvedVariables = {};
     this.iconCache = {};
     this.iconsSvg = [];
     this.pendingIconPath = [];
@@ -2217,6 +2218,55 @@ class FlexHorseshoeCard extends LitElement {
    * Renders a single icon.
    *
    */
+  computeEntityColor(entityState) {
+    // 1. Fallback: Als de data ontbreekt of onbereikbaar is -> neutraal
+    if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
+      return 'var(--state-icon-color)';
+    }
+
+    const state = entityState.state;
+
+    // 2. DE FIX VOOR ATTRIBUTEN/SENSOREN:
+    // Als de waarde een getal is (zoals 45, 230, 1.5) of een meting, is het een sensor.
+    // Sensoren en attributen horen ALTIJD de neutrale inactieve kleur te krijgen.
+    if (!isNaN(state) || state.endsWith('W') || state.endsWith('kWh') || state.endsWith('V')) {
+      return 'var(--state-icon-color)';
+    }
+
+    const domain = entityState.entity_id.split('.')[0];
+    const deviceClass = entityState.attributes.device_class;
+
+    // Extra check: als het domein zelf 'sensor' is, ook altijd neutraal
+    if (domain === 'sensor') {
+      return 'var(--state-icon-color)';
+    }
+
+    // 3. Alleen voor échte binaire acties (aan/uit) pakken we de HA-kleuren:
+
+    // A: Kleurlampen (RGB)
+    if (domain === 'light' && entityState.attributes.rgb_color && state === 'on') {
+      const [r, g, b] = entityState.attributes.rgb_color;
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // B: Binary sensoren met een klasse (sound, tamper, motion)
+    if (domain === 'binary_sensor' && deviceClass && state === 'on') {
+      return `var(--state-binary_sensor-${deviceClass}-on-color, var(--state-icon-active-color))`;
+    }
+
+    // C: Klimaat
+    if (domain === 'climate') {
+      return `var(--state-climate-${state}-color, var(--state-icon-active-color))`;
+    }
+
+    // D: Standaard aan/uit apparaten (gewone lampen / switches die 'on' staan)
+    if (state === 'on') {
+      return `var(--state-${domain}-active-color, var(--state-${domain}-color, var(--state-icon-active-color)))`;
+    }
+
+    // Alles wat overblijft is inactief
+    return 'var(--state-icon-color)';
+  }
 
   _renderIcon(item, index) {
     if (!item) return;
@@ -2245,6 +2295,38 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
+    // Test...
+    // render() {
+    //   // Dit is de entiteit die je wilt tonen (komt bijv. uit je kaart-configuratie)
+    //   const entityId = "light.woonkamer";
+
+    //   // 1. Maak van 'light.woonkamer' -> 'light-woonkamer'
+    //   const safeId = entityId.replace('.', '-');
+
+    //   // 2. Bouw de CSS-variabele string met de automatische fallback naar inactief
+    //   const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
+
+    //   // 3. Injecteer dit direct in de 'fill' van je path of de 'style' van de group
+    //   return html`
+    //     <svg viewBox="0 0 24 24" width="24" height="24">
+    //       <g style="color: ${dynamicColor};">
+    //         <rect width="24" height="24" fill="rgba(0,0,0,0)"/>
+    //         <!-- fill="currentColor" pakt de kleur die we hierboven op de groep hebben gezet -->
+    //         <path fill="currentColor" d="M12,2A10..." />
+    //       </g>
+    //     </svg>
+    //   `;
+    // }
+
+    const entityState = this.entities[entityIndex];
+    const entityColor = this.computeEntityColor(entityState);
+    // const entityId = this.config.entities[entityIndex].entity;
+    // const safeId = entityId.replace('.', '-');
+    // const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
+    const DEFAULT_ICON_COLOR = {};
+    DEFAULT_ICON_COLOR.fill = entityColor;
+    DEFAULT_ICON_COLOR.color = entityColor;
+    console.log('dynamic icon color is', DEFAULT_ICON_COLOR);
     // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
@@ -2259,6 +2341,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Runtime animation styles overwrite static/config styles.
     configStyle = {
+      ...DEFAULT_ICON_COLOR,
       ...configStyle,
       ...stateStyle,
     };
@@ -2743,7 +2826,28 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   _buildArea(entityState, entityConfig) {
-    return entityConfig.area || '?';
+    if (entityConfig.area) {
+      return entityConfig.area;
+    }
+    if (!this._hass || !this._hass.areas) return '';
+
+    // 1. Haal de live-registratie van de entiteit op
+    const entityRegistry = this._hass.entities && this._hass.entities[entityConfig.entity];
+    // 2. Kijk of de entiteit DIRECT een area_id heeft gekregen
+    let areaId = entityRegistry ? entityRegistry.area_id : null;
+
+    // 3. Als de entiteit geen directe ruimte heeft, kijk dan of hij via een device gekoppeld is
+    if (!areaId && entityRegistry && entityRegistry.device_id && this._hass.devices) {
+      const device = this._hass.devices[entityRegistry.device_id];
+      areaId = device ? device.area_id : null;
+    }
+
+    // 4. Zoek de area-naam op in het register met de gevonden areaId
+    if (areaId) {
+      const area = this._hass.areas[areaId];
+      return area ? area.name : '';
+    }
+    return '?';
   }
 
   /** *****************************************************************************
