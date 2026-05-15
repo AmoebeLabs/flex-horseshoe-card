@@ -87,6 +87,8 @@ class FlexHorseshoeCard extends LitElement {
   constructor() {
     super();
 
+    Colors.setElement(this);
+
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
@@ -3592,9 +3594,10 @@ class FlexHorseshoeCard extends LitElement {
           return startStop.color;
         }
 
-        const valueBetween = this._calculateValueBetween(startStop.value, endStop.value, numericState);
+        const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
 
-        return this._getGradientValue(startStop.color, endStop.color, valueBetween);
+        // return this._getGradientValue(startStop.color, endStop.color, valueBetween);
+        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
       }
     }
 
@@ -3609,23 +3612,23 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _calculateValueBetween(start, end, val) {
-    return (Math.min(Math.max(val, start), end) - start) / (end - start);
-  }
+  // _calculateValueBetween(start, end, val) {
+  //   return (Math.min(Math.max(val, start), end) - start) / (end - start);
+  // }
 
-  _getLovelacePanel() {
-    var root = window.document.querySelector('home-assistant');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('home-assistant-main');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-    root = (root && root.shadowRoot) || root;
-    root = root && root.querySelector('ha-panel-lovelace');
-    if (root) {
-      return root;
-    }
-    return null;
-  }
+  // _getLovelacePanel() {
+  //   var root = window.document.querySelector('home-assistant');
+  //   root = root && root.shadowRoot;
+  //   root = root && root.querySelector('home-assistant-main');
+  //   root = root && root.shadowRoot;
+  //   root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+  //   root = (root && root.shadowRoot) || root;
+  //   root = root && root.querySelector('ha-panel-lovelace');
+  //   if (root) {
+  //     return root;
+  //   }
+  //   return null;
+  // }
   /** *****************************************************************************
    * _getColorVariable()
    *
@@ -3635,22 +3638,22 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _getColorVariable(inColor) {
-    const newColor = inColor.substr(4, inColor.length - 5);
+  // _getColorVariable(inColor) {
+  //   const newColor = inColor.substr(4, inColor.length - 5);
 
-    if (!this.lovelace) {
-      this.lovelace = this._getLovelacePanel();
-      // const root = document.querySelector('home-assistant');
-      // const main = root.shadowRoot.querySelector('home-assistant-main');
-      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-      // const pages = drawer_layout.querySelector('partial-panel-resolver');
-      // this.lovelace = pages.querySelector('ha-panel-lovelace');
-    } else {
-    }
+  //   if (!this.lovelace) {
+  //     this.lovelace = this._getLovelacePanel();
+  //     // const root = document.querySelector('home-assistant');
+  //     // const main = root.shadowRoot.querySelector('home-assistant-main');
+  //     // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+  //     // const pages = drawer_layout.querySelector('partial-panel-resolver');
+  //     // this.lovelace = pages.querySelector('ha-panel-lovelace');
+  //   } else {
+  //   }
 
-    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-    return returnColor;
-  }
+  //   const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
+  //   return returnColor;
+  // }
 
   /** *****************************************************************************
    * _getGradientValue()
@@ -3668,35 +3671,35 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _getGradientValue(colorA, colorB, val) {
-    const resultColorA = this._colorToRGBA(colorA);
-    const resultColorB = this._colorToRGBA(colorB);
+  // _getGradientValue(colorA, colorB, val) {
+  //   const resultColorA = this._colorToRGBA(colorA);
+  //   const resultColorB = this._colorToRGBA(colorB);
 
-    // We have a rgba() color array from cache or canvas.
-    // Calculate color in between, and return #hex value as a result.
-    //
+  //   // We have a rgba() color array from cache or canvas.
+  //   // Calculate color in between, and return #hex value as a result.
+  //   //
 
-    const v1 = 1 - val;
-    const v2 = val;
-    const rDec = Math.floor(resultColorA[0] * v1 + resultColorB[0] * v2);
-    const gDec = Math.floor(resultColorA[1] * v1 + resultColorB[1] * v2);
-    const bDec = Math.floor(resultColorA[2] * v1 + resultColorB[2] * v2);
-    const aDec = Math.floor(resultColorA[3] * v1 + resultColorB[3] * v2);
+  //   const v1 = 1 - val;
+  //   const v2 = val;
+  //   const rDec = Math.floor(resultColorA[0] * v1 + resultColorB[0] * v2);
+  //   const gDec = Math.floor(resultColorA[1] * v1 + resultColorB[1] * v2);
+  //   const bDec = Math.floor(resultColorA[2] * v1 + resultColorB[2] * v2);
+  //   const aDec = Math.floor(resultColorA[3] * v1 + resultColorB[3] * v2);
 
-    // And convert full RRGGBBAA value to #hex.
-    const rHex = this._padZero(rDec.toString(16));
-    const gHex = this._padZero(gDec.toString(16));
-    const bHex = this._padZero(bDec.toString(16));
-    const aHex = this._padZero(aDec.toString(16));
-    return `#${rHex}${gHex}${bHex}${aHex}`;
-  }
+  //   // And convert full RRGGBBAA value to #hex.
+  //   const rHex = this._padZero(rDec.toString(16));
+  //   const gHex = this._padZero(gDec.toString(16));
+  //   const bHex = this._padZero(bDec.toString(16));
+  //   const aHex = this._padZero(aDec.toString(16));
+  //   return `#${rHex}${gHex}${bHex}${aHex}`;
+  // }
 
-  _padZero(val) {
-    if (val.length < 2) {
-      val = `0${val}`;
-    }
-    return val.substr(0, 2);
-  }
+  // _padZero(val) {
+  //   if (val.length < 2) {
+  //     val = `0${val}`;
+  //   }
+  //   return val.substr(0, 2);
+  // }
 
   _computeDomain(entityId) {
     return entityId.substr(0, entityId.indexOf('.'));
@@ -3721,32 +3724,32 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _colorToRGBA(inColor) {
-    // return color if found in colorCache...
-    if (inColor in this.colorCache) {
-      return this.colorCache[inColor];
-    }
+  // _colorToRGBA(inColor) {
+  //   // return color if found in colorCache...
+  //   if (inColor in this.colorCache) {
+  //     return this.colorCache[inColor];
+  //   }
 
-    var theColor = inColor;
-    // Check for 'var' colors
-    let a0 = inColor.substr(0, 3);
-    if (a0.valueOf() === 'var') {
-      theColor = this._getColorVariable(inColor);
-    }
+  //   var theColor = inColor;
+  //   // Check for 'var' colors
+  //   let a0 = inColor.substr(0, 3);
+  //   if (a0.valueOf() === 'var') {
+  //     theColor = this._getColorVariable(inColor);
+  //   }
 
-    // Get color from canvas. This always returns an rgba() value...
-    var canvas = window.document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    var ctx = canvas.getContext('2d');
+  //   // Get color from canvas. This always returns an rgba() value...
+  //   var canvas = window.document.createElement('canvas');
+  //   canvas.width = canvas.height = 1;
+  //   var ctx = canvas.getContext('2d');
 
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = theColor;
-    ctx.fillRect(0, 0, 1, 1);
-    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
+  //   ctx.clearRect(0, 0, 1, 1);
+  //   ctx.fillStyle = theColor;
+  //   ctx.fillRect(0, 0, 1, 1);
+  //   const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
 
-    this.colorCache[inColor] = outColor;
-    return outColor;
-  }
+  //   this.colorCache[inColor] = outColor;
+  //   return outColor;
+  // }
 
   getCardSize() {
     return 4;
