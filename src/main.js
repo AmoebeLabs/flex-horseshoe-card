@@ -893,20 +893,20 @@ class FlexHorseshoeCard extends LitElement {
         const value = Number(state);
 
         if (value >= 0) {
-          const positiveLength = Math.min(this._calculateValueBetween(0, max, value), 1) * (totalLength / 2);
+          const positiveLength = Math.min(Colors.calculateValueBetween(0, max, value), 1) * (totalLength / 2);
 
           dashArray = `${positiveLength} ${horseshoe.circlePathLength - positiveLength}`;
           dashOffset = undefined;
           bidirectionalNegative = false;
         } else {
-          const negativeLength = (1 - Math.min(this._calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
+          const negativeLength = (1 - Math.min(Colors.calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
 
           dashArray = `${negativeLength} ${horseshoe.circlePathLength - negativeLength}`;
           dashOffset = `${-(horseshoe.circlePathLength - negativeLength)}`;
           bidirectionalNegative = true;
         }
       } else {
-        const value = Math.min(this._calculateValueBetween(min, max, state), 1);
+        const value = Math.min(Colors.calculateValueBetween(min, max, state), 1);
         const score = value * horseshoe.horseshoePathLength;
         const total = 10 * horseshoe.radiusSize;
 
@@ -915,7 +915,7 @@ class FlexHorseshoeCard extends LitElement {
         bidirectionalNegative = false;
       }
 
-      const value = Math.min(this._calculateValueBetween(min, max, state), 1);
+      const value = Math.min(Colors.calculateValueBetween(min, max, state), 1);
       const strokeStyle = horseshoe.show.horseshoe_style;
 
       let color0 = horseshoe.color0;
@@ -1381,8 +1381,8 @@ class FlexHorseshoeCard extends LitElement {
                 x2="${horseshoe.angleCoords.x2}"
                 y2="${horseshoe.angleCoords.y2}"
               >
-                <stop offset="${horseshoe.color1_offset}" stop-color="${horseshoe.color1}"></stop>
-                <stop offset="100%" stop-color="${horseshoe.color0}"></stop>
+                <stop offset="${horseshoe.color1_offset}" stop-color="${horseshoe.color1}" style="transition: stop-color 1s ease;"></stop>
+                <stop offset="100%" stop-color="${horseshoe.color0}" style="transition: stop-color 1s ease;"></stop>
               </linearGradient>
             `,
           ) ?? ''}
