@@ -20,7 +20,50 @@ export default class Templates {
    * @param {{ resolveKeys?: boolean }} [options={}] Resolution options.
    * @returns {*} The resolved value, preserving null, undefined, and non-string primitives.
    */
+
   static getJsTemplateOrValue(item, value, options = {}) {
+    return Templates._getJsTemplateOrValue(item, value, options, 0);
+  }
+
+  static _getJsTemplateOrValue(item, value, options = {}, depth = 0) {
+    const { resolveKeys = true, maxDepth = 10 } = options;
+
+    if (depth >= maxDepth) return value;
+
+    if (value === undefined || value === null) return value;
+
+    if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry) => Templates._getJsTemplateOrValue(item, entry, options, depth));
+    }
+
+    if (Templates.isPlainObject(value)) {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entryValue]) => {
+          const resolvedKey = resolveKeys ? Templates._getJsTemplateOrValue(item, key, options, depth) : key;
+
+          const resolvedValue = Templates._getJsTemplateOrValue(item, entryValue, options, depth);
+
+          return [String(resolvedKey), resolvedValue];
+        }),
+      );
+    }
+
+    if (typeof value !== 'string') return value;
+
+    const trimmedValue = value.trim();
+
+    if (!Templates.isJsTemplate(trimmedValue)) return value;
+
+    const evaluatedValue = Templates.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
+
+    return Templates._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1);
+  }
+
+  static getJsTemplateOrValueV1(item, value, options = {}) {
     const { resolveKeys = true } = options;
 
     if (value === undefined || value === null) return value;
@@ -55,57 +98,6 @@ export default class Templates {
       return Templates.getJsTemplateOrValue(item, evaluatedValue, options);
     }
 
-    return value;
-  }
-
-  /**
-   * Resolves legacy JavaScript templates in config values.
-   *
-   * Accepts primitives, strings, arrays, and plain objects. Arrays are resolved
-   * recursively for YAML array style declarations, while object keys are kept as
-   * written. Full-string `[[[ ... ]]]` templates may return nested shapes or
-   * another template string, which are resolved again.
-   *
-   * @param {object} item Card item context exposed to templates.
-   * @param {*} value Config value or nested config shape to resolve.
-   * @returns {*} The resolved value, preserving null, undefined, and non-string primitives.
-   */
-  static getJsTemplateOrValueV1(item, value) {
-    // Keep undefined and null unchanged.
-    if (value === undefined || value === null) return value;
-
-    // Primitive non-string values cannot contain templates.
-    if (['number', 'boolean', 'bigint', 'symbol'].includes(typeof value)) {
-      return value;
-    }
-
-    // Resolve every item in an array.
-    // This is used heavily by YAML styles arrays.
-    if (Array.isArray(value)) {
-      return value.map((entry) => Templates.getJsTemplateOrValue(item, entry));
-    }
-
-    // Resolve every value in an object without mutating the original config.
-    if (Templates.isPlainObject(value)) {
-      return Object.fromEntries(Object.entries(value).map(([key, entryValue]) => [key, Templates.getJsTemplateOrValue(item, entryValue)]));
-    }
-
-    // At this point only strings can contain template syntax.
-    if (typeof value !== 'string') return value;
-
-    const trimmedValue = value.trim();
-
-    // JavaScript templates must occupy the full string and be wrapped in:
-    // [[[ ... ]]]
-    if (Templates.isJsTemplate(trimmedValue)) {
-      const javascript = Templates.extractJsTemplateCode(trimmedValue);
-      const evaluatedValue = Templates.evaluateJsTemplate(item, javascript);
-
-      // Template output may itself be a dict, array, string, or nested template.
-      return Templates.getJsTemplateOrValue(item, evaluatedValue);
-    }
-
-    // Plain string, no template.
     return value;
   }
 
@@ -147,7 +139,7 @@ export default class Templates {
     const state = Templates._getTemplateState(item);
     const entity = entities?.[entityIndex];
     const states = hass?.states;
-    const variables = this.resolvedVariables;
+    const variables = config?.variables ?? {};
     const user = hass?.user;
     if (config?.dev?.debug) {
       console.log('Evaluating JavaScript template with context:', {
