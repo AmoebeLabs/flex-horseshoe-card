@@ -20,10 +20,22 @@
 
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import { version } from '../package.json';
+import { selectUnit } from '@formatjs/intl-utils';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
+import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js';
+import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetime/format_date';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
+import { formatDuration } from './frontend_mods/datetime/duration.js';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain.js';
+
+import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
+import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
+import Colors from './colors.js';
+import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -75,6 +87,8 @@ class FlexHorseshoeCard extends LitElement {
   constructor() {
     super();
 
+    Colors.setElement(this);
+
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
@@ -98,6 +112,7 @@ class FlexHorseshoeCard extends LitElement {
     this.isSafari = false;
     this.iOS = false;
 
+    this.resolvedVariables = {};
     this.iconCache = {};
     this.iconsSvg = [];
     this.pendingIconPath = [];
@@ -879,20 +894,20 @@ class FlexHorseshoeCard extends LitElement {
         const value = Number(state);
 
         if (value >= 0) {
-          const positiveLength = Math.min(this._calculateValueBetween(0, max, value), 1) * (totalLength / 2);
+          const positiveLength = Math.min(Colors.calculateValueBetween(0, max, value), 1) * (totalLength / 2);
 
           dashArray = `${positiveLength} ${horseshoe.circlePathLength - positiveLength}`;
           dashOffset = undefined;
           bidirectionalNegative = false;
         } else {
-          const negativeLength = (1 - Math.min(this._calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
+          const negativeLength = (1 - Math.min(Colors.calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
 
           dashArray = `${negativeLength} ${horseshoe.circlePathLength - negativeLength}`;
           dashOffset = `${-(horseshoe.circlePathLength - negativeLength)}`;
           bidirectionalNegative = true;
         }
       } else {
-        const value = Math.min(this._calculateValueBetween(min, max, state), 1);
+        const value = Math.min(Colors.calculateValueBetween(min, max, state), 1);
         const score = value * horseshoe.horseshoePathLength;
         const total = 10 * horseshoe.radiusSize;
 
@@ -901,7 +916,7 @@ class FlexHorseshoeCard extends LitElement {
         bidirectionalNegative = false;
       }
 
-      const value = Math.min(this._calculateValueBetween(min, max, state), 1);
+      const value = Math.min(Colors.calculateValueBetween(min, max, state), 1);
       const strokeStyle = horseshoe.show.horseshoe_style;
 
       let color0 = horseshoe.color0;
@@ -1030,230 +1045,6 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    this.requestUpdate();
-  }
-
-  set hassV1(hass) {
-    // This is a safe and fast method  // Set ref to hass, use "_"for the name ;-)
-    this._hass = hass;
-    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
-
-    var entityHasChanged = false;
-
-    // Update state strings and check for changes.
-    // Only if changed, continue and force render
-    var value;
-    var index = 0;
-    var newStateStr;
-    var newAttributeStr;
-
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-
-    // eslint-disable-next-line no-restricted-syntax
-    for (value of this.resolvedEntityConfigs) {
-      const entityConfig = this.resolvedEntityConfigs[index];
-      const entity = hass.states[entityConfig.entity];
-
-      if (!entity) {
-        // eslint-disable-next-line no-plusplus
-        index++;
-        // eslint-disable-next-line no-continue
-        continue;
-      }
-
-      this.entities[index] = entity;
-
-      /**
-       * Check both entity states and entity attributes
-       */
-      newStateStr = this._buildState(entity.state, entityConfig);
-      if (newStateStr !== this.entitiesStr[index]) {
-        this.entitiesStr[index] = newStateStr;
-        entityHasChanged = true;
-      }
-
-      /**
-       * Check attribute if present
-       */
-      if (
-        entityConfig.attribute &&
-        // eslint-disable-next-line prefer-object-has-own
-        Object.prototype.hasOwnProperty.call(entity.attributes, entityConfig.attribute)
-      ) {
-        newAttributeStr = this._buildState(entity.attributes[entityConfig.attribute], entityConfig);
-
-        if (newAttributeStr !== this.attributesStr[index]) {
-          this.attributesStr[index] = newAttributeStr;
-          entityHasChanged = true;
-        }
-      }
-
-      // eslint-disable-next-line no-plusplus
-      index++;
-    }
-
-    if (!entityHasChanged) {
-      return;
-    } else {
-    }
-
-    // Use first state or attribute for displaying the horseshoe
-
-    // #TODO: only if state or attribute has changed.
-    var state = this.entities[0].state;
-    if (this.resolvedEntityConfigs[0].attribute) {
-      if (this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute]) {
-        state = this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute];
-      }
-    }
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-
-    // Calculate the size of the arc to fill the dasharray with this
-    // value. It will fill the horseshoe relative to the state and min/max
-    // values given in the configuration.
-
-    const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.config.horseshoe_scale);
-
-    const min = horseshoeScale?.min ?? 0;
-    const max = horseshoeScale?.max ?? 100;
-
-    const barMode = this.config.bar_mode || 'normal';
-
-    if (barMode === 'bidirectional') {
-      // Bidirectional: zero at top, positive CW, negative CCW
-      // Assume min < 0 < max
-      const totalLength = HORSESHOE_PATH_LENGTH;
-      let val = Number(state);
-      let posLen = 0;
-      let negLen = 0;
-      if (val >= 0) {
-        posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
-        this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
-        this._bidirectional_negative = false;
-      } else {
-        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
-        this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
-        this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
-        this._bidirectional_negative = true;
-      }
-    } else {
-      // Normal mode
-      const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-      const score = val * HORSESHOE_PATH_LENGTH;
-      const total = 10 * HORSESHOE_RADIUS_SIZE;
-      this.dashArray = `${score} ${total}`;
-      this._bidirectional_negative = false;
-    }
-
-    const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-    const score = val * HORSESHOE_PATH_LENGTH;
-    const total = 10 * HORSESHOE_RADIUS_SIZE;
-
-    // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop
-    // #TODO: only if state or attribute has changed.
-
-    const strokeStyle = this.config.show.horseshoe_style;
-
-    if (strokeStyle === 'fixed') {
-      this.stroke_color = this.config.horseshoe_state.color;
-      this.color0 = this.config.horseshoe_state.color;
-      this.color1 = this.config.horseshoe_state.color;
-      this.color1_offset = '0%';
-      //  We could set the circle attributes, but we do it with a variable as we are using a gradient
-      //  to display the horseshoe circle  .. <horseshoe circle>.setAttribute('stroke', stroke);
-    } else if (strokeStyle === 'autominmax') {
-      // Use color0 and color1 for autoranging the color of the horseshoe
-      const stroke = this._calculateStrokeColor(state, this.colorStopsMinMax, true);
-
-      // We now use a gradient for the horseshoe, using two colors
-      // Set these colors to the colorstop color...
-      this.color0 = stroke;
-      this.color1 = stroke;
-      this.color1_offset = '0%';
-    } else if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
-      const stroke = this._calculateStrokeColor(state, this.colorStops, strokeStyle === 'colorstopgradient');
-
-      // We now use a gradient for the horseshoe, using two colors
-      // Set these colors to the colorstop color...
-      this.color0 = stroke;
-      this.color1 = stroke;
-      this.color1_offset = '0%';
-    } else if (strokeStyle === 'lineargradient') {
-      // This has taken a lot of time to get a satisfying result, and it appeared much simpler than anticipated.
-      // I don't understand it, but for a circle, a gradient from left/right with adjusted stop is enough ?!?!?!
-      // No calculations to adjust the angle of the gradient, or rotating the gradient itself.
-      // Weird, but it works. Not a 100% match, but it is good enough for now...
-
-      // According to stackoverflow, these calculations / adjustments would be needed, but it isn't ;-)
-      // Added from https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-      const angleCoords = {
-        x1: '0%',
-        y1: '0%',
-        x2: '100%',
-        y2: '0%',
-      };
-      this.color1_offset = `${Math.round((1 - val) * 100)}%`;
-
-      this.angleCoords = angleCoords;
-    }
-
-    // Check for animations linked to an entity or attribute.
-    // Set the dynamic animation depending on the state.
-    // If the card is rendered, the render() functions will take this dynamic animation into account.
-    //
-    // #TODO: Determine animation only if specific state or attribute has changed...
-
-    if (this.config.animations)
-      Object.keys(this.config.animations).map((animation) => {
-        const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
-        this.config.animations[animation].map((item) => {
-          // if animation state not equals sensor state, return... Nothing to animate for this state...
-          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
-
-          if (item.vlines) {
-            item.vlines.forEach((item2) => this._updateAnimationStyles('vlines', item2));
-          }
-
-          if (item.hlines) {
-            item.hlines.forEach((item2) => this._updateAnimationStyles('hlines', item2));
-          }
-
-          if (item.circles) {
-            item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
-          }
-
-          if (item.icons) {
-            item.icons.forEach((item2) => {
-              const animationId = item2.animation_id;
-
-              if (!this.animations.icons[animationId] || !item2.reuse) {
-                this.animations.icons[animationId] = {};
-                this.animations.iconsIcon[animationId] = {};
-              }
-
-              const resolvedStyles = Templates.getJsTemplateOrValue(item2, item2.styles);
-              const animationStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-              this.animations.icons[animationId] = {
-                ...this.animations.icons[animationId],
-                ...animationStyleDict,
-              };
-
-              this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
-            });
-          }
-
-          if (item.states) {
-            item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
-          }
-
-          return true;
-        });
-        return true;
-      });
-
-    // For now, always force update to render the card if any of the states or attributes have changed...
-    // if (entityHasChanged) { this.requestUpdate();}
     this.requestUpdate();
   }
 
@@ -1509,110 +1300,6 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
-  setConfigV1(config) {
-    config = JSON.parse(JSON.stringify(config));
-
-    if (!config.entities) {
-      throw Error('No entities defined');
-    }
-    if (!config.layout) {
-      throw Error('No layout defined');
-    }
-    if (!config.horseshoe_scale) {
-      throw Error('No horseshoe scale defined');
-    } else {
-      if ((!config.horseshoe_scale.min && !config.horseshoe_scale.min === 0) || !config.horseshoe_scale.max) {
-        throw Error('No horseshoe min/max for scale defined');
-      }
-    }
-    if (!config.color_stops || config.color_stops.length < 2) {
-      throw Error('No color_stops defined or not at least two colorstops');
-    }
-
-    const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
-
-    // testing
-    if (resolvedEntitiesConfig) {
-      const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
-      if (newdomain !== 'sensor') {
-        // If not a sensor, check if attribute is a number. If so, continue, otherwise Error...
-        if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
-          throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
-        }
-      }
-    }
-
-    const newConfig = {
-      texts: [],
-      card_filter: 'card--filter-none',
-      bar_mode: config.bar_mode || 'normal', // add bar_mode to config
-      ...config,
-      show: { ...DEFAULT_SHOW, ...config.show },
-      horseshoe_position: {
-        ...DEFAULT_HORSESHOE_POSITION,
-        ...config?.horseshoe_position,
-      },
-      horseshoe_scale: {
-        ...DEFAULT_HORSESHOE_SCALE,
-        ...config.horseshoe_scale,
-      },
-      horseshoe_state: {
-        ...DEFAULT_HORSESHOE_STATE,
-        ...config.horseshoe_state,
-      },
-    };
-
-    // eslint-disable-next-line no-restricted-syntax
-    for (var entityValue of resolvedEntitiesConfig) {
-      if (!entityValue.tap_action) {
-        entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
-      }
-    }
-
-    const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: 0 }, newConfig.color_stops, { resolveKeys: true });
-
-    this.colorStops = ColorStops.normalize(resolvedColorStops);
-
-    const colorStopColors = this.colorStops.colors;
-    const firstStop = colorStopColors[0];
-    const lastStop = colorStopColors[colorStopColors.length - 1];
-
-    this.colorStopsMinMax = ColorStops.normalize({});
-
-    if (firstStop && lastStop) {
-      this.colorStopsMinMax = ColorStops.normalize({
-        [newConfig.horseshoe_scale.min]: firstStop.color,
-        [newConfig.horseshoe_scale.max]: lastStop.color,
-      });
-
-      this.color0 = firstStop.color;
-      this.color1 = lastStop.color;
-    }
-
-    const angleCoords = {
-      x1: '0%',
-      y1: '0%',
-      x2: '100%',
-      y2: '0%',
-    };
-    this.angleCoords = angleCoords;
-    this.color1_offset = '0%';
-
-    // console.log('Prepared color stops', newConfig);
-    this._prepareItemColorStops(newConfig);
-    this.config = newConfig;
-    this.bar_mode = newConfig.bar_mode || 'normal';
-
-    if (this.config.layout?.icons) {
-      this.config.layout.icons.forEach((iconConfig, index) => {
-        this.iconsId[index] = Math.random().toString(36).substr(2, 9);
-      });
-    }
-
-    // Set context for Template execution, so that templates can access these variables when executed.
-    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
-  }
-
   _getItemStateValue(item = {}) {
     const entityIndex = item.entity_index ?? 0;
     const entity = this.entities?.[entityIndex];
@@ -1695,8 +1382,8 @@ class FlexHorseshoeCard extends LitElement {
                 x2="${horseshoe.angleCoords.x2}"
                 y2="${horseshoe.angleCoords.y2}"
               >
-                <stop offset="${horseshoe.color1_offset}" stop-color="${horseshoe.color1}"></stop>
-                <stop offset="100%" stop-color="${horseshoe.color0}"></stop>
+                <stop offset="${horseshoe.color1_offset}" stop-color="${horseshoe.color1}" style="transition: stop-color 1s ease;"></stop>
+                <stop offset="100%" stop-color="${horseshoe.color0}" style="transition: stop-color 1s ease;"></stop>
               </linearGradient>
             `,
           ) ?? ''}
@@ -1704,37 +1391,6 @@ class FlexHorseshoeCard extends LitElement {
       </ha-card>
     `;
   }
-
-  renderV1({ config } = this) {
-    const item = {
-      entity_index: 0,
-    };
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, config?.styles);
-    const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
-
-    return html`
-      <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">${this._renderSvg()}</div>
-
-        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
-            <stop offset="${this.color1_offset}" stop-color="${this.color1}"></stop>
-            <stop offset="100%" stop-color="${this.color0}"></stop>
-          </linearGradient>
-        </svg>
-      </ha-card>
-    `;
-  }
-
-  // _buildStyleString(styles) {
-  //   // console.log('Building style string for styles: ', styles);
-  //   if (!styles) return '';
-
-  //   return Object.entries(Object.assign({}, ...styles))
-  //     .map(([key, value]) => `${key}: ${value}`)
-  //     .join(' ');
-  // }
 
   /** *****************************************************************************
    * renderTickMarks()
@@ -1873,50 +1529,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`${scaleItems}`;
   }
 
-  _renderTickMarksV1() {
-    const { config } = this;
-    if (!config) return;
-    if (!config.show) return;
-    if (!config.show.scale_tickmarks) return;
-
-    const stroke = config.horseshoe_scale.color ? config.horseshoe_scale.color : 'var(--primary-background-color)';
-    const tickSize = config.horseshoe_scale.ticksize ? config.horseshoe_scale.ticksize : (config.horseshoe_scale.max - config.horseshoe_scale.min) / 10;
-
-    // fullScale is 260 degrees. Hard coded for now...
-    const fullScale = 260;
-    const remainder = config.horseshoe_scale.min % tickSize;
-    const startTickValue = config.horseshoe_scale.min + (remainder === 0 ? 0 : tickSize - remainder);
-    const startAngle = ((startTickValue - config.horseshoe_scale.min) / (config.horseshoe_scale.max - config.horseshoe_scale.min)) * fullScale;
-    var tickSteps = (config.horseshoe_scale.max - startTickValue) / tickSize;
-
-    // new
-    var steps = Math.floor(tickSteps);
-    const angleStepSize = (fullScale - startAngle) / tickSteps;
-
-    // If steps exactly match the max. value/range, add extra step for that max value.
-    if (Math.floor(steps * tickSize + startTickValue) <= config.horseshoe_scale.max) {
-      // eslint-disable-next-line no-plusplus
-      steps++;
-    }
-
-    const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6 / 2;
-    var angle;
-    var scaleItems = [];
-
-    // NTS:
-    // Value of -230 is weird. Should be -220. Can't find why...
-    var i;
-    for (i = 0; i < steps; i++) {
-      angle = startAngle + ((-230 + (360 - i * angleStepSize)) * Math.PI) / 180;
-      scaleItems[i] = svg`
-          <circle cx="${50 + 50 - Math.sin(angle) * TICKMARKS_RADIUS_SIZE}"
-                  cy="${50 + 50 - Math.cos(angle) * TICKMARKS_RADIUS_SIZE}" r="${radius}"
-                  fill="${stroke}">
-        `;
-    }
-    return svg`${scaleItems}`;
-  }
-
   /** *****************************************************************************
    * _renderSvg()
    *
@@ -1987,10 +1599,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`
     ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
   `;
-  }
-
-  _renderHorseShoesV1() {
-    return svg`${this._renderHorseShoeV1()}`;
   }
 
   _renderHorseShoe(horseshoe, index) {
@@ -2123,88 +1731,6 @@ class FlexHorseshoeCard extends LitElement {
   `;
   }
 
-  _renderHorseShoeV1() {
-    if (!this.config.show.horseshoe) return;
-
-    // Bidirectional: zero at top, positive CW, negative CCW
-    const barMode = this.config.bar_mode || 'normal';
-    if (barMode === 'bidirectional') {
-      // The horseshoe arc is always 260deg, but we want zero at top (270deg)
-      // So rotate -90deg (top center), and for negative values, use stroke-dashoffset to fill CCW
-      if (this._bidirectional_negative) {
-        // stroke-dashoffset = half the arc length (start at top, fill CCW)
-        // But SVG circles always fill CW, so we use dashoffset to "reverse" the fill
-        // The arc is 260deg, so half is 130deg, which is HORSESHOE_PATH_LENGTH/2
-        // For negative, offset by half the arc
-        return svg`
-          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="${this.config.horseshoe_scale.color || '#000000'}"
-              stroke-dasharray="408.40704496667314,180"
-              stroke-width="${this.config.horseshoe_scale.width || 6}" 
-              stroke-linecap="round"
-              transform="rotate(-220 100 100)"/>
-            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="url('#horseshoe__gradient-${this.cardId}')"
-              stroke-dasharray="${this.dashArray}"
-              stroke-dashoffset="${this.dashOffset}"
-              stroke-width="${this.config.horseshoe_state.width || 12}" 
-              stroke-linecap="round"
-              transform="rotate(-90 100 100)"
-              style="transition: all 2.5s ease-out;"/>
-            ${this._renderTickMarks()}
-          </g>
-        `;
-      } else {
-        // stroke-dashoffset = 0 (start at top, fill CW)
-        return svg`
-          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="${this.config.horseshoe_scale.color || '#000000'}"
-              stroke-dasharray="408.40704496667314,180"
-              stroke-width="${this.config.horseshoe_scale.width || 6}" 
-              stroke-linecap="round"
-              transform="rotate(-220 100 100)"/>
-            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="url('#horseshoe__gradient-${this.cardId}')"
-              stroke-dasharray="${this.dashArray}"
-              stroke-width="${this.config.horseshoe_state.width || 12}" 
-              stroke-linecap="round"
-              transform="rotate(-90 100 100)"
-              style="transition: all 2.5s ease-out;"/>
-            ${this._renderTickMarks()}
-          </g>
-        `;
-      }
-    }
-
-    // Normal mode (default)
-    return svg`
-      <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-        <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-          stroke="${this.config.horseshoe_scale.color || '#000000'}"
-          stroke-dasharray="408.40704496667314,180"
-          stroke-width="${this.config.horseshoe_scale.width || 6}" 
-          stroke-linecap="round"
-          transform="rotate(-220 100 100)"/>
-        <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-          stroke="url('#horseshoe__gradient-${this.cardId}')"
-          stroke-dasharray="${this.dashArray}"
-          stroke-width="${this.config.horseshoe_state.width || 12}" 
-          stroke-linecap="round"
-          transform="rotate(-220 100 100)"
-          style="transition: all 2.5s ease-out;"/>
-        ${this._renderTickMarks()}
-      </g>
-    `;
-  }
-
   /** *****************************************************************************
    * _renderEntityNames()
    *
@@ -2253,7 +1779,8 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      // const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      const name = this.textEllipsis(this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
       return svg`
         <text
@@ -2320,7 +1847,7 @@ class FlexHorseshoeCard extends LitElement {
         ...stateStyle,
       };
 
-      const area = this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
+      const area = this.textEllipsis(this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
       return svg`
         <text
@@ -2440,10 +1967,14 @@ class FlexHorseshoeCard extends LitElement {
     //   itemUomStyleDict,
     //   uomStyle,
     // });
-    const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
+    // const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
 
-    const state =
-      this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+    // const state =
+    //   this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
+    const entity = this.entities[entityIndex];
+    const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
+    const state = this._buildStateText(entity, entityConfig);
+    const uom = this._buildUom(entity, entityConfig);
 
     return svg`
       <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
@@ -2462,6 +1993,199 @@ class FlexHorseshoeCard extends LitElement {
         >${uom}</tspan>
       </text>
     `;
+  }
+
+  formatStateString(inState, entityConfig) {
+    const lang = this._hass.selectedLanguage || this._hass.language;
+    let locale = {};
+    locale.language = lang;
+
+    if (
+      [
+        'relative',
+        'total',
+        'datetime',
+        'datetime-short',
+        'datetime-short_with-year',
+        'datetime_seconds',
+        'datetime-numeric',
+        'date',
+        'date_month',
+        'date_month_year',
+        'date-short',
+        'date-numeric',
+        'date_weekday',
+        'date_weekday_day',
+        'date_weekday-short',
+        'time',
+        'time-24h',
+        'time-24h_date-short',
+        'time_weekday',
+        'time_seconds',
+      ].includes(entityConfig.format)
+    ) {
+      const timestamp = new Date(inState);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+        return inState;
+      }
+
+      // if (!EntityStateTool.testTimeDate) {
+      //   EntityStateTool.testTimeDate = true;
+      //   console.log('datetime', formatDateTime(timestamp, locale));
+      //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
+      //   console.log('date', formatDate(timestamp, locale));
+      //   console.log('date_month', formatDateMonth(timestamp, locale));
+      //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
+      //   console.log('date-short', formatDateShort(timestamp, locale));
+      //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
+      //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
+      //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
+      //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
+      //   console.log('time', formatTime(timestamp, locale));
+      //   console.log('time-24h', formatTime24h(timestamp, locale));
+      //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
+      //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
+      // }
+
+      let retValue;
+      // return date/time according to formatting...
+      switch (entityConfig.format) {
+        case 'relative':
+          // eslint-disable-next-line no-case-declarations
+          const diff = selectUnit(timestamp, new Date());
+          retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+          break;
+        case 'total':
+        case 'precision':
+          retValue = 'Not Yet Supported';
+          break;
+        case 'datetime':
+          retValue = formatDateTime(timestamp, locale);
+          break;
+        case 'datetime-short':
+          retValue = formatShortDateTime(timestamp, locale);
+          break;
+        case 'datetime-short_with-year':
+          retValue = formatShortDateTimeWithYear(timestamp, locale);
+          break;
+        case 'datetime_seconds':
+          retValue = formatDateTimeWithSeconds(timestamp, locale);
+          break;
+        case 'datetime-numeric':
+          retValue = formatDateTimeNumeric(timestamp, locale);
+          break;
+        case 'date':
+          retValue = formatDate(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
+          break;
+        case 'date_month':
+          retValue = formatDateMonth(timestamp, locale);
+          break;
+        case 'date_month_year':
+          retValue = formatDateMonthYear(timestamp, locale);
+          break;
+        case 'date-short':
+          retValue = formatDateShort(timestamp, locale);
+          break;
+        case 'date-numeric':
+          retValue = formatDateNumeric(timestamp, locale);
+          break;
+        case 'date_weekday':
+          retValue = formatDateWeekday(timestamp, locale);
+          break;
+        case 'date_weekday-short':
+          retValue = formatDateWeekdayShort(timestamp, locale);
+          break;
+        case 'date_weekday_day':
+          retValue = formatDateWeekdayDay(timestamp, locale);
+          break;
+        case 'time':
+          retValue = formatTime(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
+          break;
+        case 'time-24h':
+          retValue = formatTime24h(timestamp);
+          break;
+        case 'time-24h_date-short':
+          // eslint-disable-next-line no-case-declarations
+          const diff2 = selectUnit(timestamp, new Date());
+          if (['second', 'minute', 'hour'].includes(diff2.unit)) {
+            retValue = formatTime24h(timestamp);
+          } else {
+            retValue = formatDateShort(timestamp, locale);
+          }
+          break;
+        case 'time_weekday':
+          retValue = formatTimeWeekday(timestamp, locale);
+          break;
+        case 'time_seconds':
+          retValue = formatTimeWithSeconds(timestamp, locale);
+          break;
+        default:
+      }
+      return retValue;
+    }
+
+    if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
+      return inState;
+    }
+    if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
+      return `${Math.round((inState / 255) * 100)} %`;
+    }
+    if (entityConfig.format === 'duration') {
+      return formatDuration(inState, 's');
+    }
+  }
+
+  _buildStateText(stateObj, entityConfig = {}) {
+    if (!stateObj) return '';
+
+    const entityId = stateObj.entity_id;
+    const entity = this._hass.entities?.[entityId];
+    const entity2 = this._hass.states?.[entityId];
+    const domain = computeDomain(entityId);
+
+    let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
+    inState = this._buildState(inState, entityConfig);
+
+    if ([undefined, 'undefined'].includes(inState)) {
+      return '';
+    }
+
+    if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
+      inState = this.formatStateString(inState, entityConfig);
+    }
+
+    const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
+
+    if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
+      inState =
+        (localeTag && this._hass.localize(localeTag)) ||
+        (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
+        (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
+        this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
+        inState;
+
+      inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
+    }
+
+    if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
+      inState = this._hass.localize(`state.default.${inState}`);
+    }
+
+    if (!isNaN(inState)) {
+      let options = {};
+      options = getDefaultFormatOptions(inState, options);
+
+      if (entityConfig.decimals !== undefined) {
+        options.maximumFractionDigits = entityConfig.decimals;
+        options.minimumFractionDigits = options.maximumFractionDigits;
+      }
+
+      inState = formatNumber(inState, this._hass.locale, options);
+    }
+
+    return inState;
   }
 
   /** *****************************************************************************
@@ -2494,6 +2218,55 @@ class FlexHorseshoeCard extends LitElement {
    * Renders a single icon.
    *
    */
+  computeEntityColor(entityState) {
+    // 1. Fallback: Als de data ontbreekt of onbereikbaar is -> neutraal
+    if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
+      return 'var(--state-icon-color)';
+    }
+
+    const state = entityState.state;
+
+    // 2. DE FIX VOOR ATTRIBUTEN/SENSOREN:
+    // Als de waarde een getal is (zoals 45, 230, 1.5) of een meting, is het een sensor.
+    // Sensoren en attributen horen ALTIJD de neutrale inactieve kleur te krijgen.
+    if (!isNaN(state) || state.endsWith('W') || state.endsWith('kWh') || state.endsWith('V')) {
+      return 'var(--state-icon-color)';
+    }
+
+    const domain = entityState.entity_id.split('.')[0];
+    const deviceClass = entityState.attributes.device_class;
+
+    // Extra check: als het domein zelf 'sensor' is, ook altijd neutraal
+    if (domain === 'sensor') {
+      return 'var(--state-icon-color)';
+    }
+
+    // 3. Alleen voor échte binaire acties (aan/uit) pakken we de HA-kleuren:
+
+    // A: Kleurlampen (RGB)
+    if (domain === 'light' && entityState.attributes.rgb_color && state === 'on') {
+      const [r, g, b] = entityState.attributes.rgb_color;
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // B: Binary sensoren met een klasse (sound, tamper, motion)
+    if (domain === 'binary_sensor' && deviceClass && state === 'on') {
+      return `var(--state-binary_sensor-${deviceClass}-on-color, var(--state-icon-active-color))`;
+    }
+
+    // C: Klimaat
+    if (domain === 'climate') {
+      return `var(--state-climate-${state}-color, var(--state-icon-active-color))`;
+    }
+
+    // D: Standaard aan/uit apparaten (gewone lampen / switches die 'on' staan)
+    if (state === 'on') {
+      return `var(--state-${domain}-active-color, var(--state-${domain}-color, var(--state-icon-active-color)))`;
+    }
+
+    // Alles wat overblijft is inactief
+    return 'var(--state-icon-color)';
+  }
 
   _renderIcon(item, index) {
     if (!item) return;
@@ -2522,6 +2295,38 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
+    // Test...
+    // render() {
+    //   // Dit is de entiteit die je wilt tonen (komt bijv. uit je kaart-configuratie)
+    //   const entityId = "light.woonkamer";
+
+    //   // 1. Maak van 'light.woonkamer' -> 'light-woonkamer'
+    //   const safeId = entityId.replace('.', '-');
+
+    //   // 2. Bouw de CSS-variabele string met de automatische fallback naar inactief
+    //   const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
+
+    //   // 3. Injecteer dit direct in de 'fill' van je path of de 'style' van de group
+    //   return html`
+    //     <svg viewBox="0 0 24 24" width="24" height="24">
+    //       <g style="color: ${dynamicColor};">
+    //         <rect width="24" height="24" fill="rgba(0,0,0,0)"/>
+    //         <!-- fill="currentColor" pakt de kleur die we hierboven op de groep hebben gezet -->
+    //         <path fill="currentColor" d="M12,2A10..." />
+    //       </g>
+    //     </svg>
+    //   `;
+    // }
+
+    const entityState = this.entities[entityIndex];
+    const entityColor = this.computeEntityColor(entityState);
+    // const entityId = this.config.entities[entityIndex].entity;
+    // const safeId = entityId.replace('.', '-');
+    // const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
+    const DEFAULT_ICON_COLOR = {};
+    DEFAULT_ICON_COLOR.fill = entityColor;
+    DEFAULT_ICON_COLOR.color = entityColor;
+    console.log('dynamic icon color is', DEFAULT_ICON_COLOR);
     // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
@@ -2536,6 +2341,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Runtime animation styles overwrite static/config styles.
     configStyle = {
+      ...DEFAULT_ICON_COLOR,
       ...configStyle,
       ...stateStyle,
     };
@@ -2579,7 +2385,7 @@ class FlexHorseshoeCard extends LitElement {
         };
 
         const afterRender =
-          this._card?.updateComplete && typeof this.updateComplete.then === 'function'
+          this?.updateComplete && typeof this.updateComplete.then === 'function'
             ? this.updateComplete
             : this.updateComplete && typeof this.updateComplete.then === 'function'
               ? this.updateComplete
@@ -2996,10 +2802,19 @@ class FlexHorseshoeCard extends LitElement {
     this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
   }
 
-  handlePopupV1(e, entity) {
-    e.stopPropagation();
-
-    this._handleClick(this, this._hass, this.config, this.resolvedEntityConfigs[this.resolvedEntityConfigs.findIndex((element, index, array) => element.entity === entity.entity_id)].tap_action, entity.entity_id);
+  /** *****************************************************************************
+   * Summary.
+   * Very simple form of ellipsis, which is not supported by SVG.
+   * Cutoff text at number of characters and add '...'.
+   * This does NOT take into account the actual width of a character!
+   *
+   */
+  textEllipsis(argText, argEllipsis) {
+    if (argEllipsis && argEllipsis < argText.length) {
+      return argText.slice(0, argEllipsis - 1).concat('...');
+    } else {
+      return argText;
+    }
   }
 
   /** *****************************************************************************
@@ -3011,7 +2826,28 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   _buildArea(entityState, entityConfig) {
-    return entityConfig.area || '?';
+    if (entityConfig.area) {
+      return entityConfig.area;
+    }
+    if (!this._hass || !this._hass.areas) return '';
+
+    // 1. Haal de live-registratie van de entiteit op
+    const entityRegistry = this._hass.entities && this._hass.entities[entityConfig.entity];
+    // 2. Kijk of de entiteit DIRECT een area_id heeft gekregen
+    let areaId = entityRegistry ? entityRegistry.area_id : null;
+
+    // 3. Als de entiteit geen directe ruimte heeft, kijk dan of hij via een device gekoppeld is
+    if (!areaId && entityRegistry && entityRegistry.device_id && this._hass.devices) {
+      const device = this._hass.devices[entityRegistry.device_id];
+      areaId = device ? device.area_id : null;
+    }
+
+    // 4. Zoek de area-naam op in het register met de gevonden areaId
+    if (areaId) {
+      const area = this._hass.areas[areaId];
+      return area ? area.name : '';
+    }
+    return '?';
   }
 
   /** *****************************************************************************
@@ -3023,7 +2859,7 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   _buildName(entityState, entityConfig) {
-    return entityConfig.name || entityState.attributes.friendly_name;
+    return entityConfig.name ?? entityState.attributes.friendly_name ?? entityState?.entity_id ?? '?';
   }
 
   /** *****************************************************************************
@@ -3034,7 +2870,9 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   _buildIcon(entityState, entityConfig, entityAnimation) {
-    return entityAnimation || entityConfig?.icon || entityState?.attributes?.icon;
+    return (
+      entityAnimation || entityConfig?.icon || entityState?.attributes?.icon || stateIconName(entityState) // From modified HA files
+    );
   }
 
   /** *****************************************************************************
@@ -3050,24 +2888,243 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /** *****************************************************************************
-   * _buildState()
+   * card::_buildStateString()
    *
    * Summary.
    * Builds the State string.
-   *  If state is not a number, the state is returned AS IS, otherwise the state
-   * is build according to the specified number of decimals.
+   * If state is not a number, the state is returned AS IS, otherwise the state
+   * is converted if specified before it is returned as a string
    *
+   * IMPORTANT NOTE:
+   * - do NOT replace isNaN() by Number.isNaN(). They are INCOMPATIBLE !!!!!!!!!
    */
 
   _buildState(inState, entityConfig) {
-    if (isNaN(inState)) return inState;
+    // Keep undefined as state. Do NOT change this one!!
+    if (typeof inState === 'undefined') return inState;
+    // inState seems to be null when light is off!
+    if (inState === null) return inState;
 
-    const state = Number(inState);
+    // New in v2.5.1: Check for built-in state converters
+    if (entityConfig.convert) {
+      // Match converter with parameter between ()
+      let splitted = entityConfig.convert.match(/(^\w+)\((\d+)\)/);
+      let converter;
+      let parameter;
+      // If no parameters found, just the converter
+      if (splitted === null) {
+        converter = entityConfig.convert;
+      } else if (splitted.length === 3) {
+        // If parameter found, process...
+        converter = splitted[1];
+        parameter = Number(splitted[2]);
+      }
+      switch (converter) {
+        case 'brightness_pct':
+          inState = inState === 'undefined' ? 'undefined' : `${Math.round((inState / 255) * 100)}`;
+          break;
+        case 'multiply':
+          inState = `${Math.round(inState * parameter)}`;
+          break;
+        case 'divide':
+          inState = `${Math.round(inState / parameter)}`;
+          console.log('divide converter', { inState, parameter });
+          break;
+        case 'rgb_csv':
+        case 'rgb_hex':
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/dialogs/more-info/components/lights/ha-favorite-color-button.ts#L39
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/common/color/convert-light-color.ts
+          // private get _rgbColor(): [number, number, number] {
+          //   if (this.color) {
+          //     if ("hs_color" in this.color) {
+          //       return hs2rgb([this.color.hs_color[0], this.color.hs_color[1] / 100]);
+          //     }
+          //     if ("color_temp_kelvin" in this.color) {
+          //       return temperature2rgb(this.color.color_temp_kelvin);
+          //     }
+          //     if ("rgb_color" in this.color) {
+          //       return this.color.rgb_color;
+          //     }
+          //     if ("rgbw_color" in this.color) {
+          //       return rgbw2rgb(this.color.rgbw_color);
+          //     }
+          //     if ("rgbww_color" in this.color) {
+          //       return rgbww2rgb(
+          //         this.color.rgbww_color,
+          //         this.stateObj?.attributes.min_color_temp_kelvin,
+          //         this.stateObj?.attributes.max_color_temp_kelvin
+          //       );
+          //     }
+          //   }
+          //   return [255, 255, 255];
+          // }
+          if (entityConfig.attribute) {
+            let entity = this._hass.states[entityConfig.entity];
+            switch (entity.attributes.color_mode) {
+              case 'unknown':
+                break;
+              case 'onoff':
+                break;
+              case 'brightness':
+                break;
+              case 'color_temp':
+                if (entity.attributes.color_temp_kelvin) {
+                  let rgb = temperature2rgb(entity.attributes.color_temp_kelvin);
 
-    if (entityConfig.decimals === undefined || Number.isNaN(entityConfig.decimals) || Number.isNaN(state)) return Math.round(state * 100) / 100;
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
 
-    const x = 10 ** entityConfig.decimals;
-    return (Math.round(state * x) / x).toFixed(entityConfig.decimals);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else {
+                  if (converter === 'rgb_csv') {
+                    inState = `${255},${255},${255}`;
+                  } else {
+                    inState = '#ffffff00';
+                  }
+                }
+                break;
+              case 'hs':
+                {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgb':
+                {
+                  const hsvColor = rgb2hsv(this.stateObj.attributes.rgb_color);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  const rgbColor = hsv2rgb(hsvColor);
+                  if (converter === 'rgb_csv') {
+                    inState = rgbColor.toString();
+                  } else {
+                    inState = rgb2hex(rgbColor);
+                  }
+                }
+                break;
+              case 'rgbw':
+                {
+                  let rgb = rgbw2rgb(entity.attributes.rgbw_color);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgbww':
+                {
+                  let rgb = rgbww2rgb(entity.attributes.rgbww_color, entity.attributes?.min_color_temp_kelvin, entity.attributes?.max_color_temp_kelvin);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'white':
+                break;
+              case 'xy':
+                if (entity.attributes.hs_color) {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  // https://github.com/home-assistant/frontend/blob/8580d3f9bf59ffbcbe4187a0d7a58cc23d9822df/src/dialogs/more-info/components/lights/ha-more-info-light-brightness.ts#L76
+                  // background slider has opacity of 0.2. Looks nice also, yes??
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else if (entity.attributes.color) {
+                  // We should have h and s, including brightness...
+                  let hsl = {};
+                  hsl.l = entity.attributes.brightness;
+                  hsl.h = entity.attributes.color.h || entity.attributes.color.hue;
+                  hsl.s = entity.attributes.color.s || entity.attributes.color.saturation;
+                  // Convert HSL value to RGB
+                  // HERE
+                  let { r, g, b } = Colors.hslToRgb(hsl);
+                  if (converter === 'rgb_csv') {
+                    inState = `${r},${g},${b}`;
+                  } else {
+                    const rHex = Colors.padZero(r.toString(16));
+                    const gHex = Colors.padZero(g.toString(16));
+                    const bHex = Colors.padZero(b.toString(16));
+                    inState = `#${rHex}${gHex}${bHex}`;
+                  }
+                } else if (entity.attributes.xy_color) {
+                }
+                break;
+              default:
+                break;
+            }
+          }
+          break;
+        default:
+          console.error(`Unknown converter [${converter}] specified for entity [${entityConfig.entity}]!`);
+          break;
+      }
+    }
+    if (typeof inState === 'undefined') {
+      return undefined;
+    }
+    if (Number.isNaN(inState)) {
+      return inState;
+    }
+    return inState.toString();
   }
 
   /** *****************************************************************************
@@ -3125,110 +3182,13 @@ class FlexHorseshoeCard extends LitElement {
           return startStop.color;
         }
 
-        const valueBetween = this._calculateValueBetween(startStop.value, endStop.value, numericState);
+        const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
 
-        return this._getGradientValue(startStop.color, endStop.color, valueBetween);
+        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
       }
     }
 
     return lastStop.color;
-  }
-
-  /** *****************************************************************************
-   * _calculateValueBetween()
-   *
-   * Summary.
-   *  Clips the val value between start and end, and returns the between value ;-)
-   *
-   */
-
-  _calculateValueBetween(start, end, val) {
-    return (Math.min(Math.max(val, start), end) - start) / (end - start);
-  }
-
-  _getLovelacePanel() {
-    var root = window.document.querySelector('home-assistant');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('home-assistant-main');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-    root = (root && root.shadowRoot) || root;
-    root = root && root.querySelector('ha-panel-lovelace');
-    if (root) {
-      return root;
-    }
-    return null;
-  }
-  /** *****************************************************************************
-   * _getColorVariable()
-   *
-   * Summary.
-   *  Get value of CSS color variable, specified as var(--color-value)
-   * These variables are defined in the lovelace element so it appears...
-   *
-   */
-
-  _getColorVariable(inColor) {
-    const newColor = inColor.substr(4, inColor.length - 5);
-
-    if (!this.lovelace) {
-      this.lovelace = this._getLovelacePanel();
-      // const root = document.querySelector('home-assistant');
-      // const main = root.shadowRoot.querySelector('home-assistant-main');
-      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-      // const pages = drawer_layout.querySelector('partial-panel-resolver');
-      // this.lovelace = pages.querySelector('ha-panel-lovelace');
-    } else {
-    }
-
-    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-    return returnColor;
-  }
-
-  /** *****************************************************************************
-   * _getGradientValue()
-   *
-   * Summary.
-   *  Get gradient value of color as a result of a color_stop.
-   * An RGBA value is calculated, so transparancy is possible...
-   *
-   * The colors (colorA and colorB) can be specified as:
-   *  - a css variable, var(--color-value)
-   *  - a hex value, #fff or #ffffff
-   *  -  an rgb() or rgba() value
-   *  - a hsl() or hsla() value
-   *  - a named css color value, such as white.
-   *
-   */
-
-  _getGradientValue(colorA, colorB, val) {
-    const resultColorA = this._colorToRGBA(colorA);
-    const resultColorB = this._colorToRGBA(colorB);
-
-    // We have a rgba() color array from cache or canvas.
-    // Calculate color in between, and return #hex value as a result.
-    //
-
-    const v1 = 1 - val;
-    const v2 = val;
-    const rDec = Math.floor(resultColorA[0] * v1 + resultColorB[0] * v2);
-    const gDec = Math.floor(resultColorA[1] * v1 + resultColorB[1] * v2);
-    const bDec = Math.floor(resultColorA[2] * v1 + resultColorB[2] * v2);
-    const aDec = Math.floor(resultColorA[3] * v1 + resultColorB[3] * v2);
-
-    // And convert full RRGGBBAA value to #hex.
-    const rHex = this._padZero(rDec.toString(16));
-    const gHex = this._padZero(gDec.toString(16));
-    const bHex = this._padZero(bDec.toString(16));
-    const aHex = this._padZero(aDec.toString(16));
-    return `#${rHex}${gHex}${bHex}${aHex}`;
-  }
-
-  _padZero(val) {
-    if (val.length < 2) {
-      val = `0${val}`;
-    }
-    return val.substr(0, 2);
   }
 
   _computeDomain(entityId) {
@@ -3237,48 +3197,6 @@ class FlexHorseshoeCard extends LitElement {
 
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
-  }
-
-  /** *****************************************************************************
-   * _colorToRGBA()
-   *
-   * Summary.
-   *  Get RGBA color value of inColor.
-   *
-   * The inColor can be specified as:
-   *  - a css variable, var(--color-value)
-   *  - a hex value, #fff or #ffffff
-   *  -  an rgb() or rgba() value
-   *  - a hsl() or hsla() value
-   *  - a named css color value, such as white.
-   *
-   */
-
-  _colorToRGBA(inColor) {
-    // return color if found in colorCache...
-    if (inColor in this.colorCache) {
-      return this.colorCache[inColor];
-    }
-
-    var theColor = inColor;
-    // Check for 'var' colors
-    let a0 = inColor.substr(0, 3);
-    if (a0.valueOf() === 'var') {
-      theColor = this._getColorVariable(inColor);
-    }
-
-    // Get color from canvas. This always returns an rgba() value...
-    var canvas = window.document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    var ctx = canvas.getContext('2d');
-
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = theColor;
-    ctx.fillRect(0, 0, 1, 1);
-    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
-
-    this.colorCache[inColor] = outColor;
-    return outColor;
   }
 
   getCardSize() {

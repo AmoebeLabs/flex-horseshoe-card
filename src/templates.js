@@ -147,6 +147,7 @@ export default class Templates {
     const state = Templates._getTemplateState(item);
     const entity = entities?.[entityIndex];
     const states = hass?.states;
+    const variables = this.resolvedVariables;
     const user = hass?.user;
     if (config?.dev?.debug) {
       console.log('Evaluating JavaScript template with context:', {
@@ -156,6 +157,7 @@ export default class Templates {
         entities,
         states,
         state,
+        variables,
         item,
         user,
       });
@@ -169,6 +171,7 @@ export default class Templates {
         'entities',
         'states',
         'state',
+        'variables',
         'item',
         'user',
         `
@@ -177,7 +180,7 @@ export default class Templates {
         `,
       );
 
-      return fn(hass, config, entity, entities, states, state, item, user);
+      return fn(hass, config, entity, entities, states, state, variables, item, user);
     } catch (error) {
       if (config?.dev?.debug) {
         console.error('[templates] JavaScript template error:', {
