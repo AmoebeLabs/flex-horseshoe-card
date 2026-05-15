@@ -1047,230 +1047,6 @@ class FlexHorseshoeCard extends LitElement {
     this.requestUpdate();
   }
 
-  set hassV1(hass) {
-    // This is a safe and fast method  // Set ref to hass, use "_"for the name ;-)
-    this._hass = hass;
-    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
-
-    var entityHasChanged = false;
-
-    // Update state strings and check for changes.
-    // Only if changed, continue and force render
-    var value;
-    var index = 0;
-    var newStateStr;
-    var newAttributeStr;
-
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-
-    // eslint-disable-next-line no-restricted-syntax
-    for (value of this.resolvedEntityConfigs) {
-      const entityConfig = this.resolvedEntityConfigs[index];
-      const entity = hass.states[entityConfig.entity];
-
-      if (!entity) {
-        // eslint-disable-next-line no-plusplus
-        index++;
-        // eslint-disable-next-line no-continue
-        continue;
-      }
-
-      this.entities[index] = entity;
-
-      /**
-       * Check both entity states and entity attributes
-       */
-      newStateStr = this._buildState(entity.state, entityConfig);
-      if (newStateStr !== this.entitiesStr[index]) {
-        this.entitiesStr[index] = newStateStr;
-        entityHasChanged = true;
-      }
-
-      /**
-       * Check attribute if present
-       */
-      if (
-        entityConfig.attribute &&
-        // eslint-disable-next-line prefer-object-has-own
-        Object.prototype.hasOwnProperty.call(entity.attributes, entityConfig.attribute)
-      ) {
-        newAttributeStr = this._buildState(entity.attributes[entityConfig.attribute], entityConfig);
-
-        if (newAttributeStr !== this.attributesStr[index]) {
-          this.attributesStr[index] = newAttributeStr;
-          entityHasChanged = true;
-        }
-      }
-
-      // eslint-disable-next-line no-plusplus
-      index++;
-    }
-
-    if (!entityHasChanged) {
-      return;
-    } else {
-    }
-
-    // Use first state or attribute for displaying the horseshoe
-
-    // #TODO: only if state or attribute has changed.
-    var state = this.entities[0].state;
-    if (this.resolvedEntityConfigs[0].attribute) {
-      if (this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute]) {
-        state = this.entities[0].attributes[this.resolvedEntityConfigs[0].attribute];
-      }
-    }
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-
-    // Calculate the size of the arc to fill the dasharray with this
-    // value. It will fill the horseshoe relative to the state and min/max
-    // values given in the configuration.
-
-    const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.config.horseshoe_scale);
-
-    const min = horseshoeScale?.min ?? 0;
-    const max = horseshoeScale?.max ?? 100;
-
-    const barMode = this.config.bar_mode || 'normal';
-
-    if (barMode === 'bidirectional') {
-      // Bidirectional: zero at top, positive CW, negative CCW
-      // Assume min < 0 < max
-      const totalLength = HORSESHOE_PATH_LENGTH;
-      let val = Number(state);
-      let posLen = 0;
-      let negLen = 0;
-      if (val >= 0) {
-        posLen = Math.min(this._calculateValueBetween(0, max, val), 1) * (totalLength / 2);
-        this.dashArray = `${posLen} ${CIRCLE_PATH_LENGTH - posLen}`;
-        this._bidirectional_negative = false;
-      } else {
-        negLen = (1 - Math.min(this._calculateValueBetween(min, 0, val), 1)) * (totalLength / 2);
-        this.dashArray = `${negLen} ${CIRCLE_PATH_LENGTH - negLen}`;
-        this.dashOffset = -`${CIRCLE_PATH_LENGTH - negLen}`;
-        this._bidirectional_negative = true;
-      }
-    } else {
-      // Normal mode
-      const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-      const score = val * HORSESHOE_PATH_LENGTH;
-      const total = 10 * HORSESHOE_RADIUS_SIZE;
-      this.dashArray = `${score} ${total}`;
-      this._bidirectional_negative = false;
-    }
-
-    const val = Math.min(this._calculateValueBetween(min, max, state), 1);
-    const score = val * HORSESHOE_PATH_LENGTH;
-    const total = 10 * HORSESHOE_RADIUS_SIZE;
-
-    // We must draw the horseshoe. Depending on the stroke settings, we draw a fixed color, gradient, autominmax or colorstop
-    // #TODO: only if state or attribute has changed.
-
-    const strokeStyle = this.config.show.horseshoe_style;
-
-    if (strokeStyle === 'fixed') {
-      this.stroke_color = this.config.horseshoe_state.color;
-      this.color0 = this.config.horseshoe_state.color;
-      this.color1 = this.config.horseshoe_state.color;
-      this.color1_offset = '0%';
-      //  We could set the circle attributes, but we do it with a variable as we are using a gradient
-      //  to display the horseshoe circle  .. <horseshoe circle>.setAttribute('stroke', stroke);
-    } else if (strokeStyle === 'autominmax') {
-      // Use color0 and color1 for autoranging the color of the horseshoe
-      const stroke = this._calculateStrokeColor(state, this.colorStopsMinMax, true);
-
-      // We now use a gradient for the horseshoe, using two colors
-      // Set these colors to the colorstop color...
-      this.color0 = stroke;
-      this.color1 = stroke;
-      this.color1_offset = '0%';
-    } else if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
-      const stroke = this._calculateStrokeColor(state, this.colorStops, strokeStyle === 'colorstopgradient');
-
-      // We now use a gradient for the horseshoe, using two colors
-      // Set these colors to the colorstop color...
-      this.color0 = stroke;
-      this.color1 = stroke;
-      this.color1_offset = '0%';
-    } else if (strokeStyle === 'lineargradient') {
-      // This has taken a lot of time to get a satisfying result, and it appeared much simpler than anticipated.
-      // I don't understand it, but for a circle, a gradient from left/right with adjusted stop is enough ?!?!?!
-      // No calculations to adjust the angle of the gradient, or rotating the gradient itself.
-      // Weird, but it works. Not a 100% match, but it is good enough for now...
-
-      // According to stackoverflow, these calculations / adjustments would be needed, but it isn't ;-)
-      // Added from https://stackoverflow.com/questions/9025678/how-to-get-a-rotated-linear-gradient-svg-for-use-as-a-background-image
-      const angleCoords = {
-        x1: '0%',
-        y1: '0%',
-        x2: '100%',
-        y2: '0%',
-      };
-      this.color1_offset = `${Math.round((1 - val) * 100)}%`;
-
-      this.angleCoords = angleCoords;
-    }
-
-    // Check for animations linked to an entity or attribute.
-    // Set the dynamic animation depending on the state.
-    // If the card is rendered, the render() functions will take this dynamic animation into account.
-    //
-    // #TODO: Determine animation only if specific state or attribute has changed...
-
-    if (this.config.animations)
-      Object.keys(this.config.animations).map((animation) => {
-        const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
-        this.config.animations[animation].map((item) => {
-          // if animation state not equals sensor state, return... Nothing to animate for this state...
-          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
-
-          if (item.vlines) {
-            item.vlines.forEach((item2) => this._updateAnimationStyles('vlines', item2));
-          }
-
-          if (item.hlines) {
-            item.hlines.forEach((item2) => this._updateAnimationStyles('hlines', item2));
-          }
-
-          if (item.circles) {
-            item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
-          }
-
-          if (item.icons) {
-            item.icons.forEach((item2) => {
-              const animationId = item2.animation_id;
-
-              if (!this.animations.icons[animationId] || !item2.reuse) {
-                this.animations.icons[animationId] = {};
-                this.animations.iconsIcon[animationId] = {};
-              }
-
-              const resolvedStyles = Templates.getJsTemplateOrValue(item2, item2.styles);
-              const animationStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-              this.animations.icons[animationId] = {
-                ...this.animations.icons[animationId],
-                ...animationStyleDict,
-              };
-
-              this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
-            });
-          }
-
-          if (item.states) {
-            item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
-          }
-
-          return true;
-        });
-        return true;
-      });
-
-    // For now, always force update to render the card if any of the states or attributes have changed...
-    // if (entityHasChanged) { this.requestUpdate();}
-    this.requestUpdate();
-  }
-
   _updateAnimationStyles(section, item) {
     const animationId = item.animation_id;
 
@@ -1523,110 +1299,6 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
-  setConfigV1(config) {
-    config = JSON.parse(JSON.stringify(config));
-
-    if (!config.entities) {
-      throw Error('No entities defined');
-    }
-    if (!config.layout) {
-      throw Error('No layout defined');
-    }
-    if (!config.horseshoe_scale) {
-      throw Error('No horseshoe scale defined');
-    } else {
-      if ((!config.horseshoe_scale.min && !config.horseshoe_scale.min === 0) || !config.horseshoe_scale.max) {
-        throw Error('No horseshoe min/max for scale defined');
-      }
-    }
-    if (!config.color_stops || config.color_stops.length < 2) {
-      throw Error('No color_stops defined or not at least two colorstops');
-    }
-
-    const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
-
-    // testing
-    if (resolvedEntitiesConfig) {
-      const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
-      if (newdomain !== 'sensor') {
-        // If not a sensor, check if attribute is a number. If so, continue, otherwise Error...
-        if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
-          throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
-        }
-      }
-    }
-
-    const newConfig = {
-      texts: [],
-      card_filter: 'card--filter-none',
-      bar_mode: config.bar_mode || 'normal', // add bar_mode to config
-      ...config,
-      show: { ...DEFAULT_SHOW, ...config.show },
-      horseshoe_position: {
-        ...DEFAULT_HORSESHOE_POSITION,
-        ...config?.horseshoe_position,
-      },
-      horseshoe_scale: {
-        ...DEFAULT_HORSESHOE_SCALE,
-        ...config.horseshoe_scale,
-      },
-      horseshoe_state: {
-        ...DEFAULT_HORSESHOE_STATE,
-        ...config.horseshoe_state,
-      },
-    };
-
-    // eslint-disable-next-line no-restricted-syntax
-    for (var entityValue of resolvedEntitiesConfig) {
-      if (!entityValue.tap_action) {
-        entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
-      }
-    }
-
-    const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: 0 }, newConfig.color_stops, { resolveKeys: true });
-
-    this.colorStops = ColorStops.normalize(resolvedColorStops);
-
-    const colorStopColors = this.colorStops.colors;
-    const firstStop = colorStopColors[0];
-    const lastStop = colorStopColors[colorStopColors.length - 1];
-
-    this.colorStopsMinMax = ColorStops.normalize({});
-
-    if (firstStop && lastStop) {
-      this.colorStopsMinMax = ColorStops.normalize({
-        [newConfig.horseshoe_scale.min]: firstStop.color,
-        [newConfig.horseshoe_scale.max]: lastStop.color,
-      });
-
-      this.color0 = firstStop.color;
-      this.color1 = lastStop.color;
-    }
-
-    const angleCoords = {
-      x1: '0%',
-      y1: '0%',
-      x2: '100%',
-      y2: '0%',
-    };
-    this.angleCoords = angleCoords;
-    this.color1_offset = '0%';
-
-    // console.log('Prepared color stops', newConfig);
-    this._prepareItemColorStops(newConfig);
-    this.config = newConfig;
-    this.bar_mode = newConfig.bar_mode || 'normal';
-
-    if (this.config.layout?.icons) {
-      this.config.layout.icons.forEach((iconConfig, index) => {
-        this.iconsId[index] = Math.random().toString(36).substr(2, 9);
-      });
-    }
-
-    // Set context for Template execution, so that templates can access these variables when executed.
-    Templates.setContext({ hass: this._hass, config: this.config, entities: this.entities });
-  }
-
   _getItemStateValue(item = {}) {
     const entityIndex = item.entity_index ?? 0;
     const entity = this.entities?.[entityIndex];
@@ -1718,37 +1390,6 @@ class FlexHorseshoeCard extends LitElement {
       </ha-card>
     `;
   }
-
-  renderV1({ config } = this) {
-    const item = {
-      entity_index: 0,
-    };
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, config?.styles);
-    const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
-
-    return html`
-      <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">${this._renderSvg()}</div>
-
-        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-          <linearGradient gradientTransform="rotate(0)" id="horseshoe__gradient-${this.cardId}" x1="${this.angleCoords.x1}" y1="${this.angleCoords.y1}" x2="${this.angleCoords.x2}" y2="${this.angleCoords.y2}">
-            <stop offset="${this.color1_offset}" stop-color="${this.color1}"></stop>
-            <stop offset="100%" stop-color="${this.color0}"></stop>
-          </linearGradient>
-        </svg>
-      </ha-card>
-    `;
-  }
-
-  // _buildStyleString(styles) {
-  //   // console.log('Building style string for styles: ', styles);
-  //   if (!styles) return '';
-
-  //   return Object.entries(Object.assign({}, ...styles))
-  //     .map(([key, value]) => `${key}: ${value}`)
-  //     .join(' ');
-  // }
 
   /** *****************************************************************************
    * renderTickMarks()
@@ -1887,50 +1528,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`${scaleItems}`;
   }
 
-  _renderTickMarksV1() {
-    const { config } = this;
-    if (!config) return;
-    if (!config.show) return;
-    if (!config.show.scale_tickmarks) return;
-
-    const stroke = config.horseshoe_scale.color ? config.horseshoe_scale.color : 'var(--primary-background-color)';
-    const tickSize = config.horseshoe_scale.ticksize ? config.horseshoe_scale.ticksize : (config.horseshoe_scale.max - config.horseshoe_scale.min) / 10;
-
-    // fullScale is 260 degrees. Hard coded for now...
-    const fullScale = 260;
-    const remainder = config.horseshoe_scale.min % tickSize;
-    const startTickValue = config.horseshoe_scale.min + (remainder === 0 ? 0 : tickSize - remainder);
-    const startAngle = ((startTickValue - config.horseshoe_scale.min) / (config.horseshoe_scale.max - config.horseshoe_scale.min)) * fullScale;
-    var tickSteps = (config.horseshoe_scale.max - startTickValue) / tickSize;
-
-    // new
-    var steps = Math.floor(tickSteps);
-    const angleStepSize = (fullScale - startAngle) / tickSteps;
-
-    // If steps exactly match the max. value/range, add extra step for that max value.
-    if (Math.floor(steps * tickSize + startTickValue) <= config.horseshoe_scale.max) {
-      // eslint-disable-next-line no-plusplus
-      steps++;
-    }
-
-    const radius = config.horseshoe_scale.width ? config.horseshoe_scale.width / 2 : 6 / 2;
-    var angle;
-    var scaleItems = [];
-
-    // NTS:
-    // Value of -230 is weird. Should be -220. Can't find why...
-    var i;
-    for (i = 0; i < steps; i++) {
-      angle = startAngle + ((-230 + (360 - i * angleStepSize)) * Math.PI) / 180;
-      scaleItems[i] = svg`
-          <circle cx="${50 + 50 - Math.sin(angle) * TICKMARKS_RADIUS_SIZE}"
-                  cy="${50 + 50 - Math.cos(angle) * TICKMARKS_RADIUS_SIZE}" r="${radius}"
-                  fill="${stroke}">
-        `;
-    }
-    return svg`${scaleItems}`;
-  }
-
   /** *****************************************************************************
    * _renderSvg()
    *
@@ -2001,10 +1598,6 @@ class FlexHorseshoeCard extends LitElement {
     return svg`
     ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
   `;
-  }
-
-  _renderHorseShoesV1() {
-    return svg`${this._renderHorseShoeV1()}`;
   }
 
   _renderHorseShoe(horseshoe, index) {
@@ -2135,88 +1728,6 @@ class FlexHorseshoeCard extends LitElement {
       ${this._renderTickMarks(horseshoe)}
     </g>
   `;
-  }
-
-  _renderHorseShoeV1() {
-    if (!this.config.show.horseshoe) return;
-
-    // Bidirectional: zero at top, positive CW, negative CCW
-    const barMode = this.config.bar_mode || 'normal';
-    if (barMode === 'bidirectional') {
-      // The horseshoe arc is always 260deg, but we want zero at top (270deg)
-      // So rotate -90deg (top center), and for negative values, use stroke-dashoffset to fill CCW
-      if (this._bidirectional_negative) {
-        // stroke-dashoffset = half the arc length (start at top, fill CCW)
-        // But SVG circles always fill CW, so we use dashoffset to "reverse" the fill
-        // The arc is 260deg, so half is 130deg, which is HORSESHOE_PATH_LENGTH/2
-        // For negative, offset by half the arc
-        return svg`
-          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="${this.config.horseshoe_scale.color || '#000000'}"
-              stroke-dasharray="408.40704496667314,180"
-              stroke-width="${this.config.horseshoe_scale.width || 6}" 
-              stroke-linecap="round"
-              transform="rotate(-220 100 100)"/>
-            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="url('#horseshoe__gradient-${this.cardId}')"
-              stroke-dasharray="${this.dashArray}"
-              stroke-dashoffset="${this.dashOffset}"
-              stroke-width="${this.config.horseshoe_state.width || 12}" 
-              stroke-linecap="round"
-              transform="rotate(-90 100 100)"
-              style="transition: all 2.5s ease-out;"/>
-            ${this._renderTickMarks()}
-          </g>
-        `;
-      } else {
-        // stroke-dashoffset = 0 (start at top, fill CW)
-        return svg`
-          <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-            <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="${this.config.horseshoe_scale.color || '#000000'}"
-              stroke-dasharray="408.40704496667314,180"
-              stroke-width="${this.config.horseshoe_scale.width || 6}" 
-              stroke-linecap="round"
-              transform="rotate(-220 100 100)"/>
-            <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-              fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-              stroke="url('#horseshoe__gradient-${this.cardId}')"
-              stroke-dasharray="${this.dashArray}"
-              stroke-width="${this.config.horseshoe_state.width || 12}" 
-              stroke-linecap="round"
-              transform="rotate(-90 100 100)"
-              style="transition: all 2.5s ease-out;"/>
-            ${this._renderTickMarks()}
-          </g>
-        `;
-      }
-    }
-
-    // Normal mode (default)
-    return svg`
-      <g id="horseshoe__svg__group" class="horseshoe__svg__group">
-        <circle id="horseshoe__scale" class="horseshoe__scale" cx="50%" cy="50%" r="45%"
-          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-          stroke="${this.config.horseshoe_scale.color || '#000000'}"
-          stroke-dasharray="408.40704496667314,180"
-          stroke-width="${this.config.horseshoe_scale.width || 6}" 
-          stroke-linecap="round"
-          transform="rotate(-220 100 100)"/>
-        <circle id="horseshoe__state__value" class="horseshoe__state__value" cx="50%" cy="50%" r="45%"
-          fill="${this.config.fill || 'rgba(0, 0, 0, 0)'}"
-          stroke="url('#horseshoe__gradient-${this.cardId}')"
-          stroke-dasharray="${this.dashArray}"
-          stroke-width="${this.config.horseshoe_state.width || 12}" 
-          stroke-linecap="round"
-          transform="rotate(-220 100 100)"
-          style="transition: all 2.5s ease-out;"/>
-        ${this._renderTickMarks()}
-      </g>
-    `;
   }
 
   /** *****************************************************************************
@@ -2791,7 +2302,7 @@ class FlexHorseshoeCard extends LitElement {
         };
 
         const afterRender =
-          this._card?.updateComplete && typeof this.updateComplete.then === 'function'
+          this?.updateComplete && typeof this.updateComplete.then === 'function'
             ? this.updateComplete
             : this.updateComplete && typeof this.updateComplete.then === 'function'
               ? this.updateComplete
@@ -3208,12 +2719,6 @@ class FlexHorseshoeCard extends LitElement {
     this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
   }
 
-  handlePopupV1(e, entity) {
-    e.stopPropagation();
-
-    this._handleClick(this, this._hass, this.config, this.resolvedEntityConfigs[this.resolvedEntityConfigs.findIndex((element, index, array) => element.entity === entity.entity_id)].tap_action, entity.entity_id);
-  }
-
   /** *****************************************************************************
    * Summary.
    * Very simple form of ellipsis, which is not supported by SVG.
@@ -3276,27 +2781,6 @@ class FlexHorseshoeCard extends LitElement {
 
   _buildUom(entityState, entityConfig) {
     return entityConfig.unit || entityState.attributes.unit_of_measurement || '';
-  }
-
-  /** *****************************************************************************
-   * _buildState()
-   *
-   * Summary.
-   * Builds the State string.
-   *  If state is not a number, the state is returned AS IS, otherwise the state
-   * is build according to the specified number of decimals.
-   *
-   */
-
-  _buildStateV1(inState, entityConfig) {
-    if (isNaN(inState)) return inState;
-
-    const state = Number(inState);
-
-    if (entityConfig.decimals === undefined || Number.isNaN(entityConfig.decimals) || Number.isNaN(state)) return Math.round(state * 100) / 100;
-
-    const x = 10 ** entityConfig.decimals;
-    return (Math.round(state * x) / x).toFixed(entityConfig.decimals);
   }
 
   /** *****************************************************************************
@@ -3596,110 +3080,12 @@ class FlexHorseshoeCard extends LitElement {
 
         const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
 
-        // return this._getGradientValue(startStop.color, endStop.color, valueBetween);
         return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
       }
     }
 
     return lastStop.color;
   }
-
-  /** *****************************************************************************
-   * _calculateValueBetween()
-   *
-   * Summary.
-   *  Clips the val value between start and end, and returns the between value ;-)
-   *
-   */
-
-  // _calculateValueBetween(start, end, val) {
-  //   return (Math.min(Math.max(val, start), end) - start) / (end - start);
-  // }
-
-  // _getLovelacePanel() {
-  //   var root = window.document.querySelector('home-assistant');
-  //   root = root && root.shadowRoot;
-  //   root = root && root.querySelector('home-assistant-main');
-  //   root = root && root.shadowRoot;
-  //   root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-  //   root = (root && root.shadowRoot) || root;
-  //   root = root && root.querySelector('ha-panel-lovelace');
-  //   if (root) {
-  //     return root;
-  //   }
-  //   return null;
-  // }
-  /** *****************************************************************************
-   * _getColorVariable()
-   *
-   * Summary.
-   *  Get value of CSS color variable, specified as var(--color-value)
-   * These variables are defined in the lovelace element so it appears...
-   *
-   */
-
-  // _getColorVariable(inColor) {
-  //   const newColor = inColor.substr(4, inColor.length - 5);
-
-  //   if (!this.lovelace) {
-  //     this.lovelace = this._getLovelacePanel();
-  //     // const root = document.querySelector('home-assistant');
-  //     // const main = root.shadowRoot.querySelector('home-assistant-main');
-  //     // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-  //     // const pages = drawer_layout.querySelector('partial-panel-resolver');
-  //     // this.lovelace = pages.querySelector('ha-panel-lovelace');
-  //   } else {
-  //   }
-
-  //   const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-  //   return returnColor;
-  // }
-
-  /** *****************************************************************************
-   * _getGradientValue()
-   *
-   * Summary.
-   *  Get gradient value of color as a result of a color_stop.
-   * An RGBA value is calculated, so transparancy is possible...
-   *
-   * The colors (colorA and colorB) can be specified as:
-   *  - a css variable, var(--color-value)
-   *  - a hex value, #fff or #ffffff
-   *  -  an rgb() or rgba() value
-   *  - a hsl() or hsla() value
-   *  - a named css color value, such as white.
-   *
-   */
-
-  // _getGradientValue(colorA, colorB, val) {
-  //   const resultColorA = this._colorToRGBA(colorA);
-  //   const resultColorB = this._colorToRGBA(colorB);
-
-  //   // We have a rgba() color array from cache or canvas.
-  //   // Calculate color in between, and return #hex value as a result.
-  //   //
-
-  //   const v1 = 1 - val;
-  //   const v2 = val;
-  //   const rDec = Math.floor(resultColorA[0] * v1 + resultColorB[0] * v2);
-  //   const gDec = Math.floor(resultColorA[1] * v1 + resultColorB[1] * v2);
-  //   const bDec = Math.floor(resultColorA[2] * v1 + resultColorB[2] * v2);
-  //   const aDec = Math.floor(resultColorA[3] * v1 + resultColorB[3] * v2);
-
-  //   // And convert full RRGGBBAA value to #hex.
-  //   const rHex = this._padZero(rDec.toString(16));
-  //   const gHex = this._padZero(gDec.toString(16));
-  //   const bHex = this._padZero(bDec.toString(16));
-  //   const aHex = this._padZero(aDec.toString(16));
-  //   return `#${rHex}${gHex}${bHex}${aHex}`;
-  // }
-
-  // _padZero(val) {
-  //   if (val.length < 2) {
-  //     val = `0${val}`;
-  //   }
-  //   return val.substr(0, 2);
-  // }
 
   _computeDomain(entityId) {
     return entityId.substr(0, entityId.indexOf('.'));
@@ -3708,48 +3094,6 @@ class FlexHorseshoeCard extends LitElement {
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
-
-  /** *****************************************************************************
-   * _colorToRGBA()
-   *
-   * Summary.
-   *  Get RGBA color value of inColor.
-   *
-   * The inColor can be specified as:
-   *  - a css variable, var(--color-value)
-   *  - a hex value, #fff or #ffffff
-   *  -  an rgb() or rgba() value
-   *  - a hsl() or hsla() value
-   *  - a named css color value, such as white.
-   *
-   */
-
-  // _colorToRGBA(inColor) {
-  //   // return color if found in colorCache...
-  //   if (inColor in this.colorCache) {
-  //     return this.colorCache[inColor];
-  //   }
-
-  //   var theColor = inColor;
-  //   // Check for 'var' colors
-  //   let a0 = inColor.substr(0, 3);
-  //   if (a0.valueOf() === 'var') {
-  //     theColor = this._getColorVariable(inColor);
-  //   }
-
-  //   // Get color from canvas. This always returns an rgba() value...
-  //   var canvas = window.document.createElement('canvas');
-  //   canvas.width = canvas.height = 1;
-  //   var ctx = canvas.getContext('2d');
-
-  //   ctx.clearRect(0, 0, 1, 1);
-  //   ctx.fillStyle = theColor;
-  //   ctx.fillRect(0, 0, 1, 1);
-  //   const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
-
-  //   this.colorCache[inColor] = outColor;
-  //   return outColor;
-  // }
 
   getCardSize() {
     return 4;
