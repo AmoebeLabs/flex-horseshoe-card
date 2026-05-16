@@ -2319,34 +2319,8 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
-    // Test...
-    // render() {
-    //   // Dit is de entiteit die je wilt tonen (komt bijv. uit je kaart-configuratie)
-    //   const entityId = "light.woonkamer";
-
-    //   // 1. Maak van 'light.woonkamer' -> 'light-woonkamer'
-    //   const safeId = entityId.replace('.', '-');
-
-    //   // 2. Bouw de CSS-variabele string met de automatische fallback naar inactief
-    //   const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
-
-    //   // 3. Injecteer dit direct in de 'fill' van je path of de 'style' van de group
-    //   return html`
-    //     <svg viewBox="0 0 24 24" width="24" height="24">
-    //       <g style="color: ${dynamicColor};">
-    //         <rect width="24" height="24" fill="rgba(0,0,0,0)"/>
-    //         <!-- fill="currentColor" pakt de kleur die we hierboven op de groep hebben gezet -->
-    //         <path fill="currentColor" d="M12,2A10..." />
-    //       </g>
-    //     </svg>
-    //   `;
-    // }
-
     const entityState = this.entities[entityIndex];
     const entityColor = this.computeEntityColor(entityState);
-    // const entityId = this.config.entities[entityIndex].entity;
-    // const safeId = entityId.replace('.', '-');
-    // const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
     const DEFAULT_ICON_COLOR = {};
     DEFAULT_ICON_COLOR.fill = entityColor;
     DEFAULT_ICON_COLOR.color = entityColor;
