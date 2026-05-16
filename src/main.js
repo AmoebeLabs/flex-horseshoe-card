@@ -1193,8 +1193,6 @@ class FlexHorseshoeCard extends LitElement {
           throw Error(`No color_stops defined for horseshoe ${index}`);
         }
 
-        const templateItem = { entity_index: entityIndex };
-
         console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
         console.log('[colorstops] variables', Templates.context?.config?.variables);
 
