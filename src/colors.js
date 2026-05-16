@@ -1,6 +1,5 @@
 import { stateColorCss, stateColorBrightness } from './frontend_mods/common/entity/state_color';
 import { stateActive } from './frontend_mods/common/entity/state_active';
-import { computeDomain } from './frontend_mods/common/entity/compute_domain';
 
 import { CLIMATE_HVAC_ACTION_TO_MODE } from './frontend_mods/data/climate';
 
