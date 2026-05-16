@@ -376,7 +376,45 @@ export default class Colors {
     return { r, g, b };
   }
 
-  static getHaEntityIconStyle(entity, stateColor = true) {
+  // @2026.05.16
+  // 1:1 copy of _computeColor() function in the Home Assistant repository
+  // https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-entity-card.ts
+  static computeColor(entity) {
+    if (entity.attributes?.hvac_action) {
+      const hvacAction = entity.attributes.hvac_action;
+
+      if (hvacAction in CLIMATE_HVAC_ACTION_TO_MODE) {
+        return stateColorCss(entity, CLIMATE_HVAC_ACTION_TO_MODE[hvacAction]);
+      }
+
+      return undefined;
+    }
+
+    if (entity.attributes?.rgb_color) {
+      return `rgb(${entity.attributes.rgb_color.join(',')})`;
+    }
+
+    const iconColor = stateColorCss(entity);
+
+    if (iconColor) {
+      return iconColor;
+    }
+
+    return undefined;
+  }
+
+  static getHaEntityIconStyle(entity) {
+    const color = Colors.computeColor(entity);
+    const filter = stateColorBrightness(entity);
+
+    return {
+      color: color ?? 'var(--state-icon-color)',
+      fill: 'currentColor',
+      ...(filter ? { filter } : {}),
+    };
+  }
+
+  static getHaEntityIconStyleV2(entity, stateColor = true) {
     const domain = computeDomain(entity.entity_id);
 
     let color;
