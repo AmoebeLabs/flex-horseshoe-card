@@ -30,7 +30,7 @@ import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, form
 import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
 import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
 import { formatDuration } from './frontend_mods/datetime/duration.js';
-import { computeDomain } from './frontend_mods/common/entity/compute_domain.js';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain';
 
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
@@ -2318,10 +2318,18 @@ class FlexHorseshoeCard extends LitElement {
     const entityIndex = item.entity_index ?? 0;
 
     const entityState = this.entities[entityIndex];
-    const entityColor = this.computeEntityColor(entityState);
+    // const entityColor = this.computeEntityColor(entityState);
+
+    // new new new new
+    const haStyle = Colors.getHaEntityIconStyle(entityState);
+    console.log('haStyle', entityState, haStyle);
     const DEFAULT_ICON_COLOR = {};
-    DEFAULT_ICON_COLOR.fill = entityColor;
-    DEFAULT_ICON_COLOR.color = entityColor;
+    // DEFAULT_ICON_COLOR.fill = entityColor;
+    // DEFAULT_ICON_COLOR.color = entityColor;
+    DEFAULT_ICON_COLOR.fill = haStyle.fill;
+    DEFAULT_ICON_COLOR.color = haStyle.color;
+    DEFAULT_ICON_COLOR.filter = haStyle.filter;
+
     // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);

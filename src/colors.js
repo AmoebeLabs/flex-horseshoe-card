@@ -1,3 +1,9 @@
+import { stateColorCss, stateColorBrightness } from './frontend_mods/common/entity/state_color';
+import { stateActive } from './frontend_mods/common/entity/state_active';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain';
+
+import { CLIMATE_HVAC_ACTION_TO_MODE } from './frontend_mods/data/climate';
+
 /** ***************************************************************************
  * Colors class
  *
@@ -368,5 +374,69 @@ export default class Colors {
     b *= 255;
 
     return { r, g, b };
+  }
+
+  static getHaEntityIconStyle(entity, stateColor = true) {
+    const domain = computeDomain(entity.entity_id);
+
+    let color;
+
+    if (stateColor) {
+      if (entity.attributes?.hvac_action) {
+        const hvacMode = CLIMATE_HVAC_ACTION_TO_MODE[entity.attributes.hvac_action];
+
+        if (hvacMode) {
+          color = stateColorCss(entity, hvacMode);
+        }
+      }
+
+      if (color === undefined && domain === 'light' && stateActive(entity) && entity.attributes?.rgb_color) {
+        color = `rgb(${entity.attributes.rgb_color.join(',')})`;
+      }
+
+      if (color === undefined) {
+        color = stateColorCss(entity);
+      }
+    }
+
+    const filter = stateColor ? stateColorBrightness(entity) : '';
+
+    return {
+      color: color ?? 'var(--state-icon-color)',
+      fill: 'currentColor',
+      ...(filter ? { filter } : {}),
+    };
+  }
+
+  static getHaEntityIconStyleV1(entity) {
+    const domain = entity.entity_id.split('.')[0];
+
+    let color;
+
+    // 1. Climate: kleur op basis van hvac_action
+    if (entity.attributes?.hvac_action) {
+      const hvacMode = CLIMATE_HVAC_ACTION_TO_MODE[entity.attributes.hvac_action];
+
+      if (hvacMode) {
+        color = stateColorCss(entity, hvacMode);
+      }
+    }
+
+    // 2. Light: echte lampkleur, alleen als actief
+    if (color === undefined && domain === 'light' && stateActive(entity) && entity.attributes?.rgb_color) {
+      color = `rgb(${entity.attributes.rgb_color.join(',')})`;
+    }
+
+    // 3. Alle standaard HA-logica:
+    // domain, state, device_class, active/inactive, battery, alarm, cover, etc.
+    if (color === undefined) {
+      color = stateColorCss(entity);
+    }
+
+    return {
+      color: color ?? 'var(--state-icon-color)',
+      fill: color ?? 'currentColor',
+      filter: stateColorBrightness(entity),
+    };
   }
 } // END OF CLASS
