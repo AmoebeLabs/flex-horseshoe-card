@@ -2773,6 +2773,14 @@ class FlexHorseshoeCard extends LitElement {
         const [domain, service] = actionConfig.service.split('.', 2);
         const serviceData = { ...actionConfig.service_data };
         hass.callService(domain, service, serviceData);
+        break;
+      }
+      // Support for browser_mod pop ups.
+      case 'fire-dom-event': {
+        e = new Event('ll-custom', { composed: true, bubbles: true });
+        e.detail = actionConfig;
+        node.dispatchEvent(e);
+        break;
       }
     }
   }
