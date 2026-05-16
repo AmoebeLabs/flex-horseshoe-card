@@ -196,61 +196,61 @@ class FlexHorseshoeCard extends LitElement {
         });
       }
 
-      console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
+      // console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
 
-      console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
+      // console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
 
-      console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
+      // console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
 
-      console.log(
-        'style test 4',
-        ConfigHelper.toStyleDict({
-          'font-size': '2.8em;',
-          'text-anchor': 'start;',
-          opacity: '0.7;',
-        }),
-      );
+      // console.log(
+      //   'style test 4',
+      //   ConfigHelper.toStyleDict({
+      //     'font-size': '2.8em;',
+      //     'text-anchor': 'start;',
+      //     opacity: '0.7;',
+      //   }),
+      // );
 
-      console.log(
-        'style test 5',
-        ConfigHelper.toStyleDict({
-          'font-size': '2.8em',
-          'text-anchor': 'start',
-          opacity: 0.7,
-        }),
-      );
+      // console.log(
+      //   'style test 5',
+      //   ConfigHelper.toStyleDict({
+      //     'font-size': '2.8em',
+      //     'text-anchor': 'start',
+      //     opacity: 0.7,
+      //   }),
+      // );
 
-      console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
+      // console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
 
-      console.log(
-        'style test 7',
-        ConfigHelper.toStyleDict([
-          `[[[
-          return { 'font-size': '2.8em' };
-        ]]]`,
-          'text-anchor: start;',
-          'opacity: 0.7;',
-        ]),
-      );
+      // console.log(
+      //   'style test 7',
+      //   ConfigHelper.toStyleDict([
+      //     `[[[
+      //     return { 'font-size': '2.8em' };
+      //   ]]]`,
+      //     'text-anchor: start;',
+      //     'opacity: 0.7;',
+      //   ]),
+      // );
 
-      const rawStyles = [
-        `[[[
-        return { 'font-size': '2.8em' };
-      ]]]`,
-        'text-anchor: start;',
-        'opacity: 0.7;',
-      ];
-      const item = {
-        entity_index: 0,
-      };
-      const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
-      const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+      // const rawStyles = [
+      //   `[[[
+      //   return { 'font-size': '2.8em' };
+      // ]]]`,
+      //   'text-anchor: start;',
+      //   'opacity: 0.7;',
+      // ];
+      // const item = {
+      //   entity_index: 0,
+      // };
+      // const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
+      // const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
 
-      console.log('style test 8 - resolvedStyles', resolvedStyles);
-      console.log('style test 8 - itemStyleDict', itemStyleDict);
-      if (this.config?.dev?.debug) {
-        ColorStops._testColorStopsNormalizer();
-      }
+      // console.log('style test 8 - resolvedStyles', resolvedStyles);
+      // console.log('style test 8 - itemStyleDict', itemStyleDict);
+      // if (this.config?.dev?.debug) {
+      //   ColorStops._testColorStopsNormalizer();
+      // }
 
       // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
       this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1193,11 +1193,11 @@ class FlexHorseshoeCard extends LitElement {
           throw Error(`No color_stops defined for horseshoe ${index}`);
         }
 
-        console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
-        console.log('[colorstops] variables', Templates.context?.config?.variables);
+        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+        // console.log('[colorstops] variables', Templates.context?.config?.variables);
 
         const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
-        console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
 
         const colorStops = ColorStops.normalize(resolvedColorStops);
         const colorStopColors = colorStops.colors;
@@ -2322,10 +2322,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // new new new new
     const haStyle = Colors.getHaEntityIconStyle(entityState);
-    console.log('haStyle', entityState, haStyle);
     const DEFAULT_ICON_COLOR = {};
-    // DEFAULT_ICON_COLOR.fill = entityColor;
-    // DEFAULT_ICON_COLOR.color = entityColor;
     DEFAULT_ICON_COLOR.fill = haStyle.fill;
     DEFAULT_ICON_COLOR.color = haStyle.color;
     DEFAULT_ICON_COLOR.filter = haStyle.filter;
@@ -2931,7 +2928,6 @@ class FlexHorseshoeCard extends LitElement {
           break;
         case 'divide':
           inState = `${Math.round(inState / parameter)}`;
-          console.log('divide converter', { inState, parameter });
           break;
         case 'rgb_csv':
         case 'rgb_hex':
