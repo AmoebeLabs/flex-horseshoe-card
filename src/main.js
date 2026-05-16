@@ -1063,7 +1063,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1089,215 +1089,237 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   setConfig(config) {
-    config = JSON.parse(JSON.stringify(config));
+    try {
+      config = JSON.parse(JSON.stringify(config));
 
-    if (!config.entities) {
-      throw Error('No entities defined');
-    }
+      if (!config.entities) {
+        throw Error('No entities defined');
+      }
 
-    if (!config.layout) {
-      throw Error('No layout defined');
-    }
+      if (!config.layout) {
+        throw Error('No layout defined');
+      }
+      Templates.setContext({
+        hass: this._hass,
+        config,
+        entities: this.entities,
+        horseshoes: this.horseshoes,
+      });
 
-    const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
+      const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
 
-    if (resolvedEntitiesConfig) {
-      const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
+      if (resolvedEntitiesConfig) {
+        const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
 
-      if (newdomain !== 'sensor') {
-        if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
-          throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
+        if (newdomain !== 'sensor') {
+          if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
+            throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
+          }
         }
       }
-    }
 
-    resolvedEntitiesConfig.forEach((entityValue) => {
-      if (!entityValue.tap_action) {
-        entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
-      }
-    });
-
-    const newConfig = {
-      texts: [],
-      card_filter: 'card--filter-none',
-      bar_mode: config.bar_mode || 'normal',
-      ...config,
-      show: {
-        ...DEFAULT_SHOW,
-        ...config.show,
-      },
-      horseshoe_position: {
-        ...DEFAULT_HORSESHOE_POSITION,
-        ...config?.horseshoe_position,
-      },
-      horseshoe_scale: {
-        ...DEFAULT_HORSESHOE_SCALE,
-        ...config.horseshoe_scale,
-      },
-      horseshoe_state: {
-        ...DEFAULT_HORSESHOE_STATE,
-        ...config.horseshoe_state,
-      },
-    };
-
-    const rawHorseshoes = Array.isArray(newConfig.horseshoes)
-      ? newConfig.horseshoes.map((horseshoeConfig, index) => ({
-          ...newConfig,
-          ...horseshoeConfig,
-          entity_index: horseshoeConfig.entity_index ?? index,
-        }))
-      : [
-          {
-            ...newConfig,
-            entity_index: 0,
-          },
-        ];
-
-    this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
-      const entityIndex = horseshoeConfig.entity_index ?? index;
-
-      const show = {
-        ...DEFAULT_SHOW,
-        ...(horseshoeConfig.show ?? {}),
-      };
-
-      const horseshoeScale = {
-        ...DEFAULT_HORSESHOE_SCALE,
-        ...(horseshoeConfig.horseshoe_scale ?? {}),
-      };
-
-      const horseshoeState = {
-        ...DEFAULT_HORSESHOE_STATE,
-        ...(horseshoeConfig.horseshoe_state ?? {}),
-      };
-
-      const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
-
-      const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
-
-      if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
-        throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
-      }
-
-      const colorStopsConfig = horseshoeConfig.color_stops;
-
-      if (!colorStopsConfig) {
-        throw Error(`No color_stops defined for horseshoe ${index}`);
-      }
-
-      const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
-
-      const colorStops = ColorStops.normalize(resolvedColorStops);
-      const colorStopColors = colorStops.colors;
-
-      if (!colorStopColors || colorStopColors.length < 2) {
-        throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
-      }
-
-      const firstStop = colorStopColors[0];
-      const lastStop = colorStopColors[colorStopColors.length - 1];
-
-      let colorStopsMinMax = ColorStops.normalize({});
-      let color0;
-      let color1;
-
-      if (firstStop && lastStop) {
-        colorStopsMinMax = ColorStops.normalize({
-          [horseshoeScale.min]: firstStop.color,
-          [horseshoeScale.max]: lastStop.color,
-        });
-
-        color0 = firstStop.color;
-        color1 = lastStop.color;
-      }
-
-      const radius = horseshoeConfig.radius ?? 45;
-      const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
-      const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
-
-      const radiusSize = (radius / 100) * SVG_VIEW_BOX;
-      const tickmarksRadiusSize = (tickmarksRadius / 100) * SVG_VIEW_BOX;
-
-      const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
-
-      const circlePathLength = 2 * Math.PI * radiusSize;
-
-      return {
-        ...horseshoeConfig,
-
-        entity_index: entityIndex,
-
-        show,
-        fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
-
-        xpos,
-        ypos,
-
-        bar_mode: horseshoeConfig.bar_mode ?? 'normal',
-
-        horseshoe_scale: horseshoeScale,
-        horseshoe_state: horseshoeState,
-
-        radius,
-        tickmarks_radius: tickmarksRadius,
-        arc_degrees: arcDegrees,
-
-        radiusSize,
-        tickmarksRadiusSize,
-        horseshoePathLength,
-        circlePathLength,
-
-        color_stops: colorStopsConfig,
-        colorStops,
-        colorStopsMinMax,
-        color0,
-        color1,
-
-        angleCoords: {
-          x1: '0%',
-          y1: '0%',
-          x2: '100%',
-          y2: '0%',
-        },
-
-        color1_offset: '0%',
-
-        dashArray: this.dashArray,
-        dashOffset: this.dashOffset,
-        bidirectional_negative: this._bidirectional_negative,
-      };
-    });
-
-    if (!this.horseshoes.length) {
-      throw Error('No horseshoes defined');
-    }
-
-    const defaultHorseshoe = this.horseshoes[0];
-
-    this.colorStops = defaultHorseshoe.colorStops;
-    this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
-    this.color0 = defaultHorseshoe.color0;
-    this.color1 = defaultHorseshoe.color1;
-    this.angleCoords = defaultHorseshoe.angleCoords;
-    this.color1_offset = defaultHorseshoe.color1_offset;
-
-    this._prepareItemColorStops(newConfig);
-
-    this.config = newConfig;
-    this.bar_mode = newConfig.bar_mode || 'normal';
-
-    if (this.config.layout?.icons) {
-      this.config.layout.icons.forEach((iconConfig, index) => {
-        this.iconsId[index] = Math.random().toString(36).substr(2, 9);
+      resolvedEntitiesConfig.forEach((entityValue) => {
+        if (!entityValue.tap_action) {
+          entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
+        }
       });
-    }
 
-    Templates.setContext({
-      hass: this._hass,
-      config: this.config,
-      entities: this.entities,
-      horseshoes: this.horseshoes,
-    });
+      const newConfig = {
+        texts: [],
+        card_filter: 'card--filter-none',
+        bar_mode: config.bar_mode || 'normal',
+        ...config,
+        show: {
+          ...DEFAULT_SHOW,
+          ...config.show,
+        },
+        horseshoe_position: {
+          ...DEFAULT_HORSESHOE_POSITION,
+          ...config?.horseshoe_position,
+        },
+        horseshoe_scale: {
+          ...DEFAULT_HORSESHOE_SCALE,
+          ...config.horseshoe_scale,
+        },
+        horseshoe_state: {
+          ...DEFAULT_HORSESHOE_STATE,
+          ...config.horseshoe_state,
+        },
+      };
+
+      const rawHorseshoes = Array.isArray(newConfig.layout.horseshoes)
+        ? newConfig.layout.horseshoes.map((horseshoeConfig, index) => ({
+            ...newConfig,
+            ...horseshoeConfig,
+            entity_index: horseshoeConfig.entity_index ?? index,
+          }))
+        : [
+            {
+              ...newConfig,
+              entity_index: 0,
+            },
+          ];
+
+      this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
+        const entityIndex = horseshoeConfig.entity_index ?? index;
+
+        const show = {
+          ...DEFAULT_SHOW,
+          ...(horseshoeConfig.show ?? {}),
+        };
+
+        const horseshoeScale = {
+          ...DEFAULT_HORSESHOE_SCALE,
+          ...(horseshoeConfig.horseshoe_scale ?? {}),
+        };
+
+        const horseshoeState = {
+          ...DEFAULT_HORSESHOE_STATE,
+          ...(horseshoeConfig.horseshoe_state ?? {}),
+        };
+
+        const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
+
+        const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
+
+        if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
+          throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
+        }
+
+        const colorStopsConfig = horseshoeConfig.color_stops;
+
+        if (!colorStopsConfig) {
+          console.warn(`No color_stops defined for horseshoe ${index}`);
+          throw Error(`No color_stops defined for horseshoe ${index}`);
+        }
+
+        console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+        console.log('[colorstops] variables', Templates.context?.config?.variables);
+
+        const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
+        console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+
+        const colorStops = ColorStops.normalize(resolvedColorStops);
+        const colorStopColors = colorStops.colors;
+
+        if (!colorStopColors || colorStopColors.length < 2) {
+          throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
+        }
+
+        const firstStop = colorStopColors[0];
+        const lastStop = colorStopColors[colorStopColors.length - 1];
+
+        let colorStopsMinMax = ColorStops.normalize({});
+        let color0;
+        let color1;
+
+        if (firstStop && lastStop) {
+          colorStopsMinMax = ColorStops.normalize({
+            [horseshoeScale.min]: firstStop.color,
+            [horseshoeScale.max]: lastStop.color,
+          });
+
+          color0 = firstStop.color;
+          color1 = lastStop.color;
+        }
+
+        const radius = horseshoeConfig.radius ?? 45;
+        const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
+        const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
+
+        const radiusSize = (radius / 100) * SVG_VIEW_BOX;
+        const tickmarksRadiusSize = (tickmarksRadius / 100) * SVG_VIEW_BOX;
+
+        const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
+
+        const circlePathLength = 2 * Math.PI * radiusSize;
+
+        return {
+          ...horseshoeConfig,
+
+          entity_index: entityIndex,
+
+          show,
+          fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
+
+          xpos,
+          ypos,
+
+          bar_mode: horseshoeConfig.bar_mode ?? 'normal',
+
+          horseshoe_scale: horseshoeScale,
+          horseshoe_state: horseshoeState,
+
+          radius,
+          tickmarks_radius: tickmarksRadius,
+          arc_degrees: arcDegrees,
+
+          radiusSize,
+          tickmarksRadiusSize,
+          horseshoePathLength,
+          circlePathLength,
+
+          color_stops: colorStopsConfig,
+          colorStops,
+          colorStopsMinMax,
+          color0,
+          color1,
+
+          angleCoords: {
+            x1: '0%',
+            y1: '0%',
+            x2: '100%',
+            y2: '0%',
+          },
+
+          color1_offset: '0%',
+
+          dashArray: this.dashArray,
+          dashOffset: this.dashOffset,
+          bidirectional_negative: this._bidirectional_negative,
+        };
+      });
+
+      if (!this.horseshoes.length) {
+        throw Error('No horseshoes defined');
+      }
+
+      const defaultHorseshoe = this.horseshoes[0];
+
+      this.colorStops = defaultHorseshoe.colorStops;
+      this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
+      this.color0 = defaultHorseshoe.color0;
+      this.color1 = defaultHorseshoe.color1;
+      this.angleCoords = defaultHorseshoe.angleCoords;
+      this.color1_offset = defaultHorseshoe.color1_offset;
+
+      this._prepareItemColorStops(newConfig);
+
+      this.config = newConfig;
+      this.bar_mode = newConfig.bar_mode || 'normal';
+
+      if (this.config.layout?.icons) {
+        this.config.layout.icons.forEach((iconConfig, index) => {
+          this.iconsId[index] = Math.random().toString(36).substr(2, 9);
+        });
+      }
+
+      Templates.setContext({
+        hass: this._hass,
+        config: this.config,
+        entities: this.entities,
+        horseshoes: this.horseshoes,
+      });
+    } catch (error) {
+      console.error('[FHC setConfig] CONFIG ERROR', {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        config,
+      });
+
+      throw error;
+    }
   }
 
   _getItemStateValue(item = {}) {
@@ -2295,38 +2317,11 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
-    // Test...
-    // render() {
-    //   // Dit is de entiteit die je wilt tonen (komt bijv. uit je kaart-configuratie)
-    //   const entityId = "light.woonkamer";
-
-    //   // 1. Maak van 'light.woonkamer' -> 'light-woonkamer'
-    //   const safeId = entityId.replace('.', '-');
-
-    //   // 2. Bouw de CSS-variabele string met de automatische fallback naar inactief
-    //   const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
-
-    //   // 3. Injecteer dit direct in de 'fill' van je path of de 'style' van de group
-    //   return html`
-    //     <svg viewBox="0 0 24 24" width="24" height="24">
-    //       <g style="color: ${dynamicColor};">
-    //         <rect width="24" height="24" fill="rgba(0,0,0,0)"/>
-    //         <!-- fill="currentColor" pakt de kleur die we hierboven op de groep hebben gezet -->
-    //         <path fill="currentColor" d="M12,2A10..." />
-    //       </g>
-    //     </svg>
-    //   `;
-    // }
-
     const entityState = this.entities[entityIndex];
     const entityColor = this.computeEntityColor(entityState);
-    // const entityId = this.config.entities[entityIndex].entity;
-    // const safeId = entityId.replace('.', '-');
-    // const dynamicColor = `var(--state-${safeId}-color, var(--state-icon-color))`;
     const DEFAULT_ICON_COLOR = {};
     DEFAULT_ICON_COLOR.fill = entityColor;
     DEFAULT_ICON_COLOR.color = entityColor;
-    console.log('dynamic icon color is', DEFAULT_ICON_COLOR);
     // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
