@@ -4,8 +4,7 @@ import { configs, plugins } from 'eslint-config-airbnb-extended';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default defineConfig([
-  globalIgnores(['/distjs/*', '/dist/*', '/src/flex-horseshoe-card.js']),
-
+  globalIgnores(['distjs/**', 'dist/**', 'src/flex-horseshoe-card.js', 'src/frontend_mods/**']),
   plugins.stylistic,
   plugins.importX,
 
@@ -27,7 +26,6 @@ export default defineConfig([
         sourceType: 'module',
       },
     },
-
     rules: {
       'no-else-return': 0,
       'no-underscore-dangle': 0,

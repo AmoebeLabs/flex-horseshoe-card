@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define */
-import { computeDomain } from './common/entity/compute_domain';
+import { computeDomain } from './common/entity/compute_domain.old/index.js';
 // import { UNAVAILABLE, UNKNOWN } from '../../data/entity';
 // import {
 //   updateIsInstallingFromAttributes,

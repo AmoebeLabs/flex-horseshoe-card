@@ -1,5 +1,5 @@
 import { DEFAULT_DOMAIN_ICON_NAME } from '../const_name';
-import { computeDomain } from './compute_domain';
+import { computeDomain } from './compute_domain.old';
 import { domainIconName } from './domain_icon_name';
 
 // eslint-disable-next-line import/prefer-default-export

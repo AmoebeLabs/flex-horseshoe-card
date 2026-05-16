@@ -30,7 +30,7 @@ import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, form
 import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
 import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
 import { formatDuration } from './frontend_mods/datetime/duration.js';
-import { computeDomain } from './frontend_mods/common/entity/compute_domain.js';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain';
 
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
@@ -196,61 +196,61 @@ class FlexHorseshoeCard extends LitElement {
         });
       }
 
-      console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
+      // console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
 
-      console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
+      // console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
 
-      console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
+      // console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
 
-      console.log(
-        'style test 4',
-        ConfigHelper.toStyleDict({
-          'font-size': '2.8em;',
-          'text-anchor': 'start;',
-          opacity: '0.7;',
-        }),
-      );
+      // console.log(
+      //   'style test 4',
+      //   ConfigHelper.toStyleDict({
+      //     'font-size': '2.8em;',
+      //     'text-anchor': 'start;',
+      //     opacity: '0.7;',
+      //   }),
+      // );
 
-      console.log(
-        'style test 5',
-        ConfigHelper.toStyleDict({
-          'font-size': '2.8em',
-          'text-anchor': 'start',
-          opacity: 0.7,
-        }),
-      );
+      // console.log(
+      //   'style test 5',
+      //   ConfigHelper.toStyleDict({
+      //     'font-size': '2.8em',
+      //     'text-anchor': 'start',
+      //     opacity: 0.7,
+      //   }),
+      // );
 
-      console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
+      // console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
 
-      console.log(
-        'style test 7',
-        ConfigHelper.toStyleDict([
-          `[[[
-          return { 'font-size': '2.8em' };
-        ]]]`,
-          'text-anchor: start;',
-          'opacity: 0.7;',
-        ]),
-      );
+      // console.log(
+      //   'style test 7',
+      //   ConfigHelper.toStyleDict([
+      //     `[[[
+      //     return { 'font-size': '2.8em' };
+      //   ]]]`,
+      //     'text-anchor: start;',
+      //     'opacity: 0.7;',
+      //   ]),
+      // );
 
-      const rawStyles = [
-        `[[[
-        return { 'font-size': '2.8em' };
-      ]]]`,
-        'text-anchor: start;',
-        'opacity: 0.7;',
-      ];
-      const item = {
-        entity_index: 0,
-      };
-      const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
-      const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
+      // const rawStyles = [
+      //   `[[[
+      //   return { 'font-size': '2.8em' };
+      // ]]]`,
+      //   'text-anchor: start;',
+      //   'opacity: 0.7;',
+      // ];
+      // const item = {
+      //   entity_index: 0,
+      // };
+      // const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
+      // const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
 
-      console.log('style test 8 - resolvedStyles', resolvedStyles);
-      console.log('style test 8 - itemStyleDict', itemStyleDict);
-      if (this.config?.dev?.debug) {
-        ColorStops._testColorStopsNormalizer();
-      }
+      // console.log('style test 8 - resolvedStyles', resolvedStyles);
+      // console.log('style test 8 - itemStyleDict', itemStyleDict);
+      // if (this.config?.dev?.debug) {
+      //   ColorStops._testColorStopsNormalizer();
+      // }
 
       // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
       this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1109,7 +1109,7 @@ class FlexHorseshoeCard extends LitElement {
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
 
       if (resolvedEntitiesConfig) {
-        const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
+        const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
         if (newdomain !== 'sensor') {
           if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
@@ -1193,11 +1193,11 @@ class FlexHorseshoeCard extends LitElement {
           throw Error(`No color_stops defined for horseshoe ${index}`);
         }
 
-        console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
-        console.log('[colorstops] variables', Templates.context?.config?.variables);
+        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+        // console.log('[colorstops] variables', Templates.context?.config?.variables);
 
         const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
-        console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
 
         const colorStops = ColorStops.normalize(resolvedColorStops);
         const colorStopColors = colorStops.colors;
@@ -2318,10 +2318,15 @@ class FlexHorseshoeCard extends LitElement {
     const entityIndex = item.entity_index ?? 0;
 
     const entityState = this.entities[entityIndex];
-    const entityColor = this.computeEntityColor(entityState);
+    // const entityColor = this.computeEntityColor(entityState);
+
+    // new new new new
+    const haStyle = Colors.getHaEntityIconStyle(entityState);
     const DEFAULT_ICON_COLOR = {};
-    DEFAULT_ICON_COLOR.fill = entityColor;
-    DEFAULT_ICON_COLOR.color = entityColor;
+    DEFAULT_ICON_COLOR.fill = haStyle.fill;
+    DEFAULT_ICON_COLOR.color = haStyle.color;
+    DEFAULT_ICON_COLOR.filter = haStyle.filter;
+
     // Config styles from icon itself.
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
     let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
@@ -2923,7 +2928,6 @@ class FlexHorseshoeCard extends LitElement {
           break;
         case 'divide':
           inState = `${Math.round(inState / parameter)}`;
-          console.log('divide converter', { inState, parameter });
           break;
         case 'rgb_csv':
         case 'rgb_hex':
@@ -3129,16 +3133,16 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _computeState(inState, dec) {
-    if (isNaN(inState)) return inState;
+  // _computeState(inState, dec) {
+  //   if (isNaN(inState)) return inState;
 
-    const state = Number(inState);
+  //   const state = Number(inState);
 
-    if (dec === undefined || Number.isNaN(dec) || Number.isNaN(state)) return Math.round(state * 100) / 100;
+  //   if (dec === undefined || Number.isNaN(dec) || Number.isNaN(state)) return Math.round(state * 100) / 100;
 
-    const x = 10 ** dec;
-    return (Math.round(state * x) / x).toFixed(dec);
-  }
+  //   const x = 10 ** dec;
+  //   return (Math.round(state * x) / x).toFixed(dec);
+  // }
 
   /** *****************************************************************************
    * _calculateStrokeColor()
@@ -3186,9 +3190,9 @@ class FlexHorseshoeCard extends LitElement {
     return lastStop.color;
   }
 
-  _computeDomain(entityId) {
-    return entityId.substr(0, entityId.indexOf('.'));
-  }
+  // _computeDomain(entityId) {
+  //   return entityId.substr(0, entityId.indexOf('.'));
+  // }
 
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
