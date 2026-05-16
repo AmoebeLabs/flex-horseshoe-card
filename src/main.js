@@ -1109,7 +1109,7 @@ class FlexHorseshoeCard extends LitElement {
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
 
       if (resolvedEntitiesConfig) {
-        const newdomain = this._computeDomain(resolvedEntitiesConfig[0].entity);
+        const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
         if (newdomain !== 'sensor') {
           if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
@@ -3133,16 +3133,16 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _computeState(inState, dec) {
-    if (isNaN(inState)) return inState;
+  // _computeState(inState, dec) {
+  //   if (isNaN(inState)) return inState;
 
-    const state = Number(inState);
+  //   const state = Number(inState);
 
-    if (dec === undefined || Number.isNaN(dec) || Number.isNaN(state)) return Math.round(state * 100) / 100;
+  //   if (dec === undefined || Number.isNaN(dec) || Number.isNaN(state)) return Math.round(state * 100) / 100;
 
-    const x = 10 ** dec;
-    return (Math.round(state * x) / x).toFixed(dec);
-  }
+  //   const x = 10 ** dec;
+  //   return (Math.round(state * x) / x).toFixed(dec);
+  // }
 
   /** *****************************************************************************
    * _calculateStrokeColor()
@@ -3190,9 +3190,9 @@ class FlexHorseshoeCard extends LitElement {
     return lastStop.color;
   }
 
-  _computeDomain(entityId) {
-    return entityId.substr(0, entityId.indexOf('.'));
-  }
+  // _computeDomain(entityId) {
+  //   return entityId.substr(0, entityId.indexOf('.'));
+  // }
 
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
