@@ -28,7 +28,7 @@ _The Lovelace view of the above examples is in the repository in the examples fo
 
 ---
 
-### v5.4.3 is the latest stable release of this card. Be gentle with it!
+### v5.4.5 is the latest stable release of this card. Be gentle with it!
 
 ---
 
@@ -36,17 +36,23 @@ The flexible horseshoe card can display data from entities and attributes from t
 
 The main perk of this card is it's flexibility. It is able to position a number of things where YOU want it using a layout specification for each object you want on the card:
 
-| Feature                                                                  | Description                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Any** number of **entities**                                           | For each entity, the attribute, units, icon, name, area and tap action can be specified.<br /><br /> _There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more._ |
-| **Any** number of **circles**, **horizontal** and **vertical** **lines** | To function as a divider between values or background for values.                                                                                                                                                                                                 |
-| The **layout** of the card                                               | You can specify each object with a relative position on the card                                                                                                                                                                                                  |
-| **Animations**, dynamic behaviour                                        | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations.                                                                                                                           |
-| Several ways to **color** the **horseshoe**                              | From single, fixed color, to a gradient depending on a list of colorstops                                                                                                                                                                                         |
-| **Actions**                                                              | Handle click actions per entity to for instance switch a light on/off                                                                                                                                                                                             |
-| **Color Stops**                                                          | New since v5.x: Handle color transitions using the state of the entity by defining a color stops.                                                                                                                                                                 |
-| **JavaScript templates**                                                 | New since v5.x: Add JavaScript templates (between [[[ and]]]) in the `styles` section to dynamically change formatting styles based on states.                                                                                                                    |
-| **Card styling**                                                         | New since v5.x: Add `styles` section to card to define custom styles for the (background) of the card: color, background images, etc.                                                                                                                             |
+| Feature                                                                  | Since  | Description                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Any** number of **entities**                                           |        | For each entity, the attribute, units, icon, name, area and tap action can be specified.<br /><br /> _There is currently no limit imposed on the number of entities in this card. I'm using max. 3 entities in the examples, but there is no problem using more._ |
+| **Any** number of **circles**, **horizontal** and **vertical** **lines** |        | To function as a divider between values or background for values.                                                                                                                                                                                                 |
+| **Any** number of **horseshoes**                                         | v5.4.5 | Using the `horseshoes` section you can define as many as you want, just as with circles, lines, etc.                                                                                                                                                              |
+| **Bidirectional mode of the Horseshoe**                                  | v5.4.3 | This mode centers around zero: positive values go to the right, negative values to the left. Nice for battery monitoring.                                                                                                                                         |
+| The **layout** of the card                                               |        | You can specify each object with a relative position on the card                                                                                                                                                                                                  |
+| **Animations**, dynamic behaviour                                        |        | You can specify what happens if an entity changes state like change color, or execute a CSS animation. There are predefined animations.                                                                                                                           |
+| **Animations (icons)**, dynamic behaviour                                | v5.4.4 | You can specify an icon in the animations settings. So the animation can change the icon.                                                                                                                                                                         |
+| Several ways to **color** the **horseshoe**                              |        | From single, fixed color, to a gradient depending on a list of colorstops                                                                                                                                                                                         |
+| **Actions**                                                              |        | Handle click actions per entity to for instance switch a light on/off                                                                                                                                                                                             |
+| **Color Stops**                                                          | v5.4.1 | Handle color transitions using the state of the entity by defining a color stop on a line, circle, state, name, area.                                                                                                                                             |
+| **JavaScript templates (styles)**                                        | v5.4.1 | Add JavaScript templates (between [[[ and]]]) in the `styles` section to dynamically change formatting styles based on states.                                                                                                                                    |
+| **JavaScript templates (colorstops)**                                    | v5.4.1 | Add JavaScript templates (between [[[ and]]]) in the `styles` section to dynamically change formatting styles based on states.                                                                                                                                    |
+| **JavaScript templates (entities)**                                      | v5.4.5 | Add JavaScript templates to the `entities` section section.                                                                                                                                                                                                       |
+| **JavaScript templates (named variables)**                               | v5.4.5 | Add `variables` section to define re-usable JavaScript templates.                                                                                                                                                                                                 |
+| **Card styling**                                                         | v5.4.1 | Add `styles` section to card to define custom styles for the (background) of the card: color, background images, etc.                                                                                                                                             |
 
 ---
 
@@ -836,6 +842,7 @@ Animations are optional, and are driven by state changes of a given entity or at
 | animation_id |       number        | **required** | v0.8.0 | the unique (for this card) animation_id. Is also referred to by the layout.                                                                                                                                                                                                                                                                         |
 | styles       | css properties list | **required** | v0.8.0 | list of pure css styles for this object. **MUST** contain a ';' at the end of the line!                                                                                                                                                                                                                                                             |
 | reuse        |       boolean       |   `false`    | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out. |
+| icon         |       string        |   `false`    | v5.4.4 | Name of Icon to change.                                                                                                                                                                                                                                                                                                                             |
 
 ## Predefined animations
 
@@ -1043,10 +1050,11 @@ Support for JavaScript templates in the `styles` section to get dynamic styling 
 
 The following variables are availeble in the JavaScript part:
 
-| Variable | Description                                                                                                        |
-| -------- | ------------------------------------------------------------------------------------------------------------------ |
-| `state`  | State of entity                                                                                                    |
-| `states` | All the state values from hass: index them with the name of the sensor, ie `states[sensor.my-sensor]` for instance |
+| Variable    | Description                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| `state`     | State of entity                                                                                                    |
+| `states`    | All the state values from hass: index them with the name of the sensor, ie `states[sensor.my-sensor]` for instance |
+| `variables` | Reference to re=usable templates, ie `[[[ return variables['testColorStops']; ]]]` for instance                    |
 
 The example shows that the `fill` of an entities `name` depends on the value of the state.
 <br>If state >= 4 then `fill` = `error-color`, else `primary-text-color`
@@ -1087,6 +1095,110 @@ names:
           ]]]
 ```
 
+Using `variables` to re-use templates.
+
+```yaml
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      decimals: 2
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      decimals: 2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      decimals: 2
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+      name: 'All'
+      # Change icon depending on state of this entity
+      icon: |
+        [[[
+          const value = Number(state);
+          return value >= 0.4
+            ? 'mdi:flash'
+            : 'mdi:flash-off';
+        ]]]
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+    - entity: light.livingroom_light_duo_left_light
+      name: 'extra hall'
+      icon: mdi:lightbulb
+  variables:
+    # Flash if state > 0.3. 3 times for 1 second
+    flashAnimation: |
+      [[[
+        const value = Number(state);
+        return value >= 0.3
+          ? 'flash 1s ease-in-out 3'
+          : 'none';
+      ]]]
+    # Color stop template containing nested templates
+    testColorStops: |
+      [[[
+        return {
+          0: 'black',
+          0.1: `[[[ return 'hotpink'; ]]]`,
+          0.5: 'yellow',
+          1: 'orange',
+          3: `[[[ return 'red'; ]]]`,
+          5: `[[[ return 'purple'; ]]]`,
+        };
+        ]]]
+    # Color stop definition defined fully by JavaScript template
+    testColorStops2: |
+      [[[
+        return {
+          0: 'blue',
+          0.1: 'green',
+          0.5: 'yellow',
+          1: 'orange',
+          3: 'red',
+          5: 'purple',
+        };
+      ]]]
+    # Full YAML definition of a colorstop
+    testColorStops3:
+      0: 'blue'
+      0.1: 'green'
+      0.5: 'yellow'
+      1: 'orange'
+      3: 'red'
+      5: 'purple'
+```
+
+and using them:
+
+````yaml
+horseshoes:
+  - entity_index: 3
+    xpos: 75
+    ypos: 69
+    radius: 20
+    tickmarks_radius: 18
+    arc_degrees: 300
+    show:
+      horseshoe: true
+      scale_tickmarks: true
+      horseshoe_style: colorstop
+    horseshoe_scale:
+      min: 0
+      max: 5
+      width: 6
+      color: var(--secondary-background-color)
+      ticksize: 1
+    horseshoe_state:
+      width: 12
+      styles:
+        - animation: |
+            [[[
+              return variables['flashAnimation'];
+            ]]]
+    color_stops: |
+      [[[ return variables['testColorStops3']; ]]]
+```
+
 # ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Show section
 
 ## Available show options
@@ -1118,7 +1230,7 @@ Furthermore, theme defined variables are used:
 
 ```yaml
 theme-card-box-shadow: 'var(--shadow-elevation-2dp_-_box-shadow)'
-```
+````
 
 and:
 
