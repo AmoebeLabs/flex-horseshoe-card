@@ -25,30 +25,39 @@ import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
 import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js';
-import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
+import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetime/format_date';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
+import { formatDuration } from './frontend_mods/datetime/duration.js';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain';
 
-import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/common/datetime/format_date.ts';
-import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/common/datetime/format_time.ts';
-import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/common/datetime/format_date_time.ts';
-import { formatDuration } from './frontend_mods/common/datetime/format_duration.ts';
-import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-import { computeEntityUnitDisplay } from './frontend_mods/common/entity/compute_entity_unit_display.ts';
-import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
-import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
-import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
-import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
+import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
+import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
 import Colors from './colors.js';
+import { version } from '../package.json';
 import Utils from './utils.js';
 import Merge from './merge.js';
-import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
-import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
-import HorseshoesLayout from './layout/horseshoes-layout.js';
-import { version } from '../package.json';
+import { SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
-const DEFAULT_TAP_ACTION = {
-  action: 'more-info',
+// ++ Consts ++++++++++
+const FONT_SIZE = 12;
+const SVG_VIEW_BOX = 200;
+
+// Donut starts at -220 degrees and is 260 degrees in size.
+// zero degrees is at 3 o'clock.
+const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
+const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
+const HORSESHOE_PATH_LENGTH = ((2 * 260) / 360) * Math.PI * HORSESHOE_RADIUS_SIZE;
+const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
+
+const DEFAULT_HORSESHOE_POSITION = {
+  xpos: 50,
+  ypos: 50,
+  horseshoe_radius: HORSESHOE_RADIUS_SIZE,
+  tickmarks_radius: TICKMARKS_RADIUS_SIZE,
 };
 
 const DEFAULT_SHOW = {
@@ -56,6 +65,24 @@ const DEFAULT_SHOW = {
   scale_tickmarks: false,
   horseshoe_style: 'fixed',
 };
+
+const DEFAULT_HORSESHOE_SCALE = {
+  min: 0,
+  max: 100,
+  width: 6,
+  color: 'var(--primary-background-color)',
+};
+
+const DEFAULT_HORSESHOE_STATE = {
+  width: 12,
+  color: 'var(--primary-color)',
+};
+
+const DEFAULT_TAP_ACTION = {
+  action: 'more-info',
+};
+
+//--
 
 // ++ Class ++++++++++
 
@@ -794,116 +821,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildMyIcon(stateObj, entityConfig, entityAnimation) {
-    if (!stateObj || !entityConfig) {
-      return undefined;
-    }
-
-    if (entityAnimation) {
-      return entityAnimation;
-    }
-
-    if (entityConfig.icon) {
-      return entityConfig.icon;
-    }
-
-    const entityId = entityConfig.entity;
-    const attribute = entityConfig.attribute;
-    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
-    const domain = stateObj.entity_id?.split('.')[0];
-
-    if (stateObj.attributes?.icon && !attribute) {
-      return stateObj.attributes.icon;
-    }
-
-    // Sync weather attribute fallback
-    if (attribute && domain === 'weather') {
-      const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
-
-      if (weatherIcon) {
-        return weatherIcon;
-      }
-    }
-
-    this.entitiesIcon ??= {};
-    this.entitiesIconKey ??= {};
-    this.entitiesIconPending ??= {};
-
-    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
-
-    const key = attribute
-      ? [entityId, 'attribute', attribute, attributeValue ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
-      : [entityId, 'state', stateObj.state ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
-
-    if (this.entitiesIconKey[iconId] === key) {
-      return this.entitiesIcon[iconId];
-    }
-
-    this.entitiesIconKey[iconId] = key;
-
-    if (!this.entitiesIconPending[iconId]) {
-      this.entitiesIconPending[iconId] = true;
-
-      const iconPromise = attribute
-        ? attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
-        : entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
-
-      iconPromise
-        .then((icon) => {
-          if (this.entitiesIconKey[iconId] !== key) {
-            return;
-          }
-
-          if (!icon) {
-            return;
-          }
-
-          if (this.entitiesIcon[iconId] !== icon) {
-            this.entitiesIcon[iconId] = icon;
-            this.requestUpdate();
-          }
-        })
-        .catch((err) => {
-          console.error(attribute ? '_buildMyIcon attributeIcon failed' : '_buildMyIcon entityIcon failed', entityId, attribute ?? '', err);
-        })
-        .finally(() => {
-          this.entitiesIconPending[iconId] = false;
-        });
-    }
-
-    return this.entitiesIcon[iconId];
-  }
-
-  _formatEntityStateParts(stateObj, entityConfig) {
-    const isAttribute = entityConfig.attribute !== undefined;
-
-    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
-    // if (isAttribute) {
-    //   console.log('formatEntityStateParts - Attribute', entityConfig.attribute, parts);
-    // }
-    const rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
-
-    const formattedValue =
-      entityConfig.decimals !== undefined && !Number.isNaN(Number(rawValue))
-        ? formatNumber(Number(rawValue), this._hass.locale, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: Number(entityConfig.decimals),
-          })
-        : undefined;
-
-    return parts.map((part) => {
-      if (part.type === 'value' && formattedValue !== undefined) {
-        return { ...part, value: formattedValue };
-      }
-
-      if (part.type === 'unit' && entityConfig.unit !== undefined) {
-        return { ...part, value: entityConfig.unit };
-      }
-
-      return part;
-    });
-  }
-
   set hass(hass) {
     this._hass = hass;
 
@@ -929,10 +846,6 @@ class FlexHorseshoeCard extends LitElement {
 
       const newStateStr = this._buildState(entity.state, entityConfig);
 
-      // testing
-      const stateObj = entity;
-      const domain = computeStateDomain(stateObj);
-
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
         entityHasChanged = true;
@@ -955,7 +868,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
-    this.horseshoes = this.horseshoes.map((horseshoe, index) => {
+    this.horseshoes = this.horseshoes.map((horseshoe) => {
       const entityIndex = horseshoe.entity_index ?? 0;
       const entityConfig = this.resolvedEntityConfigs[entityIndex];
       const entity = this.entities[entityIndex];
@@ -970,6 +883,10 @@ class FlexHorseshoeCard extends LitElement {
         state = entity.attributes[entityConfig.attribute];
       }
 
+      horseshoe.xpos = horseshoe?.xpos ?? 50;
+      horseshoe.ypos = horseshoe?.ypos ?? 50;
+      horseshoe.radius = horseshoe?.radius ?? 45;
+      horseshoe.tickmarks_radius = horseshoe?.tickmarks_radius ?? 43;
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
 
       const min = horseshoeScale?.min ?? 0;
@@ -1023,6 +940,7 @@ class FlexHorseshoeCard extends LitElement {
         color1Offset = '0%';
       } else if (strokeStyle === 'autominmax') {
         const stroke = this._calculateStrokeColor(state, horseshoe.colorStopsMinMax, true);
+
         color0 = stroke;
         color1 = stroke;
         color1Offset = '0%';
@@ -1063,20 +981,17 @@ class FlexHorseshoeCard extends LitElement {
       };
     });
 
-    // If horseshoe defined. Use first (legacy) to fill the default variables to use for rendering. Backwards compatibility for now...
-    if (this.horseshoes.length > 0) {
-      const defaultHorseshoe = this.horseshoes[0];
+    const defaultHorseshoe = this.horseshoes[0];
 
-      this.dashArray = defaultHorseshoe.dashArray;
-      this.dashOffset = defaultHorseshoe.dashOffset;
-      this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
+    this.dashArray = defaultHorseshoe.dashArray;
+    this.dashOffset = defaultHorseshoe.dashOffset;
+    this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
 
-      this.stroke_color = defaultHorseshoe.stroke_color;
-      this.color0 = defaultHorseshoe.color0;
-      this.color1 = defaultHorseshoe.color1;
-      this.color1_offset = defaultHorseshoe.color1_offset;
-      this.angleCoords = defaultHorseshoe.angleCoords;
-    }
+    this.stroke_color = defaultHorseshoe.stroke_color;
+    this.color0 = defaultHorseshoe.color0;
+    this.color1 = defaultHorseshoe.color1;
+    this.color1_offset = defaultHorseshoe.color1_offset;
+    this.angleCoords = defaultHorseshoe.angleCoords;
 
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
@@ -1191,6 +1106,37 @@ class FlexHorseshoeCard extends LitElement {
     };
   }
 
+  // _calculateSvgCoordinatesInGroupV1(item) {
+  //   if (!item.group) {
+  //     return {
+  //       xpos: Utils.calculateSvgDimension(item.xpos),
+  //       ypos: Utils.calculateSvgDimension(item.ypos),
+  //     };
+  //   }
+
+  //   const group = this.config.layout.groups[item.group];
+
+  //   // return {
+  //   //   xpos: Utils.calculateSvgCoordinate(Utils.calculateSvgDimension(item.xpos), Utils.calculateSvgDimension(group.xpos)),
+  //   //   ypos: Utils.calculateSvgCoordinate(Utils.calculateSvgDimension(item.ypos), Utils.calculateSvgDimension(group.ypos)),
+  //   // };
+
+  //   return {
+  //     xpos: Utils.calculateSvgCoordinate(item.xpos, Utils.calculateSvgDimension(group.xpos)),
+  //     ypos: Utils.calculateSvgCoordinate(item.ypos, Utils.calculateSvgDimension(group.ypos)),
+  //   };
+  // }
+
+  // _calculateSvgCoordinateInGroup(groupName, field, value) {
+  //   const group = this.config.layout?.groups?.[groupName];
+
+  //   if (group) {
+  //     return Utils.calculateSvgCoordinate(value, Utils.calculateSvgDimension(group[field]));
+  //   }
+
+  //   return Utils.calculateSvgDimension(value);
+  // }
+
   _computeGroupDimensions(config) {
     const groups = config.layout?.groups;
 
@@ -1266,7 +1212,6 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
   }
-
   /** *****************************************************************************
    * setConfig()
    *
@@ -1312,8 +1257,6 @@ class FlexHorseshoeCard extends LitElement {
     try {
       config = JSON.parse(JSON.stringify(config));
 
-      // this.dev.debug = config?.dev?.debug;
-
       if (!config.entities) {
         throw Error('No entities defined');
       }
@@ -1357,32 +1300,165 @@ class FlexHorseshoeCard extends LitElement {
           ...DEFAULT_SHOW,
           ...config.show,
         },
-        // horseshoe_position: {
-        //   ...DEFAULT_HORSESHOE_POSITION,
-        //   ...config?.horseshoe_position,
-        // },
-        // horseshoe_scale: {
-        //   ...DEFAULT_HORSESHOE_SCALE,
-        //   ...config.horseshoe_scale,
-        // },
-        // horseshoe_state: {
-        //   ...DEFAULT_HORSESHOE_STATE,
-        //   ...config.horseshoe_state,
-        // },
+        horseshoe_position: {
+          ...DEFAULT_HORSESHOE_POSITION,
+          ...config?.horseshoe_position,
+        },
+        horseshoe_scale: {
+          ...DEFAULT_HORSESHOE_SCALE,
+          ...config.horseshoe_scale,
+        },
+        horseshoe_state: {
+          ...DEFAULT_HORSESHOE_STATE,
+          ...config.horseshoe_state,
+        },
       };
 
-      this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
+      const rawHorseshoes = Array.isArray(newConfig.layout.horseshoes)
+        ? newConfig.layout.horseshoes.map((horseshoeConfig, index) => ({
+            ...newConfig,
+            ...horseshoeConfig,
+            entity_index: horseshoeConfig.entity_index ?? index,
+          }))
+        : [
+            {
+              ...newConfig,
+              entity_index: 0,
+            },
+          ];
 
-      const defaultHorseshoe = this.horseshoes?.[0];
+      this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
+        const entityIndex = horseshoeConfig.entity_index ?? index;
 
-      if (defaultHorseshoe) {
-        this.colorStops = defaultHorseshoe.colorStops;
-        this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
-        this.color0 = defaultHorseshoe.color0;
-        this.color1 = defaultHorseshoe.color1;
-        this.angleCoords = defaultHorseshoe.angleCoords;
-        this.color1_offset = defaultHorseshoe.color1_offset;
+        const show = {
+          ...DEFAULT_SHOW,
+          ...(horseshoeConfig.show ?? {}),
+        };
+
+        const horseshoeScale = {
+          ...DEFAULT_HORSESHOE_SCALE,
+          ...(horseshoeConfig.horseshoe_scale ?? {}),
+        };
+
+        const horseshoeState = {
+          ...DEFAULT_HORSESHOE_STATE,
+          ...(horseshoeConfig.horseshoe_state ?? {}),
+        };
+
+        const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
+
+        const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
+
+        if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
+          throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
+        }
+
+        const colorStopsConfig = horseshoeConfig.color_stops;
+
+        if (!colorStopsConfig) {
+          console.warn(`No color_stops defined for horseshoe ${index}`);
+          throw Error(`No color_stops defined for horseshoe ${index}`);
+        }
+
+        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+        // console.log('[colorstops] variables', Templates.context?.config?.variables);
+
+        const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
+        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+
+        const colorStops = ColorStops.normalize(resolvedColorStops);
+        const colorStopColors = colorStops.colors;
+
+        if (!colorStopColors || colorStopColors.length < 2) {
+          throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
+        }
+
+        const firstStop = colorStopColors[0];
+        const lastStop = colorStopColors[colorStopColors.length - 1];
+
+        let colorStopsMinMax = ColorStops.normalize({});
+        let color0;
+        let color1;
+
+        if (firstStop && lastStop) {
+          colorStopsMinMax = ColorStops.normalize({
+            [horseshoeScale.min]: firstStop.color,
+            [horseshoeScale.max]: lastStop.color,
+          });
+
+          color0 = firstStop.color;
+          color1 = lastStop.color;
+        }
+
+        const radius = horseshoeConfig.radius ?? 45;
+        const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
+        const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
+
+        const radiusSize = Utils.calculateSvgDimension(radius);
+        const tickmarksRadiusSize = Utils.calculateSvgDimension(tickmarksRadius);
+
+        const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
+
+        const circlePathLength = 2 * Math.PI * radiusSize;
+
+        return {
+          ...horseshoeConfig,
+
+          entity_index: entityIndex,
+
+          show,
+          fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
+
+          xpos,
+          ypos,
+
+          bar_mode: horseshoeConfig.bar_mode ?? 'normal',
+
+          horseshoe_scale: horseshoeScale,
+          horseshoe_state: horseshoeState,
+
+          radius,
+          tickmarks_radius: tickmarksRadius,
+          arc_degrees: arcDegrees,
+
+          radiusSize,
+          tickmarksRadiusSize,
+          horseshoePathLength,
+          circlePathLength,
+
+          color_stops: colorStopsConfig,
+          colorStops,
+          colorStopsMinMax,
+          color0,
+          color1,
+
+          angleCoords: {
+            x1: '0%',
+            y1: '0%',
+            x2: '100%',
+            y2: '0%',
+          },
+
+          color1_offset: '0%',
+
+          dashArray: this.dashArray,
+          dashOffset: this.dashOffset,
+          bidirectional_negative: this._bidirectional_negative,
+        };
+      });
+
+      if (!this.horseshoes.length) {
+        throw Error('No horseshoes defined');
       }
+
+      const defaultHorseshoe = this.horseshoes[0];
+
+      this.colorStops = defaultHorseshoe.colorStops;
+      this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
+      this.color0 = defaultHorseshoe.color0;
+      this.color1 = defaultHorseshoe.color1;
+      this.angleCoords = defaultHorseshoe.angleCoords;
+      this.color1_offset = defaultHorseshoe.color1_offset;
 
       this._prepareItemColorStops(newConfig);
 
@@ -1417,8 +1493,7 @@ class FlexHorseshoeCard extends LitElement {
         error,
         message: error?.message,
         stack: error?.stack,
-        rawConfig: config,
-        horseshoes: this.horseshoes,
+        config,
       });
 
       throw error;
@@ -1603,6 +1678,59 @@ class FlexHorseshoeCard extends LitElement {
     return svg`${scaleItems}`;
   }
 
+  _renderTickMarksV2(horseshoe) {
+    if (!horseshoe?.show?.scale_tickmarks) {
+      return svg``;
+    }
+
+    const cx = horseshoe.xpos ?? 50;
+    const cy = horseshoe.ypos ?? 50;
+
+    const rotateX = cx * 2;
+    const rotateY = cy * 2;
+
+    const scale = horseshoe.horseshoe_scale;
+
+    const stroke = scale.color || 'var(--primary-background-color)';
+    const tickSize = scale.ticksize || (scale.max - scale.min) / 10;
+
+    const fullScale = horseshoe.arc_degrees || 260;
+    const remainder = scale.min % tickSize;
+    const startTickValue = scale.min + (remainder === 0 ? 0 : tickSize - remainder);
+
+    const startAngle = ((startTickValue - scale.min) / (scale.max - scale.min)) * fullScale;
+
+    const tickSteps = (scale.max - startTickValue) / tickSize;
+    const angleStepSize = (fullScale - startAngle) / tickSteps;
+
+    let steps = Math.floor(tickSteps);
+
+    if (Math.floor(steps * tickSize + startTickValue) <= scale.max) {
+      steps += 1;
+    }
+
+    const radius = scale.width ? scale.width / 2 : 6 / 2;
+
+    const scaleItems = Array.from({ length: steps }, (_, index) => {
+      /*
+       * NTS:
+       * Value of -230 is weird. Should be -220. Can't find why...
+       */
+      const angle = startAngle + ((-230 + (360 - index * angleStepSize)) * Math.PI) / 180;
+
+      return svg`
+      <circle
+        cx="${rotateX - Math.sin(angle) * horseshoe.tickmarksRadiusSize}"
+        cy="${rotateY - Math.cos(angle) * horseshoe.tickmarksRadiusSize}"
+        r="${radius}"
+        fill="${stroke}">
+      </circle>
+    `;
+    });
+
+    return svg`${scaleItems}`;
+  }
+
   /** *****************************************************************************
    * _renderSvg()
    *
@@ -1752,6 +1880,20 @@ class FlexHorseshoeCard extends LitElement {
       ...stateUserStyle,
       ...protectedStateStyle,
     };
+    // fill="${fill}"
+    //   stroke="${scaleStroke}"
+    //   stroke-dasharray="${scaleDashArray}"
+    //   stroke-width="${scaleStrokeWidth}"
+    //   stroke-linecap="round"
+
+    // fill="${fill}"
+    // stroke="url('#${gradientId}')"
+    // stroke-dasharray="${horseshoe.dashArray}"
+    // stroke-dashoffset="${horseshoe.dashOffset}"
+    // stroke-width="${stateStrokeWidth}"
+    // stroke-linecap="round"
+    // transform="rotate(-90 ${rotateX} ${rotateY})"
+    // style="transition: all 2.5s ease-out;"/>
 
     // const objectRotate = horseshoe.rotate ? `rotate(${horseshoe.rotate} ${rotateX} ${rotateY})` : '';
     const objectRotate = horseshoe.rotate ? `rotate(${horseshoe.rotate})` : '';
@@ -1817,12 +1959,11 @@ class FlexHorseshoeCard extends LitElement {
 
   _renderEntityName(item) {
     const ENTITY_NAME_STYLES = {
-      'font-size': '1.5em',
+      'font-size': '1em',
       color: 'var(--primary-text-color)',
       opacity: '1.0',
       'text-anchor': 'middle',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -1853,22 +1994,22 @@ class FlexHorseshoeCard extends LitElement {
     const name = this.textEllipsis(this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
     return svg`
-      <g
-          transform="${this._getGroupScaleTransform(item)}"
-          style="${this._getGroupScaleStyle(item)}"
-          >
-          <text
-            @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-            >
-              <tspan
-                class="entity__name"
-                x="${item.svg.xpos}"
-                y="${item.svg.ypos}"
-                style=${styleMap(styles)}>
-                ${name}</tspan>
-          </text>
-          </g>
-        `;
+    <g
+            transform="${this._getGroupScaleTransform(item)}"
+        style="${this._getGroupScaleStyle(item)}"
+        >
+        <text
+          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+          class="entity__name">
+            <tspan
+              class="entity__name"
+              x="${item.svg.xpos}"
+              y="${item.svg.ypos}"
+              style=${styleMap(styles)}>
+              ${name}</tspan>
+        </text>
+        </g>
+      `;
   }
 
   _renderEntityNames() {
@@ -1897,7 +2038,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'text-anchor': 'middle',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -1927,13 +2067,13 @@ class FlexHorseshoeCard extends LitElement {
     const area = this.textEllipsis(this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
     return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
+    <g
+            transform="${this._getGroupScaleTransform(item)}"
         style="${this._getGroupScaleStyle(item)}"
         >
-        <text
+    <text
           @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          >
+          class="entity__area">
             <tspan
               class="entity__area"
               x="${item.svg.xpos}"
@@ -1941,21 +2081,8 @@ class FlexHorseshoeCard extends LitElement {
               style=${styleMap(styles)}>
               ${area}</tspan>
         </text>
-      </g>
+        </g>
       `;
-
-    // return svg`
-    //   <text
-    //     @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-    //     >
-    //       <tspan
-    //         class="entity__area"
-    //         x="${item.xpos}%"
-    //         y="${item.ypos}%"
-    //         style=${styleMap(styles)}>
-    //         ${area}</tspan>
-    //   </text>
-    // `;
   }
 
   _renderEntityAreas() {
@@ -2016,12 +2143,9 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
-    // compute x,y or dx,dy positions. Spec center if not specified.
-    const x = item.svg.xpos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-    const y = item.svg.ypos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-
-    // const x = item.svg.xpos ?? item.svg.xpos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
-    // const y = item.svg.ypos ?? item.svg.ypos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
+    // compute x,y or dx,dy positions. Spec none if not specified.
+    const x = item.svg.xpos ? item.svg.xpos : '';
+    const y = item.svg.ypos ? item.svg.ypos : '';
     const dx = item.dx ? item.dx : '0';
     const dy = item.dy ? item.dy : '0';
 
@@ -2046,7 +2170,7 @@ class FlexHorseshoeCard extends LitElement {
     const resolvedUomStyles = Templates.getJsTemplateOrValue(item, uomConfig.styles);
     const itemUomStyleDict = ConfigHelper.toStyleDict(resolvedUomStyles);
 
-    const uomDx = uomConfig.dx ?? '0.1';
+    const uomDx = uomConfig.dx ?? '0';
     const uomDy = uomConfig.dy ?? '-0.45';
 
     // Runtime animation styles. Animation styles win over normal state styles.
@@ -2072,16 +2196,15 @@ class FlexHorseshoeCard extends LitElement {
     // Keep old implicit UOM behavior:
     // UOM font-size is derived from the final state font-size.
     const fsuomStr = configStyle['font-size'];
+
     let fsuomValue = 0.5;
     let fsuomType = 'em';
 
-    const fsuomMatch = String(fsuomStr)
-      .trim()
-      .match(/^(\d*\.?\d+)([a-z%]+)$/i);
+    const fsuomSplit = String(fsuomStr).match(/\D+|\d*\.?\d+/g);
 
-    if (fsuomMatch) {
-      fsuomValue = Number(fsuomMatch[1]) * 0.6;
-      fsuomType = fsuomMatch[2];
+    if (fsuomSplit?.length === 2) {
+      fsuomValue = Number(fsuomSplit[0]) * 0.6;
+      fsuomType = fsuomSplit[1];
     } else {
       console.error('Cannot determine font-size for state', fsuomStr);
     }
@@ -2102,257 +2225,244 @@ class FlexHorseshoeCard extends LitElement {
       ...itemUomStyleDict,
     };
 
+    // console.log('[uom debug]', {
+    //   rawUom: item.uom,
+    //   rawUomStyles: item.uom?.styles,
+    //   resolvedUomStyles,
+    //   itemUomStyleDict,
+    //   uomStyle,
+    // });
+    // const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
+
+    // const state =
+    //   this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
     const entity = this.entities[entityIndex];
     const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
-
-    const parts = this._formatEntityStateParts(entity, entityConfig);
-    let state = '';
-    let unit = '';
-
-    parts.forEach((part) => {
-      if (part.type === 'unit') {
-        unit += part.value;
-      } else {
-        if (part.type === 'value') {
-          state += part.value;
-        }
-      }
-    });
-
-    state = state.trim();
-    unit = unit.trim();
-    const uom = this._buildUom(entity, entityConfig, unit);
+    const state = this._buildStateText(entity, entityConfig);
+    const uom = this._buildUom(entity, entityConfig);
 
     return svg`
       <g 
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
-          <tspan
-            class="state__value"
-            x="${x}"
-            y="${y}"
-            dx="${dx}em"
-            dy="${dy}em"
-            style=${styleMap(configStyle)}
-          >${state}</tspan><tspan
-            class="state__uom"
-            dx="${uomDx}em"
-            dy="${uomDy}em"
-            style=${styleMap(uomStyle)}
-          >${uom}</tspan>
-        </text>
+    transform="${this._getGroupScaleTransform(item)}"
+    style="${this._getGroupScaleStyle(item)}"
+          >
+    <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
+        <tspan
+          class="state__value"
+          x="${x}"
+          y="${y}"
+          dx="${dx}em"
+          dy="${dy}em"
+          style=${styleMap(configStyle)}
+        >${state}</tspan><tspan
+          class="state__uom"
+          dx="${uomDx}em"
+          dy="${uomDy}em"
+          style=${styleMap(uomStyle)}
+        >${uom}</tspan>
+      </text>
       </g>
     `;
   }
 
-  // formatStateString(inState, entityConfig) {
-  //   const lang = this._hass.selectedLanguage || this._hass.language;
-  //   let locale = {};
-  //   locale.language = lang;
+  formatStateString(inState, entityConfig) {
+    const lang = this._hass.selectedLanguage || this._hass.language;
+    let locale = {};
+    locale.language = lang;
 
-  //   if (
-  //     [
-  //       'relative',
-  //       'total',
-  //       'datetime',
-  //       'datetime-short',
-  //       'datetime-short_with-year',
-  //       'datetime_seconds',
-  //       'datetime-numeric',
-  //       'date',
-  //       'date_month',
-  //       'date_month_year',
-  //       'date-short',
-  //       'date-numeric',
-  //       'date_weekday',
-  //       'date_weekday_day',
-  //       'date_weekday-short',
-  //       'time',
-  //       'time-24h',
-  //       'time-24h_date-short',
-  //       'time_weekday',
-  //       'time_seconds',
-  //     ].includes(entityConfig.format)
-  //   ) {
-  //     const timestamp = new Date(inState);
-  //     if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
-  //       return inState;
-  //     }
+    if (
+      [
+        'relative',
+        'total',
+        'datetime',
+        'datetime-short',
+        'datetime-short_with-year',
+        'datetime_seconds',
+        'datetime-numeric',
+        'date',
+        'date_month',
+        'date_month_year',
+        'date-short',
+        'date-numeric',
+        'date_weekday',
+        'date_weekday_day',
+        'date_weekday-short',
+        'time',
+        'time-24h',
+        'time-24h_date-short',
+        'time_weekday',
+        'time_seconds',
+      ].includes(entityConfig.format)
+    ) {
+      const timestamp = new Date(inState);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+        return inState;
+      }
 
-  //     // if (!EntityStateTool.testTimeDate) {
-  //     //   EntityStateTool.testTimeDate = true;
-  //     //   console.log('datetime', formatDateTime(timestamp, locale));
-  //     //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
-  //     //   console.log('date', formatDate(timestamp, locale));
-  //     //   console.log('date_month', formatDateMonth(timestamp, locale));
-  //     //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
-  //     //   console.log('date-short', formatDateShort(timestamp, locale));
-  //     //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
-  //     //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
-  //     //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
-  //     //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
-  //     //   console.log('time', formatTime(timestamp, locale));
-  //     //   console.log('time-24h', formatTime24h(timestamp, locale));
-  //     //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
-  //     //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
-  //     // }
+      // if (!EntityStateTool.testTimeDate) {
+      //   EntityStateTool.testTimeDate = true;
+      //   console.log('datetime', formatDateTime(timestamp, locale));
+      //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
+      //   console.log('date', formatDate(timestamp, locale));
+      //   console.log('date_month', formatDateMonth(timestamp, locale));
+      //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
+      //   console.log('date-short', formatDateShort(timestamp, locale));
+      //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
+      //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
+      //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
+      //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
+      //   console.log('time', formatTime(timestamp, locale));
+      //   console.log('time-24h', formatTime24h(timestamp, locale));
+      //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
+      //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
+      // }
 
-  //     let retValue;
-  //     // return date/time according to formatting...
-  //     switch (entityConfig.format) {
-  //       case 'relative':
-  //         // eslint-disable-next-line no-case-declarations
-  //         const diff = selectUnit(timestamp, new Date());
-  //         retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
-  //         break;
-  //       case 'total':
-  //       case 'precision':
-  //         retValue = 'Not Yet Supported';
-  //         break;
-  //       case 'datetime':
-  //         retValue = formatDateTime(timestamp, locale);
-  //         break;
-  //       case 'datetime-short':
-  //         retValue = formatShortDateTime(timestamp, locale);
-  //         break;
-  //       case 'datetime-short_with-year':
-  //         retValue = formatShortDateTimeWithYear(timestamp, locale);
-  //         break;
-  //       case 'datetime_seconds':
-  //         retValue = formatDateTimeWithSeconds(timestamp, locale);
-  //         break;
-  //       case 'datetime-numeric':
-  //         retValue = formatDateTimeNumeric(timestamp, locale);
-  //         break;
-  //       case 'date':
-  //         retValue = formatDate(timestamp, locale);
-  //         // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
-  //         break;
-  //       case 'date_month':
-  //         retValue = formatDateMonth(timestamp, locale);
-  //         break;
-  //       case 'date_month_year':
-  //         retValue = formatDateMonthYear(timestamp, locale);
-  //         break;
-  //       case 'date-short':
-  //         retValue = formatDateShort(timestamp, locale);
-  //         break;
-  //       case 'date-numeric':
-  //         retValue = formatDateNumeric(timestamp, locale);
-  //         break;
-  //       case 'date_weekday':
-  //         retValue = formatDateWeekday(timestamp, locale);
-  //         break;
-  //       case 'date_weekday-short':
-  //         retValue = formatDateWeekdayShort(timestamp, locale);
-  //         break;
-  //       case 'date_weekday_day':
-  //         retValue = formatDateWeekdayDay(timestamp, locale);
-  //         break;
-  //       case 'time':
-  //         retValue = formatTime(timestamp, locale);
-  //         // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
-  //         break;
-  //       case 'time-24h':
-  //         retValue = formatTime24h(timestamp);
-  //         break;
-  //       case 'time-24h_date-short':
-  //         // eslint-disable-next-line no-case-declarations
-  //         const diff2 = selectUnit(timestamp, new Date());
-  //         if (['second', 'minute', 'hour'].includes(diff2.unit)) {
-  //           retValue = formatTime24h(timestamp);
-  //         } else {
-  //           retValue = formatDateShort(timestamp, locale);
-  //         }
-  //         break;
-  //       case 'time_weekday':
-  //         retValue = formatTimeWeekday(timestamp, locale);
-  //         break;
-  //       case 'time_seconds':
-  //         retValue = formatTimeWithSeconds(timestamp, locale);
-  //         break;
-  //       default:
-  //     }
-  //     return retValue;
-  //   }
+      let retValue;
+      // return date/time according to formatting...
+      switch (entityConfig.format) {
+        case 'relative':
+          // eslint-disable-next-line no-case-declarations
+          const diff = selectUnit(timestamp, new Date());
+          retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+          break;
+        case 'total':
+        case 'precision':
+          retValue = 'Not Yet Supported';
+          break;
+        case 'datetime':
+          retValue = formatDateTime(timestamp, locale);
+          break;
+        case 'datetime-short':
+          retValue = formatShortDateTime(timestamp, locale);
+          break;
+        case 'datetime-short_with-year':
+          retValue = formatShortDateTimeWithYear(timestamp, locale);
+          break;
+        case 'datetime_seconds':
+          retValue = formatDateTimeWithSeconds(timestamp, locale);
+          break;
+        case 'datetime-numeric':
+          retValue = formatDateTimeNumeric(timestamp, locale);
+          break;
+        case 'date':
+          retValue = formatDate(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
+          break;
+        case 'date_month':
+          retValue = formatDateMonth(timestamp, locale);
+          break;
+        case 'date_month_year':
+          retValue = formatDateMonthYear(timestamp, locale);
+          break;
+        case 'date-short':
+          retValue = formatDateShort(timestamp, locale);
+          break;
+        case 'date-numeric':
+          retValue = formatDateNumeric(timestamp, locale);
+          break;
+        case 'date_weekday':
+          retValue = formatDateWeekday(timestamp, locale);
+          break;
+        case 'date_weekday-short':
+          retValue = formatDateWeekdayShort(timestamp, locale);
+          break;
+        case 'date_weekday_day':
+          retValue = formatDateWeekdayDay(timestamp, locale);
+          break;
+        case 'time':
+          retValue = formatTime(timestamp, locale);
+          // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
+          break;
+        case 'time-24h':
+          retValue = formatTime24h(timestamp);
+          break;
+        case 'time-24h_date-short':
+          // eslint-disable-next-line no-case-declarations
+          const diff2 = selectUnit(timestamp, new Date());
+          if (['second', 'minute', 'hour'].includes(diff2.unit)) {
+            retValue = formatTime24h(timestamp);
+          } else {
+            retValue = formatDateShort(timestamp, locale);
+          }
+          break;
+        case 'time_weekday':
+          retValue = formatTimeWeekday(timestamp, locale);
+          break;
+        case 'time_seconds':
+          retValue = formatTimeWithSeconds(timestamp, locale);
+          break;
+        default:
+      }
+      return retValue;
+    }
 
-  //   if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
-  //     return inState;
-  //   }
-  //   if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
-  //     return `${Math.round((inState / 255) * 100)} %`;
-  //   }
-  //   if (entityConfig.format === 'duration') {
-  //     return formatDuration(inState, 's');
-  //   }
-  // }
+    if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
+      return inState;
+    }
+    if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
+      return `${Math.round((inState / 255) * 100)} %`;
+    }
+    if (entityConfig.format === 'duration') {
+      return formatDuration(inState, 's');
+    }
+  }
 
-  // _buildStateText(stateObj, entityConfig = {}) {
-  //   if (!stateObj) return '';
+  _buildStateText(stateObj, entityConfig = {}) {
+    if (!stateObj) return '';
 
-  //   const entityId = stateObj.entity_id;
-  //   const entity = this._hass.entities?.[entityId];
-  //   const entity2 = this._hass.states?.[entityId];
-  //   const domain = computeDomain(entityId);
+    const entityId = stateObj.entity_id;
+    const entity = this._hass.entities?.[entityId];
+    const entity2 = this._hass.states?.[entityId];
+    const domain = computeDomain(entityId);
 
-  //   let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
-  //   inState = this._buildState(inState, entityConfig);
-  //   if (this.dev.debug) {
-  //     console.log('In _buildStateText, entityId, buildState', entityId, inState);
-  //   }
-  //   if ([undefined, 'undefined'].includes(inState)) {
-  //     return '';
-  //   }
+    let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
+    inState = this._buildState(inState, entityConfig);
 
-  //   if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
-  //     inState = this.formatStateString(inState, entityConfig);
-  //   }
+    if ([undefined, 'undefined'].includes(inState)) {
+      return '';
+    }
 
-  //   const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
+    if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
+      inState = this.formatStateString(inState, entityConfig);
+    }
 
-  //   if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
-  //     inState =
-  //       (localeTag && this._hass.localize(localeTag)) ||
-  //       (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
-  //       (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
-  //       this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
-  //       inState;
+    const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
 
-  //     inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
-  //   }
+    if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
+      inState =
+        (localeTag && this._hass.localize(localeTag)) ||
+        (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
+        (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
+        this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
+        inState;
 
-  //   if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
-  //     inState = this._hass.localize(`state.default.${inState}`);
-  //   }
+      inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
+    }
 
-  //   if (!isNaN(inState)) {
-  //     let options = {};
-  //     options = getDefaultFormatOptions(inState, options);
+    if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
+      inState = this._hass.localize(`state.default.${inState}`);
+    }
 
-  //     if (entityConfig.decimals !== undefined) {
-  //       options.maximumFractionDigits = options.maximumFractionDigits === 0 ? 0 : Number(entityConfig.decimals);
-  //       // options.minimumFractionDigits = options.maximumFractionDigits;
-  //       options.minimumFractionDigits = 0;
-  //     }
+    if (!isNaN(inState)) {
+      let options = {};
+      options = getDefaultFormatOptions(inState, options);
 
-  //     inState = formatNumber(inState, this._hass.locale, options);
-  //     if (this.dev.debug) {
-  //       console.log('In _buildStateText, entityId, formatNumber', entityId, inState);
-  //     }
+      if (entityConfig.decimals !== undefined) {
+        options.maximumFractionDigits = entityConfig.decimals;
+        options.minimumFractionDigits = options.maximumFractionDigits;
+      }
 
-  //     // inState = formatNumber(inState, this._hass.locale);
-  //   }
+      inState = formatNumber(inState, this._hass.locale, options);
+    }
 
-  //   return inState;
-  // }
+    return inState;
+  }
 
   /** *****************************************************************************
-   * _renderStates()
+   * _renderEntityStates()
    *
    * Summary.
-   * Renders the states.
+   * Renders the entity states.
    *
    */
 
@@ -2379,14 +2489,16 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   computeEntityColor(entityState) {
-    // 1. Fallback: If no data present or is unavailable. Get neurral state icon color
+    // 1. Fallback: Als de data ontbreekt of onbereikbaar is -> neutraal
     if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
       return 'var(--state-icon-color)';
     }
 
     const state = entityState.state;
 
-    // Might be a weird fix, but it works
+    // 2. DE FIX VOOR ATTRIBUTEN/SENSOREN:
+    // Als de waarde een getal is (zoals 45, 230, 1.5) of een meting, is het een sensor.
+    // Sensoren en attributen horen ALTIJD de neutrale inactieve kleur te krijgen.
     if (!isNaN(state) || state.endsWith('W') || state.endsWith('kWh') || state.endsWith('V')) {
       return 'var(--state-icon-color)';
     }
@@ -2394,35 +2506,35 @@ class FlexHorseshoeCard extends LitElement {
     const domain = entityState.entity_id.split('.')[0];
     const deviceClass = entityState.attributes.device_class;
 
-    // Neutral color for sensors
+    // Extra check: als het domein zelf 'sensor' is, ook altijd neutraal
     if (domain === 'sensor') {
       return 'var(--state-icon-color)';
     }
 
-    // 3. Get colors
+    // 3. Alleen voor échte binaire acties (aan/uit) pakken we de HA-kleuren:
 
-    // A: Color lights (RGB)
+    // A: Kleurlampen (RGB)
     if (domain === 'light' && entityState.attributes.rgb_color && state === 'on') {
       const [r, g, b] = entityState.attributes.rgb_color;
       return `rgb(${r}, ${g}, ${b})`;
     }
 
-    // B: Binary sensors
+    // B: Binary sensoren met een klasse (sound, tamper, motion)
     if (domain === 'binary_sensor' && deviceClass && state === 'on') {
       return `var(--state-binary_sensor-${deviceClass}-on-color, var(--state-icon-active-color))`;
     }
 
-    // C: Climate stuff
+    // C: Klimaat
     if (domain === 'climate') {
       return `var(--state-climate-${state}-color, var(--state-icon-active-color))`;
     }
 
-    // D: Default on/off devices
+    // D: Standaard aan/uit apparaten (gewone lampen / switches die 'on' staan)
     if (state === 'on') {
       return `var(--state-${domain}-active-color, var(--state-${domain}-color, var(--state-icon-active-color)))`;
     }
 
-    // The rest of the stuff
+    // Alles wat overblijft is inactief
     return 'var(--state-icon-color)';
   }
 
@@ -2435,13 +2547,11 @@ class FlexHorseshoeCard extends LitElement {
     this.iconsSvg ||= [];
     this.pendingIconPath ||= [];
 
-    // const iconSize = item.icon_size ? item.icon_size : 2;
     const iconSize = item.icon_size ? item.icon_size : item.size ? item.size : 2;
     const iconPixels = iconSize * FONT_SIZE;
 
-    // Fix xpos/ypos = 0
-    // const x = (item.xpos ?? 50) / 100;
-    // const y = (item.ypos ?? 50) / 100;
+    // const x = item.xpos ? item.xpos / 100 : 0.5;
+    // const y = item.ypos ? item.ypos / 100 : 0.5;
 
     // const cx = x * SVG_VIEW_BOX;
     // const cy = y * SVG_VIEW_BOX;
@@ -2454,6 +2564,7 @@ class FlexHorseshoeCard extends LitElement {
     let xpx = cx - iconPixels * adjust;
     let ypx = cy - iconPixels * adjust;
     let foIconPixels = iconPixels;
+
     const entityIndex = item.entity_index ?? 0;
 
     const entityState = this.entities[entityIndex];
@@ -2485,8 +2596,7 @@ class FlexHorseshoeCard extends LitElement {
       ...stateStyle,
     };
 
-    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
-    const icon = haIcon;
+    const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -2543,47 +2653,37 @@ class FlexHorseshoeCard extends LitElement {
     if (iconSvg) {
       const x1 = cx - iconPixels * adjust;
       const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
-
       const scale = iconPixels / 24;
-      const rotate = item.rotate ?? 0;
-
-      const iconCx = x1 + 12 * scale;
-      const iconCy = y1 + 12 * scale;
-
-      configStyle['transform-origin'] ??= '0 0';
 
       return svg`
       <g 
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <g
-          id="icon-rendered-${this.iconsId[index]}"
-          class="icon-position"
-          transform="translate(${iconCx} ${iconCy})"
-          @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-        >
-          <rect
-            x="${-iconPixels / 2}"
-            y="${-iconPixels / 2}"
-            height="${iconPixels}px"
-            width="${iconPixels}px"
-            stroke-width="0px"
-            fill="rgba(0,0,0,0)"
-          ></rect>
+    transform="${this._getGroupScaleTransform(item)}"
+    style="${this._getGroupScaleStyle(item)}"
+          >
+      <g
+        id="icon-rendered-${this.iconsId[index]}"
+        style="${styleMap(configStyle)}"
+        x="${x1}px"
+        y="${y1}px"
+        transform-origin="${cx} ${cy}"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${x1}px"
+          y="${y1}px"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
 
-          <g class="icon-style-animation" style="${styleMap(configStyle)}">
-            <g class="icon-rotate" transform="rotate(${rotate})">
-              <g class="icon-scale" transform="scale(${scale})">
-                <g class="icon-center" transform="translate(-12 -12)">
-                  <path d="${iconSvg}"></path>
-                </g>
-              </g>
-            </g>
-          </g>
-        </g>
+        <path
+          d="${iconSvg}"
+          transform="translate(${x1},${y1}) scale(${scale})"
+        ></path>
       </g>
-      `;
+      </g>
+    `;
     }
 
     return svg`
@@ -2716,7 +2816,6 @@ class FlexHorseshoeCard extends LitElement {
    * Renders the specified lines in the grid.
    *
    */
-
   _renderHorizontalLine(item) {
     const HLINES_STYLES = {
       'stroke-linecap': 'round',
@@ -2724,7 +2823,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'stroke-width': '2',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -2766,7 +2864,19 @@ class FlexHorseshoeCard extends LitElement {
           style=${styleMap(styles)}
         ></line>
       </g> 
-  `;
+    `;
+
+    // return svg`
+    //   <line
+    //     @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+    //     class="line__horizontal"
+    //     x1="${item.xpos - item.length / 2}%"
+    //     y1="${item.ypos}%"
+    //     x2="${item.xpos + item.length / 2}%"
+    //     y2="${item.ypos}%"
+    //     style=${styleMap(styles)}
+    //   ></line>
+    // `;
   }
 
   _renderHorizontalLines() {
@@ -2794,7 +2904,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'stroke-width': '2',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -3067,8 +3176,8 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildUom(entityState, entityConfig, unit) {
-    return entityConfig.unit || unit || '';
+  _buildUom(entityState, entityConfig) {
+    return entityConfig.unit || entityState.attributes.unit_of_measurement || '';
   }
 
   /** *****************************************************************************
@@ -3373,6 +3482,10 @@ class FlexHorseshoeCard extends LitElement {
 
     return lastStop.color;
   }
+
+  // _computeDomain(entityId) {
+  //   return entityId.substr(0, entityId.indexOf('.'));
+  // }
 
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
