@@ -1202,9 +1202,10 @@ class FlexHorseshoeCard extends LitElement {
         const colorStops = ColorStops.normalize(resolvedColorStops);
         const colorStopColors = colorStops.colors;
 
-        if (!colorStopColors || colorStopColors.length < 2) {
-          throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
-        }
+        // Temp disabled!
+        // if (!colorStopColors || colorStopColors.length < 2) {
+        //   throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
+        // }
 
         const firstStop = colorStopColors[0];
         const lastStop = colorStopColors[colorStopColors.length - 1];
@@ -1900,11 +1901,11 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
-    // compute x,y or dx,dy positions. Spec none if not specified.
-    const x = item.xpos ? item.xpos : '';
-    const y = item.ypos ? item.ypos : '';
-    const dx = item.dx ? item.dx : '0';
-    const dy = item.dy ? item.dy : '0';
+    // compute x,y or dx,dy positions. Spec center if not specified.
+    const x = item.xpos ?? 50;
+    const y = item.ypos ?? 50;
+    const dx = item.dx ?? 0;
+    const dy = item.dy ?? 0;
 
     const STATE_STYLES = {
       'font-size': '1em',
@@ -2303,8 +2304,9 @@ class FlexHorseshoeCard extends LitElement {
     const iconSize = item.icon_size ? item.icon_size : 2;
     const iconPixels = iconSize * FONT_SIZE;
 
-    const x = item.xpos ? item.xpos / 100 : 0.5;
-    const y = item.ypos ? item.ypos / 100 : 0.5;
+    // Fix xpos/ypos = 0
+    const x = (item.xpos ?? 50) / 100;
+    const y = (item.ypos ?? 50) / 100;
 
     const cx = x * SVG_VIEW_BOX;
     const cy = y * SVG_VIEW_BOX;
