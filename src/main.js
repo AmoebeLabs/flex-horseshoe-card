@@ -1769,7 +1769,7 @@ class FlexHorseshoeCard extends LitElement {
     if (!layout?.names) return svg``;
 
     const ENTITY_NAME_STYLES = {
-      'font-size': '1em',
+      'font-size': '1.5em',
       color: 'var(--primary-text-color)',
       opacity: '1.0',
       'text-anchor': 'middle',
@@ -1808,7 +1808,7 @@ class FlexHorseshoeCard extends LitElement {
       return svg`
         <text
           @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          class="entity__name">
+          >
             <tspan
               class="entity__name"
               x="${item.xpos}%"
@@ -1875,7 +1875,7 @@ class FlexHorseshoeCard extends LitElement {
       return svg`
         <text
           @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          class="entity__area">
+          >
             <tspan
               class="entity__area"
               x="${item.xpos}%"
