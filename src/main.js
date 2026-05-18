@@ -1953,15 +1953,16 @@ class FlexHorseshoeCard extends LitElement {
     // Keep old implicit UOM behavior:
     // UOM font-size is derived from the final state font-size.
     const fsuomStr = configStyle['font-size'];
-
     let fsuomValue = 0.5;
     let fsuomType = 'em';
 
-    const fsuomSplit = String(fsuomStr).match(/\D+|\d*\.?\d+/g);
+    const fsuomMatch = String(fsuomStr)
+      .trim()
+      .match(/^(\d*\.?\d+)([a-z%]+)$/i);
 
-    if (fsuomSplit?.length === 2) {
-      fsuomValue = Number(fsuomSplit[0]) * 0.6;
-      fsuomType = fsuomSplit[1];
+    if (fsuomMatch) {
+      fsuomValue = Number(fsuomMatch[1]) * 0.6;
+      fsuomType = fsuomMatch[2];
     } else {
       console.error('Cannot determine font-size for state', fsuomStr);
     }
