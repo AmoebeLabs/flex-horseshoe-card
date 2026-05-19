@@ -9,7 +9,8 @@ import { formatDuration, UNIT_TO_MILLISECOND_CONVERT } from './datetime/duration
 import { formatDate } from './datetime/format_date.js';
 import { formatDateTime } from './datetime/format_date_time.js';
 import { formatTime } from './datetime/format_time.js';
-import { formatNumber, getNumberFormatOptions, isNumericFromAttributes } from './format_number.js';
+// import { formatNumber, getNumberFormatOptions, isNumericFromAttributes } from './format_number.old';
+import { formatNumber, getNumberFormatOptions, isNumericFromAttributes } from '.frontend_mods/common/number/format_number.ts';
 // import { blankBeforePercent } from '../translations/blank_before_percent';
 // import { computeDomain } from './compute_domain';
 // import { supportsFeatureFromAttributes } from './supports_feature';

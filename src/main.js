@@ -25,12 +25,14 @@ import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
 import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js';
-import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
+// import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
+import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
+
 import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetime/format_date';
 import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
 import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
 import { formatDuration } from './frontend_mods/datetime/duration.js';
-import { computeDomain } from './frontend_mods/common/entity/compute_domain';
+import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
 
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
@@ -122,7 +124,7 @@ class FlexHorseshoeCard extends LitElement {
     this.bar_mode = 'normal'; // default
 
     this.dev = {
-      debug: false,
+      debug: true,
     };
     // http://jsfiddle.net/jlubean/dL5cLjxt/
     // this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
@@ -1092,6 +1094,8 @@ class FlexHorseshoeCard extends LitElement {
     try {
       config = JSON.parse(JSON.stringify(config));
 
+      // this.dev.debug = config?.dev?.debug;
+
       if (!config.entities) {
         throw Error('No entities defined');
       }
@@ -1928,7 +1932,7 @@ class FlexHorseshoeCard extends LitElement {
     const resolvedUomStyles = Templates.getJsTemplateOrValue(item, uomConfig.styles);
     const itemUomStyleDict = ConfigHelper.toStyleDict(resolvedUomStyles);
 
-    const uomDx = uomConfig.dx ?? '0';
+    const uomDx = uomConfig.dx ?? '0.1';
     const uomDy = uomConfig.dy ?? '-0.45';
 
     // Runtime animation styles. Animation styles win over normal state styles.
@@ -2171,7 +2175,9 @@ class FlexHorseshoeCard extends LitElement {
 
     let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
     inState = this._buildState(inState, entityConfig);
-
+    if (this.dev.debug) {
+      console.log('In _buildStateText, entityId, buildState', entityId, inState);
+    }
     if ([undefined, 'undefined'].includes(inState)) {
       return '';
     }
@@ -2202,11 +2208,17 @@ class FlexHorseshoeCard extends LitElement {
       options = getDefaultFormatOptions(inState, options);
 
       if (entityConfig.decimals !== undefined) {
-        options.maximumFractionDigits = entityConfig.decimals;
-        options.minimumFractionDigits = options.maximumFractionDigits;
+        options.maximumFractionDigits = options.maximumFractionDigits === 0 ? 0 : Number(entityConfig.decimals);
+        // options.minimumFractionDigits = options.maximumFractionDigits;
+        options.minimumFractionDigits = 0;
       }
 
       inState = formatNumber(inState, this._hass.locale, options);
+      if (this.dev.debug) {
+        console.log('In _buildStateText, entityId, formatNumber', entityId, inState);
+      }
+
+      // inState = formatNumber(inState, this._hass.locale);
     }
 
     return inState;
