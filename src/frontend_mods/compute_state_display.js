@@ -1,14 +1,14 @@
 /* eslint-disable no-use-before-define */
-import { computeDomain } from './common/entity/compute_domain.old/index.js';
+import { computeDomain } from './common/entity/compute_domain.ts';
 // import { UNAVAILABLE, UNKNOWN } from '../../data/entity';
 // import {
 //   updateIsInstallingFromAttributes,
 //   UPDATE_SUPPORT_PROGRESS,
 // } from '../../data/update';
-import { formatDuration, UNIT_TO_MILLISECOND_CONVERT } from './datetime/duration.js';
-import { formatDate } from './datetime/format_date.js';
-import { formatDateTime } from './datetime/format_date_time.js';
-import { formatTime } from './datetime/format_time.js';
+import { formatDuration, UNIT_TO_MILLISECOND_CONVERT } from './datetimejs/duration.js';
+import { formatDate } from './datetimejs/format_date.js';
+import { formatDateTime } from './datetimejs/format_date_time.js';
+import { formatTime } from './datetimejs/format_time.js';
 // import { formatNumber, getNumberFormatOptions, isNumericFromAttributes } from './format_number.old';
 import { formatNumber, getNumberFormatOptions, isNumericFromAttributes } from '.frontend_mods/common/number/format_number.ts';
 // import { blankBeforePercent } from '../translations/blank_before_percent';

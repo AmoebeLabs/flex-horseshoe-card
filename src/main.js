@@ -28,14 +28,16 @@ import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js'
 // import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
 import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
-import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetime/format_date';
-import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetime/format_time';
-import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetime/format_date_time';
-import { formatDuration } from './frontend_mods/datetime/duration.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
+import { formatDuration } from './frontend_mods/datetimejs/duration.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-
+import { computeEntityUnitDisplay } from './frontend_mods/common/entity/compute_entity_unit_display.ts';
+import { entityIcon } from './frontend_mods/data/icons.ts';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
+import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import { version } from '../package.json';
 
@@ -819,6 +821,103 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
+  // async _buildMyIcon(stateObj, entityConfig, entityAnimation) {
+  //   return entityAnimation || entityConfig.icon || stateObj.attributes.icon || entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+  // }
+
+  // async _buildMyIcon(stateObj, entityConfig, entityAnimation) {
+  //   return entityAnimation || entityConfig.icon || stateObj.attributes.icon || (await entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj));
+  // }
+
+  _buildMyIcon(stateObj, entityConfig, entityAnimation) {
+    if (!stateObj || !entityConfig) {
+      return undefined;
+    }
+
+    // Directe overrides blijven sync
+    if (entityAnimation) {
+      return entityAnimation;
+    }
+
+    if (entityConfig.icon) {
+      return entityConfig.icon;
+    }
+
+    if (stateObj.attributes?.icon) {
+      return stateObj.attributes.icon;
+    }
+
+    const key = [entityConfig.entity, stateObj.state ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
+
+    this.entitiesIcon ??= {};
+    this.entitiesIconKey ??= {};
+    this.entitiesIconPending ??= {};
+
+    // Cache hit
+    if (this.entitiesIconKey[entityConfig.entity] === key) {
+      return this.entitiesIcon[entityConfig.entity];
+    }
+
+    // Cache miss: key zetten en async ophalen
+    this.entitiesIconKey[entityConfig.entity] = key;
+
+    if (!this.entitiesIconPending[entityConfig.entity]) {
+      this.entitiesIconPending[entityConfig.entity] = true;
+
+      entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj)
+        .then((icon) => {
+          console.log('async entityIcon resolved', entityConfig.entity, icon);
+
+          if (this.entitiesIconKey[entityConfig.entity] !== key) {
+            console.log('stale icon ignored', entityConfig.entity);
+            return;
+          }
+
+          if (this.entitiesIcon[entityConfig.entity] !== icon) {
+            this.entitiesIcon[entityConfig.entity] = icon;
+            this.requestUpdate();
+          }
+        })
+        .catch((err) => {
+          console.error('entityIcon failed', entityConfig.entity, err);
+        })
+        .finally(() => {
+          this.entitiesIconPending[entityConfig.entity] = false;
+        });
+    }
+
+    // Eerste render: nog geen async icon
+    return this.entitiesIcon[entityConfig.entity];
+  }
+
+  _buildEntityStateParts(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj);
+
+    const rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    const formattedValue =
+      entityConfig.decimals !== undefined && !Number.isNaN(Number(rawValue))
+        ? formatNumber(Number(rawValue), this._hass.locale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: Number(entityConfig.decimals),
+          })
+        : undefined;
+
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
   set hass(hass) {
     this._hass = hass;
 
@@ -829,6 +928,15 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
+    console.table(
+      Object.keys(this._hass)
+        .filter((key) => typeof this._hass[key] === 'function')
+        .sort()
+        .map((key) => ({
+          key,
+          value: this._hass[key].toString().slice(0, 80),
+        })),
+    );
     let entityHasChanged = false;
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -843,6 +951,20 @@ class FlexHorseshoeCard extends LitElement {
       this.entities[index] = entity;
 
       const newStateStr = this._buildState(entity.state, entityConfig);
+
+      // testing
+      const stateObj = entity;
+      const domain = computeStateDomain(stateObj);
+      // const unit = computeEntityUnitDisplay(this._hass, stateObj, this._config);
+      const stateParts = this._hass.formatEntityStateToParts(stateObj, newStateStr, 6);
+      const stateParts2 = this._hass.formatEntityStateToParts(stateObj, 6.12345);
+      const stateParts3 = this._hass.formatEntityStateToParts(stateObj, 6);
+      const stateParts4 = this._hass.formatEntityState(stateObj, newStateStr);
+      const name = this._hass.formatEntityName(stateObj, entityConfig.name);
+      console.log('from set hass, entity, name', entityConfig.entity, domain, name, stateParts, stateParts2, stateParts3, stateParts4, newStateStr);
+
+      const stateParts5 = this._buildEntityStateParts(stateObj, entityConfig);
+      console.log('from set hass, own buildEntityStateParts', entityConfig, name, domain, stateParts5);
 
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
@@ -2360,6 +2482,10 @@ class FlexHorseshoeCard extends LitElement {
       ...configStyle,
       ...stateStyle,
     };
+
+    // const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    console.log('resolved HA icon', this.entities[entityIndex], haIcon);
 
     const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
 

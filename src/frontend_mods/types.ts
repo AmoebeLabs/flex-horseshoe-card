@@ -88,7 +88,7 @@ declare global {
   namespace Intl {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     // const DurationFormat: typeof FormatJSDurationFormat;
-    const DurationFomat: any;
+    const DurationFormat: any;
   }
 }
 

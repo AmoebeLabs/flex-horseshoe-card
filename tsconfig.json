@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "es2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowJs": true,
@@ -10,5 +10,6 @@
     "noEmitOnError": false,
     "isolatedModules": true
   },
-  "include": ["src/**/*.js", "src/**/*.ts", "src/frontend_mods/format_number.old", "src/frontend_mods/common/number/clamp.old"]
+  // "include": ["src/**/*.js", "src/**/*.ts", "src/frontend_mods/format_number.old", "src/frontend_mods/common/number/clamp.old"]
+  "include": ["src/**/*.js", "src/**/*.ts"]
 }

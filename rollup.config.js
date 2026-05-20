@@ -27,6 +27,7 @@ export default {
     format: 'es',
     name: 'FlexHorseshoeCard',
     sourcemap: !!dev,
+    inlineDynamicImports: true,
   },
   onwarn(warning, warn) {
     // See: https://github.com/reduxjs/redux-toolkit/issues/1466
@@ -45,6 +46,8 @@ export default {
     replace({
       preventAssignment: true,
       values: {
+        __DEV__: JSON.stringify(!!dev),
+        __DEMO__: JSON.stringify(false),
         'createPolicy("lit-html"': 'createPolicy("flex-horseshoe-card-lit-html"',
         "createPolicy('lit-html'": "createPolicy('flex-horseshoe-card-lit-html'",
       },
@@ -54,13 +57,13 @@ export default {
     //   include: 'package.json',
     //   preferConst: true,
     // }),
+    resolve(),
     typescript({
       tsconfig: './tsconfig.json',
       allowJs: true,
       noForceEmit: false,
     }),
     json(),
-    resolve(),
     dev && serve(serveopts),
     !dev &&
       terser({
