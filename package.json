@@ -23,6 +23,7 @@
     "@rollup/plugin-replace": "",
     "@rollup/plugin-terser": "^1",
     "@rollup/plugin-typescript": "^11",
+    "rollup-plugin-visualizer": "",
     "typescript": "^5",
     "tslib": "2.8.1",
     "eslint": "^9",
@@ -38,6 +39,7 @@
     "globals": "^17.5.0",
     "home-assistant-js-websocket": "^9.6.0",
     "lit": "^3.3.2",
-    "memoize-one": "^6.0.0"
+    "memoize-one": "^6.0.0",
+    "culori": ""
   }
 }

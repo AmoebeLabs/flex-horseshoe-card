@@ -21,6 +21,7 @@
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { selectUnit } from '@formatjs/intl-utils';
+// import * as mdi from '@mdi/js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -28,17 +29,25 @@ import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js'
 // import { formatNumber, getDefaultFormatOptions } from './frontend_mods/format_number.js';
 import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
-import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
-import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
-import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
-import { formatDuration } from './frontend_mods/datetimejs/duration.js';
+// import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/common/datetime/format_date.ts';
+// import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/common/datetime/format_time.ts';
+// import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/common/datetime/format_date_time.ts';
+// import { formatDuration } from './frontend_mods/datetimejs/duration.js';
+import { formatDuration } from './frontend_mods/common/datetime/format_duration.ts';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
 import { computeEntityUnitDisplay } from './frontend_mods/common/entity/compute_entity_unit_display.ts';
-import { entityIcon } from './frontend_mods/data/icons.ts';
-import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
-import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
+import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
+// import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/color/convert-color';
+import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
+// import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/color/convert-light-color';
+import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
+// import { weatherAttrIcons } from './frontend_mods/data/weather.ts';
+import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
@@ -83,6 +92,17 @@ const DEFAULT_TAP_ACTION = {
   action: 'more-info',
 };
 
+// const mdiPathToName = Object.fromEntries(
+//   Object.entries(mdi)
+//     .filter(([name, path]) => name.startsWith('mdi') && typeof path === 'string')
+//     .map(([name, path]) => [
+//       path,
+//       `mdi:${name
+//         .replace(/^mdi/, '')
+//         .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+//         .toLowerCase()}`,
+//     ]),
+// );
 //--
 
 // ++ Class ++++++++++
@@ -843,6 +863,274 @@ class FlexHorseshoeCard extends LitElement {
       return entityConfig.icon;
     }
 
+    const entityId = entityConfig.entity;
+    const attribute = entityConfig.attribute;
+    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
+    const domain = stateObj.entity_id?.split('.')[0];
+
+    // Alleen bij gewone entity-state, niet bij attribute
+    if (stateObj.attributes?.icon && !attribute) {
+      return stateObj.attributes.icon;
+    }
+
+    if (attribute && domain === 'weather') {
+      const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
+
+      if (weatherIcon) {
+        return weatherIcon;
+      }
+    }
+    this.entitiesIcon ??= {};
+    this.entitiesIconKey ??= {};
+    this.entitiesIconPending ??= {};
+
+    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
+
+    const key = attribute
+      ? [entityId, 'attribute', attribute, attributeValue ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
+      : [entityId, 'state', stateObj.state ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
+
+    // Cache hit
+    if (this.entitiesIconKey[iconId] === key) {
+      return this.entitiesIcon[iconId];
+    }
+
+    // Cache miss
+    this.entitiesIconKey[iconId] = key;
+
+    if (!this.entitiesIconPending[iconId]) {
+      this.entitiesIconPending[iconId] = true;
+
+      let iconPromise;
+
+      if (attribute && domain === 'weather') {
+        const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
+
+        iconPromise = weatherIcon ? Promise.resolve(weatherIcon) : attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined);
+      } else if (attribute) {
+        iconPromise = attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined);
+      } else {
+        iconPromise = entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+      }
+
+      iconPromise
+        .then((icon) => {
+          console.log(attribute ? '_buildMyIcon async attribute icon resolved' : '_buildMyIcon async entityIcon resolved', entityId, attribute ?? '', icon);
+
+          if (this.entitiesIconKey[iconId] !== key) {
+            console.log('_buildMyIcon stale icon ignored', iconId);
+            return;
+          }
+
+          if (!icon) {
+            return;
+          }
+
+          if (this.entitiesIcon[iconId] !== icon) {
+            this.entitiesIcon[iconId] = icon;
+            this.requestUpdate();
+          }
+        })
+        .catch((err) => {
+          console.error(attribute ? '_buildMyIcon attribute icon failed' : '_buildMyIcon entityIcon failed', entityId, attribute ?? '', err);
+        })
+        .finally(() => {
+          this.entitiesIconPending[iconId] = false;
+        });
+    }
+
+    return this.entitiesIcon[iconId];
+  }
+
+  _buildMyIconV3(stateObj, entityConfig, entityAnimation) {
+    if (!stateObj || !entityConfig) {
+      return undefined;
+    }
+
+    // Directe overrides blijven sync
+    if (entityAnimation) {
+      return entityAnimation;
+    }
+
+    if (entityConfig.icon) {
+      return entityConfig.icon;
+    }
+
+    const entityId = entityConfig.entity;
+    const attribute = entityConfig.attribute;
+    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
+
+    // Alleen bij gewone entity-state, niet bij attribute
+    if (stateObj.attributes?.icon && !attribute) {
+      return stateObj.attributes.icon;
+    }
+
+    this.entitiesIcon ??= {};
+    this.entitiesIconKey ??= {};
+    this.entitiesIconPending ??= {};
+
+    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
+
+    const key = attribute
+      ? [entityId, 'attribute', attribute, attributeValue ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
+      : [entityId, 'state', stateObj.state ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
+
+    // Cache hit
+    if (this.entitiesIconKey[iconId] === key) {
+      return this.entitiesIcon[iconId];
+    }
+
+    // Cache miss
+    this.entitiesIconKey[iconId] = key;
+
+    if (!this.entitiesIconPending[iconId]) {
+      this.entitiesIconPending[iconId] = true;
+
+      const iconPromise = attribute
+        ? attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
+        : entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+
+      iconPromise
+        .then((icon) => {
+          console.log(attribute ? '_buildMyIcon async attributeIcon resolved' : '_buildMyIcon async entityIcon resolved', entityId, attribute ?? '', icon);
+
+          if (this.entitiesIconKey[iconId] !== key) {
+            console.log('_buildMyIcon stale icon ignored', iconId);
+            return undefined;
+          }
+
+          return icon;
+        })
+        .then((icon) => {
+          if (!icon) {
+            return;
+          }
+
+          if (this.entitiesIconKey[iconId] !== key) {
+            console.log('_buildMyIcon stale icon ignored', iconId);
+            return;
+          }
+
+          if (this.entitiesIcon[iconId] !== icon) {
+            this.entitiesIcon[iconId] = icon;
+            this.requestUpdate();
+          }
+        })
+        .catch((err) => {
+          console.error(attribute ? '_buildMyIcon attributeIcon failed' : '_buildMyIcon entityIcon failed', entityId, attribute ?? '', err);
+        })
+        .finally(() => {
+          this.entitiesIconPending[iconId] = false;
+        });
+    }
+
+    return this.entitiesIcon[iconId];
+  }
+
+  _buildMyIconV2(stateObj, entityConfig, entityAnimation) {
+    if (!stateObj || !entityConfig) {
+      return undefined;
+    }
+
+    // Directe overrides blijven sync
+    if (entityAnimation) {
+      return entityAnimation;
+    }
+
+    if (entityConfig.icon) {
+      return entityConfig.icon;
+    }
+
+    if (stateObj.attributes?.icon && !entityConfig.attribute) {
+      return stateObj.attributes.icon;
+    }
+
+    this.entitiesIcon ??= {};
+    this.entitiesIconKey ??= {};
+    this.entitiesIconPending ??= {};
+
+    const entityId = entityConfig.entity;
+    const attribute = entityConfig.attribute;
+    if (attribute) {
+      console.log('_buildMyIcon, attribute = ', attribute);
+    }
+    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
+
+    const key = attribute
+      ? [entityId, 'attribute', attribute, attributeValue ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
+      : [entityId, 'state', stateObj.state ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
+
+    // Cache hit
+    if (this.entitiesIconKey[entityId] === key) {
+      return this.entitiesIcon[entityId];
+    }
+
+    // Cache miss
+    this.entitiesIconKey[entityId] = key;
+
+    if (!this.entitiesIconPending[entityId]) {
+      this.entitiesIconPending[entityId] = true;
+
+      const iconPromise = attribute
+        ? attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
+        : entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+
+      iconPromise
+        .then((icon) => {
+          console.log(attribute ? '_buildMyIcon async attributeIcon resolved' : '_buildMyIcon async entityIcon resolved', entityId, attribute ?? '', icon);
+
+          if (this.entitiesIconKey[entityId] !== key) {
+            console.log('_buildMyIcon stale icon ignored', entityId);
+            return;
+          }
+
+          // Attribute icon kan undefined zijn; dan fallback naar entity icon
+          // if (!icon && attribute) {
+          //   return entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+          // }
+
+          return icon;
+        })
+        .then((icon) => {
+          if (!icon) {
+            return;
+          }
+
+          if (this.entitiesIconKey[entityId] !== key) {
+            console.log('_buildMyIcon stale fallback icon ignored', entityId);
+            return;
+          }
+
+          if (this.entitiesIcon[entityId] !== icon) {
+            this.entitiesIcon[entityId] = icon;
+            this.requestUpdate();
+          }
+        })
+        .catch((err) => {
+          console.error(attribute ? '_buildMyIcon attributeIcon failed' : 'entityIcon failed', entityId, attribute ?? '', err);
+        })
+        .finally(() => {
+          this.entitiesIconPending[entityId] = false;
+        });
+    }
+
+    return this.entitiesIcon[entityId];
+  }
+
+  _buildMyIconV1(stateObj, entityConfig, entityAnimation) {
+    if (!stateObj || !entityConfig) {
+      return undefined;
+    }
+
+    // Directe overrides blijven sync
+    if (entityAnimation) {
+      return entityAnimation;
+    }
+
+    if (entityConfig.icon) {
+      return entityConfig.icon;
+    }
+
     if (stateObj.attributes?.icon) {
       return stateObj.attributes.icon;
     }
@@ -890,11 +1178,13 @@ class FlexHorseshoeCard extends LitElement {
     return this.entitiesIcon[entityConfig.entity];
   }
 
-  _buildEntityStateParts(stateObj, entityConfig) {
+  _formatEntityStateParts(stateObj, entityConfig) {
     const isAttribute = entityConfig.attribute !== undefined;
 
     const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj);
-
+    // if (isAttribute) {
+    //   console.log('formatEntityStateParts - Attribute', entityConfig.attribute, parts);
+    // }
     const rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
 
     const formattedValue =
@@ -963,7 +1253,7 @@ class FlexHorseshoeCard extends LitElement {
       const name = this._hass.formatEntityName(stateObj, entityConfig.name);
       console.log('from set hass, entity, name', entityConfig.entity, domain, name, stateParts, stateParts2, stateParts3, stateParts4, newStateStr);
 
-      const stateParts5 = this._buildEntityStateParts(stateObj, entityConfig);
+      const stateParts5 = this._formatEntityStateParts(stateObj, entityConfig);
       console.log('from set hass, own buildEntityStateParts', entityConfig, name, domain, stateParts5);
 
       if (newStateStr !== this.entitiesStr[index]) {
@@ -2123,8 +2413,27 @@ class FlexHorseshoeCard extends LitElement {
     //   this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
     const entity = this.entities[entityIndex];
     const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
-    const state = this._buildStateText(entity, entityConfig);
-    const uom = this._buildUom(entity, entityConfig);
+    // const state = this._buildStateText(entity, entityConfig);
+    // const uom = this._buildUom(entity, entityConfig);
+
+    const parts = this._formatEntityStateParts(entity, entityConfig);
+    console.log('renderState, parts', parts);
+    let state = '';
+    let unit = '';
+
+    parts.forEach((part) => {
+      if (part.type === 'unit') {
+        unit += part.value;
+      } else {
+        if (part.type === 'value') {
+          state += part.value;
+        }
+      }
+    });
+
+    state = state.trim();
+    unit = unit.trim();
+    const uom = this._buildUom(entity, entityConfig, unit);
 
     return svg`
       <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
@@ -2145,206 +2454,206 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
-  formatStateString(inState, entityConfig) {
-    const lang = this._hass.selectedLanguage || this._hass.language;
-    let locale = {};
-    locale.language = lang;
+  // formatStateString(inState, entityConfig) {
+  //   const lang = this._hass.selectedLanguage || this._hass.language;
+  //   let locale = {};
+  //   locale.language = lang;
 
-    if (
-      [
-        'relative',
-        'total',
-        'datetime',
-        'datetime-short',
-        'datetime-short_with-year',
-        'datetime_seconds',
-        'datetime-numeric',
-        'date',
-        'date_month',
-        'date_month_year',
-        'date-short',
-        'date-numeric',
-        'date_weekday',
-        'date_weekday_day',
-        'date_weekday-short',
-        'time',
-        'time-24h',
-        'time-24h_date-short',
-        'time_weekday',
-        'time_seconds',
-      ].includes(entityConfig.format)
-    ) {
-      const timestamp = new Date(inState);
-      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
-        return inState;
-      }
+  //   if (
+  //     [
+  //       'relative',
+  //       'total',
+  //       'datetime',
+  //       'datetime-short',
+  //       'datetime-short_with-year',
+  //       'datetime_seconds',
+  //       'datetime-numeric',
+  //       'date',
+  //       'date_month',
+  //       'date_month_year',
+  //       'date-short',
+  //       'date-numeric',
+  //       'date_weekday',
+  //       'date_weekday_day',
+  //       'date_weekday-short',
+  //       'time',
+  //       'time-24h',
+  //       'time-24h_date-short',
+  //       'time_weekday',
+  //       'time_seconds',
+  //     ].includes(entityConfig.format)
+  //   ) {
+  //     const timestamp = new Date(inState);
+  //     if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+  //       return inState;
+  //     }
 
-      // if (!EntityStateTool.testTimeDate) {
-      //   EntityStateTool.testTimeDate = true;
-      //   console.log('datetime', formatDateTime(timestamp, locale));
-      //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
-      //   console.log('date', formatDate(timestamp, locale));
-      //   console.log('date_month', formatDateMonth(timestamp, locale));
-      //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
-      //   console.log('date-short', formatDateShort(timestamp, locale));
-      //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
-      //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
-      //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
-      //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
-      //   console.log('time', formatTime(timestamp, locale));
-      //   console.log('time-24h', formatTime24h(timestamp, locale));
-      //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
-      //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
-      // }
+  //     // if (!EntityStateTool.testTimeDate) {
+  //     //   EntityStateTool.testTimeDate = true;
+  //     //   console.log('datetime', formatDateTime(timestamp, locale));
+  //     //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
+  //     //   console.log('date', formatDate(timestamp, locale));
+  //     //   console.log('date_month', formatDateMonth(timestamp, locale));
+  //     //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
+  //     //   console.log('date-short', formatDateShort(timestamp, locale));
+  //     //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
+  //     //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
+  //     //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
+  //     //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
+  //     //   console.log('time', formatTime(timestamp, locale));
+  //     //   console.log('time-24h', formatTime24h(timestamp, locale));
+  //     //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
+  //     //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
+  //     // }
 
-      let retValue;
-      // return date/time according to formatting...
-      switch (entityConfig.format) {
-        case 'relative':
-          // eslint-disable-next-line no-case-declarations
-          const diff = selectUnit(timestamp, new Date());
-          retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
-          break;
-        case 'total':
-        case 'precision':
-          retValue = 'Not Yet Supported';
-          break;
-        case 'datetime':
-          retValue = formatDateTime(timestamp, locale);
-          break;
-        case 'datetime-short':
-          retValue = formatShortDateTime(timestamp, locale);
-          break;
-        case 'datetime-short_with-year':
-          retValue = formatShortDateTimeWithYear(timestamp, locale);
-          break;
-        case 'datetime_seconds':
-          retValue = formatDateTimeWithSeconds(timestamp, locale);
-          break;
-        case 'datetime-numeric':
-          retValue = formatDateTimeNumeric(timestamp, locale);
-          break;
-        case 'date':
-          retValue = formatDate(timestamp, locale);
-          // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
-          break;
-        case 'date_month':
-          retValue = formatDateMonth(timestamp, locale);
-          break;
-        case 'date_month_year':
-          retValue = formatDateMonthYear(timestamp, locale);
-          break;
-        case 'date-short':
-          retValue = formatDateShort(timestamp, locale);
-          break;
-        case 'date-numeric':
-          retValue = formatDateNumeric(timestamp, locale);
-          break;
-        case 'date_weekday':
-          retValue = formatDateWeekday(timestamp, locale);
-          break;
-        case 'date_weekday-short':
-          retValue = formatDateWeekdayShort(timestamp, locale);
-          break;
-        case 'date_weekday_day':
-          retValue = formatDateWeekdayDay(timestamp, locale);
-          break;
-        case 'time':
-          retValue = formatTime(timestamp, locale);
-          // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
-          break;
-        case 'time-24h':
-          retValue = formatTime24h(timestamp);
-          break;
-        case 'time-24h_date-short':
-          // eslint-disable-next-line no-case-declarations
-          const diff2 = selectUnit(timestamp, new Date());
-          if (['second', 'minute', 'hour'].includes(diff2.unit)) {
-            retValue = formatTime24h(timestamp);
-          } else {
-            retValue = formatDateShort(timestamp, locale);
-          }
-          break;
-        case 'time_weekday':
-          retValue = formatTimeWeekday(timestamp, locale);
-          break;
-        case 'time_seconds':
-          retValue = formatTimeWithSeconds(timestamp, locale);
-          break;
-        default:
-      }
-      return retValue;
-    }
+  //     let retValue;
+  //     // return date/time according to formatting...
+  //     switch (entityConfig.format) {
+  //       case 'relative':
+  //         // eslint-disable-next-line no-case-declarations
+  //         const diff = selectUnit(timestamp, new Date());
+  //         retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+  //         break;
+  //       case 'total':
+  //       case 'precision':
+  //         retValue = 'Not Yet Supported';
+  //         break;
+  //       case 'datetime':
+  //         retValue = formatDateTime(timestamp, locale);
+  //         break;
+  //       case 'datetime-short':
+  //         retValue = formatShortDateTime(timestamp, locale);
+  //         break;
+  //       case 'datetime-short_with-year':
+  //         retValue = formatShortDateTimeWithYear(timestamp, locale);
+  //         break;
+  //       case 'datetime_seconds':
+  //         retValue = formatDateTimeWithSeconds(timestamp, locale);
+  //         break;
+  //       case 'datetime-numeric':
+  //         retValue = formatDateTimeNumeric(timestamp, locale);
+  //         break;
+  //       case 'date':
+  //         retValue = formatDate(timestamp, locale);
+  //         // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
+  //         break;
+  //       case 'date_month':
+  //         retValue = formatDateMonth(timestamp, locale);
+  //         break;
+  //       case 'date_month_year':
+  //         retValue = formatDateMonthYear(timestamp, locale);
+  //         break;
+  //       case 'date-short':
+  //         retValue = formatDateShort(timestamp, locale);
+  //         break;
+  //       case 'date-numeric':
+  //         retValue = formatDateNumeric(timestamp, locale);
+  //         break;
+  //       case 'date_weekday':
+  //         retValue = formatDateWeekday(timestamp, locale);
+  //         break;
+  //       case 'date_weekday-short':
+  //         retValue = formatDateWeekdayShort(timestamp, locale);
+  //         break;
+  //       case 'date_weekday_day':
+  //         retValue = formatDateWeekdayDay(timestamp, locale);
+  //         break;
+  //       case 'time':
+  //         retValue = formatTime(timestamp, locale);
+  //         // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
+  //         break;
+  //       case 'time-24h':
+  //         retValue = formatTime24h(timestamp);
+  //         break;
+  //       case 'time-24h_date-short':
+  //         // eslint-disable-next-line no-case-declarations
+  //         const diff2 = selectUnit(timestamp, new Date());
+  //         if (['second', 'minute', 'hour'].includes(diff2.unit)) {
+  //           retValue = formatTime24h(timestamp);
+  //         } else {
+  //           retValue = formatDateShort(timestamp, locale);
+  //         }
+  //         break;
+  //       case 'time_weekday':
+  //         retValue = formatTimeWeekday(timestamp, locale);
+  //         break;
+  //       case 'time_seconds':
+  //         retValue = formatTimeWithSeconds(timestamp, locale);
+  //         break;
+  //       default:
+  //     }
+  //     return retValue;
+  //   }
 
-    if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
-      return inState;
-    }
-    if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
-      return `${Math.round((inState / 255) * 100)} %`;
-    }
-    if (entityConfig.format === 'duration') {
-      return formatDuration(inState, 's');
-    }
-  }
+  //   if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
+  //     return inState;
+  //   }
+  //   if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
+  //     return `${Math.round((inState / 255) * 100)} %`;
+  //   }
+  //   if (entityConfig.format === 'duration') {
+  //     return formatDuration(inState, 's');
+  //   }
+  // }
 
-  _buildStateText(stateObj, entityConfig = {}) {
-    if (!stateObj) return '';
+  // _buildStateText(stateObj, entityConfig = {}) {
+  //   if (!stateObj) return '';
 
-    const entityId = stateObj.entity_id;
-    const entity = this._hass.entities?.[entityId];
-    const entity2 = this._hass.states?.[entityId];
-    const domain = computeDomain(entityId);
+  //   const entityId = stateObj.entity_id;
+  //   const entity = this._hass.entities?.[entityId];
+  //   const entity2 = this._hass.states?.[entityId];
+  //   const domain = computeDomain(entityId);
 
-    let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
-    inState = this._buildState(inState, entityConfig);
-    if (this.dev.debug) {
-      console.log('In _buildStateText, entityId, buildState', entityId, inState);
-    }
-    if ([undefined, 'undefined'].includes(inState)) {
-      return '';
-    }
+  //   let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
+  //   inState = this._buildState(inState, entityConfig);
+  //   if (this.dev.debug) {
+  //     console.log('In _buildStateText, entityId, buildState', entityId, inState);
+  //   }
+  //   if ([undefined, 'undefined'].includes(inState)) {
+  //     return '';
+  //   }
 
-    if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
-      inState = this.formatStateString(inState, entityConfig);
-    }
+  //   if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
+  //     inState = this.formatStateString(inState, entityConfig);
+  //   }
 
-    const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
+  //   const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
 
-    if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
-      inState =
-        (localeTag && this._hass.localize(localeTag)) ||
-        (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
-        (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
-        this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
-        inState;
+  //   if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
+  //     inState =
+  //       (localeTag && this._hass.localize(localeTag)) ||
+  //       (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
+  //       (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
+  //       this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
+  //       inState;
 
-      inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
-    }
+  //     inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
+  //   }
 
-    if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
-      inState = this._hass.localize(`state.default.${inState}`);
-    }
+  //   if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
+  //     inState = this._hass.localize(`state.default.${inState}`);
+  //   }
 
-    if (!isNaN(inState)) {
-      let options = {};
-      options = getDefaultFormatOptions(inState, options);
+  //   if (!isNaN(inState)) {
+  //     let options = {};
+  //     options = getDefaultFormatOptions(inState, options);
 
-      if (entityConfig.decimals !== undefined) {
-        options.maximumFractionDigits = options.maximumFractionDigits === 0 ? 0 : Number(entityConfig.decimals);
-        // options.minimumFractionDigits = options.maximumFractionDigits;
-        options.minimumFractionDigits = 0;
-      }
+  //     if (entityConfig.decimals !== undefined) {
+  //       options.maximumFractionDigits = options.maximumFractionDigits === 0 ? 0 : Number(entityConfig.decimals);
+  //       // options.minimumFractionDigits = options.maximumFractionDigits;
+  //       options.minimumFractionDigits = 0;
+  //     }
 
-      inState = formatNumber(inState, this._hass.locale, options);
-      if (this.dev.debug) {
-        console.log('In _buildStateText, entityId, formatNumber', entityId, inState);
-      }
+  //     inState = formatNumber(inState, this._hass.locale, options);
+  //     if (this.dev.debug) {
+  //       console.log('In _buildStateText, entityId, formatNumber', entityId, inState);
+  //     }
 
-      // inState = formatNumber(inState, this._hass.locale);
-    }
+  //     // inState = formatNumber(inState, this._hass.locale);
+  //   }
 
-    return inState;
-  }
+  //   return inState;
+  // }
 
   /** *****************************************************************************
    * _renderStates()
@@ -2487,7 +2796,8 @@ class FlexHorseshoeCard extends LitElement {
     const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     console.log('resolved HA icon', this.entities[entityIndex], haIcon);
 
-    const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    // const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    const icon = haIcon;
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -3032,9 +3342,13 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildUom(entityState, entityConfig) {
-    return entityConfig.unit || entityState.attributes.unit_of_measurement || '';
+  _buildUom(entityState, entityConfig, unit) {
+    return entityConfig.unit || unit || '';
   }
+
+  // _buildUomV1(entityState, entityConfig) {
+  //   return entityConfig.unit || entityState.attributes.unit_of_measurement || '';
+  // }
 
   /** *****************************************************************************
    * card::_buildStateString()
@@ -3338,10 +3652,6 @@ class FlexHorseshoeCard extends LitElement {
 
     return lastStop.color;
   }
-
-  // _computeDomain(entityId) {
-  //   return entityId.substr(0, entityId.indexOf('.'));
-  // }
 
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
