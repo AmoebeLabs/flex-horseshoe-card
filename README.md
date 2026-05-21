@@ -1170,7 +1170,7 @@ Using `variables` to re-use templates.
 
 and using them:
 
-````yaml
+```yaml
 horseshoes:
   - entity_index: 3
     xpos: 75
@@ -1230,7 +1230,7 @@ Furthermore, theme defined variables are used:
 
 ```yaml
 theme-card-box-shadow: 'var(--shadow-elevation-2dp_-_box-shadow)'
-````
+```
 
 and:
 
