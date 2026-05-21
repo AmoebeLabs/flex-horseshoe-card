@@ -146,7 +146,7 @@ class FlexHorseshoeCard extends LitElement {
     this.bar_mode = 'normal'; // default
 
     this.dev = {
-      debug: true,
+      debug: false,
     };
     // http://jsfiddle.net/jlubean/dL5cLjxt/
     // this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
@@ -854,6 +854,86 @@ class FlexHorseshoeCard extends LitElement {
       return undefined;
     }
 
+    if (entityAnimation) {
+      return entityAnimation;
+    }
+
+    if (entityConfig.icon) {
+      return entityConfig.icon;
+    }
+
+    const entityId = entityConfig.entity;
+    const attribute = entityConfig.attribute;
+    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
+    const domain = stateObj.entity_id?.split('.')[0];
+
+    if (stateObj.attributes?.icon && !attribute) {
+      return stateObj.attributes.icon;
+    }
+
+    // Sync weather attribute fallback
+    if (attribute && domain === 'weather') {
+      const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
+
+      if (weatherIcon) {
+        return weatherIcon;
+      }
+    }
+
+    this.entitiesIcon ??= {};
+    this.entitiesIconKey ??= {};
+    this.entitiesIconPending ??= {};
+
+    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
+
+    const key = attribute
+      ? [entityId, 'attribute', attribute, attributeValue ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
+      : [entityId, 'state', stateObj.state ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
+
+    if (this.entitiesIconKey[iconId] === key) {
+      return this.entitiesIcon[iconId];
+    }
+
+    this.entitiesIconKey[iconId] = key;
+
+    if (!this.entitiesIconPending[iconId]) {
+      this.entitiesIconPending[iconId] = true;
+
+      const iconPromise = attribute
+        ? attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
+        : entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
+
+      iconPromise
+        .then((icon) => {
+          if (this.entitiesIconKey[iconId] !== key) {
+            return;
+          }
+
+          if (!icon) {
+            return;
+          }
+
+          if (this.entitiesIcon[iconId] !== icon) {
+            this.entitiesIcon[iconId] = icon;
+            this.requestUpdate();
+          }
+        })
+        .catch((err) => {
+          console.error(attribute ? '_buildMyIcon attributeIcon failed' : '_buildMyIcon entityIcon failed', entityId, attribute ?? '', err);
+        })
+        .finally(() => {
+          this.entitiesIconPending[iconId] = false;
+        });
+    }
+
+    return this.entitiesIcon[iconId];
+  }
+
+  _buildMyIconV1(stateObj, entityConfig, entityAnimation) {
+    if (!stateObj || !entityConfig) {
+      return undefined;
+    }
+
     // Directe overrides blijven sync
     if (entityAnimation) {
       return entityAnimation;
@@ -915,10 +995,10 @@ class FlexHorseshoeCard extends LitElement {
 
       iconPromise
         .then((icon) => {
-          console.log(attribute ? '_buildMyIcon async attribute icon resolved' : '_buildMyIcon async entityIcon resolved', entityId, attribute ?? '', icon);
+          // console.log(attribute ? '_buildMyIcon async attribute icon resolved' : '_buildMyIcon async entityIcon resolved', entityId, attribute ?? '', icon);
 
           if (this.entitiesIconKey[iconId] !== key) {
-            console.log('_buildMyIcon stale icon ignored', iconId);
+            // console.log('_buildMyIcon stale icon ignored', iconId);
             return;
           }
 
@@ -982,15 +1062,15 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    console.table(
-      Object.keys(this._hass)
-        .filter((key) => typeof this._hass[key] === 'function')
-        .sort()
-        .map((key) => ({
-          key,
-          value: this._hass[key].toString().slice(0, 80),
-        })),
-    );
+    // console.table(
+    //   Object.keys(this._hass)
+    //     .filter((key) => typeof this._hass[key] === 'function')
+    //     .sort()
+    //     .map((key) => ({
+    //       key,
+    //       value: this._hass[key].toString().slice(0, 80),
+    //     })),
+    // );
     let entityHasChanged = false;
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1010,15 +1090,15 @@ class FlexHorseshoeCard extends LitElement {
       const stateObj = entity;
       const domain = computeStateDomain(stateObj);
       // const unit = computeEntityUnitDisplay(this._hass, stateObj, this._config);
-      const stateParts = this._hass.formatEntityStateToParts(stateObj, newStateStr, 6);
-      const stateParts2 = this._hass.formatEntityStateToParts(stateObj, 6.12345);
-      const stateParts3 = this._hass.formatEntityStateToParts(stateObj, 6);
-      const stateParts4 = this._hass.formatEntityState(stateObj, newStateStr);
-      const name = this._hass.formatEntityName(stateObj, entityConfig.name);
-      console.log('from set hass, entity, name', entityConfig.entity, domain, name, stateParts, stateParts2, stateParts3, stateParts4, newStateStr);
+      // const stateParts = this._hass.formatEntityStateToParts(stateObj, newStateStr, 6);
+      // const stateParts2 = this._hass.formatEntityStateToParts(stateObj, 6.12345);
+      // const stateParts3 = this._hass.formatEntityStateToParts(stateObj, 6);
+      // const stateParts4 = this._hass.formatEntityState(stateObj, newStateStr);
+      // const name = this._hass.formatEntityName(stateObj, entityConfig.name);
+      // console.log('from set hass, entity, name', entityConfig.entity, domain, name, stateParts, stateParts2, stateParts3, stateParts4, newStateStr);
 
-      const stateParts5 = this._formatEntityStateParts(stateObj, entityConfig);
-      console.log('from set hass, own buildEntityStateParts', entityConfig, name, domain, stateParts5);
+      // const stateParts5 = this._formatEntityStateParts(stateObj, entityConfig);
+      // console.log('from set hass, own buildEntityStateParts', entityConfig, name, domain, stateParts5);
 
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
@@ -1368,7 +1448,8 @@ class FlexHorseshoeCard extends LitElement {
 
         const colorStopsConfig = horseshoeConfig.color_stops;
 
-        if (!colorStopsConfig) {
+        // Temp disabled
+        if (!colorStopsConfig && newConfig?.show?.horseshoe !== false) {
           console.warn(`No color_stops defined for horseshoe ${index}`);
           throw Error(`No color_stops defined for horseshoe ${index}`);
         }
@@ -2128,7 +2209,6 @@ class FlexHorseshoeCard extends LitElement {
     // const uom = this._buildUom(entity, entityConfig);
 
     const parts = this._formatEntityStateParts(entity, entityConfig);
-    console.log('renderState, parts', parts);
     let state = '';
     let unit = '';
 
@@ -2505,7 +2585,6 @@ class FlexHorseshoeCard extends LitElement {
 
     // const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
-    console.log('resolved HA icon', this.entities[entityIndex], haIcon);
 
     // const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     const icon = haIcon;
