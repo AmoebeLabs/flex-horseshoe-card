@@ -2540,11 +2540,14 @@ class FlexHorseshoeCard extends LitElement {
     const iconSvg = this.iconsSvg[index];
 
     if (iconSvg) {
+      const x1 = cx - iconPixels * adjust;
+      const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+
       const scale = iconPixels / 24;
       const rotate = item.rotate ?? 0;
 
-      const iconCx = xpx + iconPixels / 2;
-      const iconCy = ypx + iconPixels / 2;
+      const iconCx = x1 + 12 * scale;
+      const iconCy = y1 + 12 * scale;
 
       configStyle['transform-origin'] ??= '0 0';
 
@@ -2574,7 +2577,7 @@ class FlexHorseshoeCard extends LitElement {
             </g>
           </g>
         </g>
-      `;
+  `;
     }
     // if (iconSvg) {
     //   const x1 = cx - iconPixels * adjust;

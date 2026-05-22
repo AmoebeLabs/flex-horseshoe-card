@@ -646,11 +646,11 @@ const ce=1;let de=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
       </text>
     `}_renderStates(){const{layout:e}=this.config;if(!e)return;if(!e.states)return;const t=e.states.map((e=>q`
             ${this._renderState(e)}
-          `));return q`${t}`}computeEntityColor(e){if(!e||"off"===e.state||"unavailable"===e.state||"unknown"===e.state)return"var(--state-icon-color)";const t=e.state;if(!isNaN(t)||t.endsWith("W")||t.endsWith("kWh")||t.endsWith("V"))return"var(--state-icon-color)";const r=e.entity_id.split(".")[0],i=e.attributes.device_class;if("sensor"===r)return"var(--state-icon-color)";if("light"===r&&e.attributes.rgb_color&&"on"===t){const[t,r,i]=e.attributes.rgb_color;return`rgb(${t}, ${r}, ${i})`}return"binary_sensor"===r&&i&&"on"===t?`var(--state-binary_sensor-${i}-on-color, var(--state-icon-active-color))`:"climate"===r?`var(--state-climate-${t}-color, var(--state-icon-active-color))`:"on"===t?`var(--state-${r}-active-color, var(--state-${r}-color, var(--state-icon-active-color)))`:"var(--state-icon-color)"}_renderIcon(e,t){if(!e)return;e.entity=e.entity?e.entity:0,this.iconCache||={},this.iconsSvg||=[],this.pendingIconPath||=[];const r=12*(e.icon_size?e.icon_size:2),i=(e.xpos??50)/100,o=(e.ypos??50)/100,a=i*jo,s=o*jo,n=e.align?e.align:"center",l="center"===n?.5:"start"===n?-1:1;let c=a-r*l,d=s-r*l,h=r;const u=e.entity_index??0,m=this.entities[u],p=To.getHaEntityIconStyle(m),f={};f.fill=p.fill,f.color=p.color,f.filter=p.filter;const g=fe.getJsTemplateOrValue(e,e.styles);let b=pe.toStyleDict(g);const y=this.animations?.icons?.[e.animation_id]??{},v=this._getItemColorFromStops(e);v&&(b.fill=v),b={...f,...b,...y};const _=this._buildMyIcon(this.entities[u],this.resolvedEntityConfigs[u],this.animations?.iconsIcon?.[e.animation_id]);if(this.iconCache[_])this.iconsSvg[t]=this.iconCache[_];else if(this.iconsSvg[t]=void 0,this.pendingIconPath[t]!==_){this.pendingIconPath[t]=_;let e=0;const r=40,i=50,o=()=>{if(this.pendingIconPath[t]!==_)return;const a=this._getRenderedHaIconPath(t);if(a)return this.iconsSvg[t]=a,this.iconCache[_]=a,this.pendingIconPath[t]=void 0,void this.requestUpdate();e+=1,e>=r?this.pendingIconPath[t]=void 0:window.setTimeout(o,i)};(this?.updateComplete&&"function"==typeof this.updateComplete.then||this.updateComplete&&"function"==typeof this.updateComplete.then?this.updateComplete:new Promise((e=>window.requestAnimationFrame(e)))).then((()=>{window.setTimeout(o,0)}))}const w=this.iconsSvg[t];if(w){const i=r/24,o=e.rotate??0,a=c+r/2,s=d+r/2;return b["transform-origin"]??="0 0",q`
+          `));return q`${t}`}computeEntityColor(e){if(!e||"off"===e.state||"unavailable"===e.state||"unknown"===e.state)return"var(--state-icon-color)";const t=e.state;if(!isNaN(t)||t.endsWith("W")||t.endsWith("kWh")||t.endsWith("V"))return"var(--state-icon-color)";const r=e.entity_id.split(".")[0],i=e.attributes.device_class;if("sensor"===r)return"var(--state-icon-color)";if("light"===r&&e.attributes.rgb_color&&"on"===t){const[t,r,i]=e.attributes.rgb_color;return`rgb(${t}, ${r}, ${i})`}return"binary_sensor"===r&&i&&"on"===t?`var(--state-binary_sensor-${i}-on-color, var(--state-icon-active-color))`:"climate"===r?`var(--state-climate-${t}-color, var(--state-icon-active-color))`:"on"===t?`var(--state-${r}-active-color, var(--state-${r}-color, var(--state-icon-active-color)))`:"var(--state-icon-color)"}_renderIcon(e,t){if(!e)return;e.entity=e.entity?e.entity:0,this.iconCache||={},this.iconsSvg||=[],this.pendingIconPath||=[];const r=12*(e.icon_size?e.icon_size:2),i=(e.xpos??50)/100,o=(e.ypos??50)/100,a=i*jo,s=o*jo,n=e.align?e.align:"center",l="center"===n?.5:"start"===n?-1:1;let c=a-r*l,d=s-r*l,h=r;const u=e.entity_index??0,m=this.entities[u],p=To.getHaEntityIconStyle(m),f={};f.fill=p.fill,f.color=p.color,f.filter=p.filter;const g=fe.getJsTemplateOrValue(e,e.styles);let b=pe.toStyleDict(g);const y=this.animations?.icons?.[e.animation_id]??{},v=this._getItemColorFromStops(e);v&&(b.fill=v),b={...f,...b,...y};const _=this._buildMyIcon(this.entities[u],this.resolvedEntityConfigs[u],this.animations?.iconsIcon?.[e.animation_id]);if(this.iconCache[_])this.iconsSvg[t]=this.iconCache[_];else if(this.iconsSvg[t]=void 0,this.pendingIconPath[t]!==_){this.pendingIconPath[t]=_;let e=0;const r=40,i=50,o=()=>{if(this.pendingIconPath[t]!==_)return;const a=this._getRenderedHaIconPath(t);if(a)return this.iconsSvg[t]=a,this.iconCache[_]=a,this.pendingIconPath[t]=void 0,void this.requestUpdate();e+=1,e>=r?this.pendingIconPath[t]=void 0:window.setTimeout(o,i)};(this?.updateComplete&&"function"==typeof this.updateComplete.then||this.updateComplete&&"function"==typeof this.updateComplete.then?this.updateComplete:new Promise((e=>window.requestAnimationFrame(e)))).then((()=>{window.setTimeout(o,0)}))}const w=this.iconsSvg[t];if(w){const i=a-r*l,o=s-.5*r-.25*r,n=r/24,c=e.rotate??0,d=i+12*n,h=o+12*n;return b["transform-origin"]??="0 0",q`
         <g
           id="icon-rendered-${this.iconsId[t]}"
           class="icon-position"
-          transform="translate(${a} ${s})"
+          transform="translate(${d} ${h})"
           @click=${t=>this.handlePopup(t,this.entities[e.entity_index])}
         >
           <rect
@@ -663,8 +663,8 @@ const ce=1;let de=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
           ></rect>
 
           <g class="icon-style-animation" style="${me(b)}">
-            <g class="icon-rotate" transform="rotate(${o})">
-              <g class="icon-scale" transform="scale(${i})">
+            <g class="icon-rotate" transform="rotate(${c})">
+              <g class="icon-scale" transform="scale(${n})">
                 <g class="icon-center" transform="translate(-12 -12)">
                   <path d="${w}"></path>
                 </g>
@@ -672,7 +672,7 @@ const ce=1;let de=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
             </g>
           </g>
         </g>
-      `}return q`
+  `}return q`
     <foreignObject
       width="0px"
       height="0px"
