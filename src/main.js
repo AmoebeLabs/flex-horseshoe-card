@@ -1358,7 +1358,8 @@ class FlexHorseshoeCard extends LitElement {
         const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
         // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
 
-        const colorStops = ColorStops.normalize(resolvedColorStops);
+        const normalizedColorStops = ColorStops.normalize(resolvedColorStops);
+        const colorStops = ColorStops.ensureMinimumStops(normalizedColorStops, horseshoeScale.max);
         const colorStopColors = colorStops.colors;
 
         // Temp disabled!
@@ -1366,6 +1367,10 @@ class FlexHorseshoeCard extends LitElement {
         //   throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
         // }
 
+        // Fallback for single color
+        if (horseshoeState.color == null && colorStopColors?.[0]?.color) {
+          horseshoeState.color = colorStopColors[0].color;
+        }
         const firstStop = colorStopColors[0];
         const lastStop = colorStopColors[colorStopColors.length - 1];
 
