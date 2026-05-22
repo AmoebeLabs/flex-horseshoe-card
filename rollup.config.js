@@ -6,6 +6,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
 import typescript from '@rollup/plugin-typescript';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const dev = process.env.ROLLUP_WATCH || process.env.DEV;
 
@@ -27,6 +28,7 @@ export default {
     format: 'es',
     name: 'FlexHorseshoeCard',
     sourcemap: !!dev,
+    inlineDynamicImports: true,
   },
   onwarn(warning, warn) {
     // See: https://github.com/reduxjs/redux-toolkit/issues/1466
@@ -45,6 +47,9 @@ export default {
     replace({
       preventAssignment: true,
       values: {
+        __DEV__: JSON.stringify(!!dev),
+        __DEMO__: JSON.stringify(false),
+        __BACKWARDS_COMPAT__: 'false',
         'createPolicy("lit-html"': 'createPolicy("flex-horseshoe-card-lit-html"',
         "createPolicy('lit-html'": "createPolicy('flex-horseshoe-card-lit-html'",
       },
@@ -54,13 +59,13 @@ export default {
     //   include: 'package.json',
     //   preferConst: true,
     // }),
+    resolve(),
     typescript({
       tsconfig: './tsconfig.json',
       allowJs: true,
       noForceEmit: false,
     }),
     json(),
-    resolve(),
     dev && serve(serveopts),
     !dev &&
       terser({
@@ -68,5 +73,11 @@ export default {
           safari10: true,
         },
       }),
+    visualizer({
+      filename: 'dist/stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
 };
