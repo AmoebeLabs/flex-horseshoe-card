@@ -39,26 +39,14 @@ import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/col
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
+import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
+import HorseshoesLayout from './layout/horseshoes-layout.js';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
-// ++ Consts ++++++++++
-const FONT_SIZE = 12;
-const SVG_VIEW_BOX = 200;
-
-// Donut starts at -220 degrees and is 260 degrees in size.
-// zero degrees is at 3 o'clock.
-const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
-const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
-const HORSESHOE_PATH_LENGTH = ((2 * 260) / 360) * Math.PI * HORSESHOE_RADIUS_SIZE;
-const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
-
-const DEFAULT_HORSESHOE_POSITION = {
-  xpos: 50,
-  ypos: 50,
-  horseshoe_radius: HORSESHOE_RADIUS_SIZE,
-  tickmarks_radius: TICKMARKS_RADIUS_SIZE,
+const DEFAULT_TAP_ACTION = {
+  action: 'more-info',
 };
 
 const DEFAULT_SHOW = {
@@ -66,35 +54,6 @@ const DEFAULT_SHOW = {
   scale_tickmarks: false,
   horseshoe_style: 'fixed',
 };
-
-const DEFAULT_HORSESHOE_SCALE = {
-  min: 0,
-  max: 100,
-  width: 6,
-  color: 'var(--primary-background-color)',
-};
-
-const DEFAULT_HORSESHOE_STATE = {
-  width: 12,
-  color: 'var(--primary-color)',
-};
-
-const DEFAULT_TAP_ACTION = {
-  action: 'more-info',
-};
-
-// const mdiPathToName = Object.fromEntries(
-//   Object.entries(mdi)
-//     .filter(([name, path]) => name.startsWith('mdi') && typeof path === 'string')
-//     .map(([name, path]) => [
-//       path,
-//       `mdi:${name
-//         .replace(/^mdi/, '')
-//         .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-//         .toLowerCase()}`,
-//     ]),
-// );
-//--
 
 // ++ Class ++++++++++
 
@@ -832,14 +791,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  // async _buildMyIcon(stateObj, entityConfig, entityAnimation) {
-  //   return entityAnimation || entityConfig.icon || stateObj.attributes.icon || entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
-  // }
-
-  // async _buildMyIcon(stateObj, entityConfig, entityAnimation) {
-  //   return entityAnimation || entityConfig.icon || stateObj.attributes.icon || (await entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj));
-  // }
-
   _buildMyIcon(stateObj, entityConfig, entityAnimation) {
     if (!stateObj || !entityConfig) {
       return undefined;
@@ -960,15 +911,6 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    // console.table(
-    //   Object.keys(this._hass)
-    //     .filter((key) => typeof this._hass[key] === 'function')
-    //     .sort()
-    //     .map((key) => ({
-    //       key,
-    //       value: this._hass[key].toString().slice(0, 80),
-    //     })),
-    // );
     let entityHasChanged = false;
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -987,16 +929,6 @@ class FlexHorseshoeCard extends LitElement {
       // testing
       const stateObj = entity;
       const domain = computeStateDomain(stateObj);
-      // const unit = computeEntityUnitDisplay(this._hass, stateObj, this._config);
-      // const stateParts = this._hass.formatEntityStateToParts(stateObj, newStateStr, 6);
-      // const stateParts2 = this._hass.formatEntityStateToParts(stateObj, 6.12345);
-      // const stateParts3 = this._hass.formatEntityStateToParts(stateObj, 6);
-      // const stateParts4 = this._hass.formatEntityState(stateObj, newStateStr);
-      // const name = this._hass.formatEntityName(stateObj, entityConfig.name);
-      // console.log('from set hass, entity, name', entityConfig.entity, domain, name, stateParts, stateParts2, stateParts3, stateParts4, newStateStr);
-
-      // const stateParts5 = this._formatEntityStateParts(stateObj, entityConfig);
-      // console.log('from set hass, own buildEntityStateParts', entityConfig, name, domain, stateParts5);
 
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
@@ -1020,7 +952,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
-    this.horseshoes = this.horseshoes.map((horseshoe) => {
+    this.horseshoes = this.horseshoes.map((horseshoe, index) => {
       const entityIndex = horseshoe.entity_index ?? 0;
       const entityConfig = this.resolvedEntityConfigs[entityIndex];
       const entity = this.entities[entityIndex];
@@ -1088,7 +1020,6 @@ class FlexHorseshoeCard extends LitElement {
         color1Offset = '0%';
       } else if (strokeStyle === 'autominmax') {
         const stroke = this._calculateStrokeColor(state, horseshoe.colorStopsMinMax, true);
-
         color0 = stroke;
         color1 = stroke;
         color1Offset = '0%';
@@ -1129,17 +1060,20 @@ class FlexHorseshoeCard extends LitElement {
       };
     });
 
-    const defaultHorseshoe = this.horseshoes[0];
+    // If horseshoe defined. Use first (legacy) to fill the default variables to use for rendering. Backwards compatibility for now...
+    if (this.horseshoes.length > 0) {
+      const defaultHorseshoe = this.horseshoes[0];
 
-    this.dashArray = defaultHorseshoe.dashArray;
-    this.dashOffset = defaultHorseshoe.dashOffset;
-    this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
+      this.dashArray = defaultHorseshoe.dashArray;
+      this.dashOffset = defaultHorseshoe.dashOffset;
+      this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
 
-    this.stroke_color = defaultHorseshoe.stroke_color;
-    this.color0 = defaultHorseshoe.color0;
-    this.color1 = defaultHorseshoe.color1;
-    this.color1_offset = defaultHorseshoe.color1_offset;
-    this.angleCoords = defaultHorseshoe.angleCoords;
+      this.stroke_color = defaultHorseshoe.stroke_color;
+      this.color0 = defaultHorseshoe.color0;
+      this.color1 = defaultHorseshoe.color1;
+      this.color1_offset = defaultHorseshoe.color1_offset;
+      this.angleCoords = defaultHorseshoe.angleCoords;
+    }
 
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
@@ -1291,167 +1225,32 @@ class FlexHorseshoeCard extends LitElement {
           ...DEFAULT_SHOW,
           ...config.show,
         },
-        horseshoe_position: {
-          ...DEFAULT_HORSESHOE_POSITION,
-          ...config?.horseshoe_position,
-        },
-        horseshoe_scale: {
-          ...DEFAULT_HORSESHOE_SCALE,
-          ...config.horseshoe_scale,
-        },
-        horseshoe_state: {
-          ...DEFAULT_HORSESHOE_STATE,
-          ...config.horseshoe_state,
-        },
+        // horseshoe_position: {
+        //   ...DEFAULT_HORSESHOE_POSITION,
+        //   ...config?.horseshoe_position,
+        // },
+        // horseshoe_scale: {
+        //   ...DEFAULT_HORSESHOE_SCALE,
+        //   ...config.horseshoe_scale,
+        // },
+        // horseshoe_state: {
+        //   ...DEFAULT_HORSESHOE_STATE,
+        //   ...config.horseshoe_state,
+        // },
       };
 
-      const rawHorseshoes = Array.isArray(newConfig.layout.horseshoes)
-        ? newConfig.layout.horseshoes.map((horseshoeConfig, index) => ({
-            ...newConfig,
-            ...horseshoeConfig,
-            entity_index: horseshoeConfig.entity_index ?? index,
-          }))
-        : [
-            {
-              ...newConfig,
-              entity_index: 0,
-            },
-          ];
+      this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
 
-      this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
-        const entityIndex = horseshoeConfig.entity_index ?? index;
+      const defaultHorseshoe = this.horseshoes?.[0];
 
-        const show = {
-          ...DEFAULT_SHOW,
-          ...(horseshoeConfig.show ?? {}),
-        };
-
-        const horseshoeScale = {
-          ...DEFAULT_HORSESHOE_SCALE,
-          ...(horseshoeConfig.horseshoe_scale ?? {}),
-        };
-
-        const horseshoeState = {
-          ...DEFAULT_HORSESHOE_STATE,
-          ...(horseshoeConfig.horseshoe_state ?? {}),
-        };
-
-        const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
-
-        const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
-
-        if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
-          throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
-        }
-
-        const colorStopsConfig = horseshoeConfig.color_stops;
-
-        // Temp disabled
-        if (!colorStopsConfig && newConfig?.show?.horseshoe !== false) {
-          console.warn(`No color_stops defined for horseshoe ${index}`);
-          throw Error(`No color_stops defined for horseshoe ${index}`);
-        }
-
-        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
-        // console.log('[colorstops] variables', Templates.context?.config?.variables);
-
-        const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
-        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
-
-        const colorStops = ColorStops.normalize(resolvedColorStops);
-        const colorStopColors = colorStops.colors;
-
-        // Temp disabled!
-        // if (!colorStopColors || colorStopColors.length < 2) {
-        //   throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
-        // }
-
-        const firstStop = colorStopColors[0];
-        const lastStop = colorStopColors[colorStopColors.length - 1];
-
-        let colorStopsMinMax = ColorStops.normalize({});
-        let color0;
-        let color1;
-
-        if (firstStop && lastStop) {
-          colorStopsMinMax = ColorStops.normalize({
-            [horseshoeScale.min]: firstStop.color,
-            [horseshoeScale.max]: lastStop.color,
-          });
-
-          color0 = firstStop.color;
-          color1 = lastStop.color;
-        }
-
-        const radius = horseshoeConfig.radius ?? 45;
-        const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
-        const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
-
-        const radiusSize = (radius / 100) * SVG_VIEW_BOX;
-        const tickmarksRadiusSize = (tickmarksRadius / 100) * SVG_VIEW_BOX;
-
-        const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
-
-        const circlePathLength = 2 * Math.PI * radiusSize;
-
-        return {
-          ...horseshoeConfig,
-
-          entity_index: entityIndex,
-
-          show,
-          fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
-
-          xpos,
-          ypos,
-
-          bar_mode: horseshoeConfig.bar_mode ?? 'normal',
-
-          horseshoe_scale: horseshoeScale,
-          horseshoe_state: horseshoeState,
-
-          radius,
-          tickmarks_radius: tickmarksRadius,
-          arc_degrees: arcDegrees,
-
-          radiusSize,
-          tickmarksRadiusSize,
-          horseshoePathLength,
-          circlePathLength,
-
-          color_stops: colorStopsConfig,
-          colorStops,
-          colorStopsMinMax,
-          color0,
-          color1,
-
-          angleCoords: {
-            x1: '0%',
-            y1: '0%',
-            x2: '100%',
-            y2: '0%',
-          },
-
-          color1_offset: '0%',
-
-          dashArray: this.dashArray,
-          dashOffset: this.dashOffset,
-          bidirectional_negative: this._bidirectional_negative,
-        };
-      });
-
-      if (!this.horseshoes.length) {
-        throw Error('No horseshoes defined');
+      if (defaultHorseshoe) {
+        this.colorStops = defaultHorseshoe.colorStops;
+        this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
+        this.color0 = defaultHorseshoe.color0;
+        this.color1 = defaultHorseshoe.color1;
+        this.angleCoords = defaultHorseshoe.angleCoords;
+        this.color1_offset = defaultHorseshoe.color1_offset;
       }
-
-      const defaultHorseshoe = this.horseshoes[0];
-
-      this.colorStops = defaultHorseshoe.colorStops;
-      this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
-      this.color0 = defaultHorseshoe.color0;
-      this.color1 = defaultHorseshoe.color1;
-      this.angleCoords = defaultHorseshoe.angleCoords;
-      this.color1_offset = defaultHorseshoe.color1_offset;
 
       this._prepareItemColorStops(newConfig);
 
@@ -1475,7 +1274,8 @@ class FlexHorseshoeCard extends LitElement {
         error,
         message: error?.message,
         stack: error?.stack,
-        config,
+        rawConfig: config,
+        horseshoes: this.horseshoes,
       });
 
       throw error;
@@ -1804,25 +1604,11 @@ class FlexHorseshoeCard extends LitElement {
       ...stateUserStyle,
       ...protectedStateStyle,
     };
-    // fill="${fill}"
-    //   stroke="${scaleStroke}"
-    //   stroke-dasharray="${scaleDashArray}"
-    //   stroke-width="${scaleStrokeWidth}"
-    //   stroke-linecap="round"
-
-    // fill="${fill}"
-    // stroke="url('#${gradientId}')"
-    // stroke-dasharray="${horseshoe.dashArray}"
-    // stroke-dashoffset="${horseshoe.dashOffset}"
-    // stroke-width="${stateStrokeWidth}"
-    // stroke-linecap="round"
-    // transform="rotate(-90 ${rotateX} ${rotateY})"
-    // style="transition: all 2.5s ease-out;"/>
 
     if (barMode === 'bidirectional') {
       if (horseshoe.bidirectional_negative) {
         return svg`
-        <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+        <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
             style=${styleMap(scaleStyle)}  
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
@@ -1835,7 +1621,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       return svg`
-      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
         <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
             style=${styleMap(scaleStyle)}  
           transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
@@ -1848,7 +1634,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return svg`
-    <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+    <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
       <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
         style=${styleMap(scaleStyle)}
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
@@ -2090,21 +1876,8 @@ class FlexHorseshoeCard extends LitElement {
       ...itemUomStyleDict,
     };
 
-    // console.log('[uom debug]', {
-    //   rawUom: item.uom,
-    //   rawUomStyles: item.uom?.styles,
-    //   resolvedUomStyles,
-    //   itemUomStyleDict,
-    //   uomStyle,
-    // });
-    // const uom = this._buildUom(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex]);
-
-    // const state =
-    //   this.resolvedEntityConfigs[entityIndex].attribute && this.entities[entityIndex].attributes[this.resolvedEntityConfigs[entityIndex].attribute] ? this.attributesStr[entityIndex] : this.entitiesStr[entityIndex];
     const entity = this.entities[entityIndex];
     const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
-    // const state = this._buildStateText(entity, entityConfig);
-    // const uom = this._buildUom(entity, entityConfig);
 
     const parts = this._formatEntityStateParts(entity, entityConfig);
     let state = '';
@@ -2375,16 +2148,14 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   computeEntityColor(entityState) {
-    // 1. Fallback: Als de data ontbreekt of onbereikbaar is -> neutraal
+    // 1. Fallback: If no data present or is unavailable. Get neurral state icon color
     if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
       return 'var(--state-icon-color)';
     }
 
     const state = entityState.state;
 
-    // 2. DE FIX VOOR ATTRIBUTEN/SENSOREN:
-    // Als de waarde een getal is (zoals 45, 230, 1.5) of een meting, is het een sensor.
-    // Sensoren en attributen horen ALTIJD de neutrale inactieve kleur te krijgen.
+    // Might be a weird fix, but it works
     if (!isNaN(state) || state.endsWith('W') || state.endsWith('kWh') || state.endsWith('V')) {
       return 'var(--state-icon-color)';
     }
@@ -2392,35 +2163,35 @@ class FlexHorseshoeCard extends LitElement {
     const domain = entityState.entity_id.split('.')[0];
     const deviceClass = entityState.attributes.device_class;
 
-    // Extra check: als het domein zelf 'sensor' is, ook altijd neutraal
+    // Neutral color for sensors
     if (domain === 'sensor') {
       return 'var(--state-icon-color)';
     }
 
-    // 3. Alleen voor échte binaire acties (aan/uit) pakken we de HA-kleuren:
+    // 3. Get colors
 
-    // A: Kleurlampen (RGB)
+    // A: Color lights (RGB)
     if (domain === 'light' && entityState.attributes.rgb_color && state === 'on') {
       const [r, g, b] = entityState.attributes.rgb_color;
       return `rgb(${r}, ${g}, ${b})`;
     }
 
-    // B: Binary sensoren met een klasse (sound, tamper, motion)
+    // B: Binary sensors
     if (domain === 'binary_sensor' && deviceClass && state === 'on') {
       return `var(--state-binary_sensor-${deviceClass}-on-color, var(--state-icon-active-color))`;
     }
 
-    // C: Klimaat
+    // C: Climate stuff
     if (domain === 'climate') {
       return `var(--state-climate-${state}-color, var(--state-icon-active-color))`;
     }
 
-    // D: Standaard aan/uit apparaten (gewone lampen / switches die 'on' staan)
+    // D: Default on/off devices
     if (state === 'on') {
       return `var(--state-${domain}-active-color, var(--state-${domain}-color, var(--state-icon-active-color)))`;
     }
 
-    // Alles wat overblijft is inactief
+    // The rest of the stuff
     return 'var(--state-icon-color)';
   }
 
@@ -2481,10 +2252,7 @@ class FlexHorseshoeCard extends LitElement {
       ...stateStyle,
     };
 
-    // const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
-
-    // const icon = this._buildIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     const icon = haIcon;
 
     if (this.iconCache[icon]) {
@@ -2579,36 +2347,6 @@ class FlexHorseshoeCard extends LitElement {
         </g>
   `;
     }
-    // if (iconSvg) {
-    //   const x1 = cx - iconPixels * adjust;
-    //   const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
-    //   const scale = iconPixels / 24;
-
-    //   return svg`
-    //   <g
-    //     id="icon-rendered-${this.iconsId[index]}"
-    //     style="${styleMap(configStyle)}"
-    //     x="${x1}px"
-    //     y="${y1}px"
-    //     transform-origin="${cx} ${cy}"
-    //     @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-    //   >
-    //     <rect
-    //       x="${x1}"
-    //       y="${y1}"
-    //       height="${iconPixels}px"
-    //       width="${iconPixels}px"
-    //       stroke-width="0px"
-    //       fill="rgba(0,0,0,0)"
-    //     ></rect>
-
-    //     <path
-    //       d="${iconSvg}"
-    //       transform="translate(${x1},${y1}) scale(${scale})"
-    //     ></path>
-    //   </g>
-    // `;
-    // }
 
     return svg`
     <foreignObject

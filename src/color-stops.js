@@ -277,6 +277,23 @@ export default class ColorStops {
     };
   }
 
+  static ensureMinimumStops(colorStops, maxValue) {
+    if (!colorStops?.colors || colorStops.colors.length !== 1) {
+      return colorStops;
+    }
+
+    return {
+      ...colorStops,
+      colors: [
+        colorStops.colors[0],
+        {
+          value: maxValue,
+          color: colorStops.colors[0].color,
+        },
+      ],
+    };
+  }
+
   static isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
