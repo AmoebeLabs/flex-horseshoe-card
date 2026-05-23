@@ -39,48 +39,46 @@ import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/col
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
+import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
+import LayoutHorseshoes from './layout-horseshoes';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
-// ++ Consts ++++++++++
-const FONT_SIZE = 12;
-const SVG_VIEW_BOX = 200;
-
 // Donut starts at -220 degrees and is 260 degrees in size.
 // zero degrees is at 3 o'clock.
-const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
-const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
-const HORSESHOE_PATH_LENGTH = ((2 * 260) / 360) * Math.PI * HORSESHOE_RADIUS_SIZE;
-const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
+// const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
+// const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
+// const HORSESHOE_PATH_LENGTH = ((2 * 260) / 360) * Math.PI * HORSESHOE_RADIUS_SIZE;
+// const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
 
-const DEFAULT_HORSESHOE_POSITION = {
-  xpos: 50,
-  ypos: 50,
-  horseshoe_radius: HORSESHOE_RADIUS_SIZE,
-  tickmarks_radius: TICKMARKS_RADIUS_SIZE,
+// const DEFAULT_HORSESHOE_POSITION = {
+//   xpos: 50,
+//   ypos: 50,
+//   horseshoe_radius: HORSESHOE_RADIUS_SIZE,
+//   tickmarks_radius: TICKMARKS_RADIUS_SIZE,
+// };
+
+// const DEFAULT_HORSESHOE_SCALE = {
+//   min: 0,
+//   max: 100,
+//   width: 6,
+//   color: 'var(--primary-background-color)',
+// };
+
+// const DEFAULT_HORSESHOE_STATE = {
+//   width: 12,
+//   color: 'var(--primary-color)',
+// };
+
+const DEFAULT_TAP_ACTION = {
+  action: 'more-info',
 };
 
 const DEFAULT_SHOW = {
   horseshoe: true,
   scale_tickmarks: false,
   horseshoe_style: 'fixed',
-};
-
-const DEFAULT_HORSESHOE_SCALE = {
-  min: 0,
-  max: 100,
-  width: 6,
-  color: 'var(--primary-background-color)',
-};
-
-const DEFAULT_HORSESHOE_STATE = {
-  width: 12,
-  color: 'var(--primary-color)',
-};
-
-const DEFAULT_TAP_ACTION = {
-  action: 'more-info',
 };
 
 // const mdiPathToName = Object.fromEntries(
@@ -1020,7 +1018,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
-    this.horseshoes = this.horseshoes.map((horseshoe) => {
+    this.horseshoes = this.horseshoes.map((horseshoe, index) => {
       const entityIndex = horseshoe.entity_index ?? 0;
       const entityConfig = this.resolvedEntityConfigs[entityIndex];
       const entity = this.entities[entityIndex];
@@ -1088,6 +1086,7 @@ class FlexHorseshoeCard extends LitElement {
         color1Offset = '0%';
       } else if (strokeStyle === 'autominmax') {
         const stroke = this._calculateStrokeColor(state, horseshoe.colorStopsMinMax, true);
+        console.log('autominmax calc for ', horseshoe, index, horseshoe.colorStopsMinMax, 'stroke is ', stroke);
 
         color0 = stroke;
         color1 = stroke;
@@ -1129,17 +1128,20 @@ class FlexHorseshoeCard extends LitElement {
       };
     });
 
-    const defaultHorseshoe = this.horseshoes[0];
+    // If horseshoe defined. Use first (legacy) to fill the default variables to use for rendering. Backwards compatibility for now...
+    if (this.horseshoes.length > 0) {
+      const defaultHorseshoe = this.horseshoes[0];
 
-    this.dashArray = defaultHorseshoe.dashArray;
-    this.dashOffset = defaultHorseshoe.dashOffset;
-    this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
+      this.dashArray = defaultHorseshoe.dashArray;
+      this.dashOffset = defaultHorseshoe.dashOffset;
+      this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
 
-    this.stroke_color = defaultHorseshoe.stroke_color;
-    this.color0 = defaultHorseshoe.color0;
-    this.color1 = defaultHorseshoe.color1;
-    this.color1_offset = defaultHorseshoe.color1_offset;
-    this.angleCoords = defaultHorseshoe.angleCoords;
+      this.stroke_color = defaultHorseshoe.stroke_color;
+      this.color0 = defaultHorseshoe.color0;
+      this.color1 = defaultHorseshoe.color1;
+      this.color1_offset = defaultHorseshoe.color1_offset;
+      this.angleCoords = defaultHorseshoe.angleCoords;
+    }
 
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
@@ -1291,172 +1293,180 @@ class FlexHorseshoeCard extends LitElement {
           ...DEFAULT_SHOW,
           ...config.show,
         },
-        horseshoe_position: {
-          ...DEFAULT_HORSESHOE_POSITION,
-          ...config?.horseshoe_position,
-        },
-        horseshoe_scale: {
-          ...DEFAULT_HORSESHOE_SCALE,
-          ...config.horseshoe_scale,
-        },
-        horseshoe_state: {
-          ...DEFAULT_HORSESHOE_STATE,
-          ...config.horseshoe_state,
-        },
+        // horseshoe_position: {
+        //   ...DEFAULT_HORSESHOE_POSITION,
+        //   ...config?.horseshoe_position,
+        // },
+        // horseshoe_scale: {
+        //   ...DEFAULT_HORSESHOE_SCALE,
+        //   ...config.horseshoe_scale,
+        // },
+        // horseshoe_state: {
+        //   ...DEFAULT_HORSESHOE_STATE,
+        //   ...config.horseshoe_state,
+        // },
       };
 
-      const rawHorseshoes = Array.isArray(newConfig.layout.horseshoes)
-        ? newConfig.layout.horseshoes.map((horseshoeConfig, index) => ({
-            ...newConfig,
-            ...horseshoeConfig,
-            entity_index: horseshoeConfig.entity_index ?? index,
-          }))
-        : [
-            {
-              ...newConfig,
-              entity_index: 0,
-            },
-          ];
+      this.horseshoes = LayoutHorseshoes.setConfig(config, Templates);
 
-      this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
-        const entityIndex = horseshoeConfig.entity_index ?? index;
+      const defaultHorseshoe = this.horseshoes?.[0];
 
-        const show = {
-          ...DEFAULT_SHOW,
-          ...(horseshoeConfig.show ?? {}),
-        };
-
-        const horseshoeScale = {
-          ...DEFAULT_HORSESHOE_SCALE,
-          ...(horseshoeConfig.horseshoe_scale ?? {}),
-        };
-
-        const horseshoeState = {
-          ...DEFAULT_HORSESHOE_STATE,
-          ...(horseshoeConfig.horseshoe_state ?? {}),
-        };
-
-        const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
-
-        const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
-
-        if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
-          throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
-        }
-
-        const colorStopsConfig = horseshoeConfig.color_stops;
-
-        // Temp disabled
-        if (!colorStopsConfig && newConfig?.show?.horseshoe !== false) {
-          console.warn(`No color_stops defined for horseshoe ${index}`);
-          throw Error(`No color_stops defined for horseshoe ${index}`);
-        }
-
-        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
-        // console.log('[colorstops] variables', Templates.context?.config?.variables);
-
-        const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
-        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
-
-        const normalizedColorStops = ColorStops.normalize(resolvedColorStops);
-        const colorStops = ColorStops.ensureMinimumStops(normalizedColorStops, horseshoeScale.max);
-        const colorStopColors = colorStops.colors;
-
-        // Temp disabled!
-        // if (!colorStopColors || colorStopColors.length < 2) {
-        //   throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
-        // }
-
-        // Fallback for single color
-        if (horseshoeState.color == null && colorStopColors?.[0]?.color) {
-          horseshoeState.color = colorStopColors[0].color;
-        }
-        const firstStop = colorStopColors[0];
-        const lastStop = colorStopColors[colorStopColors.length - 1];
-
-        let colorStopsMinMax = ColorStops.normalize({});
-        let color0;
-        let color1;
-
-        if (firstStop && lastStop) {
-          colorStopsMinMax = ColorStops.normalize({
-            [horseshoeScale.min]: firstStop.color,
-            [horseshoeScale.max]: lastStop.color,
-          });
-
-          color0 = firstStop.color;
-          color1 = lastStop.color;
-        }
-
-        const radius = horseshoeConfig.radius ?? 45;
-        const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
-        const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
-
-        const radiusSize = (radius / 100) * SVG_VIEW_BOX;
-        const tickmarksRadiusSize = (tickmarksRadius / 100) * SVG_VIEW_BOX;
-
-        const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
-
-        const circlePathLength = 2 * Math.PI * radiusSize;
-
-        return {
-          ...horseshoeConfig,
-
-          entity_index: entityIndex,
-
-          show,
-          fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
-
-          xpos,
-          ypos,
-
-          bar_mode: horseshoeConfig.bar_mode ?? 'normal',
-
-          horseshoe_scale: horseshoeScale,
-          horseshoe_state: horseshoeState,
-
-          radius,
-          tickmarks_radius: tickmarksRadius,
-          arc_degrees: arcDegrees,
-
-          radiusSize,
-          tickmarksRadiusSize,
-          horseshoePathLength,
-          circlePathLength,
-
-          color_stops: colorStopsConfig,
-          colorStops,
-          colorStopsMinMax,
-          color0,
-          color1,
-
-          angleCoords: {
-            x1: '0%',
-            y1: '0%',
-            x2: '100%',
-            y2: '0%',
-          },
-
-          color1_offset: '0%',
-
-          dashArray: this.dashArray,
-          dashOffset: this.dashOffset,
-          bidirectional_negative: this._bidirectional_negative,
-        };
-      });
-
-      if (!this.horseshoes.length) {
-        throw Error('No horseshoes defined');
+      if (defaultHorseshoe) {
+        this.colorStops = defaultHorseshoe.colorStops;
+        this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
+        this.color0 = defaultHorseshoe.color0;
+        this.color1 = defaultHorseshoe.color1;
+        this.angleCoords = defaultHorseshoe.angleCoords;
+        this.color1_offset = defaultHorseshoe.color1_offset;
       }
 
-      const defaultHorseshoe = this.horseshoes[0];
+      // const rawHorseshoes = Array.isArray(newConfig.layout.horseshoes)
+      //   ? newConfig.layout.horseshoes.map((horseshoeConfig, index) => ({
+      //       ...newConfig,
+      //       ...horseshoeConfig,
+      //       entity_index: horseshoeConfig.entity_index ?? index,
+      //     }))
+      //   : [
+      //       {
+      //         ...newConfig,
+      //         entity_index: 0,
+      //       },
+      //     ];
 
-      this.colorStops = defaultHorseshoe.colorStops;
-      this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
-      this.color0 = defaultHorseshoe.color0;
-      this.color1 = defaultHorseshoe.color1;
-      this.angleCoords = defaultHorseshoe.angleCoords;
-      this.color1_offset = defaultHorseshoe.color1_offset;
+      // this.horseshoes = rawHorseshoes.map((horseshoeConfig, index) => {
+      //   const entityIndex = horseshoeConfig.entity_index ?? index;
+
+      //   const show = {
+      //     ...DEFAULT_SHOW,
+      //     ...(horseshoeConfig.show ?? {}),
+      //   };
+
+      //   const horseshoeScale = {
+      //     ...DEFAULT_HORSESHOE_SCALE,
+      //     ...(horseshoeConfig.horseshoe_scale ?? {}),
+      //   };
+
+      //   const horseshoeState = {
+      //     ...DEFAULT_HORSESHOE_STATE,
+      //     ...(horseshoeConfig.horseshoe_state ?? {}),
+      //   };
+
+      //   const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
+
+      //   const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
+
+      //   if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
+      //     throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
+      //   }
+
+      //   const colorStopsConfig = horseshoeConfig.color_stops;
+
+      //   // Temp disabled
+      //   if (!colorStopsConfig && newConfig?.show?.horseshoe !== false) {
+      //     console.warn(`No color_stops defined for horseshoe ${index}`);
+      //     throw Error(`No color_stops defined for horseshoe ${index}`);
+      //   }
+
+      //   // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+      //   // console.log('[colorstops] variables', Templates.context?.config?.variables);
+
+      //   const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
+      //   // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+
+      //   const normalizedColorStops = ColorStops.normalize(resolvedColorStops);
+      //   const colorStops = ColorStops.ensureMinimumStops(normalizedColorStops, horseshoeScale.max);
+      //   const colorStopColors = colorStops.colors;
+
+      //   // Temp disabled!
+      //   // if (!colorStopColors || colorStopColors.length < 2) {
+      //   //   throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
+      //   // }
+
+      //   // Fallback for single color
+      //   if (horseshoeState.color == null && colorStopColors?.[0]?.color) {
+      //     horseshoeState.color = colorStopColors[0].color;
+      //   }
+
+      //   const firstStop = colorStopColors[0];
+      //   const lastStop = colorStopColors[colorStopColors.length - 1];
+
+      //   const colorStopsMinMax = ColorStops.normalize({
+      //     [horseshoeScale.min]: firstStop.color,
+      //     [horseshoeScale.max]: lastStop.color,
+      //   });
+
+      //   const color0 = firstStop.color;
+      //   const color1 = lastStop.color;
+
+      //   const radius = horseshoeConfig.radius ?? 45;
+      //   const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
+      //   const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
+
+      //   const radiusSize = (radius / 100) * SVG_VIEW_BOX;
+      //   const tickmarksRadiusSize = (tickmarksRadius / 100) * SVG_VIEW_BOX;
+
+      //   const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
+
+      //   const circlePathLength = 2 * Math.PI * radiusSize;
+
+      //   return {
+      //     ...horseshoeConfig,
+
+      //     entity_index: entityIndex,
+
+      //     show,
+      //     fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
+
+      //     xpos,
+      //     ypos,
+
+      //     bar_mode: horseshoeConfig.bar_mode ?? 'normal',
+
+      //     horseshoe_scale: horseshoeScale,
+      //     horseshoe_state: horseshoeState,
+
+      //     radius,
+      //     tickmarks_radius: tickmarksRadius,
+      //     arc_degrees: arcDegrees,
+
+      //     radiusSize,
+      //     tickmarksRadiusSize,
+      //     horseshoePathLength,
+      //     circlePathLength,
+
+      //     color_stops: colorStopsConfig,
+      //     colorStops,
+      //     colorStopsMinMax,
+      //     color0,
+      //     color1,
+
+      //     angleCoords: {
+      //       x1: '0%',
+      //       y1: '0%',
+      //       x2: '100%',
+      //       y2: '0%',
+      //     },
+
+      //     color1_offset: '0%',
+
+      //     dashArray: this.dashArray,
+      //     dashOffset: this.dashOffset,
+      //     bidirectional_negative: this._bidirectional_negative,
+      //   };
+      // });
+
+      // if (!this.horseshoes.length) {
+      //   throw Error('No horseshoes defined');
+      // }
+
+      // const defaultHorseshoe = this.horseshoes[0];
+
+      // this.colorStops = defaultHorseshoe.colorStops;
+      // this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
+      // this.color0 = defaultHorseshoe.color0;
+      // this.color1 = defaultHorseshoe.color1;
+      // this.angleCoords = defaultHorseshoe.angleCoords;
+      // this.color1_offset = defaultHorseshoe.color1_offset;
 
       this._prepareItemColorStops(newConfig);
 
@@ -1480,7 +1490,8 @@ class FlexHorseshoeCard extends LitElement {
         error,
         message: error?.message,
         stack: error?.stack,
-        config,
+        rawConfig: config,
+        horseshoes: this.horseshoes,
       });
 
       throw error;
@@ -1824,10 +1835,13 @@ class FlexHorseshoeCard extends LitElement {
     // transform="rotate(-90 ${rotateX} ${rotateY})"
     // style="transition: all 2.5s ease-out;"/>
 
+    if (horseshoe.show.horseshoe_style === 'autominmax') {
+      console.log('in Render, style = ', horseshoe.show.horseshoe_style, horseshoe.colorStopsMinMax, horseshoe.color0, horseshoe.color1);
+    }
     if (barMode === 'bidirectional') {
       if (horseshoe.bidirectional_negative) {
         return svg`
-        <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+        <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
             style=${styleMap(scaleStyle)}  
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
@@ -1840,7 +1854,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       return svg`
-      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
         <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
             style=${styleMap(scaleStyle)}  
           transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
@@ -1853,7 +1867,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return svg`
-    <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group">
+    <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
       <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
         style=${styleMap(scaleStyle)}
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
