@@ -40,7 +40,7 @@ import { computeStateDomain } from './frontend_mods/common/entity/compute_state_
 import Colors from './colors.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
-import LayoutHorseshoes from './layout/horseshoes-layout.js';
+import HorseshoesLayout from './layout/horseshoes-layout.js';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
@@ -1239,7 +1239,7 @@ class FlexHorseshoeCard extends LitElement {
         // },
       };
 
-      this.horseshoes = LayoutHorseshoes.setConfig(config, Templates);
+      this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
 
       const defaultHorseshoe = this.horseshoes?.[0];
 

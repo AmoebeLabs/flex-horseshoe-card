@@ -35,22 +35,22 @@ const DEFAULT_HORSESHOE_STATE = {
   color: 'var(--primary-color)',
 };
 
-export default class LayoutHorseshoes {
+export default class HorseshoesLayout {
   static setConfig(config, templates) {
-    const horseshoeConfigs = LayoutHorseshoes.getConfig(config);
+    const horseshoeConfigs = HorseshoesLayout.getConfig(config);
 
-    // console.log('[LayoutHorseshoes setConfig] configs', horseshoeConfigs);
+    // console.log('[HorseshoesLayout setConfig] configs', horseshoeConfigs);
 
     return horseshoeConfigs.map((horseshoeConfig, index) => {
       try {
-        // console.log('[LayoutHorseshoes normalize start]', {
+        // console.log('[HorseshoesLayout normalize start]', {
         //   index,
         //   horseshoeConfig,
         // });
 
-        return LayoutHorseshoes.normalizeConfig(horseshoeConfig, index, templates);
+        return HorseshoesLayout.normalizeConfig(horseshoeConfig, index, templates);
       } catch (error) {
-        console.error('[LayoutHorseshoes normalize error]', {
+        console.error('[HorseshoesLayout normalize error]', {
           index,
           horseshoeConfig,
           error,
@@ -64,7 +64,7 @@ export default class LayoutHorseshoes {
   }
 
   static getConfig(config) {
-    const legacyConfig = LayoutHorseshoes.getLegacyConfig(config);
+    const legacyConfig = HorseshoesLayout.getLegacyConfig(config);
 
     const rawHorseshoes = [...(legacyConfig ? [legacyConfig] : []), ...(Array.isArray(config.layout?.horseshoes) ? config.layout.horseshoes : [])];
 
@@ -85,34 +85,6 @@ export default class LayoutHorseshoes {
       .filter((horseshoeConfig) => horseshoeConfig.show?.horseshoe !== false);
   }
 
-  static getConfigV1(config) {
-    const legacyConfig = LayoutHorseshoes.getLegacyConfig(config);
-
-    const layoutHorseshoes = Array.isArray(config.layout?.horseshoes) ? config.layout.horseshoes : [];
-
-    const rawHorseshoes = [...(legacyConfig ? [legacyConfig] : []), ...layoutHorseshoes];
-
-    return rawHorseshoes
-      .map((rawHorseshoeConfig, index) => {
-        const entityIndex = rawHorseshoeConfig.entity_index ?? index;
-
-        return Merge.mergeDeep(
-          {},
-          {
-            show: DEFAULT_HORSESHOE_SHOW,
-            horseshoe_position: DEFAULT_HORSESHOE_POSITION,
-            horseshoe_scale: DEFAULT_HORSESHOE_SCALE,
-            horseshoe_state: DEFAULT_HORSESHOE_STATE,
-          },
-          rawHorseshoeConfig,
-          {
-            entity_index: entityIndex,
-          },
-        );
-      })
-      .filter((horseshoeConfig) => horseshoeConfig.show?.horseshoe !== false);
-  }
-
   static getLegacyConfig(config) {
     const legacyConfig = {};
 
@@ -123,35 +95,6 @@ export default class LayoutHorseshoes {
     });
 
     return Object.keys(legacyConfig).length > 0 ? legacyConfig : undefined;
-  }
-
-  static getLegacyConfigV1(config) {
-    const hasLegacyHorseshoe =
-      config.color_stops != null ||
-      config.horseshoe_scale != null ||
-      config.horseshoe_state != null ||
-      config.horseshoe_position != null ||
-      config.radius != null ||
-      config.tickmarks_radius != null ||
-      config.arc_degrees != null;
-
-    if (!hasLegacyHorseshoe) {
-      return undefined;
-    }
-
-    return {
-      entity_index: 0,
-      show: config.show,
-      horseshoe_position: config.horseshoe_position,
-      horseshoe_scale: config.horseshoe_scale,
-      horseshoe_state: config.horseshoe_state,
-      color_stops: config.color_stops,
-      bar_mode: config.bar_mode,
-      fill: config.fill,
-      radius: config.radius,
-      tickmarks_radius: config.tickmarks_radius,
-      arc_degrees: config.arc_degrees,
-    };
   }
 
   static normalize(colorStopsConfig) {
