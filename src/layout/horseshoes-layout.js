@@ -1,9 +1,9 @@
 // src/layout/layout-horseshoes.js
 
-import Merge from './merge';
-import ColorStops from './color-stops';
+import Merge from '../merge';
+import ColorStops from '../color-stops';
 
-import { SVG_VIEW_BOX } from './const.js';
+import { SVG_VIEW_BOX } from '../const.js';
 
 const HORSESHOE_RADIUS_SIZE = 0.45 * SVG_VIEW_BOX;
 const TICKMARKS_RADIUS_SIZE = 0.43 * SVG_VIEW_BOX;
@@ -39,14 +39,14 @@ export default class LayoutHorseshoes {
   static setConfig(config, templates) {
     const horseshoeConfigs = LayoutHorseshoes.getConfig(config);
 
-    console.log('[LayoutHorseshoes setConfig] configs', horseshoeConfigs);
+    // console.log('[LayoutHorseshoes setConfig] configs', horseshoeConfigs);
 
     return horseshoeConfigs.map((horseshoeConfig, index) => {
       try {
-        console.log('[LayoutHorseshoes normalize start]', {
-          index,
-          horseshoeConfig,
-        });
+        // console.log('[LayoutHorseshoes normalize start]', {
+        //   index,
+        //   horseshoeConfig,
+        // });
 
         return LayoutHorseshoes.normalizeConfig(horseshoeConfig, index, templates);
       } catch (error) {
