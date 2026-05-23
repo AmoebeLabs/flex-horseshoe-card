@@ -233,6 +233,20 @@ export default class Colors {
     return (Math.min(Math.max(argValue, argStart), argEnd) - argStart) / (argEnd - argStart);
   }
 
+  static getLovelacePanel() {
+    var root = window.document.querySelector('home-assistant');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('home-assistant-main');
+    root = root && root.shadowRoot;
+    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+    root = (root && root.shadowRoot) || root;
+    root = root && root.querySelector('ha-panel-lovelace');
+    if (root) {
+      return root;
+    }
+    return null;
+  }
+
   /** *****************************************************************************
    * card::_getColorVariable()
    *
@@ -241,8 +255,24 @@ export default class Colors {
    * These variables are defined in the Lovelace element so it appears...
    *
    */
-
   static getColorVariable(argColor) {
+    const newColor = argColor.substr(4, argColor.length - 5);
+
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+      // const root = document.querySelector('home-assistant');
+      // const main = root.shadowRoot.querySelector('home-assistant-main');
+      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+      // const pages = drawer_layout.querySelector('partial-panel-resolver');
+      // this.lovelace = pages.querySelector('ha-panel-lovelace');
+    } else {
+    }
+
+    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
+    return returnColor;
+  }
+
+  static getColorVariableV1(argColor) {
     const newColor = argColor.substr(4, argColor.length - 5);
 
     const returnColor = window.getComputedStyle(Colors.element).getPropertyValue(newColor);
@@ -323,6 +353,7 @@ export default class Colors {
     const a0 = argColor.substr(0, 3);
     if (a0.valueOf() === 'var') {
       theColor = Colors.getColorVariable(argColor);
+      // console.log('getting colorToRGBA ', argColor, theColor);
     }
 
     // Get color from canvas. This always returns an rgba() value...

@@ -12,7 +12,7 @@ const CIRCLE_PATH_LENGTH = 2 * Math.PI * HORSESHOE_RADIUS_SIZE;
 
 const DEFAULT_HORSESHOE_SHOW = {
   horseshoe: true,
-  scale_tickmarks: true,
+  scale_tickmarks: false,
   horseshoe_style: 'fixed',
 };
 
@@ -187,6 +187,7 @@ export default class HorseshoesLayout {
           // };
           color0 = firstStop.color;
           color1 = lastStop.color;
+          // console.log('normalizeConfig, colorStopsMinMax = ', colorStopsMinMax, 'color0/color1 = ', color0, color1);
         }
       }
     }
