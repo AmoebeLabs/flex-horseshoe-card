@@ -1252,7 +1252,8 @@ class FlexHorseshoeCard extends LitElement {
     if (layout?.circles) {
       layout.circles.forEach((item) => {
         item.svg = this._calculateSvgCoordinatesInGroup(item);
-        item.svg.radius = Utils.calculateSvgDimension(item.radius);
+        // item.svg.radius = Utils.calculateSvgDimension(item.radius);
+        item.svg.radius = item.radius;
       });
     }
 
