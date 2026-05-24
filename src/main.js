@@ -886,7 +886,7 @@ class FlexHorseshoeCard extends LitElement {
     const formattedValue =
       entityConfig.decimals !== undefined && !Number.isNaN(Number(rawValue))
         ? formatNumber(Number(rawValue), this._hass.locale, {
-            minimumFractionDigits: 0,
+            minimumFractionDigits: Number(entityConfig.decimals),
             maximumFractionDigits: Number(entityConfig.decimals),
           })
         : undefined;
