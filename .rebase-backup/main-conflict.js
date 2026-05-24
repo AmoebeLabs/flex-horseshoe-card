@@ -38,12 +38,13 @@ import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
-import Utils from './utils.js';
-import Merge from './merge.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
-import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
+import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
 import HorseshoesLayout from './layout/horseshoes-layout.js';
 import { version } from '../package.json';
+import Utils from './utils.js';
+import Merge from './merge.js';
+import { SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -886,7 +887,7 @@ class FlexHorseshoeCard extends LitElement {
     const formattedValue =
       entityConfig.decimals !== undefined && !Number.isNaN(Number(rawValue))
         ? formatNumber(Number(rawValue), this._hass.locale, {
-            minimumFractionDigits: Number(entityConfig.decimals),
+            minimumFractionDigits: 0,
             maximumFractionDigits: Number(entityConfig.decimals),
           })
         : undefined;
@@ -970,6 +971,10 @@ class FlexHorseshoeCard extends LitElement {
         state = entity.attributes[entityConfig.attribute];
       }
 
+      horseshoe.xpos = horseshoe?.xpos ?? 50;
+      horseshoe.ypos = horseshoe?.ypos ?? 50;
+      horseshoe.radius = horseshoe?.radius ?? 45;
+      horseshoe.tickmarks_radius = horseshoe?.tickmarks_radius ?? 43;
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
 
       const min = horseshoeScale?.min ?? 0;
@@ -1191,6 +1196,37 @@ class FlexHorseshoeCard extends LitElement {
     };
   }
 
+  // _calculateSvgCoordinatesInGroupV1(item) {
+  //   if (!item.group) {
+  //     return {
+  //       xpos: Utils.calculateSvgDimension(item.xpos),
+  //       ypos: Utils.calculateSvgDimension(item.ypos),
+  //     };
+  //   }
+
+  //   const group = this.config.layout.groups[item.group];
+
+  //   // return {
+  //   //   xpos: Utils.calculateSvgCoordinate(Utils.calculateSvgDimension(item.xpos), Utils.calculateSvgDimension(group.xpos)),
+  //   //   ypos: Utils.calculateSvgCoordinate(Utils.calculateSvgDimension(item.ypos), Utils.calculateSvgDimension(group.ypos)),
+  //   // };
+
+  //   return {
+  //     xpos: Utils.calculateSvgCoordinate(item.xpos, Utils.calculateSvgDimension(group.xpos)),
+  //     ypos: Utils.calculateSvgCoordinate(item.ypos, Utils.calculateSvgDimension(group.ypos)),
+  //   };
+  // }
+
+  // _calculateSvgCoordinateInGroup(groupName, field, value) {
+  //   const group = this.config.layout?.groups?.[groupName];
+
+  //   if (group) {
+  //     return Utils.calculateSvgCoordinate(value, Utils.calculateSvgDimension(group[field]));
+  //   }
+
+  //   return Utils.calculateSvgDimension(value);
+  // }
+
   _computeGroupDimensions(config) {
     const groups = config.layout?.groups;
 
@@ -1266,7 +1302,6 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
   }
-
   /** *****************************************************************************
    * setConfig()
    *
@@ -1375,6 +1410,7 @@ class FlexHorseshoeCard extends LitElement {
 
       const defaultHorseshoe = this.horseshoes?.[0];
 
+<<<<<<< HEAD
       if (defaultHorseshoe) {
         this.colorStops = defaultHorseshoe.colorStops;
         this.colorStopsMinMax = defaultHorseshoe.colorStopsMinMax;
@@ -1382,6 +1418,127 @@ class FlexHorseshoeCard extends LitElement {
         this.color1 = defaultHorseshoe.color1;
         this.angleCoords = defaultHorseshoe.angleCoords;
         this.color1_offset = defaultHorseshoe.color1_offset;
+=======
+        const show = {
+          ...DEFAULT_SHOW,
+          ...(horseshoeConfig.show ?? {}),
+        };
+
+        const horseshoeScale = {
+          ...DEFAULT_HORSESHOE_SCALE,
+          ...(horseshoeConfig.horseshoe_scale ?? {}),
+        };
+
+        const horseshoeState = {
+          ...DEFAULT_HORSESHOE_STATE,
+          ...(horseshoeConfig.horseshoe_state ?? {}),
+        };
+
+        const xpos = horseshoeConfig.xpos ?? horseshoeConfig.horseshoe_position?.xpos ?? horseshoeConfig.horseshoe_position?.cx ?? DEFAULT_HORSESHOE_POSITION.xpos ?? DEFAULT_HORSESHOE_POSITION.cx ?? 50;
+
+        const ypos = horseshoeConfig.ypos ?? horseshoeConfig.horseshoe_position?.ypos ?? horseshoeConfig.horseshoe_position?.cy ?? DEFAULT_HORSESHOE_POSITION.ypos ?? DEFAULT_HORSESHOE_POSITION.cy ?? 50;
+
+        if ((!horseshoeScale.min && horseshoeScale.min !== 0) || (!horseshoeScale.max && horseshoeScale.max !== 0)) {
+          throw Error(`No horseshoe min/max for scale defined for horseshoe ${index}`);
+        }
+
+        const colorStopsConfig = horseshoeConfig.color_stops;
+
+        if (!colorStopsConfig) {
+          console.warn(`No color_stops defined for horseshoe ${index}`);
+          throw Error(`No color_stops defined for horseshoe ${index}`);
+        }
+
+        // console.log('[colorstops] colorStopsConfig RAW', colorStopsConfig);
+        // console.log('[colorstops] variables', Templates.context?.config?.variables);
+
+        const resolvedColorStops = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, colorStopsConfig, { resolveKeys: true });
+        // console.log('[colorstops] resolvedColorStops', resolvedColorStops);
+
+        const colorStops = ColorStops.normalize(resolvedColorStops);
+        const colorStopColors = colorStops.colors;
+
+        if (!colorStopColors || colorStopColors.length < 2) {
+          throw Error(`No color_stops defined or not at least two colorstops for horseshoe ${index}`);
+        }
+
+        const firstStop = colorStopColors[0];
+        const lastStop = colorStopColors[colorStopColors.length - 1];
+
+        let colorStopsMinMax = ColorStops.normalize({});
+        let color0;
+        let color1;
+
+        if (firstStop && lastStop) {
+          colorStopsMinMax = ColorStops.normalize({
+            [horseshoeScale.min]: firstStop.color,
+            [horseshoeScale.max]: lastStop.color,
+          });
+
+          color0 = firstStop.color;
+          color1 = lastStop.color;
+        }
+
+        const radius = horseshoeConfig.radius ?? 45;
+        const tickmarksRadius = horseshoeConfig.tickmarks_radius ?? 43;
+        const arcDegrees = horseshoeConfig.arc_degrees ?? 260;
+
+        const radiusSize = Utils.calculateSvgDimension(radius);
+        const tickmarksRadiusSize = Utils.calculateSvgDimension(tickmarksRadius);
+
+        const horseshoePathLength = ((2 * arcDegrees) / 360) * Math.PI * radiusSize;
+
+        const circlePathLength = 2 * Math.PI * radiusSize;
+
+        return {
+          ...horseshoeConfig,
+
+          entity_index: entityIndex,
+
+          show,
+          fill: horseshoeConfig.fill ?? 'rgba(0, 0, 0, 0)',
+
+          xpos,
+          ypos,
+
+          bar_mode: horseshoeConfig.bar_mode ?? 'normal',
+
+          horseshoe_scale: horseshoeScale,
+          horseshoe_state: horseshoeState,
+
+          radius,
+          tickmarks_radius: tickmarksRadius,
+          arc_degrees: arcDegrees,
+
+          radiusSize,
+          tickmarksRadiusSize,
+          horseshoePathLength,
+          circlePathLength,
+
+          color_stops: colorStopsConfig,
+          colorStops,
+          colorStopsMinMax,
+          color0,
+          color1,
+
+          angleCoords: {
+            x1: '0%',
+            y1: '0%',
+            x2: '100%',
+            y2: '0%',
+          },
+
+          color1_offset: '0%',
+
+          dashArray: this.dashArray,
+          dashOffset: this.dashOffset,
+          bidirectional_negative: this._bidirectional_negative,
+        };
+      });
+
+      if (!this.horseshoes.length) {
+        throw Error('No horseshoes defined');
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
       }
 
       this._prepareItemColorStops(newConfig);
@@ -1759,11 +1916,16 @@ class FlexHorseshoeCard extends LitElement {
     if (barMode === 'bidirectional') {
       if (horseshoe.bidirectional_negative) {
         return svg`
+<<<<<<< HEAD
+        <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
+          <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
+=======
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
             style=${styleMap(scaleStyle)}  
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
@@ -1775,11 +1937,16 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       return svg`
+<<<<<<< HEAD
+      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
+        <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
+=======
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
         <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
             style=${styleMap(scaleStyle)}  
           transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
         <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
@@ -1791,11 +1958,16 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return svg`
+<<<<<<< HEAD
+    <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group" data-variant="${horseshoe.show.horseshoe_style}">
+      <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cxPercent}" cy="${cyPercent}" r="${radius}"
+=======
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
       <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
         style=${styleMap(scaleStyle)}
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
       <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
@@ -1822,7 +1994,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'text-anchor': 'middle',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -1853,22 +2024,22 @@ class FlexHorseshoeCard extends LitElement {
     const name = this.textEllipsis(this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
     return svg`
-      <g
-          transform="${this._getGroupScaleTransform(item)}"
-          style="${this._getGroupScaleStyle(item)}"
+    <g
+            transform="${this._getGroupScaleTransform(item)}"
+        style="${this._getGroupScaleStyle(item)}"
+        >
+        <text
+          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
           >
-          <text
-            @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-            >
-              <tspan
-                class="entity__name"
-                x="${item.svg.xpos}"
-                y="${item.svg.ypos}"
-                style=${styleMap(styles)}>
-                ${name}</tspan>
-          </text>
-          </g>
-        `;
+            <tspan
+              class="entity__name"
+              x="${item.svg.xpos}"
+              y="${item.svg.ypos}"
+              style=${styleMap(styles)}>
+              ${name}</tspan>
+        </text>
+        </g>
+      `;
   }
 
   _renderEntityNames() {
@@ -1897,7 +2068,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'text-anchor': 'middle',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -1927,11 +2097,11 @@ class FlexHorseshoeCard extends LitElement {
     const area = this.textEllipsis(this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
 
     return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
+    <g
+            transform="${this._getGroupScaleTransform(item)}"
         style="${this._getGroupScaleStyle(item)}"
         >
-        <text
+    <text
           @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
           >
             <tspan
@@ -1941,21 +2111,8 @@ class FlexHorseshoeCard extends LitElement {
               style=${styleMap(styles)}>
               ${area}</tspan>
         </text>
-      </g>
+        </g>
       `;
-
-    // return svg`
-    //   <text
-    //     @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-    //     >
-    //       <tspan
-    //         class="entity__area"
-    //         x="${item.xpos}%"
-    //         y="${item.ypos}%"
-    //         style=${styleMap(styles)}>
-    //         ${area}</tspan>
-    //   </text>
-    // `;
   }
 
   _renderEntityAreas() {
@@ -2016,14 +2173,19 @@ class FlexHorseshoeCard extends LitElement {
 
     const entityIndex = item.entity_index ?? 0;
 
+<<<<<<< HEAD
     // compute x,y or dx,dy positions. Spec center if not specified.
-    const x = item.svg.xpos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-    const y = item.svg.ypos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-
-    // const x = item.svg.xpos ?? item.svg.xpos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
-    // const y = item.svg.ypos ?? item.svg.ypos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
+    const x = item.xpos ?? 50;
+    const y = item.ypos ?? 50;
+    const dx = item.dx ?? 0;
+    const dy = item.dy ?? 0;
+=======
+    // compute x,y or dx,dy positions. Spec none if not specified.
+    const x = item.svg.xpos ? item.svg.xpos : '';
+    const y = item.svg.ypos ? item.svg.ypos : '';
     const dx = item.dx ? item.dx : '0';
     const dy = item.dy ? item.dy : '0';
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
 
     const STATE_STYLES = {
       'font-size': '1em',
@@ -2125,24 +2287,24 @@ class FlexHorseshoeCard extends LitElement {
 
     return svg`
       <g 
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
-          <tspan
-            class="state__value"
-            x="${x}"
-            y="${y}"
-            dx="${dx}em"
-            dy="${dy}em"
-            style=${styleMap(configStyle)}
-          >${state}</tspan><tspan
-            class="state__uom"
-            dx="${uomDx}em"
-            dy="${uomDy}em"
-            style=${styleMap(uomStyle)}
-          >${uom}</tspan>
-        </text>
+    transform="${this._getGroupScaleTransform(item)}"
+    style="${this._getGroupScaleStyle(item)}"
+          >
+    <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
+        <tspan
+          class="state__value"
+          x="${x}"
+          y="${y}"
+          dx="${dx}em"
+          dy="${dy}em"
+          style=${styleMap(configStyle)}
+        >${state}</tspan><tspan
+          class="state__uom"
+          dx="${uomDx}em"
+          dy="${uomDy}em"
+          style=${styleMap(uomStyle)}
+        >${uom}</tspan>
+      </text>
       </g>
     `;
   }
@@ -2349,10 +2511,10 @@ class FlexHorseshoeCard extends LitElement {
   // }
 
   /** *****************************************************************************
-   * _renderStates()
+   * _renderEntityStates()
    *
    * Summary.
-   * Renders the states.
+   * Renders the entity states.
    *
    */
 
@@ -2435,13 +2597,17 @@ class FlexHorseshoeCard extends LitElement {
     this.iconsSvg ||= [];
     this.pendingIconPath ||= [];
 
-    // const iconSize = item.icon_size ? item.icon_size : 2;
     const iconSize = item.icon_size ? item.icon_size : item.size ? item.size : 2;
     const iconPixels = iconSize * FONT_SIZE;
 
+<<<<<<< HEAD
     // Fix xpos/ypos = 0
-    // const x = (item.xpos ?? 50) / 100;
-    // const y = (item.ypos ?? 50) / 100;
+    const x = (item.xpos ?? 50) / 100;
+    const y = (item.ypos ?? 50) / 100;
+=======
+    // const x = item.xpos ? item.xpos / 100 : 0.5;
+    // const y = item.ypos ? item.ypos / 100 : 0.5;
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
 
     // const cx = x * SVG_VIEW_BOX;
     // const cy = y * SVG_VIEW_BOX;
@@ -2454,6 +2620,7 @@ class FlexHorseshoeCard extends LitElement {
     let xpx = cx - iconPixels * adjust;
     let ypx = cy - iconPixels * adjust;
     let foIconPixels = iconPixels;
+
     const entityIndex = item.entity_index ?? 0;
 
     const entityState = this.entities[entityIndex];
@@ -2553,10 +2720,7 @@ class FlexHorseshoeCard extends LitElement {
       configStyle['transform-origin'] ??= '0 0';
 
       return svg`
-      <g 
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
+<<<<<<< HEAD
         <g
           id="icon-rendered-${this.iconsId[index]}"
           class="icon-position"
@@ -2582,8 +2746,37 @@ class FlexHorseshoeCard extends LitElement {
             </g>
           </g>
         </g>
+  `;
+=======
+      <g 
+    transform="${this._getGroupScaleTransform(item)}"
+    style="${this._getGroupScaleStyle(item)}"
+          >
+      <g
+        id="icon-rendered-${this.iconsId[index]}"
+        style="${styleMap(configStyle)}"
+        x="${x1}px"
+        y="${y1}px"
+        transform-origin="${cx} ${cy}"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${x1}px"
+          y="${y1}px"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <path
+          d="${iconSvg}"
+          transform="translate(${x1},${y1}) scale(${scale})"
+        ></path>
       </g>
-      `;
+      </g>
+    `;
+>>>>>>> 538fa5b (Add aspectratio, groups and same_as functionality)
     }
 
     return svg`
@@ -2716,7 +2909,6 @@ class FlexHorseshoeCard extends LitElement {
    * Renders the specified lines in the grid.
    *
    */
-
   _renderHorizontalLine(item) {
     const HLINES_STYLES = {
       'stroke-linecap': 'round',
@@ -2724,7 +2916,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'stroke-width': '2',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
@@ -2766,7 +2957,19 @@ class FlexHorseshoeCard extends LitElement {
           style=${styleMap(styles)}
         ></line>
       </g> 
-  `;
+    `;
+
+    // return svg`
+    //   <line
+    //     @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
+    //     class="line__horizontal"
+    //     x1="${item.xpos - item.length / 2}%"
+    //     y1="${item.ypos}%"
+    //     x2="${item.xpos + item.length / 2}%"
+    //     y2="${item.ypos}%"
+    //     style=${styleMap(styles)}
+    //   ></line>
+    // `;
   }
 
   _renderHorizontalLines() {
@@ -2794,7 +2997,6 @@ class FlexHorseshoeCard extends LitElement {
       opacity: '1.0',
       'stroke-width': '2',
     };
-
     const entityIndex = item.entity_index ?? 0;
 
     const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
