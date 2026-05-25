@@ -1599,7 +1599,7 @@ class FlexHorseshoeCard extends LitElement {
         r="${tickRadius}"
         style=${styleMap(tickmarksStyle)}>
       </circle>
-      ${this._renderColorStopLabels(horseshoeIndex, horseshoe, scale, horseshoe.colorStops.colors, fullScale)}
+      ${this._renderColorStopLabels(horseshoeIndex, horseshoe, scale, horseshoe.colorStops, fullScale)}
     `;
     });
 
@@ -3391,31 +3391,61 @@ class FlexHorseshoeCard extends LitElement {
 
     const barMode = horseshoe.bar_mode;
 
-    const labelStops = [{ value: min, label: min }, ...colorStops, { value: max, label: max }].filter((stop, index, array) => {
+    const labelStops = [{ value: min, label: min }, ...colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
       const value = Number(stop.value);
 
       return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
     });
 
     return svg`
-    ${labelStops.map((stop, index) => {
-      const value = Number(stop.value);
-
-      const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
-
-      return Label.renderColorStopLabel({
-        horseshoeIndex,
-        index,
-        label: stop.label ?? stop.value,
-        angle,
+      ${Label.renderArcSegment({
         cx,
         cy,
         radius,
-        cardId: this.cardId,
-        isMin: value === min,
-        isMax: value === max,
-      });
-    })}
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width: 14,
+        color: 'rgba(255, 255, 255, 0.02)',
+        className: 'horseshoe-scale-background',
+      })};
+      ${
+        horseshoe?.colorStops.colors.length
+          ? Label.renderColorStopScaleSegments({
+              cx,
+              cy,
+              radius,
+              startAngle: -arcDegrees / 2,
+              endAngle: arcDegrees / 2,
+              width: 14,
+              colorStops,
+              min,
+              max,
+              arcDegrees,
+              barMode,
+              gap: colorStops.gap ?? 2,
+              className: 'horseshoe-colorstop-scale-segment',
+              lineCap: 'round',
+            })
+          : svg``
+      }
+      ${labelStops.map((stop, index) => {
+        const value = Number(stop.value);
+
+        const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+
+        return Label.renderColorStopLabel({
+          horseshoeIndex,
+          index,
+          label: stop.label ?? stop.value,
+          angle,
+          cx,
+          cy,
+          radius,
+          cardId: this.cardId,
+          isMin: value === min,
+          isMax: value === max,
+        });
+      })}
   `;
   }
 
