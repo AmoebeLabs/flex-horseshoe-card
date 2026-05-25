@@ -86,6 +86,10 @@ export default class Label {
     // const pathId = `${cardId}-colorstop-label-${Math.round(cx)}-${Math.round(cy)}-${index}`;
     const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
 
+    // correction with current default font size of 12 pixels. that is 1em
+    // shift is because of flipping the textpath. How to calculate the shift? font style dependant? or only font size?
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
     return svg`
     <path
       id="${pathId}"
@@ -98,10 +102,11 @@ export default class Label {
     <text
       class="horseshoe-colorstop-label"
       style="fill:var(--primary-text-color)"
-      dy="0.30em"
+      dy="${textDy}"
     >
       <textPath
         href="#${pathId}"
+        style="dominant-baseline:central"
         startOffset="${startOffset}"
         text-anchor="${textAnchor}"
       >
@@ -417,7 +422,6 @@ export default class Label {
       stroke="${color}"
       stroke-width="${width}"
       stroke-linecap="${lineCap}"
-      opacity="0.1"
     />
   `;
   }
@@ -659,6 +663,7 @@ export default class Label {
     className = '',
     side = 'end', // 'start' | 'end'
   }) {
+    // console.log('rendering halfcap', cx, cy, radius, angle, width, color, opacity, className, side);
     const p = Label.polarToCartesian(cx, cy, radius, angle);
     const capRadius = width / 2;
 
@@ -690,9 +695,21 @@ export default class Label {
         Z
       "
       fill="${color}"
-      opacity="${opacity}"
     />
   `;
+
+    //   return svg`
+    //   <path
+    //     class="${className}"
+    //     d="
+    //       M ${a.x} ${a.y}
+    //       A ${capRadius} ${capRadius} 0 0 ${sweepFlag} ${b.x} ${b.y}
+    //       Z
+    //     "
+    //     fill="${color}"
+    //     opacity="${opacity}"
+    //   />
+    // `;
   }
 
   static renderArcHalfCapV1({ cx, cy, radius, angle, width, color, sweepFlag, side }) {
@@ -722,6 +739,115 @@ export default class Label {
         fill="${color}"
       />
     `;
+  }
+
+  static buildFixedScaleSegments({ min, max, segmentSize, color }) {
+    if (!segmentSize || segmentSize <= 0) {
+      return [
+        {
+          startValue: min,
+          endValue: max,
+          color,
+        },
+      ];
+    }
+
+    const segments = [];
+
+    for (let startValue = min; startValue < max; startValue += segmentSize) {
+      segments.push({
+        startValue,
+        endValue: Math.min(startValue + segmentSize, max),
+        color,
+      });
+    }
+
+    return segments;
+  }
+
+  static renderFixedScaleSegments({ cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap = 0, className = '', lineCap = 'round' }) {
+    const segments = Label.buildFixedScaleSegments({
+      min,
+      max,
+      segmentSize,
+      color,
+    });
+
+    return Label.renderScaleSegments({
+      cx,
+      cy,
+      radius,
+      width,
+      segments,
+      min,
+      max,
+      arcDegrees,
+      barMode,
+      gap,
+      className,
+      lineCap,
+    });
+  }
+
+  static renderScaleSegments({ cx, cy, radius, width, segments, min, max, arcDegrees, barMode, gap = 2, className = '', lineCap = 'butt' }) {
+    const useRoundCaps = lineCap === 'round';
+
+    return svg`
+    ${segments.map((segment, index) => {
+      const isFirst = index === 0;
+      const isLast = index === segments.length - 1;
+
+      const startAngle = Label.valueToAngle(segment.startValue, min, max, arcDegrees, barMode) + gap / 2;
+
+      const endAngle = Label.valueToAngle(segment.endValue, min, max, arcDegrees, barMode) - gap / 2;
+
+      if (endAngle <= startAngle) return svg``;
+
+      return svg`
+        ${Label.renderArcSegment({
+          cx,
+          cy,
+          radius,
+          startAngle,
+          endAngle,
+          width,
+          color: segment.color,
+          className,
+          lineCap: 'butt',
+        })}
+
+        ${
+          isFirst && useRoundCaps
+            ? Label.renderArcHalfCap({
+                cx,
+                cy,
+                radius,
+                angle: startAngle,
+                width,
+                color: segment.color,
+                className,
+                side: 'start',
+              })
+            : svg``
+        }
+
+        ${
+          isLast && useRoundCaps
+            ? Label.renderArcHalfCap({
+                cx,
+                cy,
+                radius,
+                angle: endAngle,
+                width,
+                color: segment.color,
+                className,
+                side: 'end',
+              })
+            : svg``
+        }
+      `;
+    })}
+  `;
   }
 
   static textLengthToArcDegrees(textLength, radius, paddingDegrees = 6) {

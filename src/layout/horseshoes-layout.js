@@ -14,6 +14,7 @@ const DEFAULT_HORSESHOE_SHOW = {
   horseshoe: true,
   scale_tickmarks: false,
   horseshoe_style: 'fixed',
+  scale_style: 'fixed',
 };
 
 const DEFAULT_HORSESHOE_POSITION = {

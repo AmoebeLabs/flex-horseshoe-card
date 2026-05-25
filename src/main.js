@@ -56,6 +56,7 @@ const DEFAULT_SHOW = {
   horseshoe: true,
   scale_tickmarks: false,
   horseshoe_style: 'fixed',
+  scale_style: 'fixed',
 };
 
 // ++ Class ++++++++++
@@ -1599,7 +1600,6 @@ class FlexHorseshoeCard extends LitElement {
         r="${tickRadius}"
         style=${styleMap(tickmarksStyle)}>
       </circle>
-      ${this._renderColorStopLabels(horseshoeIndex, horseshoe, scale, horseshoe.colorStops, fullScale)}
     `;
     });
 
@@ -1641,7 +1641,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return svg`
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
-            class="${cardFilter}" 
+            class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
             ${this._renderHorseShoes()}
             <g id="datagroup" class="datagroup">
@@ -1759,6 +1759,17 @@ class FlexHorseshoeCard extends LitElement {
     // const objectRotate = horseshoe.rotate ? `rotate(${horseshoe.rotate} ${rotateX} ${rotateY})` : '';
     const objectRotate = horseshoe.rotate ? `rotate(${horseshoe.rotate})` : '';
 
+    const stopStyle = {};
+
+    if (scaleStyle.opacity !== undefined) {
+      stopStyle.opacity = scaleStyle.opacity;
+    }
+
+    if (scaleStyle.animation !== undefined) {
+      stopStyle.animation = scaleStyle.animation;
+    }
+
+    // console.log('render, stopStyle = ', stopStyle);
     if (barMode === 'bidirectional') {
       if (horseshoe.bidirectional_negative) {
         return svg`
@@ -1767,12 +1778,16 @@ class FlexHorseshoeCard extends LitElement {
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-            style=${styleMap(scaleStyle)}  
+            style=${styleMap(scaleStyle)}
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
+        <g style=${styleMap(stopStyle)}>
+          ${this._testRenderColorStopScale(index, horseshoe)}
+        </g>
           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
             transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
           ${this._renderTickMarks(horseshoe, index)}
+      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
         </g>
       `;
       }
@@ -1782,13 +1797,14 @@ class FlexHorseshoeCard extends LitElement {
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
-        <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-            style=${styleMap(scaleStyle)}  
-          transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
+        <g style=${styleMap(stopStyle)}>
+          ${this._testRenderColorStopScale(index, horseshoe)}
+        </g>
         <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
           transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
         ${this._renderTickMarks(horseshoe, index)}
+      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
       </g>
     `;
     }
@@ -1798,15 +1814,34 @@ class FlexHorseshoeCard extends LitElement {
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
-      <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-        style=${styleMap(scaleStyle)}
-        transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
+        <g style=${styleMap(stopStyle)}>
+          ${this._testRenderColorStopScale(index, horseshoe)}
+        </g>
       <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"
         style=${styleMap(stateStyle)} />
       ${this._renderTickMarks(horseshoe, index)}
+      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
     </g>
   `;
+
+    //   return svg`
+    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
+    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
+    //       style="${this._getGroupScaleStyle(horseshoe)}"
+    //       >
+    //     <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //       style=${styleMap(scaleStyle)}
+    //       transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
+    //       <g style=${styleMap(stopStyle)}>
+    //         ${this._testRenderColorStopScale(index, horseshoe)}
+    //       </g>
+    //     <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //       transform="rotate(${startRotation} ${rotateX} ${rotateY})"
+    //       style=${styleMap(stateStyle)} />
+    //     ${this._renderTickMarks(horseshoe, index)}
+    //   </g>
+    // `;
   }
 
   /** *****************************************************************************
@@ -2127,7 +2162,7 @@ class FlexHorseshoeCard extends LitElement {
     const uom = this._buildUom(entity, entityConfig, unit);
 
     return svg`
-      <g 
+      <g
         transform="${this._getGroupScaleTransform(item)}"
         style="${this._getGroupScaleStyle(item)}"
         >
@@ -2556,7 +2591,7 @@ class FlexHorseshoeCard extends LitElement {
       configStyle['transform-origin'] ??= '0 0';
 
       return svg`
-      <g 
+      <g
         transform="${this._getGroupScaleTransform(item)}"
         style="${this._getGroupScaleStyle(item)}"
         >
@@ -2765,10 +2800,10 @@ class FlexHorseshoeCard extends LitElement {
           x1="${item.svg.xpos - item.svg.length / 2}"
           y1="${item.svg.ypos}"
           x2="${item.svg.xpos + item.svg.length / 2}"
-          y2="${item.svg.ypos}" 
+          y2="${item.svg.ypos}"
           style=${styleMap(styles)}
         ></line>
-      </g> 
+      </g>
   `;
   }
 
@@ -2838,7 +2873,7 @@ class FlexHorseshoeCard extends LitElement {
           y2="${item.svg.ypos + item.svg.length / 2}"
           style=${styleMap(styles)}
         ></line>
-      </g> 
+      </g>
     `;
   }
 
@@ -3381,21 +3416,191 @@ class FlexHorseshoeCard extends LitElement {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
 
+  _testRenderColorStopScale(horseshoeIndex, horseshoe) {
+    const scaleMode = horseshoe?.show?.scale_style;
+
+    if (!scaleMode) {
+      return svg``;
+    }
+
+    const min = Number(horseshoe.horseshoe_scale.min);
+    const max = Number(horseshoe.horseshoe_scale.max);
+
+    const cx = horseshoe.svg.xpos;
+    const cy = horseshoe.svg.ypos;
+    const radius = horseshoe.svg.radius;
+
+    const barMode = horseshoe.bar_mode;
+    const arcDegrees = horseshoe.arc_degrees;
+
+    const width = horseshoe.horseshoe_scale.width;
+    const color = horseshoe.horseshoe_scale.color;
+
+    const colorStops = horseshoe.colorStops;
+
+    if (scaleMode === 'colorstop') {
+      if (!colorStops?.colors?.length) {
+        return svg``;
+      }
+
+      return Label.renderColorStopScaleSegments({
+        cx,
+        cy,
+        radius,
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width,
+        colorStops,
+        min,
+        max,
+        arcDegrees,
+        barMode,
+        gap: colorStops.gap ?? 0,
+        className: 'horseshoe-colorstop-scale-segment',
+        lineCap: 'round',
+      });
+    }
+
+    if (scaleMode === 'fixed_tickmarks') {
+      return Label.renderFixedScaleSegments({
+        cx,
+        cy,
+        radius,
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width,
+        color,
+        min,
+        max,
+        arcDegrees,
+        barMode,
+        segmentSize: horseshoe.horseshoe_scale.ticksize,
+        gap: horseshoe.horseshoe_scale?.gap ?? 0,
+        className: 'horseshoe-fixed-scale-segment',
+        lineCap: 'round',
+      });
+    }
+
+    if (scaleMode === 'fixed') {
+      return Label.renderFixedScaleSegments({
+        cx,
+        cy,
+        radius,
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width,
+        color,
+        min,
+        max,
+        arcDegrees,
+        barMode,
+        segmentSize: 0,
+        gap: 0,
+        className: 'horseshoe-fixed-scale-segment',
+        lineCap: 'round',
+      });
+    }
+
+    return svg``;
+  }
+
+  _testRenderColorStopScaleV1(horseshoeIndex, horseshoe) {
+    // testing
+    if (horseshoe?.show?.scale_style === 'colorstop') {
+      console.log('_testRenderColorStopScale, horseshoe', horseshoe?.show?.scale_style, horseshoeIndex, horseshoe, horseshoe?.horseshoe_scale);
+      //
+      const min = Number(horseshoe.horseshoe_scale.min);
+      const max = Number(horseshoe.horseshoe_scale.max);
+
+      const cx = horseshoe.svg.xpos;
+      const cy = horseshoe.svg.ypos;
+      const radius = horseshoe.svg.radius; // + horseshoe.horseshoe_state.width + 2;
+
+      const barMode = horseshoe.bar_mode;
+
+      const arcDegrees = horseshoe.arc_degrees;
+      const colorStops = horseshoe.colorStops;
+
+      const labelStops = [{ value: min, label: min }, ...horseshoe.colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
+        const value = Number(stop.value);
+
+        return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
+      });
+      return svg`
+      ${
+        horseshoe?.colorStops?.colors.length
+          ? Label.renderColorStopScaleSegments({
+              cx,
+              cy,
+              radius,
+              startAngle: -arcDegrees / 2,
+              endAngle: arcDegrees / 2,
+              width: horseshoe.horseshoe_scale.width,
+              colorStops,
+              min,
+              max,
+              arcDegrees,
+              barMode,
+              gap: colorStops.gap ?? 2,
+              className: 'horseshoe-colorstop-scale-segment',
+              lineCap: 'round',
+            })
+          : svg``
+      }
+      `;
+    } else {
+      return svg``;
+    }
+  }
+
   _renderColorStopLabels(horseshoeIndex, horseshoe, horseshoeScale, colorStops, arcDegrees) {
+    if (horseshoe?.show?.labels_at !== 'colorstop') {
+      console.log('_renderColorStopLabels, NO labels_at', horseshoe?.show);
+      return svg``;
+    }
+    if (!colorStops?.colors?.length) {
+      console.log('renderColorStopLabels, no colorstops', horseshoe);
+      return svg``;
+    }
+    console.log('entering _renderColorStopLabels for', horseshoeIndex, horseshoe);
     const min = Number(horseshoeScale.min);
     const max = Number(horseshoeScale.max);
 
     const cx = horseshoe.svg.xpos;
     const cy = horseshoe.svg.ypos;
-    const radius = horseshoe.svg.radius + horseshoe.horseshoe_state.width + 2;
+    const radius = horseshoe.svg.radius + Number(horseshoe?.horseshoe_labels?.offset ?? horseshoe.horseshoe_state.width + 2);
 
     const barMode = horseshoe.bar_mode;
+    let labelStops = [];
+    if (horseshoe?.show?.labels_at === 'colorstop') {
+      labelStops = [{ value: min, label: min }, ...colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
+        const value = Number(stop.value);
 
-    const labelStops = [{ value: min, label: min }, ...colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
-      const value = Number(stop.value);
+        return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
+      });
+    }
+    console.log('_renderColorStopLabels, labelStops ', labelStops);
 
-      return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
-    });
+    return svg`
+      ${labelStops.map((stop, index) => {
+        const value = Number(stop.value);
+
+        const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+
+        return Label.renderColorStopLabel({
+          horseshoeIndex,
+          index,
+          label: stop.label ?? stop.value,
+          angle,
+          cx,
+          cy,
+          radius,
+          cardId: this.cardId,
+          isMin: value === min,
+          isMax: value === max,
+        });
+      })}
+  `;
 
     return svg`
       ${Label.renderArcSegment({
@@ -3404,9 +3609,9 @@ class FlexHorseshoeCard extends LitElement {
         radius,
         startAngle: -arcDegrees / 2,
         endAngle: arcDegrees / 2,
-        width: 14,
+        width: 8,
         color: 'rgba(255, 255, 255, 0.02)',
-        className: 'horseshoe-scale-background',
+        className: 'horseshoe-label-background',
       })};
       ${
         horseshoe?.colorStops.colors.length
@@ -3416,14 +3621,14 @@ class FlexHorseshoeCard extends LitElement {
               radius,
               startAngle: -arcDegrees / 2,
               endAngle: arcDegrees / 2,
-              width: 14,
+              width: 8,
               colorStops,
               min,
               max,
               arcDegrees,
               barMode,
               gap: colorStops.gap ?? 2,
-              className: 'horseshoe-colorstop-scale-segment',
+              className: 'horseshoe-label-colorstop-segment',
               lineCap: 'round',
             })
           : svg``
