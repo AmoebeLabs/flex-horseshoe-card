@@ -60,7 +60,7 @@ export default class Label {
       endAngle = angle;
     }
 
-    const isTopHalf = angle > -90 && angle < 90;
+    const isTopHalf = angle >= -90 && angle <= 90;
 
     const pathStartAngle = isTopHalf ? startAngle : endAngle;
     const pathEndAngle = isTopHalf ? endAngle : startAngle;
@@ -848,6 +848,135 @@ export default class Label {
       `;
     })}
   `;
+  }
+
+  static renderScaleTicks({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor }) {
+    const minorRadius = radius + Number(ticksMinor?.offset ?? 0);
+
+    const majorRadius = minorRadius + Number(ticksMajor?.offset ?? 0);
+
+    const majorValues = ticksMajor ? Label.buildTickValues(min, max, Number(ticksMajor.ticksize)) : [];
+
+    const minorValues = ticksMinor ? Label.buildTickValues(min, max, Number(ticksMinor.ticksize)).filter((value) => (ticksMajor ? !Label.isMajorTick(value, min, Number(ticksMajor.ticksize)) : true)) : [];
+
+    return svg`
+    ${
+      ticksMinor
+        ? Label.renderTicks({
+            cx,
+            cy,
+            radius: minorRadius,
+            values: minorValues,
+            min,
+            max,
+            arcDegrees,
+            barMode,
+            width: Number(ticksMinor.width ?? 1),
+            thickness: Number(ticksMinor.thickness ?? 2),
+            color,
+            className: 'horseshoe-scale-tick-minor',
+          })
+        : svg``
+    }
+
+    ${
+      ticksMajor
+        ? Label.renderTicks({
+            cx,
+            cy,
+            radius: majorRadius,
+            values: majorValues,
+            min,
+            max,
+            arcDegrees,
+            barMode,
+            width: Number(ticksMajor.width ?? 4),
+            thickness: Number(ticksMajor.thickness ?? 10),
+            color,
+            className: 'horseshoe-scale-tick-major',
+          })
+        : svg``
+    }
+  `;
+  }
+
+  static renderScaleTicksV1({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor }) {
+    const majorValues = Label.buildTickValues(min, max, ticksMajor.ticksize);
+
+    const minorValues = Label.buildTickValues(min, max, ticksMinor.ticksize).filter((value) => !Label.isMajorTick(value, min, ticksMajor.ticksize));
+
+    return svg`
+    ${Label.renderTicks({
+      cx,
+      cy,
+      radius,
+      values: minorValues,
+      min,
+      max,
+      arcDegrees,
+      barMode,
+      width: ticksMinor.width,
+      thickness: ticksMinor.thickness,
+      color,
+      className: 'horseshoe-scale-tick-minor',
+    })}
+
+    ${Label.renderTicks({
+      cx,
+      cy,
+      radius: radius + Number(ticksMajor.offset ?? 0),
+      values: majorValues,
+      min,
+      max,
+      arcDegrees,
+      barMode,
+      width: ticksMajor.width,
+      thickness: ticksMajor.thickness,
+      color,
+      className: 'horseshoe-scale-tick-major',
+    })}
+  `;
+  }
+
+  static renderTicks({ cx, cy, radius, values, min, max, arcDegrees, barMode, width, thickness, color, className = '' }) {
+    return svg`
+    ${values.map((value) => {
+      const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+      const tickDegrees = Label.arcLengthToDegrees(thickness, radius);
+
+      return Label.renderArcSegment({
+        cx,
+        cy,
+        radius,
+        startAngle: angle - tickDegrees / 2,
+        endAngle: angle + tickDegrees / 2,
+        width,
+        color,
+        className,
+        lineCap: 'butt',
+      });
+    })}
+  `;
+  }
+
+  static buildTickValues(min, max, ticksize) {
+    const values = [];
+
+    for (let value = min; value <= max + 1e-9; value += ticksize) {
+      values.push(Number(value.toFixed(10)));
+    }
+
+    return values;
+  }
+
+  static isMajorTick(value, min, majorTicksize) {
+    const ratio = (value - min) / majorTicksize;
+
+    return Math.abs(ratio - Math.round(ratio)) < 1e-9;
+  }
+
+  static arcLengthToDegrees(lengthPx, radius) {
+    return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
   }
 
   static textLengthToArcDegrees(textLength, radius, paddingDegrees = 6) {

@@ -1780,14 +1780,17 @@ class FlexHorseshoeCard extends LitElement {
           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
             style=${styleMap(scaleStyle)}
             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
-        <g style=${styleMap(stopStyle)}>
-          ${this._testRenderColorStopScale(index, horseshoe)}
-        </g>
+          <g style=${styleMap(stopStyle)}>
+            ${this._renderHorseshoeScale(horseshoe, index)}
+          </g>
+          <g >
+            ${this._renderHorseshoeTicks(horseshoe, index)}
+          </g>
           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
             transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
           ${this._renderTickMarks(horseshoe, index)}
-      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
+                ${this._renderHorseshoeLabels(horseshoe, index)}
         </g>
       `;
       }
@@ -1798,13 +1801,16 @@ class FlexHorseshoeCard extends LitElement {
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
         <g style=${styleMap(stopStyle)}>
-          ${this._testRenderColorStopScale(index, horseshoe)}
+          ${this._renderHorseshoeScale(horseshoe, index)}
         </g>
+          <g >
+            ${this._renderHorseshoeTicks(horseshoe, index)}
+          </g>        
         <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
           transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
         ${this._renderTickMarks(horseshoe, index)}
-      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
+                ${this._renderHorseshoeLabels(horseshoe, index)}
       </g>
     `;
     }
@@ -1815,13 +1821,16 @@ class FlexHorseshoeCard extends LitElement {
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
         <g style=${styleMap(stopStyle)}>
-          ${this._testRenderColorStopScale(index, horseshoe)}
+          ${this._renderHorseshoeScale(horseshoe, index)}
         </g>
+          <g >
+            ${this._renderHorseshoeTicks(horseshoe, index)}
+          </g>        
       <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
         transform="rotate(${startRotation} ${rotateX} ${rotateY})"
         style=${styleMap(stateStyle)} />
       ${this._renderTickMarks(horseshoe, index)}
-      ${this._renderColorStopLabels(index, horseshoe, horseshoe?.horseshoe_scale, horseshoe.colorStops, horseshoe.arc_degrees)}
+                ${this._renderHorseshoeLabels(horseshoe, index)}
     </g>
   `;
 
@@ -3416,6 +3425,112 @@ class FlexHorseshoeCard extends LitElement {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
 
+  _renderHorseshoeTicks(horseshoe, horseshoeIndex) {
+    if (!horseshoe?.show?.ticks) {
+      return svg``;
+    }
+
+    const tickmarks = horseshoe.horseshoe_tickmarks;
+
+    if (!tickmarks?.ticks_major && !tickmarks?.ticks_minor) {
+      return svg``;
+    }
+
+    const min = Number(horseshoe.horseshoe_scale.min);
+    const max = Number(horseshoe.horseshoe_scale.max);
+
+    const cx = horseshoe.svg.xpos;
+    const cy = horseshoe.svg.ypos;
+
+    const baseRadius = horseshoe.svg.radius;
+
+    const barMode = horseshoe.bar_mode;
+    const arcDegrees = horseshoe.arc_degrees;
+
+    const color = tickmarks.color ?? 'var(--primary-text-color)';
+
+    return Label.renderScaleTicks({
+      cx,
+      cy,
+      radius: baseRadius,
+      min,
+      max,
+      arcDegrees,
+      barMode,
+      color,
+      ticksMajor: tickmarks.ticks_major,
+      ticksMinor: tickmarks.ticks_minor,
+    });
+  }
+
+  _renderHorseshoeScale(horseshoe, horseshoeIndex) {
+    const scaleMode = horseshoe?.show?.scale_style ?? 'fixed';
+
+    if (scaleMode === 'none') {
+      return svg``;
+    }
+
+    const min = Number(horseshoe.horseshoe_scale.min);
+    const max = Number(horseshoe.horseshoe_scale.max);
+
+    const cx = horseshoe.svg.xpos;
+    const cy = horseshoe.svg.ypos;
+    const radius = horseshoe.svg.radius;
+
+    const barMode = horseshoe.bar_mode;
+    const arcDegrees = horseshoe.arc_degrees;
+
+    const width = horseshoe.horseshoe_scale.width;
+    const color = horseshoe.horseshoe_scale.color;
+
+    const colorStops = horseshoe.colorStops;
+
+    if (scaleMode === 'colorstop') {
+      if (!colorStops?.colors?.length) {
+        return svg``;
+      }
+
+      return Label.renderColorStopScaleSegments({
+        cx,
+        cy,
+        radius,
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width,
+        colorStops,
+        min,
+        max,
+        arcDegrees,
+        barMode,
+        gap: colorStops.gap ?? 0,
+        className: 'horseshoe-colorstop-scale-segment',
+        lineCap: 'round',
+      });
+    }
+
+    if (scaleMode === 'fixed') {
+      return Label.renderFixedScaleSegments({
+        cx,
+        cy,
+        radius,
+        startAngle: -arcDegrees / 2,
+        endAngle: arcDegrees / 2,
+        width,
+        color,
+        min,
+        max,
+        arcDegrees,
+        barMode,
+        segmentSize: 0,
+        gap: 0,
+        className: 'horseshoe-fixed-scale-segment',
+        lineCap: 'round',
+      });
+    }
+
+    return svg``;
+  }
+
   _testRenderColorStopScale(horseshoeIndex, horseshoe) {
     const scaleMode = horseshoe?.show?.scale_style;
 
@@ -3462,24 +3577,38 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     if (scaleMode === 'fixed_tickmarks') {
-      return Label.renderFixedScaleSegments({
+      return Label.renderScaleTicks({
         cx,
         cy,
         radius,
-        startAngle: -arcDegrees / 2,
-        endAngle: arcDegrees / 2,
-        width,
-        color,
         min,
         max,
         arcDegrees,
         barMode,
-        segmentSize: horseshoe.horseshoe_scale.ticksize,
-        gap: horseshoe.horseshoe_scale?.gap ?? 0,
-        className: 'horseshoe-fixed-scale-segment',
-        lineCap: 'round',
+        color,
+        ticksMajor: horseshoe.horseshoe_scale.ticks_major,
+        ticksMinor: horseshoe.horseshoe_scale.ticks_minor,
       });
     }
+    // if (scaleMode === 'fixed_tickmarks') {
+    //   return Label.renderFixedScaleSegments({
+    //     cx,
+    //     cy,
+    //     radius,
+    //     startAngle: -arcDegrees / 2,
+    //     endAngle: arcDegrees / 2,
+    //     width,
+    //     color,
+    //     min,
+    //     max,
+    //     arcDegrees,
+    //     barMode,
+    //     segmentSize: horseshoe.horseshoe_scale.ticksize,
+    //     gap: horseshoe.horseshoe_scale?.gap ?? 0,
+    //     className: 'horseshoe-fixed-scale-segment',
+    //     lineCap: 'round',
+    //   });
+    // }
 
     if (scaleMode === 'fixed') {
       return Label.renderFixedScaleSegments({
@@ -3553,6 +3682,125 @@ class FlexHorseshoeCard extends LitElement {
     }
   }
 
+  _renderHorseshoeLabels(horseshoe, horseshoeIndex) {
+    const labelsAt = horseshoe?.show?.labels_at ?? 'none';
+
+    if (labelsAt === 'none') {
+      return svg``;
+    }
+
+    const min = Number(horseshoe.horseshoe_scale.min);
+    const max = Number(horseshoe.horseshoe_scale.max);
+
+    const cx = horseshoe.svg.xpos;
+    const cy = horseshoe.svg.ypos;
+
+    const radius = horseshoe.svg.radius + Number(horseshoe?.horseshoe_labels?.offset ?? horseshoe.horseshoe_state.width + 2);
+
+    const barMode = horseshoe.bar_mode;
+    const arcDegrees = horseshoe.arc_degrees;
+    const colorStops = horseshoe.colorStops;
+
+    let labelStops = [];
+
+    if (labelsAt === 'minmax') {
+      labelStops = [
+        { value: min, label: min },
+        { value: max, label: max },
+      ];
+    }
+
+    if (labelsAt === 'colorstop') {
+      if (!colorStops?.colors?.length) {
+        return svg``;
+      }
+
+      labelStops = [{ value: min, label: min }, ...colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
+        const value = Number(stop.value);
+
+        return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
+      });
+    }
+
+    if (labelsAt === 'ticks_major') {
+      const ticksize = Number(horseshoe.horseshoe_tickmarks?.ticks_major?.ticksize);
+
+      if (!Number.isFinite(ticksize) || ticksize <= 0) {
+        return svg``;
+      }
+
+      labelStops = Label.buildTickValues(min, max, ticksize).map((value) => ({
+        value,
+        label: value,
+      }));
+    }
+
+    if (labelsAt === 'both') {
+      const colorStopLabels = colorStops?.colors?.length ? [{ value: min, label: min }, ...colorStops.colors, { value: max, label: max }] : [];
+
+      const ticksize = Number(horseshoe.horseshoe_tickmarks?.ticks_major?.ticksize);
+
+      const tickLabels =
+        Number.isFinite(ticksize) && ticksize > 0
+          ? Label.buildTickValues(min, max, ticksize).map((value) => ({
+              value,
+              label: value,
+            }))
+          : [];
+
+      labelStops = [...colorStopLabels, ...tickLabels]
+        .filter((stop) => {
+          const value = Number(stop.value);
+
+          return Number.isFinite(value) && value >= min && value <= max;
+        })
+        .sort((a, b) => Number(a.value) - Number(b.value))
+        .filter((stop, index, array) => {
+          const value = Number(stop.value);
+
+          return array.findIndex((item) => Number(item.value) === value) === index;
+        });
+    }
+
+    const distanceMin = Number(horseshoe?.horseshoe_labels?.distance_min ?? 0);
+    const visibleLabelStops = [];
+
+    labelStops.forEach((stop) => {
+      const value = Number(stop.value);
+
+      if (distanceMin <= 0) {
+        visibleLabelStops.push(stop);
+        return;
+      }
+
+      const previous = visibleLabelStops[visibleLabelStops.length - 1];
+
+      if (!previous || Math.abs(value - Number(previous.value)) >= distanceMin) {
+        visibleLabelStops.push(stop);
+      }
+    });
+
+    return svg`
+    ${visibleLabelStops.map((stop, index) => {
+      const value = Number(stop.value);
+      const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+
+      return Label.renderColorStopLabel({
+        horseshoeIndex,
+        index,
+        label: stop.label ?? stop.value,
+        angle,
+        cx,
+        cy,
+        radius,
+        cardId: this.cardId,
+        isMin: false,
+        isMax: false,
+      });
+    })}
+  `;
+  }
+
   _renderColorStopLabels(horseshoeIndex, horseshoe, horseshoeScale, colorStops, arcDegrees) {
     if (horseshoe?.show?.labels_at !== 'colorstop') {
       console.log('_renderColorStopLabels, NO labels_at', horseshoe?.show);
@@ -3579,10 +3827,31 @@ class FlexHorseshoeCard extends LitElement {
         return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
       });
     }
-    console.log('_renderColorStopLabels, labelStops ', labelStops);
+    // console.log('_renderColorStopLabels, labelStops ', labelStops);
+
+    const distanceMin = Number(horseshoe?.horseshoe_labels?.distance_min ?? 0);
+
+    const visibleLabelStops = [];
+
+    labelStops.forEach((stop, index) => {
+      const value = Number(stop.value);
+      const isEndpoint = index === 0 || index === labelStops.length - 1;
+
+      if (isEndpoint || distanceMin <= 0) {
+        visibleLabelStops.push(stop);
+        return;
+      }
+
+      const previous = visibleLabelStops[visibleLabelStops.length - 1];
+
+      if (!previous || Math.abs(value - Number(previous.value)) >= distanceMin) {
+        visibleLabelStops.push(stop);
+      }
+    });
+    console.log('_renderColorStopLabels, labelStops ', labelStops, visibleLabelStops);
 
     return svg`
-      ${labelStops.map((stop, index) => {
+      ${visibleLabelStops.map((stop, index) => {
         const value = Number(stop.value);
 
         const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
@@ -3596,9 +3865,21 @@ class FlexHorseshoeCard extends LitElement {
           cy,
           radius,
           cardId: this.cardId,
-          isMin: value === min,
-          isMax: value === max,
+          isMin: false,
+          isMax: false,
         });
+        // return Label.renderColorStopLabel({
+        //   horseshoeIndex,
+        //   index,
+        //   label: stop.label ?? stop.value,
+        //   angle,
+        //   cx,
+        //   cy,
+        //   radius,
+        //   cardId: this.cardId,
+        //   isMin: value === min,
+        //   isMax: value === max,
+        // });
       })}
   `;
 
@@ -3647,9 +3928,21 @@ class FlexHorseshoeCard extends LitElement {
           cy,
           radius,
           cardId: this.cardId,
-          isMin: value === min,
-          isMax: value === max,
+          isMin: false,
+          isMax: false,
         });
+        // return Label.renderColorStopLabel({
+        //   horseshoeIndex,
+        //   index,
+        //   label: stop.label ?? stop.value,
+        //   angle,
+        //   cx,
+        //   cy,
+        //   radius,
+        //   cardId: this.cardId,
+        //   isMin: value === min,
+        //   isMax: value === max,
+        // });
       })}
   `;
   }
