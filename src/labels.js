@@ -283,7 +283,7 @@ export default class Label {
         x="${point.x}"
         y="${point.y}"
         text-anchor="middle"
-        dominant-baseline="middle"
+        style="dominant-baseline:central"
         transform="rotate(${textAngle} ${point.x} ${point.y})"
         class="horseshoe-colorstop-label"
         style="fill:var(--primary-text-color)"
@@ -766,6 +766,7 @@ export default class Label {
   }
 
   static renderFixedScaleSegments({ cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap = 0, className = '', lineCap = 'round' }) {
+    console.log('render fixed scale segments', { cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap, className, lineCap });
     const segments = Label.buildFixedScaleSegments({
       min,
       max,
@@ -850,18 +851,25 @@ export default class Label {
   `;
   }
 
-  static renderScaleTicks({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor }) {
+  static renderScaleTicks({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor, tickType }) {
     const minorRadius = radius + Number(ticksMinor?.offset ?? 0);
 
     const majorRadius = minorRadius + Number(ticksMajor?.offset ?? 0);
 
     const majorValues = ticksMajor ? Label.buildTickValues(min, max, Number(ticksMajor.ticksize)) : [];
 
-    const minorValues = ticksMinor ? Label.buildTickValues(min, max, Number(ticksMinor.ticksize)).filter((value) => (ticksMajor ? !Label.isMajorTick(value, min, Number(ticksMajor.ticksize)) : true)) : [];
+    let minorValues = [];
+    minorValues = ticksMinor ? Label.buildTickValues(min, max, Number(ticksMinor.ticksize)).filter((value) => (ticksMajor ? !Label.isMajorTick(value, min, Number(ticksMajor.ticksize)) : true)) : [];
+
+    if (tickType === 'ticks_minor') {
+      const majorTicksize = Number(ticksMajor?.ticksize);
+
+      minorValues = minorValues.filter((value) => !Label.isMajorTick(value, min, majorTicksize));
+    }
 
     return svg`
     ${
-      ticksMinor
+      tickType === 'ticks_minor' && ticksMinor
         ? Label.renderTicks({
             cx,
             cy,
@@ -959,6 +967,30 @@ export default class Label {
   `;
   }
 
+  static renderLabel(args) {
+    if (args.orientation === 'horizontal') {
+      return Label.renderHorizontalLabel(args);
+    }
+
+    return Label.renderColorStopLabel(args); // huidige textPath/arc
+  }
+
+  static renderHorizontalLabel({ label, angle, cx, cy, radius }) {
+    const point = Label.polarToCartesian(cx, cy, radius, angle);
+
+    return svg`
+    <text
+      x="${point.x}"
+      y="${point.y}"
+      text-anchor="middle"
+      style="dominant-baseline:central"
+      class="horseshoe-label"
+    >
+      ${label}
+    </text>
+  `;
+  }
+
   static buildTickValues(min, max, ticksize) {
     const values = [];
 
@@ -973,6 +1005,80 @@ export default class Label {
     const ratio = (value - min) / majorTicksize;
 
     return Math.abs(ratio - Math.round(ratio)) < 1e-9;
+  }
+
+  static renderLabelBadge(args) {
+    if (args.orientation === 'horizontal') {
+      return Label.renderHorizontalBadge(args);
+    }
+
+    return Label.renderArcBadge(args);
+  }
+
+  static renderArcBadge({ label, angle, cx, cy, radius, badge }) {
+    const labelText = String(label);
+
+    // const padding = Number(badge.padding ?? 4);
+    // const widthPx = Math.max(14, labelText.length * 6 + padding * 2);
+
+    const padding = Number(badge.padding ?? 2);
+    const charWidth = Number(badge.char_width ?? 4);
+
+    const badgeWidth = Number(badge.width ?? labelText.length * charWidth + padding * 2);
+
+    const arcDegrees = Label.arcLengthToDegrees(badgeWidth, radius);
+
+    return Label.renderArcSegment({
+      cx,
+      cy,
+      radius,
+      startAngle: angle - arcDegrees / 2,
+      endAngle: angle + arcDegrees / 2,
+      width: Number(badge.height ?? 8),
+      color: badge.color ?? 'var(--card-background-color)',
+      className: 'horseshoe-label-badge',
+      lineCap: 'round',
+    });
+  }
+
+  static renderHorizontalBadge({ label, angle, cx, cy, radius, badge }) {
+    const point = Label.polarToCartesian(cx, cy, radius, angle);
+
+    const labelText = String(label);
+    const padding = Number(badge.padding ?? 4);
+    const badgeRadius = Number(badge.radius ?? Math.max(7, labelText.length * 3 + padding));
+
+    return svg`
+    <circle
+      cx="${point.x}"
+      cy="${point.y}"
+      r="${badgeRadius}"
+      fill="${badge.color ?? 'var(--card-background-color)'}"
+      stroke="${badge.border_color ?? 'none'}"
+    />
+  `;
+  }
+
+  static getLabelBackgroundExtend({ minLabel, maxLabel, charWidth, padding, radius }) {
+    const maxLabelLength = Math.max(String(minLabel).length, String(maxLabel).length);
+
+    const labelWidth = maxLabelLength * Number(charWidth) + Number(padding) * 2;
+
+    return Label.arcLengthToDegrees(labelWidth / 2, radius);
+  }
+
+  static getLabelBackgroundExtendV1({ horseshoe, min, max, radius }) {
+    const labels = [String(min), String(max)];
+
+    const badge = horseshoe?.horseshoe_labels?.badges ?? {};
+    const text = horseshoe?.horseshoe_labels?.text ?? {};
+
+    const charWidth = Number(badge.char_width ?? text.char_width ?? 4);
+    const padding = Number(badge.padding ?? 3);
+
+    const maxLabelWidth = Math.max(...labels.map((label) => label.length * charWidth + padding * 2));
+
+    return Label.arcLengthToDegrees(maxLabelWidth / 2, radius);
   }
 
   static arcLengthToDegrees(lengthPx, radius) {
