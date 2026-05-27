@@ -1291,7 +1291,7 @@ export default class Label {
   }
 
   static renderFixedScaleSegments({ cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap = 0, className = '', lineCap = 'round' }) {
-    console.log('render fixed scale segments', { cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap, className, lineCap });
+    // console.log('render fixed scale segments', { cx, cy, radius, width, color, min, max, arcDegrees, barMode, segmentSize, gap, className, lineCap });
     const segments = Label.buildFixedScaleSegments({
       min,
       max,
