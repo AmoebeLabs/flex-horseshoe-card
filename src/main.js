@@ -1069,7 +1069,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this.dashArray = defaultHorseshoe.dashArray;
       this.dashOffset = defaultHorseshoe.dashOffset;
-      this._bidirectional_negative = defaultHorseshoe.bidirectional_negative;
+      this.bidirectional_negative = defaultHorseshoe.bidirectional_negative;
 
       this.stroke_color = defaultHorseshoe.stroke_color;
       this.color0 = defaultHorseshoe.color0;
