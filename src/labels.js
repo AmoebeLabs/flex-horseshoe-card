@@ -1614,6 +1614,14 @@ export default class Label {
     return Math.abs(ratio - Math.round(ratio)) < 1e-9;
   }
 
+  static renderLabelBadgeV1(args) {
+    if (args.orientation === 'horizontal') {
+      return Label.renderHorizontalBadge(args);
+    }
+
+    return Label.renderArcLabelBadge(args);
+  }
+
   static renderLabelBadge(args) {
     if (args.orientation === 'horizontal') {
       return Label.renderHorizontalBadge(args);
@@ -1622,6 +1630,84 @@ export default class Label {
     return Label.renderArcBadge(args);
   }
 
+  // using real path
+
+  static renderArcLabelBadge({ label, angle, cx, cy, radius, badge }) {
+    const labelText = String(label);
+
+    const padding = Number(badge.padding ?? 2);
+    const charWidth = Number(badge.char_width ?? 4);
+
+    const badgeWidth = Number(badge.width ?? labelText.length * charWidth + padding * 2);
+    const badgeHeight = Number(badge.height ?? 8);
+
+    const badgeBodyWidth = Math.max(0, badgeWidth - badgeHeight / 2);
+    const arcDegrees = Label.arcLengthToDegrees(badgeBodyWidth, radius);
+
+    const d = Label.buildArcCapsulePath({
+      cx,
+      cy,
+      radius,
+      angle,
+      arcSize: arcDegrees,
+      width: badgeHeight,
+    });
+
+    return svg`
+    <path
+      class="horseshoe-colorstop-label-badge"
+      d="${d}"
+    />
+  `;
+  }
+
+  static renderArcLabelBadgeV2({ label, angle, cx, cy, radius, badge }) {
+    const labelText = String(label);
+
+    const padding = Number(badge.padding ?? 2);
+    const charWidth = Number(badge.char_width ?? 4);
+
+    const badgeWidth = Number(badge.width ?? labelText.length * charWidth + padding * 2);
+    const badgeHeight = Number(badge.height ?? 8);
+
+    const arcDegrees = Label.arcLengthToDegrees(badgeWidth, radius);
+
+    const d = Label.buildArcCapsulePath({
+      cx,
+      cy,
+      radius,
+      angle,
+      arcSize: arcDegrees,
+      width: badgeHeight,
+    });
+
+    return svg`
+    <path
+      class="horseshoe-colorstop-label-badge"
+      d="${d}"
+    />
+  `;
+  }
+
+  static renderArcLabelBadgeV1({ cx, cy, radius, angle, arcSize, width, style }) {
+    const d = Label.buildArcCapsulePath({
+      cx,
+      cy,
+      radius,
+      angle,
+      arcSize,
+      width,
+    });
+
+    return svg`
+    <path
+      class="horseshoe-colorstop-label-badge"
+      d="${d}"
+    />
+  `;
+  }
+
+  // standard with stroke width
   static renderArcBadge({ label, angle, cx, cy, radius, badge }) {
     const labelText = String(label);
 
@@ -1725,5 +1811,59 @@ export default class Label {
 
   static radToDeg(rad) {
     return (rad * 180) / Math.PI;
+  }
+
+  static buildArcCapsulePath({ cx, cy, radius, angle, arcSize, width }) {
+    const halfWidth = width / 2;
+
+    const outerRadius = radius + halfWidth;
+    const innerRadius = radius - halfWidth;
+
+    const startAngle = angle - arcSize / 2;
+    const endAngle = angle + arcSize / 2;
+
+    const outerStart = Label.polarToCartesian(cx, cy, outerRadius, startAngle);
+    const outerEnd = Label.polarToCartesian(cx, cy, outerRadius, endAngle);
+
+    const innerEnd = Label.polarToCartesian(cx, cy, innerRadius, endAngle);
+    const innerStart = Label.polarToCartesian(cx, cy, innerRadius, startAngle);
+
+    const largeArcFlag = arcSize > 180 ? 1 : 0;
+
+    return `
+    M ${outerStart.x} ${outerStart.y}
+    A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}
+    A ${halfWidth} ${halfWidth} 0 0 1 ${innerEnd.x} ${innerEnd.y}
+    A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}
+    A ${halfWidth} ${halfWidth} 0 0 1 ${outerStart.x} ${outerStart.y}
+    Z
+  `;
+  }
+
+  static buildArcCapsulePathV1({ cx, cy, radius, angle, arcSize, width }) {
+    const halfWidth = width / 2;
+
+    const outerRadius = radius + halfWidth;
+    const innerRadius = radius - halfWidth;
+
+    const startAngle = angle - arcSize / 2;
+    const endAngle = angle + arcSize / 2;
+
+    const outerStart = Label.polarToCartesian(cx, cy, outerRadius, startAngle);
+    const outerEnd = Label.polarToCartesian(cx, cy, outerRadius, endAngle);
+
+    const innerEnd = Label.polarToCartesian(cx, cy, innerRadius, endAngle);
+    const innerStart = Label.polarToCartesian(cx, cy, innerRadius, startAngle);
+
+    const largeArcFlag = arcSize > 180 ? 1 : 0;
+
+    return `
+    M ${outerStart.x} ${outerStart.y}
+    A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}
+    A ${halfWidth} ${halfWidth} 0 0 1 ${innerEnd.x} ${innerEnd.y}
+    A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}
+    A ${halfWidth} ${halfWidth} 0 0 1 ${outerStart.x} ${outerStart.y}
+    Z
+  `;
   }
 }
