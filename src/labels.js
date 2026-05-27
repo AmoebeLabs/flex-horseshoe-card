@@ -43,7 +43,533 @@ export default class Label {
     });
   }
 
-  static renderColorStopTextPathLabel({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false }) {
+  static renderColorStopTextPathLabel({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext = {} }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { visualAngle, mirrored } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    const labelAngle = mirrored ? Label.normalizeAngle(visualAngle + 180) : visualAngle;
+
+    let startAngle = labelAngle - arcSize / 2;
+    let endAngle = labelAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = labelAngle;
+      endAngle = labelAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = labelAngle - arcSize;
+      endAngle = labelAngle;
+    }
+
+    const isTopHalf = labelAngle >= 270 || labelAngle <= 90;
+
+    const pathStartAngle = isTopHalf ? startAngle : endAngle;
+    const pathEndAngle = isTopHalf ? endAngle : startAngle;
+    const sweepFlag = isTopHalf ? 1 : 0;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = isTopHalf ? '0%' : '100%';
+      textAnchor = isTopHalf ? 'start' : 'end';
+    }
+
+    if (isMax) {
+      startOffset = isTopHalf ? '100%' : '0%';
+      textAnchor = isTopHalf ? 'end' : 'start';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    const { rotation = 0, flipX = false, flipY = false } = transformContext;
+
+    const scaleX = flipX ? -1 : 1;
+    const scaleY = flipY ? -1 : 1;
+
+    const inverseParentTransform = `
+    translate(${cx} ${cy})
+    scale(${scaleX} ${scaleY})
+    rotate(${-rotation})
+    translate(${-cx} ${-cy})
+  `;
+
+    return svg`
+    <g transform="${inverseParentTransform}">
+      <path
+        id="${pathId}"
+        d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+        fill="none"
+        stroke="none"
+      />
+
+      <text
+        class="horseshoe-colorstop-label"
+        style="fill:currentColor"
+        dy="${textDy}"
+      >
+        <textPath
+          href="#${pathId}"
+          style="dominant-baseline:central"
+          startOffset="${startOffset}"
+          text-anchor="${textAnchor}"
+        >
+          ${labelText}
+        </textPath>
+      </text>
+    </g>
+  `;
+  }
+
+  static renderColorStopTextPathLabelV10({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext = {} }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { visualAngle } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    const labelAngle = visualAngle;
+
+    let startAngle = labelAngle - arcSize / 2;
+    let endAngle = labelAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = labelAngle;
+      endAngle = labelAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = labelAngle - arcSize;
+      endAngle = labelAngle;
+    }
+
+    const isTopHalf = labelAngle >= 270 || labelAngle <= 90;
+
+    const pathStartAngle = isTopHalf ? startAngle : endAngle;
+    const pathEndAngle = isTopHalf ? endAngle : startAngle;
+    const sweepFlag = isTopHalf ? 1 : 0;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = isTopHalf ? '0%' : '100%';
+      textAnchor = isTopHalf ? 'start' : 'end';
+    }
+
+    if (isMax) {
+      startOffset = isTopHalf ? '100%' : '0%';
+      textAnchor = isTopHalf ? 'end' : 'start';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    const { rotation = 0, flipX = false, flipY = false } = transformContext;
+
+    const scaleX = flipX ? -1 : 1;
+    const scaleY = flipY ? -1 : 1;
+
+    const inverseParentTransform = `
+    translate(${cx} ${cy})
+    scale(${scaleX} ${scaleY})
+    rotate(${-rotation})
+    translate(${-cx} ${-cy})
+  `;
+
+    return svg`
+    <g transform="${inverseParentTransform}">
+      <path
+        id="${pathId}"
+        d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+        fill="none"
+        stroke="none"
+      />
+
+      <text
+        class="horseshoe-colorstop-label"
+        style="fill:currentColor"
+        dy="${textDy}"
+      >
+        <textPath
+          href="#${pathId}"
+          style="dominant-baseline:central"
+          startOffset="${startOffset}"
+          text-anchor="${textAnchor}"
+        >
+          ${labelText}
+        </textPath>
+      </text>
+    </g>
+  `;
+  }
+
+  static renderColorStopTextPathLabelV9({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext = {} }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { positionAngle, visualAngle, mirrored } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    let startAngle = positionAngle - arcSize / 2;
+    let endAngle = positionAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = positionAngle;
+      endAngle = positionAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = positionAngle - arcSize;
+      endAngle = positionAngle;
+    }
+
+    const isTopHalf = visualAngle >= 270 || visualAngle <= 90;
+    const reversePath = !isTopHalf;
+
+    const pathStartAngle = reversePath ? endAngle : startAngle;
+    const pathEndAngle = reversePath ? startAngle : endAngle;
+    const sweepFlag = reversePath ? 0 : 1;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = reversePath ? '100%' : '0%';
+      textAnchor = reversePath ? 'end' : 'start';
+    }
+
+    if (isMax) {
+      startOffset = reversePath ? '0%' : '100%';
+      textAnchor = reversePath ? 'start' : 'end';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    // const labelPoint = Label.polarToCartesian(cx, cy, radius, positionAngle);
+    // const { flipX = false, flipY = false } = transformContext;
+
+    // const textTransform = mirrored
+    //   ? `
+    //     translate(${labelPoint.x} ${labelPoint.y})
+    //     scale(${flipX ? -1 : 1} ${flipY ? -1 : 1})
+    //     translate(${-labelPoint.x} ${-labelPoint.y})
+    //   `
+    //   : '';
+
+    const { flipX = false, flipY = false } = transformContext;
+
+    const labelPoint = Label.polarToCartesian(cx, cy, radius, positionAngle);
+
+    const textTransform = mirrored
+      ? `
+      translate(${labelPoint.x} ${labelPoint.y})
+      scale(${flipX ? -1 : 1} ${flipY ? -1 : 1})
+      translate(${-labelPoint.x} ${-labelPoint.y})
+    `
+      : '';
+
+    return svg`
+    <path
+      id="${pathId}"
+      d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+      fill="none"
+      stroke="none"
+    />
+
+    <text
+      class="horseshoe-colorstop-label"
+      style="fill:currentColor"
+      dy="${textDy}"
+      transform="${textTransform}"
+    >
+      <textPath
+        href="#${pathId}"
+        style="dominant-baseline:central"
+        startOffset="${startOffset}"
+        text-anchor="${textAnchor}"
+      >
+        ${labelText}
+      </textPath>
+    </text>
+  `;
+  }
+
+  static renderColorStopTextPathLabelV8({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { positionAngle, visualAngle, mirrored } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    let startAngle = positionAngle - arcSize / 2;
+    let endAngle = positionAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = positionAngle;
+      endAngle = positionAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = positionAngle - arcSize;
+      endAngle = positionAngle;
+    }
+
+    const isTopHalf = visualAngle >= 270 || visualAngle <= 90;
+
+    // Normaal:
+    // top    => start -> end
+    // bottom => end -> start
+    //
+    // Bij enkel x/y flip wordt de richting gespiegeld.
+    // Bij both niet.
+    const reversePath = mirrored ? isTopHalf : !isTopHalf;
+
+    const pathStartAngle = reversePath ? endAngle : startAngle;
+    const pathEndAngle = reversePath ? startAngle : endAngle;
+    const sweepFlag = reversePath ? 0 : 1;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = reversePath ? '100%' : '0%';
+      textAnchor = reversePath ? 'end' : 'start';
+    }
+
+    if (isMax) {
+      startOffset = reversePath ? '0%' : '100%';
+      textAnchor = reversePath ? 'start' : 'end';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    const labelPoint = Label.polarToCartesian(cx, cy, radius, positionAngle);
+    const { rotation = 0, flipX = false, flipY = false } = transformContext;
+
+    const textTransform = mirrored
+      ? `
+      translate(${labelPoint.x} ${labelPoint.y})
+      scale(${flipX ? -1 : 1} ${flipY ? -1 : 1})
+      translate(${-labelPoint.x} ${-labelPoint.y})
+    `
+      : '';
+
+    return svg`
+    <path
+      id="${pathId}"
+      d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+      fill="none"
+      stroke="none"
+    />
+
+    <text
+      class="horseshoe-colorstop-label"
+      style="fill:currentColor"
+      dy="${textDy}"
+        transform="${textTransform}"
+
+    >
+      <textPath
+        href="#${pathId}"
+        style="dominant-baseline:central"
+        startOffset="${startOffset}"
+        text-anchor="${textAnchor}"
+      >
+        ${labelText}
+      </textPath>
+    </text>
+  `;
+  }
+
+  static renderColorStopTextPathLabelV7({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext = {} }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { positionAngle, visualAngle, mirrored } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    let startAngle = positionAngle - arcSize / 2;
+    let endAngle = positionAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = positionAngle;
+      endAngle = positionAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = positionAngle - arcSize;
+      endAngle = positionAngle;
+    }
+
+    const isTopHalf = visualAngle >= 270 || visualAngle <= 90;
+
+    // Normaal:
+    // top    => start -> end
+    // bottom => end -> start
+    //
+    // Bij enkel flip x/y draait textPath-richting om.
+    // Bij flip both niet, want dat is effectief 180 graden.
+    const reversePath = mirrored ? isTopHalf : !isTopHalf;
+
+    const pathStartAngle = reversePath ? endAngle : startAngle;
+    const pathEndAngle = reversePath ? startAngle : endAngle;
+    const sweepFlag = reversePath ? 0 : 1;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = reversePath ? '100%' : '0%';
+      textAnchor = reversePath ? 'end' : 'start';
+    }
+
+    if (isMax) {
+      startOffset = reversePath ? '0%' : '100%';
+      textAnchor = reversePath ? 'start' : 'end';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    const { rotation = 0, flipX = false, flipY = false } = transformContext;
+
+    const scaleX = flipX ? -1 : 1;
+    const scaleY = flipY ? -1 : 1;
+
+    return svg`
+  <path
+    id="${pathId}"
+    d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+    fill="none"
+    stroke="none"
+  />
+
+  <text
+<text
+  class="horseshoe-colorstop-label"
+  style="fill:currentColor"
+  dy="${textDy}"
+
+  >
+    <textPath
+      href="#${pathId}"
+      style="dominant-baseline:central"
+      startOffset="${startOffset}"
+      text-anchor="${textAnchor}"
+    >
+      ${labelText}
+    </textPath>
+  </text>
+`;
+  }
+
+  static renderColorStopTextPathLabelV6({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false, transformContext = {} }) {
+    const labelText = String(label);
+    const arcSize = 24;
+
+    const { positionAngle, visualAngle, mirrored } = Label.resolveLabelGeometry({
+      angle,
+      ...transformContext,
+    });
+
+    let startAngle = positionAngle - arcSize / 2;
+    let endAngle = positionAngle + arcSize / 2;
+
+    if (isMin) {
+      startAngle = positionAngle;
+      endAngle = positionAngle + arcSize;
+    }
+
+    if (isMax) {
+      startAngle = positionAngle - arcSize;
+      endAngle = positionAngle;
+    }
+
+    const isTopHalf = visualAngle >= 270 || visualAngle <= 90;
+    const reversePath = isTopHalf === mirrored;
+
+    const pathStartAngle = reversePath ? endAngle : startAngle;
+    const pathEndAngle = reversePath ? startAngle : endAngle;
+    const sweepFlag = reversePath ? 0 : 1;
+
+    let startOffset = '50%';
+    let textAnchor = 'middle';
+
+    if (isMin) {
+      startOffset = reversePath ? '100%' : '0%';
+      textAnchor = reversePath ? 'end' : 'start';
+    }
+
+    if (isMax) {
+      startOffset = reversePath ? '0%' : '100%';
+      textAnchor = reversePath ? 'start' : 'end';
+    }
+
+    const start = Label.polarToCartesian(cx, cy, radius, pathStartAngle);
+    const end = Label.polarToCartesian(cx, cy, radius, pathEndAngle);
+
+    const pathId = `${cardId}-colorstop-label-${horseshoeIndex}-${index}`;
+    const textDy = isTopHalf ? '0.0em' : '0em';
+
+    return svg`
+    <path
+      id="${pathId}"
+      d="M ${start.x} ${start.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${end.x} ${end.y}"
+      fill="none"
+      stroke="none"
+    />
+
+    <text
+      class="horseshoe-colorstop-label"
+      style="fill:currentColor"
+      dy="${textDy}"
+    >
+      <textPath
+        href="#${pathId}"
+        style="dominant-baseline:central"
+        startOffset="${startOffset}"
+        text-anchor="${textAnchor}"
+      >
+        ${labelText}
+      </textPath>
+    </text>
+  `;
+  }
+
+  static renderColorStopTextPathLabelV5({ horseshoeIndex, index, label, angle, cx, cy, radius, cardId, isMin = false, isMax = false }) {
     const labelText = String(label);
     const arcSize = 24;
 
@@ -98,7 +624,6 @@ export default class Label {
       stroke="none"
     />
 
-    <text
     <text
       class="horseshoe-colorstop-label"
       style="fill:var(--primary-text-color)"
@@ -967,6 +1492,61 @@ export default class Label {
   `;
   }
 
+  static getVisualAngleFromParentTransform({ angle, rotation = 0, flipX = false, flipY = false }) {
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
+
+    const angleRad = Label.degToRad(angle);
+    const rotationRad = Label.degToRad(rotation);
+
+    const x = Math.cos(angleRad);
+    const y = Math.sin(angleRad);
+
+    // Eerst dezelfde rotate als parent
+    const xr = x * Math.cos(rotationRad) - y * Math.sin(rotationRad);
+    const yr = x * Math.sin(rotationRad) + y * Math.cos(rotationRad);
+
+    // Daarna dezelfde scale/flip als parent
+    const xs = xr * sx;
+    const ys = yr * sy;
+
+    return Label.normalizeAngle(Label.radToDeg(Math.atan2(ys, xs)));
+  }
+
+  static getVisualAngleFromParentTransformV1({ angle, rotation = 0, flipX = false, flipY = false }) {
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
+
+    const angleRad = Label.degToRad(angle);
+    const rotationRad = Label.degToRad(rotation);
+
+    let x = Math.cos(angleRad);
+    let y = Math.sin(angleRad);
+
+    x *= sx;
+    y *= sy;
+
+    const xr = x * Math.cos(rotationRad) - y * Math.sin(rotationRad);
+    const yr = x * Math.sin(rotationRad) + y * Math.cos(rotationRad);
+
+    return Label.normalizeAngle(Label.radToDeg(Math.atan2(yr, xr)));
+  }
+
+  static resolveLabelGeometry({ angle, rotation = 0, flipX = false, flipY = false }) {
+    const visualAngle = Label.getVisualAngleFromParentTransform({
+      angle,
+      rotation,
+      flipX,
+      flipY,
+    });
+
+    return {
+      positionAngle: angle,
+      visualAngle,
+      mirrored: flipX !== flipY,
+    };
+  }
+
   static renderLabel(args) {
     if (args.orientation === 'horizontal') {
       return Label.renderHorizontalLabel(args);
@@ -975,7 +1555,34 @@ export default class Label {
     return Label.renderColorStopLabel(args); // huidige textPath/arc
   }
 
-  static renderHorizontalLabel({ label, angle, cx, cy, radius }) {
+  static renderHorizontalLabel({ label, angle, cx, cy, radius, transformContext = {} }) {
+    const point = Label.polarToCartesian(cx, cy, radius, angle);
+
+    const { rotation = 0, flipX = false, flipY = false } = transformContext;
+
+    const scaleX = flipX ? -1 : 1;
+    const scaleY = flipY ? -1 : 1;
+
+    return svg`
+    <text
+      x="${point.x}"
+      y="${point.y}"
+      text-anchor="middle"
+      style="dominant-baseline:central;fill:var(--primary-text-color)"
+      class="horseshoe-label"
+      transform="
+        translate(${point.x} ${point.y})
+        scale(${scaleX} ${scaleY})
+        rotate(${-rotation})
+        translate(${-point.x} ${-point.y})
+      "
+    >
+      ${label}
+    </text>
+  `;
+  }
+
+  static renderHorizontalLabelV1({ label, angle, cx, cy, radius }) {
     const point = Label.polarToCartesian(cx, cy, radius, angle);
 
     return svg`
@@ -1088,5 +1695,35 @@ export default class Label {
   static textLengthToArcDegrees(textLength, radius, paddingDegrees = 6) {
     const circumference = 2 * Math.PI * radius;
     return (textLength / circumference) * 360 + paddingDegrees;
+  }
+
+  static resolveLabelAngles({ angle, objectRotation = 0, flipX = false, flipY = false }) {
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
+
+    const rad = Label.degToRad(angle);
+
+    const x = sx * Math.cos(rad);
+    const y = sy * Math.sin(rad);
+
+    const positionAngle = Label.normalizeAngle(Label.radToDeg(Math.atan2(y, x)));
+    const visualAngle = Label.normalizeAngle(positionAngle + objectRotation);
+
+    return {
+      positionAngle,
+      visualAngle,
+    };
+  }
+
+  static normalizeAngle(angle) {
+    return ((angle % 360) + 360) % 360;
+  }
+
+  static degToRad(deg) {
+    return (deg * Math.PI) / 180;
+  }
+
+  static radToDeg(rad) {
+    return (rad * 180) / Math.PI;
   }
 }

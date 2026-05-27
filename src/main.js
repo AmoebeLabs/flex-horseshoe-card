@@ -1831,17 +1831,7 @@ class FlexHorseshoeCard extends LitElement {
           <g style=${styleMap(stopStyle)}>
             ${this._renderHorseshoeScale(horseshoe, index)}
           </g>
-          <g style=${styleMap(tickmarksMinorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-          </g>
 
-          <g style=${styleMap(tickmarksMajorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-          </g>
-
-          <g >
-            ${this._renderHorseshoeTicks(horseshoe, index)}
-          </g>
           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
             transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
@@ -1860,7 +1850,7 @@ class FlexHorseshoeCard extends LitElement {
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
           </g>
           <g style=${styleMap(labelStyle)}>
-            ${this._renderHorseshoeLabels(horseshoe, index)}
+            ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
           </g>
         </g>
       `;
@@ -1874,9 +1864,7 @@ class FlexHorseshoeCard extends LitElement {
         <g style=${styleMap(stopStyle)}>
           ${this._renderHorseshoeScale(horseshoe, index)}
         </g>
-          <g >
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-          </g>        
+     
         <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
           transform="rotate(-90 ${rotateX} ${rotateY})"
             style=${styleMap(stateStyle)} />
@@ -1895,7 +1883,7 @@ class FlexHorseshoeCard extends LitElement {
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
           </g>
           <g style=${styleMap(labelStyle)}>
-            ${this._renderHorseshoeLabels(horseshoe, index)}
+            ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
           </g>
       </g>
     `;
@@ -1906,16 +1894,12 @@ class FlexHorseshoeCard extends LitElement {
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
-        <g style=${styleMap(stopStyle)}>
-          ${this._renderHorseshoeScale(horseshoe, index)}
-        </g>
-          <g >
-            ${this._renderHorseshoeTicks(horseshoe, index)}
-          </g>        
-      <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-        transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-        style=${styleMap(stateStyle)} />
+          <g style=${styleMap(stopStyle)}>
+            ${this._renderHorseshoeScale(horseshoe, index)}
           </g>
+          <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+            transform="rotate(${startRotation} ${rotateX} ${rotateY})"
+            style=${styleMap(stateStyle)} />
           <g style=${styleMap(tickmarksMinorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
           </g>
@@ -1930,8 +1914,9 @@ class FlexHorseshoeCard extends LitElement {
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
           </g>
           <g style=${styleMap(labelStyle)}>
-            ${this._renderHorseshoeLabels(horseshoe, index)}
+            ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
           </g>
+        </g>
     </g>
   `;
 
@@ -2126,6 +2111,20 @@ class FlexHorseshoeCard extends LitElement {
   _getGroupScaleTransform(item) {
     const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
 
+    if (!group?.scale && !item?.flip) return '';
+
+    const scaleX = group?.scale?.x ?? group?.scale ?? 1;
+    const scaleY = group?.scale?.y ?? group?.scale ?? 1;
+
+    const flipX = item?.flip === 'x' || item?.flip === 'both' ? -1 : 1;
+    const flipY = item?.flip === 'y' || item?.flip === 'both' ? -1 : 1;
+
+    return `scale(${scaleX * flipX}, ${scaleY * flipY})`;
+  }
+
+  _getGroupScaleTransformV2(item) {
+    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
+
     if (!group?.scale && !item?.flip_x && !item?.flip_y) return '';
 
     const scaleX = group?.scale?.x ?? group?.scale ?? 1;
@@ -2152,6 +2151,14 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _getGroupScaleStyle(item) {
+    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
+
+    if (!group?.scale || !group.svg) return `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px; transform-box:view-box;`;
+
+    return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
+  }
+
+  _getGroupScaleStyleV1(item) {
     const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
 
     if (!group?.scale || !group.svg) return '';
@@ -4056,7 +4063,7 @@ class FlexHorseshoeCard extends LitElement {
   `;
   }
 
-  _renderHorseshoeLabels(horseshoe, horseshoeIndex) {
+  _renderHorseshoeLabels(horseshoe, horseshoeIndex, groupRotation) {
     const labelsAt = horseshoe?.show?.labels_at ?? 'none';
 
     if (labelsAt === 'none') {
@@ -4077,6 +4084,14 @@ class FlexHorseshoeCard extends LitElement {
 
     const orientation = horseshoe?.horseshoe_labels?.orientation ?? 'arc';
 
+    const flip = horseshoe?.flip;
+    const rotation = horseshoe?.rotate ?? 0;
+
+    const transformContext = {
+      rotation,
+      flipX: flip === 'x' || flip === 'both',
+      flipY: flip === 'y' || flip === 'both',
+    };
     let labelStops = [];
 
     if (labelsAt === 'minmax') {
@@ -4172,6 +4187,7 @@ class FlexHorseshoeCard extends LitElement {
           orientation,
           isMin: false,
           isMax: false,
+          transformContext,
         });
       })}
     `;
