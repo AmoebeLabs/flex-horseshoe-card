@@ -1528,7 +1528,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _renderTickMarks(horseshoe, horseshoeIndex) {
+  _renderOriginalTickMarks(horseshoe, horseshoeIndex) {
     if (horseshoe.show?.scale_tickmarks === false) {
       return svg``;
     }
@@ -1832,10 +1832,13 @@ class FlexHorseshoeCard extends LitElement {
             ${this._renderHorseshoeScale(horseshoe, index)}
           </g>
 
-          <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-            transform="rotate(-90 ${rotateX} ${rotateY})"
-            style=${styleMap(stateStyle)} />
           </g>
+            <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+              transform="rotate(-90 ${rotateX} ${rotateY})"
+              style=${styleMap(stateStyle)} />
+            ${this._renderOriginalTickMarks(horseshoe, index)}
+          </g>
+
           <g style=${styleMap(tickmarksMinorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
           </g>
@@ -1843,12 +1846,15 @@ class FlexHorseshoeCard extends LitElement {
           <g style=${styleMap(tickmarksMajorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
           </g>
+
           <g style=${styleMap(labelBackgroundStyle)}>
             ${this._renderHorseshoeLabelBackground(horseshoe, index)}
           </g>
+
           <g style=${styleMap(labelBadgeStyle)}>
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
           </g>
+
           <g style=${styleMap(labelStyle)}>
             ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
           </g>
@@ -1861,14 +1867,17 @@ class FlexHorseshoeCard extends LitElement {
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
         >
-        <g style=${styleMap(stopStyle)}>
-          ${this._renderHorseshoeScale(horseshoe, index)}
-        </g>
-     
-        <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-          transform="rotate(-90 ${rotateX} ${rotateY})"
-            style=${styleMap(stateStyle)} />
+          <g style=${styleMap(stopStyle)}>
+            ${this._renderHorseshoeScale(horseshoe, index)}
           </g>
+
+          <g>
+            <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+              transform="rotate(-90 ${rotateX} ${rotateY})"
+              style=${styleMap(stateStyle)} />
+            ${this._renderOriginalTickMarks(horseshoe, index)}
+          </g>
+
           <g style=${styleMap(tickmarksMinorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
           </g>
@@ -1876,12 +1885,15 @@ class FlexHorseshoeCard extends LitElement {
           <g style=${styleMap(tickmarksMajorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
           </g>
+
           <g style=${styleMap(labelBackgroundStyle)}>
             ${this._renderHorseshoeLabelBackground(horseshoe, index)}
           </g>
+
           <g style=${styleMap(labelBadgeStyle)}>
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
           </g>
+
           <g style=${styleMap(labelStyle)}>
             ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
           </g>
@@ -1897,18 +1909,23 @@ class FlexHorseshoeCard extends LitElement {
           <g style=${styleMap(stopStyle)}>
             ${this._renderHorseshoeScale(horseshoe, index)}
           </g>
-          <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-            transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-            style=${styleMap(stateStyle)} />
+          <g style=${styleMap(labelBackgroundStyle)}>
+            ${this._renderHorseshoeLabelBackground(horseshoe, index)}
+          </g>
+
+          <g>
+            <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+              transform="rotate(${startRotation} ${rotateX} ${rotateY})"
+              style=${styleMap(stateStyle)} />
+            ${this._renderOriginalTickMarks(horseshoe, index)}
+          </g>
+
           <g style=${styleMap(tickmarksMinorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
           </g>
 
           <g style=${styleMap(tickmarksMajorStyle)}>
             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-          </g>
-          <g style=${styleMap(labelBackgroundStyle)}>
-            ${this._renderHorseshoeLabelBackground(horseshoe, index)}
           </g>
           <g style=${styleMap(labelBadgeStyle)}>
             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
@@ -1934,7 +1951,7 @@ class FlexHorseshoeCard extends LitElement {
     //     <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
     //       transform="rotate(${startRotation} ${rotateX} ${rotateY})"
     //       style=${styleMap(stateStyle)} />
-    //     ${this._renderTickMarks(horseshoe, index)}
+    //     ${this._renderOriginalTickMarks(horseshoe, index)}
     //   </g>
     // `;
   }
@@ -3976,7 +3993,7 @@ class FlexHorseshoeCard extends LitElement {
 
     const orientation = horseshoe?.horseshoe_labels?.orientation ?? 'arc';
     const badgeConfig = horseshoe?.horseshoe_labels?.badges ?? {};
-    console.log('badges', orientation, badgeConfig);
+    // console.log('badges', orientation, badgeConfig);
     let labelStops = [];
 
     if (labelsAt === 'minmax') {
@@ -4282,7 +4299,7 @@ class FlexHorseshoeCard extends LitElement {
         radius,
         startAngle: -arcDegrees / 2,
         endAngle: arcDegrees / 2,
-        width: 8,
+        width: horseshoe?.horseshoe_labels?.background?.width ?? 8,
         color: 'rgba(255, 255, 255, 0.02)',
         className: 'horseshoe-label-background',
       })};
@@ -4294,7 +4311,7 @@ class FlexHorseshoeCard extends LitElement {
               radius,
               startAngle: -arcDegrees / 2,
               endAngle: arcDegrees / 2,
-              width: 8,
+              width: horseshoe?.horseshoe_labels?.background?.width ?? 8,
               colorStops,
               min,
               max,
