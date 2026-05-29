@@ -1024,12 +1024,12 @@ class FlexHorseshoeCard extends LitElement {
         color1 = horseshoe.horseshoe_state.color;
         color1Offset = '0%';
       } else if (strokeStyle === 'autominmax') {
-        const stroke = this._calculateStrokeColor(state, horseshoe.colorStopsMinMax, true);
+        const stroke = Colors.calculateStrokeColor(state, horseshoe.colorStopsMinMax, true);
         color0 = stroke;
         color1 = stroke;
         color1Offset = '0%';
       } else if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
-        const stroke = this._calculateStrokeColor(state, horseshoe.colorStops, strokeStyle === 'colorstopgradient');
+        const stroke = Colors.calculateStrokeColor(state, horseshoe.colorStops, strokeStyle === 'colorstopgradient');
 
         color0 = stroke;
         color1 = stroke;
@@ -1454,7 +1454,7 @@ class FlexHorseshoeCard extends LitElement {
       return undefined;
     }
 
-    return this._calculateStrokeColor(stateNumber, item._colorStops, item.colorstop_gradient === true);
+    return Colors.calculateStrokeColor(stateNumber, item._colorStops, item.colorstop_gradient === true);
   }
 
   /** *****************************************************************************
@@ -1643,9 +1643,11 @@ class FlexHorseshoeCard extends LitElement {
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
-            ${this._renderHorseShoes()}
-            <g id="datagroup" class="datagroup">
+            <g id="circles" class="circles">
               ${this._renderCircles()}
+            </g>
+          ${this._renderHorseShoes()}
+            <g id="datagroup" class="datagroup">
               ${this._renderHorizontalLines()}
               ${this._renderVerticalLines()}
               ${this._renderIcons()}
@@ -3500,52 +3502,6 @@ class FlexHorseshoeCard extends LitElement {
   //   return (Math.round(state * x) / x).toFixed(dec);
   // }
 
-  /** *****************************************************************************
-   * _calculateStrokeColor()
-   *
-   * Summary.
-   *
-   */
-
-  _calculateStrokeColor(state, colorStops, gradient) {
-    const stops = colorStops?.colors ?? [];
-
-    if (!stops.length) return undefined;
-
-    const numericState = Number(state);
-
-    if (!Number.isFinite(numericState)) {
-      return stops[0].color;
-    }
-
-    if (numericState <= stops[0].value) {
-      return stops[0].color;
-    }
-
-    const lastStop = stops[stops.length - 1];
-
-    if (numericState >= lastStop.value) {
-      return lastStop.color;
-    }
-
-    for (let i = 0; i < stops.length - 1; i += 1) {
-      const startStop = stops[i];
-      const endStop = stops[i + 1];
-
-      if (numericState >= startStop.value && numericState < endStop.value) {
-        if (!gradient) {
-          return startStop.color;
-        }
-
-        const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
-
-        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
-      }
-    }
-
-    return lastStop.color;
-  }
-
   _computeEntity(entityId) {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
@@ -3590,6 +3546,43 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _renderHorseshoeTicks(horseshoe, horseshoeIndex, tickType) {
+    if (!horseshoe?.show?.ticks) {
+      return svg``;
+    }
+
+    const tickmarks = horseshoe.horseshoe_tickmarks;
+
+    if (!tickmarks?.ticks_major && !tickmarks?.ticks_minor) {
+      return svg``;
+    }
+
+    const min = Number(horseshoe.horseshoe_scale.min);
+    const max = Number(horseshoe.horseshoe_scale.max);
+
+    const cx = horseshoe.svg.xpos;
+    const cy = horseshoe.svg.ypos;
+
+    const baseRadius = horseshoe.svg.radius;
+
+    const barMode = horseshoe.bar_mode;
+    const arcDegrees = horseshoe.arc_degrees;
+
+    return Label.renderScaleTicks({
+      cx,
+      cy,
+      radius: baseRadius,
+      min,
+      max,
+      arcDegrees,
+      barMode,
+      colorStops: horseshoe.colorStops,
+      ticksMajor: tickmarks.ticks_major,
+      ticksMinor: tickmarks.ticks_minor,
+      tickType,
+    });
+  }
+
+  _renderHorseshoeTicksV2(horseshoe, horseshoeIndex, tickType) {
     if (!horseshoe?.show?.ticks) {
       return svg``;
     }

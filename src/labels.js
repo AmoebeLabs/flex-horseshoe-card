@@ -1,4 +1,5 @@
 import { svg } from 'lit';
+import Colors from './colors';
 
 export default class Label {
   static renderColorStopLabel(args) {
@@ -1376,7 +1377,66 @@ export default class Label {
   `;
   }
 
-  static renderScaleTicks({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor, tickType }) {
+  static renderScaleTicks({ cx, cy, radius, min, max, arcDegrees, barMode, colorStops, ticksMajor, ticksMinor, tickType }) {
+    const minorRadius = radius + Number(ticksMinor?.offset ?? 0);
+    const majorRadius = minorRadius + Number(ticksMajor?.offset ?? 0);
+
+    const majorValues = ticksMajor ? Label.buildTickValues(min, max, Number(ticksMajor.ticksize)) : [];
+
+    let minorValues = ticksMinor ? Label.buildTickValues(min, max, Number(ticksMinor.ticksize)).filter((value) => (ticksMajor ? !Label.isMajorTick(value, min, Number(ticksMajor.ticksize)) : true)) : [];
+
+    if (tickType === 'ticks_minor') {
+      const majorTicksize = Number(ticksMajor?.ticksize);
+
+      minorValues = minorValues.filter((value) => !Label.isMajorTick(value, min, majorTicksize));
+    }
+
+    return svg`
+    ${
+      tickType === 'ticks_minor' && ticksMinor
+        ? Label.renderTicks({
+            cx,
+            cy,
+            radius: minorRadius,
+            values: minorValues,
+            min,
+            max,
+            arcDegrees,
+            barMode,
+            width: Number(ticksMinor.width ?? 1),
+            thickness: Number(ticksMinor.thickness ?? 2),
+            color: ticksMinor.color,
+            colorMode: ticksMinor.color_mode,
+            colorStops,
+            className: 'horseshoe-scale-tick-minor',
+          })
+        : svg``
+    }
+
+    ${
+      ticksMajor
+        ? Label.renderTicks({
+            cx,
+            cy,
+            radius: majorRadius,
+            values: majorValues,
+            min,
+            max,
+            arcDegrees,
+            barMode,
+            width: Number(ticksMajor.width ?? 4),
+            thickness: Number(ticksMajor.thickness ?? 10),
+            color: ticksMajor.color,
+            colorMode: ticksMajor.color_mode,
+            colorStops,
+            className: 'horseshoe-scale-tick-major',
+          })
+        : svg``
+    }
+  `;
+  }
+
+  static renderScaleTicksV2({ cx, cy, radius, min, max, arcDegrees, barMode, color, ticksMajor, ticksMinor, tickType }) {
     const minorRadius = radius + Number(ticksMinor?.offset ?? 0);
 
     const majorRadius = minorRadius + Number(ticksMajor?.offset ?? 0);
@@ -1471,7 +1531,61 @@ export default class Label {
   `;
   }
 
-  static renderTicks({ cx, cy, radius, values, min, max, arcDegrees, barMode, width, thickness, color, className = '' }) {
+  static renderTicks({ cx, cy, radius, values, min, max, arcDegrees, barMode, width, thickness, color, colorMode, colorStops, className = '' }) {
+    return svg`
+    ${values.map((value) => {
+      const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+      const tickDegrees = Label.arcLengthToDegrees(thickness, radius);
+
+      let tickColor = color;
+
+      if (colorMode === 'colorstop') {
+        tickColor = Colors.calculateStrokeColor(value, colorStops, false);
+      }
+
+      if (colorMode === 'colorstopgradient') {
+        tickColor = Colors.calculateStrokeColor(value, colorStops, true);
+      }
+
+      return Label.renderArcSegment({
+        cx,
+        cy,
+        radius,
+        startAngle: angle - tickDegrees / 2,
+        endAngle: angle + tickDegrees / 2,
+        width,
+        color: tickColor,
+        className,
+        lineCap: 'butt',
+      });
+    })}
+  `;
+  }
+
+  static renderTicksV2({ cx, cy, radius, values, min, max, arcDegrees, barMode, width, thickness, color, colorMode, getTickColor, className = '' }) {
+    return svg`
+    ${values.map((value) => {
+      const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
+      const tickDegrees = Label.arcLengthToDegrees(thickness, radius);
+
+      const tickColor = colorMode === 'fixed' ? color : getTickColor(value, colorMode);
+
+      return Label.renderArcSegment({
+        cx,
+        cy,
+        radius,
+        startAngle: angle - tickDegrees / 2,
+        endAngle: angle + tickDegrees / 2,
+        width,
+        color: tickColor,
+        className,
+        lineCap: 'butt',
+      });
+    })}
+  `;
+  }
+
+  static renderTicksV1({ cx, cy, radius, values, min, max, arcDegrees, barMode, width, thickness, color, className = '' }) {
     return svg`
     ${values.map((value) => {
       const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);

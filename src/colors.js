@@ -248,6 +248,52 @@ export default class Colors {
   }
 
   /** *****************************************************************************
+   * _calculateStrokeColor()
+   *
+   * Summary.
+   *
+   */
+
+  static calculateStrokeColor(state, colorStops, gradient) {
+    const stops = colorStops?.colors ?? [];
+
+    if (!stops.length) return undefined;
+
+    const numericState = Number(state);
+
+    if (!Number.isFinite(numericState)) {
+      return stops[0].color;
+    }
+
+    if (numericState <= stops[0].value) {
+      return stops[0].color;
+    }
+
+    const lastStop = stops[stops.length - 1];
+
+    if (numericState >= lastStop.value) {
+      return lastStop.color;
+    }
+
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const startStop = stops[i];
+      const endStop = stops[i + 1];
+
+      if (numericState >= startStop.value && numericState < endStop.value) {
+        if (!gradient) {
+          return startStop.color;
+        }
+
+        const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
+
+        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
+      }
+    }
+
+    return lastStop.color;
+  }
+
+  /** *****************************************************************************
    * card::_getColorVariable()
    *
    * Summary.
