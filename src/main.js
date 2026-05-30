@@ -1830,135 +1830,179 @@ class FlexHorseshoeCard extends LitElement {
       ...tickmarksMinorUserStyle,
     };
 
-    // console.log('render, stopStyle = ', stopStyle);
-    if (barMode === 'bidirectional') {
-      if (this?.dev?.debug_bidirectional) {
-        console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
-      }
-      if (horseshoe.bidirectional_negative) {
-        if (this?.dev?.debug_bidirectional) {
-          console.log('Render Horseshoe: Card ', this.cardId, 'Rendering negative barMode: ', barMode);
-        }
-        return svg`
-  <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-    transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-    style="${this._getGroupScaleStyle(horseshoe)}"
-  >
-    <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-      style=${styleMap(scaleStyle)}
-      transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
-
-    <g style=${styleMap(stopStyle)}>
-      ${this._renderHorseshoeScale(horseshoe, index)}
-    </g>
-
-    <g>
-      <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-        transform="rotate(-90 ${rotateX} ${rotateY})"
-        style=${styleMap(stateStyle)} />
-      ${this._renderOriginalTickMarks(horseshoe, index)}
-    </g>
-
-    <g style=${styleMap(tickmarksMinorStyle)}>
-      ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-    </g>
-
-    <g style=${styleMap(tickmarksMajorStyle)}>
-      ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-    </g>
-
-    <g style=${styleMap(labelBackgroundStyle)}>
-      ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-    </g>
-
-    <g style=${styleMap(labelBadgeStyle)}>
-      ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-    </g>
-
-    <g style=${styleMap(labelStyle)}>
-      ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-    </g>
-  </g>
-`;
-      }
-      if (this?.dev?.debug_bidirectional) {
-        console.log('Render Horseshoe: Card ', this.cardId, 'Rendering positive barMode: ', barMode);
-      }
-
-      return svg`
-      <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-        transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-        style="${this._getGroupScaleStyle(horseshoe)}"
-        >
-          <g style=${styleMap(stopStyle)}>
-            ${this._renderHorseshoeScale(horseshoe, index)}
-          </g>
-
-          <g>
-            <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-              transform="rotate(-90 ${rotateX} ${rotateY})"
-              style=${styleMap(stateStyle)} />
-            ${this._renderOriginalTickMarks(horseshoe, index)}
-          </g>
-
-          <g style=${styleMap(tickmarksMinorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-          </g>
-
-          <g style=${styleMap(tickmarksMajorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-          </g>
-
-          <g style=${styleMap(labelBackgroundStyle)}>
-            ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-          </g>
-
-          <g style=${styleMap(labelBadgeStyle)}>
-            ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-          </g>
-
-          <g style=${styleMap(labelStyle)}>
-            ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-          </g>
-      </g>
-    `;
+    const isBidirectional = barMode === 'bidirectional';
+    const stateRotation = isBidirectional ? -90 : startRotation;
+    if (this?.dev?.debug_bidirectional) {
+      console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
     }
-
     return svg`
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
         style="${this._getGroupScaleStyle(horseshoe)}"
-        >
-          <g style=${styleMap(stopStyle)}>
-            ${this._renderHorseshoeScale(horseshoe, index)}
-          </g>
-          <g style=${styleMap(labelBackgroundStyle)}>
-            ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-          </g>
-
-          <g>
-            <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-              transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-              style=${styleMap(stateStyle)} />
-            ${this._renderOriginalTickMarks(horseshoe, index)}
-          </g>
-
-          <g style=${styleMap(tickmarksMinorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-          </g>
-
-          <g style=${styleMap(tickmarksMajorStyle)}>
-            ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-          </g>
-          <g style=${styleMap(labelBadgeStyle)}>
-            ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-          </g>
-          <g style=${styleMap(labelStyle)}>
-            ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-          </g>
+      >
+        <g style=${styleMap(stopStyle)}>
+          ${this._renderHorseshoeScale(horseshoe, index)}
         </g>
-    </g>
-  `;
+
+        <g style=${styleMap(labelBackgroundStyle)}>
+          ${this._renderHorseshoeLabelBackground(horseshoe, index)}
+        </g>
+
+        <g>
+          <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value"
+            cx="${cx}px" cy="${cy}px" r="${radius}"
+            transform="rotate(${stateRotation} ${rotateX} ${rotateY})"
+            style=${styleMap(stateStyle)} />
+          ${this._renderOriginalTickMarks(horseshoe, index)}
+        </g>
+
+        <g style=${styleMap(tickmarksMinorStyle)}>
+          ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
+        </g>
+
+        <g style=${styleMap(tickmarksMajorStyle)}>
+          ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
+        </g>
+
+        <g style=${styleMap(labelBadgeStyle)}>
+          ${this._renderHorseshoeLabelBadges(horseshoe, index)}
+        </g>
+
+        <g style=${styleMap(labelStyle)}>
+          ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
+        </g>
+      </g>
+    `;
+
+    // console.log('render, stopStyle = ', stopStyle);
+    //   if (barMode === 'bidirectional') {
+    //     if (this?.dev?.debug_bidirectional) {
+    //       console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
+    //     }
+    //     if (horseshoe.bidirectional_negative) {
+    //       if (this?.dev?.debug_bidirectional) {
+    //         console.log('Render Horseshoe: Card ', this.cardId, 'Rendering negative barMode: ', barMode);
+    //       }
+    //       return svg`
+    //         <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
+    //           transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
+    //           style="${this._getGroupScaleStyle(horseshoe)}"
+    //         >
+    //           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //             style=${styleMap(scaleStyle)}
+    //             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
+
+    //           <g style=${styleMap(stopStyle)}>
+    //             ${this._renderHorseshoeScale(horseshoe, index)}
+    //           </g>
+
+    //           <g>
+    //             <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //               transform="rotate(-90 ${rotateX} ${rotateY})"
+    //               style=${styleMap(stateStyle)} />
+    //             ${this._renderOriginalTickMarks(horseshoe, index)}
+    //           </g>
+
+    //           <g style=${styleMap(tickmarksMinorStyle)}>
+    //             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
+    //           </g>
+
+    //           <g style=${styleMap(tickmarksMajorStyle)}>
+    //             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
+    //           </g>
+
+    //           <g style=${styleMap(labelBackgroundStyle)}>
+    //             ${this._renderHorseshoeLabelBackground(horseshoe, index)}
+    //           </g>
+
+    //           <g style=${styleMap(labelBadgeStyle)}>
+    //             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
+    //           </g>
+
+    //           <g style=${styleMap(labelStyle)}>
+    //             ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
+    //           </g>
+    //         </g>
+    //       `;
+    //     }
+    //     if (this?.dev?.debug_bidirectional) {
+    //       console.log('Render Horseshoe: Card ', this.cardId, 'Rendering positive barMode: ', barMode);
+    //     }
+
+    //     return svg`
+    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
+    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
+    //       style="${this._getGroupScaleStyle(horseshoe)}"
+    //       >
+    //         <g style=${styleMap(stopStyle)}>
+    //           ${this._renderHorseshoeScale(horseshoe, index)}
+    //         </g>
+
+    //         <g>
+    //           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //             transform="rotate(-90 ${rotateX} ${rotateY})"
+    //             style=${styleMap(stateStyle)} />
+    //           ${this._renderOriginalTickMarks(horseshoe, index)}
+    //         </g>
+
+    //         <g style=${styleMap(tickmarksMinorStyle)}>
+    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
+    //         </g>
+
+    //         <g style=${styleMap(tickmarksMajorStyle)}>
+    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
+    //         </g>
+
+    //         <g style=${styleMap(labelBackgroundStyle)}>
+    //           ${this._renderHorseshoeLabelBackground(horseshoe, index)}
+    //         </g>
+
+    //         <g style=${styleMap(labelBadgeStyle)}>
+    //           ${this._renderHorseshoeLabelBadges(horseshoe, index)}
+    //         </g>
+
+    //         <g style=${styleMap(labelStyle)}>
+    //           ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
+    //         </g>
+    //     </g>
+    //   `;
+    //   }
+
+    //   return svg`
+    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
+    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
+    //       style="${this._getGroupScaleStyle(horseshoe)}"
+    //       >
+    //         <g style=${styleMap(stopStyle)}>
+    //           ${this._renderHorseshoeScale(horseshoe, index)}
+    //         </g>
+    //         <g style=${styleMap(labelBackgroundStyle)}>
+    //           ${this._renderHorseshoeLabelBackground(horseshoe, index)}
+    //         </g>
+
+    //         <g>
+    //           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
+    //             transform="rotate(${startRotation} ${rotateX} ${rotateY})"
+    //             style=${styleMap(stateStyle)} />
+    //           ${this._renderOriginalTickMarks(horseshoe, index)}
+    //         </g>
+
+    //         <g style=${styleMap(tickmarksMinorStyle)}>
+    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
+    //         </g>
+
+    //         <g style=${styleMap(tickmarksMajorStyle)}>
+    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
+    //         </g>
+    //         <g style=${styleMap(labelBadgeStyle)}>
+    //           ${this._renderHorseshoeLabelBadges(horseshoe, index)}
+    //         </g>
+    //         <g style=${styleMap(labelStyle)}>
+    //           ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
+    //         </g>
+    //       </g>
+    //   </g>
+    // `;
 
     //   return svg`
     //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
