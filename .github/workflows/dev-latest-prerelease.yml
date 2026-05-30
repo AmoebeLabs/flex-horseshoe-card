@@ -1,0 +1,48 @@
+name: Dev latest prerelease
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+env:
+  DEV_TAG: dev-latest
+  ASSET: dist/flex-horseshoe-card.js
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Replace dev-latest prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "$DEV_TAG" --yes --cleanup-tag || true
+
+          git tag -f "$DEV_TAG"
+          git push -f origin "$DEV_TAG"
+
+          gh release create "$DEV_TAG" "$ASSET" \
+            --title "$DEV_TAG" \
+            --notes "Latest development build.
+
+          Branch: $GITHUB_REF_NAME
+          Commit: $GITHUB_SHA" \
+            --prerelease
