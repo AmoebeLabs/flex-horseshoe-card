@@ -1,0 +1,60 @@
+name: Dev latest prerelease
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+env:
+  DEV_TAG: dev-latest
+  ASSET: dist/flex-horseshoe-card.js
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    # PRs van forks mogen geen release overschrijven
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # Alleen publiceren bij push naar master
+      - name: Move dev-latest tag
+        if: github.event_name == 'push'
+        run: |
+          git tag -f "$DEV_TAG"
+          git push -f origin "$DEV_TAG"
+
+      - name: Replace dev-latest prerelease
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "$DEV_TAG" --yes --cleanup-tag || true
+
+          git tag -f "$DEV_TAG"
+          git push -f origin "$DEV_TAG"
+
+          gh release create "$DEV_TAG" "$ASSET" \
+            --title "$DEV_TAG" \
+            --notes "Latest development build from master.
+
+          Commit: $GITHUB_SHA" \
+            --prerelease
