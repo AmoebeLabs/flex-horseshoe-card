@@ -983,16 +983,25 @@ class FlexHorseshoeCard extends LitElement {
       let bidirectionalNegative = false;
 
       if (barMode === 'bidirectional') {
+        if (this?.dev?.debug_bidirectional) {
+          console.log('Set hass: Card ', this.cardId, 'bidirectional aset as barmode');
+        }
         const totalLength = horseshoe.horseshoePathLength;
         const value = Number(state);
 
         if (value >= 0) {
+          if (this?.dev?.debug_bidirectional) {
+            console.log('Set hass: Card ', this.cardId, 'Postive state: ', value);
+          }
           const positiveLength = Math.min(Colors.calculateValueBetween(0, max, value), 1) * (totalLength / 2);
 
           dashArray = `${positiveLength} ${horseshoe.circlePathLength - positiveLength}`;
           dashOffset = undefined;
           bidirectionalNegative = false;
         } else {
+          if (this?.dev?.debug_bidirectional) {
+            console.log('Set hass: Card ', this.cardId, 'Negative state: ', value);
+          }
           const negativeLength = (1 - Math.min(Colors.calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
 
           dashArray = `${negativeLength} ${horseshoe.circlePathLength - negativeLength}`;
@@ -1821,7 +1830,13 @@ class FlexHorseshoeCard extends LitElement {
 
     // console.log('render, stopStyle = ', stopStyle);
     if (barMode === 'bidirectional') {
+      if (this?.dev?.debug_bidirectional) {
+        console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
+      }
       if (horseshoe.bidirectional_negative) {
+        if (this?.dev?.debug_bidirectional) {
+          console.log('Render Horseshoe: Card ', this.cardId, 'Rendering negative barMode: ', barMode);
+        }
         return svg`
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
         transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
@@ -1862,6 +1877,9 @@ class FlexHorseshoeCard extends LitElement {
           </g>
         </g>
       `;
+      }
+      if (this?.dev?.debug_bidirectional) {
+        console.log('Render Horseshoe: Card ', this.cardId, 'Rendering positive barMode: ', barMode);
       }
 
       return svg`
