@@ -45,6 +45,7 @@ import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS
 import HorseshoesLayout from './layout/horseshoes-layout.js';
 import Label from './labels.js';
 import { version } from '../package.json';
+import Palette from './palettes.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -66,6 +67,7 @@ class FlexHorseshoeCard extends LitElement {
     super();
 
     Colors.setElement(this);
+    this.palettesLoaded = false;
 
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
@@ -96,6 +98,17 @@ class FlexHorseshoeCard extends LitElement {
     this.iconsSvg = [];
     this.pendingIconPath = [];
     this.iconsId = [];
+
+    // Theme mode support
+    this.theme = {};
+    // Did not check for theme loading yet!
+    this.theme.checked = false;
+    this.theme.isLoaded = false;
+    this.theme.modeChanged = false;
+    this.theme.darkMode = false;
+    this.theme.light = {};
+    this.theme.dark = {};
+    this.palettes = {};
 
     // Determines if horseshoe has full range, or is split in right/left from the top middle
     this.bar_mode = 'normal'; // default
@@ -906,7 +919,22 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
+  themeIsDarkMode() {
+    return this.theme.darkMode === true;
+  }
+
+  themeIsLightMode() {
+    return this.theme.darkMode === false;
+  }
+
   set hass(hass) {
+    this.setHass(hass);
+  }
+
+  setHass(hass, forceUpdate = false) {
+    if (forceUpdate) {
+      console.warn('forceUpdate is set to true. This should only be used for testing purposes, as it can cause performance issues.');
+    }
     this._hass = hass;
 
     Templates.setContext({
@@ -916,7 +944,22 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    let entityHasChanged = false;
+    let entityHasChanged = forceUpdate;
+    let themeModeHasChanged = false;
+
+    const themeName = hass.selectedTheme || hass.themes.theme || '';
+    const themeDarkMode = hass.themes.darkMode === true;
+
+    this.theme.nameChanged = this.theme.name !== themeName;
+    this.theme.modeChanged = this.theme.darkMode !== themeDarkMode;
+
+    if (this.theme.nameChanged || this.theme.modeChanged) {
+      this.theme.name = themeName;
+      this.theme.darkMode = themeDarkMode;
+      Colors.colorCache = {};
+      const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
+      Palette.applyAll(this, this.palettes, mode);
+    }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
@@ -1151,6 +1194,9 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
+    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed
+    this.theme.modeChanged = false;
+
     this.requestUpdate();
   }
 
@@ -1325,7 +1371,7 @@ class FlexHorseshoeCard extends LitElement {
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
-
+      // this.rawConfig = config;
       this.dev = { ...config.dev };
 
       if (!config.entities) {
@@ -1334,6 +1380,25 @@ class FlexHorseshoeCard extends LitElement {
 
       if (!config.layout) {
         throw Error('No layout defined');
+      }
+      if (config?.palettes) {
+        Palette.loadAll(config?.palettes).then((palettes) => {
+          console.log('setConfig, finally loaded palettes', palettes);
+          this.palettes = palettes;
+          const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
+          Colors.setElement(this);
+          Palette.applyAll(this, palettes, mode);
+          if (!this.palettesLoaded) {
+            Colors.colorCache = {};
+            Object.keys(Colors.colorCache)
+              .filter((key) => key.startsWith('var('))
+              .forEach((key) => delete Colors.colorCache[key]);
+            // this.setConfig(this.rawConfig);
+            this.palettesLoaded = true;
+            this.setHass(this._hass, true);
+          }
+          this.requestUpdate();
+        });
       }
       this._resolveSectionSameAs(config);
 
@@ -1475,6 +1540,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   connectedCallback() {
+    console.log('connectedCallback', this.cardId);
     super.connectedCallback();
   }
 
@@ -1499,6 +1565,8 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render({ config } = this) {
+    console.log('render', this.cardId);
+
     const item = {
       entity_index: 0,
     };
