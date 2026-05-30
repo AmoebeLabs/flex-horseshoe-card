@@ -94,6 +94,7 @@ export default class ColorStops {
     // SAK v1/v2 shape:
     //
     // colorstops:
+    //   any_field...
     //   scales:
     //     default:
     //       min: 0
@@ -102,6 +103,7 @@ export default class ColorStops {
     //     ...
     if (ColorStops.isPlainObject(value)) {
       return {
+        ...value,
         scales: ColorStops.normalizeScales(value.scales),
         colors: ColorStops.normalizeColors(value.colors),
       };
