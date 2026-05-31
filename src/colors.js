@@ -301,7 +301,139 @@ export default class Colors {
    * These variables are defined in the Lovelace element so it appears...
    *
    */
+
+  // Stap 1: Haal de tekstuele waarde op van je eigen kaart (inline stijl)
+  // Dit geeft de string terug: "var(--primary-color)"
+  static resolveColorVariable(argColor) {
+    const rawValue = this.element.style.getPropertyValue(argColor).trim();
+    // console.log('rawValue for ', argColor, ':', rawValue);
+    let returnedColor = rawValue;
+    // Stap 2: Check of het een 'var()' verwijzing is en extraheer de naam
+    if (rawValue.startsWith('var(')) {
+      // Haal "--primary-color" uit de string "var(--primary-color)"
+      const innerVar = rawValue.replace(/^var\((--.*?)\)$/, '$1').trim();
+
+      // Stap 3: Resolve die globale variabele via de document.body
+      const resolvedColor = window.getComputedStyle(document.body).getPropertyValue(innerVar).trim();
+      returnedColor = resolvedColor;
+      // console.log('De echte kleur is:', resolvedColor); // Output: #3498db of rgb(...)
+    } else {
+      // Als er geen var() in stond, maar direct een kleur (bijv. "red" of "#fff")
+      // console.log('De echte kleur is:', rawValue);
+    }
+    return returnedColor;
+  }
+
+  static resolveColorVariableV1(argColor) {
+    const probe = document.createElement('span');
+
+    probe.style.color = argColor;
+
+    Colors.element.appendChild(probe);
+
+    const color = getComputedStyle(probe).color;
+
+    probe.remove();
+
+    return color;
+  }
+
   static getColorVariable(argColor) {
+    const varName = argColor.slice(4, -1).trim();
+
+    const color = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
+    // console.log('getColorVariable - ', argColor, varName, color, Colors.element);
+    if (color) return color;
+
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+    }
+
+    const llColor = getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
+    // console.log('getColorVariable - ll', argColor, varName, color, llColor, Colors.element);
+    return llColor;
+  }
+
+  static getColorVariableV6(argColor) {
+    const varName = argColor.slice(4, -1).trim();
+
+    if (varName.startsWith('--fhc-')) {
+      const getColor = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
+      // console.log('getColorVariable - ', argColor, varName, getColor, Colors.element);
+      return getColor;
+    }
+
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+    }
+
+    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
+  }
+
+  static getColorVariableV5(argColor) {
+    const varName = argColor.slice(4, -1).trim();
+
+    const inlineValue = Colors.element?.style?.getPropertyValue(varName)?.trim();
+
+    if (inlineValue) return inlineValue;
+
+    const computedValue = Colors.element ? getComputedStyle(Colors.element).getPropertyValue(varName).trim() : '';
+
+    if (computedValue) return computedValue;
+
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+    }
+
+    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
+  }
+
+  static getColorVariableV4(argColor) {
+    const varName = argColor.slice(4, -1).trim();
+
+    const elementValue = Colors.element ? getComputedStyle(Colors.element).getPropertyValue(varName).trim() : '';
+
+    console.log('Colors.element', Colors.element);
+    console.log('elementValue', varName, elementValue);
+
+    if (elementValue) return elementValue;
+
+    // bestaande lovelace-code
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+    }
+
+    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
+  }
+
+  static getColorVariableV3(argColor) {
+    const varName = argColor.slice(4, -1).trim();
+    console.log('getColorVariable - ', argColor, varName);
+    if (varName.startsWith('--fhc-')) {
+      return getComputedStyle(Colors.element).getPropertyValue(varName).trim();
+    }
+
+    return Colors.getLovelaceColorVariable(argColor);
+  }
+
+  static getLovelaceColorVariable(argColor) {
+    const newColor = argColor.substr(4, argColor.length - 5);
+
+    if (!this.lovelace) {
+      this.lovelace = Colors.getLovelacePanel();
+      // const root = document.querySelector('home-assistant');
+      // const main = root.shadowRoot.querySelector('home-assistant-main');
+      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
+      // const pages = drawer_layout.querySelector('partial-panel-resolver');
+      // this.lovelace = pages.querySelector('ha-panel-lovelace');
+    } else {
+    }
+
+    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
+    return returnColor;
+  }
+
+  static getColorVariableV2(argColor) {
     const newColor = argColor.substr(4, argColor.length - 5);
 
     if (!this.lovelace) {
@@ -386,6 +518,45 @@ export default class Colors {
    * - a named css color value, such as white.
    *
    */
+
+  static resolveColorVariableV0(argColor) {
+    let color = argColor;
+
+    while (typeof color === 'string' && color.trim().startsWith('var(')) {
+      color = Colors.getColorVariable(color).trim();
+      console.log('resolving color variable ', argColor, ', to: ', color, '...');
+    }
+
+    return color;
+  }
+
+  static colorToRGBAChat(argColor) {
+    if (argColor == null) return [0, 0, 0, 0];
+
+    const retColor = Colors.colorCache[argColor];
+    if (retColor) return retColor;
+
+    let theColor = argColor;
+
+    if (typeof theColor === 'string' && theColor.trim().startsWith('var(')) {
+      theColor = Colors.resolveColorVariable(theColor);
+    }
+
+    const canvas = window.document.createElement('canvas');
+
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = theColor;
+    ctx.fillRect(0, 0, 1, 1);
+
+    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
+
+    Colors.colorCache[argColor] = outColor;
+
+    return outColor;
+  }
 
   static colorToRGBA(argColor) {
     if (argColor == null) return [0, 0, 0, 0];
