@@ -324,20 +324,6 @@ export default class Colors {
     return returnedColor;
   }
 
-  static resolveColorVariableV1(argColor) {
-    const probe = document.createElement('span');
-
-    probe.style.color = argColor;
-
-    Colors.element.appendChild(probe);
-
-    const color = getComputedStyle(probe).color;
-
-    probe.remove();
-
-    return color;
-  }
-
   static getColorVariable(argColor) {
     const varName = argColor.slice(4, -1).trim();
 
@@ -354,106 +340,15 @@ export default class Colors {
     return llColor;
   }
 
-  static getColorVariableV6(argColor) {
-    const varName = argColor.slice(4, -1).trim();
-
-    if (varName.startsWith('--fhc-')) {
-      const getColor = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
-      // console.log('getColorVariable - ', argColor, varName, getColor, Colors.element);
-      return getColor;
-    }
-
-    if (!this.lovelace) {
-      this.lovelace = Colors.getLovelacePanel();
-    }
-
-    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
-  }
-
-  static getColorVariableV5(argColor) {
-    const varName = argColor.slice(4, -1).trim();
-
-    const inlineValue = Colors.element?.style?.getPropertyValue(varName)?.trim();
-
-    if (inlineValue) return inlineValue;
-
-    const computedValue = Colors.element ? getComputedStyle(Colors.element).getPropertyValue(varName).trim() : '';
-
-    if (computedValue) return computedValue;
-
-    if (!this.lovelace) {
-      this.lovelace = Colors.getLovelacePanel();
-    }
-
-    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
-  }
-
-  static getColorVariableV4(argColor) {
-    const varName = argColor.slice(4, -1).trim();
-
-    const elementValue = Colors.element ? getComputedStyle(Colors.element).getPropertyValue(varName).trim() : '';
-
-    console.log('Colors.element', Colors.element);
-    console.log('elementValue', varName, elementValue);
-
-    if (elementValue) return elementValue;
-
-    // bestaande lovelace-code
-    if (!this.lovelace) {
-      this.lovelace = Colors.getLovelacePanel();
-    }
-
-    return getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
-  }
-
-  static getColorVariableV3(argColor) {
-    const varName = argColor.slice(4, -1).trim();
-    console.log('getColorVariable - ', argColor, varName);
-    if (varName.startsWith('--fhc-')) {
-      return getComputedStyle(Colors.element).getPropertyValue(varName).trim();
-    }
-
-    return Colors.getLovelaceColorVariable(argColor);
-  }
-
   static getLovelaceColorVariable(argColor) {
     const newColor = argColor.substr(4, argColor.length - 5);
 
     if (!this.lovelace) {
       this.lovelace = Colors.getLovelacePanel();
-      // const root = document.querySelector('home-assistant');
-      // const main = root.shadowRoot.querySelector('home-assistant-main');
-      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-      // const pages = drawer_layout.querySelector('partial-panel-resolver');
-      // this.lovelace = pages.querySelector('ha-panel-lovelace');
     } else {
     }
 
     const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-    return returnColor;
-  }
-
-  static getColorVariableV2(argColor) {
-    const newColor = argColor.substr(4, argColor.length - 5);
-
-    if (!this.lovelace) {
-      this.lovelace = Colors.getLovelacePanel();
-      // const root = document.querySelector('home-assistant');
-      // const main = root.shadowRoot.querySelector('home-assistant-main');
-      // const drawer_layout = main.shadowRoot.querySelector('app-drawer-layout');
-      // const pages = drawer_layout.querySelector('partial-panel-resolver');
-      // this.lovelace = pages.querySelector('ha-panel-lovelace');
-    } else {
-    }
-
-    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-    return returnColor;
-  }
-
-  static getColorVariableV1(argColor) {
-    const newColor = argColor.substr(4, argColor.length - 5);
-
-    const returnColor = window.getComputedStyle(Colors.element).getPropertyValue(newColor);
     return returnColor;
   }
 

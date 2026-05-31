@@ -1332,6 +1332,24 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
+  _resolveSameAsItemsVnew(items) {
+    const itemsById = new Map(items.map((item) => [String(item.id), item]));
+
+    return items.map((item, index) => {
+      if (item.same_as === undefined) return item;
+
+      const base = itemsById.get(String(item.same_as));
+
+      if (!base) {
+        throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+      }
+
+      const { same_as, ...restOfFields } = item;
+
+      return Merge.mergeDeep(base, restOfFields);
+    });
+  }
+
   _resolveSameAsItems(items) {
     return items.map((item, index, array) => {
       if (item.same_as === undefined) return item;
@@ -1345,11 +1363,6 @@ class FlexHorseshoeCard extends LitElement {
       const { same_as, ...restOfFields } = item;
 
       return Merge.mergeDeep(base, restOfFields);
-
-      // return {
-      //   ...base,
-      //   ...restOfFields,
-      // };
     });
   }
 
@@ -1362,6 +1375,25 @@ class FlexHorseshoeCard extends LitElement {
       if (!Array.isArray(items)) return;
 
       config.layout[section] = this._resolveSameAsItems(items);
+    });
+  }
+
+  _assignIdItems(items) {
+    return items.map((item, index) => ({
+      ...item,
+      id: String(item.id ?? index),
+    }));
+  }
+
+  _assignSectionIds(config) {
+    const layoutSections = ['horseshoes', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+
+    layoutSections.forEach((section) => {
+      const items = config.layout?.[section];
+
+      if (!Array.isArray(items)) return;
+
+      config.layout[section] = this._assignIdItems(items);
     });
   }
 
@@ -1760,11 +1792,6 @@ class FlexHorseshoeCard extends LitElement {
     const cx = horseshoe.svg.xpos;
     const cy = horseshoe.svg.ypos;
 
-    // const cxPercent = `${cx}%`;
-    // const cyPercent = `${cy}%`;
-
-    // const rotateX = cx * 2;
-    // const rotateY = cy * 2;
     const rotateX = horseshoe.svg.rotateX;
     const rotateY = horseshoe.svg.rotateY;
 
@@ -1934,154 +1961,6 @@ class FlexHorseshoeCard extends LitElement {
         </g>
       </g>
     `;
-
-    // console.log('render, stopStyle = ', stopStyle);
-    //   if (barMode === 'bidirectional') {
-    //     if (this?.dev?.debug_bidirectional) {
-    //       console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
-    //     }
-    //     if (horseshoe.bidirectional_negative) {
-    //       if (this?.dev?.debug_bidirectional) {
-    //         console.log('Render Horseshoe: Card ', this.cardId, 'Rendering negative barMode: ', barMode);
-    //       }
-    //       return svg`
-    //         <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-    //           transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-    //           style="${this._getGroupScaleStyle(horseshoe)}"
-    //         >
-    //           <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //             style=${styleMap(scaleStyle)}
-    //             transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
-
-    //           <g style=${styleMap(stopStyle)}>
-    //             ${this._renderHorseshoeScale(horseshoe, index)}
-    //           </g>
-
-    //           <g>
-    //             <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //               transform="rotate(-90 ${rotateX} ${rotateY})"
-    //               style=${styleMap(stateStyle)} />
-    //             ${this._renderOriginalTickMarks(horseshoe, index)}
-    //           </g>
-
-    //           <g style=${styleMap(tickmarksMinorStyle)}>
-    //             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-    //           </g>
-
-    //           <g style=${styleMap(tickmarksMajorStyle)}>
-    //             ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-    //           </g>
-
-    //           <g style=${styleMap(labelBackgroundStyle)}>
-    //             ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-    //           </g>
-
-    //           <g style=${styleMap(labelBadgeStyle)}>
-    //             ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-    //           </g>
-
-    //           <g style=${styleMap(labelStyle)}>
-    //             ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-    //           </g>
-    //         </g>
-    //       `;
-    //     }
-    //     if (this?.dev?.debug_bidirectional) {
-    //       console.log('Render Horseshoe: Card ', this.cardId, 'Rendering positive barMode: ', barMode);
-    //     }
-
-    //     return svg`
-    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-    //       style="${this._getGroupScaleStyle(horseshoe)}"
-    //       >
-    //         <g style=${styleMap(stopStyle)}>
-    //           ${this._renderHorseshoeScale(horseshoe, index)}
-    //         </g>
-
-    //         <g>
-    //           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //             transform="rotate(-90 ${rotateX} ${rotateY})"
-    //             style=${styleMap(stateStyle)} />
-    //           ${this._renderOriginalTickMarks(horseshoe, index)}
-    //         </g>
-
-    //         <g style=${styleMap(tickmarksMinorStyle)}>
-    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-    //         </g>
-
-    //         <g style=${styleMap(tickmarksMajorStyle)}>
-    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-    //         </g>
-
-    //         <g style=${styleMap(labelBackgroundStyle)}>
-    //           ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-    //         </g>
-
-    //         <g style=${styleMap(labelBadgeStyle)}>
-    //           ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-    //         </g>
-
-    //         <g style=${styleMap(labelStyle)}>
-    //           ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-    //         </g>
-    //     </g>
-    //   `;
-    //   }
-
-    //   return svg`
-    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-    //       style="${this._getGroupScaleStyle(horseshoe)}"
-    //       >
-    //         <g style=${styleMap(stopStyle)}>
-    //           ${this._renderHorseshoeScale(horseshoe, index)}
-    //         </g>
-    //         <g style=${styleMap(labelBackgroundStyle)}>
-    //           ${this._renderHorseshoeLabelBackground(horseshoe, index)}
-    //         </g>
-
-    //         <g>
-    //           <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //             transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-    //             style=${styleMap(stateStyle)} />
-    //           ${this._renderOriginalTickMarks(horseshoe, index)}
-    //         </g>
-
-    //         <g style=${styleMap(tickmarksMinorStyle)}>
-    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_minor')}
-    //         </g>
-
-    //         <g style=${styleMap(tickmarksMajorStyle)}>
-    //           ${this._renderHorseshoeTicks(horseshoe, index, 'ticks_major')}
-    //         </g>
-    //         <g style=${styleMap(labelBadgeStyle)}>
-    //           ${this._renderHorseshoeLabelBadges(horseshoe, index)}
-    //         </g>
-    //         <g style=${styleMap(labelStyle)}>
-    //           ${this._renderHorseshoeLabels(horseshoe, index, objectRotate)}
-    //         </g>
-    //       </g>
-    //   </g>
-    // `;
-
-    //   return svg`
-    //     <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
-    //       transform="${objectRotate} ${this._getGroupScaleTransform(horseshoe)}"
-    //       style="${this._getGroupScaleStyle(horseshoe)}"
-    //       >
-    //     <circle id="horseshoe__scale-${index}" class="horseshoe__scale" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //       style=${styleMap(scaleStyle)}
-    //       transform="rotate(${startRotation} ${rotateX} ${rotateY})"/>
-    //       <g style=${styleMap(stopStyle)}>
-    //         ${this._testRenderColorStopScale(index, horseshoe)}
-    //       </g>
-    //     <circle id="horseshoe__state__value-${index}" class="horseshoe__state__value" cx="${cx}px" cy="${cy}px" r="${radius}"
-    //       transform="rotate(${startRotation} ${rotateX} ${rotateY})"
-    //       style=${styleMap(stateStyle)} />
-    //     ${this._renderOriginalTickMarks(horseshoe, index)}
-    //   </g>
-    // `;
   }
 
   /** *****************************************************************************
@@ -2221,19 +2100,6 @@ class FlexHorseshoeCard extends LitElement {
         </text>
       </g>
       `;
-
-    // return svg`
-    //   <text
-    //     @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-    //     >
-    //       <tspan
-    //         class="entity__area"
-    //         x="${item.xpos}%"
-    //         y="${item.ypos}%"
-    //         style=${styleMap(styles)}>
-    //         ${area}</tspan>
-    //   </text>
-    // `;
   }
 
   _renderEntityAreas() {
@@ -2267,46 +2133,10 @@ class FlexHorseshoeCard extends LitElement {
     return `scale(${scaleX * flipX}, ${scaleY * flipY})`;
   }
 
-  _getGroupScaleTransformV2(item) {
-    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
-
-    if (!group?.scale && !item?.flip_x && !item?.flip_y) return '';
-
-    const scaleX = group?.scale?.x ?? group?.scale ?? 1;
-    const scaleY = group?.scale?.y ?? group?.scale ?? 1;
-
-    const flipX = item?.flip === 'x' || item?.flip === 'both' ? -1 : 1;
-    const flipY = item?.flip === 'y' || item?.flip === 'both' ? -1 : 1;
-
-    return `scale(${scaleX * flipX}, ${scaleY * flipY})`;
-  }
-
-  _getGroupScaleTransformV1(item) {
-    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
-
-    if (!group?.scale) return '';
-
-    const scaleX = group.scale?.x ?? group.scale;
-    const scaleY = group.scale?.y ?? group.scale;
-
-    const flipX = item?.flip_x ? -1 : 1;
-    const flipY = item?.flip_y ? -1 : 1;
-
-    return `scale(${scaleX}, ${scaleY})`;
-  }
-
   _getGroupScaleStyle(item) {
     const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
 
     if (!group?.scale || !group.svg) return `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px; transform-box:view-box;`;
-
-    return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
-  }
-
-  _getGroupScaleStyleV1(item) {
-    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
-
-    if (!group?.scale || !group.svg) return '';
 
     return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
   }
@@ -2320,8 +2150,6 @@ class FlexHorseshoeCard extends LitElement {
     const x = item.svg.xpos ?? SVG_DEFAULT_DIMENSIONS_HALF;
     const y = item.svg.ypos ?? SVG_DEFAULT_DIMENSIONS_HALF;
 
-    // const x = item.svg.xpos ?? item.svg.xpos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
-    // const y = item.svg.ypos ?? item.svg.ypos : SVG_DEFAULT_DIMENSIONS_HALF; // '';
     const dx = item.dx ? item.dx : '0';
     const dy = item.dy ? item.dy : '0';
 
@@ -3632,45 +3460,6 @@ class FlexHorseshoeCard extends LitElement {
     return entityId.substr(entityId.indexOf('.') + 1);
   }
 
-  _renderHorseshoeTicksVkapot(horseshoe, index, tickType) {
-    const ticks = horseshoe.horseshoe_tickmarks?.[tickType];
-    console.log('_renderHorseshoeTicksticks', tickType, ticks);
-    if (!ticks) {
-      return svg``;
-    } else {
-      console.log('_renderHorseshoeTicksticks. GEDEFINIEERD', tickType, ticks.ticksize);
-    }
-
-    const min = Number(horseshoe.horseshoe_scale.min);
-    const max = Number(horseshoe.horseshoe_scale.max);
-
-    const cx = horseshoe.svg.xpos;
-    const cy = horseshoe.svg.ypos;
-    const radius = horseshoe.svg.radius + Number(ticks.offset);
-
-    let values = Label.buildTickValues(min, max, Number(ticks.ticksize));
-
-    if (tickType === 'ticks_minor') {
-      const majorTicksize = Number(horseshoe.horseshoe_tickmarks?.ticks_major?.ticksize);
-
-      values = values.filter((value) => !Label.isMajorTick(value, min, majorTicksize));
-    }
-
-    return Label.renderTicks({
-      cx,
-      cy,
-      radius,
-      values,
-      min,
-      max,
-      arcDegrees: horseshoe.arc_degrees,
-      barMode: horseshoe.bar_mode,
-      tickWidth: Number(ticks.width),
-      tickThickness: Number(ticks.thickness),
-      className: `horseshoe-${tickType}`,
-    });
-  }
-
   _renderHorseshoeTicks(horseshoe, horseshoeIndex, tickType) {
     if (!horseshoe?.show?.ticks) {
       return svg``;
@@ -3705,83 +3494,6 @@ class FlexHorseshoeCard extends LitElement {
       ticksMajor: tickmarks.ticks_major,
       ticksMinor: tickmarks.ticks_minor,
       tickType,
-    });
-  }
-
-  _renderHorseshoeTicksV2(horseshoe, horseshoeIndex, tickType) {
-    if (!horseshoe?.show?.ticks) {
-      return svg``;
-    }
-
-    const tickmarks = horseshoe.horseshoe_tickmarks;
-
-    if (!tickmarks?.ticks_major && !tickmarks?.ticks_minor) {
-      return svg``;
-    }
-
-    const min = Number(horseshoe.horseshoe_scale.min);
-    const max = Number(horseshoe.horseshoe_scale.max);
-
-    const cx = horseshoe.svg.xpos;
-    const cy = horseshoe.svg.ypos;
-
-    const baseRadius = horseshoe.svg.radius;
-
-    const barMode = horseshoe.bar_mode;
-    const arcDegrees = horseshoe.arc_degrees;
-
-    const color = tickmarks.color; // ?? 'var(--primary-text-color)';
-
-    return Label.renderScaleTicks({
-      cx,
-      cy,
-      radius: baseRadius,
-      min,
-      max,
-      arcDegrees,
-      barMode,
-      color,
-      ticksMajor: tickmarks.ticks_major,
-      ticksMinor: tickmarks.ticks_minor,
-      tickType,
-    });
-  }
-
-  _renderHorseshoeTicksV1(horseshoe, horseshoeIndex) {
-    if (!horseshoe?.show?.ticks) {
-      return svg``;
-    }
-
-    const tickmarks = horseshoe.horseshoe_tickmarks;
-
-    if (!tickmarks?.ticks_major && !tickmarks?.ticks_minor) {
-      return svg``;
-    }
-
-    const min = Number(horseshoe.horseshoe_scale.min);
-    const max = Number(horseshoe.horseshoe_scale.max);
-
-    const cx = horseshoe.svg.xpos;
-    const cy = horseshoe.svg.ypos;
-
-    const baseRadius = horseshoe.svg.radius;
-
-    const barMode = horseshoe.bar_mode;
-    const arcDegrees = horseshoe.arc_degrees;
-
-    const color = tickmarks.color; // ?? 'var(--primary-text-color)';
-
-    return Label.renderScaleTicks({
-      cx,
-      cy,
-      radius: baseRadius,
-      min,
-      max,
-      arcDegrees,
-      barMode,
-      color,
-      ticksMajor: tickmarks.ticks_major,
-      ticksMinor: tickmarks.ticks_minor,
     });
   }
 
@@ -3953,55 +3665,6 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return svg``;
-  }
-
-  _testRenderColorStopScaleV1(horseshoeIndex, horseshoe) {
-    // testing
-    if (horseshoe?.show?.scale_style === 'colorstop') {
-      console.log('_testRenderColorStopScale, horseshoe', horseshoe?.show?.scale_style, horseshoeIndex, horseshoe, horseshoe?.horseshoe_scale);
-      //
-      const min = Number(horseshoe.horseshoe_scale.min);
-      const max = Number(horseshoe.horseshoe_scale.max);
-
-      const cx = horseshoe.svg.xpos;
-      const cy = horseshoe.svg.ypos;
-      const radius = horseshoe.svg.radius; // + horseshoe.horseshoe_state.width + 2;
-
-      const barMode = horseshoe.bar_mode;
-
-      const arcDegrees = horseshoe.arc_degrees;
-      const colorStops = horseshoe.colorStops;
-
-      const labelStops = [{ value: min, label: min }, ...horseshoe.colorStops.colors, { value: max, label: max }].filter((stop, index, array) => {
-        const value = Number(stop.value);
-
-        return Number.isFinite(value) && value >= min && value <= max && array.findIndex((item) => Number(item.value) === value) === index;
-      });
-      return svg`
-      ${
-        horseshoe?.colorStops?.colors.length
-          ? Label.renderColorStopScaleSegments({
-              cx,
-              cy,
-              radius,
-              startAngle: -arcDegrees / 2,
-              endAngle: arcDegrees / 2,
-              width: horseshoe.horseshoe_scale.width,
-              colorStops,
-              min,
-              max,
-              arcDegrees,
-              barMode,
-              gap: colorStops.gap ?? 2,
-              className: 'horseshoe-colorstop-scale-segment',
-              lineCap: 'round',
-            })
-          : svg``
-      }
-      `;
-    } else {
-      return svg``;
-    }
   }
 
   _renderHorseshoeLabelBackground(horseshoe, horseshoeIndex) {
@@ -4395,18 +4058,6 @@ class FlexHorseshoeCard extends LitElement {
           isMin: false,
           isMax: false,
         });
-        // return Label.renderColorStopLabel({
-        //   horseshoeIndex,
-        //   index,
-        //   label: stop.label ?? stop.value,
-        //   angle,
-        //   cx,
-        //   cy,
-        //   radius,
-        //   cardId: this.cardId,
-        //   isMin: value === min,
-        //   isMax: value === max,
-        // });
       })}
   `;
 
@@ -4457,93 +4108,6 @@ class FlexHorseshoeCard extends LitElement {
           cardId: this.cardId,
           isMin: false,
           isMax: false,
-        });
-        // return Label.renderColorStopLabel({
-        //   horseshoeIndex,
-        //   index,
-        //   label: stop.label ?? stop.value,
-        //   angle,
-        //   cx,
-        //   cy,
-        //   radius,
-        //   cardId: this.cardId,
-        //   isMin: value === min,
-        //   isMax: value === max,
-        // });
-      })}
-  `;
-  }
-
-  _renderColorStopLabelsV2(horseshoe, horseshoeScale, colorStops, arcDegrees) {
-    const min = Number(horseshoeScale.min);
-    const max = Number(horseshoeScale.max);
-
-    const cx = horseshoe.svg.xpos;
-    const cy = horseshoe.svg.ypos;
-    const radius = horseshoe.svg.radius + horseshoe.horseshoe_state.width;
-
-    const barMode = horseshoe.bar_mode;
-
-    return svg`
-    ${colorStops
-      .filter((stop) => {
-        const value = Number(stop.value);
-
-        return Number.isFinite(value) && value >= min && value <= max;
-      })
-      .map((stop, index) => {
-        const value = Number(stop.value);
-
-        const angle = Label.valueToAngle(value, min, max, arcDegrees, barMode);
-        // console.log('colorstop label:', {
-        //   value,
-        //   min,
-        //   max,
-        //   arcDegrees,
-        //   barMode,
-        //   isBidirectional: barMode === 'bidirectional',
-        // });
-        return Label.renderColorStopLabel({
-          index,
-          label: stop.label ?? stop.value,
-          angle,
-          cx,
-          cy,
-          radius,
-          cardId: this.cardId,
-        });
-      })}
-  `;
-  }
-
-  _renderColorStopLabelsV1(horseshoe, horseshoeScale, colorStops, arcDegrees) {
-    const min = Number(horseshoeScale.min);
-    const max = Number(horseshoeScale.max);
-
-    const cx = horseshoe.svg.xpos; // 100;
-    const cy = horseshoe.svg.ypos; // 100;
-    const radius = horseshoe.svg.radius + horseshoe.horseshoe_state.width; // 78;
-
-    return svg`
-    ${colorStops
-      .filter((stop) => {
-        const value = Number(stop.value);
-
-        return Number.isFinite(value) && value >= min && value <= max;
-      })
-      .map((stop, index) => {
-        const value = Number(stop.value);
-        const pct = (value - min) / (max - min);
-        const angle = -arcDegrees / 2 + pct * arcDegrees;
-
-        return Label.renderColorStopLabel({
-          index,
-          label: stop.label ?? stop.value,
-          angle,
-          cx,
-          cy,
-          radius,
-          cardId: this.cardId,
         });
       })}
   `;
