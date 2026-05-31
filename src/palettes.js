@@ -19,20 +19,8 @@ export default class Palette {
   }
 
   static async loadAll(palettes = {}) {
-    // console.log('Loading palettes', palettes);
     const entries = await Promise.all(
       Object.entries(palettes || {}).map(async ([name, url]) => {
-        const palette = await this.load(url);
-        return [name, palette];
-      }),
-    );
-
-    return Object.fromEntries(entries);
-  }
-
-  static async loadAllV1(paletteConfigs) {
-    const entries = await Promise.all(
-      Object.entries(paletteConfigs).map(async ([name, url]) => {
         const palette = await this.load(url);
         return [name, palette];
       }),
@@ -47,13 +35,11 @@ export default class Palette {
     });
 
     Object.entries(palette.modes[mode]).forEach(([name, value]) => {
-      // 1. Zet de variabele (met streepjes)
+      // Add CSS VAR prefix to name
       element.style.setProperty(`--${name}`, value);
 
-      // 2. Vraag de berekende kleur op (VOEG HIER DE `--` TOE)
-      const deKleur = window.getComputedStyle(element).getPropertyValue(`--${name}`).trim();
-
-      // console.log(`Applied palette variable --${name}: ${deKleur}`);
+      // Fetch as test
+      // const deKleur = window.getComputedStyle(element).getPropertyValue(`--${name}`).trim();
     });
   }
 
