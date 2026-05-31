@@ -1332,7 +1332,236 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _resolveSameAsItemsVnew(items) {
+  _isStaticCalc(value) {
+    return typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
+  }
+
+  _evaluateStaticCalc(value) {
+    const expression = value.slice(5, -1).trim();
+
+    if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
+      throw new Error(`Invalid static calc expression '${value}'`);
+    }
+
+    const calcFns = {
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      abs: Math.abs,
+      round: Math.round,
+      floor: Math.floor,
+      ceil: Math.ceil,
+      min: Math.min,
+      max: Math.max,
+      sqrt: Math.sqrt,
+      PI: Math.PI,
+    };
+
+    // eslint-disable-next-line no-new-func
+    const result = Function(...Object.keys(calcFns), `"use strict"; return (${expression});`)(...Object.values(calcFns));
+
+    if (typeof result !== 'number' || !Number.isFinite(result)) {
+      throw new Error(`Static calc expression '${value}' did not return a finite number`);
+    }
+
+    return result;
+  }
+
+  _evaluateStaticCalcV1(value) {
+    const expression = value.slice(5, -1).trim();
+
+    if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
+      throw new Error(`Invalid static calc expression '${value}'`);
+    }
+
+    // eslint-disable-next-line no-new-func
+    const result = Function(`"use strict"; return (${expression});`)();
+
+    if (typeof result !== 'number' || !Number.isFinite(result)) {
+      throw new Error(`Static calc expression '${value}' did not return a number`);
+    }
+
+    return result;
+  }
+
+  _evaluateStaticConfig(config) {
+    if (this._isStaticCalc(config)) {
+      return this._evaluateStaticCalc(config);
+    }
+
+    if (Array.isArray(config)) {
+      return config.map((item) => this._evaluateStaticConfig(item));
+    }
+
+    if (config && typeof config === 'object') {
+      Object.entries(config).forEach(([key, value]) => {
+        config[key] = this._evaluateStaticConfig(value);
+      });
+
+      return config;
+    }
+
+    return config;
+  }
+
+  _isStaticNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  _applySameAsDeltas(item, resolvedItem, index) {
+    Object.entries(item).forEach(([key, value]) => {
+      if (!key.startsWith('same_as_d')) return;
+
+      const targetKey = key.substring('same_as_d'.length);
+
+      if (!targetKey) {
+        throw new Error(`Invalid same_as delta field '${key}' for item ${index}`);
+      }
+
+      if (resolvedItem[targetKey] === undefined) {
+        throw new Error(`same_as delta '${key}' requires '${targetKey}' for item ${index}`);
+      }
+
+      if (!this._isStaticNumber(resolvedItem[targetKey])) {
+        throw new Error(`same_as delta '${key}' requires numeric '${targetKey}' for item ${index}`);
+      }
+
+      if (!this._isStaticNumber(value)) {
+        throw new Error(`same_as delta '${key}' must be numeric for item ${index}`);
+      }
+
+      resolvedItem[targetKey] += value;
+    });
+
+    return resolvedItem;
+  }
+
+  _applySameAsDeltasV1(item, resolvedItem) {
+    Object.entries(item).forEach(([key, value]) => {
+      if (!key.startsWith('same_as_d')) return;
+
+      const targetKey = key.substring('same_as_d'.length);
+
+      if (resolvedItem[targetKey] === undefined) {
+        throw new Error(`same_as delta '${key}' requires '${targetKey}'`);
+      }
+
+      resolvedItem[targetKey] = Number(resolvedItem[targetKey]) + Number(value);
+    });
+
+    return resolvedItem;
+  }
+
+  _resolveSameAsItems(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, ...restOfFields } = item;
+
+        resolvedItem = Merge.mergeDeep(base, restOfFields);
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV4(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_dxpos, same_as_dypos, same_as_dlength, same_as_dradius, ...restOfFields } = item;
+        resolvedItem = Merge.mergeDeep(base, restOfFields);
+
+        if (same_as_dxpos !== undefined) {
+          resolvedItem.xpos = Number(resolvedItem.xpos) + Number(same_as_dxpos);
+        }
+
+        if (same_as_dypos !== undefined) {
+          resolvedItem.ypos = Number(resolvedItem.ypos) + Number(same_as_dypos);
+        }
+
+        if (same_as_dlength !== undefined) {
+          resolvedItem.length = Number(resolvedItem.length) + Number(same_as_dlength);
+        }
+
+        if (same_as_dradius !== undefined) {
+          resolvedItem.radius = Number(resolvedItem.radius) + Number(same_as_dradius);
+        }
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV3(items) {
+    const itemsById = new Map(items.map((item) => [String(item.id), item]));
+
+    return items.map((item, index) => {
+      if (item.same_as === undefined) return item;
+
+      const base = itemsById.get(String(item.same_as));
+
+      if (!base) {
+        throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+      }
+
+      const { same_as, same_as_dxpos, same_as_dypos, ...restOfFields } = item;
+
+      const mergedItem = Merge.mergeDeep(base, restOfFields);
+
+      if (same_as_dxpos !== undefined) {
+        if (mergedItem.xpos === undefined) {
+          throw new Error(`same_as_dxpos requires xpos for item ${index}`);
+        }
+
+        mergedItem.xpos += same_as_dxpos;
+      }
+
+      if (same_as_dypos !== undefined) {
+        if (mergedItem.ypos === undefined) {
+          throw new Error(`same_as_dypos requires ypos for item ${index}`);
+        }
+
+        mergedItem.ypos += same_as_dypos;
+      }
+
+      return mergedItem;
+    });
+  }
+
+  _resolveSameAsItemsV2(items) {
     const itemsById = new Map(items.map((item) => [String(item.id), item]));
 
     return items.map((item, index) => {
@@ -1350,7 +1579,7 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
-  _resolveSameAsItems(items) {
+  _resolveSameAsItemsV1(items) {
     return items.map((item, index, array) => {
       if (item.same_as === undefined) return item;
 
@@ -1426,6 +1655,8 @@ class FlexHorseshoeCard extends LitElement {
           this.requestUpdate();
         });
       }
+      this._assignSectionIds(config);
+      this._evaluateStaticConfig(config);
       this._resolveSectionSameAs(config);
 
       Templates.setContext({
