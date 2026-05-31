@@ -306,7 +306,7 @@ export default class Colors {
   // Dit geeft de string terug: "var(--primary-color)"
   static resolveColorVariable(argColor) {
     const rawValue = this.element.style.getPropertyValue(argColor).trim();
-    console.log('rawValue for ', argColor, ':', rawValue);
+    // console.log('rawValue for ', argColor, ':', rawValue);
     let returnedColor = rawValue;
     // Stap 2: Check of het een 'var()' verwijzing is en extraheer de naam
     if (rawValue.startsWith('var(')) {
@@ -316,10 +316,10 @@ export default class Colors {
       // Stap 3: Resolve die globale variabele via de document.body
       const resolvedColor = window.getComputedStyle(document.body).getPropertyValue(innerVar).trim();
       returnedColor = resolvedColor;
-      console.log('De echte kleur is:', resolvedColor); // Output: #3498db of rgb(...)
+      // console.log('De echte kleur is:', resolvedColor); // Output: #3498db of rgb(...)
     } else {
       // Als er geen var() in stond, maar direct een kleur (bijv. "red" of "#fff")
-      console.log('De echte kleur is:', rawValue);
+      // console.log('De echte kleur is:', rawValue);
     }
     return returnedColor;
   }
@@ -342,7 +342,7 @@ export default class Colors {
     const varName = argColor.slice(4, -1).trim();
 
     const color = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
-    console.log('getColorVariable - ', argColor, varName, color, Colors.element);
+    // console.log('getColorVariable - ', argColor, varName, color, Colors.element);
     if (color) return color;
 
     if (!this.lovelace) {
@@ -350,7 +350,7 @@ export default class Colors {
     }
 
     const llColor = getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
-    console.log('getColorVariable - ll', argColor, varName, color, llColor, Colors.element);
+    // console.log('getColorVariable - ll', argColor, varName, color, llColor, Colors.element);
     return llColor;
   }
 
@@ -359,7 +359,7 @@ export default class Colors {
 
     if (varName.startsWith('--fhc-')) {
       const getColor = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
-      console.log('getColorVariable - ', argColor, varName, getColor, Colors.element);
+      // console.log('getColorVariable - ', argColor, varName, getColor, Colors.element);
       return getColor;
     }
 

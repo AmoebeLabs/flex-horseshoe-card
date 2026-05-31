@@ -932,9 +932,6 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   setHass(hass, forceUpdate = false) {
-    if (forceUpdate) {
-      console.warn('forceUpdate is set to true. This should only be used for testing purposes, as it can cause performance issues.');
-    }
     this._hass = hass;
 
     Templates.setContext({
@@ -1027,7 +1024,7 @@ class FlexHorseshoeCard extends LitElement {
 
       if (barMode === 'bidirectional') {
         if (this?.dev?.debug_bidirectional) {
-          console.log('Set hass: Card ', this.cardId, 'bidirectional aset as barmode');
+          console.log('<debug_bidirectional> Set hass: Card ', this.cardId, 'bidirectional aset as barmode');
         }
         const totalLength = horseshoe.horseshoePathLength;
         let value = Number(state);
@@ -1036,7 +1033,7 @@ class FlexHorseshoeCard extends LitElement {
         }
         if (value >= 0) {
           if (this?.dev?.debug_bidirectional) {
-            console.log('Set hass: Card ', this.cardId, 'Postive state: ', value);
+            console.log('<debug_bidirectional> Set hass: Card ', this.cardId, 'Postive state: ', value);
           }
           const positiveLength = Math.min(Colors.calculateValueBetween(0, max, value), 1) * (totalLength / 2);
 
@@ -1045,7 +1042,7 @@ class FlexHorseshoeCard extends LitElement {
           bidirectionalNegative = false;
         } else {
           if (this?.dev?.debug_bidirectional) {
-            console.log('Set hass: Card ', this.cardId, 'Negative state: ', value);
+            console.log('<debug_bidirectional> Set hass: Card ', this.cardId, 'Negative state: ', value);
           }
           const negativeLength = (1 - Math.min(Colors.calculateValueBetween(min, 0, value), 1)) * (totalLength / 2);
 
@@ -1371,7 +1368,6 @@ class FlexHorseshoeCard extends LitElement {
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
-      // this.rawConfig = config;
       this.dev = { ...config.dev };
 
       if (!config.entities) {
@@ -1383,7 +1379,6 @@ class FlexHorseshoeCard extends LitElement {
       }
       if (config?.palettes) {
         Palette.loadAll(config?.palettes).then((palettes) => {
-          console.log('setConfig, finally loaded palettes', palettes);
           this.palettes = palettes;
           const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
           Colors.setElement(this);
@@ -1393,7 +1388,6 @@ class FlexHorseshoeCard extends LitElement {
             Object.keys(Colors.colorCache)
               .filter((key) => key.startsWith('var('))
               .forEach((key) => delete Colors.colorCache[key]);
-            // this.setConfig(this.rawConfig);
             this.palettesLoaded = true;
             this.setHass(this._hass, true);
           }
@@ -1540,7 +1534,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   connectedCallback() {
-    console.log('connectedCallback', this.cardId);
     super.connectedCallback();
   }
 
@@ -1565,7 +1558,7 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render({ config } = this) {
-    console.log('render', this.cardId);
+    // console.log('render', this.cardId);
 
     const item = {
       entity_index: 0,
@@ -1901,7 +1894,7 @@ class FlexHorseshoeCard extends LitElement {
     const isBidirectional = barMode === 'bidirectional';
     const stateRotation = isBidirectional ? -90 : startRotation;
     if (this?.dev?.debug_bidirectional) {
-      console.log('Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
+      console.log('<debug_bidirectional> Render Horseshoe: Card ', this.cardId, 'barMode: ', barMode);
     }
     return svg`
       <g id="horseshoe__svg__group-${index}" class="horseshoe__svg__group"
@@ -4345,7 +4338,6 @@ class FlexHorseshoeCard extends LitElement {
       console.log('renderColorStopLabels, no colorstops', horseshoe);
       return svg``;
     }
-    console.log('entering _renderColorStopLabels for', horseshoeIndex, horseshoe);
     const min = Number(horseshoeScale.min);
     const max = Number(horseshoeScale.max);
 
@@ -4383,7 +4375,7 @@ class FlexHorseshoeCard extends LitElement {
         visibleLabelStops.push(stop);
       }
     });
-    console.log('_renderColorStopLabels, labelStops ', labelStops, visibleLabelStops);
+    // console.log('_renderColorStopLabels, labelStops ', labelStops, visibleLabelStops);
 
     return svg`
       ${visibleLabelStops.map((stop, index) => {

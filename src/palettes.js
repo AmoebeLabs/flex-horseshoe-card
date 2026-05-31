@@ -19,7 +19,7 @@ export default class Palette {
   }
 
   static async loadAll(palettes = {}) {
-    console.log('Loading palettes', palettes);
+    // console.log('Loading palettes', palettes);
     const entries = await Promise.all(
       Object.entries(palettes || {}).map(async ([name, url]) => {
         const palette = await this.load(url);
@@ -53,7 +53,7 @@ export default class Palette {
       // 2. Vraag de berekende kleur op (VOEG HIER DE `--` TOE)
       const deKleur = window.getComputedStyle(element).getPropertyValue(`--${name}`).trim();
 
-      console.log(`Applied palette variable --${name}: ${deKleur}`);
+      // console.log(`Applied palette variable --${name}: ${deKleur}`);
     });
   }
 
