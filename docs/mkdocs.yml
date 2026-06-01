@@ -1,0 +1,230 @@
+# History
+
+# Project information
+site_name: Flexible Horseshoe Card for Home Assistant
+site_url: https://flexible-horseshoe-card-manual.amoebelabs.com/
+site_author: Marco
+site_description: >-
+  The versatile custom Flexible Horseshoe Card for Home Assistant allows you to create your horseshoe alike visualizations.
+
+# Repository
+repo_name: Flexible Horseshoe Card
+repo_url: https://github.com/amoebelabs/flexible-horseshoe-card
+edit_uri: ''
+
+copyright: Copyright &copy; 2026 Marco @AmoebeLabs
+
+watch:
+  - docs
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: '(prefers-color-scheme)'
+      primary: amoebelabs-light
+      accent: amoebelabs-light
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: '(prefers-color-scheme: light)'
+      primary: amoebelabs-light
+      accent: amoebelabs-light
+      #      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: amoebelabs-dark
+      accent: amoebelabs-dark
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  logo: assets/logo/fhs-logo.svg
+  custom_dir: overrides
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - tags
+  - blog
+  - minify:
+      minify_html: true
+  # Redirect pages pages that I want to rename etc. without loosing Google / Bing indexing...
+  # And users getting a 404 while clicking on an old link of course!
+  # This is using a HTML refresh with 0 seconds and contains a "no-index" for the old page.
+  # - redirects:
+  #     redirect_maps:
+  #       'start/introduction.md': 'start/preface.md'
+  #       'start/designing-your-card.md': 'design/how-to-design-your-card.md'
+  #       'basics/interactions.md': 'basics/user-interactions.md'
+  #       'basics/svg-as-basis.md': 'basics/tools-and-toolsets.md'
+
+  #       # @2024.12.30 Move from design to series1 under the 'functional card menu'
+  #       'design/functional-card-airvisual1-card.md': 'functional-cards/series1/functional-card-airvisual1-card.md'
+  #       'design/functional-card-airvisual2-card.md': 'functional-cards/series1/functional-card-airvisual2-card.md'
+  #       'design/functional-card-battery-sensor2-card.md': 'functional-cards/series1/functional-card-battery-sensor2-card.md'
+  #       'design/functional-card-binary-sensor1-card.md': 'functional-cards/series1/functional-card-binary-sensor1-card.md'
+  #       'design/functional-card-binary-sensor-alert1-card.md': 'functional-cards/series1/functional-card-binary-sensor-alert1-card.md'
+  #       'design/functional-card-binary-sensor-alert2-card.md': 'functional-cards/series1/functional-card-binary-sensor-alert2-card.md'
+  #       'design/functional-card-binary-sensor-alert3-card.md': 'functional-cards/series1/functional-card-binary-sensor-alert3-card.md'
+  #       'design/functional-card-binary-sensor-alert4-card.md': 'functional-cards/series1/functional-card-binary-sensor-alert4-card.md'
+  #       'design/functional-card-environment-card.md': 'functional-cards/series1/functional-card-environment-card.md'
+  #       'design/functional-card-header-card.md': 'functional-cards/series1/functional-card-header-card.md'
+  #       'design/functional-card-input-boolean-card.md': 'functional-cards/series1/functional-card-input-boolean-card.md'
+  #       'design/functional-card-light-card.md': 'functional-cards/series1/functional-card-light-card.md'
+  #       'design/functional-card-light-slider-card.md': 'functional-cards/series1/functional-card-light-slider-card.md'
+  #       'design/functional-card-navigate-card.md': 'functional-cards/series1/functional-card-navigate-card.md'
+  #       'design/functional-card-person-card.md': 'functional-cards/series1/functional-card-person-card.md'
+  #       'design/functional-card-power-outlet1-card.md': 'functional-cards/series1/functional-card-power-outlet1-card.md'
+  #       'design/functional-card-power-outlet2-card.md': 'functional-cards/series1/functional-card-power-outlet2-card.md'
+  #       'design/functional-card-power-outlet3-card.md': 'functional-cards/series1/functional-card-power-outlet3-card.md'
+  #       'design/functional-card-power-outlet4-card.md': 'functional-cards/series1/functional-card-power-outlet4-card.md'
+  #       'design/functional-card-scene-card.md': 'functional-cards/series1/functional-card-scene-card.md'
+  #       'design/functional-card-sensor1-card.md': 'functional-cards/series1/functional-card-sensor1-card.md'
+  #       'design/functional-card-sensor2-card.md': 'functional-cards/series1/functional-card-sensor2-card.md'
+  #       'design/functional-card-server-statistics-card.md': 'functional-cards/series1/functional-card-server-statistics-card.md'
+  #       'design/functional-card-switch1-card.md': 'functional-cards/series1/functional-card-switch1-card.md'
+  #       'design/functional-card-switch2-card.md': 'functional-cards/series1/functional-card-switch2-card.md'
+  #       'design/functional-card-switch3-card.md': 'functional-cards/series1/functional-card-switch3-card.md'
+  #       'design/functional-card-tomorrow-pollen-card.md': 'functional-cards/series1/functional-card-tomorrow-pollen-card.md'
+  #       'design/functional-card-tomorrow-pollen-all-card.md': 'functional-cards/series1/functional-card-tomorrow-pollen-all-card.md'
+  #       'design/functional-card-tomorrow-pollen-all-aqi-card.md': 'functional-cards/series1/functional-card-tomorrow-pollen-all-aqi-card.md'
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/extra.js
+
+extra:
+  social:
+    - icon: bmc/bmc-logo
+      link: https://www.buymeacoffee.com/amoebelabs/
+    - icon: amoebelabs/al-logo-social
+      link: https://amoebelabs.com/
+    - icon: m3/m3-logo-social
+      link: https://material3-themes-manual.amoebelabs.com/
+    - icon: fontawesome/brands/github
+      link: https://github.com/amoebelabs/
+    - icon: fontawesome/brands/instagram
+      link: https://www.instagram.com/amoebelabs/
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/amoebelabs/
+
+  # analytics:
+  #   provider: google
+  #   property: G-YH4P44GYYJ
+
+markdown_extensions:
+  - admonition
+  - abbr
+  - def_list
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  # Formatting
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  # Grids
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid-experimental
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting started:
+      - Introduction: getting-started/introduction.md
+      - Install with HACS: getting-started/installation.md
+  - Examples:
+      - Overview: examples/overview.md
+      - Functional Cards:
+          - AirVisual Card: examples/functional-cards/airvisual-card.md
+          - Battery Sensor Card: examples/functional-cards/battery-sensor-card.md
+          - Binary Sensor Card: examples/functional-cards/binary-sensor-card.md
+          - Environment Card: examples/functional-cards/environment-card.md
+          - Header Card: examples/functional-cards/header-card.md
+          - Input Boolean Card: examples/functional-cards/input-boolean-card.md
+          - Light Card: examples/functional-cards/light-card.md
+          - Light Slider Card: examples/functional-cards/light-slider-card.md
+          - Navigate Card: examples/functional-cards/navigate-card.md
+          - Person Card: examples/functional-cards/person-card.md
+          - Power Outlet Card: examples/functional-cards/power-outlet-card.md
+          - Scene Card: examples/functional-cards/scene-card.md
+          - Sensor Card: examples/functional-cards/sensor-card.md
+          - Server Statistics Card: examples/functional-cards/server-statistics-card.md
+          - Switch Card: examples/functional-cards/switch-card.md
+          - Kleenex Pollen Card: examples/functional-cards/kleenex-pollen-card.md
+  - Card configuration:
+      - Overview: card-configuration/overview.md
+      - Card Specials:
+          - Reuse:
+              - Reuse of Section Parts: card-configuration/reusing-section-parts.md
+              - YAML Calculations: card-configuration/yaml-calculations.md
+              - Combining the two: card-configuration/combining-reuse-and-calculations.md
+          - Positioning and Groups: card-configuration/positioning-and-groups.md
+          - Localization: card-configuration/localization.md
+          - Animations: card-configuration/animations.md
+          - Color Stops: card-configuration/color-stops.md
+          - CSS Styling: card-configuration/styling.md
+          - Templating: card-configuration/templating.md
+      - Card Sections:
+          - Size of Card: card-configuration/size-of-card.md
+          - Entity Definitions: card-configuration/entity-definitions.md
+          - External Palettes: card-configuration/external-palettes.md
+          - Template Variables: card-configuration/template-variables.md
+          - Layout Sections:
+              - Groups: card-configuration/groups-section.md
+              - Circles: card-configuration/circles-section.md
+              - Horse Shoes:
+                  - Main: card-configuration/horseshoes-section.md
+                  - Ticks: card-configuration/horseshoe-ticks.md
+                  - Labels: card-configuration/horseshoe-labels.md
+              - Entity Areas: card-configuration/areas-section.md
+              - Entity Icons: card-configuration/icons-section.md
+              - Entity Names: card-configuration/names-section.md
+              - Entity States: card-configuration/states-section.md
+              - Lines:
+                  - Horizontal Lines: card-configuration/hlines-section.md
+                  - Vertical Lines: card-configuration/vlines-section.md

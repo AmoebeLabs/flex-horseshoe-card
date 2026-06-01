@@ -1,0 +1,638 @@
+[data-md-color-primary='blue-grey'] {
+  --md-primary-fg-color--50: #eceff1;
+  --md-primary-fg-color--100: #cfd8dc;
+  --md-primary-fg-color--200: #b0bec5;
+  --md-primary-fg-color--300: #90a4ae;
+  --md-primary-fg-color--400: #78909c;
+  --md-primary-fg-color--500: #607d8b;
+  --md-primary-fg-color--600: #546e7a;
+  --md-primary-fg-color--700: #455a64;
+  --md-primary-fg-color--800: #37474f;
+  --md-primary-fg-color--900: #263238;
+}
+
+[data-md-color-primary='amoebelabs-light'] {
+  --md-primary-fg-color--50: #e9eff1;
+  --md-primary-fg-color--100: #c8d8dd;
+  --md-primary-fg-color--200: #a3bec6;
+  --md-primary-fg-color--300: #7ea4af;
+  --md-primary-fg-color--400: #63919e;
+  --md-primary-fg-color--500: #477d8d;
+  --md-primary-fg-color--600: #407585;
+  --md-primary-fg-color--700: #376a7a;
+  --md-primary-fg-color--800: #2f6070;
+  --md-primary-fg-color--900: #204d5d;
+
+  /* --md-primary-fg-color--50: #E5EDEF; */
+  /* --md-primary-fg-color--100: #BED1D7; */
+  /* --md-primary-fg-color--200: #93B3BC; */
+  /* --md-primary-fg-color--300: #6894A1; */
+  /* --md-primary-fg-color--400: #477D8D; */
+  /* --md-primary-fg-color--500: #276679; */
+  /* --md-primary-fg-color--600: #235E71; */
+  /* --md-primary-fg-color--700: #1D5366; */
+  /* --md-primary-fg-color--800: #17495C; */
+  /* --md-primary-fg-color--900: #0E3849; */
+
+  /* --md-primary-fg-color-50: #ECEFF1; */
+  /* --md-primary-fg-color-100: #CFD8DC; */
+  /* --md-primary-fg-color-200: #B0BEC5; */
+  /* --md-primary-fg-color-300: #90A4AE; */
+  /* --md-primary-fg-color-400: #78909C; */
+  /* --md-primary-fg-color-500: #607D8B; */
+  /* --md-primary-fg-color-600: #546E7A; */
+  /* --md-primary-fg-color-700: #455A64; */
+  /* --md-primary-fg-color-800: #37474F; */
+  /* --md-primary-fg-color-900: #263238; */
+
+  --md-primary-fg-color: var(--md-primary-fg-color--500);
+  --md-primary-fg-color--light: var(--md-primary-fg-color--400);
+  --md-primary-fg-color--dark: var(--md-primary-fg-color--700);
+  --md-primary-h-color: var(--md-primary-fg-color--800);
+  --md-typeset-a-color: var(--md-primary-fg-color--500);
+}
+
+[data-md-color-accent='amoebelabs-light'] {
+  /* New accent colors */
+  /* --md-accent-fg-color--100: #60F4FF; */
+  /* --md-accent-fg-color--200: #22F0FF; */
+  /* --md-accent-fg-color--400: #09EFFF; */
+  /* --md-accent-fg-color--700: #00E8F9; */
+
+  /* Previous accent colors, much better. Not so saturated */
+  --md-accent-fg-color--100: #39f5ff;
+  --md-accent-fg-color--200: #00eefb;
+  --md-accent-fg-color--400: #00d6e2;
+  --md-accent-fg-color--700: #00c7d2;
+
+  --md-accent-fg-color: var(--md-accent-fg-color--700);
+
+  --md-code-hl-color: hsla(0, 0%, 80%, 0.5);
+}
+
+[data-md-color-primary='amoebelabs-dark'] {
+  --md-primary-fg-color--50: #e9eff1;
+  --md-primary-fg-color--100: #c8d8dd;
+  --md-primary-fg-color--200: #a3bec6;
+  --md-primary-fg-color--300: #7ea4af;
+  --md-primary-fg-color--400: #63919e;
+  --md-primary-fg-color--500: #477d8d;
+  --md-primary-fg-color--600: #407585;
+  --md-primary-fg-color--700: #376a7a;
+  --md-primary-fg-color--800: #2f6070;
+  --md-primary-fg-color--900: #204d5d;
+
+  /* --md-primary-fg-color--50: #E5EDEF; */
+  /* --md-primary-fg-color--100: #BED1D7; */
+  /* --md-primary-fg-color--200: #93B3BC; */
+  /* --md-primary-fg-color--300: #6894A1; */
+  /* --md-primary-fg-color--400: #477D8D; */
+  /* --md-primary-fg-color--500: #276679; */
+  /* --md-primary-fg-color--600: #235E71; */
+  /* --md-primary-fg-color--700: #1D5366; */
+  /* --md-primary-fg-color--800: #17495C; */
+  /* --md-primary-fg-color--900: #0E3849; */
+
+  /* --md-primary-fg-color-50: #ECEFF1; */
+  /* --md-primary-fg-color-100: #CFD8DC; */
+  /* --md-primary-fg-color-200: #B0BEC5; */
+  /* --md-primary-fg-color-300: #90A4AE; */
+  /* --md-primary-fg-color-400: #78909C; */
+  /* --md-primary-fg-color-500: #607D8B; */
+  /* --md-primary-fg-color-600: #546E7A; */
+  /* --md-primary-fg-color-700: #455A64; */
+  /* --md-primary-fg-color-800: #37474F; */
+  /* --md-primary-fg-color-900: #263238; */
+
+  --md-primary-fg-color: var(--md-primary-fg-color--500);
+  /*    --md-primary-fg-color--light: var(--md-primary-fg-color--100);
+    --md-primary-fg-color--dark: var(--md-primary-fg-color--300);*/
+  --md-primary-h-color: var(--md-primary-fg-color--100);
+  --md-typeset-a-color: var(--md-primary-fg-color--300);
+}
+
+[data-md-color-accent='amoebelabs-dark'] {
+  /* New accent colors */
+  /* --md-accent-fg-color--100: #60F4FF; */
+  /* --md-accent-fg-color--200: #22F0FF; */
+  /* --md-accent-fg-color--400: #09EFFF; */
+  /* --md-accent-fg-color--700: #00E8F9; */
+
+  /* Previous accent colors, much better. Not so saturated */
+  --md-accent-fg-color--100: #39f5ff;
+  --md-accent-fg-color--200: #00eefb;
+  --md-accent-fg-color--400: #00d6e2;
+  --md-accent-fg-color--700: #00c7d2;
+
+  --md-accent-fg-color: var(--md-accent-fg-color--100);
+
+  --md-code-hl-color: hsla(0, 0%, 80%, 0.5);
+}
+.skill-level-star {
+  color: orange;
+}
+
+.grid-container-1 {
+  display: grid;
+  grid-template-columns: auto;
+  background-color: var(--md-code-bg-color);
+  padding: 5px;
+}
+
+.grid-container-2 {
+  display: grid;
+  grid-template-columns: 67% 33%;
+  background-color: var(--md-code-bg-color);
+  padding: 5px;
+}
+
+.grid-item {
+  padding: 5px;
+  align-self: center;
+}
+
+.md-typeset h2 {
+  color: var(--md-primary-h-color);
+}
+
+.md-typeset h2 .fhs-logo {
+  fill: var(--md-primary-h-color);
+}
+
+.md-typeset h2:before {
+  content: '';
+  position: absolute;
+  /* bottom: 0; */
+  /* left: 0; */
+  width: 20%;
+  max-width: 20em;
+  height: 2px;
+  background: linear-gradient(90deg, var(--md-primary-h-color), rgba(25, 118, 210, 0));
+  border-radius: 3px;
+  transform: translate(1.4em, 1.4em); /* line-height is 1.4 */
+}
+
+.md-typeset .grid {
+  grid-gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  grid-template-rows: 1fr;
+  margin: 1em 0;
+}
+
+.md-typeset .grid.cards > ol,
+.md-typeset .grid.cards > ul {
+  display: contents;
+}
+
+.md-typeset .grid.cards > ol > li,
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.1rem;
+  display: block;
+  margin: 0;
+  padding: 0.8rem;
+  transition:
+    border 0.25s,
+    box-shadow 0.25s;
+}
+
+/* Testing stuff with chatgpt... */
+.md-typeset .grid-c3 {
+  display: grid;
+  gap: 16px;
+}
+
+.md-typeset .grid-c3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Default: 3 columns */
+}
+
+@media (max-width: 1024px) {
+  .md-typeset .grid-c3 {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for smaller screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .md-typeset .grid-c3 {
+    grid-template-columns: 1fr; /* 1 column for very small screens */
+  }
+}
+
+.md-typeset .grid-marco > ul {
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f0f0;
+  padding: 16px;
+  border: 1px solid #ccc;
+  list-style: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.md-typeset .grid-marco > ul > li {
+  display: contents;
+  margin: 4px 0;
+}
+/* Remove borders from top, middle or bottom rows, so you can connect rows as if they are one block */
+.md-typeset .grid.cards.toprow > ol > li,
+.md-typeset .grid.cards.toprow > ul > li,
+.md-typeset .grid > .cards.toprow {
+  border-bottom: 0px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+}
+.md-typeset .grid.cards.middlerow > ol > li,
+.md-typeset .grid.cards.middlerow > ul > li,
+.md-typeset .grid > .cards.middlerow {
+  border-top: 0px;
+  border-bottom: 0px;
+  padding-top: 10px;
+  padding-bottom: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+.md-typeset .grid.cards.bottomrow > ol > li,
+.md-typeset .grid.cards.bottomrow > ul > li,
+.md-typeset .grid > .cards.bottomrow {
+  border-top: 0px;
+  padding-top: 10px;
+  margin-top: 0px;
+}
+
+.md-typeset .grid.cards > ol > li:focus-within,
+.md-typeset .grid.cards > ol > li:hover,
+.md-typeset .grid.cards > ul > li:focus-within,
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:focus-within,
+.md-typeset .grid > .card:hover {
+  border-color: #0000;
+  box-shadow: var(--md-shadow-z2);
+}
+
+.md-typeset .grid.cards > ol > li > hr,
+.md-typeset .grid.cards > ul > li > hr,
+.md-typeset .grid > .card > hr {
+  margin-bottom: 1em;
+  margin-top: 1em;
+}
+
+.md-typeset .grid.cards > ol > li > :first-child,
+.md-typeset .grid.cards > ul > li > :first-child,
+.md-typeset .grid > .card > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset .grid.cards > ol > li > :last-child,
+.md-typeset .grid.cards > ul > li > :last-child,
+.md-typeset .grid > .card > :last-child {
+  margin-bottom: 0;
+}
+
+.md-typeset .col11 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+}
+.md-typeset .col1 {
+  grid-template-columns: 1fr;
+}
+.md-typeset .col2 {
+  grid-template-columns: 1fr 1fr;
+}
+.md-typeset .col3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.md-typeset .toprow li {
+  border-bottom-width: 0px;
+}
+.md-typeset .litop {
+  border-bottom-width: 0px;
+  border: 0px;
+}
+
+.md-typeset .toprow.li {
+  border-bottom-width: 0px;
+}
+.md-typeset .toprow > li {
+  border-bottom-width: 0px;
+}
+.md-typeset .toprow > ol > li {
+  border-bottom-width: 0px;
+}
+
+.md-typeset .inbetweenrow li {
+  border-bottom-width: 0px;
+  border-top-width: 0px;
+}
+.md-typeset .bottomrow > li {
+  border-top-width: 0px;
+}
+/* Only following defs work to remove those margins for the 3 or more rows in the grid */
+/* Each row is separate to get row height ok. Don't know how to do this else */
+.md-typeset .grid.cards.toprow.col3 {
+  margin-bottom: 0px !important;
+}
+.md-typeset .grid.cards.middlerow.col3 {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+}
+.md-typeset .grid.cards.bottomrow.col3 {
+  margin-top: 0px !important;
+}
+
+/* Extra classes for hiding/aligned grid items */
+.hide-container {
+  visibility: hidden; /* Initially hidden */
+  opacity: 0; /* Optional: for a fade-in effect */
+  transition: opacity 0.1s ease; /* Smooth transition */
+}
+
+.grid.aligned {
+  visibility: visible; /* Show after alignment */
+  opacity: 1; /* Optional: for fade-in effect */
+}
+
+@keyframes blinkingText {
+  0% {
+    opacity: 0%;
+  }
+  49% {
+    opacity: 0%;
+  }
+  60% {
+    opacity: 100%;
+  }
+  99% {
+    opacity: 100%;
+  }
+  100% {
+    opacity: 0%;
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+    transform: scale3d(0.3, 0.3, 0.3);
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes bounce {
+  from,
+  20%,
+  53%,
+  80%,
+  to {
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+    transform: translate3d(0, 0, 0);
+  }
+  40%,
+  43% {
+    animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes flash {
+  from,
+  50%,
+  to {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+@keyframes headShake {
+  0% {
+    transform: translateX(0);
+  }
+  6.5% {
+    transform: translateX(-6px) rotateY(-9deg);
+  }
+  18.5% {
+    transform: translateX(5px) rotateY(7deg);
+  }
+  31.5% {
+    transform: translateX(-3px) rotateY(-5deg);
+  }
+  43.5% {
+    transform: translateX(2px) rotateY(3deg);
+  }
+  50% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes heartBeat {
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.3);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.3);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+@keyframes jello {
+  from,
+  11.1%,
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+  22.2% {
+    transform: skewX(-12.5deg) skewY(-12.5deg);
+  }
+  33.3% {
+    transform: skewX(6.25deg) skewY(6.25deg);
+  }
+  44.4% {
+    transform: skewX(-3.125deg) skewY(-3.125deg);
+  }
+  55.5% {
+    transform: skewX(1.5625deg) skewY(1.5625deg);
+  }
+  66.6% {
+    transform: skewX(-0.78125deg) skewY(-0.78125deg);
+  }
+  77.7% {
+    transform: skewX(0.390625deg) skewY(0.390625deg);
+  }
+  88.8% {
+    transform: skewX(-0.1953125deg) skewY(-0.1953125deg);
+  }
+}
+
+@keyframes pulse {
+  from {
+    transform: scale3d(1, 1, 1);
+  }
+  50% {
+    transform: scale3d(1.05, 1.05, 1.05);
+  }
+  to {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes rubberBand {
+  from {
+    transform: scale3d(1, 1, 1);
+  }
+  30% {
+    transform: scale3d(1.25, 0.75, 1);
+  }
+  40% {
+    transform: scale3d(0.75, 1.25, 1);
+  }
+  50% {
+    transform: scale3d(1.15, 0.85, 1);
+  }
+  65% {
+    transform: scale3d(0.95, 1.05, 1);
+  }
+  75% {
+    transform: scale3d(1.05, 0.95, 1);
+  }
+  to {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes shake {
+  from,
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translate3d(-10px, 0, 0);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translate3d(10px, 0, 0);
+  }
+}
+
+@keyframes swing {
+  20% {
+    transform: rotate3d(0, 0, 1, 15deg);
+  }
+  40% {
+    transform: rotate3d(0, 0, 1, -10deg);
+  }
+  60% {
+    transform: rotate3d(0, 0, 1, 5deg);
+  }
+  80% {
+    transform: rotate3d(0, 0, 1, -5deg);
+  }
+  to {
+    transform: rotate3d(0, 0, 1, 0deg);
+  }
+}
+
+@keyframes tada {
+  from {
+    transform: scale3d(1, 1, 1);
+  }
+  10%,
+  20% {
+    transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg);
+  }
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg);
+  }
+  40%,
+  60%,
+  80% {
+    transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg);
+  }
+  to {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes wobble {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  15% {
+    transform: translate3d(-25%, 0, 0) rotate3d(0, 0, 1, -5deg);
+  }
+  30% {
+    transform: translate3d(20%, 0, 0) rotate3d(0, 0, 1, 3deg);
+  }
+  45% {
+    transform: translate3d(-15%, 0, 0) rotate3d(0, 0, 1, -3deg);
+  }
+  60% {
+    transform: translate3d(10%, 0, 0) rotate3d(0, 0, 1, 2deg);
+  }
+  75% {
+    transform: translate3d(-5%, 0, 0) rotate3d(0, 0, 1, -1deg);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0);
+    transform: rotate(0);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes spin {
+  0% {
+    -webkit-transform: rotate(0);
+    transform: rotate(0);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-stop {
+  100% {
+    -webkit-transform: -webkit-rotate(0deg);
+    transform: rotate(0deg);
+  }
+}
