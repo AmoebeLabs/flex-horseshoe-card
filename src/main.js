@@ -1336,7 +1336,39 @@ class FlexHorseshoeCard extends LitElement {
     return typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
   }
 
-  _evaluateStaticCalc(value) {
+  _evaluateStaticCalc(value, constants = {}) {
+    const expression = value.slice(5, -1).trim();
+
+    if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
+      throw new Error(`Invalid static calc expression '${value}'`);
+    }
+
+    const calcScope = {
+      ...constants,
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      abs: Math.abs,
+      round: Math.round,
+      floor: Math.floor,
+      ceil: Math.ceil,
+      min: Math.min,
+      max: Math.max,
+      sqrt: Math.sqrt,
+      PI: Math.PI,
+    };
+
+    // eslint-disable-next-line no-new-func
+    const result = Function(...Object.keys(calcScope), `"use strict"; return (${expression});`)(...Object.values(calcScope));
+
+    if (!this._isStaticNumber(result)) {
+      throw new Error(`Static calc expression '${value}' did not return a finite number`);
+    }
+
+    return result;
+  }
+
+  _evaluateStaticCalcV2(value) {
     const expression = value.slice(5, -1).trim();
 
     if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
@@ -1384,7 +1416,7 @@ class FlexHorseshoeCard extends LitElement {
     return result;
   }
 
-  _evaluateStaticConfig(config) {
+  _evaluateStaticConfigV1(config) {
     if (this._isStaticCalc(config)) {
       return this._evaluateStaticCalc(config);
     }
@@ -1626,6 +1658,90 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
+  _isStaticRef(value) {
+    return typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')');
+  }
+
+  _cloneStaticValue(value) {
+    if (value && typeof value === 'object') {
+      return Merge.mergeDeep(Array.isArray(value) ? [] : {}, value);
+    }
+
+    return value;
+  }
+
+  _evaluateConstants(config) {
+    const constants = config.constants;
+
+    if (!constants || typeof constants !== 'object') {
+      return {};
+    }
+
+    const calcConstants = {};
+
+    Object.entries(constants).forEach(([key, value]) => {
+      constants[key] = this._evaluateStaticConfig(value, calcConstants);
+
+      if (this._isStaticNumber(constants[key])) {
+        calcConstants[key] = constants[key];
+      }
+    });
+
+    return calcConstants;
+  }
+
+  _resolveStaticRef(value, constants) {
+    if (!this._isStaticRef(value)) return value;
+
+    const refName = value.slice(4, -1).trim();
+
+    if (!(refName in constants)) {
+      throw new Error(`Static ref '${refName}' not found`);
+    }
+
+    return this._cloneStaticValue(constants[refName]);
+  }
+
+  _resolveStaticRefs(value, constants = {}) {
+    if (this._isStaticRef(value)) {
+      return this._resolveStaticRef(value, constants);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this._resolveStaticRefs(item, constants));
+    }
+
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, itemValue]) => {
+        value[key] = this._resolveStaticRefs(itemValue, constants);
+      });
+
+      return value;
+    }
+
+    return value;
+  }
+
+  _evaluateStaticConfig(value, constants = {}) {
+    if (this._isStaticCalc(value)) {
+      return this._evaluateStaticCalc(value, constants);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this._evaluateStaticConfig(item, constants));
+    }
+
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, itemValue]) => {
+        value[key] = this._evaluateStaticConfig(itemValue, constants);
+      });
+
+      return value;
+    }
+
+    return value;
+  }
+
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
@@ -1655,9 +1771,21 @@ class FlexHorseshoeCard extends LitElement {
           this.requestUpdate();
         });
       }
+
       this._assignSectionIds(config);
-      this._evaluateStaticConfig(config);
+
+      const calcConstants = this._evaluateConstants(config);
+
+      this._resolveStaticRefs(config, config.constants);
+      this._evaluateStaticConfig(config, calcConstants);
+
       this._resolveSectionSameAs(config);
+
+      // this._assignSectionIds(config);
+      // this._evaulateConstants(config);
+      // this._resolveStaticRefs(config);
+      // this._evaluateStaticConfig(config);
+      // this._resolveSectionSameAs(config);
 
       Templates.setContext({
         hass: this._hass,
