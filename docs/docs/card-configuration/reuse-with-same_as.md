@@ -317,7 +317,7 @@ hlines:
 | `third`  | `64 + calc(2 * 11)`        | `ypos: 86`   |
 
 
-Supported sections
+## Supported sections
 
 same_as can be used in layout item sections such as:
 
