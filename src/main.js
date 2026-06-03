@@ -21,6 +21,7 @@
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { selectUnit } from '@formatjs/intl-utils';
+import { SVGInjector } from '@tanem/svg-injector';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -98,6 +99,8 @@ class FlexHorseshoeCard extends LitElement {
     this.iconsSvg = [];
     this.pendingIconPath = [];
     this.iconsId = [];
+
+    this.svgUrlCache ||= {};
 
     // Theme mode support
     this.theme = {};
@@ -1232,7 +1235,7 @@ class FlexHorseshoeCard extends LitElement {
   _calculateSvgCoordinatesInGroup(item) {
     const svg = {
       xpos: Utils.calculateSvgDimension(item.xpos),
-      ypos: Utils.calculateSvgDimension(item.ypos),
+      ypos: Utils.calculateSvgDimension(item.yposc || item.ypos),
     };
 
     const group = this.config.layout?.groups?.[item.group];
@@ -1243,7 +1246,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return {
       xpos: Utils.calculateSvgDimension(group.xpos + item.xpos - halfPercent),
-      ypos: Utils.calculateSvgDimension(group.ypos + item.ypos - halfPercent),
+      ypos: Utils.calculateSvgDimension(group.ypos + (item.yposc || item.ypos) - halfPercent),
     };
   }
 
@@ -2865,6 +2868,256 @@ class FlexHorseshoeCard extends LitElement {
    * Renders a single icon.
    *
    */
+  // ROMMEL VAN
+
+  updated(changedProperties) {
+    super.updated?.(changedProperties);
+
+    this._injectSvgUrlIcons();
+  }
+
+  _isSvgUrl(url) {
+    console.log('svg test', url);
+    return url.endsWith('.svg');
+  }
+
+  _isSvgUrlV1(url) {
+    return /\.svg(?:[?#].*)?$/i.test(url);
+  }
+
+  _isUrlIcon(icon) {
+    return typeof icon === 'string' && /^url\(['"]?.+['"]?\)$/i.test(icon.trim());
+  }
+
+  _renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const svgNode = this.svgUrlCache[url].cloneNode(true);
+
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    svgNode.classList.remove('hidden');
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g
+        class="icon-position"
+        transform="translate(${iconCx} ${iconCy})"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${-iconPixels / 2}"
+          y="${-iconPixels / 2}"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <svg
+              x="${-iconPixels / 2}"
+              y="${-iconPixels / 2}"
+              width="${iconPixels}"
+              height="${iconPixels}"
+              viewBox="0 0 24 24"
+              overflow="visible"
+            >
+              ${svgNode}
+            </svg>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _renderCachedSvgUrlIconV1(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    const svgNode = this.svgUrlCache[url].cloneNode(true);
+    svgNode.classList.remove('hidden');
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <g class="icon-scale" transform="scale(${scale})">
+              <g class="icon-center" transform="translate(-12 -12)">
+                ${svgNode}
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _getUrlFromCssUrl(value) {
+    return value
+      .trim()
+      .replace(/^url\(['"]?/i, '')
+      .replace(/['"]?\)$/, '');
+  }
+
+  _renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
+        <g class="icon-rotate" transform="rotate(${rotate})">
+          <g class="icon-scale" transform="scale(${scale})">
+            <g class="icon-center" transform="translate(-12 -12)">
+              <svg
+                class="icon-svg-url hidden"
+                data-src="${url}"
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+              >
+                <image
+                  href="${url}"
+                  width="24"
+                  height="24"
+                />
+              </svg>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _injectSvgUrlIcons() {
+    const elements = this.shadowRoot.querySelectorAll('svg.icon-svg-url[data-src]:not(.injected-svg)');
+
+    if (!elements.length) return;
+
+    SVGInjector(elements, {
+      beforeEach(svgNode) {
+        svgNode.removeAttribute('height');
+        svgNode.removeAttribute('width');
+      },
+
+      afterEach: (err, injectedSvg) => {
+        if (err || !injectedSvg) return;
+
+        const url = injectedSvg.dataset.src;
+        if (!url) return;
+
+        this.svgUrlCache[url] = injectedSvg.cloneNode(true);
+      },
+
+      afterAll: () => {
+        this.requestUpdate();
+      },
+
+      cacheRequests: false,
+      evalScripts: 'once',
+      httpRequestWithCredentials: false,
+      renumerateIRIElements: false,
+    });
+  }
+
+  _renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    if (this.svgUrlCache[url]) {
+      return this._renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    }
+
+    return this._renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust);
+  }
+
+  _renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g
+        class="icon-position"
+        transform="translate(${iconCx} ${iconCy})"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${-iconPixels / 2}"
+          y="${-iconPixels / 2}"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <g class="icon-scale" transform="scale(${scale})">
+              <g class="icon-center" transform="translate(-12 -12)">
+                <image
+                  href="${url}"
+                  width="24"
+                  height="24"
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  // -------------------------------------- ROMMEL VAN
+
   computeEntityColor(entityState) {
     // 1. Fallback: If no data present or is unavailable. Get neurral state icon color
     if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
@@ -2963,6 +3216,7 @@ class FlexHorseshoeCard extends LitElement {
     const stopColor = this._getItemColorFromStops(item);
     if (stopColor) {
       configStyle.fill = stopColor;
+      configStyle.color = stopColor;
     }
 
     // Runtime animation styles overwrite static/config styles.
@@ -2974,6 +3228,22 @@ class FlexHorseshoeCard extends LitElement {
 
     const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
     const icon = haIcon;
+
+    // if (this._isUrlIcon(icon)) {
+    //   const url = this._getUrlFromCssUrl(icon);
+
+    //   return this._renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    // }
+
+    if (this._isUrlIcon(icon)) {
+      const url = this._getUrlFromCssUrl(icon);
+
+      if (this._isSvgUrl(url)) {
+        return this._renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+      }
+
+      return this._renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    }
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -3029,7 +3299,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (iconSvg) {
       const x1 = cx - iconPixels * adjust;
-      const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+      const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
 
       const scale = iconPixels / 24;
       const rotate = item.rotate ?? 0;
