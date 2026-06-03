@@ -51,7 +51,7 @@ If the line length changes, every repeated item must be checked. If the style ch
 
 The reuse features are intended to solve this.
 
-=== "With maximum reuse \#1"
+=== "With reuse \#1"
     ```yaml linenums="1" hl_lines="1 8 15 18"
     constants:
       lineStep: 11                   # Height between lines
@@ -73,7 +73,7 @@ The reuse features are intended to solve this.
       - same_as: 0                    # Same as hline 0
         same_as_dypos: calc(2 * lineStep)
     ```
-=== "With maximum reuse \#2"
+=== "With reuse \#2"
     ```yaml linenums="1" hl_lines="1 8 15 18"
     constants:
       lineStep: 11                   # Height between lines
@@ -106,9 +106,10 @@ The horseshoe in the above example is about 60 lines of YAML.
 
 Even if you take a mini horseshoe, the power of the `same_as` and `ref` functionality becomes clearly visible.
 
-```yaml linenums="1" hl_lines="2 15 23"
+```yaml linenums="1" hl_lines="2 16 25"
 horseshoes:
   - id: base
+    group: base              # Group will position the horseshoe (and more)
     radius: 45
     horseshoe_scale:
       min: 0
@@ -122,6 +123,7 @@ horseshoes:
     color_stops: ref(defaultColorStops)
 
   - id: power
+    group: power             # Group will position the horseshoe (and more)
     same_as: base
     entity_index: 1
     color_stops: ref(powerColorStops)
@@ -130,6 +132,7 @@ horseshoes:
       max: 5000
 
   - id: temperature
+    group: temperatur        # Group will position the horseshoe (and more)
     same_as: base
     entity_index: 2
     color_stops: ref(temperatureColorStops)
@@ -138,10 +141,9 @@ horseshoes:
       max: 40
 ```
 
-
 !!! Success "The larger the repeated item, the more useful reuse becomes."
 
-## Goal
+## Goal 
 
 The goal is not to make the configuration more complicated.
 
