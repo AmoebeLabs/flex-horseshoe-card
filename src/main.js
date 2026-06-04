@@ -1019,6 +1019,12 @@ class FlexHorseshoeCard extends LitElement {
         state = entity.attributes[entityConfig.attribute];
       }
 
+      // Do state mapping here?
+      const smItem = this._getStateMapItem(horseshoe.horseshoe_state, entity);
+      if (smItem) {
+        console.log('State map item found for horseshoe', index, ':', smItem);
+        state = smItem.value;
+      }
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
 
       const min = horseshoeScale?.min ?? 0;
@@ -1448,7 +1454,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _getStateMapItem(item, entityState) {
-    const entries = item.state_map?.map;
+    const entries = item?.state_map?.map;
     if (!entries) return undefined;
 
     const state = entityState?.state;
