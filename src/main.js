@@ -812,13 +812,17 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildMyIcon(stateObj, entityConfig, entityAnimation) {
+  _buildMyIcon(stateObj, entityConfig, stateMapConfig, entityAnimation) {
     if (!stateObj || !entityConfig) {
       return undefined;
     }
 
     if (entityAnimation) {
       return entityAnimation;
+    }
+
+    if (stateMapConfig?.icon) {
+      return stateMapConfig.icon;
     }
 
     if (entityConfig.icon) {
@@ -1443,6 +1447,15 @@ class FlexHorseshoeCard extends LitElement {
     return typeof value === 'number' && Number.isFinite(value);
   }
 
+  _getStateMapItem(item, entityState) {
+    const entries = item.state_map?.map;
+    if (!entries) return undefined;
+
+    const state = entityState?.state;
+
+    return entries.find((entry) => entry.state === state) ?? entries.find((entry) => entry.state === 'default');
+  }
+
   _applySameAsDeltas(item, resolvedItem, index) {
     Object.entries(item).forEach(([key, value]) => {
       if (!key.startsWith('same_as_d')) return;
@@ -1487,7 +1500,191 @@ class FlexHorseshoeCard extends LitElement {
     return resolvedItem;
   }
 
+  // eslint-disable-next-line default-param-last
+  _mergeSameAsItem(base, override, mergeMode = 'merge', mergeKey) {
+    const merged = Merge.mergeDeep(base, override);
+
+    Object.entries(override).forEach(([field, value]) => {
+      const fieldMergeMode = value?.same_as_merge ?? mergeMode;
+      const fieldMergeKey = value?.same_as_key ?? mergeKey;
+
+      if (fieldMergeMode === 'replace') {
+        const { same_as_merge, same_as_key, ...cleanValue } = value;
+        merged[field] = cleanValue;
+        return;
+      }
+
+      if (fieldMergeMode === 'keyed') {
+        if (!fieldMergeKey) {
+          throw new Error(`same_as_key is required when same_as_merge is keyed for field '${field}'`);
+        }
+
+        const { same_as_merge, same_as_key, ...cleanValue } = value;
+
+        merged[field] = Merge.mergeDeep(base[field] ?? {}, cleanValue);
+
+        Object.entries(cleanValue).forEach(([subField, subValue]) => {
+          if (!Array.isArray(base[field]?.[subField]) || !Array.isArray(subValue)) return;
+
+          merged[field][subField] = this._mergeListByKey(base[field][subField], subValue, fieldMergeKey);
+        });
+      }
+    });
+
+    return merged;
+  }
+
+  _mergeSameAsKeyed(base, override, mergeKey) {
+    const merged = Merge.mergeDeep(base, override);
+
+    if (!mergeKey) {
+      throw new Error('same_as_key is required when same_as_merge is keyed');
+    }
+
+    Object.keys(override).forEach((field) => {
+      if (!Array.isArray(base[field]) || !Array.isArray(override[field])) return;
+
+      merged[field] = this._mergeListByKey(base[field], override[field], mergeKey);
+    });
+
+    return merged;
+  }
+
+  _mergeListByKey(baseList, overrideList, key) {
+    const itemsByKey = new Map();
+
+    baseList.forEach((item) => {
+      itemsByKey.set(String(item[key]), item);
+    });
+
+    overrideList.forEach((item) => {
+      const itemKey = String(item[key]);
+
+      if (itemsByKey.has(itemKey)) {
+        itemsByKey.set(itemKey, Merge.mergeDeep(itemsByKey.get(itemKey), item));
+      } else {
+        itemsByKey.set(itemKey, item);
+      }
+    });
+
+    return [...itemsByKey.values()];
+  }
+
   _resolveSameAsItems(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_replace = [], ...restOfFields } = item;
+
+        const baseForMerge = { ...base };
+
+        same_as_replace.forEach((field) => {
+          delete baseForMerge[field];
+        });
+
+        resolvedItem = Merge.mergeDeep(baseForMerge, restOfFields);
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        delete resolvedItem.same_as_replace;
+
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV7(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_replace = [], ...restOfFields } = item;
+
+        resolvedItem = Merge.mergeDeep(base, restOfFields);
+
+        same_as_replace.forEach((field) => {
+          // eslint-disable-next-line prefer-object-has-own
+          if (Object.prototype.hasOwnProperty.call(restOfFields, field)) {
+            resolvedItem[field] = restOfFields[field];
+          }
+        });
+
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        delete resolvedItem.same_as_replace;
+
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV6(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_merge = 'merge', same_as_key, ...restOfFields } = item;
+
+        resolvedItem = this._mergeSameAsItem(base, restOfFields, same_as_merge, same_as_key);
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV5(items) {
     const resolvedItemsById = new Map();
 
     return items.map((item, index) => {
@@ -2877,7 +3074,6 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _isSvgUrl(url) {
-    console.log('svg test', url);
     return url.endsWith('.svg');
   }
 
@@ -3199,6 +3395,12 @@ class FlexHorseshoeCard extends LitElement {
     const entityState = this.entities[entityIndex];
     // const entityColor = this.computeEntityColor(entityState);
 
+    const smItem = this._getStateMapItem(item, entityState);
+
+    if (smItem) {
+      item = Merge.mergeDeep(item, smItem);
+    }
+
     // new new new new
     const haStyle = Colors.getHaEntityIconStyle(entityState);
     const DEFAULT_ICON_COLOR = {};
@@ -3226,7 +3428,7 @@ class FlexHorseshoeCard extends LitElement {
       ...stateStyle,
     };
 
-    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], smItem, this.animations?.iconsIcon?.[item.animation_id]);
     const icon = haIcon;
 
     // if (this._isUrlIcon(icon)) {
