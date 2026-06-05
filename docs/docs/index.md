@@ -1,5 +1,5 @@
 ﻿---
 title: Frontpage
-template: home-fhs.html
+template: home-fhs-new.html
 ---
 
