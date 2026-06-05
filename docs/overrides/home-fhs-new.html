@@ -70,7 +70,18 @@
     overflow: hidden;
     color: white;
     text-align: center;
-    background: linear-gradient(to bottom, var(--md-primary-fg-color--900) 0%, var(--fhs-hero-bg-mid) 48%, var(--fhs-section-bg) 100%);
+  }
+  .fhs-hero {
+    background: linear-gradient(to bottom, var(--md-primary-fg-color--900) 0%, var(--fhs-hero-bg-mid) 100%, var(--fhs-hero-bg-mid) 100%);
+  }
+
+  .md-main,
+  .md-content,
+  .fhs-hero {
+    overflow-x: hidden;
+  }
+  body {
+    overflow-x: hidden;
   }
 
   .fhs-hero::after {
@@ -81,9 +92,15 @@
     width: 2150px;
     height: 620px;
     transform: translateX(-50%);
-    background: var(--fhs-section-bg);
+    background: #171b21;
     clip-path: polygon(0 0, 50% 100%, 100% 0, 100% 100%, 0 100%);
     z-index: 3;
+  }
+
+  .fhs-hero::after {
+    width: 4000px;
+    aspect-ratio: 2150 / 620;
+    height: auto;
   }
 
   .fhs-hero__content {
@@ -96,6 +113,8 @@
   .fhs-hero__content h1 {
     margin: 0;
     font-size: clamp(2.6rem, 6vw, 5rem);
+    font-size: clamp(2.6rem, 6vw, 3rem);
+    font-size: clamp(2.2rem, 6vw, 60px);
     line-height: 1;
     font-weight: 800;
     color: white;
@@ -137,6 +156,30 @@
     transform-origin: center;
     filter: drop-shadow(35px 45px 45px rgba(0, 0, 0, 0.45));
   }
+
+  /* Heel hard en hoog zwevend met zwarte schaduw */
+  .fhs-hero__board {
+    opacity: 0.9;
+    filter: drop-shadow(-53px 53px 7px black);
+  }
+
+  /* Iets realistischer */
+  .fhs-hero__board {
+    opacity: 0.9;
+    filter: drop-shadow(-42px 42px 18px rgba(0, 0, 0, 0.75));
+  }
+
+  /* Nog zwevend, maar minder hard */
+  /* .fhs-hero__board {
+    opacity: 0.9;
+    filter: drop-shadow(-36px 36px 22px rgba(0, 0, 0, 0.65));
+  } */
+
+  /* Meer premium */
+  /* .fhs-hero__board {
+    opacity: 0.92;
+    filter: drop-shadow(-30px 34px 24px rgba(0, 0, 0, 0.55));
+  } */
 
   @media screen and (max-width: 76.25em) {
     .fhs-hero__stage {
@@ -259,6 +302,7 @@
   .fhs-features__title {
     margin: 0 0 1rem;
     font-size: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(2rem, 4vw, 60px);
     line-height: 1.05;
     font-weight: 800;
     background: linear-gradient(90deg, #2b93a6, #e4572e);
@@ -408,13 +452,37 @@
     height: 32px;
     width: auto;
   }
+  /* .fhs-hero__stage {
+      position: relative;
+    } */
+
+  /* .fhs-hero__board {
+      filter: grayscale(1) opacity(0.9) drop-shadow(20px 28px 28px rgba(0, 0, 0, 0.28));
+    } */
+  /* .fhs-hero__board {
+      filter: revert-layer;
+    } */
+  .fhs-hero::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: red;
+    z-index: 99;
+  }
+
+  .fhs-hero {
+    background: #17474f; /* tijdelijk egaal */
+  }
 </style>
 
 <!-- Hero for landing page -->
 <section class="fhs-hero">
   <div class="fhs-hero__content">
     <h1>Flexible Horseshoe Card</h1>
-    <p>Build advanced Home Assistant dashboards with less YAML.</p>
+    <p>Build advanced Home Assistant dashboards with your favourite horse.</p>
     <div class="fhs-hero__cta">
       <a class="fhs-hero__release" href="https://github.com/AmoebeLabs/flex-horseshoe-card/releases">
         <img alt="release" src="https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&logo=github&color=477d8d&labelColor=black" />
@@ -424,7 +492,7 @@
   </div>
 
   <div class="fhs-hero__stage">
-    <img class="fhs-hero__board" src="assets/screenshots/testing.png" alt="AmoebeLabs Flexible Horseshoe custom card for Home Assistant triple example" draggable="false" />
+    <img class="fhs-hero__board" src="assets/screenshots/hero-image.png" alt="AmoebeLabs Flexible Horseshoe custom card for Home Assistant triple example" draggable="false" />
   </div>
 </section>
 
@@ -448,7 +516,7 @@
         <div class="fhs-feature__body">
           <h3 class="fhs-feature__title">Less YAML</h3>
           <span>Use <code>same_as</code> to reuse similar items within sections instead of copying blocks.</span>
-          <span>Define <code>constants</code>, and use them with <code>ref()</code> for shared constants like color stops, or <code>calc()</code> to calculate positions and sizes so layouts stay consistent.</span>
+          <span>Define <code>constants</code>, and use them with <code>ref()</code> for shared color stops between items, or <code>calc()</code> to calculate positions and sizes so layouts stay consistent.</span>
         </div>
       </a>
 
