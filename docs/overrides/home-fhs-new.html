@@ -176,15 +176,15 @@
 
   /* Nog zwevend, maar minder hard */
   /* .fhs-hero__board {
-    opacity: 0.9;
-    filter: drop-shadow(-36px 36px 22px rgba(0, 0, 0, 0.65));
-  } */
+      opacity: 0.9;
+      filter: drop-shadow(-36px 36px 22px rgba(0, 0, 0, 0.65));
+    } */
 
   /* Meer premium */
   /* .fhs-hero__board {
-    opacity: 0.92;
-    filter: drop-shadow(-30px 34px 24px rgba(0, 0, 0, 0.55));
-  } */
+      opacity: 0.92;
+      filter: drop-shadow(-30px 34px 24px rgba(0, 0, 0, 0.55));
+    } */
 
   @media screen and (max-width: 76.25em) {
     .fhs-hero__stage {
@@ -215,6 +215,7 @@
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0;
     color: var(--md-default-fg-color);
   }
@@ -223,7 +224,7 @@
     position: relative;
     display: grid;
     place-items: center;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
     text-decoration: none;
     color: inherit;
   }
@@ -462,26 +463,26 @@
     width: auto;
   }
   /* .fhs-hero__stage {
-      position: relative;
-    } */
+        position: relative;
+      } */
 
   /* .fhs-hero__board {
-      filter: grayscale(1) opacity(0.9) drop-shadow(20px 28px 28px rgba(0, 0, 0, 0.28));
-    } */
+        filter: grayscale(1) opacity(0.9) drop-shadow(20px 28px 28px rgba(0, 0, 0, 0.28));
+      } */
   /* .fhs-hero__board {
-      filter: revert-layer;
-    } */
+        filter: revert-layer;
+      } */
   /* Set red line in centre to check alignment of all items */
   /* .fhs-hero::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: red;
-    z-index: 99;
-  } */
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: red;
+      z-index: 99;
+    } */
 
   .fhs-hero {
     background: #17474f; /* tijdelijk egaal */
@@ -620,6 +621,25 @@
 
     fill: var(--svg-bg);
   }
+
+  .fhs-home-footer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    font-size: 2em;
+    padding-bottom: 1em;
+  }
+  .fhs-home-footer img {
+    width: 2em;
+    height: 2em;
+  }
+
+  .fhs-home-footer__inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+  }
 </style>
 
 <!-- Hero for landing page -->
@@ -693,7 +713,7 @@
           </svg> -->
         </div>
         <div class="fhs-feature__body">
-          <h3 class="fhs-feature__title">Design faster with Less YAML</h3>
+          <h3 class="fhs-feature__title">Build faster with Less YAML</h3>
           <span>Use <code>same_as</code> to reuse similar items within sections instead of copying blocks.</span>
           <span>Define <code>constants</code>, and use them with <code>ref()</code> for shared color stops between items, or <code>calc()</code> to calculate positions and sizes so layouts stay consistent.</span>
         </div>
@@ -1181,10 +1201,6 @@
 <section class="fhs-strip" aria-label="Links">
   <div class="fhs-strip__inner">
     <div class="fhs-strip__row">
-      <a class="fhs-strip__item fhs-strip__item--badge" href="https://github.com/AmoebeLabs/flex-horseshoe-card/releases">
-        <img alt="release" src="https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&amp;logo=github&amp;color=477d8d&amp;labelColor=black" />
-      </a>
-
       <a class="fhs-strip__item" href="https://www.buymeacoffee.com/amoebelabs/" target="_blank" rel="noopener" title="Buy Marco from AmoebeLabs some coffee">
         <svg width="884" height="1279" viewBox="0 0 884 1279" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M791.109 297.518L790.231 297.002L788.201 296.383C789.018 297.072 790.04 297.472 791.109 297.518V297.518Z" fill="currentcolor"></path>
@@ -1280,4 +1296,11 @@
 <!-- Content -->
 {% block content %} {% endblock %}
 <!-- Application footer -->
-{% block footer %}{% endblock %}
+{% block footer %}
+<footer class="fhs-home-footer">
+  <div class="fhs-home-footer__inner">
+    <img src="{{ 'assets/logo/amoebelabs-logo.svg' | url }}" alt="AmoebeLabs" />
+    <span>{{ config.copyright | safe }}</span>
+  </div>
+</footer>
+{% endblock %}
