@@ -9,10 +9,10 @@ site_description: >-
 
 # Repository
 repo_name: Flexible Horseshoe Card
-repo_url: https://github.com/amoebelabs/flexible-horseshoe-card
+repo_url: https://github.com/amoebelabs/flex-horseshoe-card
 edit_uri: ''
 
-copyright: Copyright &copy; 2026-2027 Marco @AmoebeLabs
+copyright: Copyright &copy; 2020-2027 Marco @AmoebeLabs
 
 watch:
   - docs
