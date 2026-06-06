@@ -1,4 +1,4 @@
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Flexible Horseshoe Card
+# :material-horseshoe: Flexible Horseshoe Card
 
 Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modules, and got some extra features like JavaScript templating, color stops for states, icons, names, areas, hlines, vlines and circles, and a bidirectional mode.
 
@@ -56,7 +56,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 ---
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Table of contents
+# :material-horseshoe: Table of contents
 
 - [Some examples](#-some-examples)
 - [Install](#-install)
@@ -77,7 +77,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 ---
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Some examples
+# :material-horseshoe: Some examples
 
 ## Normal, flat UI
 
@@ -117,7 +117,7 @@ Combined with animations and states, you can alter the appearance of objects. Th
 
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Install
+# :material-horseshoe: Install
 
 ## Install via HACS
 
@@ -138,7 +138,7 @@ resources:
     type: module
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Using the card
+# :material-horseshoe: Using the card
 
 The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
@@ -496,7 +496,7 @@ Let's see how that looks :smile:
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Options
+# :material-horseshoe: Card Options
 
 ## Main Card required, defaulted and pure optional sections
 
@@ -508,22 +508,22 @@ Note: The examples will get decluttering templates as an example too, to show ho
 
 Each section might have it's own required, defaulted and optional properties.
 
-| Name                |                             Required                              |                    Optional /w </br> defaults                     |                             Optional                              | Since  | Description                                                                                                                                                                                                                                                |
-| ------------------- | :---------------------------------------------------------------: | :---------------------------------------------------------------: | :---------------------------------------------------------------: | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type                | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   |                                                                   | v0.8.0 | `custom:flex-horseshoe-card`.                                                                                                                                                                                                                              |
-| entities            | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   |                                                                   | v0.8.0 | One or more sensor entities in a list. See [entities section](#-entities-section) for requirements.                                                                                                                                                        |
-| layout              | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   |                                                                   | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.                                                                                                          |
-| horseshoe_scale     | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                               some                                |                                                                   | v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale-options) for requirements.                                                                                                          |
-| color_stops         | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   |                                                                   | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#horseshoe-state-options) for requirements.                                                                                                                                     |
-|                     |                                                                   |                                                                   |                                                                   |        |
-| horseshoe_state     |                                                                   | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   | v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state-options) for requirements.                                                                                                                                          |
-| show                |                                                                   | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.                                                                                                                  |
-| card_filter         |                                                                   | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   | v0.8.0 |
-| entities tap_action |                                                                   | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) |                                                                   | v0.8.0 | How to respond to a mouse-click or tap. See [available tap actions](#action-object-optionss) for requirements.                                                                                                                                             |
-|                     |                                                                   |                                                                   |                                                                   |        |
-| animations          |                                                                   |                                                                   | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements. |
+| Name                |       Required       | Optional /w </br> defaults |       Optional       | Since  | Description                                                                                                                                                                                                                                                |
+| ------------------- | :------------------: | :------------------------: | :------------------: | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                | :material-horseshoe: |                            |                      | v0.8.0 | `custom:flex-horseshoe-card`.                                                                                                                                                                                                                              |
+| entities            | :material-horseshoe: |                            |                      | v0.8.0 | One or more sensor entities in a list. See [entities section](#-entities-section) for requirements.                                                                                                                                                        |
+| layout              | :material-horseshoe: |                            |                      | v0.8.0 | You MUST of course specify where each item is positioned on the card. See [available layout options](#available-layout-options) for requirements.                                                                                                          |
+| horseshoe_scale     | :material-horseshoe: |            some            |                      | v0.8.0 | Specifies the scale configuration, like min, max, width and color of the scale. See [horseshoe scale](#horseshoe-scale-options) for requirements.                                                                                                          |
+| color_stops         | :material-horseshoe: |                            |                      | v0.8.0 | Set thresholds for horseshoe gradients and colormapping. See [color stops](#horseshoe-state-options) for requirements.                                                                                                                                     |
+|                     |                      |                            |                      |        |
+| horseshoe_state     |                      |    :material-horseshoe:    |                      | v0.8.0 | Specifies the horseshoe width, and fixed color. See [horseshoe state](#horseshoe-state-options) for requirements.                                                                                                                                          |
+| show                |                      |    :material-horseshoe:    |                      | v0.8.0 | Determines what is shown, like the scale and the horseshoe style. See [available show options](#available-show-options) for requirements.                                                                                                                  |
+| card_filter         |                      |    :material-horseshoe:    |                      | v0.8.0 |
+| entities tap_action |                      |    :material-horseshoe:    |                      | v0.8.0 | How to respond to a mouse-click or tap. See [available tap actions](#action-object-optionss) for requirements.                                                                                                                                             |
+|                     |                      |                            |                      |        |
+| animations          |                      |                            | :material-horseshoe: | v0.8.0 | You can specify animations / dynamic behaviour depending on the state of an entity. Circles, lines and icons can be controlled depending on the state of a given entity. See [available animation options](#available-animation-options) for requirements. |
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Entities section
+# :material-horseshoe: Entities section
 
 ## Available entity options
 
@@ -583,7 +583,7 @@ entities:
       service_data: { 'entity_id': 'light.1st_floor_hall_light' }
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Layout section
+# :material-horseshoe: Layout section
 
 ## Available layout options
 
@@ -658,7 +658,7 @@ layout:
         - font-size: 1.2em;
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Horseshoe section
+# :material-horseshoe: Horseshoe section
 
 ## Horseshoe scale options
 
@@ -808,13 +808,13 @@ The horseshoe can be filled in different ways. Almost all use the color_stop col
 
 The next table describes how the fill styles work:
 
-| Option            | Requires                                  | uses color_stop threshold                                         | Uses entity value                                                 | Since  | Description                                                                                                                                                                       |
-| ----------------- | ----------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| autominmax        | `color_stops` list with at least 2 values | uses `min` and `max` of scale                                     | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last color in the colorstop list and the actual value of the entity or attribute.    |
-| fixed             | `horseshoe_state .color`                  |                                                                   |                                                                   | v0.8.0 | Fills the shoe with a single color                                                                                                                                                |
-| colorstop         | `color_stops` list with at least 2 values | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state                                                                               |
-| colorstopgradient | `color_stops` list with at least 2 values | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops                                                                                                                    |
-| lineargradient    | `color_stops` list with at least 2 values |                                                                   |                                                                   | v0.8.0 | Uses the first and last entry in the `color_stops` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value. |
+| Option            | Requires                                  | uses color_stop threshold     | Uses entity value    | Since  | Description                                                                                                                                                                       |
+| ----------------- | ----------------------------------------- | ----------------------------- | -------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| autominmax        | `color_stops` list with at least 2 values | uses `min` and `max` of scale | :material-horseshoe: | v0.8.0 | Autominmax uses the `min` and `max` values to calculate a gradient color using the first and last color in the colorstop list and the actual value of the entity or attribute.    |
+| fixed             | `horseshoe_state .color`                  |                               |                      | v0.8.0 | Fills the shoe with a single color                                                                                                                                                |
+| colorstop         | `color_stops` list with at least 2 values | :material-horseshoe:          | :material-horseshoe: | v0.8.0 | Fills the shoe with the colorstop color depending on the colorstop value and the value of the state                                                                               |
+| colorstopgradient | `color_stops` list with at least 2 values | :material-horseshoe:          | :material-horseshoe: | v0.8.0 | Same as `colorstop`, but a gradient is used between colorstops                                                                                                                    |
+| lineargradient    | `color_stops` list with at least 2 values |                               |                      | v0.8.0 | Uses the first and last entry in the `color_stops` list to display a linear gradient. It always shows the full gradient from start to end color, independent of the states value. |
 
 #### The fill style is set in the show section of the card:
 
@@ -823,7 +823,7 @@ show:
   horseshoe_style: 'lineargradient'
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Animations section
+# :material-horseshoe: Animations section
 
 ## Available animation options
 
@@ -956,7 +956,7 @@ There are at least a few great places for example animations:
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Styling section
+# :material-horseshoe: Card Styling section
 
 As of v5.4.1
 
@@ -998,7 +998,7 @@ The second example shows the combination of card style and JavaScript templating
     - transition: background-color 1s ease-in-out;
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Colorstops for states, icons etc section
+# :material-horseshoe: Colorstops for states, icons etc section
 
 As of v5.4.1
 
@@ -1042,7 +1042,7 @@ This example shows how to to define a colorstop for an entity. The first one is 
         5: 'purple'
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) JavaScript Templates section
+# :material-horseshoe: JavaScript Templates section
 
 As of v5.4.1
 
@@ -1199,7 +1199,7 @@ horseshoes:
       [[[ return variables['testColorStops3']; ]]]
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Show section
+# :material-horseshoe: Show section
 
 ## Available show options
 
@@ -1210,7 +1210,7 @@ All options are optional.
 | scale_tickmarks |     true     |                              `true` / `false`                               | v0.8.0 | Display scale                                                                                                                                    |
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient` | v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [horseshoe fill style list](#horseshoe-fill-styles) for a description. |
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Filter section
+# :material-horseshoe: Card Filter section
 
 There are some predefined css filters which you can use to give the full card a different look. Besides the predefined, you can also define you rown using the style: section of the yaml card definition and refer to that class as the card_filter:
 
@@ -1218,7 +1218,7 @@ There are some predefined css filters which you can use to give the full card a 
 | ----------- | :---------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | card_filter | `card--dropshadow-none` | `card--dropshadow-none`/ `card--dropshadow-medium--opaque--sepia90` / `card--dropshadow-heavy--sepia90` / `card--dropshadow-heavy` / `card--dropshadow-medium--sepia90`/ `card--dropshadow-medium` / `card--dropshadow-light--sepia90` / `card--dropshadow-light` / `card--dropshadow-down-and-distant` | v0.8.0 | List of drop-shadows and sepia colorization using css filters on the full card.</br></br>Currently only tested on the darkslategrey / wheat Nyx theme |
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Examples section
+# :material-horseshoe: Examples section
 
 The full view with all 12 examples is in the examples folder of this repository.
 
@@ -1252,11 +1252,11 @@ Define your own, or alter the example cards!
 
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Design your OWN card
+# :material-horseshoe: Design your OWN card
 
 I hope you have found enough examples and inspiration to design your own horseshoe layout, with nice colors and functional animations. I just might include some of the community designs in this section :smile:
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) End notes
+# :material-horseshoe: End notes
 
 ## License
 

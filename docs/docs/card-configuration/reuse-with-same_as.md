@@ -7,7 +7,7 @@ tags:
 ---
 
 
-## Reusing items with `same_as`
+##:material-horseshoe: Reusing items with `same_as`
 
 The `same_as` option lets you reuse an earlier item from the same section.
 
@@ -15,7 +15,7 @@ This is useful when multiple items share the same configuration, but only differ
 
 YAML itself does not provide this kind of item reuse. The card resolves `same_as` during config setup. Internally, every reused item becomes a complete item before rendering.
 
-## Basic example
+##:material-horseshoe: Basic example
 
 ```yaml
 hlines:
@@ -317,7 +317,7 @@ hlines:
 | `third`  | `64 + calc(2 * 11)`        | `ypos: 86`   |
 
 
-## Supported sections
+##:material-horseshoe: Supported sections
 
 same_as can be used in layout item sections such as:
 

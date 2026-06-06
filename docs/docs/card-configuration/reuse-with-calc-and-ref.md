@@ -6,9 +6,9 @@ tags:
   - YAML Calculations
 ---
 
-## YAML Calculations
+##:material-horseshoe: YAML Calculations
 
-## Static `calc()` expressions
+##:material-horseshoe: Static `calc()` expressions
 
 YAML itself does not calculate values.
 
@@ -37,7 +37,7 @@ A calc() expression is evaluated once during config setup. The result becomes a 
 | Circular positioning   | manually calculated `xpos` / `ypos` | `xpos: calc(50 + cos(angle) * radius)` |
 | Reuse with offsets     | duplicate full config               | `same_as` + `same_as_d...`             |
 
-## Static `calc()` expressions
+##:material-horseshoe: Static `calc()` expressions
 
 The card supports static `calc()` expressions in numeric configuration fields.
 

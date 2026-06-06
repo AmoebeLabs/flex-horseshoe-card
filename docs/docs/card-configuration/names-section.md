@@ -11,7 +11,7 @@ tags:
 
 # The Names Section
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
 Entity names are defined in the `names` section. This section is a list of names.
 
 ### Example definitions
@@ -102,7 +102,7 @@ Other fields:
 !!! Tip "Always use a relative font-size: it fits well with the relative sizes used by FHS"
 Unless you need a fixed size in pixels...
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 An Entity Name has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -120,7 +120,7 @@ Populair properties:
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Entity Name tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |

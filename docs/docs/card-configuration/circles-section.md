@@ -13,15 +13,13 @@ tags:
 [:octicons-tag-24: 1.0.0][circle-tool support] ·
 :octicons-package-dependents-24: Output
 
-kut met peren. en nog een keer kut met peren. drie keer. vier keer.
-
 The Circle tool is based on the SVG basic `<circle>`element shape.
 
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="100px">
   <circle cx="50" cy="50" r="45" fill="var(--md-primary-fg-color--light)" stroke="var(--md-primary-fg-color--dark)" stroke-width="2"/>
 </svg>
 
-##:sak-sak-logo: Basic usage
+##:material-horseshoe: Basic usage
 The Circle tool needs a center position and a radius.
 
 === "Standalone"
@@ -42,7 +40,7 @@ The Circle tool needs a center position and a radius.
       entity_index: 0           # connect to state of entity 0
     ```
 
-##:sak-sak-logo: Styling
+##:material-horseshoe: Styling
 The Circle tool has support for the following forms of styling:
 
 | Method       | Support          | Description            |
@@ -79,7 +77,7 @@ Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:sak-sak-logo: Animations
+##:material-horseshoe: Animations
 The Circle tool has support for the following forms of animations:
 
 | Method       | Support          | Description            |

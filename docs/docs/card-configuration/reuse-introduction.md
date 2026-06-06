@@ -143,7 +143,7 @@ horseshoes:
 
 !!! Success "The larger the repeated item, the more useful reuse becomes."
 
-## Goal 
+##:material-horseshoe: Goal 
 
 The goal is not to make the configuration more complicated.
 
@@ -153,7 +153,7 @@ Instead of repeating full YAML blocks, you can define common parts once and reus
 
 This makes the external configuration compact, while the card still converts it into a complete internal configuration before rendering.
 
-## Main ideas
+##:material-horseshoe: Main ideas
 
 | Feature        | Purpose                                              |
 | :------------- | :--------------------------------------------------- |
@@ -167,7 +167,7 @@ These features are processed during card setup.
 
 They are not runtime rendering tricks. By the time the card renders, the configuration has already been expanded into normal values.
 
-## Why this helps
+##:material-horseshoe: Why this helps
 
 Reuse is useful when a card layout contains patterns.
 
@@ -213,7 +213,7 @@ The icons are positioned around `centerX`, with an offset of `4`.
 
 If the center changes later, only one value has to be changed.
 
-## Static first, render simple
+##:material-horseshoe: Static first, render simple
 
 The reuse system follows a simple principle:
 
@@ -225,7 +225,7 @@ This keeps the render code simple.
 
 The renderer does not need to know whether a value originally came from `same_as`, `calc()`, `constants`, or `ref()`. It only receives the final resolved value.
 
-## When to use reuse
+##:material-horseshoe: When to use reuse
 
 Use reuse when it makes the layout easier to understand.
 
@@ -242,7 +242,7 @@ Avoid reuse when it makes the configuration harder to read than writing the valu
 
 For one-off values, plain YAML is often clearer.
 
-## Related pages
+##:material-horseshoe: Related pages
 
 This section introduces the idea of reducing YAML through reuse.
 

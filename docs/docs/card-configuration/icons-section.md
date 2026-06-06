@@ -19,7 +19,7 @@ The Entity Icon tool displays the Home Assistant Entity Icon.
 
 :material-thermometer:
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
 !!! Info "If no icon is specified in the entities configuration, the icon specified by Home Assistant is used"
 
 The Entity Icon tool needs a center position, size and alignment.
@@ -76,7 +76,7 @@ The Entity Icon tool needs a center position, size and alignment.
           fill: var(--primary-text-color)
     ```
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 The Entity Icon tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -112,7 +112,7 @@ Populair properties:
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Entity Icon tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |

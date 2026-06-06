@@ -1,4 +1,4 @@
-##:fhs-fhs-logo: Haptics
+##:material-horseshoe: Haptics
 !!! Info "See: https://companion.home-assistant.io/docs/integrations/haptics/ for devices that support haptics"
 
 The tool supports haptic feedback through `user_actions`/ `tap_action` definition

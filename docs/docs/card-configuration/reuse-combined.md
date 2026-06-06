@@ -7,7 +7,7 @@ tags:
   - YAML Calc
 ---
 
-## Combining calc() with same_as
+##:material-horseshoe: Combining calc() with same_as
 
 same_as can be used to reuse another item in the same section.
 

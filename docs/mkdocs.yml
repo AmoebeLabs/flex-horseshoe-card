@@ -16,6 +16,8 @@ copyright: Copyright &copy; 2026-2027 Marco @AmoebeLabs
 
 watch:
   - docs
+  - docs/assets
+  - overrides
 
 theme:
   name: material
@@ -32,7 +34,7 @@ theme:
     - media: '(prefers-color-scheme: light)'
       primary: amoebelabs-light
       accent: amoebelabs-light
-      #      scheme: default
+      scheme: default
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode

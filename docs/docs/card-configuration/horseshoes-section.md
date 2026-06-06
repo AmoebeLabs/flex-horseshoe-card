@@ -17,7 +17,7 @@ tags:
 
 TBD!
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
 
 === "Standalone"
 
@@ -32,7 +32,7 @@ TBD!
     ```
 
 
-## Available show options
+##:material-horseshoe: Available show options
 
 All options are optional.
 
@@ -42,7 +42,7 @@ All options are optional.
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient` | v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [horseshoe fill style list](#horseshoe-fill-styles) for a description. |
 
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 The Horse Shoe tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -69,7 +69,7 @@ Populair properties:
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Horse Shoe tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |
@@ -80,6 +80,6 @@ The Horse Shoe tool has support for the following forms of animations:
 
 !!! Info "The use of animations require the tool to be connected to an entity"
 
-##:fhs-fhs-logo: Examples
+##:material-horseshoe: Examples
 
-##:fhs-fhs-logo: Detailed specification
+##:material-horseshoe: Detailed specification

@@ -6,7 +6,7 @@ tags:
   - Animations
 ---
 
-## Available animation options
+##:material-horseshoe: Available animation options
 
 Animations are optional, and are driven by state changes of a given entity or attribute.
 
@@ -16,7 +16,7 @@ Animations are optional, and are driven by state changes of a given entity or at
 | state                          | string | **required** | v0.8.0 | specifies the state like 'on', or 'off' the animation is meant for                                                                                                                            |
 | circles, hlines, vlines, icons |  list  | **required** | v0.8.0 | list of objects with animations                                                                                                                                                               |
 
-## Available circle, hline, vline, icon animation styles
+##:material-horseshoe: Available circle, hline, vline, icon animation styles
 
 | Name         |        Type         |   Default    | Since  | Description                                                                                                                                                                                                                                                                                                                                         |
 | ------------ | :-----------------: | :----------: | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Animations are optional, and are driven by state changes of a given entity or at
 | reuse        |       boolean       |   `false`    | v0.8.0 | Default the previous animation style is cleared. By setting reuse to `true`, the previous animation style is preserved by the new animation. This can be handy if this animation starts where the previous animation left off. <br/>For instance a color: the 'on' state sets the circle to orange. The 'off' state keeps the color, but zooms out. |
 | icon         |       string        |   `false`    | v5.4.4 | Name of Icon to change.                                                                                                                                                                                                                                                                                                                             |
 
-## Predefined animations
+##:material-horseshoe: Predefined animations
 
 | Name       |   Type    | Since  | Example definition in the styles section of the animation                                         |
 | ---------- | :-------: | ------ | ------------------------------------------------------------------------------------------------- |
@@ -79,7 +79,7 @@ Animations are optional, and are driven by state changes of a given entity or at
               - fill: var(--primary-text-color);
 ```
 
-## User defined animations
+##:material-horseshoe: User defined animations
 
 You can define your own animations too.
 Pick a unique name, add the animation to the style: section of the card, and off you go.
@@ -137,7 +137,7 @@ There are at least a few great places for example animations:
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
 
-# ![](https://tweakers.net/ext/f/D4Fx1OKp6s7Hb21Wzq9JWCJb/full.png) Card Styling section
+##:material-horseshoe: Card Styling section
 
 As of v5.4.1
 

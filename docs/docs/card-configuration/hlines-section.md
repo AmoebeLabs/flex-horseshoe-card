@@ -19,7 +19,7 @@ The Line tool is based on the SVG basic `<line>` element shape
   <line x1="5" y1="5" x2="95" y2="5" stroke="black" stroke-width="2"/>
 </svg>
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
 The Line tool needs a center position and a length, or start and endpoints.
 === "Standalone"
 
@@ -74,7 +74,7 @@ The Line tool needs a center position and a length, or start and endpoints.
           stroke-width: 2       # Set stroke width using CSS attribute
     ```
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 The Line tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -111,7 +111,7 @@ Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Element/line
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Line tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |

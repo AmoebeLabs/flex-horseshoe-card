@@ -60,7 +60,7 @@ The Entity State tool displays the Home Assistant Entity State value and unit of
   </g>
 </svg>
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
 The Entity State tool needs a center position and the entity_index from which the state value is used.
 === "Connected"
 
@@ -77,7 +77,7 @@ The Entity State tool needs a center position and the entity_index from which th
       opacity: 0.8
 ```
 
-##:fhs-fhs-logo: Advanced usage
+##:material-horseshoe: Advanced usage
 The unit of measurement can be placed at the end (default), above (top), under (bottom) or not (none) alongside the state value.
 
 === "Connected"
@@ -97,7 +97,7 @@ The unit of measurement can be placed at the end (default), above (top), under (
       opacity: 0.8
 ```
 
-##:fhs-fhs-logo: State, Attribute, Attribute lists and Secondary Info
+##:material-horseshoe: State, Attribute, Attribute lists and Secondary Info
 
 The state tool can do more than just display the state value of an entity. An attribute, or attribute from an attribute list and secondary info can also be used by the state tool.
 
@@ -154,7 +154,7 @@ entities:
     format: relative # relative, date, time, datetime
 ```
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 The Entity State tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -193,7 +193,7 @@ Populair properties:
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Entity State tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |

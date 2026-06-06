@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://swiss-army-knife-card-manual.amoebelabs.com/sitemap.xml
+Sitemap: https://flex-horseshoe-card-manual.amoebelabs.com/sitemap.xml

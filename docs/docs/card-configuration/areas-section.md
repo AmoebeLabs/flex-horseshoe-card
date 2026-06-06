@@ -23,7 +23,8 @@ The Entity Area tool displays the Home Assistant Entity Area value.
   </text>
 </svg>
 
-##:fhs-fhs-logo: Basic usage
+##:material-horseshoe: Basic usage
+##:material-horseshoe: Basic Usage
 The Entity Area tool needs a center position and the entity_index from which the area text is used.
 === "Connected"
 
@@ -41,7 +42,7 @@ The Entity Area tool needs a center position and the entity_index from which the
 !!! Tip "Always use a relative font-size: it fits well with the relative sizes used by SAK"
 Unless you need a fixed size in pixels...
 
-##:fhs-fhs-logo: Styling
+##:material-horseshoe: Styling
 The Entity Area tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
@@ -76,7 +77,7 @@ Populair properties:
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:fhs-fhs-logo: Animations
+##:material-horseshoe: Animations
 The Entity Area tool has support for the following forms of animations:
 
 | Method       |     Support      | Description                                              |
