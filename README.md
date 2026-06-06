@@ -17,6 +17,10 @@ Stable and Latest available versions where the latest can be a pre-release (DEV)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AmoebeLabs&repository=flex-horseshoe-card&category=Dashboard)
 
+## Upcoming...
+
+![](images/fhs-homepage.png)
+
 ## Introduction
 
 Flexible looks-like-a-horseshoe card for [Home Assistant](https://github.com/home-assistant/home-assistant) Lovelace UI
@@ -28,7 +32,7 @@ _The Lovelace view of the above examples is in the repository in the examples fo
 
 ---
 
-### v5.4.5 is the latest stable release of this card. Be gentle with it!
+### v5.4.7 is the latest stable release of this card. Be gentle with it!
 
 ---
 
@@ -56,7 +60,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 ---
 
-# :material-horseshoe: Table of contents
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Table of contents
 
 - [Some examples](#-some-examples)
 - [Install](#-install)
@@ -77,7 +81,7 @@ The main perk of this card is it's flexibility. It is able to position a number 
 
 ---
 
-# :material-horseshoe: Some examples
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Some examples
 
 ## Normal, flat UI
 
@@ -117,7 +121,7 @@ Combined with animations and states, you can alter the appearance of objects. Th
 
 ![](https://tweakers.net/ext/f/Hk2Lzz2VkPbDUvEQUubBXoJU/full.gif)
 
-# :material-horseshoe: Install
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Install
 
 ## Install via HACS
 
@@ -138,7 +142,7 @@ resources:
     type: module
 ```
 
-# :material-horseshoe: Using the card
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Using the card
 
 The preferred method of using this card is by [`decluttering card`](https://github.com/custom-cards/decluttering-card) templates. You define the layout and default options in this template and use the template in your Lovelace config. This config stays clean this way: you only specify the entities, attributes, units and icons which are displayed according to the layout defined in the template.
 
@@ -496,7 +500,7 @@ Let's see how that looks :smile:
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
 
-# :material-horseshoe: Card Options
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Card Options
 
 ## Main Card required, defaulted and pure optional sections
 
@@ -583,7 +587,7 @@ entities:
       service_data: { 'entity_id': 'light.1st_floor_hall_light' }
 ```
 
-# :material-horseshoe: Layout section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Layout section
 
 ## Available layout options
 
@@ -658,7 +662,7 @@ layout:
         - font-size: 1.2em;
 ```
 
-# :material-horseshoe: Horseshoe section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Horseshoe section
 
 ## Horseshoe scale options
 
@@ -823,7 +827,7 @@ show:
   horseshoe_style: 'lineargradient'
 ```
 
-# :material-horseshoe: Animations section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Animations section
 
 ## Available animation options
 
@@ -956,7 +960,7 @@ There are at least a few great places for example animations:
     @keyframes stroke { to { stroke-dashoffset: 0; } }
 ```
 
-# :material-horseshoe: Card Styling section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Card Styling section
 
 As of v5.4.1
 
@@ -998,7 +1002,7 @@ The second example shows the combination of card style and JavaScript templating
     - transition: background-color 1s ease-in-out;
 ```
 
-# :material-horseshoe: Colorstops for states, icons etc section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Colorstops for states, icons etc section
 
 As of v5.4.1
 
@@ -1042,7 +1046,7 @@ This example shows how to to define a colorstop for an entity. The first one is 
         5: 'purple'
 ```
 
-# :material-horseshoe: JavaScript Templates section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) JavaScript Templates section
 
 As of v5.4.1
 
@@ -1199,7 +1203,7 @@ horseshoes:
       [[[ return variables['testColorStops3']; ]]]
 ```
 
-# :material-horseshoe: Show section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Show section
 
 ## Available show options
 
@@ -1210,7 +1214,7 @@ All options are optional.
 | scale_tickmarks |     true     |                              `true` / `false`                               | v0.8.0 | Display scale                                                                                                                                    |
 | horseshoe_style | `autominmax` | `fixed` / `autominmax`/ `colorstop` / `colorstopgradient`/ `lineargradient` | v0.8.0 | Fill style. Most fill styles need the colorstop list to be specified. See [horseshoe fill style list](#horseshoe-fill-styles) for a description. |
 
-# :material-horseshoe: Card Filter section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Card Filter section
 
 There are some predefined css filters which you can use to give the full card a different look. Besides the predefined, you can also define you rown using the style: section of the yaml card definition and refer to that class as the card_filter:
 
@@ -1218,7 +1222,7 @@ There are some predefined css filters which you can use to give the full card a 
 | ----------- | :---------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | card_filter | `card--dropshadow-none` | `card--dropshadow-none`/ `card--dropshadow-medium--opaque--sepia90` / `card--dropshadow-heavy--sepia90` / `card--dropshadow-heavy` / `card--dropshadow-medium--sepia90`/ `card--dropshadow-medium` / `card--dropshadow-light--sepia90` / `card--dropshadow-light` / `card--dropshadow-down-and-distant` | v0.8.0 | List of drop-shadows and sepia colorization using css filters on the full card.</br></br>Currently only tested on the darkslategrey / wheat Nyx theme |
 
-# :material-horseshoe: Examples section
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Examples section
 
 The full view with all 12 examples is in the examples folder of this repository.
 
@@ -1252,11 +1256,11 @@ Define your own, or alter the example cards!
 
 ![](https://tweakers.net/ext/f/3jaSI26J9QxHJa8rTriXFNNO/full.png)
 
-# :material-horseshoe: Design your OWN card
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Design your OWN card
 
 I hope you have found enough examples and inspiration to design your own horseshoe layout, with nice colors and functional animations. I just might include some of the community designs in this section :smile:
 
-# :material-horseshoe: End notes
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) End notes
 
 ## License
 
