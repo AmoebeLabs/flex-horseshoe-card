@@ -531,11 +531,58 @@
     --svg-bg: #0f171a;
   }
 
+  .cls-1 {
+    fill: #cb816c;
+  }
+  .cls-2 {
+    fill: #e29078;
+  }
+  .cls-2a {
+    fill: #df876c;
+  }
+  .cls-2b {
+    fill: #df876c;
+  }
+  .cls-2c {
+    fill: #df876c;
+  }
+  .cls-2d {
+    fill: blue;
+  }
+
+  .cls-4 {
+    fill: #e7a693;
+  }
+  .cls-5 {
+    fill: #875648;
+  }
+  .cls-6 {
+    fill: #edbcae;
+  }
+  .cls-7 {
+    fill: white;
+  }
+  .cls-8 {
+    fill: #e29078;
+  }
+  .cls-9 {
+    fill: #f3d2c9;
+  }
+  .cls-10 {
+    fill: #fdf9f3;
+  }
+  .cls-3 {
+    fill: #e9cfac;
+  }
+
+  /* Filler of shoes */
   .feature-svg .cls-1 {
     fill: #e94770;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #cb816c;
   }
+  /* Dark outer lines of body */
   .feature-svg .cls-2 {
     fill: #25262a;
     fill: #e29078;
@@ -579,47 +626,62 @@
     /* fill: var(--svg-bg); */
     fill: var(--md-primary-fg-color);
   }
-
+  /* Lower part of hands */
   .feature-svg .cls-3 {
     fill: #e9cfac;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #e9cfac;
+
     /* fill: #f9e8e3; */
   }
+  /* Lighter lines body */
   .feature-svg .cls-4 {
     fill: #f18eae;
     fill: #e29078;
     /* fill: var(--svg-bg); */
     /* fill: #f8e4dd; */
+    fill: #e7a693;
   }
+  /* Lower line of shoes */
   .feature-svg .cls-5 {
     fill: #bc3d62;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #875648;
   }
+  /* Bod darker lines. */
   .feature-svg .cls-6 {
     fill: #f3eaf5;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #edbcae;
   }
+  /* Part of hands */
   .feature-svg .cls-7 {
     fill: #fff;
-    fill: var(--svg-bg);
+    /* fill: var(--svg-bg); */
   }
+  /* Upper part of shoes */
   .feature-svg .cls-8 {
     fill: #fac56e;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #e29078;
   }
+  /* Center body color */
   .feature-svg .cls-9 {
     fill: #f7c4d6;
     fill: #e29078;
     fill: var(--svg-bg);
+    fill: #f3d2c9;
   }
+  /* Part of hands */
   .feature-svg .cls-10 {
     fill: #fdf9f3;
 
     fill: var(--svg-bg);
+    fill: #fdf9f3;
   }
 
   .fhs-home-footer {
@@ -676,7 +738,7 @@
 
     <div class="fhs-features__grid">
       <!-- Higly Configurable -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/overview/">
         <div class="fhs-feature__icon">
           <!-- mdi:arm-flex -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -713,14 +775,14 @@
           </svg> -->
         </div>
         <div class="fhs-feature__body">
-          <h3 class="fhs-feature__title">Build faster with Less YAML</h3>
+          <h3 class="fhs-feature__title">Build faster with less YAML</h3>
           <span>Use <code>same_as</code> to reuse similar items within sections instead of copying blocks.</span>
           <span>Define <code>constants</code>, and use them with <code>ref()</code> for shared color stops between items, or <code>calc()</code> to calculate positions and sizes so layouts stay consistent.</span>
         </div>
       </a>
 
       <!-- Build for and with Home Assistant -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/localization/">
         <div class="fhs-feature__icon">
           <!-- mdi:home-assistant -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -738,7 +800,7 @@
       </a>
 
       <!-- Templating with JavaScript -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/templating/">
         <div class="fhs-feature__icon">
           <!-- mdi:code-brackets -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15,4V6H18V18H15V20H20V4M4,4V20H9V18H6V6H9V4H4Z" /></svg>
@@ -781,7 +843,7 @@
       </a>
 
       <!-- Themes and Palettes -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/external-palettes/">
         <div class="fhs-feature__icon">
           <!-- mdi:palette -->
           <svg viewBox="0 0 24 24">
@@ -799,7 +861,7 @@
       </a>
 
       <!-- SVG -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/styling/">
         <div class="fhs-feature__icon">
           <!-- mdi:svg -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -823,7 +885,7 @@
       </a>
 
       <!-- Compatible with the original Horseshoe -->
-      <a class="fhs-feature" href="card-configuration/reuse-introduction/">
+      <a class="fhs-feature" href="card-configuration/horseshoes-section/">
         <div class="fhs-feature__icon">
           <!-- mdi:horseshoe -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
