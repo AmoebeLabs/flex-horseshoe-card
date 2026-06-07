@@ -214,6 +214,7 @@ nav:
           - External Palettes: card-configuration/external-palettes.md
           - Template Variables: card-configuration/template-variables.md
           - Layout Sections:
+              - Overview: card-configuration/layout-overview.md
               - Groups: card-configuration/groups-section.md
               - Circles: card-configuration/circles-section.md
               - Horse Shoes:
