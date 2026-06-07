@@ -66,6 +66,25 @@
 
   --md-primary-h-color: var(--md-primary-fg-color--100);
   --md-typeset-a-color: var(--md-primary-fg-color--300);
+
+  /* Adjust slate colors... */
+  --md-hue: 200deg;
+  /* basis */
+  --md-default-bg-color: hsla(var(--md-hue), 7%, 11%, 1);
+  --md-default-fg-color: hsla(var(--md-hue), 10%, 88%, 0.82);
+
+  /* lichtere varianten */
+  --md-default-bg-color--light: hsla(var(--md-hue), 7%, 11%, 0.54);
+  --md-default-bg-color--lighter: hsla(var(--md-hue), 7%, 11%, 0.26);
+  --md-default-bg-color--lightest: hsla(var(--md-hue), 7%, 11%, 0.07);
+
+  --md-default-fg-color--light: hsla(var(--md-hue), 10%, 88%, 0.56);
+  --md-default-fg-color--lighter: hsla(var(--md-hue), 10%, 88%, 0.32);
+  --md-default-fg-color--lightest: hsla(var(--md-hue), 10%, 88%, 0.12);
+
+  /* code / blokken */
+  --md-code-fg-color: hsla(var(--md-hue), 10%, 86%, 0.82);
+  --md-code-bg-color: hsla(var(--md-hue), 7%, 15%, 1);
 }
 
 [data-md-color-accent='amoebelabs-dark'] {

@@ -181,23 +181,23 @@ nav:
       - Install with HACS: getting-started/installation.md
   - Examples:
       - Overview: examples/overview.md
-      - Functional Cards:
-          - AirVisual Card: examples/functional-cards/airvisual-card.md
-          - Battery Sensor Card: examples/functional-cards/battery-sensor-card.md
-          - Binary Sensor Card: examples/functional-cards/binary-sensor-card.md
-          - Environment Card: examples/functional-cards/environment-card.md
-          - Header Card: examples/functional-cards/header-card.md
-          - Input Boolean Card: examples/functional-cards/input-boolean-card.md
-          - Light Card: examples/functional-cards/light-card.md
-          - Light Slider Card: examples/functional-cards/light-slider-card.md
-          - Navigate Card: examples/functional-cards/navigate-card.md
-          - Person Card: examples/functional-cards/person-card.md
-          - Power Outlet Card: examples/functional-cards/power-outlet-card.md
-          - Scene Card: examples/functional-cards/scene-card.md
-          - Sensor Card: examples/functional-cards/sensor-card.md
-          - Server Statistics Card: examples/functional-cards/server-statistics-card.md
-          - Switch Card: examples/functional-cards/switch-card.md
-          - Kleenex Pollen Card: examples/functional-cards/kleenex-pollen-card.md
+      - Demo Cards:
+          - AirVisual Card: examples/demo-cards/airvisual-card.md
+          - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
+          - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
+          - Environment Card: examples/demo-cards/environment-card.md
+          - Header Card: examples/demo-cards/header-card.md
+          - Input Boolean Card: examples/demo-cards/input-boolean-card.md
+          - Light Card: examples/demo-cards/light-card.md
+          - Light Slider Card: examples/demo-cards/light-slider-card.md
+          - Navigate Card: examples/demo-cards/navigate-card.md
+          - Person Card: examples/demo-cards/person-card.md
+          - Power Outlet Card: examples/demo-cards/power-outlet-card.md
+          - Scene Card: examples/demo-cards/scene-card.md
+          - Sensor Card: examples/demo-cards/sensor-card.md
+          - Server Statistics Card: examples/demo-cards/server-statistics-card.md
+          - Switch Card: examples/demo-cards/switch-card.md
+          - Kleenex Pollen Card: examples/demo-cards/demo-card-kleenex-pollen-34.md
   - Card configuration:
       - Overview: card-configuration/overview.md
       - Card Specials:
@@ -206,11 +206,11 @@ nav:
               - Reuse of Section Items: card-configuration/reuse-with-same_as.md
               - Reuse with calc() and ref(): card-configuration/reuse-with-calc-and-ref.md
               - Combining the two: card-configuration/reuse-combined.md
-          - Positioning and Groups: card-cofiguration/positioning-and-groups.md
+          - Positioning and Groups: card-configuration/positioning-and-groups.md
           - Localization: card-configuration/localization.md
           - Animations: card-configuration/animations.md
           - Color Stops: card-configuration/color-stops.md
-          - CSS Styling: card-configuration/styling.md
+          - CSS Styling: card-configuration/css-styling.md
           - Templating: card-configuration/templating.md
       - Card Sections:
           - Size of Card: card-configuration/size-of-card.md
