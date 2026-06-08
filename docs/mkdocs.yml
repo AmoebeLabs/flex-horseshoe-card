@@ -224,10 +224,8 @@ nav:
                   - Main: card-configuration/sections/horseshoes-section.md
                   - Ticks: card-configuration/sections/horseshoe-ticks.md
                   - Labels: card-configuration/sections/horseshoe-labels.md
-              - Entity Areas: card-configuration/sections/areas-section.md
-              - Entity Icons: card-configuration/sections/icons-section.md
-              - Entity Names: card-configuration/sections/names-section.md
+              - ...Entity Areas: card-configuration/sections/areas-section.md
+              - ...Entity Icons: card-configuration/sections/icons-section.md
+              - ...Entity Names: card-configuration/sections/names-section.md
               - Entity States: card-configuration/sections/states-section.md
-              - Lines:
-                  - Horizontal Lines: card-configuration/sections/hlines-section.md
-                  - Vertical Lines: card-configuration/sections/vlines-section.md
+              - ...Lines: card-configuration/sections/hlines-vlines-section.md

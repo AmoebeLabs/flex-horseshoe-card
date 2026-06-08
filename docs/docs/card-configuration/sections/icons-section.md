@@ -10,70 +10,71 @@ tags:
 
 [entity-icon-tool support]: https://github.com/amoebelabs/swiss-army-knife-card/releases/
 
-# The Entity Icon tool
-
-[:octicons-tag-24: 1.0.0][entity-icon-tool support] ·
-:octicons-package-dependents-24: Output
-
-The Entity Icon tool displays the Home Assistant Entity Icon.
-
-:material-thermometer:
+# The Icons Section
 
 ##:material-horseshoe: Basic usage
-!!! Info "If no icon is specified in the entities configuration, the icon specified by Home Assistant is used"
+Entity Icons are defined in the `icons` section. This section is a list of icons.
+
+| Type of Icon | Description                                 |
+| :-------- | :------------------------------------------ |
+| `icon`  | The obvious default: an icon is specifed like `icon: mdi:...` |
+| `image` | Using an external image as the icon: `icon: url(/local/icons/icon-image.png)`
+| `SVG`   | Using an external SVG as the icon: `icon: url(/local/icons/icon-svg.svg)`
+
+### Default Value
+By default, the icon is defined in the Home Assistant registry, where an `icon` is defined for the entity. That icon can also be state dependent.
+
+### Overriding
+The value of the `icon` can be overriden in:
+
+- The cards entities definition, where the `icon` is hard-coded
+- The icon item can define an icon
+- The state map can define an icon dependent on the state of the entity
 
 The Entity Icon tool needs a center position, size and alignment.
 === "Standalone"
 
     ```yaml linenums="1" hl_lines="1"
-    - type: 'icon'              # tooltype is 'icon'
-      position:                 # Position on (100x100) canvas
-        cx: 50                  # cx=50 is center position
-        cy: 50                  # cy=50 is center position
-        icon_size: 10           # Relative size of 10 (em)
-        align: center           # Align (center, end, start)
-      icon: mdi:dots-vertical   # Specify icon in tool
+    - xpos: 50                  # xpos=50 is center position
+      ypos: 50                  # ypos=50 is center position
+      icon_size: 10             # Relative size of 10 (em)
+      align: center             # Align (center, end, start)
+      icon: mdi:dots-vertical   # Specify icon in item definition
       styles:
-        icon:
-          fill: var(--primary-text-color)
+        fill: var(--primary-text-color)
     ```
 === "Connected"
 
-    The Entity Icon tool fetches the icon from the entity_index.
-    ```yaml linenums="1" hl_lines="1"
-    - type: 'icon'              # tooltype is 'icon'
-      position:                 # Position on (100x100) canvas
-        cx: 50                  # cx=50 is center position
-        cy: 50                  # cy=50 is center position
-        icon_size: 10           # Relative size of 10 (em)
-        align: center           # Align (center, end, start)
-      entity_index: 0           # connect to state of entity 0
+    ```yaml
+    - xpos: 50                  # xpos=50 is center position
+      ypos: 50                  # ypos=50 is center position
+      icon_size: 10             # Relative size of 10 (em)
+      align: center             # Align (center, end, start)
+      entity_index: 1           # Specify entity_index
+      icon: url(/local/images/some-image.png) # Override Icon with external image
       styles:
-        icon:
-          fill: var(--primary-text-color)
+        fill: var(--primary-text-color)
     ```
-=== "Connected - Icon overruled"
+=== "Connected - State Map"
 
-    The Entity Icon tool can have it's entity icon overruled by the tool.
-    ```yaml title="From example view-sake2.yml" linenums="1"hl_lines="8"
-    - type: icon
-      position:
-        cx: 10
-        cy: 10
-        align: center
-        icon_size: 15
-      entity_index: 0
-      icon: mdi:dots-vertical   # Overwrite icon from entity: use menu icon
-      user_actions:
-        tap_action:
-          haptic: success
-          actions:
-            - action: more-info # display more-info popup when clicked
-      styles:
-        capture:
-          opacity: 0
-        icon:
-          fill: var(--primary-text-color)
+    The Icon can be specified by the state of the connected entity.
+    
+    ```yaml title="From demo card :34:" linenums="1"hl_lines="8"
+    - xpos: 50                  # xpos=50 is center position
+      ypos: 50                  # ypos=50 is center position
+      icon_size: 10             # Relative size of 10 (em)
+      align: center             # Align (center, end, start)
+      entity_index: 2
+      state_map:
+        map:
+          - state: 'low'
+            icon: url(/local/images/kleenex/pollen_weed_low.svg)
+          - state: 'moderate'
+            icon: url(/local/images/kleenex/pollen_weed_moderate.svg)
+          - state: 'high'
+            icon: url(/local/images/kleenex/pollen_weed_high.svg)
+          - state: 'very_high'
+            icon: url(/local/images/kleenex/pollen_weed_very_high.svg)
     ```
 
 ##:material-horseshoe: Styling
@@ -81,26 +82,7 @@ The Entity Icon tool has support for the following forms of styling:
 
 | Method    |     Support      | Description                                 |
 | :-------- | :--------------: | :------------------------------------------ |
-| `classes` | :material-check: | Using SAK or User defined class definitions |
 | `styles`  | :material-check: | Using inline SVG and CSS styles             |
-
-The Entity Icon tool is composed of a single object: "icon" and this is the selector for styling:
-
-```yaml linenums="1"hl_lines="9 12"
-- type: 'icon'
-  position:
-    cx: 50
-    cy: 50
-    icon_size: 10
-    align: center
-  entity_index: 0
-  classes:
-    icon: # icon selector
-      <...>
-  styles:
-    icon: # icon selector
-      <...>
-```
 
 Populair properties:
 
@@ -118,5 +100,4 @@ The Entity Icon tool has support for the following forms of animations:
 | Method       |     Support      | Description                                              |
 | :----------- | :--------------: | :------------------------------------------------------- |
 | `colorstops` | :material-check: | List of state values to set the color                    |
-| `colorlists` | :material-close: | Using a colorlist definition                             |
 | `animations` | :material-check: | Operator state based animations with class/style styling |

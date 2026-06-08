@@ -13,6 +13,10 @@ tags:
 
 ##:material-horseshoe: Basic usage
 Entity names are defined in the `names` section. This section is a list of names.
+<br>The value of the area can be defined by:
+
+- The cards entities definition, where the `name` is hard-coded
+- From the Home Assistant registry, where an `name` is defined for the entity
 
 ### Example definitions
 One with named IDs and one with Auto IDs. IDs are required in this case for `id: first` to be referenced by same_as functionality.
