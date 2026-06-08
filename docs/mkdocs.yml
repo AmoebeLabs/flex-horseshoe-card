@@ -178,53 +178,56 @@ nav:
   - Home: index.md
   - Getting started:
       - Introduction: getting-started/introduction.md
-      - Install with HACS: getting-started/installation.md
+      - ...Install with HACS: getting-started/installation.md
   - Examples:
       - Overview: examples/overview.md
       - Demo Cards:
-          - AirVisual Card: examples/demo-cards/airvisual-card.md
-          - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
-          - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
-          - Environment Card: examples/demo-cards/environment-card.md
-          - Kleenex Pollen Card: examples/demo-cards/demo-card-kleenex-pollen-34.md
-          - Light Card: examples/demo-cards/light-card.md
-          - Person Card: examples/demo-cards/person-card.md
-          - Power Outlet Card: examples/demo-cards/power-outlet-card.md
-          - Scene Card: examples/demo-cards/scene-card.md
-          - Sensor Card: examples/demo-cards/sensor-card.md
-          - Server Statistics Card: examples/demo-cards/server-statistics-card.md
-          - Switch Card: examples/demo-cards/switch-card.md
+          # - AirVisual Card: examples/demo-cards/airvisual-card.md
+          # - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
+          # - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
+          # - Environment Card: examples/demo-cards/environment-card.md
+          - ...Kleenex Pollen Card 34: examples/demo-cards/demo-card-kleenex-pollen-34.md
+          - ...Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
+          # - Light Card: examples/demo-cards/light-card.md
+          # - Person Card: examples/demo-cards/person-card.md
+          # - Power Outlet Card: examples/demo-cards/power-outlet-card.md
+          # - Scene Card: examples/demo-cards/scene-card.md
+          # - Sensor Card: examples/demo-cards/sensor-card.md
+          # - Server Statistics Card: examples/demo-cards/server-statistics-card.md
+          # - Switch Card: examples/demo-cards/switch-card.md
   - Card configuration:
       - Overview: card-configuration/overview.md
       - Card Specials:
           - Less YAML with Reuse:
-              - An Introduction: card-configuration/reuse-introduction.md
-              - Reuse of Section Items: card-configuration/reuse-with-same_as.md
-              - Reuse with calc() and ref(): card-configuration/reuse-with-calc-and-ref.md
-              - Combining the two: card-configuration/reuse-combined.md
-          - Positioning and Groups: card-configuration/positioning-and-groups.md
-          - Localization: card-configuration/localization.md
-          - Animations: card-configuration/animations.md
-          - Color Stops: card-configuration/color-stops.md
-          - CSS Styling: card-configuration/css-styling.md
-          - Templating: card-configuration/templating.md
+              - ...An Introduction: card-configuration/specials/reuse-introduction.md
+              - ...Reuse of Section Items: card-configuration/specials/reuse-with-same_as.md
+              - ...Reuse with calc() and ref(): card-configuration/specials/reuse-with-calc-and-ref.md
+              - ...Combining the two: card-configuration/specials/reuse-combined.md
+      - Card Basics:
+          - ...Card Structure: card-configuration/basics/card-structure.md
+          - Positioning and Groups: card-configuration/basics/positioning-and-groups.md
+          - Localization: card-configuration/basics/localization.md
+          - ...Animations: card-configuration/basics/animations.md
+          - Color Stops: card-configuration/basics/color-stops.md
+          - CSS Styling: card-configuration/basics/css-styling.md
+          - Templating: card-configuration/basics/templating.md
       - Card Sections:
-          - Size of Card: card-configuration/size-of-card.md
-          - Entity Definitions: card-configuration/entity-definitions.md
-          - External Palettes: card-configuration/external-palettes.md
-          - Template Variables: card-configuration/template-variables.md
+          - Size of Card: card-configuration/sections/size-of-card.md
+          - ...Entity Definitions: card-configuration/sections/entity-definitions.md
+          - External Palettes: card-configuration/sections/external-palettes.md
+          - Template Variables: card-configuration/sections/template-variables.md
           - Layout Sections:
-              - Overview: card-configuration/layout-overview.md
-              - Groups: card-configuration/groups-section.md
-              - Circles: card-configuration/circles-section.md
+              - Overview: card-configuration/sections/layout-overview.md
+              - Groups: card-configuration/sections/groups-section.md
+              - Circles: card-configuration/sections/circles-section.md
               - Horse Shoes:
-                  - Main: card-configuration/horseshoes-section.md
-                  - Ticks: card-configuration/horseshoe-ticks.md
-                  - Labels: card-configuration/horseshoe-labels.md
-              - Entity Areas: card-configuration/areas-section.md
-              - Entity Icons: card-configuration/icons-section.md
-              - Entity Names: card-configuration/names-section.md
-              - Entity States: card-configuration/states-section.md
+                  - Main: card-configuration/sections/horseshoes-section.md
+                  - Ticks: card-configuration/sections/horseshoe-ticks.md
+                  - Labels: card-configuration/sections/horseshoe-labels.md
+              - Entity Areas: card-configuration/sections/areas-section.md
+              - Entity Icons: card-configuration/sections/icons-section.md
+              - Entity Names: card-configuration/sections/names-section.md
+              - Entity States: card-configuration/sections/states-section.md
               - Lines:
-                  - Horizontal Lines: card-configuration/hlines-section.md
-                  - Vertical Lines: card-configuration/vlines-section.md
+                  - Horizontal Lines: card-configuration/sections/hlines-section.md
+                  - Vertical Lines: card-configuration/sections/vlines-section.md

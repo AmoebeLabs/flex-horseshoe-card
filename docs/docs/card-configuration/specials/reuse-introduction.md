@@ -8,18 +8,19 @@ tags:
 
 # Less YAML with Reuse
 
-Flex Horseshoe Card configurations can become large when a card contains multiple layout items, repeated styles, repeated color stops, or carefully positioned elements.
+Flexible Horseshoe Card configurations can become large when a card contains multiple layout items, repeated styles, repeated color stops, or carefully positioned elements.
 
-A common pattern is that many items are almost the same. Only one or two fields are different, such as `xpos`, `ypos`, `radius`, `length`, or a small style override.
+## :material-horseshoe: The more items, the more YAML
+A common pattern is that many items are almost the same. Only one or two fields are different, such as `xpos`, `ypos`, `radius`, `length`, the `entity_index` or a small style override. Or, with repeated items: there is a repeated delta in the position.
 
 
-Now check the next example, with its three horizontal lines.
+Now check the next example, with its three horizontal, equally spaced lines.
 
-![](../assets/images/screenshots/fhs-functional-card-30-electricity.png)
+![](../assets/screenshots/fhs-demo-card-30a-electricity--dark.png)
 
-Without reuse, this often leads to repeated YAML and repeatedly changing xpos/ypos while designing the card until it is right:
+Without some form of reuse, this usually leads to repeated YAML and repeatedly changing xpos/ypos while designing the card until it is right:
 
-=== "Without reuse"
+=== "Standard YAML configuration"
     ```yaml linenums="1" hl_lines="2 9 16"
     hlines:
       - xpos: 50
@@ -30,29 +31,73 @@ Without reuse, this often leads to repeated YAML and repeatedly changing xpos/yp
           stroke-width: 2
 
       - xpos: 50
-        ypos: 75
+        ypos: 75 # 11 lower than previous hline
         length: 85
         styles:
           stroke: var(--disabled-text-color)
           stroke-width: 2
 
       - xpos: 50
-        ypos: 86
+        ypos: 86 # 11 lower than previous hline
         length: 85
         styles:
           stroke: var(--disabled-text-color)
           stroke-width: 2
     ```
 
+Using YAML anchors can limit the amount of YAML significantly in this case:
 
-This works, but it is sometimes harder to maintain.
+=== "Using YAML anchors"
+    ```yaml linenums="1" hl_lines="2"
+    hlines:
+      - &hline_base
+        xpos: 50
+        ypos: 64
+        length: 85
+        styles:
+          stroke: var(--disabled-text-color)
+          stroke-width: 2
 
-If the line length changes, every repeated item must be checked. If the style changes, every copy must be updated. If one copy is missed, the layout becomes inconsistent.
+      - <<: *hline_base
+        ypos: 75
 
-The reuse features are intended to solve this.
+      - <<: *hline_base
+        ypos: 86
+    ```
+
+This works, but:
+
+- It does not solve repeated patterns, as YAML can't do calculations
+- Not many people use it because of the syntax and the fact that the anchor must be unique in the whole YAML file. In other words: hard to maintain.
+  <br><br>It also leads to YAML duplicate key errors because the Home Assistant YAML loader does not like that:
+``` linenums="1"
+Logger: annotatedyaml.constructors
+Source: util/yaml/loader.py:65
+First occurred: May 21, 2026 at 6:43:48 PM (39520 occurrences)
+Last logged: 3:28:56 PM
+
+YAML file /config/lovelace/views/whatever.yaml contains duplicate key "ypos". Check lines 41 and 312
+...
+```
+
+##:material-horseshoe: Enter the world of "same_as"
+
+### The goal
+- The goal is to make repeated configuration shorter, clearer, and easier to maintain.
+- Instead of repeating full YAML blocks, you can define common parts once and reuse them.
+- You also can do calculations, and define deltas on any numbered value
+
+This makes the external configuration compact, while the card still converts it into a complete internal configuration before rendering.
+
+So let's examine the same simple configuration with `same_as` functionality!
+
+- Using `same_as` to duplicate any previous item in the section
+- Using `calc()` to shift down each line with a defined constant
+- Either using automatic id numbering, or named id's to reference an item within the section
 
 === "With reuse \#1"
-    ```yaml linenums="1" hl_lines="1 8 15 18"
+    ```yaml linenums="1" hl_lines="2 9 16 19"
+    # Define constants to be used in the card
     constants:
       lineStep: 11                   # Height between lines
       defaultLineStyle:
@@ -60,7 +105,7 @@ The reuse features are intended to solve this.
         stroke-width: 2
 
     hlines:
-      - xpos: 50
+      - xpos: 50                      # Using auto-ID, so id = 0
         ypos: 64
         length: 85
         styles:
@@ -74,7 +119,8 @@ The reuse features are intended to solve this.
         same_as_dypos: calc(2 * lineStep)
     ```
 === "With reuse \#2"
-    ```yaml linenums="1" hl_lines="1 8 15 18"
+    ```yaml linenums="1" hl_lines="2 9 16 19"
+    # Define constants to be used in the card
     constants:
       lineStep: 11                   # Height between lines
       defaultLineStyle:
@@ -82,17 +128,20 @@ The reuse features are intended to solve this.
         stroke-width: 2
 
     hlines:
-      - xpos: 50                      # Using auto-ID, so 0
+      - id: first                     # Using named IDs
+        xpos: 50
         ypos: 64
         length: 85
         styles:
           - ref(defaultLineStyle)
           - opacity: 0.8
 
-      - same_as: 0                    # Same as hline 0
+      - id: second
+        same_as: first                # Same as hline first
         same_as_dypos: calc(lineStep) # Shift down
 
-      - same_as: 1                    # Same as hline 1
+      - id: third
+        same_as: second               # Same as hline second
         same_as_dypos: calc(lineStep) # Shift down
     ```
 
@@ -105,6 +154,9 @@ When multiple horseshoes share the same visual setup, `same_as` allows one base 
 The horseshoe in the above example is about 60 lines of YAML.
 
 Even if you take a mini horseshoe, the power of the `same_as` and `ref` functionality becomes clearly visible.
+
+!!! Info "Groups built on the foundation of `same_as` to group and position a group of items"
+    This makes it possible to define an identical set of items (names, states, etc) and position them as you wish as a group of items. The only difference being the `entity_index`...
 
 ```yaml linenums="1" hl_lines="2 16 25"
 horseshoes:
@@ -132,7 +184,7 @@ horseshoes:
       max: 5000
 
   - id: temperature
-    group: temperatur        # Group will position the horseshoe (and more)
+    group: temperature       # Group will position the horseshoe (and more)
     same_as: base
     entity_index: 2
     color_stops: ref(temperatureColorStops)
@@ -143,15 +195,6 @@ horseshoes:
 
 !!! Success "The larger the repeated item, the more useful reuse becomes."
 
-##:material-horseshoe: Goal 
-
-The goal is not to make the configuration more complicated.
-
-The goal is to make repeated configuration shorter, clearer, and easier to maintain.
-
-Instead of repeating full YAML blocks, you can define common parts once and reuse them.
-
-This makes the external configuration compact, while the card still converts it into a complete internal configuration before rendering.
 
 ##:material-horseshoe: Main ideas
 
@@ -167,7 +210,7 @@ These features are processed during card setup.
 
 They are not runtime rendering tricks. By the time the card renders, the configuration has already been expanded into normal values.
 
-##:material-horseshoe: Why this helps
+##:material-horseshoe: Why this helps with less YAML and easier maintenance
 
 Reuse is useful when a card layout contains patterns.
 

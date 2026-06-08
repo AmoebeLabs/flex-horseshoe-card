@@ -1,3 +1,12 @@
+---
+template: main.html
+title: Layout Section
+description: Layout Section
+tags:
+  - Layout
+  - Section  
+---
+
 
 
 # :material-horseshoe: Layout section

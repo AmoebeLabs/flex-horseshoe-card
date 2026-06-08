@@ -12,12 +12,12 @@ tags:
 <!-- GT/GL -->
 ##:material-horseshoe: Visualization
 
-![](/assets/screenshots/fhs-functional-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
-![](/assets/screenshots/fhs-functional-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
+![](/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
+![](/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
 
 | Description| Aspect Ratio|
 |-|-|
-| A card that shows the pollen status from Kleenex, as the Tomorrow integration needs a premium membership for this data. You need to have setup that HACS integration of course.| 1/1 |
+| A card that shows the pollen status from Kleenex Pollen Radar | 1/1 |
 
 | FHS | Demonstrated Functionality |
 |-|-|
@@ -30,10 +30,17 @@ tags:
 | Horseshoes | Horseshoes with state map and color stop. |
 
 ##:material-horseshoe: Integrations
-You need the Kleenex Pollen Radar custom integration available through HACS.
+This demo card requires:
 
-!!! info "You need the SVG files from Github and put those in the `www/images/kleenex` folder"
-    Images and colors used for this card are adapted versions from Isabella Alströms pollen images
+- The Kleenex Pollen Radar custom integration available through HACS.
+- Some SVG files from Github to be put in the `www/images/kleenex` folder"
+    - /local/images/kleenex/pollen_tree_low.svg, moderate, high and very_high
+    - /local/images/kleenex/pollen_grass_low.svg, moderate, high and very_high
+    - /local/images/kleenex/pollen_weed_low.svg, moderate, high and very_high
+
+
+
+!!! info "Images and colors used for this card are adapted versions from Isabella Alströms pollen images"
 
 ##:material-horseshoe: Interaction
 
@@ -43,7 +50,7 @@ You need the Kleenex Pollen Radar custom integration available through HACS.
 
 ##:material-horseshoe: YAML Card Definition
 [:octicons-tag-24: 5.4.7][github-releases]
-```yaml  linenums="1" hl_lines="1""
+```yaml  linenums="1" hl_lines="1"
         - type: custom:flex-horseshoe-card
           # Entities Section
           entities:
