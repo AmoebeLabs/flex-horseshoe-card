@@ -199,27 +199,26 @@ nav:
   - Core Concepts:
       # - Overview: core-concepts/overview.md
       - ...Card Structure: core-concepts/card-structure.md
-      - Size of Card: core-concepts/size-of-card.md
       - ...Entity Definitions: core-concepts/entity-definitions.md
       - External Palettes: core-concepts/external-palettes.md
       - Template Variables: core-concepts/template-variables.md
       - Positioning and Groups: core-concepts/positioning-and-groups.md
       - Localization: core-concepts/localization.md
-      - ...Animations: ccore-concepts/animations.md
+      - ...Animations: core-concepts/animations.md
       - Color Stops: core-concepts/color-stops.md
       - CSS Styling: core-concepts/css-styling.md
       - Templating: core-concepts/templating.md
   - Card Layout Sections:
       - Overview: sections/layout-overview.md
       - Groups: sections/groups-section.md
-      - ...Visual Shapes: sections/visual-shapes.md
-      - Entities: sections/entities.md
-      - Horse Shoes:
-          - Main: card-configuration/sections/horseshoes-section.md
-          - Ticks: card-configuration/sections/horseshoe-ticks.md
-          - Labels: card-configuration/sections/horseshoe-labels.md
+      - ...Visual Shapes: sections/visual-shapes-section.md
+      - ...Entity Parts: sections/entities-section.md
+      - Horseshoes:
+          - Main: sections/horseshoes-section.md
+          - Ticks: sections/horseshoe-ticks.md
+          - Labels: sections/horseshoe-labels.md
   - Reuse - Less YAML:
       - ...An Introduction: reuse/reuse-introduction.md
       - ...Reuse of Section Items: reuse/reuse-with-same_as.md
       - ...Reuse with calc() and ref(): reuse/reuse-with-calc-and-ref.md
-      - ...Combining the two: reuse/reuse-combined.md
+      - ...Combining them all: reuse/reuse-combined.md

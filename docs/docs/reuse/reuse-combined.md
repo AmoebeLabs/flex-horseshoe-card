@@ -9,7 +9,7 @@ tags:
 
 ##:material-horseshoe: Combining calc() with same_as
 
-same_as can be used to reuse another item in the same section.
+`same_as` can be used to reuse another item in the same section.
 
 This is useful when multiple items share most of their configuration, but only differ in one or two values.
 
@@ -63,7 +63,7 @@ hlines:
 
 So the external configuration stays short, while the internal configuration becomes complete.
 
-Reuse with chained same_as
+Reuse with chained `same_as`
 
 You can also build on the previous item.
 
@@ -124,7 +124,7 @@ third  = first + 2 steps
 
 This can be clearer when all items follow a fixed pattern from the same base item.
 
-Delta fields
+##:material-horseshoe: Delta fields
 
 Delta fields use this pattern:
 
@@ -171,7 +171,7 @@ circles:
     radius: 35
 ```
 
-Positioning around the center
+### Positioning around the center
 
 Many card layouts are designed around the center point 50,50.
 
