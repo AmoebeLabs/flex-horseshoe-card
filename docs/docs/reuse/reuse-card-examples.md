@@ -356,7 +356,7 @@ Furthermore:
   constants:
     radius0: 5000     # An extreme radius to emulate a straight horseshoe!!
     xpos0: 20         # First vertical horseshoe at xpos = 20
-    ypos0: 25         # ... and ypos = 25
+    ypos0: 45         # ... and ypos = 45
     dxPos1: 25        # Delta/shift xpos for first phase
     dxPos2: 21        # Delta/shift xpos for other phases
 ```
