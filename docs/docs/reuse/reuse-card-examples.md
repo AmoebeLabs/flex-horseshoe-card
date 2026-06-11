@@ -1,0 +1,514 @@
+---
+template: main.html
+title: Combining Calc with same_as
+description: Combine
+tags:
+  - Reuse Card Examples
+  - YAML Calc
+---
+
+##:material-horseshoe: Real World Card Examples
+The two card examples below show practical examples of the reuse functionality that `same_as`, `calc()` and `ref()` implement. The full YAML configuration of these cards is included.
+
+##:material-horseshoe: Example Card 30
+
+![](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp)
+
+Card 30 is an electricity card using the DSMR Reader integration.
+
+- It has a horseshoe for showing the total consumption
+- It has three separate parts to display the consumption of each phase.
+
+It has a number of repeated items:
+
+- The 3 horizontal lines
+- The L1, L2 and L3 groups containing the state and name of the entity, with a circle as separator
+- The card is also using the same color stop for the horseshoe and the icon
+
+Furthermore:
+
+- This card is demoing named ids for readability on all items and for the `same_as` functionality
+
+### The Card Configuration
+
+```yaml title="Entity definitions" linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':30:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+```
+```yaml title="External Palette definition" linenums="1"
+
+  palettes:
+    rainbow: /local/palettes/rainbow-palette-new.json  
+```
+!!! Info "The constants section defines the `ref()`erenced styles and colorstops, and number constants to use in `calc()` for positioning parts of the items"
+
+```yaml title="Constants definition" linenums="1"
+  constants:
+    centerX: 50
+    centerY: 50
+    lineStep: 11
+    lineLength: calc(4 * 20 + 5)       
+    disabledLineStyle:
+      stroke: var(--disabled-text-color)
+      stroke-width: 2         
+    defaultColorStops:
+      mode: gradient
+      gap: 3
+      colors:
+        0: var(--fhs-sys-rainbow-blue)
+        1: var(--fhs-sys-rainbow-green)
+        2: var(--fhs-sys-rainbow-yellow)
+        3: var(--fhs-sys-rainbow-orange)
+        4: var(--fhs-sys-rainbow-red)
+        5: var(--fhs-sys-rainbow-purple)
+```
+!!! Info "The three groups that place the collection of items on the right position on the card grid"
+    Groups do not support the `same_as` functionality (yet)
+    <br>Groups dan also scale or rotate the elements!
+    ```yaml
+    groups:
+      L1:
+        xpos: 125
+        ypos: 23
+        scale:
+          x: 1
+          y: 1
+        rotate: 90
+    ```
+
+```yaml title="Groups definition "linenums="1"
+  layout:
+    groups:
+      L1:
+        xpos: 23
+        ypos: 72
+      L2:
+        xpos: 73
+        ypos: 72
+      L3:
+        xpos: 48
+        ypos: 83
+```
+```yaml title="Area and Icon definitions" linenums="1"
+
+    areas:
+      - id: all
+        entity_index: 0
+        xpos: 0
+        ypos: 100
+        styles:
+          - font-size: 0.75em
+          - text-transform: none     
+          - text-anchor: start                       
+    icons:
+      - id: first
+        entity_index: 0
+        xpos: 50
+        ypos: 10
+        size: 1.5
+        color_stops: ref(defaultColorStops)
+```
+```yaml title="hlines definition" linenums="1"
+    hlines:
+      - id: first
+        xpos: calc(centerX)
+        ypos: 64
+        length: calc(4 * 20 + 5)
+        styles:
+          - ref(disabledLineStyle)
+          - opacity: 0.8
+      - id: second
+        same_as: first
+        same_as_dypos: calc(1 * lineStep)
+      - id: third
+        same_as: first
+        same_as_dypos: calc(2 * lineStep)
+```
+```yaml title="vlines definition" linenums="1"
+    vlines:
+      - id: first
+        xpos: 50
+        ypos: 69.5
+        length: 11
+        styles:
+          - stroke: var(--disabled-text-color);
+```
+!!! Info "As you can see, all three grouped circles are identical and designed around the centerpoint of the card"
+    The group will place them at the right position on the card grid
+
+```yaml title="Circles definition" linenums="1"
+
+    circles:
+      - id: first
+        group: L1 
+        xpos: calc(centerX - 3)
+        ypos: calc(centerY - 3)
+        radius: 2
+        styles:
+          - fill: var(--primary-text-color);
+          - opacity: 0.5;
+      - id: second
+        group: L2
+        same_as: first
+      - id: third
+        group: L3
+        same_as: first
+
+      - id: bigone
+        xpos: calc(centerX)
+        ypos: calc(-centerY)
+        radius: 175     # Radius in pixels
+        styles:
+          - fill: var(--primary-background-color);
+          - opacity: 0.7;
+          - stroke: var(--disabled-text-color);
+          - stroke-width: 2
+```
+!!! Info "As you can see, all three grouped states are identical and designed around the centerpoint of the card"
+    The group will place them at the right position on the card grid
+
+```yaml title="States definition" linenums="1"
+    states:
+      - id: all
+        entity_index: 0
+        xpos: calc(centerX)
+        ypos: 56
+        styles:
+          - font-size: 2.5em
+          - font-weight: bold
+      - id: first
+        group: L1
+        entity_index: 1
+        xpos: calc(centerX)
+        ypos: calc(centerY)
+        styles:
+          - text-anchor: start
+          - font-size: 1.2em                 
+      - id: second
+        group: L2
+        entity_index: 2
+        same_as: first
+      - id: third
+        group: L3
+        entity_index: 3
+        same_as: first
+```
+!!! Info "As you can see, all three grouped names are identical and designed around the centerpoint of the card"
+    The group will place them at the right position on the card grid
+
+```yaml title="Names definition" linenums="1"
+    names:
+      - id: all
+        entity_index: 0
+        xpos: calc(centerX)
+        ypos: 98
+        ellipsis: 20
+        styles:
+          - font-size: 1.4em
+          - text-transform: none
+      - id: first
+        entity_index: 1
+        group: L1
+        xpos: calc(centerX - 6)
+        ypos: calc(centerY)
+        styles:
+          - text-anchor: end
+          - font-size: 1.2em                
+      - id: second
+        entity_index: 2
+        group: L2
+        same_as: first
+      - id: third
+        entity_index: 3
+        group: L3
+        same_as: first
+```
+```yaml title="Horseshoe definition" linenums="1"
+    horseshoes:
+      - id: first
+        entity_index: 0
+        xpos: calc(centerX)
+        ypos: -45
+        radius: 70
+        tickmarks_radius: 43
+        arc_degrees: 70
+        flip: both
+        
+        show:
+          horseshoe: true
+          scale_tickmarks: false
+          horseshoe_style: colorstopgradient
+          scale_style: fixed
+          labels_at: ticks_major
+          ticks: true
+          label_badges: true                  
+          label_background: none
+        # 
+        horseshoe_scale:
+          min: 0
+          max: 5
+          width: 6
+          color: var(--primary-background-color)
+          ticksize: 0.1
+          gap: 3
+          styles:
+            - opacity: 0.7
+        #
+        horseshoe_tickmarks:
+          ticks_major:
+            ticksize: 1
+            color_mode: colorstopgradient
+            width: 12
+            offset: -3
+            thickness: 3
+            styles:
+              - opacity: 0.9;
+          ticks_minor:
+            ticksize: 0.2
+            color_mode: colorstopgradient
+            thickness: 2
+            width: 6
+            offset: -12
+            styles:
+              - opacity: 0.7;
+        #
+        horseshoe_labels:
+          distance_min: 0.3
+          ticksize_min: 0.3
+          orientation: horizontal
+          background:
+            width: 10
+            gap: 3  
+            styles:
+              - opacity: 0.05
+              - stroke: var(--primary-text-color)
+          badges:
+            radius: 6
+            color: var(--card-background-color)
+            border_color: var(--divider-color)
+            padding: 0
+            height: 10
+          styles:
+            - font-size: 0.7em
+        #
+        horseshoe_state:
+          width: 12
+        color_stops: ref(defaultColorStops)
+
+```
+##:material-horseshoe: Example Card 32
+
+![](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
+
+Card 32 is also an electricity card using the DSMR Reader integration.
+
+- It has 4 vertical horseshoes for showing the total and per phase consumption
+
+It has a number of repeated items:
+
+- The 4 vertical horseshoes
+- The states for the horseshoes
+- The names for the horseshoes
+
+Furthermore:
+
+- This card is not using groups, but simple shift-to-right logic using `calc()`
+
+### The Card Configuration
+
+```yaml title="Entity definitions" linenums="1"
+
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+      name: 'Total'
+      area: ':32:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      decimals: 2
+      name: 'L1'
+      area: 'Electricity'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      decimals: 2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      decimals: 2
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+```
+```yaml title="External Palette definition" linenums="1"
+
+  palettes:
+    rainbow: /local/palettes/rainbow-palette-new.json  
+```    
+```yaml title="Constants definition" linenums="1"
+  constants:
+    radius0: 5000     # An extreme radius to emulate a straight horseshoe!!
+    xpos0: 20         # First vertical horseshoe at xpos = 20
+    ypos0: 45         # ... and ypos = 45
+    dxPos1: 25        # Delta/shift xpos for first phase
+    dxPos2: 21        # Delta/shift xpos for other phases
+```
+```yaml title="Areas definitions" linenums="1"
+  layout:
+    areas:
+      - entity_index: 0
+        xpos: 0
+        ypos: 100
+        styles:
+          - font-size: 0.75em
+          - text-transform: none     
+          - text-anchor: start                       
+      - entity_index: 1
+        xpos: 50
+        ypos: 8
+        styles:
+          - font-size: 1.7em
+          - text-transform: none     
+```
+```yaml title="States definition" linenums="1"
+    states:
+      - entity_index: 0
+        xpos: calc(xpos0)
+        ypos: 85
+        styles:
+          - font-size: 1.0em
+      - entity_index: 1
+        same_as: 0
+        same_as_dxpos: calc(dxPos1)
+      - entity_index: 2
+        same_as: 1
+        same_as_dxpos: calc(dxPos2)
+      - entity_index: 3
+        same_as: 2
+        same_as_dxpos: calc(dxPos2)
+```
+```yaml title="Names definition" linenums="1"
+    names:
+      - entity_index: 0
+        xpos: calc(xpos0)
+        ypos: 95
+        styles:
+          - font-size: 1.0em
+      - entity_index: 1
+        same_as: 0
+        same_as_dxpos: calc(dxPos1)
+      - entity_index: 2
+        same_as: 1
+        same_as_dxpos: calc(dxPos2)
+      - entity_index: 3
+        same_as: 2
+        same_as_dxpos: calc(dxPos2)
+```
+!!! Info "Look at the small arc of .7 degrees. Together with the large radius and the rotation of -90 degrees, the horseshoe looks like a vertical progress bar."
+
+```yaml title="Horseshoe definition ALL" linenums="1"
+    horseshoes:
+      - entity_index: 0
+        xpos: calc(-radius0 + xpos0 + 5)
+        ypos: 45
+        radius: calc(radius0)
+        rotate: -90       # Rotate horseshoe 90 degrees CCW
+        arc_degrees: .7   # A larg radius requires a small arc
+        flip: y           # Flip around y-axis so 0 is at bottom
+        
+        show:
+          horseshoe: true
+          scale_tickmarks: false
+          horseshoe_style: colorstopgradient
+          scale_style: fixed
+          labels_at: ticks_major
+          ticks: true
+          label_badges: true                  
+          label_background: none
+        # 
+        horseshoe_scale:
+          min: 0
+          max: 5
+          width: 6
+          color: var(--primary-background-color)
+          ticksize: 0.1   # Ticks each 0.1 kWh
+          gap: 3
+          styles:
+            - opacity: 0.7
+        #
+        horseshoe_tickmarks:
+          ticks_major:
+            ticksize: 1
+            color_mode: colorstopgradient
+            width: 12
+            offset: -3
+            thickness: 1
+            styles:
+              - stroke: var(--primary-text-color)
+              - fill: var(--primary-text-color)
+              - opacity: 0.9;
+          ticks_minor:
+            ticksize: 0.1
+            color_mode: colorstopgradient
+            thickness: 1
+            width: 6
+            offset: -12
+            styles:
+              - stroke: var(--primary-text-color)
+              - fill: var(--primary-text-color)
+              - opacity: 0.7;
+        #
+        horseshoe_labels:
+          distance_min: 0.3
+          ticksize_min: 0.3
+          orientation: horizontal
+          offset: -34
+          badges:
+            radius: 6
+            color: var(--card-background-color)
+            border_color: var(--divider-color)
+            padding: 0
+            height: 10  
+          styles:
+            - font-size: 0.7em
+        #
+        horseshoe_state:
+          width: 12
+          styles:
+            - stroke-linecap: butt
+        #
+        color_stops:
+          gap: 3
+          colors:
+            0: var(--fhs-sys-rainbow-blue)
+            1: var(--fhs-sys-rainbow-green)
+            2: var(--fhs-sys-rainbow-yellow)
+            3: var(--fhs-sys-rainbow-orange)
+            4: var(--fhs-sys-rainbow-red)
+            5: var(--fhs-sys-rainbow-purple)
+```
+!!! Info "Look at the size of the YAML needed for the other 3 horseshoes!"
+    The first one copies the "All" config, shifts to the right, and removes the labels
+    <br>The others copy that first copy, and shift to the right while using the position of the previous one.
+    <br><br>That is only 3 lines of YAML instead of the 79 lines for the first horseshoe.
+
+```yaml title="Horseshoe definition L1/L2/L3" linenums="1"
+      - entity_index: 1
+        same_as: 0
+        same_as_dxpos: calc(dxPos1)
+        show:
+          labels_at: none
+      - entity_index: 2
+        same_as: 1
+        same_as_dxpos: calc(dxPos2)
+      - entity_index: 3
+        same_as: 2
+        same_as_dxpos: calc(dxPos2)
+```
