@@ -15,7 +15,7 @@ The advice will become obvious once you scroll throught the list of card options
 
 This is the card 1 of the examples. It shows the basic definition for the flexible horseshoe card using the darksky sensor with the temperature attribute and its unit and decimals.
 
-![](/examples/flex-horseshoe-card--example-card-1.png)
+![](../examples/flex-horseshoe-card--example-card-1.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -68,7 +68,7 @@ This is the card 1 of the examples. It shows the basic definition for the flexib
 
 This is card 4 of the examples. It extends the basic definition of card 1 with two more attributes from the darksky sensor and adds a horizontal line as a divider. We also swap the `area` with the `name` of the first entity.
 
-![](/examples/flex-horseshoe-card--example-card-4.png)
+![](../examples/flex-horseshoe-card--example-card-4.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'
@@ -173,7 +173,7 @@ This is the card 12 of the examples. It displays the wattage (memory sensor is u
 
 Let's see how that looks :smile:
 
-![](/examples/flex-horseshoe-card--example-card-12.png)
+![](../examples/flex-horseshoe-card--example-card-12.png)
 
 ```yaml
 - type: 'custom:flex-horseshoe-card'

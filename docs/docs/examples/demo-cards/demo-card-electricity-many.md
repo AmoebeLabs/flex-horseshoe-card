@@ -15,15 +15,15 @@ tags:
 
 Cards 20 to 26 show regular arc sizes. Cards 27, 30 and 33 show smaller arc sizes, but still recognizable as an arc, were card 32 shows a very small arc size (0.3 degrees) resulting in a straight line.
 
-![](/assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="185"}
-![](/assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="185"}
 
 | Description| Aspect Ratio|
 |-|-|
@@ -165,49 +165,49 @@ This demo card requires:
 [:octicons-tag-24: 5.4.7][github-releases]
 
 
-![](/assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#20"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#22"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#23"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#24"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
 
-![](/assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#26"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="300"}
 
 ??? Info "YAML Definition for card \#27"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#30"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#32"
     ```yaml  linenums="1" hl_lines="1"
 
     ```
-![](/assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="300"}
+![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="300"}
 ??? Info "YAML Definition for card \#33"
     ```yaml  linenums="1" hl_lines="1"
 

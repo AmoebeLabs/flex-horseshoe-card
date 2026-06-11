@@ -12,8 +12,8 @@ tags:
 <!-- GT/GL -->
 ##:material-horseshoe: Visualization
 
-![](/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
-![](/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
+![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
+![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
 
 | Description| Aspect Ratio|
 |-|-|

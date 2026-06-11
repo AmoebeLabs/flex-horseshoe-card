@@ -201,7 +201,7 @@ nav:
       - ...Card Structure: core-concepts/card-structure.md
       - ...Entity Definitions: core-concepts/entity-definitions.md
       - External Palettes: core-concepts/external-palettes.md
-      - Template Variables: core-concepts/template-variables.md
+      # - Template Variables: core-concepts/template-variables.md
       - Positioning and Groups: core-concepts/positioning-and-groups.md
       - Localization: core-concepts/localization.md
       - ...Animations: core-concepts/animations.md
