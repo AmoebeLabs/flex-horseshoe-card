@@ -115,67 +115,6 @@ class CubicSpline {
   }
 }
 
-class CubicSplineV3 {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.n = x.length;
-
-    this.a = [...y];
-    this.b = new Array(this.n - 1).fill(0);
-    this.c = new Array(this.n).fill(0);
-    this.d = new Array(this.n - 1).fill(0);
-
-    const h = new Array(this.n - 1);
-
-    for (let i = 0; i < this.n - 1; i += 1) {
-      h[i] = x[i + 1] - x[i];
-    }
-
-    const alpha = new Array(this.n - 1).fill(0);
-
-    for (let i = 1; i < this.n - 1; i += 1) {
-      alpha[i] = (3 / h[i]) * (this.a[i + 1] - this.a[i]) - (3 / h[i - 1]) * (this.a[i] - this.a[i - 1]);
-    }
-
-    const l = new Array(this.n).fill(1);
-    const mu = new Array(this.n).fill(0);
-    const z = new Array(this.n).fill(0);
-
-    for (let i = 1; i < this.n - 1; i += 1) {
-      l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
-      mu[i] = h[i] / l[i];
-      z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
-    }
-
-    for (let j = this.n - 2; j >= 0; j -= 1) {
-      this.c[j] = z[j] - mu[j] * this.c[j + 1];
-
-      this.b[j] = (this.a[j + 1] - this.a[j]) / h[j] - (h[j] * (this.c[j + 1] + 2 * this.c[j])) / 3;
-
-      this.d[j] = (this.c[j + 1] - this.c[j]) / (3 * h[j]);
-    }
-  }
-
-  get(value) {
-    if (value <= this.x[0]) return this.y[0];
-    if (value >= this.x[this.n - 1]) return this.y[this.n - 1];
-
-    let index = 0;
-
-    for (let i = 0; i < this.n - 1; i += 1) {
-      if (value >= this.x[i] && value <= this.x[i + 1]) {
-        index = i;
-        break;
-      }
-    }
-
-    const dx = value - this.x[index];
-
-    return this.a[index] + this.b[index] * dx + this.c[index] * dx ** 2 + this.d[index] * dx ** 3;
-  }
-}
-
 class GaugeScale {
   constructor(config, barMode) {
     this.type = config.type;
@@ -226,234 +165,6 @@ class GaugeScale {
     }
 
     return clamp((numericValue - this.min) / (this.max - this.min), 0, 1);
-  }
-}
-
-class GaugeScaleV5 {
-  constructor(horseshoeScale, barMode = 'normal') {
-    this.type = horseshoeScale.type ?? 'linear';
-    this.min = Number(horseshoeScale.min);
-    this.max = Number(horseshoeScale.max);
-    this.barMode = barMode;
-
-    this.points = GaugeScale.buildPoints(horseshoeScale);
-
-    if (this.type === 'spline' && this.barMode === 'bidirectional') {
-      this.leftSpline = GaugeScale.createLeftSpline(this.points, this.min);
-      this.rightSpline = GaugeScale.createRightSpline(this.points, this.max);
-      return;
-    }
-
-    if (this.type === 'spline') {
-      this.spline = new CubicSpline(
-        this.points.map((point) => point.value),
-        this.points.map((point) => point.position),
-      );
-    }
-  }
-
-  toRatio(value) {
-    const numericValue = Number(value);
-
-    if (this.type === 'spline' && this.barMode === 'bidirectional') {
-      if (numericValue < 0) {
-        return clamp(this.leftSpline.get(numericValue), 0.0, 0.5);
-      }
-
-      return clamp(this.rightSpline.get(numericValue), 0.5, 1.0);
-    }
-
-    if (this.type === 'spline') {
-      return clamp(this.spline.get(numericValue), 0.0, 1.0);
-    }
-
-    if (this.barMode === 'bidirectional') {
-      if (numericValue < 0) {
-        return clamp(0.5 - (Math.abs(numericValue) / Math.abs(this.min)) * 0.5, 0.0, 0.5);
-      }
-
-      return clamp(0.5 + (numericValue / this.max) * 0.5, 0.5, 1.0);
-    }
-
-    return clamp((numericValue - this.min) / (this.max - this.min), 0.0, 1.0);
-  }
-
-  static buildPoints(horseshoeScale) {
-    const rawPoints = [
-      ...(horseshoeScale.spline.anchors ?? []),
-      {
-        value: horseshoeScale.min,
-        position: 0.0,
-      },
-      {
-        value: horseshoeScale.max,
-        position: 1.0,
-      },
-    ];
-
-    const byValue = new Map();
-
-    rawPoints.forEach((point) => {
-      const value = Number(point.value);
-      const position = Number(point.position);
-
-      if (Number.isFinite(value) && Number.isFinite(position)) {
-        byValue.set(value, {
-          value,
-          position,
-        });
-      }
-    });
-
-    return [...byValue.values()].sort((a, b) => a.value - b.value);
-  }
-
-  static buildPointsV1(horseshoeScale) {
-    const points = [
-      {
-        value: horseshoeScale.min,
-        position: 0.0,
-      },
-      ...(horseshoeScale.anchors ?? []),
-      {
-        value: horseshoeScale.max,
-        position: 1.0,
-      },
-    ]
-      .map((point) => ({
-        value: Number(point.value),
-        position: Number(point.position),
-      }))
-      .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.position));
-
-    return points.sort((a, b) => a.value - b.value);
-  }
-
-  static createLeftSpline(points, min) {
-    const leftPoints = [
-      {
-        value: min,
-        position: 0.0,
-      },
-      ...points.filter((point) => point.value < 0),
-      {
-        value: 0,
-        position: 0.5,
-      },
-    ].sort((a, b) => a.value - b.value);
-
-    return new CubicSpline(
-      leftPoints.map((point) => point.value),
-      leftPoints.map((point) => point.position),
-    );
-  }
-
-  static createRightSpline(points, max) {
-    const rightPoints = [
-      {
-        value: 0,
-        position: 0.5,
-      },
-      ...points.filter((point) => point.value > 0),
-      {
-        value: max,
-        position: 1.0,
-      },
-    ].sort((a, b) => a.value - b.value);
-
-    return new CubicSpline(
-      rightPoints.map((point) => point.value),
-      rightPoints.map((point) => point.position),
-    );
-  }
-}
-
-class GaugeScaleV2 {
-  constructor(horseshoeScale) {
-    this.type = horseshoeScale.type ?? 'linear';
-    this.min = Number(horseshoeScale.min);
-    this.max = Number(horseshoeScale.max);
-    this.points = GaugeScale.buildPoints(horseshoeScale);
-
-    this.spline =
-      this.type === 'spline'
-        ? new CubicSpline(
-            this.points.map((point) => point.value),
-            this.points.map((point) => point.position),
-          )
-        : undefined;
-  }
-
-  toRatio(value) {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) {
-      return 0;
-    }
-
-    if (this.type === 'spline') {
-      return clamp(this.spline.get(numericValue), 0, 1);
-    }
-
-    return clamp((numericValue - this.min) / (this.max - this.min), 0, 1);
-  }
-
-  static buildPoints(horseshoeScale) {
-    const typeConfig = horseshoeScale[horseshoeScale.type] ?? {};
-    const anchors = typeConfig.anchors ?? [];
-
-    const byValue = new Map();
-
-    anchors.forEach((point) => {
-      const value = Number(point.value);
-      const position = Number(point.position);
-
-      if (Number.isFinite(value) && Number.isFinite(position)) {
-        byValue.set(value, {
-          value,
-          position,
-        });
-      }
-    });
-
-    byValue.set(Number(horseshoeScale.min), {
-      value: Number(horseshoeScale.min),
-      position: 0,
-    });
-
-    byValue.set(Number(horseshoeScale.max), {
-      value: Number(horseshoeScale.max),
-      position: 1,
-    });
-
-    return [...byValue.values()].sort((a, b) => a.value - b.value);
-  }
-
-  static buildPointsV3(horseshoeScale) {
-    const points = [
-      {
-        value: horseshoeScale.min,
-        position: 0,
-      },
-      ...(horseshoeScale.anchors ?? []),
-      {
-        value: horseshoeScale.max,
-        position: 1,
-      },
-    ]
-      .map((point) => ({
-        value: Number(point.value),
-        position: Number(point.position),
-      }))
-      .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.position));
-
-    const byValue = new Map();
-
-    points.forEach((point) => {
-      byValue.set(point.value, point);
-    });
-
-    return [...byValue.values()].sort((a, b) => a.value - b.value);
   }
 }
 
@@ -544,12 +255,6 @@ export default class HorseshoeGaugeV2 {
     return horseshoes
       .map((horseshoeConfig, index) => new HorseshoeGaugeV2(HorseshoeGaugeV2.normalizeBaseConfig(horseshoeConfig, index), index, templates, cardId))
       .filter((horseshoe) => horseshoe.show?.horseshoe !== false);
-  }
-
-  static setConfigV1(config, templates) {
-    const horseshoes = Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : [];
-
-    return horseshoes.map((horseshoeConfig, index) => new HorseshoeGaugeV2(HorseshoeGaugeV2.normalizeBaseConfig(horseshoeConfig, index), index, templates)).filter((horseshoe) => horseshoe.show?.horseshoe !== false);
   }
 
   static normalizeBaseConfig(config, index) {
@@ -1029,14 +734,6 @@ export default class HorseshoeGaugeV2 {
     const ratio = this.scale.toRatio(value);
     const angle = this.geometry.ratioToAngle(ratio);
 
-    console.log('[V2 label scale]', {
-      value,
-      text,
-      ratio,
-      angle,
-      points: this.scale.points,
-    });
-
     const point = this.geometry.pointAt(angle, this.geometry.radius + this.runtimeConfig.horseshoe_labels.offset);
 
     return {
@@ -1046,21 +743,6 @@ export default class HorseshoeGaugeV2 {
       x: point.x,
       y: point.y,
       styles: this.runtimeConfig.horseshoe_labels.styles,
-    };
-  }
-
-  buildLabelv1(value, text) {
-    const config = this.runtimeConfig;
-    const angle = this.geometry.valueToAngle(value);
-    const point = this.geometry.pointAt(angle, this.geometry.radius + config.horseshoe_labels.offset);
-
-    return {
-      value,
-      text,
-      angle,
-      x: point.x,
-      y: point.y,
-      styles: config.horseshoe_labels.styles,
     };
   }
 
@@ -1103,21 +785,6 @@ export default class HorseshoeGaugeV2 {
           flipY: config.flip === 'y' || config.flip === 'both',
         },
       }),
-    );
-  }
-
-  renderLabelsV1(labels) {
-    return asArray(labels).map(
-      (label) => svg`
-      <text
-        class="horseshoe-v2__label"
-        x=${label.x}
-        y=${label.y}
-        style=${styleMap(label.styles)}
-        text-anchor="middle"
-        dominant-baseline="middle"
-      >${label.text}</text>
-    `,
     );
   }
 }
