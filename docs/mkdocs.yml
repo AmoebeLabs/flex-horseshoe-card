@@ -91,9 +91,9 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/amoebelabs/
 
-  # analytics:
-  #   provider: google
-  #   property: G-YH4P44GYYJ
+  analytics:
+    provider: google
+    property: G-492WMK51S3
 
 markdown_extensions:
   - admonition
