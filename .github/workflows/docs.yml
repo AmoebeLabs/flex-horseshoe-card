@@ -1,0 +1,34 @@
+name: Deploy MkDocs
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install MkDocs
+        run: |
+          pip install mkdocs-material
+
+      - name: Deploy
+        working-directory: docs
+        run: mkdocs gh-deploy --force
