@@ -21,6 +21,7 @@
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { selectUnit } from '@formatjs/intl-utils';
+import { SVGInjector } from '@tanem/svg-injector';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -98,6 +99,8 @@ class FlexHorseshoeCard extends LitElement {
     this.iconsSvg = [];
     this.pendingIconPath = [];
     this.iconsId = [];
+
+    this.svgUrlCache ||= {};
 
     // Theme mode support
     this.theme = {};
@@ -809,13 +812,17 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildMyIcon(stateObj, entityConfig, entityAnimation) {
+  _buildMyIcon(stateObj, entityConfig, stateMapConfig, entityAnimation) {
     if (!stateObj || !entityConfig) {
       return undefined;
     }
 
     if (entityAnimation) {
       return entityAnimation;
+    }
+
+    if (stateMapConfig?.icon) {
+      return stateMapConfig.icon;
     }
 
     if (entityConfig.icon) {
@@ -1012,6 +1019,12 @@ class FlexHorseshoeCard extends LitElement {
         state = entity.attributes[entityConfig.attribute];
       }
 
+      // Do state mapping here?
+      const smItem = this._getStateMapItem(horseshoe.horseshoe_state, entity);
+      if (smItem) {
+        console.log('State map item found for horseshoe', index, ':', smItem);
+        state = smItem.value;
+      }
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
 
       const min = horseshoeScale?.min ?? 0;
@@ -1232,7 +1245,7 @@ class FlexHorseshoeCard extends LitElement {
   _calculateSvgCoordinatesInGroup(item) {
     const svg = {
       xpos: Utils.calculateSvgDimension(item.xpos),
-      ypos: Utils.calculateSvgDimension(item.ypos),
+      ypos: Utils.calculateSvgDimension(item.yposc || item.ypos),
     };
 
     const group = this.config.layout?.groups?.[item.group];
@@ -1243,7 +1256,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return {
       xpos: Utils.calculateSvgDimension(group.xpos + item.xpos - halfPercent),
-      ypos: Utils.calculateSvgDimension(group.ypos + item.ypos - halfPercent),
+      ypos: Utils.calculateSvgDimension(group.ypos + (item.yposc || item.ypos) - halfPercent),
     };
   }
 
@@ -1336,7 +1349,39 @@ class FlexHorseshoeCard extends LitElement {
     return typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
   }
 
-  _evaluateStaticCalc(value) {
+  _evaluateStaticCalc(value, constants = {}) {
+    const expression = value.slice(5, -1).trim();
+
+    if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
+      throw new Error(`Invalid static calc expression '${value}'`);
+    }
+
+    const calcScope = {
+      ...constants,
+      sin: Math.sin,
+      cos: Math.cos,
+      tan: Math.tan,
+      abs: Math.abs,
+      round: Math.round,
+      floor: Math.floor,
+      ceil: Math.ceil,
+      min: Math.min,
+      max: Math.max,
+      sqrt: Math.sqrt,
+      PI: Math.PI,
+    };
+
+    // eslint-disable-next-line no-new-func
+    const result = Function(...Object.keys(calcScope), `"use strict"; return (${expression});`)(...Object.values(calcScope));
+
+    if (!this._isStaticNumber(result)) {
+      throw new Error(`Static calc expression '${value}' did not return a finite number`);
+    }
+
+    return result;
+  }
+
+  _evaluateStaticCalcV2(value) {
     const expression = value.slice(5, -1).trim();
 
     if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
@@ -1384,7 +1429,7 @@ class FlexHorseshoeCard extends LitElement {
     return result;
   }
 
-  _evaluateStaticConfig(config) {
+  _evaluateStaticConfigV1(config) {
     if (this._isStaticCalc(config)) {
       return this._evaluateStaticCalc(config);
     }
@@ -1406,6 +1451,15 @@ class FlexHorseshoeCard extends LitElement {
 
   _isStaticNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  _getStateMapItem(item, entityState) {
+    const entries = item?.state_map?.map;
+    if (!entries) return undefined;
+
+    const state = entityState?.state;
+
+    return entries.find((entry) => entry.state === state) ?? entries.find((entry) => entry.state === 'default');
   }
 
   _applySameAsDeltas(item, resolvedItem, index) {
@@ -1452,7 +1506,191 @@ class FlexHorseshoeCard extends LitElement {
     return resolvedItem;
   }
 
+  // eslint-disable-next-line default-param-last
+  _mergeSameAsItem(base, override, mergeMode = 'merge', mergeKey) {
+    const merged = Merge.mergeDeep(base, override);
+
+    Object.entries(override).forEach(([field, value]) => {
+      const fieldMergeMode = value?.same_as_merge ?? mergeMode;
+      const fieldMergeKey = value?.same_as_key ?? mergeKey;
+
+      if (fieldMergeMode === 'replace') {
+        const { same_as_merge, same_as_key, ...cleanValue } = value;
+        merged[field] = cleanValue;
+        return;
+      }
+
+      if (fieldMergeMode === 'keyed') {
+        if (!fieldMergeKey) {
+          throw new Error(`same_as_key is required when same_as_merge is keyed for field '${field}'`);
+        }
+
+        const { same_as_merge, same_as_key, ...cleanValue } = value;
+
+        merged[field] = Merge.mergeDeep(base[field] ?? {}, cleanValue);
+
+        Object.entries(cleanValue).forEach(([subField, subValue]) => {
+          if (!Array.isArray(base[field]?.[subField]) || !Array.isArray(subValue)) return;
+
+          merged[field][subField] = this._mergeListByKey(base[field][subField], subValue, fieldMergeKey);
+        });
+      }
+    });
+
+    return merged;
+  }
+
+  _mergeSameAsKeyed(base, override, mergeKey) {
+    const merged = Merge.mergeDeep(base, override);
+
+    if (!mergeKey) {
+      throw new Error('same_as_key is required when same_as_merge is keyed');
+    }
+
+    Object.keys(override).forEach((field) => {
+      if (!Array.isArray(base[field]) || !Array.isArray(override[field])) return;
+
+      merged[field] = this._mergeListByKey(base[field], override[field], mergeKey);
+    });
+
+    return merged;
+  }
+
+  _mergeListByKey(baseList, overrideList, key) {
+    const itemsByKey = new Map();
+
+    baseList.forEach((item) => {
+      itemsByKey.set(String(item[key]), item);
+    });
+
+    overrideList.forEach((item) => {
+      const itemKey = String(item[key]);
+
+      if (itemsByKey.has(itemKey)) {
+        itemsByKey.set(itemKey, Merge.mergeDeep(itemsByKey.get(itemKey), item));
+      } else {
+        itemsByKey.set(itemKey, item);
+      }
+    });
+
+    return [...itemsByKey.values()];
+  }
+
   _resolveSameAsItems(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_replace = [], ...restOfFields } = item;
+
+        const baseForMerge = { ...base };
+
+        same_as_replace.forEach((field) => {
+          delete baseForMerge[field];
+        });
+
+        resolvedItem = Merge.mergeDeep(baseForMerge, restOfFields);
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        delete resolvedItem.same_as_replace;
+
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV7(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_replace = [], ...restOfFields } = item;
+
+        resolvedItem = Merge.mergeDeep(base, restOfFields);
+
+        same_as_replace.forEach((field) => {
+          // eslint-disable-next-line prefer-object-has-own
+          if (Object.prototype.hasOwnProperty.call(restOfFields, field)) {
+            resolvedItem[field] = restOfFields[field];
+          }
+        });
+
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        delete resolvedItem.same_as_replace;
+
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV6(items) {
+    const resolvedItemsById = new Map();
+
+    return items.map((item, index) => {
+      let resolvedItem;
+
+      if (item.same_as === undefined) {
+        resolvedItem = item;
+      } else {
+        const base = resolvedItemsById.get(String(item.same_as));
+
+        if (!base) {
+          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
+        }
+
+        const { same_as, same_as_merge = 'merge', same_as_key, ...restOfFields } = item;
+
+        resolvedItem = this._mergeSameAsItem(base, restOfFields, same_as_merge, same_as_key);
+        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
+
+        delete resolvedItem.same_as;
+        Object.keys(resolvedItem)
+          .filter((key) => key.startsWith('same_as_d'))
+          .forEach((key) => delete resolvedItem[key]);
+      }
+
+      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
+
+      return resolvedItem;
+    });
+  }
+
+  _resolveSameAsItemsV5(items) {
     const resolvedItemsById = new Map();
 
     return items.map((item, index) => {
@@ -1626,6 +1864,90 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
+  _isStaticRef(value) {
+    return typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')');
+  }
+
+  _cloneStaticValue(value) {
+    if (value && typeof value === 'object') {
+      return Merge.mergeDeep(Array.isArray(value) ? [] : {}, value);
+    }
+
+    return value;
+  }
+
+  _evaluateConstants(config) {
+    const constants = config.constants;
+
+    if (!constants || typeof constants !== 'object') {
+      return {};
+    }
+
+    const calcConstants = {};
+
+    Object.entries(constants).forEach(([key, value]) => {
+      constants[key] = this._evaluateStaticConfig(value, calcConstants);
+
+      if (this._isStaticNumber(constants[key])) {
+        calcConstants[key] = constants[key];
+      }
+    });
+
+    return calcConstants;
+  }
+
+  _resolveStaticRef(value, constants) {
+    if (!this._isStaticRef(value)) return value;
+
+    const refName = value.slice(4, -1).trim();
+
+    if (!(refName in constants)) {
+      throw new Error(`Static ref '${refName}' not found`);
+    }
+
+    return this._cloneStaticValue(constants[refName]);
+  }
+
+  _resolveStaticRefs(value, constants = {}) {
+    if (this._isStaticRef(value)) {
+      return this._resolveStaticRef(value, constants);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this._resolveStaticRefs(item, constants));
+    }
+
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, itemValue]) => {
+        value[key] = this._resolveStaticRefs(itemValue, constants);
+      });
+
+      return value;
+    }
+
+    return value;
+  }
+
+  _evaluateStaticConfig(value, constants = {}) {
+    if (this._isStaticCalc(value)) {
+      return this._evaluateStaticCalc(value, constants);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this._evaluateStaticConfig(item, constants));
+    }
+
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, itemValue]) => {
+        value[key] = this._evaluateStaticConfig(itemValue, constants);
+      });
+
+      return value;
+    }
+
+    return value;
+  }
+
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
@@ -1655,9 +1977,21 @@ class FlexHorseshoeCard extends LitElement {
           this.requestUpdate();
         });
       }
+
       this._assignSectionIds(config);
-      this._evaluateStaticConfig(config);
+
+      const calcConstants = this._evaluateConstants(config);
+
+      this._resolveStaticRefs(config, config.constants);
+      this._evaluateStaticConfig(config, calcConstants);
+
       this._resolveSectionSameAs(config);
+
+      // this._assignSectionIds(config);
+      // this._evaulateConstants(config);
+      // this._resolveStaticRefs(config);
+      // this._evaluateStaticConfig(config);
+      // this._resolveSectionSameAs(config);
 
       Templates.setContext({
         hass: this._hass,
@@ -2737,6 +3071,255 @@ class FlexHorseshoeCard extends LitElement {
    * Renders a single icon.
    *
    */
+  // ROMMEL VAN
+
+  updated(changedProperties) {
+    super.updated?.(changedProperties);
+
+    this._injectSvgUrlIcons();
+  }
+
+  _isSvgUrl(url) {
+    return url.endsWith('.svg');
+  }
+
+  _isSvgUrlV1(url) {
+    return /\.svg(?:[?#].*)?$/i.test(url);
+  }
+
+  _isUrlIcon(icon) {
+    return typeof icon === 'string' && /^url\(['"]?.+['"]?\)$/i.test(icon.trim());
+  }
+
+  _renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const svgNode = this.svgUrlCache[url].cloneNode(true);
+
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    svgNode.classList.remove('hidden');
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g
+        class="icon-position"
+        transform="translate(${iconCx} ${iconCy})"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${-iconPixels / 2}"
+          y="${-iconPixels / 2}"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <svg
+              x="${-iconPixels / 2}"
+              y="${-iconPixels / 2}"
+              width="${iconPixels}"
+              height="${iconPixels}"
+              viewBox="0 0 24 24"
+              overflow="visible"
+            >
+              ${svgNode}
+            </svg>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _renderCachedSvgUrlIconV1(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    const svgNode = this.svgUrlCache[url].cloneNode(true);
+    svgNode.classList.remove('hidden');
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <g class="icon-scale" transform="scale(${scale})">
+              <g class="icon-center" transform="translate(-12 -12)">
+                ${svgNode}
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _getUrlFromCssUrl(value) {
+    return value
+      .trim()
+      .replace(/^url\(['"]?/i, '')
+      .replace(/['"]?\)$/, '');
+  }
+
+  _renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
+        <g class="icon-rotate" transform="rotate(${rotate})">
+          <g class="icon-scale" transform="scale(${scale})">
+            <g class="icon-center" transform="translate(-12 -12)">
+              <svg
+                class="icon-svg-url hidden"
+                data-src="${url}"
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+              >
+                <image
+                  href="${url}"
+                  width="24"
+                  height="24"
+                />
+              </svg>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  _injectSvgUrlIcons() {
+    const elements = this.shadowRoot.querySelectorAll('svg.icon-svg-url[data-src]:not(.injected-svg)');
+
+    if (!elements.length) return;
+
+    SVGInjector(elements, {
+      beforeEach(svgNode) {
+        svgNode.removeAttribute('height');
+        svgNode.removeAttribute('width');
+      },
+
+      afterEach: (err, injectedSvg) => {
+        if (err || !injectedSvg) return;
+
+        const url = injectedSvg.dataset.src;
+        if (!url) return;
+
+        this.svgUrlCache[url] = injectedSvg.cloneNode(true);
+      },
+
+      afterAll: () => {
+        this.requestUpdate();
+      },
+
+      cacheRequests: false,
+      evalScripts: 'once',
+      httpRequestWithCredentials: false,
+      renumerateIRIElements: false,
+    });
+  }
+
+  _renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    if (this.svgUrlCache[url]) {
+      return this._renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    }
+
+    return this._renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust);
+  }
+
+  _renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
+    const rotate = item.rotate ?? 0;
+
+    const x1 = cx - iconPixels * adjust;
+    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
+
+    const scale = iconPixels / 24;
+
+    const iconCx = x1 + 12 * scale;
+    const iconCy = y1 + 12 * scale;
+
+    return svg`
+    <g
+      transform="${this._getGroupScaleTransform(item)}"
+      style="${this._getGroupScaleStyle(item)}"
+    >
+      <g
+        class="icon-position"
+        transform="translate(${iconCx} ${iconCy})"
+        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
+      >
+        <rect
+          x="${-iconPixels / 2}"
+          y="${-iconPixels / 2}"
+          height="${iconPixels}px"
+          width="${iconPixels}px"
+          stroke-width="0px"
+          fill="rgba(0,0,0,0)"
+        ></rect>
+
+        <g class="icon-style-animation" style="${styleMap(configStyle)}">
+          <g class="icon-rotate" transform="rotate(${rotate})">
+            <g class="icon-scale" transform="scale(${scale})">
+              <g class="icon-center" transform="translate(-12 -12)">
+                <image
+                  href="${url}"
+                  width="24"
+                  height="24"
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  `;
+  }
+
+  // -------------------------------------- ROMMEL VAN
+
   computeEntityColor(entityState) {
     // 1. Fallback: If no data present or is unavailable. Get neurral state icon color
     if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
@@ -2818,6 +3401,12 @@ class FlexHorseshoeCard extends LitElement {
     const entityState = this.entities[entityIndex];
     // const entityColor = this.computeEntityColor(entityState);
 
+    const smItem = this._getStateMapItem(item, entityState);
+
+    if (smItem) {
+      item = Merge.mergeDeep(item, smItem);
+    }
+
     // new new new new
     const haStyle = Colors.getHaEntityIconStyle(entityState);
     const DEFAULT_ICON_COLOR = {};
@@ -2835,6 +3424,7 @@ class FlexHorseshoeCard extends LitElement {
     const stopColor = this._getItemColorFromStops(item);
     if (stopColor) {
       configStyle.fill = stopColor;
+      configStyle.color = stopColor;
     }
 
     // Runtime animation styles overwrite static/config styles.
@@ -2844,8 +3434,24 @@ class FlexHorseshoeCard extends LitElement {
       ...stateStyle,
     };
 
-    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], this.animations?.iconsIcon?.[item.animation_id]);
+    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], smItem, this.animations?.iconsIcon?.[item.animation_id]);
     const icon = haIcon;
+
+    // if (this._isUrlIcon(icon)) {
+    //   const url = this._getUrlFromCssUrl(icon);
+
+    //   return this._renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    // }
+
+    if (this._isUrlIcon(icon)) {
+      const url = this._getUrlFromCssUrl(icon);
+
+      if (this._isSvgUrl(url)) {
+        return this._renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+      }
+
+      return this._renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
+    }
 
     if (this.iconCache[icon]) {
       this.iconsSvg[index] = this.iconCache[icon];
@@ -2901,7 +3507,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (iconSvg) {
       const x1 = cx - iconPixels * adjust;
-      const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
+      const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
 
       const scale = iconPixels / 24;
       const rotate = item.rotate ?? 0;
