@@ -27,7 +27,7 @@ jobs:
 
       - name: Install MkDocs
         run: |
-          pip install mkdocs-material
+          pip install mkdocs-material  mkdocs-minify-plugin
 
       - name: Deploy
         working-directory: docs
