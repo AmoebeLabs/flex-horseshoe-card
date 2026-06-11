@@ -44,6 +44,7 @@ import Merge from './merge.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoesLayout from './layout/horseshoes-layout.js';
+import HorseshoeGaugeV2 from './horseshoe-gauge-v2.js';
 import Label from './labels.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
@@ -1003,6 +1004,20 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+
+    this.horseshoesV2 = this.horseshoesV2.map((horseshoe) => {
+      const entityIndex = horseshoe.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return horseshoe;
+      }
+
+      horseshoe.setState(entity, entityConfig);
+
+      return horseshoe;
+    });
 
     this.horseshoes = this.horseshoes.map((horseshoe, index) => {
       const entityIndex = horseshoe.entity_index ?? 0;
@@ -2042,6 +2057,7 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
+      this.horseshoesV2 = HorseshoeGaugeV2.setConfig(config, Templates);
 
       const defaultHorseshoe = this.horseshoes?.[0];
 
@@ -2316,6 +2332,7 @@ class FlexHorseshoeCard extends LitElement {
               ${this._renderCircles()}
             </g>
           ${this._renderHorseShoes()}
+${this._renderHorseShoesV2()}          
             <g id="datagroup" class="datagroup">
               ${this._renderHorizontalLines()}
               ${this._renderVerticalLines()}
@@ -2343,6 +2360,13 @@ class FlexHorseshoeCard extends LitElement {
    * The horseshoes are rotated 220 degrees and are 2 * 26/36 * Math.PI * r in size
    * There you get your value of 408.4070449 ;-)
    */
+
+  _renderHorseShoesV2() {
+    return svg`
+    ${this.horseshoesV2?.map((horseshoe) => horseshoe.render()) ?? svg``}
+  `;
+  }
+
   _renderHorseShoes() {
     return svg`
     ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
