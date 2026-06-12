@@ -185,7 +185,7 @@ nav:
           - Ticks: sections/horseshoe-ticks.md
           - Labels: sections/horseshoe-labels.md
   - Reuse - Better/Easier/Less YAML:
-      - An Introduction: reuse/reuse-introduction2.md
+      - An Introduction: reuse/reuse-introduction.md
       - Reuse Card Examples: reuse/reuse-card-examples.md
       - Reuse Reference: reuse/reuse-reference.md
 

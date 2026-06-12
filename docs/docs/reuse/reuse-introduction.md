@@ -1,26 +1,34 @@
 ---
 template: main.html
-title: Reuse
-description: Reuse
+title: Less YAML with Reuse
+description: Reduce repeated YAML with same_as, calc(), constants, and ref().
 tags:
   - Reuse
+  - YAML
 ---
 
-# Less YAML with Reuse
+# Better and Less YAML with Reuse™
 
-Flexible Horseshoe Card configurations can become large when a card contains multiple layout items, repeated styles, repeated color stops, or carefully positioned elements.
+Flexible Horseshoe Card layouts can grow quickly. When building larger cards myself, I often ended up with a lot of repeated YAML. Many items used the same positions, styles, colors, or layout rules, while only one or two fields changed.
 
-## :material-horseshoe: The more items, the more YAML
-A common pattern is that many items are almost the same. Only one or two fields are different, such as `xpos`, `ypos`, `radius`, `length`, the `entity_index` or a small style override. Or, with repeated items: there is a repeated delta in the position.
+That made the configuration harder to read and slower to update. A small visual change could mean editing the same value in several places.
+
+Reuse™ was added to make that easier.
+
+Instead of repeating full YAML blocks, you define the shared part once and reuse it wherever needed. The card expands this into a complete internal configuration before rendering. The rendered result is the same, but the external YAML stays shorter, cleaner, and easier to maintain.
+
+For practical card examples, see [Card Examples](./reuse-card-examples.md).
 
 
-Now check the next example, with its three horizontal, equally spaced lines.
+## :material-horseshoe: The problem
+
+A common layout pattern is a small group of repeated items. In this example, the card contains three horizontal lines with the same position logic, length, and style.
 
 ![](../assets/screenshots/fhs-demo-card-30a-electricity--dark.png)
 
-Without some form of reuse, this usually leads to repeated YAML and repeatedly changing xpos/ypos while designing the card until it is right:
+Without reuse, the same values must be repeated for every line:
 
-=== "Standard YAML configuration"
+=== "Standard YAML"
     ```yaml linenums="1" hl_lines="2 9 16"
     hlines:
       - xpos: 50
@@ -45,9 +53,11 @@ Without some form of reuse, this usually leads to repeated YAML and repeatedly c
           stroke-width: 2
     ```
 
-Using YAML anchors can limit the amount of YAML significantly in this case:
+This works, but it is not ideal while designing a card. If the length, style, starting position, or spacing changes, you have to update the same values in multiple places.
 
-=== "Using YAML anchors"
+YAML anchors can reduce some duplication:
+
+=== "YAML anchors"
     ```yaml linenums="1" hl_lines="2"
     hlines:
       - &hline_base
@@ -65,103 +75,399 @@ Using YAML anchors can limit the amount of YAML significantly in this case:
         ypos: 86
     ```
 
-This works, but:
+However, anchors are not a complete solution:
 
-- It does not solve repeated patterns, as YAML can't do calculations
-- Not many people use it because of the syntax and the fact that the anchor must be unique in the whole YAML file. In other words: hard to maintain.
-  <br><br>It also leads to YAML duplicate key errors because the Home Assistant YAML loader does not like that:
-``` linenums="1"
+- YAML anchors cannot calculate repeated spacing.
+- Anchor names must be unique across the entire YAML file.
+- The syntax is harder for many users to read.
+- Overriding values can cause duplicate-key warnings in the Home Assistant YAML loader.
+
+Example duplicate-key warning:
+
+```text
 Logger: annotatedyaml.constructors
 Source: util/yaml/loader.py:65
-First occurred: May 21, 2026 at 6:43:48 PM (39520 occurrences)
-Last logged: 3:28:56 PM
 
-YAML file /config/lovelace/views/whatever.yaml contains duplicate key "ypos". Check lines 41 and 312
-...
+YAML file /config/lovelace/views/whatever.yaml contains duplicate key "ypos".
 ```
 
-##:material-horseshoe: Enter the world of "same_as"
+That is why the card includes its own reuse system.
 
-### The goal
-- The goal is to make repeated configuration shorter, clearer, and easier to maintain.
-- Instead of repeating full YAML blocks, you can define common parts once and reuse them.
-- You also can do calculations, and define deltas on any numbered value
+## :material-horseshoe: The reuse approach
 
-This makes the external configuration compact, while the card still converts it into a complete internal configuration before rendering.
+The same three lines can be written as one base line and two reused lines:
 
-So let's examine the same simple configuration with `same_as` functionality!
-
-- Using `same_as` to duplicate any previous item in the section
-- Using `calc()` to shift down each line with a defined constant
-- Either using automatic id numbering, or named id's to reference an item within the section
-
-=== "With reuse \#1"
+=== "With reuse"
     ```yaml linenums="1" hl_lines="2 9 16 19"
-    # Define constants to be used in the card
     constants:
-      lineStep: 11                   # Height between lines
+      lineStep: 11
       defaultLineStyle:
         stroke: var(--disabled-text-color)
         stroke-width: 2
 
     hlines:
-      - xpos: 50                      # Using auto-ID, so id = 0
-        ypos: 64
-        length: 85
-        styles:
-          - ref(defaultLineStyle)
-          - opacity: 0.8
-
-      - same_as: 0                    # Same as hline 0
-        same_as_dypos: calc(1 * lineStep)
-
-      - same_as: 0                    # Same as hline 0
-        same_as_dypos: calc(2 * lineStep)
-    ```
-=== "With reuse \#2"
-    ```yaml linenums="1" hl_lines="2 9 16 19"
-    # Define constants to be used in the card
-    constants:
-      lineStep: 11                   # Height between lines
-      defaultLineStyle:
-        stroke: var(--disabled-text-color)
-        stroke-width: 2
-
-    hlines:
-      - id: first                     # Using named IDs
+      - id: first
         xpos: 50
         ypos: 64
         length: 85
-        styles:
-          - ref(defaultLineStyle)
-          - opacity: 0.8
+        styles: ref(defaultLineStyle)
 
       - id: second
-        same_as: first                # Same as hline first
-        same_as_dypos: calc(lineStep) # Shift down
+        same_as: first
+        same_as_dypos: calc(1 * lineStep)
 
       - id: third
-        same_as: second               # Same as hline second
-        same_as_dypos: calc(lineStep) # Shift down
+        same_as: first
+        same_as_dypos: calc(2 * lineStep)
     ```
 
-The benefit becomes even larger for larger section items.
+This keeps the pattern easy to see:
 
-A simple line may only contain a few fields, but a horseshoe can contain many nested settings: scale, state, tickmarks, labels, show options, colors, widths, min/max values, and styles.
+| Item | Meaning | Result |
+| :--- | :------ | :----- |
+| `first` | Base line | `ypos: 64` |
+| `second` | Same as `first`, 1 step lower | `ypos: 75` |
+| `third` | Same as `first`, 2 steps lower | `ypos: 86` |
 
-When multiple horseshoes share the same visual setup, `same_as` allows one base horseshoe to define the common structure. The other horseshoes only need to override what is different, such as `entity_index`, `color_stops`, `min`, or `max`.
+Internally, the card expands this into full items before rendering:
 
-The horseshoe in the above example is about 60 lines of YAML.
+```yaml
+hlines:
+  - id: first
+    xpos: 50
+    ypos: 64
+    length: 85
+    styles:
+      stroke: var(--disabled-text-color)
+      stroke-width: 2
 
-Even if you take a mini horseshoe, the power of the `same_as` and `ref` functionality becomes clearly visible.
+  - id: second
+    xpos: 50
+    ypos: 75
+    length: 85
+    styles:
+      stroke: var(--disabled-text-color)
+      stroke-width: 2
 
-!!! Info "Groups built on the foundation of `same_as` to group and position a group of items"
-    This makes it possible to define an identical set of items (names, states, etc) and position them as you wish as a group of items. The only difference being the `entity_index`...
+  - id: third
+    xpos: 50
+    ypos: 86
+    length: 85
+    styles:
+      stroke: var(--disabled-text-color)
+      stroke-width: 2
+```
 
-```yaml linenums="1" hl_lines="2 16 25"
+The external configuration stays compact. The internal configuration is still complete.
+
+### Main features
+
+| Feature | Purpose |
+| :------ | :------ |
+| `same_as` | Reuse an earlier item from the same section |
+| `same_as_d...` | Reuse an item and add a numeric offset |
+| `constants` | Define reusable static values or configuration fragments |
+| `calc()` | Use static calculations in numeric fields. Required to use `constants` |
+| `ref()` | Copy a value from `constants` into the configuration |
+
+All of these are static configuration features. They are processed during card setup, not during every render.
+
+## :material-horseshoe: Reusing items with `same_as`
+
+`same_as` copies an earlier item from the same section.
+
+```yaml
+circles:
+  - id: base
+    xpos: 50
+    ypos: 50
+    radius: 40
+    styles:
+      stroke: red
+      fill: none
+
+  - id: smaller
+    same_as: base
+    radius: 30
+    styles:
+      stroke: blue
+      fill: none
+```
+
+The `smaller` circle copies `xpos` and `ypos` from `base`, but overrides `radius` and `styles`.
+
+### Automatic ids or named ids
+
+Each item can have an explicit `id`:
+
+```yaml
+hlines:
+  - id: first
+    xpos: 50
+    ypos: 64
+    length: 85
+
+  - id: second
+    same_as: first
+    ypos: 75
+```
+
+If no `id` is defined, the card automatically assigns one based on the item index:
+
+```yaml
+hlines:
+  - xpos: 50
+    ypos: 64
+    length: 85
+
+  - same_as: 0
+    ypos: 75
+
+  - same_as: 0
+    ypos: 86
+```
+
+`same_as: 0` and `same_as: "0"` both refer to the first item.
+
+Automatic ids are fine for short examples. For larger card configurations, named ids are usually easier to understand.
+
+### Delta fields
+
+A reused item can override a field directly:
+
+```yaml
+hlines:
+  - id: first
+    xpos: 50
+    ypos: 64
+    length: 85
+
+  - id: second
+    same_as: first
+    ypos: 75
+```
+
+For repeated numeric changes, a delta field is often clearer:
+
+```yaml
+hlines:
+  - id: first
+    xpos: 50
+    ypos: 64
+    length: 85
+
+  - id: second
+    same_as: first
+    same_as_dypos: 11
+```
+
+A delta field uses this pattern:
+
+```yaml
+same_as_d<field>: <number>
+```
+
+The delta is added to the inherited value.
+
+| Delta field | Target field | Meaning |
+| :---------- | :----------- | :------ |
+| `same_as_dxpos` | `xpos` | Add to the inherited `xpos` |
+| `same_as_dypos` | `ypos` | Add to the inherited `ypos` |
+| `same_as_dlength` | `length` | Add to the inherited `length` |
+| `same_as_dradius` | `radius` | Add to the inherited `radius` |
+
+The pattern is generic. You can use `same_as_d<field>` with any inherited numeric field.
+
+Example with circles:
+
+```yaml
+circles:
+  - id: outer
+    xpos: 50
+    ypos: 50
+    radius: 40
+
+  - id: inner
+    same_as: outer
+    same_as_dradius: -5
+```
+
+Result: `inner.radius` becomes `35`.
+
+## :material-horseshoe: Static calculations with `calc()` and `constants`
+
+YAML itself does not calculate values.
+
+```yaml
+xpos: 50 - 4
+```
+
+That is text, not a formula.
+
+Use `calc()` when a numeric value should be calculated during card setup:
+
+```yaml
+icons:
+  - id: left
+    xpos: calc(50 - 4)
+    ypos: 50
+
+  - id: right
+    xpos: calc(50 + 4)
+    ypos: 50
+```
+
+This makes the intent clear: both icons are placed around the center point.
+
+Another example, but now also using numeric `constants`:
+
+```yaml
+constants:
+  centerX: 50
+  lineStep: 11
+layout:
+  hlines:
+    - id: first
+      xpos: calc(centerX)
+      ypos: 64
+      length: calc(4 * 20 + 5)
+
+    - id: second
+      same_as: first
+      same_as_dypos: calc(1 * lineStep)
+
+    - id: third
+      same_as: first
+      same_as_dypos: calc(2 * lineStep)
+```
+
+Result:
+
+| Item | Calculation | Result |
+| :--- | :---------- | :----- |
+| `first` | `length: calc(4 * 20 + 5)` | `length: 85` |
+| `second` | `64 + calc(1 * lineStep)` | `ypos: 75` |
+| `third` | `64 + calc(2 * lineStep)` | `ypos: 86` |
+
+!!! info "Static only"
+    `calc()` is evaluated once during configuration setup. It is not a JavaScript template and is not evaluated during runtime updates.
+
+## :material-horseshoe: Constants and `ref()`
+
+Use `constants` for shared static values or configuration fragments.
+
+Use `ref()` to copy one of those constants into the configuration.
+
+```yaml
+constants:
+  centerX: 50
+  iconOffset: 4
+  lineStyle:
+    stroke: var(--disabled-text-color)
+    stroke-width: 2
+
+icons:
+  - id: left
+    xpos: calc(centerX - iconOffset)
+    ypos: 50
+
+  - id: right
+    xpos: calc(centerX + iconOffset)
+    ypos: 50
+
+hlines:
+  - id: divider
+    xpos: ref(centerX)
+    ypos: 64
+    length: 85
+    styles: ref(lineStyle)
+```
+
+This keeps shared values in one place.
+
+If the center position, icon spacing, or line style changes later, you only need to update the constant.
+
+### Chained reuse or one base item
+
+There are two useful ways to create repeated items.
+
+Use one base item when every item follows a fixed pattern from the same source:
+
+```yaml
+constants:
+  centerX: 50
+  lineStep: 11
+layout:
+  hlines:
+    - id: first
+      xpos: calc(centerX)
+      ypos: 64
+      length: calc(4 * 20 + 5)
+
+    - id: second
+      same_as: first
+      same_as_dypos: calc(1 * lineStep)
+
+    - id: third
+      same_as: first
+      same_as_dypos: calc(2 * lineStep)
+```
+
+
+This means:
+
+```text
+second = first + 1 step
+third  = first + 2 steps
+```
+
+Use chained reuse when each item builds on the previous item:
+
+```yaml
+constants:
+  centerX: 50
+  lineStep: 11
+layout:
+  hlines:
+    - id: first
+      xpos: calc(centerX)
+      ypos: 64
+      length: calc(4 * 20 + 5)
+
+    - id: second
+      same_as: first
+      same_as_dypos: calc(lineStep)
+
+    - id: third
+      same_as: second
+      same_as_dypos: calc(lineStep)
+```
+
+This means:
+
+```text
+second = first + 11
+third  = second + 11
+```
+
+For fixed grids or repeated spacing, reusing one base item is often clearer. For progressive changes, chained reuse can be more compact.
+
+### Larger items: horseshoes
+
+Reuse becomes more valuable when the repeated item is larger.
+
+A simple line only has a few fields. A horseshoe can contain scale settings, state settings, tick marks, labels, colors, widths, minimum and maximum values, and display options.
+
+```yaml linenums="1" hl_lines="2 16 24"
+constants:
+  defaultColorStops:
+    0: '#49ce4b'
+    50: '#fed125'
+    100: '#e9343d'
+
 horseshoes:
   - id: base
-    group: base              # Group will position the horseshoe (and more)
+    group: base
     radius: 45
     horseshoe_scale:
       min: 0
@@ -175,7 +481,7 @@ horseshoes:
     color_stops: ref(defaultColorStops)
 
   - id: power
-    group: power             # Group will position the horseshoe (and more)
+    group: power
     same_as: base
     entity_index: 1
     color_stops: ref(powerColorStops)
@@ -184,7 +490,7 @@ horseshoes:
       max: 5000
 
   - id: temperature
-    group: temperature       # Group will position the horseshoe (and more)
+    group: temperature
     same_as: base
     entity_index: 2
     color_stops: ref(temperatureColorStops)
@@ -193,109 +499,20 @@ horseshoes:
       max: 40
 ```
 
-!!! Success "The larger the repeated item, the more useful reuse becomes."
+Only the differences are shown in the reused horseshoes. The shared visual setup stays in `base`.
 
+!!! success "Bigger repeated blocks benefit the most"
+    Reusing a three-line block saves a little YAML. Reusing a horseshoe with nested settings can save a lot of YAML and makes later changes much safer.
 
-##:material-horseshoe: Main ideas
+## :material-horseshoe: When to use reuse
 
-| Feature        | Purpose                                              |
-| :------------- | :--------------------------------------------------- |
-| `same_as`      | Reuse another item from the same section             |
-| `same_as_d...` | Reuse an item and apply a numeric offset             |
-| `calc()`       | Use static calculations in numeric fields            |
-| `constants`    | Define reusable static values or config fragments    |
-| `ref()`        | Copy a value from `constants` into the configuration |
+Use reuse when a layout has a clear pattern:
 
-These features are processed during card setup.
+- repeated lines, circles, icons, names, or states
+- multiple horseshoes with the same visual setup
+- shared styles or color stops
+- fixed spacing between items
+- positions calculated from a shared center point
+- several values derived from one constant
 
-They are not runtime rendering tricks. By the time the card renders, the configuration has already been expanded into normal values.
-
-##:material-horseshoe: Why this helps with less YAML and easier maintenance
-
-Reuse is useful when a card layout contains patterns.
-
-Examples:
-
-* multiple lines with the same length and style
-* multiple circles with the same center but different radius
-* repeated icon positions around a shared center point
-* shared color stops
-* shared styles
-* spacing based on a fixed step size
-* layout values derived from one shared parameter
-
-For example, instead of manually calculating positions:
-
-```yaml
-icons:
-  - xpos: 46
-    ypos: 50
-
-  - xpos: 54
-    ypos: 50
-```
-
-you can keep the intent visible:
-
-```yaml
-constants:
-  centerX: 50
-  iconOffset: 4
-
-icons:
-  - xpos: calc(centerX - iconOffset)
-    ypos: 50
-
-  - xpos: calc(centerX + iconOffset)
-    ypos: 50
-```
-
-Now the configuration explains itself.
-
-The icons are positioned around `centerX`, with an offset of `4`.
-
-If the center changes later, only one value has to be changed.
-
-##:material-horseshoe: Static first, render simple
-
-The reuse system follows a simple principle:
-
-1. The user writes compact YAML.
-2. The card expands and calculates static values during setup.
-3. The renderer receives complete configuration.
-
-This keeps the render code simple.
-
-The renderer does not need to know whether a value originally came from `same_as`, `calc()`, `constants`, or `ref()`. It only receives the final resolved value.
-
-##:material-horseshoe: When to use reuse
-
-Use reuse when it makes the layout easier to understand.
-
-Good use cases:
-
-* repeated items
-* shared styles
-* shared color stops
-* repeated spacing
-* derived positions
-* one base item with small variations
-
-Avoid reuse when it makes the configuration harder to read than writing the value directly.
-
-For one-off values, plain YAML is often clearer.
-
-##:material-horseshoe: Related pages
-
-This section introduces the idea of reducing YAML through reuse.
-
-The following pages describe the individual features in more detail:
-
-* **Reuse of Section Items**
-  Explains `same_as` and `same_as_d...`.
-
-* **Reuse with `calc()` and `ref()`**
-  Explains static calculations, constants, and references.
-
-* **Combining the two**
-  Shows how these features can be used together in practical card layouts.
+Do not use reuse everywhere. For a single unique item, normal YAML is often clearer.

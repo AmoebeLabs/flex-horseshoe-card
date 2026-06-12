@@ -1,35 +1,36 @@
 ---
 template: main.html
 title: Combining Calc with same_as
-description: Combine
+description: Practical card examples using same_as, calc(), constants, and ref().
 tags:
   - Reuse Card Examples
   - YAML Calc
 ---
 
-##:material-horseshoe: Real World Card Examples
-The two card examples below show practical examples of the reuse functionality that `same_as`, `calc()` and `ref()` implement. The full YAML configuration of these cards is included.
+## :material-horseshoe: Real-world card examples
 
-##:material-horseshoe: Example Card 30
+The two cards below show practical examples of the Reuse™ features provided by `same_as`, `calc()`, and `ref()`. Both examples include the full YAML configuration, so you can see how the repeated parts are reduced in a real card.
+
+## :material-horseshoe: Example Card 30
 
 ![](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp)
 
-Card 30 is an electricity card using the DSMR Reader integration.
+Card 30 is an electricity card that uses the DSMR Reader integration.
 
-- It has a horseshoe for showing the total consumption
-- It has three separate parts to display the consumption of each phase.
+It shows:
 
-It has a number of repeated items:
+- total electricity consumption in the main horseshoe
+- the consumption for each individual phase: L1, L2, and L3
 
-- The 3 horizontal lines
-- The L1, L2 and L3 groups containing the state and name of the entity, with a circle as separator
-- The card is also using the same color stop for the horseshoe and the icon
+This card has several repeated parts:
 
-Furthermore:
+- the three horizontal lines
+- the L1, L2, and L3 groups, each containing a state, a name, and a circle separator
+- the shared color stops used by both the horseshoe and the icon
 
-- This card is demoing named ids for readability on all items and for the `same_as` functionality
+This example also uses named ids for all items. That makes the configuration easier to read and makes the `same_as` references more explicit.
 
-### The Card Configuration
+### The card configuration
 
 ```yaml title="Entity definitions" linenums="1"
 - type: custom:flex-horseshoe-card
@@ -50,7 +51,8 @@ Furthermore:
   palettes:
     rainbow: /local/palettes/rainbow-palette-new.json  
 ```
-!!! Info "The constants section defines the `ref()`erenced styles and colorstops, and number constants to use in `calc()` for positioning parts of the items"
+
+!!! info "The constants section defines the styles and color stops used by `ref()`, plus numeric constants used by `calc()` for positioning."
 
 ```yaml title="Constants definition" linenums="1"
   constants:
@@ -72,9 +74,10 @@ Furthermore:
         4: var(--fhs-sys-rainbow-red)
         5: var(--fhs-sys-rainbow-purple)
 ```
-!!! Info "The three groups that place the collection of items on the right position on the card grid"
-    Groups do not support the `same_as` functionality (yet)
-    <br>Groups dan also scale or rotate the elements!
+
+!!! info "The three groups place related items at the right position on the card grid."
+    Groups do not support `same_as` yet.
+    <br>Groups can also scale or rotate elements.
     ```yaml
     groups:
       L1:
@@ -143,8 +146,9 @@ Furthermore:
         styles:
           - stroke: var(--disabled-text-color);
 ```
-!!! Info "As you can see, all three grouped circles are identical and designed around the centerpoint of the card"
-    The group will place them at the right position on the card grid
+
+!!! info "All three grouped circles are identical and are positioned around the center point of the card."
+    The group places each circle at the right position on the card grid.
 
 ```yaml title="Circles definition" linenums="1"
 
@@ -174,8 +178,9 @@ Furthermore:
           - stroke: var(--disabled-text-color);
           - stroke-width: 2
 ```
-!!! Info "As you can see, all three grouped states are identical and designed around the centerpoint of the card"
-    The group will place them at the right position on the card grid
+
+!!! info "All three grouped states are identical and are positioned around the center point of the card."
+    The group places each state at the right position on the card grid.
 
 ```yaml title="States definition" linenums="1"
     states:
@@ -203,8 +208,9 @@ Furthermore:
         entity_index: 3
         same_as: first
 ```
-!!! Info "As you can see, all three grouped names are identical and designed around the centerpoint of the card"
-    The group will place them at the right position on the card grid
+
+!!! info "All three grouped names are identical and are positioned around the center point of the card."
+    The group places each name at the right position on the card grid.
 
 ```yaml title="Names definition" linenums="1"
     names:
@@ -243,7 +249,7 @@ Furthermore:
         tickmarks_radius: 43
         arc_degrees: 70
         flip: both
-        
+
         show:
           horseshoe: true
           scale_tickmarks: false
@@ -306,25 +312,24 @@ Furthermore:
         color_stops: ref(defaultColorStops)
 
 ```
-##:material-horseshoe: Example Card 32
+
+## :material-horseshoe: Example Card 32
 
 ![](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
 
-Card 32 is also an electricity card using the DSMR Reader integration.
+Card 32 is also an electricity card that uses the DSMR Reader integration.
 
-- It has 4 vertical horseshoes for showing the total and per phase consumption
+It shows four vertical horseshoes: one for the total consumption and one for each phase.
 
-It has a number of repeated items:
+This card has several repeated parts:
 
-- The 4 vertical horseshoes
-- The states for the horseshoes
-- The names for the horseshoes
+- the four vertical horseshoes
+- the states for the horseshoes
+- the names for the horseshoes
 
-Furthermore:
+This example does not use groups. Instead, it uses simple shift-to-the-right positioning with `calc()`.
 
-- This card is not using groups, but simple shift-to-right logic using `calc()`
-
-### The Card Configuration
+### The card configuration
 
 ```yaml title="Entity definitions" linenums="1"
 
@@ -411,7 +416,8 @@ Furthermore:
         same_as: 2
         same_as_dxpos: calc(dxPos2)
 ```
-!!! Info "Look at the small arc of .7 degrees. Together with the large radius and the rotation of -90 degrees, the horseshoe looks like a vertical progress bar."
+
+!!! info "The very small arc of .7 degrees, combined with the large radius and a -90 degree rotation, makes the horseshoe look like a vertical progress bar."
 
 ```yaml title="Horseshoe definition ALL" linenums="1"
     horseshoes:
@@ -422,7 +428,7 @@ Furthermore:
         rotate: -90       # Rotate horseshoe 90 degrees CCW
         arc_degrees: .7   # A larg radius requires a small arc
         flip: y           # Flip around y-axis so 0 is at bottom
-        
+
         show:
           horseshoe: true
           scale_tickmarks: false
@@ -494,10 +500,11 @@ Furthermore:
             4: var(--fhs-sys-rainbow-red)
             5: var(--fhs-sys-rainbow-purple)
 ```
-!!! Info "Look at the size of the YAML needed for the other 3 horseshoes!"
-    The first one copies the "All" config, shifts to the right, and removes the labels
-    <br>The others copy that first copy, and shift to the right while using the position of the previous one.
-    <br><br>That is only 3 lines of YAML instead of the 79 lines for the first horseshoe.
+
+!!! info "Notice how little YAML is needed for the other three horseshoes."
+    The first copy reuses the "All" configuration, shifts it to the right, and removes the labels.
+    <br>The other two copy the previous horseshoe and shift to the right from that position.
+    <br><br>That reduces each additional horseshoe to only a few lines of YAML instead of repeating the full 79-line configuration.
 
 ```yaml title="Horseshoe definition L1/L2/L3" linenums="1"
       - entity_index: 1
