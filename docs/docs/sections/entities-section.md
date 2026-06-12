@@ -1,7 +1,7 @@
 ---
 template: main.html
-title: Entity Definitions
-description: Brrrrrr.
+title: Home Assistant Entity Elements
+description: Configure areas, names, states, and icons for Home Assistant entities.
 tags:
   - Entities
   - Names
@@ -10,17 +10,24 @@ tags:
   - Icons
 ---
 
-# Entities: areas, names, states and icons sections
-##:material-horseshoe: Basic usage
+# Home Assistant entity elements: areas, names, states, and icons
 
-All entity parts have there own section in the layout:
+## :material-horseshoe: Basic usage
 
-| Part | Section | Description
-| - | - | - |
-| area | `areas` | The Home Assistant area of the entity |
-| name | `names` | The (friendly) name of the entity |
-| state | `states` | The state of the entity and its unit with decimals |
-| icon | `icons` | The icon of the entity, or a standalone icon |
+Entity elements display information from the entities defined in the card. They are used for the text and icon parts of a layout: the Home Assistant area, the friendly name, the current state, and the entity icon.
+
+Each type has its own layout section:
+
+| Element | Section | Description |
+| :------ | :------ | :---------- |
+| Area | `areas` | Shows the Home Assistant area of the entity |
+| Name | `names` | Shows the entity name or friendly name |
+| State | `states` | Shows the entity state, including unit and decimals |
+| Icon | `icons` | Shows the entity icon or a standalone icon |
+
+All of these elements use the same basic positioning system. `xpos` and `ypos` place the element on the 100x100 card canvas. `entity_index` connects the element to an entity from the `entities` section.
+
+Icons can also be used without an entity by defining the icon directly in the layout item.
 
 ### Example definitions
 
@@ -152,118 +159,126 @@ All entity parts have there own section in the layout:
             icon: url(/local/images/kleenex/pollen_weed_very_high.svg)
     ```
 
-##:material-horseshoe: Configuration Fields
+## :material-horseshoe: Configuration fields
+
+The fields below are available for each entity element type.
 
 === "Area"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `entity_index` | :material-check:  | Index in the `entities` section |
-    | `ellipsis`     | :material-close:  | Maximum number of characters before `...` |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `entity_index` | :material-check: | Index in the `entities` section |
+    | `ellipsis` | :material-close: | Maximum number of characters before `...` |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the text color based on the entity state |
 
 === "Name"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `entity_index` | :material-check:  | Index in the `entities` section |
-    | `ellipsis`     | :material-close:  | Maximum number of characters before `...` |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `entity_index` | :material-check: | Index in the `entities` section |
+    | `ellipsis` | :material-close: | Maximum number of characters before `...` |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the text color based on the entity state |
 
 === "State"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `entity_index` | :material-check:  | Index in the `entities` section |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
-    | `state_map`    | :material-close:  | Entity state translation from named states to decimal states for color stops **NOT YET IMPLEMENTED** |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `entity_index` | :material-check: | Index in the `entities` section |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the text color based on the entity state |
+    | `state_map` | :material-close: | Entity state translation from named states to decimal states for color stops **NOT YET IMPLEMENTED** |
 
 === "Icon"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `icon_size`    | :material-check:  | Size of Icon |
-    | `entity_index` | :material-close:  | Index in the `entities` section |
-    | `icon`         | :material-close:  | Define icon, external image or external SVG |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
-    | `state_map`    | :material-close:  | Entity state dependent value of the icon |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `icon_size` | :material-check: | Icon size |
+    | `entity_index` | :material-close: | Index in the `entities` section |
+    | `icon` | :material-close: | Define an icon, external image, or external SVG |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the icon color based on the entity state |
+    | `state_map` | :material-close: | Entity state-dependent icon value |
 
+### Shared fields
 
+These fields can be used across the entity element sections.
 
-Other fields:
+| Field | Required | Description |
+| :---- | :------: | :---------- |
+| `id` | :material-close: | Optional unique id within the section, used by `same_as` |
+| `group` | :material-close: | Group this layout item belongs to |
+| `same_as*` | :material-close: | Reuse another item from the same section. See the `same_as` documentation |
 
-| Field          | Required          | Description |
-| :------------- | :---------------: | :---------- |
-| `id`           | :material-close:  | Optional unique id within section to identify the name for `same_as` functionality |
-| `group`         | :material-close:  | Group this building block belongs to. |
-| `same_as*`         | :material-close:  | See same_as documentation. |
+## :material-horseshoe: Styling
 
-##:material-horseshoe: Styling
-All Entity sections support the following forms of styling:
+All entity element sections support inline SVG and CSS styling through the `styles` field.
 
+| Method | Support | Description |
+| :----- | :-----: | :---------- |
+| `styles` | :material-check: | Inline SVG and CSS styles |
 
-| Method    |     Support      | Description                                 |
-| :-------- | :--------------: | :------------------------------------------ |
-| `styles`  | :material-check: | Using inline SVG and CSS styles             |
-
-Populair properties:
+### Popular style properties
 
 === "Area"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `font-size`   | Font size             | `font-size: 12em` sets RELATIVE font size      |
-    | `text-anchor` | Anchor of text        | `text-anchor: start` or `middle`, or `end`     |
-    | `fill`        | Fill color            | `fill: red` sets fill to color red             |
-    | `opacity`     | Opacity (stroke/fill) | `opacity: 0.7` sets the opacity of text to 70% |
 
-    !!! Tip "Always use a relative font-size: it fits well with the relative sizes used by FHS"
-        Unless you need a fixed size in pixels...
+    | Property | Purpose | Example |
+    | :------- | :------ | :------ |
+    | `font-size` | Text size | `font-size: 12em` sets a relative font size |
+    | `text-anchor` | Text alignment | `text-anchor: start`, `middle`, or `end` |
+    | `fill` | Text color | `fill: red` sets the text color to red |
+    | `opacity` | Text opacity | `opacity: 0.7` sets the text opacity to 70% |
+
+    !!! tip "Use relative font sizes when possible"
+        Relative font sizes fit well with the relative sizing used by the Flexible Horseshoe Card. Use fixed pixel sizes only when you need a fixed visual size.
 
 === "Name"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `font-size`      | Font size             | `font-size: 12em` sets RELATIVE font size      |
-    | `text-anchor`    | Anchor of text        | `text-anchor: start` or `middle`, or `end`     |
-    | `fill`           | Fill color            | `fill: red` sets fill to color red             |
-    | `opacity`        | Opacity (stroke/fill) | `opacity: 0.7` sets the opacity of text to 70% |
 
-    !!! Tip "Always use a relative font-size: it fits well with the relative sizes used by FHS"
-        Unless you need a fixed size in pixels...
+    | Property | Purpose | Example |
+    | :------- | :------ | :------ |
+    | `font-size` | Text size | `font-size: 12em` sets a relative font size |
+    | `text-anchor` | Text alignment | `text-anchor: start`, `middle`, or `end` |
+    | `fill` | Text color | `fill: red` sets the text color to red |
+    | `opacity` | Text opacity | `opacity: 0.7` sets the text opacity to 70% |
+
+    !!! tip "Use relative font sizes when possible"
+        Relative font sizes fit well with the relative sizing used by the Flexible Horseshoe Card. Use fixed pixel sizes only when you need a fixed visual size.
 
 === "State"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `font-size`      | Font size             | `font-size: 12em` sets RELATIVE font size      |
-    | `text-anchor`    | Anchor of text        | `text-anchor: start` or `middle`, or `end`     |
-    | `fill`           | Fill color            | `fill: red` sets fill to color red             |
-    | `opacity`        | Opacity (stroke/fill) | `opacity: 0.7` sets the opacity of text to 70% |
+
+    | Property | Purpose | Example |
+    | :------- | :------ | :------ |
+    | `font-size` | Text size | `font-size: 12em` sets a relative font size |
+    | `text-anchor` | Text alignment | `text-anchor: start`, `middle`, or `end` |
+    | `fill` | Text color | `fill: red` sets the text color to red |
+    | `opacity` | Text opacity | `opacity: 0.7` sets the text opacity to 70% |
 
 === "Icon"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `fill`           | Fill color            | `fill: red` sets fill to color red             |
-    | `opacity`        | Opacity (stroke/fill) | `opacity: 0.7` sets the opacity of text to 70% |
+
+    | Property | Purpose | Example |
+    | :------- | :------ | :------ |
+    | `fill` | Icon color | `fill: red` sets the icon color to red |
+    | `opacity` | Icon opacity | `opacity: 0.7` sets the icon opacity to 70% |
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:material-horseshoe: Animations
-The visual shapes support the following forms of animations:
+## :material-horseshoe: Color stops and animations
 
-| Method       |     Support      | Description                                              |
-| :----------- | :--------------: | :------------------------------------------------------- |
-| `colorstops` | :material-check: | List of state values to set the color                    |
-| `animations` | :material-check: | Operator state based animations with class/style styling |
+Entity elements can use color stops and animations when they are connected to an entity.
 
-!!! Info "The use of animations require the tool to be connected to an entity"
+| Method | Support | Description |
+| :----- | :-----: | :---------- |
+| `colorstops` | :material-check: | List of state values used to set the color |
+| `animations` | :material-check: | State-based animations using class or style changes |
+
+!!! info "Animations require an entity"
+    Animations require the item to be connected to an entity with `entity_index`.

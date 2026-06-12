@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Visual Shapes
-description: The line tool is a basic tool based on the SVG line element. You can apply CSS styling, user interactions and animations on this tool.
+description: Use circles, horizontal lines, and vertical lines as visual building blocks in the Flexible Horseshoe Card.
 tags:
   - Circles
   - Horizontal Lines
@@ -10,19 +10,27 @@ tags:
 
 [line-tool support]: https://github.com/amoebelabs/swiss-army-knife-card/releases/
 
-# Visual Shapes: lines and circles sections
+# Visual Shapes: lines and circles
 
-##:material-horseshoe: Basic usage
-There are three visual shapes to use in the card:
+Visual shapes are simple SVG-based building blocks that help structure a card visually. They can be used as separators, backgrounds, highlights, indicators, or decorative elements.
 
-| Shape | Section | Description
-| - | - | - |
-| circle | `circles` | Circle with centre position and radius or radius_percent |
-| horizontal line | `hlines` | Horizontal lines with centre position and length |
-| vertical line | `vlines` | Vertical lines with centre position and length |
+The card supports three shape sections:
 
-The horizontal or vertical line needs a center position and a length.
-The only difference is the section: horizontal lines in the `hlines` and vertical lines in the `vlines` section.
+| Shape | Section | Description |
+| :---- | :------ | :---------- |
+| Circle | `circles` | A circle positioned by its center point, with either `radius` or `radius_percent` |
+| Horizontal line | `hlines` | A horizontal line positioned by its center point and length |
+| Vertical line | `vlines` | A vertical line positioned by its center point and length |
+
+All three shapes use the same 100x100 card coordinate system. This makes them easy to align with horseshoes, states, names, icons, and other layout items.
+
+## :material-horseshoe: Basic usage
+
+A circle needs a center position and a radius. The radius can be defined in pixels with `radius`, or as a percentage with `radius_percent`.
+
+A horizontal or vertical line needs a center position and a length. The configuration is almost the same for both line types. The only difference is the section: horizontal lines are defined in `hlines`, while vertical lines are defined in `vlines`.
+
+Shapes can also be connected to an entity by using `entity_index`. This allows color stops and animations to react to the state of that entity.
 
 ### Example definitions
 
@@ -108,93 +116,106 @@ The only difference is the section: horizontal lines in the `hlines` and vertica
           5: 'purple'
     ```
 
-##:material-horseshoe: Configuration Fields
+## :material-horseshoe: Configuration fields
+
+The required fields depend on the shape type. Circles use a radius, while lines use a length.
 
 === "Circle"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `length`       | :material-check:  | Length of the lines |
-    | `entity_index` | :material-close:  | Index in the `entities` section |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `radius` | :material-check: | Circle radius in pixels |
+    | `radius_percent` | :material-check: | Circle radius as a percentage |
+    | `entity_index` | :material-close: | Index in the `entities` section |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the shape color based on the entity state |
+
+    !!! note
+        Use either `radius` or `radius_percent`.
 
 === "Horizontal Line"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `length`       | :material-check:  | Length of the lines |
-    | `entity_index` | :material-close:  | Index in the `entities` section |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `length` | :material-check: | Length of the horizontal line |
+    | `entity_index` | :material-close: | Index in the `entities` section |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the line color based on the entity state |
 
 === "Vertical Line"
 
-    | Field          | Required          | Description |
-    | :------------- | :---------------: | :---------- |
-    | `xpos`         | :material-check:  | X position on the 100x100 card canvas |
-    | `ypos`         | :material-check:  | Y position on the 100x100 card canvas |
-    | `length`       | :material-check:  | Length of the lines |
-    | `entity_index` | :material-close:  | Index in the `entities` section |
-    | `styles`       | :material-close:  | CSS style definitions |
-    | `color_stop`   | :material-close:  | Color stop used to set the font color based on the entity state |
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | :material-check: | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
+    | `length` | :material-check: | Length of the vertical line |
+    | `entity_index` | :material-close: | Index in the `entities` section |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stop` | :material-close: | Color stop used to set the line color based on the entity state |
 
-Other fields:
+### Shared fields
 
-| Field          | Required          | Description |
-| :------------- | :---------------: | :---------- |
-| `id`           | :material-close:  | Optional unique id within section to identify the name for `same_as` functionality |
-| `group`         | :material-close:  | Group this building block belongs to. |
-| `same_as*`         | :material-close:  | See same_as documentation. |
+These fields can be used with circles, horizontal lines, and vertical lines.
 
-##:material-horseshoe: Styling
-The Line tool has support for the following forms of styling:
+| Field | Required | Description |
+| :---- | :------: | :---------- |
+| `id` | :material-close: | Optional unique id within the section, used by `same_as` |
+| `group` | :material-close: | Group this visual shape belongs to |
+| `same_as*` | :material-close: | Reuse another item from the same section. See the `same_as` documentation |
 
+## :material-horseshoe: Styling
 
-| Method    |     Support      | Description                                 |
-| :-------- | :--------------: | :------------------------------------------ |
-| `styles`  | :material-check: | Using inline SVG and CSS styles             |
+Visual shapes are SVG elements, so they can be styled with CSS properties in the `styles` section.
 
-Populair properties:
+| Method | Support | Description |
+| :----- | :-----: | :---------- |
+| `styles` | :material-check: | Inline SVG and CSS styles |
+
+### Popular style properties
 
 === "Circle"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `fill`          | Fill color            | `fill: red` sets fill to color red |
-    | `stroke-width`  | Stroke width          | `stroke-width: 2em` sets width to relative width of 2em |
-    | `stroke`        | Stroke color          | `stroke: blue` sets stroke to blue |
-    | `opacity`       | Opacity (stroke/fill) | `opacity: 0.7` sets the opacity of circle to 70% |
-    | `fill-opacity`  | Opacity for fill      | `fill-opacity: 0.5` sets the fill opacity to 50% |
-    | `stroke-opacity`| Opacity for stroke    | `stroke-opacity: 0.5` sets the stroke opacity to 50% |
+
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `fill` | Sets the fill color | `fill: red` |
+    | `stroke` | Sets the outline color | `stroke: blue` |
+    | `stroke-width` | Sets the outline width | `stroke-width: 2em` |
+    | `opacity` | Sets the opacity of the full circle | `opacity: 0.7` |
+    | `fill-opacity` | Sets the opacity of the fill | `fill-opacity: 0.5` |
+    | `stroke-opacity` | Sets the opacity of the outline | `stroke-opacity: 0.5` |
 
 === "Horizontal Line"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `stroke-width`   | Line width   | `stroke-width: 2em` sets width to relative width of 2em |
-    | `stroke`         | Line color   | `stroke: red`                                           |
-    | `opacity`        | Line opacity | `opacity: 0.7` sets the opacity of the stroke to 70%    |
-    | `stroke-linecap` | Line end     | `round`, `butt`, or `square`                            |
-=== "Vertical Line"
-    | Property         | Does what?   | Example                                                 |
-    | :--------------- | :----------- | :------------------------------------------------------ |
-    | `stroke-width`   | Line width   | `stroke-width: 2em` sets width to relative width of 2em |
-    | `stroke`         | Line color   | `stroke: red`                                           |
-    | `opacity`        | Line opacity | `opacity: 0.7` sets the opacity of the stroke to 70%    |
-    | `stroke-linecap` | Line end     | `round`, `butt`, or `square`                            |
 
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `stroke` | Sets the line color | `stroke: red` |
+    | `stroke-width` | Sets the line width | `stroke-width: 2em` |
+    | `opacity` | Sets the line opacity | `opacity: 0.7` |
+    | `stroke-linecap` | Sets the line ending | `round`, `butt`, or `square` |
+
+=== "Vertical Line"
+
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `stroke` | Sets the line color | `stroke: red` |
+    | `stroke-width` | Sets the line width | `stroke-width: 2em` |
+    | `opacity` | Sets the line opacity | `opacity: 0.7` |
+    | `stroke-linecap` | Sets the line ending | `round`, `butt`, or `square` |
 
 --8<-- "docs/tools/default-haptics.md"
 
-##:material-horseshoe: Animations
-The visual shapes support the following forms of animations:
+## :material-horseshoe: Color stops and animations
 
-| Method       |     Support      | Description                                              |
-| :----------- | :--------------: | :------------------------------------------------------- |
-| `colorstops` | :material-check: | List of state values to set the color                    |
-| `animations` | :material-check: | Operator state based animations with class/style styling |
+Visual shapes can use color stops and animations when they are connected to an entity.
 
-!!! Info "The use of animations require the tool to be connected to an entity"
+| Method | Support | Description |
+| :----- | :-----: | :---------- |
+| `colorstops` | :material-check: | List of state values used to set the shape color |
+| `animations` | :material-check: | State-based animations using class or style changes |
+
+!!! info
+    Animations require the visual shape to be connected to an entity with `entity_index`.
