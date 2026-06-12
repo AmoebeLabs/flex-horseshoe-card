@@ -1,12 +1,13 @@
 ---
 template: main.html
 title: Entity definitions
-description: Define Home Assistant entities, attributes, icons, units, precision, names, areas, and tap actions for the Flexible Horseshoe Card.
+description: Define Home Assistant entities, attributes, icons, units, precision, names, areas, tap actions, and dynamic entity values for the Flexible Horseshoe Card.
 tags:
   - Entities
   - Attributes
   - Icons
   - Actions
+  - Templates
 ---
 
 # Entity definitions
@@ -24,7 +25,7 @@ entities:
 
 The card will use the available Home Assistant metadata where possible. Depending on your Home Assistant language and locale settings, names, areas, states, numbers, and units are displayed using the configured localization.
 
-You can override these values when needed. For example, you can set a custom name, use a different icon, change the number of decimals, or display an attribute instead of the main entity state.
+You can override these values when needed. For example, you can set a custom name, use a different icon, change the number of decimals, display an attribute instead of the main entity state, or use a JavaScript template for dynamic entity values.
 
 ## :material-horseshoe: Basic usage
 
@@ -138,16 +139,72 @@ Common reasons to override values:
 - group an entity under a different area label
 - display an attribute with its own name and unit
 
+## :material-horseshoe: Dynamic entity values
+
+Some entity fields can also use JavaScript templates. This makes it possible to change parts of the entity definition based on the current state of an entity.
+
+This is useful when a name, icon, area, unit, or other supported entity value should change dynamically instead of staying fixed.
+
+For example, the `name` can depend on the state of another entity:
+
+```yaml title="Dynamic entity name" linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.memory_use_percent
+      name: |
+        [[[
+          const name = entities[1].state === 'on'
+            ? '11: One Bulb ON'
+            : '11: One Bulb OFF';
+          return name;
+        ]]]
+      tap_action:
+        action: more-info
+
+    - entity: light.livingroom_light_duo_left_light
+      name: 'hall'
+      icon: mdi:lightbulb
+      tap_action:
+        action: call-service
+        service: light.toggle
+        service_data: { "entity_id" : "light.livingroom_light_duo_left_light" }
+```
+
+In this example, the first entity uses a dynamic name. The name changes depending on whether the second entity is `on` or not.
+
+Dynamic templates can also be used for icons where supported:
+
+```yaml title="Dynamic entity icon" linenums="1"
+entities:
+  - entity: sensor.dsmr_reading_electricity_currently_delivered
+    icon: |
+      [[[
+        const value = Number(state);
+        return value >= 0.4
+          ? 'mdi:flash'
+          : 'mdi:flash-off';
+      ]]]
+```
+
+Templates in the `entities` section use the same `[[[ ... ]]]` syntax as other JavaScript templates in the card.
+
+!!! info "Dynamic values are evaluated during updates"
+    JavaScript templates are dynamic. They can react to entity states and may be evaluated again when the card updates.
+
+    This is different from static reuse features such as `same_as`, `calc()`, `constants`, and `ref()`, which are resolved during card setup.
+
+For more details about JavaScript templates, available variables, and reusable template variables, see the templating page.
+
 ## :material-horseshoe: Available entity options
 
 | Name | Type | Required | Description |
 | :--- | :---: | :------: | :---------- |
 | `entity` | string | :material-check: | Home Assistant entity id |
 | `attribute` | string | :material-close: | Attribute to display instead of the main entity state |
-| `unit` | string | :material-close: | Unit to display for the entity or attribute |
+| `unit` | string | :material-close: | Unit to display for the entity or attribute. Can use a JavaScript template where supported |
 | `decimals` | number | :material-close: | Number of decimals used to format the value |
-| `name` | string | :material-close: | Custom name. Overrides the Home Assistant friendly name |
-| `area` | string | :material-close: | Custom area. Overrides the Home Assistant area for this card |
+| `name` | string | :material-close: | Custom name. Overrides the Home Assistant friendly name. Can use a JavaScript template where supported |
+| `area` | string | :material-close: | Custom area. Overrides the Home Assistant area for this card. Can use a JavaScript template where supported |
 | `icon` | string | :material-close: | Custom icon, image, SVG, or JavaScript template |
 | `tap_action` | object | :material-close: | Action to run when the entity is clicked or tapped |
 
@@ -155,15 +212,14 @@ Common reasons to override values:
 
 If no icon is defined, the card uses the Home Assistant icon for the entity where possible.
 
-You can override the icon with an MDI icon, an external image, or an external SVG.
+You can override the icon with an MDI icon, an external image, an external SVG, or a JavaScript template.
 
 | Icon type | Example | Description |
 | :-------- | :------ | :---------- |
 | MDI icon | `icon: mdi:lightbulb` | Uses a Material Design icon |
 | External image | `icon: url(/local/icons/icon-image.png)` | Uses an image file as the icon |
 | External SVG | `icon: url(/local/icons/icon-svg.svg)` | Uses an SVG file as the icon |
-
-Icons can also be defined dynamically with JavaScript templates where supported.
+| JavaScript template | `icon: |` with `[[[ ... ]]]` | Returns the icon dynamically |
 
 ## :material-horseshoe: Tap actions
 
