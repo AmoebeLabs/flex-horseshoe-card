@@ -17,7 +17,7 @@ Stable and Latest available versions where the latest can be a pre-release (DEV)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AmoebeLabs&repository=flex-horseshoe-card&category=Dashboard)
 
-## Upcoming...
+## [Upcoming...](https://flexible-horseshoe-card-manual.amoebelabs.com/)
 
 ![](images/fhs-homepage.png)
 
