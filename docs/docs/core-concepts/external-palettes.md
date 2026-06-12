@@ -25,7 +25,7 @@ Each palette has:
 
 Example:
 
-```yaml
+```yaml linenums="1"
 palettes:
   rainbow: /local/palettes/rainbow-palette-new.json
 ```
@@ -59,7 +59,7 @@ The structure follows the same idea as Home Assistant theme variables: base valu
 
 A simplified palette looks like this:
 
-```json
+```json linenums="1"
 {
   "ref": {
     "fhs-ref-rainbow-red50": "#de3730ff",
@@ -145,7 +145,7 @@ After the palette is loaded, its variables can be used in card configuration jus
 
 For example:
 
-```yaml
+```yaml linenums="1"
 color_stops:
   mode: gradient
   colors:
@@ -159,7 +159,7 @@ color_stops:
 
 You can also use palette variables in styles:
 
-```yaml
+```yaml linenums="1"
 styles:
   - stroke: var(--fhs-sys-rainbow-blue)
   - fill: var(--fhs-sys-rainbow-green)
@@ -173,7 +173,7 @@ The `modes` section allows a palette to define different values for light and da
 
 Example:
 
-```json
+```json linenums="1"
 {
   "modes": {
     "light": {
@@ -192,7 +192,7 @@ In dark mode, the same variable uses `--fhs-ref-rainbow-red70`.
 
 This means your YAML can keep using the same variable name:
 
-```yaml
+```yaml linenums="1"
 stroke: var(--fhs-sys-rainbow-red)
 ```
 
@@ -202,7 +202,7 @@ The actual color changes automatically with the active mode.
 
 The following example shows the structure of a rainbow palette with reference colors and light/dark mode mappings.
 
-```json
+```json linenums="1"
 {
   "ref": {
     "fhs-ref-rainbow-red0": "#000000ff",

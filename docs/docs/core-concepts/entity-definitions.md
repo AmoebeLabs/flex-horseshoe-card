@@ -18,7 +18,7 @@ In most cases, the only required field is the Home Assistant entity itself. The 
 
 This means a minimal entity definition can stay very small:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.memory_use_percent
 ```
@@ -31,7 +31,7 @@ You can override these values when needed. For example, you can set a custom nam
 
 A basic entity definition only points to an entity:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.memory_use_percent
 ```

@@ -86,7 +86,7 @@ The `entities` section defines the data the card can use.
 
 A minimal entity definition only needs the entity id:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.dsmr_reading_electricity_currently_delivered
 ```
@@ -95,7 +95,7 @@ The card will try to use Home Assistant metadata automatically, such as the enti
 
 You can override these values when needed:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.dsmr_reading_electricity_currently_delivered
     name: Total
@@ -112,7 +112,7 @@ The `aspectratio` option defines the shape of the card.
 
 For example:
 
-```yaml
+```yaml linenums="1"
 aspectratio: 1/1
 ```
 
@@ -120,7 +120,7 @@ creates a square card. In this case, the base layout canvas is `100 x 100`.
 
 A wider card can use another ratio:
 
-```yaml
+```yaml linenums="1"
 aspectratio: 2/1
 ```
 
@@ -142,7 +142,7 @@ Use it for things like:
 
 Example:
 
-```yaml
+```yaml linenums="1"
 styles:
   background: var(--card-background-color)
   border-radius: 12px
@@ -156,7 +156,7 @@ The `layout` section contains the visual structure of the card.
 
 This is where you define what appears on the card and where it should be placed.
 
-```yaml
+```yaml linenums="1"
 layout:
   horseshoes:
     - entity_index: 0
@@ -173,7 +173,7 @@ The `layout` section can also contain helper sections.
 
 Use `constants` for reusable static values or style fragments:
 
-```yaml
+```yaml linenums="1"
 layout:
   constants:
     centerX: 50
@@ -185,7 +185,7 @@ layout:
 
 Use `groups` to place multiple related items together:
 
-```yaml
+```yaml linenums="1"
 layout:
   groups:
     L1:
@@ -218,7 +218,7 @@ Larger card configurations can contain repeated layout items. To reduce duplicat
 
 Example:
 
-```yaml
+```yaml linenums="1"
 layout:
   constants:
     lineStep: 11

@@ -38,7 +38,7 @@ For example, a light entity can use its normal Home Assistant icon and color beh
 
 For many entities, a minimal definition is enough:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.energy_today
 ```
@@ -57,7 +57,7 @@ For example, if an energy sensor is configured in Home Assistant with two decima
 
 You can still override these values in the `entities` section when needed:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.energy_today
     name: Today
@@ -81,7 +81,7 @@ The card can use those icons automatically.
 
 You can also override the icon in the `entities` section:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.energy_today
     icon: mdi:flash
@@ -105,7 +105,7 @@ Automatic localization is meant to reduce configuration, not remove control.
 
 You can override Home Assistant values in the `entities` section whenever needed:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.dsmr_reading_electricity_currently_delivered
     name: Total
@@ -128,7 +128,7 @@ Common reasons to override values:
 
 Start with the entity only:
 
-```yaml
+```yaml linenums="1"
 entities:
   - entity: sensor.energy_today
 ```

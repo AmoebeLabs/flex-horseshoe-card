@@ -23,7 +23,7 @@ The card itself can have a `styles` section. Use this for styling the card conta
 
 For example, you can set a background color:
 
-```yaml
+```yaml linenums="1"
 - type: custom:flex-horseshoe-card
   styles:
     background: var(--card-background-color)
@@ -31,7 +31,7 @@ For example, you can set a background color:
 
 You can also use a background image:
 
-```yaml
+```yaml linenums="1"
 - type: custom:flex-horseshoe-card
   styles:
     background-image: url('/local/images/backgrounds/energy-card.png')
@@ -47,7 +47,7 @@ Most layout items also support a `styles` section. These styles apply only to th
 
 For example, a state value can be styled like this:
 
-```yaml
+```yaml linenums="1"
 states:
   - entity_index: 0
     xpos: 50
@@ -60,7 +60,7 @@ states:
 
 A line can be styled like this:
 
-```yaml
+```yaml linenums="1"
 hlines:
   - xpos: 50
     ypos: 65
@@ -73,7 +73,7 @@ hlines:
 
 A circle can be styled like this:
 
-```yaml
+```yaml linenums="1"
 circles:
   - xpos: 50
     ypos: 50
@@ -113,7 +113,7 @@ You can use Home Assistant theme variables inside styles. This helps your card f
 
 Examples:
 
-```yaml
+```yaml linenums="1"
 styles:
   fill: var(--primary-text-color)
   stroke: var(--divider-color)
@@ -128,7 +128,7 @@ Styles can also use JavaScript templates when you need dynamic behavior.
 
 For example, the color of a state can depend on the entity value:
 
-```yaml
+```yaml linenums="1"
 states:
   - entity_index: 0
     xpos: 50
@@ -151,7 +151,7 @@ For more details, see the templating documentation.
 
 For larger cards, the same styles often appear in multiple places. Instead of repeating them, you can define shared styles in `constants` and reuse them with `ref()`.
 
-```yaml
+```yaml linenums="1"
 constants:
   dividerStyle:
     stroke: var(--disabled-text-color)

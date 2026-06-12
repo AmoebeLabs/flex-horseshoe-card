@@ -59,7 +59,7 @@ A state-based animation has three parts:
 
 Example structure:
 
-```yaml
+```yaml linenums="1"
 animations:
   entity.1:
     - state: 'on'
@@ -127,7 +127,7 @@ The card includes several predefined CSS animation names. These can be used in a
 
 Many animations also need a useful `transform-origin`, for example:
 
-```yaml
+```yaml linenums="1"
 styles:
   - animation: jello 1s ease-in-out both
   - transform-origin: center
