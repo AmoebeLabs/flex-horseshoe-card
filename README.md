@@ -1,4 +1,4 @@
-# :material-horseshoe: Flexible Horseshoe Card
+# ![](images/horseshoe-logo-24x24-black.png#gh-light-mode-only) ![](images/horseshoe-logo-24x24-white.png#gh-dark-mode-only) Flexible Horseshoe Card
 
 Card is again up-to-date with latest Home Assistant, Lit V3 and latest NPM modules, and got some extra features like JavaScript templating, color stops for states, icons, names, areas, hlines, vlines and circles, and a bidirectional mode.
 
