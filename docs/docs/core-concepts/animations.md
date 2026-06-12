@@ -58,10 +58,10 @@ Animations are optional, and are driven by state changes of a given entity or at
         circles:
           - animation_id: 10
             styles:
-              - fill: var(--theme-gradient-color-08);
-              - opacity: 0.9;
-              - animation: jello 1s ease-in-out both;
-              - transform-origin: center;
+              - fill: var(--theme-gradient-color-08)
+              - opacity: 0.9
+              - animation: jello 1s ease-in-out both
+              - transform-origin: center
         icons:
           - animation_id: 0
             styles:
@@ -71,12 +71,38 @@ Animations are optional, and are driven by state changes of a given entity or at
           - animation_id: 10
             reuse: true
             styles:
-              - transform-origin: center;
-              - animation: zoomOut 1s ease-out both;
+              - transform-origin: center
+              - animation: zoomOut 1s ease-out both
         icons:
           - animation_id: 0
             styles:
-              - fill: var(--primary-text-color);
+              - fill: var(--primary-text-color)
+  layout:
+    icons:
+      - id: 0
+        animation_id: 0
+        xpos: 50
+        ypos: 55
+        entity_index: 1
+        icon_size: 3.5
+        styles:
+          - color: white
+    circles:
+      - id: 0
+        animation_id: 0
+        xpos: 50
+        ypos: 50
+        radius: 35
+        styles:
+          - fill: var(--primary-background-color)
+      - id: 1
+        animation_id: 10
+        xpos: 50
+        ypos: 50
+        radius: 30
+        entity_index: 1
+        styles:
+          - fill: var(--primary-background-color)            
 ```
 
 ##:material-horseshoe: User defined animations
