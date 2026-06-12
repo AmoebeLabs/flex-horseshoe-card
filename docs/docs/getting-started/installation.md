@@ -1,12 +1,17 @@
 ---
 template: main.html
-title: Installation of the card
-description: The preferred way to install the flexible horseshoe card is using HACS from within your Home Assistant dashboard.\
+title: Installation
+description: The preferred way to install the Flexible Horseshoe Card is through HACS from within your Home Assistant dashboard.
 tags:
   - HACS
   - Installation
 ---
 
+# Installation
+
+The recommended way to install the Flexible Horseshoe Card is through HACS. This keeps installation simple and makes it easier to update the card when a new version is released.
+
+Manual installation is also possible if you prefer to manage the card files yourself.
 
 ## Install via HACS
 
@@ -14,24 +19,29 @@ tags:
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AmoebeLabs&repository=flex-horseshoe-card&category=Dashboard)
 
+HACS can install both stable and latest available versions. The latest version may be a pre-release or development version.
 
-HACS allows you to download Stable and Latest available versions where the latest can be a pre-release (DEV) version:
 <br><br>[![stable][stable-badge]][release-url]
 [![stable-date][stable-date-badge]][release-url]
 <br>[![latest][latest-badge]][release-url]
 [![latest-date][latest-date-badge]][release-url]
 <br>[![downloads][downloads-badge]][release-url]
 
-## Manual install
+## Manual installation
 
-1. Download and copy `dist/flex-horseshoe-card.js` from github into your `config/www` directory.
+1. Download `dist/flex-horseshoe-card.js` from GitHub.
 
-2. If using the editor UI: Add a reference to `flex-horseshoe-card.js` inside your `ui-lovelace.yaml` or at the top of the _raw config editor UI_.
-3. If using yaml mode, add a reference in the resources.yaml file that is !included in your `ui-lovelac.yaml` file
+2. Copy the file into your Home Assistant `config/www` directory.
+
+3. Add the card as a Lovelace resource.
+
+If you use the dashboard editor UI, add the resource in the raw configuration editor.
+
+If you use YAML mode, add the resource to the `resources.yaml` file that is included in your `ui-lovelace.yaml` file.
 
 ```yaml
 resources:
-  - url: /community/flex-horseshoe-card/flex-horseshoe-card.js
+  - url: /local/flex-horseshoe-card.js
     type: module
 ```
 
