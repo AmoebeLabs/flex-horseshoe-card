@@ -143,20 +143,44 @@ Common reasons to override values:
 
 [:octicons-tag-24: v5.4.7-dev.7][github-releases]
 
-The `format` option in the entities section allows you to override the default formatting of Home Assistantg.
+The `format` option in the entities section allows you to override the default formatting of Home Assistant.
 
-```yaml title="Entities with format option" linenums="1"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-      name: "Total"
-      icon: mdi:fire
-      area: house
-      format:
-        separator: false    # Remove thousands separator
-        decimals_min: 0     # minimal and...
-        decimals_max: 2     # ... maximum number of digits
-```
+=== "Remove Separator"
+    ```yaml title="Remove separator and limit decimals" linenums="1"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            separator: false    # Remove thousands separator
+            decimals_min: 0     # minimal and...
+            decimals_max: 2     # ... maximum number of digits
+    ```
+=== "Display raw state"
+    ```yaml title="Remove separator and limit decimals" linenums="1"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            raw_state_keep: true  # Keep raw state. No formatting
+            raw_state_clean: true # but remove underscores
+    ```
+=== "Use specific locale"
+    ```yaml title="Specify locale for translations and formatting" linenums="1"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            locale: 'nl-NL' # Force presentation in dutch settings
+    ```
 
 
 ## :material-horseshoe: Dynamic entity values
