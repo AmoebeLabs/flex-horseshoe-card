@@ -898,6 +898,493 @@ class FlexHorseshoeCard extends LitElement {
 
   _formatEntityStateParts(stateObj, entityConfig) {
     const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    // When raw_state_keep is true, 'raw is raw' and we skip all formatting/translations immediately
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Advanced number formatting (separator, decimals_min, decimals_max)
+    // Text-based states naturally skip this block and keep their HA translations intact
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // Find the pre-formatted value that Home Assistant generated
+      const haValuePart = parts.find((part) => part.type === 'value');
+      let haDecimals; // Fixed: declared cleanly without undefined for ESLint (no-undef-init)
+
+      // Convert to string safely to ensure lastIndexOf never crashes on pure numbers
+      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
+        const haValueStr = String(haValuePart.value);
+        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
+        if (decimalIndex !== -1) {
+          haDecimals = haValueStr.length - decimalIndex - 1;
+        } else {
+          haDecimals = 0;
+        }
+      }
+
+      // Calculate maximum digits first (highest user priority, fallback to HA decimals, fallback to 2)
+      const maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2);
+
+      // Calculate minimum digits (highest user priority, fallback to HA decimals, fallback to 0)
+      let minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0);
+
+      // Fixed: minDigits can NEVER be larger than maxDigits.
+      // If the user limits max to 1, the minimum pulls down to 1 as well.
+      if (minDigits > maxDigits) {
+        minDigits = maxDigits;
+      }
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 6. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV6(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Return a single part array directly, skipping all HA core formatting
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Handle non-numeric text states (e.g. 'home', 'on', 'very_high')
+    if (!isNumeric && typeof rawValue === 'string') {
+      if (formatConfig.raw_state_clean === true) {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Update the value part inside the parts array with our cleaned string
+      return parts.map((part) => (part.type === 'value' ? { ...part, value: rawValue } : part));
+    }
+
+    // 6. Advanced number formatting (separator, decimals_min, decimals_max)
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // Find the pre-formatted value that Home Assistant generated
+      const haValuePart = parts.find((part) => part.type === 'value');
+      let haDecimals;
+
+      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
+        const haValueStr = String(haValuePart.value);
+        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
+        if (decimalIndex !== -1) {
+          haDecimals = haValueStr.length - decimalIndex - 1;
+        } else {
+          haDecimals = 0;
+        }
+      }
+
+      // 6a. Calculate maximum digits first (highest user priority, fallback to HA decimals, fallback to 2)
+      const maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2);
+
+      // 6b. Calculate minimum digits (highest user priority, fallback to HA decimals, fallback to 0)
+      let minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0);
+
+      // 6c. WATERPROOF FIX: minDigits can NEVER be larger than maxDigits.
+      // If the user limits max to 1, the minimum must pull down to 1 as well.
+      if (minDigits > maxDigits) {
+        minDigits = maxDigits;
+      }
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 7. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV5(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Return a single part array directly, skipping all HA core formatting
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Handle non-numeric text states (e.g. 'home', 'on', 'very_high')
+    if (!isNumeric && typeof rawValue === 'string') {
+      if (formatConfig.raw_state_clean === true) {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Update the value part inside the parts array with our cleaned string
+      return parts.map((part) => (part.type === 'value' ? { ...part, value: rawValue } : part));
+    }
+
+    // 6. Advanced number formatting (separator, decimals_min, decimals_max)
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // Find the pre-formatted value that Home Assistant generated
+      const haValuePart = parts.find((part) => part.type === 'value');
+      let haDecimals;
+
+      // FIX: Check if value exists and cast it to a String to prevent crashes
+      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
+        const haValueStr = String(haValuePart.value);
+        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
+
+        if (decimalIndex !== -1) {
+          haDecimals = haValueStr.length - decimalIndex - 1;
+        } else {
+          haDecimals = 0;
+        }
+      }
+
+      // 6a. Calculate the minimum digits first
+      const minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0);
+
+      // 6b. Calculate the maximum digits
+      let maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2);
+
+      // 6c. Safety check: maximumFractionDigits can NEVER be smaller than minimumFractionDigits
+      if (maxDigits < minDigits) {
+        maxDigits = minDigits;
+      }
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 7. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV4(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Return a single part array directly, skipping all HA core formatting
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Handle non-numeric text states (e.g. 'home', 'on', 'very_high')
+    if (!isNumeric && typeof rawValue === 'string') {
+      if (formatConfig.raw_state_clean === true) {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Update the value part inside the parts array with our cleaned string
+      return parts.map((part) => (part.type === 'value' ? { ...part, value: rawValue } : part));
+    }
+
+    // 6. Advanced number formatting (separator, decimals_min, decimals_max)
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // NEW & SMART: Find the pre-formatted value that Home Assistant generated
+      const haValuePart = parts.find((part) => part.type === 'value');
+      let haDecimals;
+
+      if (haValuePart && haValuePart.value) {
+        // Find the index of the decimal separator in HA's own formatted text
+        // (Works for both comma and dot because we check both characters)
+        const decimalIndex = Math.max(haValuePart.value.lastIndexOf('.'), haValuePart.value.lastIndexOf(','));
+        if (decimalIndex !== -1) {
+          // Count how many characters are behind the decimal separator
+          haDecimals = haValuePart.value.length - decimalIndex - 1;
+        } else {
+          // No decimal separator found in HA output means 0 decimals
+          haDecimals = 0;
+        }
+      }
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+
+        // Dynamic fallback chain:
+        // 1. Your custom YAML dict keys (highest priority)
+        // 2. The decimals counted from Home Assistant's automatic layout
+        // 3. If everything fails, use old config.decimals or fallback to 2
+        minimumFractionDigits: formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0),
+        maximumFractionDigits: formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2),
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 7. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV3(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Return a single part array directly, skipping all HA core formatting
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Handle non-numeric text states (e.g. 'home', 'on', 'very_high')
+    if (!isNumeric && typeof rawValue === 'string') {
+      if (formatConfig.raw_state_clean === true) {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Update the value part inside the parts array with our cleaned string
+      return parts.map((part) => (part.type === 'value' ? { ...part, value: rawValue } : part));
+    }
+
+    // 6. Advanced number formatting (separator, decimals_min, decimals_max)
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // NEW: Fetch Home Assistant's UI decimal settings for this specific entity
+      // It looks at display_precision first, then falls back to your old config.decimals
+      const haPrecision = stateObj.attributes?.display_precision !== undefined ? Number(stateObj.attributes.display_precision) : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : undefined;
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+
+        // Dynamic fallback chain: YAML dict -> Home Assistant UI settings -> defaults (0 and 2)
+        minimumFractionDigits: formatConfig.decimals_min ?? (haPrecision !== undefined ? haPrecision : 0),
+        maximumFractionDigits: formatConfig.decimals_max ?? (haPrecision !== undefined ? haPrecision : 2),
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 7. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV2(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
+
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Return a single part array directly, skipping all HA core formatting
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
+    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
+
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+
+    // 5. Handle non-numeric text states (e.g. 'home', 'on', 'very_high')
+    if (!isNumeric && typeof rawValue === 'string') {
+      if (formatConfig.raw_state_clean === true) {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      // Update the value part inside the parts array with our cleaned string
+      return parts.map((part) => (part.type === 'value' ? { ...part, value: rawValue } : part));
+    }
+
+    // 6. Advanced number formatting (separator, decimals_min, decimals_max)
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      const numberOptions = {
+        // Mapped to the intuitive 'separator' YAML key.
+        // Setting separator to false disables the browser's useGrouping flag.
+        useGrouping: formatConfig.separator !== false,
+
+        // Custom min/max keys, falling back to old single 'decimals' key if present
+        minimumFractionDigits: formatConfig.decimals_min ?? (entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0),
+        maximumFractionDigits: formatConfig.decimals_max ?? (entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2),
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 7. Map everything back to the SVG-ready parts array
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && entityConfig.unit !== undefined) {
+        return { ...part, value: entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  _formatEntityStatePartsV1(stateObj, entityConfig) {
+    const isAttribute = entityConfig.attribute !== undefined;
 
     const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
     // if (isAttribute) {
