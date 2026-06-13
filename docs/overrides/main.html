@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block htmltitle %}
+
+  <!-- The full title (config.site_name) is a bit long, so use a shortened version for each page. Better for SEO -->
+  {% set htmltitle = "Flexibile Horseshoe Card" %}
+  {% if page and page.meta and page.meta.title %}
+    {% set htmltitle = page.meta.title ~ " - " ~ htmltitle %}
+  {% elif page and page.title and not page.is_homepage %}
+    {% set htmltitle = page.title ~ " - " ~ htmltitle %}
+  {% endif %}
+
+  <title>{{ htmltitle }}</title>
+  
+{% endblock %}
+  
+<!-- Custom front matter -->
+{% block extrahead %}
+
+  <!-- Extra style sheets (can't be set in mkdocs.yml due to content hash) -->
+  <!-- <link -->
+    <!-- rel="stylesheet" -->
+    <!-- href="{{ 'overrides/assets/stylesheets/main.scss' | url }}" -->
+  <!-- /> -->
+  <!-- https://realfavicongenerator.net/favicon_result?file_id=p1ftihlel1f021dkg1imh1ak6c5e6#.YiYs4OiZNZc -->
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <!-- <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"> -->
+  <!-- <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"> -->
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#da532c">
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- {% set title = config.site_name %} -->
+  <!-- {% if page and page.meta and page.meta.title %} -->
+    <!-- {% set title = title ~ " - " ~ page.meta.title %} -->
+  <!-- {% elif page and page.title and not page.is_homepage %} -->
+    <!-- {% set title = title ~ " - " ~ page.title %} -->
+  <!-- {% endif %} -->
+
+  {% set title = config.site_name %}
+  {% if page and page.meta and page.meta.title %}
+    {% set title = page.meta.title ~ " - " ~ title %}
+  {% elif page and page.title and not page.is_homepage %}
+    {% set title = page.title ~ " - " ~ title %}
+  {% endif %}
+  
+  <!-- OpenGraph / Facebook meta data -->
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{{ title }}" />
+  <meta property="og:description" content="{{ config.site_description }}" />
+  <meta property="og:url" content="{{ page.canonical_url }}" />
+  <meta property="og:image" content="https://swiss-army-knife-card-manual.amoebelabs.com/assets/social/sak-opengraph-1200x630.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter meta data -->
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ title }}" />
+  <meta name="twitter:site" content="@AmoebeLabs" />
+  <meta name="twitter:creator" content="@AmoebeLabs" />
+  <meta name="twitter:description" content="{{ config.site_description }}" />
+  <meta name="twitter:image" content="https://swiss-army-knife-card-manual.amoebelabs.com/assets/social/sak-twitter-800x420.png" />
+
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "bp6hyc03b1");
+  </script>
+
+  <!-- https://webcode.tools/generators/json-ld/organization -->
+
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org/",
+    "@type": "Organization",
+    "name": "AmoebeLabs",
+    "url": "https://amoebelabs.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Eindhoven",
+      "addressCountry": "Netherlands"
+    },
+    "sameAs": ["https://instagram.com/amoebelabs", "https://twitter.com/amoebeLabs", "https://github.com/amoebelabs", "https://www.buymeacoffee.com/amoebelabs"]
+  }
+  </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "http://schema.org/",
+      "@type": "HowTo",
+      "name": "Flexible Horseshoe Custom Card",
+      "description": "The custom Flexible Horseshoe card for Home Assistant allows you to create your own visualization using the SVG tools and CSS styling options this card provides.",
+      "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-triple-example-1500x1600.webp",
+      "totalTime": "PT1H",
+      "supply": [
+        {
+          "@type": "HowToSupply",
+          "name": "Brains"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Creativity"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Time"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Knowledge of YAML"
+        }
+      ],
+      "tool": [
+        {
+          "@type": "HowToTool",
+          "name": "Circle"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Ellipse"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Line"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Rectangle"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "RectangelEx"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Regular Poly"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Text"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Horse Shoe"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Segmented Arc"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Slider"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Switch"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "User SVG"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Area"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Icon"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Name"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity State"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity History"
+        }
+      ],
+      "step": [
+        {
+          "@type": "HowToStep",
+          "name": "Installation",
+          "text": "The installation can be done in two ways, automatic installation using HACS or manual installation.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-dashboard.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/start/installation/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Designing your card",
+          "text": "Designing your card is all about creativity. Get inspiration from examples you find on the internet, or fully design your own layout given the tools that are available",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-circles-background-ad.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/start/designing-your-card/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Circle Tool",
+          "text": "The Circle tool is based on the SVG basic <circle>element shape",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-6.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/circle-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Ellipse Tool",
+          "text": "The Ellipse tool is based on the SVG basic <ellipse>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-10.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/ellipse-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Line Tool",
+          "text": "The Line tool is based on the SVG basic <line> element shape",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-1b.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/line-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Rectangle Tool",
+          "text": "The Rectangle tool is based on the SVG basic <rect>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-9.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/rectangle-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Extended Rectangle Tool",
+          "text": "The RectEx tool is based on the SVG basic <path>element shape.
+The RectEx tool lets you define the radius for each corner, where the Rectangle tool lets you specify a single radius for all corners.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-9.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/rectangle-ex-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Regular Polygon Tool",
+          "text": "The Regular Polygon tool is a tool build on the Shläfli symbol.
+It can build both regular convex polygons and regular star polygons.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/regular-poly-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Text Tool",
+          "text": "The Text tool is based on the SVG basic <text>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/text-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Horse Shoe Tool",
+          "text": "This tool is not yet available...",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-3.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/horseshoe-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Segmented Arc Tool",
+          "text": "The Segmented Arc tool is a complex, multi-part tool with a custom animation.
+The tool consists of multiple separate segments that 'behave' like a single, segmented object.
+The Arc can be between 0 and 360 degrees with configurable start and end angle. It can have an additional scale. The Arc supports colorstops and colorlists to display the state value.
+It is by far the most complex tool. Was fun to make, and fairly unique.
+The 360 degrees arc takes a prominent place in many examples.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-7.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/segarc-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Slider Tool",
+          "text": "The slider tool is an input tool with a configurable track, active track, thumb and label position, and styling.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-2.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/slider-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Switch Tool",
+          "text": "The Switch tool is based on two SVG basic <rectangle> element shapes.
+It is a composite tool with a built-in animation to move the thumb to 'off' or 'on' position and to change the color to 'off' or 'on' color.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-2.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/switch-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the User SVG Tool",
+          "text": "The User SVG tool makes it possible to add (external) SVGs to your card.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-6.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/usersvg-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Area Tool",
+          "text": "The Entity Area tool displays the Home Assistant Entity Area value.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-4.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-area-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Icon Tool",
+          "text": "The Entity Icon tool displays the Home Assistant Entity Icon.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-3.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-icon-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Name Tool",
+          "text": "The Entity Name tool displays the Home Assistant Entity Name text.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-11-m3-c11-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-name-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity State Tool",
+          "text": "The Entity State tool displays the Home Assistant Entity State value and unit of measurement.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-state-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity History Tool",
+          "text": "The Entity History tool is a horizontal or vertical bar chart (sparkline) and displayes some history of an Home Assistant Entity. It is a basic chart, more of a sparkline with only display functionality.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-dark.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-barchart-tool/"
+        }
+      ]
+    }
+    </script> 
+{% endblock %}
+
+{% block announce %}
+  <!-- Add announcement here, including arbitrary HTML -->
+  <a style="color:white;opacity:.9;" onmouseover="this.style.color='white';this.style.fontSize=''";" onmouseout="this.style.color='white';;this.style.fontSize=''">
+    <span style="font-size:16px;">Note:</span> BETA Documentation! Still very much in flux!
+  </a>
+
+{% endblock %}
+
+<!-- Theme-related JavaScript -->
+{% block scripts %}
+  {{ super() }}
+
+  <!-- Extra JavaScript (can't be set in mkdocs.yml due to content hash) -->
+  <!-- <script src="{{ 'overrides/assets/javascripts/bundle.js' | url }}"></script> -->
+{% endblock %}
+

@@ -899,21 +899,74 @@ class FlexHorseshoeCard extends LitElement {
 
   _formatEntityStateParts(stateObj, entityConfig) {
     const isAttribute = entityConfig.attribute !== undefined;
+    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
 
+    // 1. Fetch the absolute raw value from state or attribute
+    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
+
+    // 2. Handle absolute raw state bypass (raw_state_keep)
+    // When raw_state_keep is true, 'raw is raw' and we skip all formatting/translations immediately
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    // 3. Fallback to standard Home Assistant frontend parts splitting
     const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
-    // if (isAttribute) {
-    //   console.log('formatEntityStateParts - Attribute', entityConfig.attribute, parts);
-    // }
-    const rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
 
-    const formattedValue =
-      entityConfig.decimals !== undefined && !Number.isNaN(Number(rawValue))
-        ? formatNumber(Number(rawValue), this._hass.locale, {
-            minimumFractionDigits: Number(entityConfig.decimals),
-            maximumFractionDigits: Number(entityConfig.decimals),
-          })
-        : undefined;
+    // 4. Determine if the value is numeric
+    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
 
+    // 5. Advanced number formatting (separator, decimals_min, decimals_max)
+    // Text-based states naturally skip this block and keep their HA translations intact
+    let formattedValue;
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
+
+      // Find the pre-formatted value that Home Assistant generated
+      const haValuePart = parts.find((part) => part.type === 'value');
+      let haDecimals; // Fixed: declared cleanly without undefined for ESLint (no-undef-init)
+
+      // Convert to string safely to ensure lastIndexOf never crashes on pure numbers
+      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
+        const haValueStr = String(haValuePart.value);
+        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
+        if (decimalIndex !== -1) {
+          haDecimals = haValueStr.length - decimalIndex - 1;
+        } else {
+          haDecimals = 0;
+        }
+      }
+
+      // Calculate maximum digits first (highest user priority, fallback to HA decimals, fallback to 2)
+      const maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2);
+
+      // Calculate minimum digits (highest user priority, fallback to HA decimals, fallback to 0)
+      let minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0);
+
+      // Fixed: minDigits can NEVER be larger than maxDigits.
+      // If the user limits max to 1, the minimum pulls down to 1 as well.
+      if (minDigits > maxDigits) {
+        minDigits = maxDigits;
+      }
+
+      const numberOptions = {
+        // Disables the browser's thousands grouping when separator is set to false
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      };
+
+      try {
+        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
+      } catch (error) {
+        console.error('Error formatting numeric state inside parts:', error);
+      }
+    }
+
+    // 6. Map everything back to the SVG-ready parts array
     return parts.map((part) => {
       if (part.type === 'value' && formattedValue !== undefined) {
         return { ...part, value: formattedValue };
