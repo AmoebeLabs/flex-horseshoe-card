@@ -124,6 +124,49 @@ Common reasons to override values:
 - use a custom area label
 - make several cards use the same naming style
 
+On top of that, you can override the localized formatting:
+
+[:octicons-tag-24: v5.4.7-dev.7][github-releases]
+
+The `format` option in the entities section allows you to override the default formatting of Home Assistant.
+
+=== "Remove Separator"
+    ```yaml title="Remove separator and limit decimals" linenums="1"  hl_lines="7-10"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            separator: false    # Remove thousands separator
+            decimals_min: 0     # minimal and...
+            decimals_max: 2     # ... maximum number of digits
+    ```
+=== "Display raw state"
+    ```yaml title="Display raw entity state as received from integration" linenums="1" hl_lines="7-9"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            raw_state_keep: true  # Keep raw state. No formatting
+            raw_state_clean: true # but remove underscores
+    ```
+=== "Use specific locale"
+    ```yaml title="Specify locale for translations and formatting" linenums="1" hl_lines="7-10"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            locale: 'nl-NL' # Force presentation in dutch settings
+    ```
+
 ## :material-horseshoe: Recommended approach
 
 Start with the entity only:
@@ -149,3 +192,6 @@ Localization affects the values shown by several layout sections:
 | `icons` | Entity icons, overridden icons, and state-based icons |
 
 For layout and styling options, see the documentation for Home Assistant entity elements.
+
+<!--- External References... --->
+[github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/

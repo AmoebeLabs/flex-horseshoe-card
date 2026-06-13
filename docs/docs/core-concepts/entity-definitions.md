@@ -146,7 +146,7 @@ Common reasons to override values:
 The `format` option in the entities section allows you to override the default formatting of Home Assistant.
 
 === "Remove Separator"
-    ```yaml title="Remove separator and limit decimals" linenums="1"
+    ```yaml title="Remove separator and limit decimals" linenums="1"  hl_lines="7-10"
     - type: custom:flex-horseshoe-card
       entities:
         - entity: sensor.dsmr_reading_electricity_currently_delivered
@@ -159,7 +159,7 @@ The `format` option in the entities section allows you to override the default f
             decimals_max: 2     # ... maximum number of digits
     ```
 === "Display raw state"
-    ```yaml title="Remove separator and limit decimals" linenums="1"
+    ```yaml title="Display raw entity state as received from integration" linenums="1" hl_lines="7-9"
     - type: custom:flex-horseshoe-card
       entities:
         - entity: sensor.dsmr_reading_electricity_currently_delivered
@@ -171,7 +171,7 @@ The `format` option in the entities section allows you to override the default f
             raw_state_clean: true # but remove underscores
     ```
 === "Use specific locale"
-    ```yaml title="Specify locale for translations and formatting" linenums="1"
+    ```yaml title="Specify locale for translations and formatting" linenums="1"  hl_lines="7-10"
     - type: custom:flex-horseshoe-card
       entities:
         - entity: sensor.dsmr_reading_electricity_currently_delivered
