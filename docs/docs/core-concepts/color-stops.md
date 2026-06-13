@@ -16,24 +16,22 @@ They can be used for horseshoes, but also for other layout items such as states,
 
 For example, a low value can be blue or green, a warning value can be yellow or orange, and a high value can become red.
 
-!!! info "Numeric states"
+!!! info "Numeric states and textual state support"
     Color stops are based on numeric values.
 
-    The card compares the numeric state of the connected entity with the configured stop values. If the state cannot be converted to a number, the color stop logic cannot reliably select a matching color.
+    At this moment, only the horseshoe itself supports state mapping where a textual state is translated to a numeric value which can be used by a color stop.
 
 ## :material-horseshoe: Basic idea
 
-A color stop maps a value to a color:
+A color stop maps a numeric entity value to a color:
 
 ```yaml linenums="1"
 color_stops:
   colors:
-    0: blue
-    50: yellow
-    100: red
+    0: blue       # From 0 to 50: blue
+    50: yellow    # From 50 to 100: yellow
+    100: red      # From 100 onwards: red
 ```
-
-If the entity state is near `0`, the card uses the first color. If it is near `50`, it uses the middle color. If it is near `100`, it uses the last color.
 
 How those colors are applied depends on the item and, for horseshoes, on the configured horseshoe style.
 
@@ -41,9 +39,9 @@ How those colors are applied depends on the item and, for horseshoes, on the con
 
 The card supports several color stop formats.
 
-The preferred format is explicit and easy to extend:
-
 === "Preferred"
+    The preferred format is explicit and easy to extend. It is used by several other custom cards already.
+
     ```yaml linenums="1"
     color_stops:
       gap: 3
@@ -62,9 +60,9 @@ The preferred format is explicit and easy to extend:
           color: var(--fhs-sys-rainbow-purple)
     ```
 
-A compact version is also supported:
-
 === "Preferred compact"
+    A compact version is also supported:
+
     ```yaml linenums="1"
     color_stops:
       gap: 3
@@ -77,9 +75,9 @@ A compact version is also supported:
         5: var(--fhs-sys-rainbow-purple)
     ```
 
-The older legacy form is still supported:
-
 === "Legacy"
+    The older legacy form is still supported:
+
     ```yaml linenums="1"
     color_stops:
       0: 'blue'
@@ -96,6 +94,12 @@ For new cards, the preferred or preferred compact format is recommended. The leg
 
 Horseshoes can use color stops in different ways. The selected behavior is configured with `show.horseshoe_style`.
 
+```yaml linenums="1"
+show:
+  horseshoe: true
+  horseshoe_style: colorstop
+```
+
 Common styles include:
 
 | Style | Description |
@@ -103,99 +107,9 @@ Common styles include:
 | `colorstop` | Uses the color that matches the current state |
 | `colorstopgradient` | Uses color stops as a gradient along the horseshoe |
 | `fixed` | Uses a fixed horseshoe color instead of value-based color stops |
-| `lineargradient` | Uses a linear gradient where supported |
+| `lineargradient` | Always shows a linear gradient using first and last color in the color stop list |
+| `autominmax` | Uses the min and max value from the scale |
 
-The exact visual result depends on the horseshoe settings and the color stop configuration.
-
-Example:
-
-```yaml linenums="1"
-horseshoes:
-  - entity_index: 0
-    xpos: 50
-    ypos: 50
-    radius: 40
-    show:
-      horseshoe: true
-      horseshoe_style: colorstopgradient
-    horseshoe_scale:
-      min: 0
-      max: 100
-      width: 6
-    horseshoe_state:
-      width: 10
-    color_stops:
-      gap: 3
-      colors:
-        0: var(--fhs-sys-rainbow-blue)
-        25: var(--fhs-sys-rainbow-green)
-        50: var(--fhs-sys-rainbow-yellow)
-        75: var(--fhs-sys-rainbow-orange)
-        100: var(--fhs-sys-rainbow-red)
-```
-
-In this example, the horseshoe scale runs from `0` to `100`, and the color stops follow the same value range.
-
-## :material-horseshoe: `colorstop`
-
-Use `colorstop` when the horseshoe should use one selected color based on the current entity state.
-
-```yaml linenums="1"
-show:
-  horseshoe: true
-  horseshoe_style: colorstop
-```
-
-This is useful when you want clear state bands, for example:
-
-- green for normal
-- orange for warning
-- red for critical
-
-```yaml linenums="1"
-color_stops:
-  colors:
-    0: green
-    70: orange
-    90: red
-```
-
-## :material-horseshoe: `colorstopgradient`
-
-Use `colorstopgradient` when the horseshoe should show a gradient based on the color stops.
-
-```yaml linenums="1"
-show:
-  horseshoe: true
-  horseshoe_style: colorstopgradient
-```
-
-This is useful for gauges where the whole range should be visible, such as power, temperature, battery level, or usage.
-
-```yaml linenums="1"
-color_stops:
-  gap: 3
-  colors:
-    0: var(--fhs-sys-rainbow-blue)
-    25: var(--fhs-sys-rainbow-green)
-    50: var(--fhs-sys-rainbow-yellow)
-    75: var(--fhs-sys-rainbow-orange)
-    100: var(--fhs-sys-rainbow-red)
-```
-
-## :material-horseshoe: `lineargradient`
-
-Use `lineargradient` when a linear gradient is needed instead of a value-selected color or horseshoe-following gradient.
-
-```yaml linenums="1"
-show:
-  horseshoe: true
-  horseshoe_style: lineargradient
-```
-
-A linear gradient is useful when the visual effect should follow a straight gradient direction instead of only selecting a color stop.
-
-The exact result depends on the horseshoe rendering and the configured colors.
 
 ## :material-horseshoe: Color stops and scale values
 
@@ -229,10 +143,10 @@ horseshoe_scale:
 
 color_stops:
   colors:
-    0: red
-    20: orange
-    60: yellow
-    80: green
+    0: red        # 0 to 20: red
+    20: orange    # 20 to 60: orange
+    60: yellow    # 60 to 80: yellow
+    80: green     # 80 to 100 (max scale value): green
 ```
 
 ## :material-horseshoe: Using color stops on text and shapes
@@ -240,6 +154,8 @@ color_stops:
 Color stops are not limited to horseshoes. They can also be used on layout items such as states, areas, names, icons, circles, and lines.
 
 In these cases, the numeric state of the connected entity determines the color of the item.
+
+!!! info "Only true color stops are supported at this time. No colorstopgradients for instance"
 
 Example with a state and an area:
 
@@ -249,6 +165,16 @@ Example with a state and an area:
     - entity: sensor.memory_use_percent
     - entity: light.1st_floor_hall_light
 
+  constants:
+    colorStop:
+      colors:
+        0: 'blue'
+        1: 'green'
+        2: 'yellow'
+        3: 'orange'
+        4: 'red'
+        5: 'purple'
+
   states:
     - id: 0
       entity_index: 0
@@ -256,13 +182,7 @@ Example with a state and an area:
       ypos: 30
       styles:
         - font-size: 3em;
-      color_stops:
-        0: 'blue'
-        1: 'green'
-        2: 'yellow'
-        3: 'orange'
-        4: 'red'
-        5: 'purple'
+      color_stops: ref(colorStops)
 
   areas:
     - id: 0
@@ -271,20 +191,14 @@ Example with a state and an area:
       ypos: 85
       styles:
         - font-size: 1.2em;
-      color_stops:
-        0: 'blue'
-        1: 'green'
-        2: 'yellow'
-        3: 'orange'
-        4: 'red'
-        5: 'purple'
+      color_stops: ref(colorStops)
 ```
 
 This example uses the same color stops for the state and the area. Both are connected to `entity_index: 0`, so both use the numeric state of the first entity.
 
-## :material-horseshoe: Color stops with external palettes
+## :material-horseshoe: Color stops with theme or external palettes CSS variables
 
-Color stops work well with external palettes.
+Color stops work well with theme and external palettes.
 
 Instead of hardcoding colors such as `red` or `#ff0000`, you can use CSS variables loaded from a palette:
 
