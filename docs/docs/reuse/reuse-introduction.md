@@ -58,7 +58,7 @@ This works, but it is not ideal while designing a card. If the length, style, st
 YAML anchors can reduce some duplication:
 
 === "YAML anchors"
-    ```yaml linenums="1" hl_lines="2"
+    ```yaml linenums="1" hl_lines="2 10 13"
     hlines:
       - &hline_base
         xpos: 50
@@ -93,12 +93,12 @@ YAML file /config/lovelace/views/whatever.yaml contains duplicate key "ypos".
 
 That is why the card includes its own reuse system.
 
-## :material-horseshoe: The reuse approach
+## :material-horseshoe: The Reuse™ approach
 
 The same three lines can be written as one base line and two reused lines:
 
-=== "With reuse"
-    ```yaml linenums="1" hl_lines="2 9 16 19"
+=== "With Reuse™"
+    ```yaml linenums="1" hl_lines="1 8 14 18"
     constants:
       lineStep: 11
       defaultLineStyle:
@@ -131,7 +131,7 @@ This keeps the pattern easy to see:
 
 Internally, the card expands this into full items before rendering:
 
-```yaml
+```yaml linenums="1" hl_lines="2 10 18"
 hlines:
   - id: first
     xpos: 50
@@ -176,7 +176,7 @@ All of these are static configuration features. They are processed during card s
 
 `same_as` copies an earlier item from the same section.
 
-```yaml
+```yaml linenums="1" hl_lines="2 10"
 circles:
   - id: base
     xpos: 50
@@ -187,9 +187,9 @@ circles:
       fill: none
 
   - id: smaller
-    same_as: base
-    radius: 30
-    styles:
+    same_as: base     # reuse base
+    radius: 30        # ..but with smaller radius
+    styles:           # ..and different styles
       stroke: blue
       fill: none
 ```
@@ -198,9 +198,12 @@ The `smaller` circle copies `xpos` and `ypos` from `base`, but overrides `radius
 
 ### Automatic ids or named ids
 
+For `reuse` to work, each item in a section should have a unique id.
+There are two options.
+
 Each item can have an explicit `id`:
 
-```yaml
+```yaml linenums="1" hl_lines="2 7"
 hlines:
   - id: first
     xpos: 50
@@ -208,23 +211,23 @@ hlines:
     length: 85
 
   - id: second
-    same_as: first
+    same_as: first    # reuse first
     ypos: 75
 ```
 
 If no `id` is defined, the card automatically assigns one based on the item index:
 
-```yaml
+```yaml linenums="1" hl_lines="2 6 9"
 hlines:
   - xpos: 50
     ypos: 64
     length: 85
 
-  - same_as: 0
-    ypos: 75
+  - same_as: 0        # reuse item with index 0
+    ypos: 75          # and modify ypos
 
-  - same_as: 0
-    ypos: 86
+  - same_as: 0        # reuse item with index 0
+    ypos: 86          # and modify ypos
 ```
 
 `same_as: 0` and `same_as: "0"` both refer to the first item.
@@ -235,7 +238,7 @@ Automatic ids are fine for short examples. For larger card configurations, named
 
 A reused item can override a field directly:
 
-```yaml
+```yaml linenums="1" hl_lines="2 7"
 hlines:
   - id: first
     xpos: 50
@@ -243,13 +246,13 @@ hlines:
     length: 85
 
   - id: second
-    same_as: first
-    ypos: 75
+    same_as: first      # Reuse first
+    ypos: 75            # set ypos to hard coded value of 75
 ```
 
 For repeated numeric changes, a delta field is often clearer:
 
-```yaml
+```yaml linenums="1" hl_lines="2 7"
 hlines:
   - id: first
     xpos: 50
@@ -257,8 +260,8 @@ hlines:
     length: 85
 
   - id: second
-    same_as: first
-    same_as_dypos: 11
+    same_as: first      # Reuse first
+    same_as_dypos: 11   # but use delta from first ypos value
 ```
 
 A delta field uses this pattern:
@@ -280,7 +283,7 @@ The pattern is generic. You can use `same_as_d<field>` with any inherited numeri
 
 Example with circles:
 
-```yaml
+```yaml linenums="1" hl_lines="2 7"
 circles:
   - id: outer
     xpos: 50
@@ -288,66 +291,57 @@ circles:
     radius: 40
 
   - id: inner
-    same_as: outer
-    same_as_dradius: -5
+    same_as: outer      # Reuse outer
+    same_as_dradius: -5 # but with smaller radius
 ```
 
 Result: `inner.radius` becomes `35`.
 
 ## :material-horseshoe: Static calculations with `calc()` and `constants`
 
-YAML itself does not calculate values.
+YAML itself does not calculate values. So the next line is nothing more than text, not a formula
 
-```yaml
+```yaml linenums="1" hl_lines="1"
 xpos: 50 - 4
 ```
 
-That is text, not a formula.
-
-Use `calc()` when a numeric value should be calculated during card setup:
-
-```yaml
-icons:
-  - id: left
-    xpos: calc(50 - 4)
-    ypos: 50
-
-  - id: right
-    xpos: calc(50 + 4)
-    ypos: 50
-```
+Use `calc()` when a numeric value should be calculated during card setup.
 
 This makes the intent clear: both icons are placed around the center point.
 
-Another example, but now also using numeric `constants`:
+=== "Using hardcoded offset"
+    ```yaml linenums="1" hl_lines="2 7"
+    icons:
+      - id: left
+        xpos: calc(50 - 4)
+        ypos: 50
 
-```yaml
-constants:
-  centerX: 50
-  lineStep: 11
-layout:
-  hlines:
-    - id: first
-      xpos: calc(centerX)
-      ypos: 64
-      length: calc(4 * 20 + 5)
+      - id: right
+        xpos: calc(50 + 4)
+        ypos: 50
+    ```
 
-    - id: second
-      same_as: first
-      same_as_dypos: calc(1 * lineStep)
+=== "Using offset constant"
+    ```yaml linenums="1" hl_lines="2 7"
+    constants:
+      iconOffset: 4
+    layout:
+      icons:
+        - id: left
+          xpos: calc(50 - iconOffset)
+          ypos: 50
 
-    - id: third
-      same_as: first
-      same_as_dypos: calc(2 * lineStep)
-```
+        - id: right
+          xpos: calc(50 + iconOffset)
+          ypos: 50
+    ```
 
-Result:
+Result in both cases:
 
 | Item | Calculation | Result |
 | :--- | :---------- | :----- |
-| `first` | `length: calc(4 * 20 + 5)` | `length: 85` |
-| `second` | `64 + calc(1 * lineStep)` | `ypos: 75` |
-| `third` | `64 + calc(2 * lineStep)` | `ypos: 86` |
+| `left` | `xpos: calc(50 - 4)` | `xpos: 46` |
+| `right` | `xpos: calc(50 + 4)` | `xpos: 54` |
 
 !!! info "Static only"
     `calc()` is evaluated once during configuration setup. It is not a JavaScript template and is not evaluated during runtime updates.
@@ -358,7 +352,7 @@ Use `constants` for shared static values or configuration fragments.
 
 Use `ref()` to copy one of those constants into the configuration.
 
-```yaml
+```yaml linenums="1" hl_lines="4 5 6 19 22"
 constants:
   centerX: 50
   iconOffset: 4
@@ -391,64 +385,64 @@ If the center position, icon spacing, or line style changes later, you only need
 
 There are two useful ways to create repeated items.
 
-Use one base item when every item follows a fixed pattern from the same source:
+=== "Use same base item"
+    Use one base item when every item follows a fixed pattern from the same source:
 
-```yaml
-constants:
-  centerX: 50
-  lineStep: 11
-layout:
-  hlines:
-    - id: first
-      xpos: calc(centerX)
-      ypos: 64
-      length: calc(4 * 20 + 5)
+    ```yaml linenums="1" hl_lines="12 16"
+    constants:
+      centerX: 50
+      lineStep: 11
+    layout:
+      hlines:
+        - id: first
+          xpos: calc(centerX)
+          ypos: 64
+          length: calc(4 * 20 + 5)
 
-    - id: second
-      same_as: first
-      same_as_dypos: calc(1 * lineStep)
+        - id: second
+          same_as: first
+          same_as_dypos: calc(1 * lineStep)
 
-    - id: third
-      same_as: first
-      same_as_dypos: calc(2 * lineStep)
-```
+        - id: third
+          same_as: first
+          same_as_dypos: calc(2 * lineStep)
+    ```
 
+    This means:
 
-This means:
+    ```text
+    second = first + 1 step
+    third  = first + 2 steps
+    ```
+=== "Use chained reuse"
+    Use chained reuse when each item builds on the previous item:
 
-```text
-second = first + 1 step
-third  = first + 2 steps
-```
+    ```yaml linenums="1" hl_lines="12 16"
+    constants:
+      centerX: 50
+      lineStep: 11
+    layout:
+      hlines:
+        - id: first
+          xpos: calc(centerX)
+          ypos: 64
+          length: calc(4 * 20 + 5)
 
-Use chained reuse when each item builds on the previous item:
+        - id: second
+          same_as: first
+          same_as_dypos: calc(lineStep)
 
-```yaml
-constants:
-  centerX: 50
-  lineStep: 11
-layout:
-  hlines:
-    - id: first
-      xpos: calc(centerX)
-      ypos: 64
-      length: calc(4 * 20 + 5)
+        - id: third
+          same_as: second
+          same_as_dypos: calc(lineStep)
+    ```
 
-    - id: second
-      same_as: first
-      same_as_dypos: calc(lineStep)
+    This means for `ypos`:
 
-    - id: third
-      same_as: second
-      same_as_dypos: calc(lineStep)
-```
-
-This means:
-
-```text
-second = first + 11
-third  = second + 11
-```
+    ```text
+    second = first + 11
+    third  = second + 11
+    ```
 
 For fixed grids or repeated spacing, reusing one base item is often clearer. For progressive changes, chained reuse can be more compact.
 
@@ -458,12 +452,12 @@ Reuse becomes more valuable when the repeated item is larger.
 
 A simple line only has a few fields. A horseshoe can contain scale settings, state settings, tick marks, labels, colors, widths, minimum and maximum values, and display options.
 
-```yaml linenums="1" hl_lines="2 16 24"
+```yaml linenums="1" hl_lines="2 8 24 33"
 constants:
   defaultColorStops:
-    0: '#49ce4b'
-    50: '#fed125'
-    100: '#e9343d'
+    0: '#49ce4b'    # ligh green
+    50: '#fed125'   # yellow
+    100: '#e9343d'  # red
 
 horseshoes:
   - id: base

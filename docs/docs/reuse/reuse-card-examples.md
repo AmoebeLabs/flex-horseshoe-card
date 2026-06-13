@@ -501,7 +501,7 @@ This example does not use groups. Instead, it uses simple shift-to-the-right pos
             5: var(--fhs-sys-rainbow-purple)
 ```
 
-!!! info "Notice how little YAML is needed for the other three horseshoes."
+!!! success "Notice how little YAML is needed for the other three horseshoes!"
     The first copy reuses the "All" configuration, shifts it to the right, and removes the labels.
     <br>The other two copy the previous horseshoe and shift to the right from that position.
     <br><br>That reduces each additional horseshoe to only a few lines of YAML instead of repeating the full 79-line configuration.
