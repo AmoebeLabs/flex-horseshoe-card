@@ -139,6 +139,26 @@ Common reasons to override values:
 - group an entity under a different area label
 - display an attribute with its own name and unit
 
+## :material-horseshoe: Overriding entity formatting
+
+[:octicons-tag-24: v5.4.7-dev.7][github-releases]
+
+The `format` option in the entities section allows you to override the default formatting of Home Assistantg.
+
+```yaml title="Entities with format option" linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: "Total"
+      icon: mdi:fire
+      area: house
+      format:
+        separator: false    # Remove thousands separator
+        decimals_min: 0     # minimal and...
+        decimals_max: 2     # ... maximum number of digits
+```
+
+
 ## :material-horseshoe: Dynamic entity values
 
 Some entity fields can also use JavaScript templates. This makes it possible to change parts of the entity definition based on the current state of an entity.
@@ -206,7 +226,20 @@ For more details about JavaScript templates, available variables, and reusable t
 | `name` | string | :material-close: | Custom name. Overrides the Home Assistant friendly name. Can use a JavaScript template where supported |
 | `area` | string | :material-close: | Custom area. Overrides the Home Assistant area for this card. Can use a JavaScript template where supported |
 | `icon` | string | :material-close: | Custom icon, image, SVG, or JavaScript template |
+| `format` | string | :material-close: | Custom formatting of an entity state |
 | `tap_action` | object | :material-close: | Action to run when the entity is clicked or tapped |
+
+## :material-horseshoe: Available entity format options
+[:octicons-tag-24: v5.4.7-dev.7][github-releases]
+
+| Name | Type | Required | Description |
+| :--- | :---: | :------: | :---------- |
+| `separator` | boolean | :material-close: | Enables/disables separator in numeric state |
+| `decimals_min` | number | :material-close: | Minimal number of decimals used to format the value |
+| `decimals_max` | number | :material-close: | Maximum number of decimals used to format the value |
+| `raw_state_keep` | boolean | :material-close: | Keeps raw entity state if enabled. Prevents formatting or translations |
+| `raw_state_clean` | boolean | :material-close: | Cleans raw entity states from underscores |
+| `locale` | string | :material-close: | The locale in which you want the entity to be displayed |
 
 ## :material-horseshoe: Icon options
 
@@ -257,3 +290,6 @@ Defining an entity does not automatically show every part of that entity on the 
 | Icon | `icons` | Shows the entity icon or a standalone icon |
 
 For detailed configuration of `areas`, `names`, `states`, and `icons`, see the Home Assistant entity elements page.
+
+<!--- External References... --->
+[github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/
