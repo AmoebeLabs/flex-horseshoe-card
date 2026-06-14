@@ -182,6 +182,10 @@ export function renderTickmarksLayer(tickPathItems) {
           class="${pathItem.className}"
           d="${pathItem.path}"
           fill="${pathItem.fill}"
+          data-value="${pathItem.value ?? ''}"
+          data-thickness="${pathItem.thickness ?? ''}"
+          data-start-angle="${pathItem.startAngle ?? ''}"
+          data-end-angle="${pathItem.endAngle ?? ''}"
           style=${styleMap(pathItem.styles ?? {})}
         ></path>
       `)}

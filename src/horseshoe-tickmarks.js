@@ -48,36 +48,6 @@ function degreesToArcLength(lengthDeg, radius) {
   return (Number(lengthDeg) / 360) * (2 * Math.PI * radius);
 }
 
-function getMinorTickThicknessLimit(runtimeConfig, geometry, tickConfig, angleGapDegrees, referenceGapDegrees) {
-  const baseThickness = Number(tickConfig.thickness ?? 2);
-  const taperEnabled = Boolean(runtimeConfig.horseshoe_scale?.spline?.minor_tick_taper);
-
-  if (!taperEnabled) {
-    return baseThickness;
-  }
-
-  const radius = geometry.radius + Number(tickConfig.offset ?? 0);
-
-  if (!Number.isFinite(angleGapDegrees) || angleGapDegrees <= 0 || !Number.isFinite(radius) || radius <= 0) {
-    return baseThickness;
-  }
-
-  const gapArcLength = degreesToArcLength(angleGapDegrees, radius);
-  const referenceGapArcLength = degreesToArcLength(referenceGapDegrees ?? angleGapDegrees, radius);
-
-  if (!Number.isFinite(referenceGapArcLength) || referenceGapArcLength <= 0) {
-    return baseThickness;
-  }
-
-  const gapRatio = Math.max(0.05, Math.min(1, gapArcLength / referenceGapArcLength));
-  const shapedRatio = gapRatio ** 2;
-  const availableThickness = gapArcLength * 0.75;
-  const relativeThickness = baseThickness * shapedRatio;
-  const thickness = Math.min(baseThickness, availableThickness, relativeThickness);
-
-  return thickness;
-}
-
 function getTickColor(tickConfig, value, runtimeConfig) {
   const colorMode = tickConfig?.color_mode;
 
@@ -157,18 +127,8 @@ export function buildTickBackgroundItems(runtimeConfig, geometry) {
   const backgroundConfig = tickmarks.background ?? {};
   const majorTickConfig = tickmarks.ticks_major ?? {};
   const minorTickConfig = tickmarks.ticks_minor ?? {};
-  const radius = geometry.radius + Number(
-    backgroundConfig.offset
-      ?? majorTickConfig.offset
-      ?? minorTickConfig.offset
-      ?? 0,
-  );
-  const width = Number(
-    backgroundConfig.width
-      ?? majorTickConfig.width
-      ?? minorTickConfig.width
-      ?? 4,
-  );
+  const radius = geometry.radius + Number(backgroundConfig.offset ?? majorTickConfig.offset ?? minorTickConfig.offset ?? 0);
+  const width = Number(backgroundConfig.width ?? majorTickConfig.width ?? minorTickConfig.width ?? 4);
   const gap = Number(backgroundConfig.gap ?? 0);
 
   if (backgroundMode === 'colorstop') {
@@ -192,62 +152,73 @@ export function buildTickBackgroundItems(runtimeConfig, geometry) {
   return [];
 }
 
-function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values, layerName) {
+function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values, layerName, minorThicknessByValue) {
   if (!tickConfig || !values.length) {
     return [];
   }
 
   const tickStyles = toStyleDict(tickConfig.styles);
+  const renderStyles = {
+    ...tickStyles,
+    'stroke-width': tickStyles['stroke-width'] ?? 0,
+  };
   const radius = geometry.radius + Number(tickConfig.offset ?? 0);
   const width = Number(tickConfig.width);
 
   if (!Number.isFinite(width) || width <= 0) {
     throw new Error(`[horseshoe-tickmarks] Missing or invalid ${layerName} tick width`);
   }
-  const angleGaps = values.map((value, index) => {
-    const currentAngle = geometry.valueToAngle(value);
-    const previousAngle = index > 0 ? geometry.valueToAngle(values[index - 1]) : null;
-    const nextAngle = index < values.length - 1 ? geometry.valueToAngle(values[index + 1]) : null;
-    const previousGap = previousAngle !== null ? Math.abs(currentAngle - previousAngle) : Infinity;
-    const nextGap = nextAngle !== null ? Math.abs(nextAngle - currentAngle) : Infinity;
+  const configuredThickness = Number(tickConfig.thickness);
 
-    return Math.min(previousGap, nextGap);
-  });
-  const referenceGap = angleGaps.find((gap) => Number.isFinite(gap) && gap > 0) ?? 0;
+  return values
+    .map((value, index) => {
+      const angle = geometry.valueToAngle(value);
+      const thickness = layerName === 'minor' && minorThicknessByValue?.has(value)
+        ? Math.min(configuredThickness, minorThicknessByValue.get(value))
+        : configuredThickness;
 
-  return values.map((value, index) => {
-    const angle = geometry.valueToAngle(value);
-    const thickness = layerName === 'minor'
-      ? getMinorTickThicknessLimit(runtimeConfig, geometry, tickConfig, angleGaps[index], referenceGap)
-      : Number(tickConfig.thickness ?? 2);
-    const bandWidth = width;
-    const tickDegrees = arcLengthToDegrees(thickness, radius);
-    const startAngle = angle - tickDegrees / 2;
-    const endAngle = angle + tickDegrees / 2;
+      if (layerName === 'minor' && (runtimeConfig.debug_ticks || runtimeConfig.dev?.debug_ticks)) {
+        console.log('[horseshoe-tickmarks] minor thickness', {
+          value,
+          configuredThickness,
+          maxThickness: minorThicknessByValue?.get(value),
+          finalThickness: thickness,
+          limited: minorThicknessByValue?.has(value) && thickness !== configuredThickness,
+        });
+      }
+      const bandWidth = width;
+      const tickDegrees = arcLengthToDegrees(thickness, radius);
+      const startAngle = angle - tickDegrees / 2;
+      const endAngle = angle + tickDegrees / 2;
 
-    const path = buildBandPath(
-      geometry,
-      {
+      const path = buildBandPath(
+        geometry,
+        {
+          key: `${layerName}-${index}`,
+          startAngle,
+          endAngle,
+          startCap: 'butt',
+          endCap: 'butt',
+        },
+        {
+          radius,
+          width: bandWidth,
+        },
+      );
+
+      return {
         key: `${layerName}-${index}`,
+        path,
+        value,
+        thickness,
         startAngle,
         endAngle,
-        startCap: 'butt',
-        endCap: 'butt',
-      },
-      {
-        radius,
-        width: bandWidth,
-      },
-    );
-
-    return {
-      key: `${layerName}-${index}`,
-      path,
-      fill: tickStyles.fill ?? getTickColor(tickConfig, value, runtimeConfig),
-      styles: tickStyles,
-      className: layerName === 'major' ? 'horseshoe__tick-major' : 'horseshoe__tick-minor',
-    };
-  }).filter((item) => item.path);
+        fill: tickStyles.fill ?? getTickColor(tickConfig, value, runtimeConfig),
+        styles: renderStyles,
+        className: layerName === 'major' ? 'horseshoe__tick-major' : 'horseshoe__tick-minor',
+      };
+    })
+    .filter((item) => item.path);
 }
 
 export default function buildTickPathItems(runtimeConfig, geometry) {
@@ -270,24 +241,63 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
   const majorTickSize = Number(majorTickConfig?.ticksize);
   const minorTickSize = Number(minorTickConfig?.ticksize);
 
-  const majorValues = Number.isFinite(majorTickSize) && majorTickSize > 0
-    ? buildTickValues(min, max, majorTickSize)
-    : [];
+  const majorValues = Number.isFinite(majorTickSize) && majorTickSize > 0 ? buildTickValues(min, max, majorTickSize) : [];
 
-  const minorValues = Number.isFinite(minorTickSize) && minorTickSize > 0
-    ? buildTickValues(min, max, minorTickSize).filter((value) => (
-      Number.isFinite(majorTickSize) && majorTickSize > 0
-        ? !isMajorTick(value, min, majorTickSize)
-        : true
-    ))
-    : [];
+  const minorValues =
+    Number.isFinite(minorTickSize) && minorTickSize > 0
+      ? buildTickValues(min, max, minorTickSize).filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
+      : [];
 
-  const taperedMinorValues = minorValues;
-  const minorTickPathItems = buildTickPathItemsForConfig(runtimeConfig, geometry, minorTickConfig, taperedMinorValues, 'minor');
+  const minorThicknessByValue = new Map();
+
+  if ((runtimeConfig.horseshoe_scale.type === 'spline' || runtimeConfig.horseshoe_scale.type === 'spline2') && majorValues.length > 1 && minorValues.length) {
+    const minorRadius = geometry.radius + Number(minorTickConfig.offset ?? 0);
+    const majorThickness = Number(majorTickConfig.thickness);
+    const majorGapDegreesByInterval = majorValues.slice(0, -1).map((value, index) => Math.abs(geometry.valueToAngle(majorValues[index + 1]) - geometry.valueToAngle(value)));
+    const referenceMajorGapDegrees = majorGapDegreesByInterval[1] ?? majorGapDegreesByInterval[0];
+
+    for (let index = 0; index < majorValues.length - 1; index += 1) {
+      const majorStartValue = majorValues[index];
+      const majorEndValue = majorValues[index + 1];
+      const minorValuesBetweenMajorTicks = minorValues.filter((value) => value > majorStartValue && value < majorEndValue);
+
+      if (minorValuesBetweenMajorTicks.length) {
+        const majorGapDegrees = Math.abs(geometry.valueToAngle(majorEndValue) - geometry.valueToAngle(majorStartValue));
+        const majorGapArcLength = degreesToArcLength(majorGapDegrees, minorRadius);
+        const availableMinorArcLength = Math.max(0, majorGapArcLength - majorThickness);
+        const minorSlotsBetweenMajorTicks = Math.abs(majorEndValue - majorStartValue) / minorTickSize;
+        const intervalRatio = Math.min(1, majorGapDegrees / referenceMajorGapDegrees);
+        const maxMinorThickness = Math.min(availableMinorArcLength / minorSlotsBetweenMajorTicks, Number(minorTickConfig.thickness) * intervalRatio);
+
+        if (runtimeConfig.debug_ticks || runtimeConfig.dev?.debug_ticks) {
+          console.log('[horseshoe-tickmarks] spline minor interval', {
+            scaleType: runtimeConfig.horseshoe_scale.type,
+            majorStartValue,
+            majorEndValue,
+            minorValues: minorValuesBetweenMajorTicks,
+            majorGapDegrees,
+            referenceMajorGapDegrees,
+            intervalRatio,
+            minorRadius,
+            majorGapArcLength,
+            majorThickness,
+            availableMinorArcLength,
+            minorTickSize,
+            minorSlotsBetweenMajorTicks,
+            configuredMinorThickness: Number(minorTickConfig.thickness),
+            maxMinorThickness,
+          });
+        }
+
+        minorValuesBetweenMajorTicks.forEach((value) => {
+          minorThicknessByValue.set(value, maxMinorThickness);
+        });
+      }
+    }
+  }
+
+  const minorTickPathItems = buildTickPathItemsForConfig(runtimeConfig, geometry, minorTickConfig, minorValues, 'minor', minorThicknessByValue);
   const majorTickPathItems = buildTickPathItemsForConfig(runtimeConfig, geometry, majorTickConfig, majorValues, 'major');
 
-  return [
-    ...minorTickPathItems,
-    ...majorTickPathItems,
-  ];
+  return [...minorTickPathItems, ...majorTickPathItems];
 }

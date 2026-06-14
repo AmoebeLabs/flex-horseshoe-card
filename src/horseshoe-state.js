@@ -93,7 +93,17 @@ export function normalizeRuntimeConfig(config) {
     throw new Error('[V2] Missing horseshoe_scale');
   }
 
-  const horseshoeScale = config.horseshoe_scale;
+  const horseshoeScale = {
+    min: 0,
+    max: 100,
+    width: 6,
+    color: 'var(--primary-background-color)',
+    linecap: 'round',
+    type: 'linear',
+    ...(config.horseshoe_scale ?? {}),
+  };
+
+  // const horseshoeScale = config.horseshoe_scale;
 
   if (horseshoeScale.min === undefined) {
     throw new Error('[V2] Missing horseshoe_scale.min');
@@ -110,16 +120,6 @@ export function normalizeRuntimeConfig(config) {
   if ((horseshoeScale.type === 'spline' || horseshoeScale.type === 'spline2') && !horseshoeScale.spline) {
     throw new Error('[V2] Missing horseshoe_scale.spline');
   }
-
-  const horseshoeScaleV2 = {
-    min: 0,
-    max: 100,
-    width: 6,
-    color: 'var(--primary-background-color)',
-    linecap: 'round',
-    type: 'linear',
-    ...(config.horseshoe_scale ?? {}),
-  };
 
   const horseshoeState = {
     width: 12,
@@ -141,7 +141,7 @@ export function normalizeRuntimeConfig(config) {
   };
 
   const colorStopsConfig = config.color_stops ?? config.colorstops;
-  const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScaleV2.max);
+  const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScale.max);
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
@@ -169,7 +169,7 @@ export function normalizeRuntimeConfig(config) {
 
     start_angle: config.start_angle ?? 90 + (360 - arcDegrees) / 2,
     bar_mode: config.bar_mode ?? 'normal',
-    zero_ratio: config.zero_ratio ?? getZeroRatio(horseshoeScaleV2),
+    zero_ratio: config.zero_ratio ?? getZeroRatio(horseshoeScale),
 
     state_map: config.state_map ?? horseshoeState.state_map ?? [],
 
@@ -178,11 +178,11 @@ export function normalizeRuntimeConfig(config) {
     colorStops,
 
     horseshoe_scale: {
-      ...horseshoeScaleV2,
-      linecap: normalizeLinecap(horseshoeScaleV2.linecap),
+      ...horseshoeScale,
+      linecap: normalizeLinecap(horseshoeScale.linecap),
       styles: {
-        fill: horseshoeScaleV2.color,
-        ...toStyleDict(horseshoeScaleV2.styles),
+        fill: horseshoeScale.color,
+        ...toStyleDict(horseshoeScale.styles),
       },
     },
 
