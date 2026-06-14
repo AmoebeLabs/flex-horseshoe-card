@@ -84,7 +84,7 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
   const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
   const scaleArcs = [];
 
-  if (colorStops.length < 2) {
+  if (!colorStops.length) {
     return [
       {
         key: 'scale',
@@ -97,14 +97,29 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     ];
   }
 
-  for (let i = 0; i < colorStops.length - 1; i += 1) {
-    const stopA = colorStops[i];
-    const stopB = colorStops[i + 1];
+  const scalePoints = [
+    {
+      value: Number(runtimeConfig.horseshoe_scale.min),
+      color: colorStops[0].color,
+    },
+    ...colorStops.map((stop) => ({
+      value: Number(stop.value),
+      color: stop.color,
+    })),
+    {
+      value: Number(runtimeConfig.horseshoe_scale.max),
+      color: colorStops[colorStops.length - 1].color,
+    },
+  ];
 
-    const colorStopStartAngle = geometry.valueToAngle(stopA.value);
-    const colorStopEndAngle = geometry.valueToAngle(stopB.value);
+  for (let i = 0; i < scalePoints.length - 1; i += 1) {
+    const pointA = scalePoints[i];
+    const pointB = scalePoints[i + 1];
+
+    const colorStopStartAngle = geometry.valueToAngle(pointA.value);
+    const colorStopEndAngle = geometry.valueToAngle(pointB.value);
     const isFirst = i === 0;
-    const isLast = i === colorStops.length - 2;
+    const isLast = i === scalePoints.length - 2;
 
     const drawStartAngle = isFirst ? colorStopStartAngle : colorStopStartAngle + gap / 2;
     const drawEndAngle = isLast ? colorStopEndAngle : colorStopEndAngle - gap / 2;
@@ -116,9 +131,8 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
       endAngle: visible ? drawEndAngle : 0,
       startCap: 'butt',
       endCap: 'butt',
-      color: stopA.color,
-      value: stopA.value,
-      label: stopA.label,
+      color: pointA.color,
+      value: pointA.value,
       visible,
     });
   }

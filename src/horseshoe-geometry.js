@@ -165,8 +165,8 @@ class MonotoneCubicSpline {
       this.m[i] = dy[i] / dx[i];
     }
 
-    this.t[0] = 0;
-    this.t[this.n - 1] = 0;
+    this.t[0] = this.m[0] * 0.25;
+    this.t[this.n - 1] = this.m[this.n - 2] * 0.25;
 
     for (let i = 1; i < this.n - 1; i += 1) {
       if (this.m[i - 1] === 0 || this.m[i] === 0 || this.m[i - 1] * this.m[i] < 0) {
