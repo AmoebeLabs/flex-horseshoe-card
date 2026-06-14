@@ -103,8 +103,14 @@ export default class HorseshoeGauge {
       return svg``;
     }
 
+    const groupTransform = this.geometry.getGroupTransform();
+
     return svg`
-      <g id="horseshoe-${this.index}" class="horseshoe">
+      <g
+        id="horseshoe-${this.index}"
+        class="horseshoe"
+        transform="${groupTransform}"
+      >
         ${this.renderScale()}
         ${this.renderLabelBackground()}
         ${this.renderTickmarkBackground()}

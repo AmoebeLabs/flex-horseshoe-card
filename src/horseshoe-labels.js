@@ -49,20 +49,33 @@ export default class HorseshoeLabels {
   static renderArcLabel(labelConfig) {
     const labelText = String(labelConfig.label ?? '');
     const arcSize = 24;
-
     const labelGeometry = HorseshoeLabels.getLabelGeometry({
       angle: labelConfig.angle,
       transformContext: labelConfig.transformContext,
     });
 
-    const labelAngle = labelGeometry.mirrored
-      ? HorseshoeLabels.normalizeAngle(labelGeometry.visualAngle + 180)
-      : labelGeometry.visualAngle;
+    const labelAngle = labelGeometry.visualAngle;
+    // Angle starts at 90. that is 0. so + 90.
+    // 180 .. 360 is topHalf then.
+    // const isTopHalf = labelAngle >= 270 || labelAngle <= 90;
+    const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
+
+    console.log('[horseshoe-labels] arc label orientation', {
+      label: labelText,
+      rawAngle: labelConfig.angle,
+      visualAngle: labelGeometry.visualAngle,
+      mirrored: labelGeometry.mirrored,
+      labelAngle,
+      isTopHalf,
+      rotation: labelConfig.transformContext?.rotation ?? 0,
+      flipX: labelConfig.transformContext?.flipX ?? false,
+      flipY: labelConfig.transformContext?.flipY ?? false,
+    });
 
     const startAngle = labelAngle - arcSize / 2;
     const endAngle = labelAngle + arcSize / 2;
 
-    const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
+    // const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
     const pathStartAngle = isTopHalf ? startAngle : endAngle;
     const pathEndAngle = isTopHalf ? endAngle : startAngle;
     const sweepFlag = isTopHalf ? 1 : 0;
@@ -83,20 +96,7 @@ export default class HorseshoeLabels {
 
     const pathId = `${labelConfig.cardId}-horseshoe-label-${labelConfig.horseshoeIndex}-${labelConfig.index}`;
 
-    const transformContext = labelConfig.transformContext ?? {};
-    const rotation = transformContext.rotation ?? 0;
-    const flipX = transformContext.flipX ?? false;
-    const flipY = transformContext.flipY ?? false;
-
-    const scaleX = flipX ? -1 : 1;
-    const scaleY = flipY ? -1 : 1;
-
-    const inverseParentTransform = `
-      translate(${labelConfig.cx} ${labelConfig.cy})
-      scale(${scaleX} ${scaleY})
-      rotate(${-rotation})
-      translate(${-labelConfig.cx} ${-labelConfig.cy})
-    `;
+    const inverseParentTransform = labelConfig.inverseTransform ?? '';
 
     return svg`
       <g transform="${inverseParentTransform}">
@@ -218,6 +218,31 @@ export default class HorseshoeLabels {
     `;
   }
 
+  static pointAt(input) {
+    const angleInRadians = HorseshoeLabels.degToRad(input.angle);
+
+    return {
+      x: input.cx + Math.cos(angleInRadians) * input.radius,
+      y: input.cy + Math.sin(angleInRadians) * input.radius,
+    };
+  }
+
+  static normalizeAngle(angle) {
+    return ((angle % 360) + 360) % 360;
+  }
+
+  static degToRad(degrees) {
+    return (degrees * Math.PI) / 180;
+  }
+
+  static radToDeg(radians) {
+    return (radians * 180) / Math.PI;
+  }
+
+  static arcLengthToDegrees(lengthPx, radius) {
+    return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
+  }
+
   static getLabelGeometry(input) {
     const angle = input.angle ?? 0;
     const transformContext = input.transformContext ?? {};
@@ -263,31 +288,6 @@ export default class HorseshoeLabels {
     const scaledY = rotatedY * scaleY;
 
     return HorseshoeLabels.normalizeAngle(HorseshoeLabels.radToDeg(Math.atan2(scaledY, scaledX)));
-  }
-
-  static pointAt(input) {
-    const angleInRadians = HorseshoeLabels.degToRad(input.angle);
-
-    return {
-      x: input.cx + Math.cos(angleInRadians) * input.radius,
-      y: input.cy + Math.sin(angleInRadians) * input.radius,
-    };
-  }
-
-  static normalizeAngle(angle) {
-    return ((angle % 360) + 360) % 360;
-  }
-
-  static degToRad(degrees) {
-    return (degrees * Math.PI) / 180;
-  }
-
-  static radToDeg(radians) {
-    return (radians * 180) / Math.PI;
-  }
-
-  static arcLengthToDegrees(lengthPx, radius) {
-    return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
   }
 
   static buildArcCapsulePath(input) {

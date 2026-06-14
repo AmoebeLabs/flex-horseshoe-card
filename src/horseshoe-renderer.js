@@ -83,11 +83,8 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
           orientation: runtimeConfig.horseshoe_labels.orientation ?? 'arc',
           isMin: labelItem.role === 'min',
           isMax: labelItem.role === 'max',
-          transformContext: {
-            rotation: runtimeConfig.rotate ?? 0,
-            flipX: runtimeConfig.flip === 'x' || runtimeConfig.flip === 'both',
-            flipY: runtimeConfig.flip === 'y' || runtimeConfig.flip === 'both',
-          },
+          transformContext: geometry.getTransformContext(),
+          inverseTransform: geometry.getInverseGroupTransform(),
         })
       ))}
     </g>
