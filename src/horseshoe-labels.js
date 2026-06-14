@@ -59,36 +59,13 @@ export default class HorseshoeLabels {
       ? HorseshoeLabels.normalizeAngle(labelGeometry.visualAngle + 180)
       : labelGeometry.visualAngle;
 
-    let startAngle = labelAngle - arcSize / 2;
-    let endAngle = labelAngle + arcSize / 2;
-
-    if (labelConfig.isMin) {
-      startAngle = labelAngle;
-      endAngle = labelAngle + arcSize;
-    }
-
-    if (labelConfig.isMax) {
-      startAngle = labelAngle - arcSize;
-      endAngle = labelAngle;
-    }
+    const startAngle = labelAngle - arcSize / 2;
+    const endAngle = labelAngle + arcSize / 2;
 
     const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
     const pathStartAngle = isTopHalf ? startAngle : endAngle;
     const pathEndAngle = isTopHalf ? endAngle : startAngle;
     const sweepFlag = isTopHalf ? 1 : 0;
-
-    let startOffset = '50%';
-    let textAnchor = 'middle';
-
-    if (labelConfig.isMin) {
-      startOffset = isTopHalf ? '0%' : '100%';
-      textAnchor = isTopHalf ? 'start' : 'end';
-    }
-
-    if (labelConfig.isMax) {
-      startOffset = isTopHalf ? '100%' : '0%';
-      textAnchor = isTopHalf ? 'end' : 'start';
-    }
 
     const startPoint = HorseshoeLabels.pointAt({
       cx: labelConfig.cx,
@@ -138,13 +115,106 @@ export default class HorseshoeLabels {
           <textPath
             href="#${pathId}"
             style="dominant-baseline:central"
-            startOffset="${startOffset}"
-            text-anchor="${textAnchor}"
+            startOffset="50%"
+            text-anchor="middle"
           >
             ${labelText}
           </textPath>
         </text>
       </g>
+    `;
+  }
+
+  static renderLabelBadge(labelConfig) {
+    const orientation = labelConfig.orientation ?? 'arc';
+
+    if (orientation === 'horizontal') {
+      return HorseshoeLabels.renderHorizontalBadge(labelConfig);
+    }
+
+    return HorseshoeLabels.renderArcBadge(labelConfig);
+  }
+
+  static renderArcSegment(segmentConfig) {
+    const startPoint = HorseshoeLabels.pointAt({
+      cx: segmentConfig.cx,
+      cy: segmentConfig.cy,
+      radius: segmentConfig.radius,
+      angle: segmentConfig.startAngle,
+    });
+
+    const endPoint = HorseshoeLabels.pointAt({
+      cx: segmentConfig.cx,
+      cy: segmentConfig.cy,
+      radius: segmentConfig.radius,
+      angle: segmentConfig.endAngle,
+    });
+
+    const largeArcFlag = Math.abs(segmentConfig.endAngle - segmentConfig.startAngle) > 180 ? 1 : 0;
+    const sweepFlag = segmentConfig.endAngle > segmentConfig.startAngle ? 1 : 0;
+
+    return svg`
+      <path
+        class="${segmentConfig.className ?? ''}"
+        d="M ${startPoint.x} ${startPoint.y} A ${segmentConfig.radius} ${segmentConfig.radius} 0 ${largeArcFlag} ${sweepFlag} ${endPoint.x} ${endPoint.y}"
+        fill="none"
+        stroke="${segmentConfig.color ?? 'currentColor'}"
+        stroke-width="${segmentConfig.width}"
+        stroke-linecap="${segmentConfig.lineCap ?? 'round'}"
+      />
+    `;
+  }
+
+  static renderArcBadge(labelConfig) {
+    const labelText = String(labelConfig.label ?? '');
+    const badgeConfig = labelConfig.badge ?? {};
+    const padding = Number(badgeConfig.padding ?? 2);
+    const charWidth = Number(badgeConfig.char_width ?? 4);
+    const badgeWidth = Number(badgeConfig.width ?? labelText.length * charWidth + padding * 2);
+    const badgeHeight = Number(badgeConfig.height ?? 8);
+    const badgeBodyWidth = Math.max(0, badgeWidth - badgeHeight);
+    const badgeArcSize = HorseshoeLabels.arcLengthToDegrees(badgeBodyWidth, labelConfig.radius);
+    const badgePath = HorseshoeLabels.buildArcCapsulePath({
+      cx: labelConfig.cx,
+      cy: labelConfig.cy,
+      radius: labelConfig.radius,
+      angle: labelConfig.angle,
+      arcSize: badgeArcSize,
+      width: badgeHeight,
+    });
+
+    return svg`
+      <path
+        class="horseshoe-label-badge"
+        d="${badgePath}"
+        fill="${badgeConfig.color ?? 'var(--card-background-color)'}"
+        stroke="${badgeConfig.border_color ?? 'none'}"
+      />
+    `;
+  }
+
+  static renderHorizontalBadge(labelConfig) {
+    const badgeConfig = labelConfig.badge ?? {};
+    const point = HorseshoeLabels.pointAt({
+      cx: labelConfig.cx,
+      cy: labelConfig.cy,
+      radius: labelConfig.radius,
+      angle: labelConfig.angle,
+    });
+
+    const labelText = String(labelConfig.label ?? '');
+    const padding = Number(badgeConfig.padding ?? 4);
+    const badgeRadius = Number(badgeConfig.radius ?? Math.max(7, labelText.length * 3 + padding));
+
+    return svg`
+      <circle
+        class="horseshoe-label-badge"
+        cx="${point.x}"
+        cy="${point.y}"
+        r="${badgeRadius}"
+        fill="${badgeConfig.color ?? 'var(--card-background-color)'}"
+        stroke="${badgeConfig.border_color ?? 'none'}"
+      />
     `;
   }
 
@@ -214,5 +284,56 @@ export default class HorseshoeLabels {
 
   static radToDeg(radians) {
     return (radians * 180) / Math.PI;
+  }
+
+  static arcLengthToDegrees(lengthPx, radius) {
+    return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
+  }
+
+  static buildArcCapsulePath(input) {
+    const halfWidth = input.width / 2;
+    const outerRadius = input.radius + halfWidth;
+    const innerRadius = input.radius - halfWidth;
+    const startAngle = input.angle - input.arcSize / 2;
+    const endAngle = input.angle + input.arcSize / 2;
+
+    const outerStart = HorseshoeLabels.pointAt({
+      cx: input.cx,
+      cy: input.cy,
+      radius: outerRadius,
+      angle: startAngle,
+    });
+
+    const outerEnd = HorseshoeLabels.pointAt({
+      cx: input.cx,
+      cy: input.cy,
+      radius: outerRadius,
+      angle: endAngle,
+    });
+
+    const innerEnd = HorseshoeLabels.pointAt({
+      cx: input.cx,
+      cy: input.cy,
+      radius: innerRadius,
+      angle: endAngle,
+    });
+
+    const innerStart = HorseshoeLabels.pointAt({
+      cx: input.cx,
+      cy: input.cy,
+      radius: innerRadius,
+      angle: startAngle,
+    });
+
+    const largeArcFlag = input.arcSize > 180 ? 1 : 0;
+
+    return `
+      M ${outerStart.x} ${outerStart.y}
+      A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}
+      A ${halfWidth} ${halfWidth} 0 0 1 ${innerEnd.x} ${innerEnd.y}
+      A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}
+      A ${halfWidth} ${halfWidth} 0 0 1 ${outerStart.x} ${outerStart.y}
+      Z
+    `;
   }
 }

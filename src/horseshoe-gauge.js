@@ -7,12 +7,17 @@ import {
 } from './horseshoe-animator.js';
 import { GaugeGeometry, GaugeScale } from './horseshoe-geometry.js';
 import {
+  renderLabelBackgroundLayer,
+  renderLabelBadgesLayer,
   renderLabelsLayer,
   renderScaleLayer,
   renderStateLayer,
+  renderTickmarkBackgroundLayer,
+  renderTickmarksLayer,
   updateStatePathElements,
 } from './horseshoe-renderer.js';
 import {
+  buildLabelBackgroundItems,
   buildLabelItems,
   buildScalePathItems,
   buildStatePathItems,
@@ -21,6 +26,7 @@ import {
   getGaugeStateData,
   normalizeBaseConfig,
 } from './horseshoe-state.js';
+import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
 export default class HorseshoeGauge {
   static setConfig(config, templates, cardId, card) {
@@ -100,7 +106,11 @@ export default class HorseshoeGauge {
     return svg`
       <g id="horseshoe-${this.index}" class="horseshoe">
         ${this.renderScale()}
+        ${this.renderLabelBackground()}
+        ${this.renderTickmarkBackground()}
+        ${this.renderTickmarks()}
         ${this.renderState()}
+        ${this.renderLabelBadges()}
         ${this.renderLabels()}
       </g>
     `;
@@ -122,10 +132,34 @@ export default class HorseshoeGauge {
     return renderStateLayer(this.runtimeConfig, statePathItems, this.cardId, this.index);
   }
 
+  renderTickmarks() {
+    const tickPathItems = buildTickPathItems(this.runtimeConfig, this.geometry);
+
+    return renderTickmarksLayer(tickPathItems);
+  }
+
+  renderTickmarkBackground() {
+    const backgroundItems = buildTickBackgroundItems(this.runtimeConfig, this.geometry);
+
+    return renderTickmarkBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
+  }
+
   renderLabels() {
     const labelItems = buildLabelItems(this.runtimeConfig, this.geometry, this.scale);
 
     return renderLabelsLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
+  }
+
+  renderLabelBackground() {
+    const backgroundItems = buildLabelBackgroundItems(this.runtimeConfig, this.geometry);
+
+    return renderLabelBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
+  }
+
+  renderLabelBadges() {
+    const labelItems = buildLabelItems(this.runtimeConfig, this.geometry, this.scale);
+
+    return renderLabelBadgesLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
   }
 
   getStateAnimationConfig() {

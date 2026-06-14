@@ -136,6 +136,10 @@ export function normalizeRuntimeConfig(config) {
     ...(config.horseshoe_labels ?? {}),
   };
 
+  const horseshoeTickmarks = {
+    ...(config.horseshoe_tickmarks ?? {}),
+  };
+
   const colorStopsConfig = config.color_stops ?? config.colorstops;
   const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScaleV2.max);
 
@@ -197,11 +201,49 @@ export function normalizeRuntimeConfig(config) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
+      background: {
+        ...(horseshoeLabels.background ?? {}),
+        styles: {
+          ...toStyleDict(horseshoeLabels.background?.styles),
+        },
+      },
+      badges: {
+        ...(horseshoeLabels.badges ?? {}),
+        styles: {
+          ...toStyleDict(horseshoeLabels.badges?.styles),
+        },
+      },
       styles: {
         fill: 'var(--primary-text-color)',
         'font-size': '6px',
         ...toStyleDict(horseshoeLabels.styles),
       },
+    },
+
+    horseshoe_tickmarks: {
+      ...horseshoeTickmarks,
+      background: {
+        ...(horseshoeTickmarks.background ?? {}),
+        styles: {
+          ...toStyleDict(horseshoeTickmarks.background?.styles),
+        },
+      },
+      ticks_major: horseshoeTickmarks.ticks_major
+        ? {
+            ...horseshoeTickmarks.ticks_major,
+            styles: {
+              ...toStyleDict(horseshoeTickmarks.ticks_major?.styles),
+            },
+          }
+        : horseshoeTickmarks.ticks_major,
+      ticks_minor: horseshoeTickmarks.ticks_minor
+        ? {
+            ...horseshoeTickmarks.ticks_minor,
+            styles: {
+              ...toStyleDict(horseshoeTickmarks.ticks_minor?.styles),
+            },
+          }
+        : horseshoeTickmarks.ticks_minor,
     },
   };
 }

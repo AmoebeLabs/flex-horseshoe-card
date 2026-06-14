@@ -103,9 +103,11 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
 
     const colorStopStartAngle = geometry.valueToAngle(stopA.value);
     const colorStopEndAngle = geometry.valueToAngle(stopB.value);
+    const isFirst = i === 0;
+    const isLast = i === colorStops.length - 2;
 
-    const drawStartAngle = colorStopStartAngle + gap / 2;
-    const drawEndAngle = colorStopEndAngle - gap / 2;
+    const drawStartAngle = isFirst ? colorStopStartAngle : colorStopStartAngle + gap / 2;
+    const drawEndAngle = isLast ? colorStopEndAngle : colorStopEndAngle - gap / 2;
     const visible = drawEndAngle > drawStartAngle;
 
     scaleArcs.push({
@@ -362,31 +364,195 @@ function buildLabelItem(runtimeConfig, geometry, scale, labelConfig = {}) {
   };
 }
 
-export function buildLabelItems(runtimeConfig, geometry, scale) {
-  if (runtimeConfig.show.labels_at === 'minmax') {
-    return [
-      buildLabelItem(runtimeConfig, geometry, scale, {
-        value: runtimeConfig.horseshoe_scale.min,
-        text: String(runtimeConfig.horseshoe_scale.min),
-        role: 'min',
-      }),
-      buildLabelItem(runtimeConfig, geometry, scale, {
-        value: runtimeConfig.horseshoe_scale.max,
-        text: String(runtimeConfig.horseshoe_scale.max),
-        role: 'max',
-      }),
+function buildTickValues(min, max, ticksize) {
+  const values = [];
+
+  for (let value = min; value <= max + 1e-9; value += ticksize) {
+    values.push(Number(value.toFixed(10)));
+  }
+
+  return values;
+}
+
+function buildLabelStopItems(runtimeConfig) {
+  const labelsAt = runtimeConfig.show.labels_at ?? 'none';
+  const min = Number(runtimeConfig.horseshoe_scale.min);
+  const max = Number(runtimeConfig.horseshoe_scale.max);
+  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  let labelStops = [];
+
+  if (labelsAt === 'minmax') {
+    labelStops = [
+      { value: min, text: String(min), role: 'min' },
+      { value: max, text: String(max), role: 'max' },
     ];
   }
 
-  if (runtimeConfig.show.labels_at === 'colorstops') {
-    return asArray(runtimeConfig.colorStops?.colors).map((stop) => (
-      buildLabelItem(runtimeConfig, geometry, scale, {
+  if (labelsAt === 'colorstop' || labelsAt === 'colorstops') {
+    labelStops = [
+      { value: min, text: String(min), role: 'min' },
+      ...colorStops.map((stop) => ({
         value: stop.value,
         text: stop.label ?? String(stop.value),
         role: 'colorstop',
         color: stop.color,
-      })
-    ));
+      })),
+      { value: max, text: String(max), role: 'max' },
+    ];
+  }
+
+  if (labelsAt === 'ticks_major') {
+    const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
+
+    if (Number.isFinite(ticksize) && ticksize > 0) {
+      labelStops = buildTickValues(min, max, ticksize).map((value, index, values) => ({
+        value,
+        text: String(value),
+        role: index === 0 ? 'min' : index === values.length - 1 ? 'max' : 'tick-major',
+      }));
+    }
+  }
+
+  if (labelsAt === 'both') {
+    const colorStopLabels = colorStops.length
+      ? [
+          { value: min, text: String(min), role: 'min' },
+          ...colorStops.map((stop) => ({
+            value: stop.value,
+            text: stop.label ?? String(stop.value),
+            role: 'colorstop',
+            color: stop.color,
+          })),
+          { value: max, text: String(max), role: 'max' },
+        ]
+      : [];
+
+    const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
+    const tickLabels = Number.isFinite(ticksize) && ticksize > 0
+      ? buildTickValues(min, max, ticksize).map((value) => ({
+          value,
+          text: String(value),
+          role: 'tick-major',
+        }))
+      : [];
+
+    labelStops = [...colorStopLabels, ...tickLabels];
+  }
+
+  const validStops = labelStops
+    .filter((stop) => {
+      const value = Number(stop.value);
+      return Number.isFinite(value) && value >= min && value <= max;
+    })
+    .sort((a, b) => Number(a.value) - Number(b.value))
+    .filter((stop, index, array) => {
+      const value = Number(stop.value);
+      return array.findIndex((item) => Number(item.value) === value) === index;
+    });
+
+  const distanceMin = Number(runtimeConfig.horseshoe_labels.distance_min ?? 0);
+  const visibleStops = [];
+
+  validStops.forEach((stop) => {
+    const value = Number(stop.value);
+
+    if (distanceMin <= 0) {
+      visibleStops.push(stop);
+      return;
+    }
+
+    const previous = visibleStops[visibleStops.length - 1];
+
+    if (!previous || Math.abs(value - Number(previous.value)) >= distanceMin) {
+      visibleStops.push(stop);
+    }
+  });
+
+  if (visibleStops.length) {
+    visibleStops[0].role = 'min';
+    visibleStops[visibleStops.length - 1].role = 'max';
+  }
+
+  return visibleStops;
+}
+
+export function buildLabelItems(runtimeConfig, geometry, scale) {
+  return buildLabelStopItems(runtimeConfig).map((labelStop) => buildLabelItem(runtimeConfig, geometry, scale, labelStop));
+}
+
+export function buildLabelBackgroundItems(runtimeConfig, geometry) {
+  const backgroundMode = runtimeConfig.show.label_background ?? 'none';
+
+  if (backgroundMode === 'none') {
+    return [];
+  }
+
+  const backgroundConfig = runtimeConfig.horseshoe_labels.background ?? {};
+  const radius = geometry.radius + Number(runtimeConfig.horseshoe_labels.offset ?? runtimeConfig.horseshoe_state.width + 2);
+  const width = Number(backgroundConfig.width ?? 6);
+  const gap = Number(backgroundConfig.gap ?? 0);
+
+  if (backgroundMode === 'colorstop') {
+    const colorStops = asArray(runtimeConfig.colorStops?.colors);
+
+    if (colorStops.length < 1) {
+      return [];
+    }
+
+    const colorSegments = [];
+    const segmentPoints = [
+      {
+        value: runtimeConfig.horseshoe_scale.min,
+        color: colorStops[0].color,
+      },
+      ...colorStops.map((stop) => ({
+        value: Number(stop.value),
+        color: stop.color,
+      })),
+      {
+        value: runtimeConfig.horseshoe_scale.max,
+        color: colorStops[colorStops.length - 1].color,
+      },
+    ];
+
+    for (let i = 0; i < segmentPoints.length - 1; i += 1) {
+      const pointA = segmentPoints[i];
+      const pointB = segmentPoints[i + 1];
+      const startAngle = geometry.valueToAngle(pointA.value);
+      const endAngle = geometry.valueToAngle(pointB.value);
+      const isFirst = i === 0;
+      const isLast = i === segmentPoints.length - 2;
+      const drawStartAngle = isFirst ? startAngle : startAngle + gap / 2;
+      const drawEndAngle = isLast ? endAngle : endAngle - gap / 2;
+
+      if (drawEndAngle > drawStartAngle) {
+        colorSegments.push({
+          key: `label-background-colorstop-${i}`,
+          startAngle: drawStartAngle,
+          endAngle: drawEndAngle,
+          radius,
+          width,
+          color: pointA.color,
+          lineCap: 'butt',
+        });
+      }
+    }
+
+    return colorSegments;
+  }
+
+  if (backgroundMode === 'fixed') {
+    return [
+      {
+        key: 'label-background-fixed',
+        startAngle: geometry.startAngle,
+        endAngle: geometry.endAngle,
+        radius,
+        width,
+        color: backgroundConfig.color,
+        lineCap: 'round',
+      },
+    ];
   }
 
   return [];
