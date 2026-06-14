@@ -70,7 +70,10 @@ function getMinorTickThicknessLimit(runtimeConfig, geometry, tickConfig, angleGa
   }
 
   const gapRatio = Math.max(0.05, Math.min(1, gapArcLength / referenceGapArcLength));
-  const thickness = baseThickness * gapRatio;
+  const shapedRatio = gapRatio ** 2;
+  const availableThickness = gapArcLength * 0.75;
+  const relativeThickness = baseThickness * shapedRatio;
+  const thickness = Math.min(baseThickness, availableThickness, relativeThickness);
 
   return thickness;
 }
