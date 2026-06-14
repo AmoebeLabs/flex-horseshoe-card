@@ -44,7 +44,7 @@ import Merge from './merge.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoesLayout from './layout/horseshoes-layout.js';
-import HorseshoeGaugeV2 from './horseshoe-gauge-v2.js';
+import HorseshoeGauge from './horseshoe-gauge.js';
 import Label from './labels.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
@@ -1058,7 +1058,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
-    this.horseshoesV2 = this.horseshoesV2.map((horseshoe) => {
+    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => {
       const entityIndex = horseshoe.entity_index ?? 0;
       const entityConfig = this.resolvedEntityConfigs[entityIndex];
       const entity = this.entities[entityIndex];
@@ -2110,8 +2110,8 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
-      this.horseshoesV2 = HorseshoeGaugeV2.setConfig(config, Templates);
-
+      this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
+      console.log('setconfig, gauge', this.horseshoeGauges);
       const defaultHorseshoe = this.horseshoes?.[0];
 
       if (defaultHorseshoe) {
@@ -2385,7 +2385,7 @@ class FlexHorseshoeCard extends LitElement {
               ${this._renderCircles()}
             </g>
           ${this._renderHorseShoes()}
-${this._renderHorseShoesV2()}          
+${this._renderHorseshoeGauges()}          
             <g id="datagroup" class="datagroup">
               ${this._renderHorizontalLines()}
               ${this._renderVerticalLines()}
@@ -2414,9 +2414,10 @@ ${this._renderHorseShoesV2()}
    * There you get your value of 408.4070449 ;-)
    */
 
-  _renderHorseShoesV2() {
+  _renderHorseshoeGauges() {
+    console.log('rendering horseshoe gauges', this.horseshoeGauges);
     return svg`
-    ${this.horseshoesV2?.map((horseshoe) => horseshoe.render()) ?? svg``}
+    ${this.horseshoeGauges?.map((horseshoe) => horseshoe.render()) ?? svg``}
   `;
   }
 
