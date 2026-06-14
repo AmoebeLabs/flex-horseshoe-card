@@ -1,6 +1,15 @@
 import { svg } from 'lit';
 
+/**
+ * Renders label text, badge shapes, and label helper geometry for v2 horseshoes.
+ */
 export default class HorseshoeLabels {
+  /**
+   * Renders one label using the configured label orientation.
+   *
+   * @param {object} labelConfig - Label render configuration.
+   * @returns {TemplateResult} SVG label template.
+   */
   static renderLabel(labelConfig) {
     const orientation = labelConfig.orientation ?? 'arc';
 
@@ -11,6 +20,12 @@ export default class HorseshoeLabels {
     return HorseshoeLabels.renderArcLabel(labelConfig);
   }
 
+  /**
+   * Renders a label as normal horizontal text at the projected label point.
+   *
+   * @param {object} labelConfig - Label render configuration.
+   * @returns {TemplateResult} SVG text template.
+   */
   static renderHorizontalLabel(labelConfig) {
     const point = HorseshoeLabels.pointAt({
       cx: labelConfig.cx,
@@ -24,6 +39,7 @@ export default class HorseshoeLabels {
     const flipX = transformContext.flipX ?? false;
     const flipY = transformContext.flipY ?? false;
 
+    // Apply the inverse parent transform at the label point so horizontal text stays readable.
     const scaleX = flipX ? -1 : 1;
     const scaleY = flipY ? -1 : 1;
 
@@ -46,6 +62,12 @@ export default class HorseshoeLabels {
     `;
   }
 
+  /**
+   * Renders a label along a short arc path centered on the label angle.
+   *
+   * @param {object} labelConfig - Label render configuration.
+   * @returns {TemplateResult} SVG textPath template.
+   */
   static renderArcLabel(labelConfig) {
     const labelText = String(labelConfig.label ?? '');
     const arcSize = 24;
@@ -60,22 +82,23 @@ export default class HorseshoeLabels {
     // const isTopHalf = labelAngle >= 270 || labelAngle <= 90;
     const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
 
-    console.log('[horseshoe-labels] arc label orientation', {
-      label: labelText,
-      rawAngle: labelConfig.angle,
-      visualAngle: labelGeometry.visualAngle,
-      mirrored: labelGeometry.mirrored,
-      labelAngle,
-      isTopHalf,
-      rotation: labelConfig.transformContext?.rotation ?? 0,
-      flipX: labelConfig.transformContext?.flipX ?? false,
-      flipY: labelConfig.transformContext?.flipY ?? false,
-    });
+    // console.log('[horseshoe-labels] arc label orientation', {
+    //   label: labelText,
+    //   rawAngle: labelConfig.angle,
+    //   visualAngle: labelGeometry.visualAngle,
+    //   mirrored: labelGeometry.mirrored,
+    //   labelAngle,
+    //   isTopHalf,
+    //   rotation: labelConfig.transformContext?.rotation ?? 0,
+    //   flipX: labelConfig.transformContext?.flipX ?? false,
+    //   flipY: labelConfig.transformContext?.flipY ?? false,
+    // });
 
     const startAngle = labelAngle - arcSize / 2;
     const endAngle = labelAngle + arcSize / 2;
 
     // const isTopHalf = labelAngle >= 180 && labelAngle <= 360;
+    // Reverse the path on the lower half so text follows the readable direction.
     const pathStartAngle = isTopHalf ? startAngle : endAngle;
     const pathEndAngle = isTopHalf ? endAngle : startAngle;
     const sweepFlag = isTopHalf ? 1 : 0;
@@ -125,6 +148,12 @@ export default class HorseshoeLabels {
     `;
   }
 
+  /**
+   * Renders the optional badge shape behind a label.
+   *
+   * @param {object} labelConfig - Badge render configuration.
+   * @returns {TemplateResult} SVG badge template.
+   */
   static renderLabelBadge(labelConfig) {
     const orientation = labelConfig.orientation ?? 'arc';
 
@@ -135,6 +164,12 @@ export default class HorseshoeLabels {
     return HorseshoeLabels.renderArcBadge(labelConfig);
   }
 
+  /**
+   * Renders a stroked arc segment used by background layers.
+   *
+   * @param {object} segmentConfig - Arc segment render configuration.
+   * @returns {TemplateResult} SVG path template.
+   */
   static renderArcSegment(segmentConfig) {
     const startPoint = HorseshoeLabels.pointAt({
       cx: segmentConfig.cx,
@@ -165,6 +200,12 @@ export default class HorseshoeLabels {
     `;
   }
 
+  /**
+   * Renders an arc-shaped capsule badge around an arc label.
+   *
+   * @param {object} labelConfig - Badge render configuration.
+   * @returns {TemplateResult} SVG path template.
+   */
   static renderArcBadge(labelConfig) {
     const labelText = String(labelConfig.label ?? '');
     const badgeConfig = labelConfig.badge ?? {};
@@ -193,6 +234,12 @@ export default class HorseshoeLabels {
     `;
   }
 
+  /**
+   * Renders a circular badge behind a horizontal label.
+   *
+   * @param {object} labelConfig - Badge render configuration.
+   * @returns {TemplateResult} SVG circle template.
+   */
   static renderHorizontalBadge(labelConfig) {
     const badgeConfig = labelConfig.badge ?? {};
     const point = HorseshoeLabels.pointAt({
@@ -218,6 +265,12 @@ export default class HorseshoeLabels {
     `;
   }
 
+  /**
+   * Projects an angle and radius to SVG coordinates.
+   *
+   * @param {object} input - Center, radius, and angle values.
+   * @returns {object} SVG coordinate pair.
+   */
   static pointAt(input) {
     const angleInRadians = HorseshoeLabels.degToRad(input.angle);
 
@@ -227,22 +280,53 @@ export default class HorseshoeLabels {
     };
   }
 
+  /**
+   * Normalizes an angle to the 0..360 degree range.
+   *
+   * @param {number} angle - Angle in degrees.
+   * @returns {number} Normalized angle in degrees.
+   */
   static normalizeAngle(angle) {
     return ((angle % 360) + 360) % 360;
   }
 
+  /**
+   * Converts degrees to radians.
+   *
+   * @param {number} degrees - Angle in degrees.
+   * @returns {number} Angle in radians.
+   */
   static degToRad(degrees) {
     return (degrees * Math.PI) / 180;
   }
 
+  /**
+   * Converts radians to degrees.
+   *
+   * @param {number} radians - Angle in radians.
+   * @returns {number} Angle in degrees.
+   */
   static radToDeg(radians) {
     return (radians * 180) / Math.PI;
   }
 
+  /**
+   * Converts an arc length in pixels to degrees for a radius.
+   *
+   * @param {number} lengthPx - Arc length in pixels.
+   * @param {number} radius - Radius used for the arc.
+   * @returns {number} Arc angle in degrees.
+   */
   static arcLengthToDegrees(lengthPx, radius) {
     return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
   }
 
+  /**
+   * Resolves label visual angle and mirror state after parent transforms.
+   *
+   * @param {object} input - Label angle and transform context.
+   * @returns {object} Label geometry metadata.
+   */
   static getLabelGeometry(input) {
     const angle = input.angle ?? 0;
     const transformContext = input.transformContext ?? {};
@@ -266,6 +350,12 @@ export default class HorseshoeLabels {
     };
   }
 
+  /**
+   * Computes the visual angle after rotation and flip transforms.
+   *
+   * @param {object} input - Angle, rotation, and flip flags.
+   * @returns {number} Visual angle in degrees.
+   */
   static getVisualAngleFromParentTransform(input) {
     const angle = input.angle ?? 0;
     const rotation = input.rotation ?? 0;
@@ -278,6 +368,7 @@ export default class HorseshoeLabels {
     const angleInRadians = HorseshoeLabels.degToRad(angle);
     const rotationInRadians = HorseshoeLabels.degToRad(rotation);
 
+    // Transform a unit vector instead of a point so only direction is measured.
     const x = Math.cos(angleInRadians);
     const y = Math.sin(angleInRadians);
 
@@ -290,6 +381,12 @@ export default class HorseshoeLabels {
     return HorseshoeLabels.normalizeAngle(HorseshoeLabels.radToDeg(Math.atan2(scaledY, scaledX)));
   }
 
+  /**
+   * Builds a closed capsule path centered on an arc label.
+   *
+   * @param {object} input - Capsule center, radius, angle, arc size, and width.
+   * @returns {string} SVG path data for the capsule.
+   */
   static buildArcCapsulePath(input) {
     const halfWidth = input.width / 2;
     const outerRadius = input.radius + halfWidth;
@@ -297,6 +394,7 @@ export default class HorseshoeLabels {
     const startAngle = input.angle - input.arcSize / 2;
     const endAngle = input.angle + input.arcSize / 2;
 
+    // Build the capsule as an outer arc, rounded end, inner arc, and rounded start.
     const outerStart = HorseshoeLabels.pointAt({
       cx: input.cx,
       cy: input.cy,

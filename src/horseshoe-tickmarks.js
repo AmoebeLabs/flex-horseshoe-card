@@ -1,6 +1,9 @@
 import Colors from './colors.js';
 import { buildBandPath } from './horseshoe-shapes.js';
 
+/**
+ * Normalizes tickmark style arrays and objects into one style object.
+ */
 function toStyleDict(styles) {
   if (!styles) return {};
 
@@ -24,6 +27,9 @@ function toStyleDict(styles) {
   return {};
 }
 
+/**
+ * Builds numeric tick values from min to max using the configured tick size.
+ */
 function buildTickValues(min, max, ticksize) {
   const values = [];
 
@@ -34,20 +40,32 @@ function buildTickValues(min, max, ticksize) {
   return values;
 }
 
+/**
+ * Checks whether a value lands on the major tick interval.
+ */
 function isMajorTick(value, min, majorTicksize) {
   const ratio = (value - min) / majorTicksize;
 
   return Math.abs(ratio - Math.round(ratio)) < 1e-9;
 }
 
+/**
+ * Converts a physical arc length to degrees at a given radius.
+ */
 function arcLengthToDegrees(lengthPx, radius) {
   return (Number(lengthPx) / (2 * Math.PI * radius)) * 360;
 }
 
+/**
+ * Converts arc degrees to physical length at a given radius.
+ */
 function degreesToArcLength(lengthDeg, radius) {
   return (Number(lengthDeg) / 360) * (2 * Math.PI * radius);
 }
 
+/**
+ * Resolves the fill color for one tick based on fixed or color-stop mode.
+ */
 function getTickColor(tickConfig, value, runtimeConfig) {
   const colorMode = tickConfig?.color_mode;
 
@@ -62,6 +80,9 @@ function getTickColor(tickConfig, value, runtimeConfig) {
   return tickConfig?.color ?? runtimeConfig.horseshoe_scale.color;
 }
 
+/**
+ * Builds tick background segments from configured color stops.
+ */
 function buildColorStopTickBackgroundItems(runtimeConfig, geometry, backgroundConfig, radius, width, gap) {
   const colorStops = Array.isArray(runtimeConfig.colorStops?.colors) ? runtimeConfig.colorStops.colors : [];
 
@@ -112,6 +133,9 @@ function buildColorStopTickBackgroundItems(runtimeConfig, geometry, backgroundCo
   return backgroundItems;
 }
 
+/**
+ * Builds the optional fixed or color-stop tickmark background layer items.
+ */
 export function buildTickBackgroundItems(runtimeConfig, geometry) {
   if (!runtimeConfig?.show?.ticks) {
     return [];
@@ -152,12 +176,16 @@ export function buildTickBackgroundItems(runtimeConfig, geometry) {
   return [];
 }
 
+/**
+ * Builds renderable tick path items for either major or minor ticks.
+ */
 function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values, layerName, minorThicknessByValue) {
   if (!tickConfig || !values.length) {
     return [];
   }
 
   const tickStyles = toStyleDict(tickConfig.styles);
+  // Tickmarks are filled paths; default stroke width is neutralized unless configured explicitly.
   const renderStyles = {
     ...tickStyles,
     'stroke-width': tickStyles['stroke-width'] ?? 0,
@@ -173,6 +201,7 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
   return values
     .map((value, index) => {
       const angle = geometry.valueToAngle(value);
+      // Minor ticks may receive a spline-specific maximum thickness for the local major interval.
       const thickness = layerName === 'minor' && minorThicknessByValue?.has(value)
         ? Math.min(configuredThickness, minorThicknessByValue.get(value))
         : configuredThickness;
@@ -187,6 +216,7 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         });
       }
       const bandWidth = width;
+      // Thickness is stored as arc length and converted to angular span for the band path.
       const tickDegrees = arcLengthToDegrees(thickness, radius);
       const startAngle = angle - tickDegrees / 2;
       const endAngle = angle + tickDegrees / 2;
@@ -221,6 +251,9 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
     .filter((item) => item.path);
 }
 
+/**
+ * Builds all major and minor tick path items for the current scale.
+ */
 export default function buildTickPathItems(runtimeConfig, geometry) {
   if (!runtimeConfig?.show?.ticks) {
     return [];
@@ -248,11 +281,13 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
       ? buildTickValues(min, max, minorTickSize).filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
       : [];
 
+  // spline/spline2 can compress value ranges; this map stores per-minor maximum thickness.
   const minorThicknessByValue = new Map();
 
   if ((runtimeConfig.horseshoe_scale.type === 'spline' || runtimeConfig.horseshoe_scale.type === 'spline2') && majorValues.length > 1 && minorValues.length) {
     const minorRadius = geometry.radius + Number(minorTickConfig.offset ?? 0);
     const majorThickness = Number(majorTickConfig.thickness);
+    // Use an early non-start interval as the visual reference for relative spline compression.
     const majorGapDegreesByInterval = majorValues.slice(0, -1).map((value, index) => Math.abs(geometry.valueToAngle(majorValues[index + 1]) - geometry.valueToAngle(value)));
     const referenceMajorGapDegrees = majorGapDegreesByInterval[1] ?? majorGapDegreesByInterval[0];
 
@@ -264,6 +299,7 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
       if (minorValuesBetweenMajorTicks.length) {
         const majorGapDegrees = Math.abs(geometry.valueToAngle(majorEndValue) - geometry.valueToAngle(majorStartValue));
         const majorGapArcLength = degreesToArcLength(majorGapDegrees, minorRadius);
+        // Remove the major tick thickness before dividing the remaining interval into minor slots.
         const availableMinorArcLength = Math.max(0, majorGapArcLength - majorThickness);
         const minorSlotsBetweenMajorTicks = Math.abs(majorEndValue - majorStartValue) / minorTickSize;
         const intervalRatio = Math.min(1, majorGapDegrees / referenceMajorGapDegrees);

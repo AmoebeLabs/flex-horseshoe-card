@@ -1,10 +1,30 @@
 /* eslint-disable max-classes-per-file */
 
+/**
+ * Conversion factor used by point projection helpers.
+ */
 const DEG_TO_RAD = Math.PI / 180;
 
+/**
+ * Restricts a numeric value to an inclusive range.
+ *
+ * @param {number} value - Value to clamp.
+ * @param {number} min - Lower bound.
+ * @param {number} max - Upper bound.
+ * @returns {number} Clamped value.
+ */
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+/**
+ * Cubic Hermite spline used by the original spline scale type.
+ */
 class CubicSpline {
+  /**
+   * Precomputes spline coefficients for the supplied control points.
+   *
+   * @param {Array<number>} x - Sorted input values.
+   * @param {Array<number>} y - Output positions for each input value.
+   */
   constructor(x, y) {
     this.x = x;
     this.y = y;
@@ -15,6 +35,7 @@ class CubicSpline {
     const dx = new Array(n - 1);
     const ms = new Array(n - 1);
 
+    // Segment slopes seed the Hermite tangents between adjacent anchors.
     for (let i = 0; i < n - 1; i += 1) {
       dx[i] = x[i + 1] - x[i];
       ms[i] = (y[i + 1] - y[i]) / dx[i];
@@ -29,6 +50,7 @@ class CubicSpline {
 
     this.c1s[n - 1] = ms[n - 2];
 
+    // Limit tangents so the interpolated curve does not overshoot flat or steep segments.
     for (let i = 0; i < n - 1; i += 1) {
       if (ms[i] === 0) {
         this.c1s[i] = 0;
@@ -59,6 +81,12 @@ class CubicSpline {
     }
   }
 
+  /**
+   * Evaluates the spline position for a scale value.
+   *
+   * @param {number} value - Scale value to evaluate.
+   * @returns {number} Interpolated scale position.
+   */
   get(value) {
     if (value <= this.x[0]) {
       return this.y[0];
@@ -83,6 +111,9 @@ class CubicSpline {
   }
 }
 
+/**
+ * Natural cubic spline implementation kept for spline experiments and compatibility.
+ */
 class NaturalCubicSpline {
   constructor(x, y) {
     this.x = x;
@@ -147,6 +178,9 @@ class NaturalCubicSpline {
   }
 }
 
+/**
+ * Monotone cubic spline used by spline2 to preserve anchor ordering without overshoot.
+ */
 class MonotoneCubicSpline {
   constructor(x, y) {
     this.x = x;
@@ -233,6 +267,9 @@ class MonotoneCubicSpline {
   }
 }
 
+/**
+ * Maps configured scale values to normalized positions along the horseshoe arc.
+ */
 export class GaugeScale {
   constructor(config) {
     this.type = config.type;
@@ -262,6 +299,12 @@ export class GaugeScale {
     }
   }
 
+  /**
+   * Builds and sorts the scale points used by linear, spline, and spline2 scales.
+   *
+   * @param {object} config - Normalized horseshoe scale configuration.
+   * @returns {Array<object>} Scale point definitions with value and position.
+   */
   static buildPoints(config) {
     if (config.type !== 'spline' && config.type !== 'spline2') {
       return [
@@ -283,6 +326,7 @@ export class GaugeScale {
       .sort((a, b) => a.value - b.value);
 
     if (config.type === 'spline2') {
+      // spline2 always includes scale min/max so the monotone spline covers the full range.
       const points = [
         { value: Number(config.min), position: 0 },
         ...anchors,
@@ -291,6 +335,7 @@ export class GaugeScale {
         .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.position))
         .sort((a, b) => a.value - b.value);
 
+      // Later duplicate values replace earlier ones before the final sorted point list is returned.
       const byValue = new Map();
 
       points.forEach((point) => {
@@ -303,6 +348,12 @@ export class GaugeScale {
     return anchors;
   }
 
+  /**
+   * Converts a scale value to a clamped 0..1 position.
+   *
+   * @param {number} value - Scale value to map.
+   * @returns {number} Normalized arc position.
+   */
   toRatio(value) {
     const numericValue = Number(value);
 
@@ -318,6 +369,9 @@ export class GaugeScale {
   }
 }
 
+/**
+ * Converts normalized scale positions into angles, transforms, and SVG coordinates.
+ */
 export class GaugeGeometry {
   constructor(config, scale) {
     this.cx = config.svg.xpos;
@@ -339,6 +393,11 @@ export class GaugeGeometry {
     this.scale = scale;
   }
 
+  /**
+   * Returns rotation and flip flags used by renderers and labels.
+   *
+   * @returns {object} Transform context for child renderers.
+   */
   getTransformContext() {
     return {
       rotation: this.rotation,
@@ -347,6 +406,9 @@ export class GaugeGeometry {
     };
   }
 
+  /**
+   * Builds the SVG rotate transform around the gauge center.
+   */
   getRotateTransform() {
     if (!this.rotation) {
       return '';
@@ -355,6 +417,9 @@ export class GaugeGeometry {
     return `rotate(${this.rotation} ${this.cx} ${this.cy})`;
   }
 
+  /**
+   * Builds the SVG flip transform around the gauge center.
+   */
   getScaleTransform() {
     const transformContext = this.getTransformContext();
 
@@ -368,6 +433,9 @@ export class GaugeGeometry {
     return `translate(${this.cx} ${this.cy}) scale(${scaleX} ${scaleY}) translate(${-this.cx} ${-this.cy})`;
   }
 
+  /**
+   * Combines rotation and flip transforms for the gauge group.
+   */
   getGroupTransform() {
     return [
       this.getRotateTransform(),
@@ -375,6 +443,9 @@ export class GaugeGeometry {
     ].filter(Boolean).join(' ');
   }
 
+  /**
+   * Builds the inverse transform used to keep labels readable.
+   */
   getInverseGroupTransform() {
     const transformContext = this.getTransformContext();
     const parts = [];
@@ -395,14 +466,23 @@ export class GaugeGeometry {
     return parts.join(' ');
   }
 
+  /**
+   * Converts a normalized scale position into an absolute arc angle.
+   */
   ratioToAngle(ratio) {
     return this.startAngle + ratio * this.arcDegrees;
   }
 
+  /**
+   * Converts a scale value into an absolute arc angle.
+   */
   valueToAngle(value) {
     return this.ratioToAngle(this.scale.toRatio(value));
   }
 
+  /**
+   * Projects an angle and radius to SVG coordinates.
+   */
   pointAt(angle, radius) {
     const rad = angle * DEG_TO_RAD;
 

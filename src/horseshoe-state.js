@@ -1,6 +1,9 @@
 import ColorStops from './color-stops.js';
 import { SVG_VIEW_BOX } from './const.js';
 
+/**
+ * Default animation configuration copied into normalized runtime state.
+ */
 const DEFAULT_STATE_ANIMATION = {
   enabled: true,
   duration: 2500,
@@ -8,8 +11,14 @@ const DEFAULT_STATE_ANIMATION = {
   debug: false,
 };
 
+/**
+ * Restricts a numeric value to an inclusive range.
+ */
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+/**
+ * Normalizes style configuration arrays and objects into a single object.
+ */
 const toStyleDict = (styles) => {
   if (!styles) return {};
 
@@ -33,6 +42,9 @@ const toStyleDict = (styles) => {
   return {};
 };
 
+/**
+ * Applies the minimal base defaults needed before entity state is resolved.
+ */
 export function normalizeBaseConfig(config, index) {
   const entityIndex = config.entity_index ?? 0;
 
@@ -49,6 +61,9 @@ export function normalizeBaseConfig(config, index) {
   };
 }
 
+/**
+ * Normalizes linecap configuration to explicit start and end values.
+ */
 export function normalizeLinecap(linecap) {
   if (typeof linecap === 'string') {
     return {
@@ -70,6 +85,9 @@ export function normalizeLinecap(linecap) {
   };
 }
 
+/**
+ * Computes the normalized zero position for bidirectional scales.
+ */
 export function getZeroRatio(horseshoeScale) {
   const min = Number(horseshoeScale.min);
   const max = Number(horseshoeScale.max);
@@ -81,6 +99,9 @@ export function getZeroRatio(horseshoeScale) {
   return clamp((0 - min) / (max - min), 0, 1);
 }
 
+/**
+ * Builds the full normalized runtime configuration used by the v2 renderer.
+ */
 export function normalizeRuntimeConfig(config) {
   const show = {
     horseshoe: true,
@@ -93,6 +114,7 @@ export function normalizeRuntimeConfig(config) {
     throw new Error('[V2] Missing horseshoe_scale');
   }
 
+  // Scale defaults are merged before validation so downstream geometry always has core fields.
   const horseshoeScale = {
     min: 0,
     max: 100,
@@ -140,6 +162,7 @@ export function normalizeRuntimeConfig(config) {
     ...(config.horseshoe_tickmarks ?? {}),
   };
 
+  // Keep both color_stops and colorstops aliases on the runtime config for compatibility.
   const colorStopsConfig = config.color_stops ?? config.colorstops;
   const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScale.max);
 
@@ -160,6 +183,7 @@ export function normalizeRuntimeConfig(config) {
     tickmarks_radius: tickmarksRadius,
     arc_degrees: arcDegrees,
 
+    // Store percent-based layout values and SVG-viewbox values side by side.
     svg: {
       xpos: (xpos / 100) * SVG_VIEW_BOX,
       ypos: (ypos / 100) * SVG_VIEW_BOX,
@@ -220,6 +244,7 @@ export function normalizeRuntimeConfig(config) {
       },
     },
 
+    // Tickmark styles are normalized per sub-block so renderers can apply styleMap directly.
     horseshoe_tickmarks: {
       ...horseshoeTickmarks,
       background: {
@@ -248,6 +273,9 @@ export function normalizeRuntimeConfig(config) {
   };
 }
 
+/**
+ * Finds a state-map entry matching either raw state or mapped numeric value.
+ */
 export function getStateMapItem(stateMap, rawState, value) {
   return stateMap.find((item) => {
     if (item.state !== undefined) {
@@ -262,11 +290,15 @@ export function getStateMapItem(stateMap, rawState, value) {
   });
 }
 
+/**
+ * Resolves templates, entity attributes, state mapping, and numeric gauge value.
+ */
 export function getGaugeStateData(config, templates, entityIndex, entity, entityConfig) {
   const item = {
     entity_index: entityIndex,
   };
 
+  // Resolve templates before normalization because template output may affect scale, styles, or state maps.
   const resolvedConfig = templates.getJsTemplateOrValue(item, config, {
     resolveKeys: true,
   });
@@ -279,6 +311,7 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     value = entity.attributes[entityConfig.attribute];
   }
 
+  // State maps may replace the raw entity value before the gauge receives its numeric state.
   const mappedState = getStateMapItem(runtimeConfig.state_map, entity.state, value);
   const nextValue = Number(mappedState?.value ?? value);
 
