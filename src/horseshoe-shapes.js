@@ -1,8 +1,26 @@
 import Colors from './colors.js';
 
+/**
+ * Returns arrays unchanged so color stop and label builders can iterate predictably.
+ *
+ * @param {*} value - Value that may already be an array.
+ * @returns {Array} The original array, or an empty array.
+ */
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
+/**
+ * Builds closed SVG band paths for arcs with butt or round caps.
+ */
 class ArcPathBuilder {
+  /**
+   * Converts arc angles and band dimensions into a closed SVG path.
+   *
+   * @param {object} options - Path build options.
+   * @param {GaugeGeometry} options.geometry - Geometry helper for point projection.
+   * @param {object} options.arc - Arc angles, cap style, and visibility.
+   * @param {object} options.band - Band radius and width.
+   * @returns {string} SVG path data for the closed arc band.
+   */
   static buildBandPath(options = {}) {
     const { geometry, arc = {}, band = {} } = options;
 
@@ -44,6 +62,7 @@ class ArcPathBuilder {
       return '';
     }
 
+    // Project both edges of the band so the path can close as a filled shape.
     const outerStart = geometry.pointAt(startAngle, outerRadius);
     const outerEnd = geometry.pointAt(endAngle, outerRadius);
     const innerEnd = geometry.pointAt(endAngle, innerRadius);
@@ -56,6 +75,7 @@ class ArcPathBuilder {
 
     const parts = [];
 
+    // Draw the outer arc, connect to the inner arc, then close back to the start.
     parts.push(`M ${outerStart.x} ${outerStart.y}`);
     parts.push(`A ${outerRadius} ${outerRadius} 0 ${largeArc} ${sweep} ${outerEnd.x} ${outerEnd.y}`);
 
@@ -79,6 +99,13 @@ class ArcPathBuilder {
   }
 }
 
+/**
+ * Builds scale arc segments from configured color stops and applies segment gaps.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper used to map values to angles.
+ * @returns {Array<object>} Scale arc definitions for the renderer.
+ */
 function buildColorStopScaleArcs(runtimeConfig, geometry) {
   const colorStops = asArray(runtimeConfig.colorStops?.colors);
   const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
@@ -97,6 +124,7 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     ];
   }
 
+  // Add synthetic min/max points so the first and last color spans cover the full scale.
   const scalePoints = [
     {
       value: Number(runtimeConfig.horseshoe_scale.min),
@@ -121,6 +149,7 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     const isFirst = i === 0;
     const isLast = i === scalePoints.length - 2;
 
+    // Keep the outer scale caps intact while applying half-gaps between internal segments.
     const drawStartAngle = isFirst ? colorStopStartAngle : colorStopStartAngle + gap / 2;
     const drawEndAngle = isLast ? colorStopEndAngle : colorStopEndAngle - gap / 2;
     const visible = drawEndAngle > drawStartAngle;
@@ -137,6 +166,7 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     });
   }
 
+  // Restore the configured caps on the visible edge segments after internal gaps are applied.
   const visibleScaleArcs = scaleArcs.filter((arc) => arc.visible !== false);
 
   if (visibleScaleArcs.length) {
@@ -147,6 +177,13 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
   return scaleArcs;
 }
 
+/**
+ * Builds the visible scale arcs for the selected scale display mode.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for scale angles.
+ * @returns {Array<object>} Scale arc definitions.
+ */
 export function buildScaleArcs(runtimeConfig, geometry) {
   const scaleMode = runtimeConfig.show?.scale_style ?? 'fixed';
 
@@ -170,6 +207,15 @@ export function buildScaleArcs(runtimeConfig, geometry) {
   ];
 }
 
+/**
+ * Builds state arc segments clipped to the active value range and color stops.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper used to map color stop values.
+ * @param {number} fromAngle - Start angle of the active state range.
+ * @param {number} toAngle - End angle of the active state range.
+ * @returns {Array<object>} State arc definitions for color stop segments.
+ */
 function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
   const colorStops = asArray(runtimeConfig.colorStops?.colors);
   const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
@@ -194,6 +240,7 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
     const colorStopStartAngle = geometry.valueToAngle(stopA.value);
     const colorStopEndAngle = geometry.valueToAngle(stopB.value);
 
+    // Clip each color segment to the active state range before applying the configured gap.
     const drawStartAngle = Math.max(colorStopStartAngle, fromAngle) + gap / 2;
     const drawEndAngle = Math.min(colorStopEndAngle, toAngle) - gap / 2;
     const visible = drawEndAngle > drawStartAngle;
@@ -211,6 +258,7 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
     });
   }
 
+  // Restore the state linecaps only on the visible ends of the clipped state range.
   const visibleStateArcs = stateArcs.filter((arc) => arc.visible !== false);
 
   if (visibleStateArcs.length) {
@@ -221,6 +269,15 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
   return stateArcs;
 }
 
+/**
+ * Selects the state arc color strategy and returns the arc definitions for it.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for state angles.
+ * @param {number} value - Current numeric state value.
+ * @param {object} arcRange - Start and end angle limits for the state arc.
+ * @returns {Array<object>} State arc definitions.
+ */
 function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
   const strokeStyle = runtimeConfig.show?.horseshoe_style;
 
@@ -255,33 +312,47 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
   ];
 }
 
+/**
+ * Builds the normal unidirectional state arc from the scale start to the value.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for value-to-angle mapping.
+ * @param {number} value - Current numeric state value.
+ * @returns {Array<object>} State arc definitions.
+ */
 function buildNormalStateArcs(runtimeConfig, geometry, value) {
-  return buildColorAwareStateArcs(
-    runtimeConfig,
-    geometry,
-    value,
-    {
-      fromAngle: geometry.startAngle,
-      toAngle: geometry.valueToAngle(value),
-    },
-  );
+  return buildColorAwareStateArcs(runtimeConfig, geometry, value, {
+    fromAngle: geometry.startAngle,
+    toAngle: geometry.valueToAngle(value),
+  });
 }
 
+/**
+ * Builds the bidirectional state arc between zero and the current value.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper containing the zero angle.
+ * @param {number} value - Current numeric state value.
+ * @returns {Array<object>} State arc definitions.
+ */
 function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
   const valueAngle = geometry.valueToAngle(value);
   const zeroAngle = geometry.zeroAngle;
 
-  return buildColorAwareStateArcs(
-    runtimeConfig,
-    geometry,
-    value,
-    {
-      fromAngle: Math.min(zeroAngle, valueAngle),
-      toAngle: Math.max(zeroAngle, valueAngle),
-    },
-  );
+  return buildColorAwareStateArcs(runtimeConfig, geometry, value, {
+    fromAngle: Math.min(zeroAngle, valueAngle),
+    toAngle: Math.max(zeroAngle, valueAngle),
+  });
 }
 
+/**
+ * Builds one segment per mapped state and marks the active segment.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper that provides the arc size.
+ * @param {number} value - Current mapped numeric state value.
+ * @returns {Array<object>} Segment arc definitions.
+ */
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const stateMap = runtimeConfig.state_map;
   const gap = runtimeConfig.horseshoe_state.segment_gap;
@@ -291,6 +362,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     return [];
   }
 
+  // State-map mode divides the full arc into equal visual slots.
   const step = geometry.arcDegrees / count;
 
   return stateMap.map((item, index) => {
@@ -309,6 +381,14 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
   });
 }
 
+/**
+ * Chooses the state arc builder for segment, bidirectional, or normal mode.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for arc calculations.
+ * @param {number} value - Current numeric state value.
+ * @returns {Array<object>} State arc definitions.
+ */
 function buildStateArcs(runtimeConfig, geometry, value) {
   if (runtimeConfig.horseshoe_state.mode === 'segment') {
     return buildMappedStateArcs(runtimeConfig, geometry, value);
@@ -321,6 +401,14 @@ function buildStateArcs(runtimeConfig, geometry, value) {
   return buildNormalStateArcs(runtimeConfig, geometry, value);
 }
 
+/**
+ * Converts state arc definitions into renderable SVG path items.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper used by the path builder.
+ * @param {number} value - Current numeric state value.
+ * @returns {Array<object>} Renderable state path items.
+ */
 export function buildStatePathItems(runtimeConfig, geometry, value) {
   const stateArcs = buildStateArcs(runtimeConfig, geometry, value);
 
@@ -340,6 +428,13 @@ export function buildStatePathItems(runtimeConfig, geometry, value) {
   }));
 }
 
+/**
+ * Converts scale arc definitions into renderable SVG path items.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper used by the path builder.
+ * @returns {Array<object>} Renderable scale path items.
+ */
 export function buildScalePathItems(runtimeConfig, geometry) {
   const scaleArcs = buildScaleArcs(runtimeConfig, geometry);
 
@@ -359,6 +454,15 @@ export function buildScalePathItems(runtimeConfig, geometry) {
   }));
 }
 
+/**
+ * Resolves one label stop to its value, angle, radius, and SVG coordinates.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for angle and point projection.
+ * @param {GaugeScale} scale - Scale mapper used to position the label value.
+ * @param {object} labelConfig - Label stop metadata.
+ * @returns {object} Positioned label item for the renderer.
+ */
 function buildLabelItem(runtimeConfig, geometry, scale, labelConfig = {}) {
   const value = Number(labelConfig.value);
   const ratio = scale.toRatio(value);
@@ -378,6 +482,14 @@ function buildLabelItem(runtimeConfig, geometry, scale, labelConfig = {}) {
   };
 }
 
+/**
+ * Builds numeric tick values from min to max using the configured tick size.
+ *
+ * @param {number} min - First scale value.
+ * @param {number} max - Last scale value.
+ * @param {number} ticksize - Distance between generated tick values.
+ * @returns {Array<number>} Numeric tick values.
+ */
 function buildTickValues(min, max, ticksize) {
   const values = [];
 
@@ -388,6 +500,12 @@ function buildTickValues(min, max, ticksize) {
   return values;
 }
 
+/**
+ * Builds and filters label stops for min/max, color stops, major ticks, or both.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @returns {Array<object>} Label stop definitions before positioning.
+ */
 function buildLabelStopItems(runtimeConfig) {
   const labelsAt = runtimeConfig.show.labels_at ?? 'none';
   const min = Number(runtimeConfig.horseshoe_scale.min);
@@ -442,17 +560,19 @@ function buildLabelStopItems(runtimeConfig) {
       : [];
 
     const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
-    const tickLabels = Number.isFinite(ticksize) && ticksize > 0
-      ? buildTickValues(min, max, ticksize).map((value) => ({
-          value,
-          text: String(value),
-          role: 'tick-major',
-        }))
-      : [];
+    const tickLabels =
+      Number.isFinite(ticksize) && ticksize > 0
+        ? buildTickValues(min, max, ticksize).map((value) => ({
+            value,
+            text: String(value),
+            role: 'tick-major',
+          }))
+        : [];
 
     labelStops = [...colorStopLabels, ...tickLabels];
   }
 
+  // Normalize label stops into sorted, in-range, unique values before applying spacing.
   const validStops = labelStops
     .filter((stop) => {
       const value = Number(stop.value);
@@ -467,6 +587,7 @@ function buildLabelStopItems(runtimeConfig) {
   const distanceMin = Number(runtimeConfig.horseshoe_labels.distance_min ?? 0);
   const visibleStops = [];
 
+  // distance_min suppresses labels that would be too close in value-space.
   validStops.forEach((stop) => {
     const value = Number(stop.value);
 
@@ -482,6 +603,7 @@ function buildLabelStopItems(runtimeConfig) {
     }
   });
 
+  // The first and last visible labels behave as scale boundary labels after filtering.
   if (visibleStops.length) {
     visibleStops[0].role = 'min';
     visibleStops[visibleStops.length - 1].role = 'max';
@@ -490,10 +612,25 @@ function buildLabelStopItems(runtimeConfig) {
   return visibleStops;
 }
 
+/**
+ * Builds positioned label items from the configured label stop source.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for label positions.
+ * @param {GaugeScale} scale - Scale mapper used to position labels.
+ * @returns {Array<object>} Positioned label items.
+ */
 export function buildLabelItems(runtimeConfig, geometry, scale) {
   return buildLabelStopItems(runtimeConfig).map((labelStop) => buildLabelItem(runtimeConfig, geometry, scale, labelStop));
 }
 
+/**
+ * Builds fixed or color-stop label background arc items.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for background arcs.
+ * @returns {Array<object>} Label background arc items.
+ */
 export function buildLabelBackgroundItems(runtimeConfig, geometry) {
   const backgroundMode = runtimeConfig.show.label_background ?? 'none';
 
@@ -514,6 +651,7 @@ export function buildLabelBackgroundItems(runtimeConfig, geometry) {
     }
 
     const colorSegments = [];
+    // Add synthetic min/max points so label backgrounds cover the full configured scale.
     const segmentPoints = [
       {
         value: runtimeConfig.horseshoe_scale.min,
@@ -536,6 +674,7 @@ export function buildLabelBackgroundItems(runtimeConfig, geometry) {
       const endAngle = geometry.valueToAngle(pointB.value);
       const isFirst = i === 0;
       const isLast = i === segmentPoints.length - 2;
+      // Preserve the outside caps while applying gaps only between internal background segments.
       const drawStartAngle = isFirst ? startAngle : startAngle + gap / 2;
       const drawEndAngle = isLast ? endAngle : endAngle - gap / 2;
 
@@ -572,6 +711,14 @@ export function buildLabelBackgroundItems(runtimeConfig, geometry) {
   return [];
 }
 
+/**
+ * Public wrapper for building a closed SVG band path.
+ *
+ * @param {GaugeGeometry} geometry - Geometry helper used by the path builder.
+ * @param {object} arc - Arc angles, cap style, and visibility.
+ * @param {object} band - Band radius and width.
+ * @returns {string} SVG path data for the closed arc band.
+ */
 export function buildBandPath(geometry, arc, band) {
   return ArcPathBuilder.buildBandPath({
     geometry,
