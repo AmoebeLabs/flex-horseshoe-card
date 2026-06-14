@@ -1,33 +1,29 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 
-import Label from './labels.js';
+import HorseshoeLabels from './horseshoe-labels.js';
 import { buildBandPath } from './horseshoe-shapes.js';
 
 export function getStatePathElementId(cardId, horseshoeIndex, pathKey) {
   return `horseshoe-state-${cardId}-${horseshoeIndex}-${pathKey}`;
 }
 
-export function renderScaleLayer(runtimeConfig, geometry, scaleArcs) {
-  const scaleBand = {
-    radius: geometry.radius,
-    width: runtimeConfig.horseshoe_scale.width,
-  };
-
+export function renderScaleLayer(runtimeConfig, geometry, scalePathItems) {
   const scaleStyle = {
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
   return svg`
     <g class="horseshoe__scale-layer" style=${styleMap(scaleStyle)}>
-      ${scaleArcs.map((arc) => {
-        const path = buildBandPath(geometry, arc, scaleBand);
+      ${scalePathItems.map((pathItem) => {
+        const fill = pathItem.arc.color ?? runtimeConfig.horseshoe_scale.color ?? scaleStyle.fill ?? 'none';
 
-        return path
+        return pathItem.path
           ? svg`
               <path
                 class="horseshoe__scale"
-                d=${path}
+                d=${pathItem.path}
+                fill="${fill}"
               ></path>
             `
           : svg``;
@@ -76,7 +72,7 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
   return svg`
     <g class="horseshoe__labels-layer" style=${styleMap(labelStyle)}>
       ${labelItems.map((labelItem, index) => (
-        Label.renderLabel({
+        HorseshoeLabels.renderLabel({
           horseshoeIndex,
           index,
           label: labelItem.text,

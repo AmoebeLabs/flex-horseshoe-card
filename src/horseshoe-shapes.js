@@ -79,7 +79,69 @@ class ArcPathBuilder {
   }
 }
 
+function buildColorStopScaleArcs(runtimeConfig, geometry) {
+  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
+  const scaleArcs = [];
+
+  if (colorStops.length < 2) {
+    return [
+      {
+        key: 'scale',
+        startAngle: geometry.startAngle,
+        endAngle: geometry.endAngle,
+        startCap: runtimeConfig.horseshoe_scale.linecap.start,
+        endCap: runtimeConfig.horseshoe_scale.linecap.end,
+        color: runtimeConfig.horseshoe_scale.color,
+      },
+    ];
+  }
+
+  for (let i = 0; i < colorStops.length - 1; i += 1) {
+    const stopA = colorStops[i];
+    const stopB = colorStops[i + 1];
+
+    const colorStopStartAngle = geometry.valueToAngle(stopA.value);
+    const colorStopEndAngle = geometry.valueToAngle(stopB.value);
+
+    const drawStartAngle = colorStopStartAngle + gap / 2;
+    const drawEndAngle = colorStopEndAngle - gap / 2;
+    const visible = drawEndAngle > drawStartAngle;
+
+    scaleArcs.push({
+      key: `scale-colorstop-${i}`,
+      startAngle: visible ? drawStartAngle : 0,
+      endAngle: visible ? drawEndAngle : 0,
+      startCap: 'butt',
+      endCap: 'butt',
+      color: stopA.color,
+      value: stopA.value,
+      label: stopA.label,
+      visible,
+    });
+  }
+
+  const visibleScaleArcs = scaleArcs.filter((arc) => arc.visible !== false);
+
+  if (visibleScaleArcs.length) {
+    visibleScaleArcs[0].startCap = runtimeConfig.horseshoe_scale.linecap.start;
+    visibleScaleArcs[visibleScaleArcs.length - 1].endCap = runtimeConfig.horseshoe_scale.linecap.end;
+  }
+
+  return scaleArcs;
+}
+
 export function buildScaleArcs(runtimeConfig, geometry) {
+  const scaleMode = runtimeConfig.show?.scale_style ?? 'fixed';
+
+  if (scaleMode === 'none') {
+    return [];
+  }
+
+  if (scaleMode === 'colorstop') {
+    return buildColorStopScaleArcs(runtimeConfig, geometry);
+  }
+
   return [
     {
       key: 'scale',
@@ -87,6 +149,7 @@ export function buildScaleArcs(runtimeConfig, geometry) {
       endAngle: geometry.endAngle,
       startCap: runtimeConfig.horseshoe_scale.linecap.start,
       endCap: runtimeConfig.horseshoe_scale.linecap.end,
+      color: runtimeConfig.horseshoe_scale.color,
     },
   ];
 }
@@ -257,6 +320,25 @@ export function buildStatePathItems(runtimeConfig, geometry, value) {
       geometry,
       arc,
       band: stateBand,
+    }),
+  }));
+}
+
+export function buildScalePathItems(runtimeConfig, geometry) {
+  const scaleArcs = buildScaleArcs(runtimeConfig, geometry);
+
+  const scaleBand = {
+    radius: geometry.radius,
+    width: runtimeConfig.horseshoe_scale.width,
+  };
+
+  return scaleArcs.map((arc, index) => ({
+    key: arc.key ?? `scale-arc-${index}`,
+    arc,
+    path: ArcPathBuilder.buildBandPath({
+      geometry,
+      arc,
+      band: scaleBand,
     }),
   }));
 }

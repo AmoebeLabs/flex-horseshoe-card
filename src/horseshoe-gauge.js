@@ -14,7 +14,7 @@ import {
 } from './horseshoe-renderer.js';
 import {
   buildLabelItems,
-  buildScaleArcs,
+  buildScalePathItems,
   buildStatePathItems,
 } from './horseshoe-shapes.js';
 import {
@@ -107,9 +107,9 @@ export default class HorseshoeGauge {
   }
 
   renderScale() {
-    const scaleArcs = buildScaleArcs(this.runtimeConfig, this.geometry);
+    const scalePathItems = buildScalePathItems(this.runtimeConfig, this.geometry);
 
-    return renderScaleLayer(this.runtimeConfig, this.geometry, scaleArcs);
+    return renderScaleLayer(this.runtimeConfig, this.geometry, scalePathItems);
   }
 
   renderState() {
