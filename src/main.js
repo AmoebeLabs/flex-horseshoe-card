@@ -1090,7 +1090,7 @@ class FlexHorseshoeCard extends LitElement {
       // Do state mapping here?
       const smItem = this._getStateMapItem(horseshoe.horseshoe_state, entity);
       if (smItem) {
-        console.log('State map item found for horseshoe', index, ':', smItem);
+        // console.log('State map item found for horseshoe', index, ':', smItem);
         state = smItem.value;
       }
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
@@ -2111,7 +2111,6 @@ class FlexHorseshoeCard extends LitElement {
 
       this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
-      console.log('setconfig, gauge', this.horseshoeGauges);
       const defaultHorseshoe = this.horseshoes?.[0];
 
       if (defaultHorseshoe) {
@@ -2415,7 +2414,6 @@ ${this._renderHorseshoeGauges()}
    */
 
   _renderHorseshoeGauges() {
-    console.log('rendering horseshoe gauges', this.horseshoeGauges);
     return svg`
     ${this.horseshoeGauges?.map((horseshoe) => horseshoe.render()) ?? svg``}
   `;
