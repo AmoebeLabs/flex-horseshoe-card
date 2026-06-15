@@ -288,6 +288,19 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     return buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle);
   }
 
+  if (strokeStyle === 'autominmax') {
+    return [
+      {
+        key: 'state-value',
+        startAngle: fromAngle,
+        endAngle: toAngle,
+        startCap: runtimeConfig.horseshoe_state.linecap.start,
+        endCap: runtimeConfig.horseshoe_state.linecap.end,
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorStopsMinMax, true),
+      },
+    ];
+  }
+
   if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
     return [
       {
@@ -354,7 +367,7 @@ function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
  * @returns {Array<object>} Segment arc definitions.
  */
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
-  const stateMap = runtimeConfig.state_map;
+  const stateMap = runtimeConfig.state_map.map;
   const gap = runtimeConfig.horseshoe_state.segment_gap;
   const count = stateMap.length;
 
