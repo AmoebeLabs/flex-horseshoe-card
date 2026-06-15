@@ -1,31 +1,6 @@
 import Colors from './colors.js';
+import ConfigHelper from './config-helper.js';
 import { buildBandPath } from './horseshoe-shapes.js';
-
-/**
- * Normalizes tickmark style arrays and objects into one style object.
- */
-function toStyleDict(styles) {
-  if (!styles) return {};
-
-  if (Array.isArray(styles)) {
-    return styles.reduce((result, item) => {
-      if (item && typeof item === 'object') {
-        return {
-          ...result,
-          ...item,
-        };
-      }
-
-      return result;
-    }, {});
-  }
-
-  if (typeof styles === 'object') {
-    return styles;
-  }
-
-  return {};
-}
 
 /**
  * Builds numeric tick values from min to max using the configured tick size.
@@ -184,7 +159,7 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
     return [];
   }
 
-  const tickStyles = toStyleDict(tickConfig.styles);
+  const tickStyles = ConfigHelper.toStyleDict(tickConfig.styles);
   // Tickmarks are filled paths; default stroke width is neutralized unless configured explicitly.
   const renderStyles = {
     ...tickStyles,

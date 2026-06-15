@@ -1,4 +1,5 @@
 import ColorStops from './color-stops.js';
+import ConfigHelper from './config-helper.js';
 import { clamp } from './frontend_mods/common/number/clamp.ts';
 import { SVG_VIEW_BOX } from './const.js';
 
@@ -10,32 +11,6 @@ const DEFAULT_STATE_ANIMATION = {
   duration: 2500,
   easing: 'ease-out',
   debug: false,
-};
-
-/**
- * Normalizes style configuration arrays and objects into a single object.
- */
-const toStyleDict = (styles) => {
-  if (!styles) return {};
-
-  if (Array.isArray(styles)) {
-    return styles.reduce((result, item) => {
-      if (item && typeof item === 'object') {
-        return {
-          ...result,
-          ...item,
-        };
-      }
-
-      return result;
-    }, {});
-  }
-
-  if (typeof styles === 'object') {
-    return styles;
-  }
-
-  return {};
 };
 
 /**
@@ -202,7 +177,7 @@ export function normalizeRuntimeConfig(config) {
       linecap: normalizeLinecap(horseshoeScale.linecap),
       styles: {
         fill: horseshoeScale.color,
-        ...toStyleDict(horseshoeScale.styles),
+        ...ConfigHelper.toStyleDict(horseshoeScale.styles),
       },
     },
 
@@ -215,7 +190,7 @@ export function normalizeRuntimeConfig(config) {
       linecap: normalizeLinecap(horseshoeState.linecap),
       styles: {
         fill: horseshoeState.color,
-        ...toStyleDict(horseshoeState.styles),
+        ...ConfigHelper.toStyleDict(horseshoeState.styles),
       },
     },
 
@@ -224,19 +199,19 @@ export function normalizeRuntimeConfig(config) {
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {
-          ...toStyleDict(horseshoeLabels.background?.styles),
+          ...ConfigHelper.toStyleDict(horseshoeLabels.background?.styles),
         },
       },
       badges: {
         ...(horseshoeLabels.badges ?? {}),
         styles: {
-          ...toStyleDict(horseshoeLabels.badges?.styles),
+          ...ConfigHelper.toStyleDict(horseshoeLabels.badges?.styles),
         },
       },
       styles: {
         fill: 'var(--primary-text-color)',
         'font-size': '6px',
-        ...toStyleDict(horseshoeLabels.styles),
+        ...ConfigHelper.toStyleDict(horseshoeLabels.styles),
       },
     },
 
@@ -246,14 +221,14 @@ export function normalizeRuntimeConfig(config) {
       background: {
         ...(horseshoeTickmarks.background ?? {}),
         styles: {
-          ...toStyleDict(horseshoeTickmarks.background?.styles),
+          ...ConfigHelper.toStyleDict(horseshoeTickmarks.background?.styles),
         },
       },
       ticks_major: horseshoeTickmarks.ticks_major
         ? {
             ...horseshoeTickmarks.ticks_major,
             styles: {
-              ...toStyleDict(horseshoeTickmarks.ticks_major?.styles),
+              ...ConfigHelper.toStyleDict(horseshoeTickmarks.ticks_major?.styles),
             },
           }
         : horseshoeTickmarks.ticks_major,
@@ -261,7 +236,7 @@ export function normalizeRuntimeConfig(config) {
         ? {
             ...horseshoeTickmarks.ticks_minor,
             styles: {
-              ...toStyleDict(horseshoeTickmarks.ticks_minor?.styles),
+              ...ConfigHelper.toStyleDict(horseshoeTickmarks.ticks_minor?.styles),
             },
           }
         : horseshoeTickmarks.ticks_minor,
