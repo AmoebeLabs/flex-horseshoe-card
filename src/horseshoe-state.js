@@ -16,12 +16,14 @@ const DEFAULT_STATE_ANIMATION = {
 /**
  * Applies the minimal base defaults needed before entity state is resolved.
  */
-export function normalizeBaseConfig(config, index) {
+export function normalizeBaseConfig(config, index, groups) {
   const entityIndex = config.entity_index ?? 0;
+  const groupConfig = config.group ? groups?.[config.group] : undefined;
 
   return {
     entity_index: entityIndex,
     ...config,
+    group_config: groupConfig,
     index,
     show: {
       horseshoe: true,
@@ -133,20 +135,44 @@ export function normalizeRuntimeConfig(config) {
     ...(config.horseshoe_tickmarks ?? {}),
   };
 
+  const stateMap = config.state_map ?? horseshoeState.state_map;
+
   // Keep both color_stops and colorstops aliases on the runtime config for compatibility.
   const colorStopsConfig = config.color_stops ?? config.colorstops;
   const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScale.max);
+  const firstColorStop = colorStops.colors[0];
+  const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
+  const colorStopsMinMax = ColorStops.normalize({
+    [horseshoeScale.min]: firstColorStop.color,
+    [horseshoeScale.max]: lastColorStop.color,
+  });
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
   const arcDegrees = config.arc_degrees ?? 260;
-  const xpos = config.xpos ?? 50;
-  const ypos = config.ypos ?? 50;
+  const groupConfig = config.group_config;
+  const groupCenterOffset = 50;
+  const itemXpos = config.xpos ?? config.horseshoe_position?.xpos ?? config.horseshoe_position?.cx ?? 50;
+  const itemYpos = config.yposc || (config.ypos ?? config.horseshoe_position?.ypos ?? config.horseshoe_position?.cy ?? 50);
+  const xpos = groupConfig ? groupConfig.xpos + itemXpos - groupCenterOffset : itemXpos;
+  const ypos = groupConfig ? groupConfig.ypos + itemYpos - groupCenterOffset : itemYpos;
+  const groupSvg = groupConfig
+    ? {
+        xpos: (groupConfig.xpos / 100) * SVG_VIEW_BOX,
+        ypos: (groupConfig.ypos / 100) * SVG_VIEW_BOX,
+      }
+    : undefined;
 
   return {
     ...config,
 
     show,
+    group_config: groupConfig
+      ? {
+          ...groupConfig,
+          svg: groupSvg,
+        }
+      : groupConfig,
 
     xpos,
     ypos,
@@ -166,11 +192,12 @@ export function normalizeRuntimeConfig(config) {
     bar_mode: config.bar_mode ?? 'normal',
     zero_ratio: config.zero_ratio ?? getZeroRatio(horseshoeScale),
 
-    state_map: config.state_map ?? horseshoeState.state_map ?? [],
+    state_map: stateMap,
 
     color_stops: colorStopsConfig,
     colorstops: colorStopsConfig,
     colorStops,
+    colorStopsMinMax,
 
     horseshoe_scale: {
       ...horseshoeScale,
@@ -282,8 +309,10 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     value = entity.attributes[entityConfig.attribute];
   }
 
-  // State maps may replace the raw entity value before the gauge receives its numeric state.
-  const mappedState = getStateMapItem(runtimeConfig.state_map, entity.state, value);
+  // State maps may replace textual entity states before the gauge receives its numeric value.
+  const mappedState = runtimeConfig.state_map
+    ? getStateMapItem(runtimeConfig.state_map.map, entity.state, value)
+    : undefined;
   const nextValue = Number(mappedState?.value ?? value);
 
   return {

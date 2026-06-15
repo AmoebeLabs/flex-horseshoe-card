@@ -378,6 +378,7 @@ export class GaugeGeometry {
 
     this.rotation = Number(config.rotate ?? 0);
     this.flip = config.flip ?? 'none';
+    this.groupConfig = config.group_config;
 
     this.zeroRatio = config.zero_ratio;
     this.zeroAngle = this.ratioToAngle(this.zeroRatio);
@@ -426,10 +427,39 @@ export class GaugeGeometry {
   }
 
   /**
-   * Combines rotation and flip transforms for the gauge group.
+   * Builds the optional group rotation around the group center.
+   */
+  getGroupRotateTransform() {
+    const groupRotation = Number(this.groupConfig?.rotate ?? this.groupConfig?.rotation ?? 0);
+
+    if (!groupRotation) {
+      return '';
+    }
+
+    return `rotate(${groupRotation} ${this.groupConfig.svg.xpos} ${this.groupConfig.svg.ypos})`;
+  }
+
+  /**
+   * Builds the optional group scale around the group center.
+   */
+  getGroupScaleTransform() {
+    if (!this.groupConfig?.scale) {
+      return '';
+    }
+
+    const scaleX = this.groupConfig.scale.x ?? this.groupConfig.scale;
+    const scaleY = this.groupConfig.scale.y ?? this.groupConfig.scale;
+
+    return `translate(${this.groupConfig.svg.xpos} ${this.groupConfig.svg.ypos}) scale(${scaleX} ${scaleY}) translate(${-this.groupConfig.svg.xpos} ${-this.groupConfig.svg.ypos})`;
+  }
+
+  /**
+   * Combines group transforms with rotation and flip transforms for the gauge group.
    */
   getGroupTransform() {
     return [
+      this.getGroupRotateTransform(),
+      this.getGroupScaleTransform(),
       this.getRotateTransform(),
       this.getScaleTransform(),
     ].filter(Boolean).join(' ');
