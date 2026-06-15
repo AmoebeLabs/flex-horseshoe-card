@@ -1017,6 +1017,7 @@ class FlexHorseshoeCard extends LitElement {
       Colors.colorCache = {};
       const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
       Palette.applyAll(this, this.palettes, mode);
+      this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1293,7 +1294,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1601,7 +1602,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1620,7 +1621,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1728,19 +1729,16 @@ class FlexHorseshoeCard extends LitElement {
         throw Error('No layout defined');
       }
       if (config?.palettes) {
+        this.palettesLoaded = false;
         Palette.loadAll(config?.palettes).then((palettes) => {
           this.palettes = palettes;
           const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
           Colors.setElement(this);
           Palette.applyAll(this, palettes, mode);
-          if (!this.palettesLoaded) {
-            Colors.colorCache = {};
-            Object.keys(Colors.colorCache)
-              .filter((key) => key.startsWith('var('))
-              .forEach((key) => delete Colors.colorCache[key]);
-            this.palettesLoaded = true;
-            this.setHass(this._hass, true);
-          }
+          Colors.colorCache = {};
+          this.palettesLoaded = true;
+          this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
+          this.setHass(this._hass, true);
           this.requestUpdate();
         });
       }
@@ -2119,6 +2117,10 @@ ${this._renderHorseshoeGauges()}
   }
 
   _renderHorseShoes() {
+    if (this.config?.layout?.horseshoes_v2 === 'legacy') {
+      return svg``;
+    }
+
     return svg`
     ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
   `;

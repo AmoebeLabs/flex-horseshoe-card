@@ -1,4 +1,5 @@
 import { svg } from 'lit';
+import Colors from './colors.js';
 import {
   createValueAnimatorState,
   DEFAULT_STATE_ANIMATION,
@@ -42,11 +43,53 @@ export default class HorseshoeGauge {
    * @returns {Array<HorseshoeGauge>} Configured gauge instances.
    */
   static setConfig(config, templates, cardId, card) {
-    const horseshoes = Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : [];
+    const horseshoes = config.layout?.horseshoes_v2 === 'legacy'
+      ? [HorseshoeGauge.getLegacyRootConfig(config)]
+      : Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : [];
 
     return horseshoes
-      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index), index, templates, cardId, card))
+      .filter(Boolean)
+      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, config.layout?.groups), index, templates, cardId, card))
       .filter((horseshoe) => horseshoe.show?.horseshoe !== false);
+  }
+
+  /**
+   * Copies the root-level legacy horseshoe fields into one v2 gauge config for test rendering.
+   *
+   * @param {object} config - Full card configuration.
+   * @returns {object|undefined} Root legacy horseshoe config for the v2 renderer.
+   */
+  static getLegacyRootConfig(config) {
+    const legacyConfig = {};
+
+    [
+      'entity_index',
+      'show',
+      'horseshoe_position',
+      'horseshoe_scale',
+      'horseshoe_state',
+      'horseshoe_labels',
+      'horseshoe_tickmarks',
+      'color_stops',
+      'colorstops',
+      'styles',
+      'bar_mode',
+      'radius',
+      'tickmarks_radius',
+      'arc_degrees',
+      'start_angle',
+      'rotate',
+      'flip',
+      'xpos',
+      'ypos',
+      'yposc',
+    ].forEach((field) => {
+      if (config[field] !== undefined) {
+        legacyConfig[field] = config[field];
+      }
+    });
+
+    return Object.keys(legacyConfig).length ? legacyConfig : undefined;
   }
 
   /**
@@ -141,6 +184,11 @@ export default class HorseshoeGauge {
       return svg``;
     }
 
+    // External palettes must be applied before static gradient/tick path items are cached.
+    if (this.card?.config?.palettes && !this.card.palettesLoaded) {
+      return svg``;
+    }
+
     const groupTransform = this.geometry.getGroupTransform();
 
     return svg`
@@ -173,9 +221,11 @@ export default class HorseshoeGauge {
       start_angle: this.runtimeConfig.start_angle,
       rotate: this.runtimeConfig.rotate,
       flip: this.runtimeConfig.flip,
+      group_config: this.runtimeConfig.group_config,
       bar_mode: this.runtimeConfig.bar_mode,
       zero_ratio: this.runtimeConfig.zero_ratio,
       colorStops: this.runtimeConfig.colorStops,
+      colorStopsMinMax: this.runtimeConfig.colorStopsMinMax,
       horseshoe_scale: this.runtimeConfig.horseshoe_scale,
       horseshoe_state: {
         width: this.runtimeConfig.horseshoe_state.width,
@@ -204,6 +254,14 @@ export default class HorseshoeGauge {
   }
 
   /**
+   * Clears cached static path and label items after external CSS variables change.
+   */
+  clearPathItemCache() {
+    this.pathItemCache.clear();
+    this.pathItemCacheKey = undefined;
+  }
+
+  /**
    * Returns a cached item collection, building it on first use for this runtime cycle.
    *
    * @param {string} key - Cache key for the item collection.
@@ -212,7 +270,14 @@ export default class HorseshoeGauge {
    */
   getCachedPathItems(key, builder) {
     if (!this.pathItemCache.has(key)) {
-      this.pathItemCache.set(key, builder());
+      Colors.unresolvedColor = false;
+      const pathItems = builder();
+
+      if (Colors.unresolvedColor) {
+        return pathItems;
+      }
+
+      this.pathItemCache.set(key, pathItems);
     }
 
     return this.pathItemCache.get(key);
