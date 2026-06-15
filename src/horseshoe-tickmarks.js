@@ -41,7 +41,7 @@ function degreesToArcLength(lengthDeg, radius) {
 /**
  * Resolves the fill color for one tick based on fixed or color-stop mode.
  */
-function getTickColor(tickConfig, value, runtimeConfig) {
+function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
   const colorMode = tickConfig?.color_mode;
 
   if (colorMode === 'colorstop') {
@@ -52,7 +52,7 @@ function getTickColor(tickConfig, value, runtimeConfig) {
     return Colors.calculateStrokeColor(value, runtimeConfig.colorStops, true);
   }
 
-  return tickConfig?.color ?? runtimeConfig.horseshoe_scale.color;
+  return tickConfig?.color ?? tickStyles.fill;
 }
 
 /**
@@ -211,10 +211,20 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         },
       );
 
+      const tickFill = getTickColor(tickConfig, tickStyles, value, runtimeConfig);
       const renderStyles = {
         ...baseRenderStyles,
-        fill: getTickColor(tickConfig, value, runtimeConfig),
+        fill: tickFill ?? tickStyles.fill,
       };
+
+      if (tickFill === undefined && runtimeConfig.dev?.debug_colors) {
+        console.log('[horseshoe-tickmarks] unresolved tick fill', {
+          layerName,
+          value,
+          colorMode: tickConfig.color_mode,
+          colorStops: runtimeConfig.colorStops,
+        });
+      }
 
       return {
         key: `${layerName}-${index}`,
