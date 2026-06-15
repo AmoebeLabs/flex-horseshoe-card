@@ -1,19 +1,11 @@
 /* eslint-disable max-classes-per-file */
 
+import { clamp } from './frontend_mods/common/number/clamp.ts';
+
 /**
  * Conversion factor used by point projection helpers.
  */
 const DEG_TO_RAD = Math.PI / 180;
-
-/**
- * Restricts a numeric value to an inclusive range.
- *
- * @param {number} value - Value to clamp.
- * @param {number} min - Lower bound.
- * @param {number} max - Upper bound.
- * @returns {number} Clamped value.
- */
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 /**
  * Cubic Hermite spline used by the original spline scale type.

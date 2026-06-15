@@ -1,3 +1,5 @@
+import { clamp } from './frontend_mods/common/number/clamp.ts';
+
 /**
  * Default state animation settings used when the horseshoe state has no override.
  */
@@ -7,16 +9,6 @@ export const DEFAULT_STATE_ANIMATION = {
   easing: 'ease-out',
   debug: false,
 };
-
-/**
- * Restricts a numeric value to an inclusive range.
- *
- * @param {number} value - Value to clamp.
- * @param {number} min - Lower bound.
- * @param {number} max - Upper bound.
- * @returns {number} Clamped value.
- */
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 /**
  * Creates the mutable state object used by requestAnimationFrame value animations.

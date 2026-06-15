@@ -1,4 +1,5 @@
 import ColorStops from './color-stops.js';
+import { clamp } from './frontend_mods/common/number/clamp.ts';
 import { SVG_VIEW_BOX } from './const.js';
 
 /**
@@ -10,11 +11,6 @@ const DEFAULT_STATE_ANIMATION = {
   easing: 'ease-out',
   debug: false,
 };
-
-/**
- * Restricts a numeric value to an inclusive range.
- */
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 /**
  * Normalizes style configuration arrays and objects into a single object.
