@@ -81,6 +81,8 @@ export default class HorseshoeGauge {
     this.valueAnimator = createValueAnimatorState();
 
     this.statePathElements = new Map();
+    this.pathItemCache = new Map();
+    this.pathItemCacheKey = undefined;
   }
 
   /**
@@ -113,6 +115,7 @@ export default class HorseshoeGauge {
     // Recreate scale and geometry after template resolution so spline anchors and layout stay current.
     this.scale = new GaugeScale(this.runtimeConfig.horseshoe_scale);
     this.geometry = new GaugeGeometry(this.runtimeConfig, this.scale);
+    this.refreshPathItemCacheKey();
 
     // The first state assignment initializes the display value without animating from an empty state.
     if (!Number.isFinite(this.displayValue)) {
@@ -158,10 +161,71 @@ export default class HorseshoeGauge {
   }
 
   /**
+   * Builds a stable key for config that can affect cached path and label items.
+   *
+   * @returns {string} Cache key for render-relevant static item inputs.
+   */
+  getPathItemCacheKey() {
+    return JSON.stringify({
+      show: this.runtimeConfig.show,
+      svg: this.runtimeConfig.svg,
+      arc_degrees: this.runtimeConfig.arc_degrees,
+      start_angle: this.runtimeConfig.start_angle,
+      rotate: this.runtimeConfig.rotate,
+      flip: this.runtimeConfig.flip,
+      bar_mode: this.runtimeConfig.bar_mode,
+      zero_ratio: this.runtimeConfig.zero_ratio,
+      colorStops: this.runtimeConfig.colorStops,
+      horseshoe_scale: this.runtimeConfig.horseshoe_scale,
+      horseshoe_state: {
+        width: this.runtimeConfig.horseshoe_state.width,
+        linecap: this.runtimeConfig.horseshoe_state.linecap,
+        mode: this.runtimeConfig.horseshoe_state.mode,
+        segment_gap: this.runtimeConfig.horseshoe_state.segment_gap,
+        color: this.runtimeConfig.horseshoe_state.color,
+        styles: this.runtimeConfig.horseshoe_state.styles,
+      },
+      state_map: this.runtimeConfig.state_map,
+      horseshoe_labels: this.runtimeConfig.horseshoe_labels,
+      horseshoe_tickmarks: this.runtimeConfig.horseshoe_tickmarks,
+    });
+  }
+
+  /**
+   * Clears cached path and label items after render-relevant config changes.
+   */
+  refreshPathItemCacheKey() {
+    const nextCacheKey = this.getPathItemCacheKey();
+
+    if (nextCacheKey !== this.pathItemCacheKey) {
+      this.pathItemCache.clear();
+      this.pathItemCacheKey = nextCacheKey;
+    }
+  }
+
+  /**
+   * Returns a cached item collection, building it on first use for this runtime cycle.
+   *
+   * @param {string} key - Cache key for the item collection.
+   * @param {Function} builder - Builder invoked when the key is not cached.
+   * @returns {*} Cached builder result.
+   */
+  getCachedPathItems(key, builder) {
+    if (!this.pathItemCache.has(key)) {
+      this.pathItemCache.set(key, builder());
+    }
+
+    return this.pathItemCache.get(key);
+  }
+
+  /**
    * Renders the static scale layer.
    */
   renderScale() {
-    const scalePathItems = buildScalePathItems(this.runtimeConfig, this.geometry);
+    const scalePathItems = this.getCachedPathItems(
+      'scalePathItems',
+      () => buildScalePathItems(this.runtimeConfig, this.geometry),
+    );
 
     return renderScaleLayer(this.runtimeConfig, this.geometry, scalePathItems);
   }
@@ -183,7 +247,10 @@ export default class HorseshoeGauge {
    * Renders major and minor tickmark paths.
    */
   renderTickmarks() {
-    const tickPathItems = buildTickPathItems(this.runtimeConfig, this.geometry);
+    const tickPathItems = this.getCachedPathItems(
+      'tickPathItems',
+      () => buildTickPathItems(this.runtimeConfig, this.geometry),
+    );
 
     return renderTickmarksLayer(tickPathItems);
   }
@@ -192,7 +259,10 @@ export default class HorseshoeGauge {
    * Renders the optional tickmark background layer.
    */
   renderTickmarkBackground() {
-    const backgroundItems = buildTickBackgroundItems(this.runtimeConfig, this.geometry);
+    const backgroundItems = this.getCachedPathItems(
+      'tickmarkBackgroundItems',
+      () => buildTickBackgroundItems(this.runtimeConfig, this.geometry),
+    );
 
     return renderTickmarkBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
   }
@@ -201,7 +271,10 @@ export default class HorseshoeGauge {
    * Renders labels after resolving label positions.
    */
   renderLabels() {
-    const labelItems = buildLabelItems(this.runtimeConfig, this.geometry, this.scale);
+    const labelItems = this.getCachedPathItems(
+      'labelItems',
+      () => buildLabelItems(this.runtimeConfig, this.geometry, this.scale),
+    );
 
     return renderLabelsLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
   }
@@ -210,7 +283,10 @@ export default class HorseshoeGauge {
    * Renders the optional label background layer.
    */
   renderLabelBackground() {
-    const backgroundItems = buildLabelBackgroundItems(this.runtimeConfig, this.geometry);
+    const backgroundItems = this.getCachedPathItems(
+      'labelBackgroundItems',
+      () => buildLabelBackgroundItems(this.runtimeConfig, this.geometry),
+    );
 
     return renderLabelBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
   }
@@ -219,7 +295,10 @@ export default class HorseshoeGauge {
    * Renders optional label badge shapes.
    */
   renderLabelBadges() {
-    const labelItems = buildLabelItems(this.runtimeConfig, this.geometry, this.scale);
+    const labelItems = this.getCachedPathItems(
+      'labelItems',
+      () => buildLabelItems(this.runtimeConfig, this.geometry, this.scale),
+    );
 
     return renderLabelBadgesLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
   }

@@ -72,7 +72,15 @@ export function renderStateLayer(runtimeConfig, statePathItems, cardId, horsesho
         // Inactive mapped segments render with the scale style so only the active segment stands out.
         const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
         const fill = pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
-        const opacity = pathItem.path ? '1' : '0';
+        const renderStyle = {
+          ...arcBaseStyle,
+          fill,
+        };
+
+        if (!pathItem.path) {
+          renderStyle.opacity = '0';
+        }
+
         const pathElementId = getStatePathElementId(cardId, horseshoeIndex, pathItem.key);
 
         return svg`
@@ -81,8 +89,7 @@ export function renderStateLayer(runtimeConfig, statePathItems, cardId, horsesho
             data-horseshoe-state-path="${pathElementId}"
             class="horseshoe__state"
             d="${pathItem.path}"
-            fill="${fill}"
-            opacity="${opacity}"
+            style=${styleMap(renderStyle)}
           ></path>
         `;
       })}
@@ -250,7 +257,6 @@ export function renderTickmarksLayer(tickPathItems) {
         <path
           class="${pathItem.className}"
           d="${pathItem.path}"
-          fill="${pathItem.fill}"
           data-value="${pathItem.value ?? ''}"
           data-thickness="${pathItem.thickness ?? ''}"
           data-start-angle="${pathItem.startAngle ?? ''}"
@@ -332,10 +338,20 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
 
     const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
     const fill = pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
+    const renderStyle = {
+      ...arcBaseStyle,
+      fill,
+    };
 
-    // Only the mutable path attributes are updated during animation frames.
+    if (!pathItem.path) {
+      renderStyle.opacity = '0';
+    }
+
+    // Only the mutable path data and style are updated during animation frames.
     pathElement.setAttribute('d', pathItem.path || '');
-    pathElement.setAttribute('fill', fill);
-    pathElement.setAttribute('opacity', pathItem.path ? '1' : '0');
+    pathElement.setAttribute(
+      'style',
+      Object.entries(renderStyle).map(([property, value]) => `${property}: ${value}`).join('; '),
+    );
   });
 }

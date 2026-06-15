@@ -161,7 +161,7 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
 
   const tickStyles = ConfigHelper.toStyleDict(tickConfig.styles);
   // Tickmarks are filled paths; default stroke width is neutralized unless configured explicitly.
-  const renderStyles = {
+  const baseRenderStyles = {
     ...tickStyles,
     'stroke-width': tickStyles['stroke-width'] ?? 0,
   };
@@ -211,6 +211,11 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         },
       );
 
+      const renderStyles = {
+        ...baseRenderStyles,
+        fill: getTickColor(tickConfig, value, runtimeConfig),
+      };
+
       return {
         key: `${layerName}-${index}`,
         path,
@@ -218,7 +223,6 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         thickness,
         startAngle,
         endAngle,
-        fill: tickStyles.fill ?? getTickColor(tickConfig, value, runtimeConfig),
         styles: renderStyles,
         className: layerName === 'major' ? 'horseshoe__tick-major' : 'horseshoe__tick-minor',
       };
