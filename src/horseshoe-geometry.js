@@ -379,6 +379,7 @@ export class GaugeGeometry {
     this.rotation = Number(config.rotate ?? 0);
     this.flip = config.flip ?? 'none';
     this.groupConfig = config.group_config;
+    this.barMode = config.bar_mode;
 
     this.zeroRatio = config.zero_ratio;
     this.zeroAngle = this.ratioToAngle(this.zeroRatio);
@@ -496,10 +497,60 @@ export class GaugeGeometry {
   }
 
   /**
+   * Converts a scale value into the raw configured scale ratio.
+   *
+   * @param {number} value - Scale value to map.
+   * @returns {number} Normalized scale position without bar-mode remapping.
+   */
+  scaleValueToRatio(value) {
+    return this.scale.toRatio(value);
+  }
+
+  /**
+   * Converts a scale value into an absolute angle using the raw scale mapping.
+   *
+   * @param {number} value - Scale value to map.
+   * @returns {number} Absolute arc angle.
+   */
+  scaleValueToAngle(value) {
+    return this.ratioToAngle(this.scaleValueToRatio(value));
+  }
+
+  /**
+   * Converts a scale value into a visual ratio after bar-mode remapping.
+   *
+   * @param {number} value - Scale value to map.
+   * @returns {number} Normalized visual arc position.
+   */
+  valueToRatio(value) {
+    const numericValue = Number(value);
+    const symmetricalBidirectional = this.barMode === 'bidirectional' || this.barMode === 'bidirectional_symmetrical';
+
+    if (!symmetricalBidirectional || this.scale.min >= 0 || this.scale.max <= 0) {
+      return this.scaleValueToRatio(numericValue);
+    }
+
+    const zeroScaleRatio = this.scaleValueToRatio(0);
+
+    if (numericValue < 0) {
+      const valueRatio = this.scaleValueToRatio(numericValue);
+      const sideRatio = zeroScaleRatio > 0 ? valueRatio / zeroScaleRatio : 0;
+
+      return 0.5 * clamp(sideRatio, 0, 1);
+    }
+
+    const valueRatio = this.scaleValueToRatio(numericValue);
+    const positiveRange = 1 - zeroScaleRatio;
+    const sideRatio = positiveRange > 0 ? (valueRatio - zeroScaleRatio) / positiveRange : 0;
+
+    return 0.5 + 0.5 * clamp(sideRatio, 0, 1);
+  }
+
+  /**
    * Converts a scale value into an absolute arc angle.
    */
   valueToAngle(value) {
-    return this.ratioToAngle(this.scale.toRatio(value));
+    return this.ratioToAngle(this.valueToRatio(value));
   }
 
   /**

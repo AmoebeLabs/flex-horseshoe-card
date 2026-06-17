@@ -16,6 +16,58 @@ export function getStatePathElementId(cardId, horseshoeIndex, pathKey) {
 }
 
 /**
+ * Builds the stable SVG gradient id for v2 lineargradient state rendering.
+ *
+ * @param {string} cardId - Card id namespace.
+ * @param {number} horseshoeIndex - Gauge index.
+ * @returns {string} SVG linearGradient id.
+ */
+function getStateGradientId(cardId, horseshoeIndex) {
+  return `horseshoe-state-gradient-${cardId}-${horseshoeIndex}`;
+}
+
+/**
+ * Renders the v2 lineargradient definition used by the state band fill.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {object} geometry - Geometry helper for arc endpoint projection.
+ * @param {Array<object>} statePathItems - Renderable state path items.
+ * @param {string} cardId - Card id namespace.
+ * @param {number} horseshoeIndex - Gauge index.
+ * @returns {TemplateResult|string} SVG defs template or empty string.
+ */
+function renderStateLinearGradient(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex) {
+  if (runtimeConfig.show?.horseshoe_style !== 'lineargradient') {
+    return '';
+  }
+
+  const colorStops = runtimeConfig.colorStops.colors;
+  const color0 = colorStops[0].color;
+  const color1 = colorStops[colorStops.length - 1].color;
+  const color1Offset = statePathItems.find((pathItem) => pathItem.arc.gradientOffset)?.arc.gradientOffset ?? '0%';
+  const gradientId = getStateGradientId(cardId, horseshoeIndex);
+  const startPoint = geometry.pointAt(geometry.startAngle, geometry.radius);
+  const endPoint = geometry.pointAt(geometry.endAngle, geometry.radius);
+
+  return svg`
+    <defs>
+      <linearGradient
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="rotate(0)"
+        id="${gradientId}"
+        x1="${startPoint.x}"
+        y1="${startPoint.y}"
+        x2="${endPoint.x}"
+        y2="${endPoint.y}"
+      >
+        <stop id="${gradientId}-color1" offset="${color1Offset}" stop-color="${color1}" style="transition: stop-color 1s ease;"></stop>
+        <stop offset="100%" stop-color="${color0}" style="transition: stop-color 1s ease;"></stop>
+      </linearGradient>
+    </defs>
+  `;
+}
+
+/**
  * Renders the scale path items into the scale SVG layer.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
@@ -57,7 +109,7 @@ export function renderScaleLayer(runtimeConfig, geometry, scalePathItems) {
  * @param {number} horseshoeIndex - Gauge index.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderStateLayer(runtimeConfig, statePathItems, cardId, horseshoeIndex) {
+export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex) {
   const stateStyle = {
     ...runtimeConfig.horseshoe_state.styles,
   };
@@ -66,12 +118,17 @@ export function renderStateLayer(runtimeConfig, statePathItems, cardId, horsesho
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
+  const gradientId = getStateGradientId(cardId, horseshoeIndex);
+
   return svg`
     <g class="horseshoe__state-layer">
+      ${renderStateLinearGradient(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex)}
       ${statePathItems.map((pathItem) => {
         // Inactive mapped segments render with the scale style so only the active segment stands out.
         const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
-        const fill = pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
+        const fill = runtimeConfig.show?.horseshoe_style === 'lineargradient' && pathItem.arc.active !== false
+          ? `url('#${gradientId}')`
+          : pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
         const renderStyle = {
           ...arcBaseStyle,
           fill,
@@ -329,6 +386,17 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
+  const gradientId = getStateGradientId(cardId, horseshoeIndex);
+  const gradientColor1Stop = card.renderRoot?.querySelector(`#${gradientId}-color1`);
+
+  if (runtimeConfig.show?.horseshoe_style === 'lineargradient' && gradientColor1Stop) {
+    const color1Offset = statePathItems.find((pathItem) => pathItem.arc.gradientOffset)?.arc.gradientOffset;
+
+    if (color1Offset) {
+      gradientColor1Stop.setAttribute('offset', color1Offset);
+    }
+  }
+
   statePathItems.forEach((pathItem) => {
     const pathElement = getStatePathElement(statePathElements, card, cardId, horseshoeIndex, pathItem);
 
@@ -337,7 +405,9 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
     }
 
     const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
-    const fill = pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
+    const fill = runtimeConfig.show?.horseshoe_style === 'lineargradient' && pathItem.arc.active !== false
+      ? `url('#${gradientId}')`
+      : pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
     const renderStyle = {
       ...arcBaseStyle,
       fill,

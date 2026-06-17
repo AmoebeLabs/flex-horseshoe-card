@@ -301,6 +301,19 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     ];
   }
 
+  if (strokeStyle === 'lineargradient') {
+    return [
+      {
+        key: 'state-value',
+        startAngle: fromAngle,
+        endAngle: toAngle,
+        startCap: runtimeConfig.horseshoe_state.linecap.start,
+        endCap: runtimeConfig.horseshoe_state.linecap.end,
+        gradientOffset: '0%',
+      },
+    ];
+  }
+
   if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
     return [
       {
@@ -407,7 +420,7 @@ function buildStateArcs(runtimeConfig, geometry, value) {
     return buildMappedStateArcs(runtimeConfig, geometry, value);
   }
 
-  if (runtimeConfig.bar_mode === 'bidirectional') {
+  if (runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear') {
     return buildBidirectionalStateArcs(runtimeConfig, geometry, value);
   }
 
@@ -472,14 +485,12 @@ export function buildScalePathItems(runtimeConfig, geometry) {
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
  * @param {GaugeGeometry} geometry - Geometry helper for angle and point projection.
- * @param {GaugeScale} scale - Scale mapper used to position the label value.
  * @param {object} labelConfig - Label stop metadata.
  * @returns {object} Positioned label item for the renderer.
  */
-function buildLabelItem(runtimeConfig, geometry, scale, labelConfig = {}) {
+function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
   const value = Number(labelConfig.value);
-  const ratio = scale.toRatio(value);
-  const angle = geometry.ratioToAngle(ratio);
+  const angle = geometry.valueToAngle(value);
   const radius = geometry.radius + Number(runtimeConfig.horseshoe_labels.offset ?? runtimeConfig.horseshoe_state.width + 2);
   const point = geometry.pointAt(angle, radius);
 
@@ -529,6 +540,14 @@ function buildLabelStopItems(runtimeConfig) {
   if (labelsAt === 'minmax') {
     labelStops = [
       { value: min, text: String(min), role: 'min' },
+      { value: max, text: String(max), role: 'max' },
+    ];
+  }
+
+  if (labelsAt === 'minmax0') {
+    labelStops = [
+      { value: min, text: String(min), role: 'min' },
+      { value: 0, text: '0', role: 'zero' },
       { value: max, text: String(max), role: 'max' },
     ];
   }
@@ -630,11 +649,10 @@ function buildLabelStopItems(runtimeConfig) {
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
  * @param {GaugeGeometry} geometry - Geometry helper for label positions.
- * @param {GaugeScale} scale - Scale mapper used to position labels.
  * @returns {Array<object>} Positioned label items.
  */
-export function buildLabelItems(runtimeConfig, geometry, scale) {
-  return buildLabelStopItems(runtimeConfig).map((labelStop) => buildLabelItem(runtimeConfig, geometry, scale, labelStop));
+export function buildLabelItems(runtimeConfig, geometry) {
+  return buildLabelStopItems(runtimeConfig).map((labelStop) => buildLabelItem(runtimeConfig, geometry, labelStop));
 }
 
 /**

@@ -150,6 +150,8 @@ export function normalizeRuntimeConfig(config) {
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
   const arcDegrees = config.arc_degrees ?? 260;
+  const barMode = config.bar_mode ?? 'normal';
+  const symmetricalBidirectional = barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical';
   const groupConfig = config.group_config;
   const groupCenterOffset = 50;
   const itemXpos = config.xpos ?? config.horseshoe_position?.xpos ?? config.horseshoe_position?.cx ?? 50;
@@ -189,8 +191,8 @@ export function normalizeRuntimeConfig(config) {
     },
 
     start_angle: config.start_angle ?? 90 + (360 - arcDegrees) / 2,
-    bar_mode: config.bar_mode ?? 'normal',
-    zero_ratio: config.zero_ratio ?? getZeroRatio(horseshoeScale),
+    bar_mode: barMode,
+    zero_ratio: config.zero_ratio ?? (symmetricalBidirectional ? 0.5 : getZeroRatio(horseshoeScale)),
 
     state_map: stateMap,
 
