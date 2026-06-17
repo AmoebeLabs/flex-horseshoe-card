@@ -193,6 +193,67 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
 }
 
 /**
+ * Renders arc background items for a configured horseshoe-related layer.
+ *
+ * @param {GaugeGeometry} geometry - Geometry helper for background arcs.
+ * @param {Array<object>} backgroundItems - Background arc items.
+ * @param {object} options - Layer class, item class, and normalized styles.
+ * @returns {TemplateResult} SVG layer template.
+ */
+function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
+  if (!backgroundItems.length) {
+    return svg``;
+  }
+
+  const {
+    layerClass,
+    itemClass,
+    styles = {},
+  } = options;
+
+  const { filter, ...pathStyles } = styles;
+  const groupStyle = filter ? { filter } : {};
+
+  return svg`
+    <g class=${layerClass} style=${styleMap(groupStyle)}>
+      ${backgroundItems.map((backgroundItem) => {
+        const renderStyle = {
+          'stroke-width': 0,
+          ...pathStyles,
+          fill: backgroundItem.color ?? pathStyles.fill ?? pathStyles.stroke ?? 'currentColor',
+        };
+
+        return backgroundItem.path
+          ? svg`
+              <path
+                class=${itemClass}
+                d=${backgroundItem.path}
+                style=${styleMap(renderStyle)}
+              ></path>
+            `
+          : svg``;
+      })}
+    </g>
+  `;
+}
+
+/**
+ * Renders the optional horseshoe background arc behind scale and state layers.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for background arcs.
+ * @param {Array<object>} backgroundItems - Horseshoe background arc items.
+ * @returns {TemplateResult} SVG layer template.
+ */
+export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
+  return renderArcBackgroundLayer(geometry, backgroundItems, {
+    layerClass: 'horseshoe__background-layer',
+    itemClass: 'horseshoe__background',
+    styles: runtimeConfig.horseshoe_background.styles,
+  });
+}
+
+/**
  * Renders optional label background arc segments.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
@@ -201,29 +262,11 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
  * @returns {TemplateResult} SVG layer template.
  */
 export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
-  if (!backgroundItems.length) {
-    return svg``;
-  }
-
-  const backgroundStyle = {
-    ...runtimeConfig.horseshoe_labels.background.styles,
-  };
-
-  return svg`
-    <g class="horseshoe__label-background-layer" style=${styleMap(backgroundStyle)}>
-      ${backgroundItems.map((backgroundItem) => HorseshoeLabels.renderArcSegment({
-        cx: geometry.cx,
-        cy: geometry.cy,
-        radius: backgroundItem.radius,
-        startAngle: backgroundItem.startAngle,
-        endAngle: backgroundItem.endAngle,
-        width: backgroundItem.width,
-        color: backgroundItem.color ?? backgroundStyle.stroke ?? 'currentColor',
-        className: 'horseshoe__label-background',
-        lineCap: backgroundItem.lineCap ?? 'round',
-      }))}
-    </g>
-  `;
+  return renderArcBackgroundLayer(geometry, backgroundItems, {
+    layerClass: 'horseshoe__label-background-layer',
+    itemClass: 'horseshoe__label-background',
+    styles: runtimeConfig.horseshoe_labels.background.styles,
+  });
 }
 
 /**
@@ -272,29 +315,11 @@ export function renderLabelBadgesLayer(runtimeConfig, geometry, cardId, horsesho
  * @returns {TemplateResult} SVG layer template.
  */
 export function renderTickmarkBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
-  if (!backgroundItems.length) {
-    return svg``;
-  }
-
-  const backgroundStyle = {
-    ...runtimeConfig.horseshoe_tickmarks.background.styles,
-  };
-
-  return svg`
-    <g class="horseshoe__tick-background-layer" style=${styleMap(backgroundStyle)}>
-      ${backgroundItems.map((backgroundItem) => HorseshoeLabels.renderArcSegment({
-        cx: geometry.cx,
-        cy: geometry.cy,
-        radius: backgroundItem.radius,
-        startAngle: backgroundItem.startAngle,
-        endAngle: backgroundItem.endAngle,
-        width: backgroundItem.width,
-        color: backgroundItem.color ?? backgroundStyle.stroke ?? 'currentColor',
-        className: 'horseshoe__tick-background',
-        lineCap: backgroundItem.lineCap ?? 'round',
-      }))}
-    </g>
-  `;
+  return renderArcBackgroundLayer(geometry, backgroundItems, {
+    layerClass: 'horseshoe__tick-background-layer',
+    itemClass: 'horseshoe__tick-background',
+    styles: runtimeConfig.horseshoe_tickmarks.background.styles,
+  });
 }
 
 /**

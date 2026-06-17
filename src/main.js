@@ -2066,6 +2066,42 @@ class FlexHorseshoeCard extends LitElement {
    *      - use align-items: center on the parent container of the svg.
    *
    */
+  /** *****************************************************************************
+   * _renderSvgDefs()
+   *
+   * Summary.
+   * Renders reusable SVG definitions for filters and other shared drawing helpers.
+   */
+  _renderSvgDefs() {
+    return svg`
+      <defs>
+        <filter id="fhs-inset-1" x="-50%" y="-50%" width="400%" height="400%">
+          <feComponentTransfer in="SourceAlpha">
+            <feFuncA type="table" tableValues="1 0"></feFuncA>
+          </feComponentTransfer>
+          <feGaussianBlur stdDeviation="1"></feGaussianBlur>
+          <feOffset dx="0" dy="1" result="offsetblur"></feOffset>
+          <feFlood flood-color="rgba(0, 0, 0, 0.3)" result="color"></feFlood>
+          <feComposite in2="offsetblur" operator="in"></feComposite>
+          <feComposite in2="SourceAlpha" operator="in"></feComposite>
+          <feMerge>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+            <feMergeNode></feMergeNode>
+          </feMerge>
+        </filter>
+
+        <filter id="fhs-inset-2">
+          <feOffset dx="1" dy="1"></feOffset>
+          <feGaussianBlur stdDeviation="0.5" result="offset-blur"></feGaussianBlur>
+          <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
+          <feFlood flood-color="black" flood-opacity="0.4" result="color"></feFlood>
+          <feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
+          <feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
+        </filter>
+      </defs>
+    `;
+  }
+
   _renderSvg() {
     // For some reason, using a var/const for the viewboxsize doesn't work.
     // Even if the Chrome inspector shows 200 200. So hardcode for now!
@@ -2077,6 +2113,7 @@ class FlexHorseshoeCard extends LitElement {
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
+            ${this._renderSvgDefs()}
             <g id="circles" class="circles">
               ${this._renderCircles()}
             </g>

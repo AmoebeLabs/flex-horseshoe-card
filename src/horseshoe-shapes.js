@@ -208,6 +208,123 @@ export function buildScaleArcs(runtimeConfig, geometry) {
 }
 
 /**
+ * Builds fixed or color-stop arc background items for horseshoe-related layers.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for background arcs.
+ * @param {object} options - Background mode, dimensions, and key metadata.
+ * @returns {Array<object>} Background arc items.
+ */
+export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
+  const {
+    mode = 'none',
+    config = {},
+    radius = geometry.radius,
+    width = 6,
+    gap = 0,
+    keyPrefix = 'background',
+  } = options;
+
+  if (mode === 'none') {
+    return [];
+  }
+
+  if (mode === 'colorstop') {
+    const colorStops = asArray(runtimeConfig.colorStops?.colors);
+
+    if (!colorStops.length) {
+      return [];
+    }
+
+    const backgroundItems = [];
+    const minValue = Number(runtimeConfig.horseshoe_scale.min);
+    const maxValue = Number(runtimeConfig.horseshoe_scale.max);
+    const stopPoints = colorStops.map((stop) => ({
+      value: Number(stop.value),
+      color: stop.color,
+    }));
+    // Synthetic min/max points cover the full scale, unless the config already defines them.
+    const segmentPoints = [
+      ...(stopPoints[0]?.value === minValue ? [] : [{ value: minValue, color: colorStops[0].color }]),
+      ...stopPoints,
+      ...(stopPoints[stopPoints.length - 1]?.value === maxValue ? [] : [{ value: maxValue, color: colorStops[colorStops.length - 1].color }]),
+    ];
+
+    for (let i = 0; i < segmentPoints.length - 1; i += 1) {
+      const pointA = segmentPoints[i];
+      const pointB = segmentPoints[i + 1];
+      const startAngle = geometry.valueToAngle(pointA.value);
+      const endAngle = geometry.valueToAngle(pointB.value);
+      const isFirst = i === 0;
+      const isLast = i === segmentPoints.length - 2;
+      // Preserve the outside caps while applying gaps only between internal segments.
+      const drawStartAngle = isFirst ? startAngle : startAngle + gap / 2;
+      const drawEndAngle = isLast ? endAngle : endAngle - gap / 2;
+
+      if (drawEndAngle > drawStartAngle) {
+        const lineCap = config.linecap ?? 'round';
+        const arc = {
+          key: `${keyPrefix}-colorstop-${i}`,
+          startAngle: drawStartAngle,
+          endAngle: drawEndAngle,
+          startCap: isFirst ? lineCap : 'butt',
+          endCap: isLast ? lineCap : 'butt',
+        };
+
+        backgroundItems.push({
+          key: arc.key,
+          arc,
+          path: ArcPathBuilder.buildBandPath({
+            geometry,
+            arc,
+            band: { radius, width },
+          }),
+          startAngle: drawStartAngle,
+          endAngle: drawEndAngle,
+          radius,
+          width,
+          color: pointA.color,
+          lineCap,
+        });
+      }
+    }
+
+    return backgroundItems;
+  }
+
+  if (mode === 'fixed') {
+    const lineCap = config.linecap ?? 'round';
+    const arc = {
+      key: `${keyPrefix}-fixed`,
+      startAngle: geometry.startAngle,
+      endAngle: geometry.endAngle,
+      startCap: lineCap,
+      endCap: lineCap,
+    };
+
+    return [
+      {
+        key: arc.key,
+        arc,
+        path: ArcPathBuilder.buildBandPath({
+          geometry,
+          arc,
+          band: { radius, width },
+        }),
+        startAngle: geometry.startAngle,
+        endAngle: geometry.endAngle,
+        radius,
+        width,
+        color: config.color,
+        lineCap,
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
  * Builds state arc segments clipped to the active value range and color stops.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
@@ -664,82 +781,43 @@ export function buildLabelItems(runtimeConfig, geometry) {
  */
 export function buildLabelBackgroundItems(runtimeConfig, geometry) {
   const backgroundMode = runtimeConfig.show.label_background ?? 'none';
-
-  if (backgroundMode === 'none') {
-    return [];
-  }
-
   const backgroundConfig = runtimeConfig.horseshoe_labels.background ?? {};
   const radius = geometry.radius + Number(runtimeConfig.horseshoe_labels.offset ?? runtimeConfig.horseshoe_state.width + 2);
   const width = Number(backgroundConfig.width ?? 6);
   const gap = Number(backgroundConfig.gap ?? 0);
 
-  if (backgroundMode === 'colorstop') {
-    const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  return buildArcBackgroundItems(runtimeConfig, geometry, {
+    mode: backgroundMode,
+    config: backgroundConfig,
+    radius,
+    width,
+    gap,
+    keyPrefix: 'label-background',
+  });
+}
 
-    if (colorStops.length < 1) {
-      return [];
-    }
+/**
+ * Builds the optional horseshoe background arc behind scale and state layers.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for background arcs.
+ * @returns {Array<object>} Horseshoe background arc items.
+ */
+export function buildHorseshoeBackgroundItems(runtimeConfig, geometry) {
+  const backgroundMode = runtimeConfig.show.horseshoe_background ?? 'none';
+  const backgroundConfig = runtimeConfig.horseshoe_background ?? {};
+  const radius = geometry.radius + Number(backgroundConfig.offset ?? 0);
+  const width = Number(backgroundConfig.width ?? runtimeConfig.horseshoe_scale.width ?? runtimeConfig.horseshoe_state.width ?? 6);
+  const gap = Number(backgroundConfig.gap ?? runtimeConfig.colorStops?.gap ?? 0);
 
-    const colorSegments = [];
-    // Add synthetic min/max points so label backgrounds cover the full configured scale.
-    const segmentPoints = [
-      {
-        value: runtimeConfig.horseshoe_scale.min,
-        color: colorStops[0].color,
-      },
-      ...colorStops.map((stop) => ({
-        value: Number(stop.value),
-        color: stop.color,
-      })),
-      {
-        value: runtimeConfig.horseshoe_scale.max,
-        color: colorStops[colorStops.length - 1].color,
-      },
-    ];
-
-    for (let i = 0; i < segmentPoints.length - 1; i += 1) {
-      const pointA = segmentPoints[i];
-      const pointB = segmentPoints[i + 1];
-      const startAngle = geometry.valueToAngle(pointA.value);
-      const endAngle = geometry.valueToAngle(pointB.value);
-      const isFirst = i === 0;
-      const isLast = i === segmentPoints.length - 2;
-      // Preserve the outside caps while applying gaps only between internal background segments.
-      const drawStartAngle = isFirst ? startAngle : startAngle + gap / 2;
-      const drawEndAngle = isLast ? endAngle : endAngle - gap / 2;
-
-      if (drawEndAngle > drawStartAngle) {
-        colorSegments.push({
-          key: `label-background-colorstop-${i}`,
-          startAngle: drawStartAngle,
-          endAngle: drawEndAngle,
-          radius,
-          width,
-          color: pointA.color,
-          lineCap: 'butt',
-        });
-      }
-    }
-
-    return colorSegments;
-  }
-
-  if (backgroundMode === 'fixed') {
-    return [
-      {
-        key: 'label-background-fixed',
-        startAngle: geometry.startAngle,
-        endAngle: geometry.endAngle,
-        radius,
-        width,
-        color: backgroundConfig.color,
-        lineCap: 'round',
-      },
-    ];
-  }
-
-  return [];
+  return buildArcBackgroundItems(runtimeConfig, geometry, {
+    mode: backgroundMode,
+    config: backgroundConfig,
+    radius,
+    width,
+    gap,
+    keyPrefix: 'horseshoe-background',
+  });
 }
 
 /**

@@ -1,6 +1,6 @@
 import Colors from './colors.js';
 import ConfigHelper from './config-helper.js';
-import { buildBandPath } from './horseshoe-shapes.js';
+import { buildArcBackgroundItems, buildBandPath } from './horseshoe-shapes.js';
 
 /**
  * Builds numeric tick values from min to max using the configured tick size.
@@ -56,59 +56,6 @@ function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
 }
 
 /**
- * Builds tick background segments from configured color stops.
- */
-function buildColorStopTickBackgroundItems(runtimeConfig, geometry, backgroundConfig, radius, width, gap) {
-  const colorStops = Array.isArray(runtimeConfig.colorStops?.colors) ? runtimeConfig.colorStops.colors : [];
-
-  if (!colorStops.length) {
-    return [];
-  }
-
-  const segmentPoints = [
-    {
-      value: runtimeConfig.horseshoe_scale.min,
-      color: colorStops[0].color,
-    },
-    ...colorStops.map((stop) => ({
-      value: Number(stop.value),
-      color: stop.color,
-    })),
-    {
-      value: runtimeConfig.horseshoe_scale.max,
-      color: colorStops[colorStops.length - 1].color,
-    },
-  ];
-
-  const backgroundItems = [];
-
-  for (let i = 0; i < segmentPoints.length - 1; i += 1) {
-    const pointA = segmentPoints[i];
-    const pointB = segmentPoints[i + 1];
-    const isFirst = i === 0;
-    const isLast = i === segmentPoints.length - 2;
-    const startAngle = geometry.valueToAngle(pointA.value);
-    const endAngle = geometry.valueToAngle(pointB.value);
-    const drawStartAngle = isFirst ? startAngle : startAngle + gap / 2;
-    const drawEndAngle = isLast ? endAngle : endAngle - gap / 2;
-
-    if (drawEndAngle > drawStartAngle) {
-      backgroundItems.push({
-        key: `tick-background-colorstop-${i}`,
-        radius,
-        width,
-        color: pointA.color,
-        startAngle: drawStartAngle,
-        endAngle: drawEndAngle,
-        lineCap: 'butt',
-      });
-    }
-  }
-
-  return backgroundItems;
-}
-
-/**
  * Builds the optional fixed or color-stop tickmark background layer items.
  */
 export function buildTickBackgroundItems(runtimeConfig, geometry) {
@@ -117,11 +64,6 @@ export function buildTickBackgroundItems(runtimeConfig, geometry) {
   }
 
   const backgroundMode = runtimeConfig.show.tick_background ?? 'none';
-
-  if (backgroundMode === 'none') {
-    return [];
-  }
-
   const tickmarks = runtimeConfig.horseshoe_tickmarks ?? {};
   const backgroundConfig = tickmarks.background ?? {};
   const majorTickConfig = tickmarks.ticks_major ?? {};
@@ -130,25 +72,14 @@ export function buildTickBackgroundItems(runtimeConfig, geometry) {
   const width = Number(backgroundConfig.width ?? majorTickConfig.width ?? minorTickConfig.width ?? 4);
   const gap = Number(backgroundConfig.gap ?? 0);
 
-  if (backgroundMode === 'colorstop') {
-    return buildColorStopTickBackgroundItems(runtimeConfig, geometry, backgroundConfig, radius, width, gap);
-  }
-
-  if (backgroundMode === 'fixed') {
-    return [
-      {
-        key: 'tick-background-fixed',
-        radius,
-        width,
-        color: backgroundConfig.color,
-        startAngle: geometry.startAngle,
-        endAngle: geometry.endAngle,
-        lineCap: 'round',
-      },
-    ];
-  }
-
-  return [];
+  return buildArcBackgroundItems(runtimeConfig, geometry, {
+    mode: backgroundMode,
+    config: backgroundConfig,
+    radius,
+    width,
+    gap,
+    keyPrefix: 'tick-background',
+  });
 }
 
 /**

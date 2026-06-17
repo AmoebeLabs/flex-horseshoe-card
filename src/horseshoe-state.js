@@ -126,6 +126,10 @@ export function normalizeRuntimeConfig(config) {
     ...(config.horseshoe_state ?? {}),
   };
 
+  const horseshoeBackground = {
+    ...(config.horseshoe_background ?? {}),
+  };
+
   const horseshoeLabels = {
     offset: 12,
     ...(config.horseshoe_labels ?? {}),
@@ -200,6 +204,13 @@ export function normalizeRuntimeConfig(config) {
     colorstops: colorStopsConfig,
     colorStops,
     colorStopsMinMax,
+
+    horseshoe_background: {
+      ...horseshoeBackground,
+      styles: {
+        ...ConfigHelper.toStyleDict(horseshoeBackground.styles),
+      },
+    },
 
     horseshoe_scale: {
       ...horseshoeScale,

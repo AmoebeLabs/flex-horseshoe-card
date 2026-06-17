@@ -3,6 +3,7 @@ import Colors from './colors.js';
 import { createValueAnimatorState, DEFAULT_STATE_ANIMATION, getStateAnimationConfig as getAnimatorConfig, startValueAnimation as runValueAnimation } from './horseshoe-animator.js';
 import { GaugeGeometry, GaugeScale } from './horseshoe-geometry.js';
 import {
+  renderHorseshoeBackgroundLayer,
   renderLabelBackgroundLayer,
   renderLabelBadgesLayer,
   renderLabelsLayer,
@@ -12,7 +13,7 @@ import {
   renderTickmarksLayer,
   updateStatePathElements,
 } from './horseshoe-renderer.js';
-import { buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
+import { buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
 import { getGaugeStateData, normalizeBaseConfig } from './horseshoe-state.js';
 import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
@@ -58,6 +59,7 @@ export default class HorseshoeGauge {
       'horseshoe_position',
       'horseshoe_scale',
       'horseshoe_state',
+      'horseshoe_background',
       'horseshoe_labels',
       'horseshoe_tickmarks',
       'color_stops',
@@ -181,6 +183,7 @@ export default class HorseshoeGauge {
         class="horseshoe"
         transform="${groupTransform}"
       >
+        ${this.renderHorseshoeBackground()}
         ${this.renderScale()}
         ${this.renderLabelBackground()}
         ${this.renderTickmarkBackground()}
@@ -210,6 +213,7 @@ export default class HorseshoeGauge {
       zero_ratio: this.runtimeConfig.zero_ratio,
       colorStops: this.runtimeConfig.colorStops,
       colorStopsMinMax: this.runtimeConfig.colorStopsMinMax,
+      horseshoe_background: this.runtimeConfig.horseshoe_background,
       horseshoe_scale: this.runtimeConfig.horseshoe_scale,
       horseshoe_state: {
         width: this.runtimeConfig.horseshoe_state.width,
@@ -265,6 +269,15 @@ export default class HorseshoeGauge {
     }
 
     return this.pathItemCache.get(key);
+  }
+
+  /**
+   * Renders the optional horseshoe background below scale and state.
+   */
+  renderHorseshoeBackground() {
+    const backgroundItems = this.getCachedPathItems('horseshoeBackgroundItems', () => buildHorseshoeBackgroundItems(this.runtimeConfig, this.geometry));
+
+    return renderHorseshoeBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
   }
 
   /**
