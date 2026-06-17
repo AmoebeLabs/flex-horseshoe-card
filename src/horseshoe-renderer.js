@@ -335,17 +335,31 @@ export function renderTickmarksLayer(tickPathItems) {
 
   return svg`
     <g class="horseshoe__ticks-layer">
-      ${tickPathItems.map((pathItem) => svg`
-        <path
-          class="${pathItem.className}"
-          d="${pathItem.path}"
-          data-value="${pathItem.value ?? ''}"
-          data-thickness="${pathItem.thickness ?? ''}"
-          data-start-angle="${pathItem.startAngle ?? ''}"
-          data-end-angle="${pathItem.endAngle ?? ''}"
-          style=${styleMap(pathItem.styles ?? {})}
-        ></path>
-      `)}
+      ${tickPathItems.map((pathItem) => (pathItem.shape === 'circle'
+        ? svg`
+            <circle
+              class="${pathItem.className}"
+              cx="${pathItem.x}"
+              cy="${pathItem.y}"
+              r="${pathItem.radius}"
+              data-value="${pathItem.value ?? ''}"
+              data-thickness="${pathItem.thickness ?? ''}"
+              data-start-angle="${pathItem.startAngle ?? ''}"
+              data-end-angle="${pathItem.endAngle ?? ''}"
+              style=${styleMap(pathItem.styles ?? {})}
+            ></circle>
+          `
+        : svg`
+            <path
+              class="${pathItem.className}"
+              d="${pathItem.path}"
+              data-value="${pathItem.value ?? ''}"
+              data-thickness="${pathItem.thickness ?? ''}"
+              data-start-angle="${pathItem.startAngle ?? ''}"
+              data-end-angle="${pathItem.endAngle ?? ''}"
+              style=${styleMap(pathItem.styles ?? {})}
+            ></path>
+          `))}
     </g>
   `;
 }

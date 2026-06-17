@@ -31,15 +31,19 @@ export default class HorseshoeGauge {
    * @returns {Array<HorseshoeGauge>} Configured gauge instances.
    */
   static setConfig(config, templates, cardId, card) {
-    // Hack for testing
-    // Set legacy
-    if (config.layout && !config.layout.horseshoes_v2) {
-      config.layout.horseshoes_v2 = 'legacy';
-    }
-    const horseshoes = config.layout?.horseshoes_v2 === 'legacy' ? [HorseshoeGauge.getLegacyRootConfig(config)] : Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : [];
+    const legacyConfig = HorseshoeGauge.getLegacyRootConfig(config);
+    const layoutConfigs = [
+      ...(Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : []),
+      ...(Array.isArray(config.layout?.horseshoes) ? config.layout.horseshoes : []),
+    ];
+    const horseshoes = [
+      ...(legacyConfig ? [legacyConfig] : []),
+      ...layoutConfigs,
+    ];
 
     return horseshoes
       .filter(Boolean)
+      .map((horseshoeConfig, index) => HorseshoeGauge.applyLegacyTickmarkCompat(horseshoeConfig))
       .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, config.layout?.groups), index, templates, cardId, card))
       .filter((horseshoe) => horseshoe.show?.horseshoe !== false);
   }
@@ -51,9 +55,7 @@ export default class HorseshoeGauge {
    * @returns {object|undefined} Root legacy horseshoe config for the v2 renderer.
    */
   static getLegacyRootConfig(config) {
-    const legacyConfig = {};
-
-    [
+    const legacyFields = [
       'entity_index',
       'show',
       'horseshoe_position',
@@ -75,13 +77,79 @@ export default class HorseshoeGauge {
       'xpos',
       'ypos',
       'yposc',
-    ].forEach((field) => {
+    ];
+    const rootHorseshoeFields = legacyFields.filter((field) => field !== 'show' && field !== 'styles' && field !== 'entity_index');
+    const hasRootHorseshoeConfig = rootHorseshoeFields.some((field) => config[field] !== undefined);
+
+    if (!hasRootHorseshoeConfig) {
+      return undefined;
+    }
+
+    const legacyConfig = {};
+
+    legacyFields.forEach((field) => {
       if (config[field] !== undefined) {
         legacyConfig[field] = config[field];
       }
     });
 
     return Object.keys(legacyConfig).length ? legacyConfig : undefined;
+  }
+
+  /**
+   * Maps legacy scale tickmark config to v2 tickmarks when no v2 tickmarks are configured.
+   *
+   * @param {object} horseshoeConfig - Root or layout horseshoe config.
+   * @returns {object} Horseshoe config with compatibility tickmarks applied.
+   */
+  static applyLegacyTickmarkCompat(horseshoeConfig) {
+    if (horseshoeConfig.show?.scale_tickmarks !== true) {
+      return horseshoeConfig;
+    }
+
+    const existingTickmarks = horseshoeConfig.horseshoe_tickmarks ?? {};
+
+    if (existingTickmarks.ticks_major || existingTickmarks.ticks_minor) {
+      return {
+        ...horseshoeConfig,
+        show: {
+          ...horseshoeConfig.show,
+          tickmarks: horseshoeConfig.show.tickmarks ?? horseshoeConfig.show.ticks ?? true,
+        },
+      };
+    }
+
+    const scale = horseshoeConfig.horseshoe_scale ?? {};
+    const min = Number(scale.min ?? 0);
+    const max = Number(scale.max ?? 100);
+    const range = max - min;
+    const ticksize = scale.ticksize ?? (range ? range / 10 : undefined);
+    const radius = Number(horseshoeConfig.radius ?? 45);
+    const tickmarksRadius = Number(horseshoeConfig.tickmarks_radius ?? 43);
+    const tickWidth = Number(scale.width ?? 6);
+
+    return {
+      ...horseshoeConfig,
+      show: {
+        ...horseshoeConfig.show,
+        tickmarks: true,
+      },
+      horseshoe_tickmarks: {
+        ...existingTickmarks,
+        ticks_major: {
+          ticksize,
+          shape: 'circle',
+          radius: tickWidth / 2,
+          width: tickWidth,
+          thickness: tickWidth,
+          offset: tickmarksRadius - radius,
+          styles: [
+            ...(Array.isArray(existingTickmarks.styles) ? existingTickmarks.styles : existingTickmarks.styles ? [existingTickmarks.styles] : []),
+            { fill: scale.color ?? 'var(--primary-background-color)' },
+          ],
+        },
+      },
+    };
   }
 
   /**
@@ -187,8 +255,8 @@ export default class HorseshoeGauge {
         ${this.renderScale()}
         ${this.renderLabelBackground()}
         ${this.renderTickmarkBackground()}
-        ${this.renderTickmarks()}
         ${this.renderState()}
+        ${this.renderTickmarks()}
         ${this.renderLabelBadges()}
         ${this.renderLabels()}
       </g>

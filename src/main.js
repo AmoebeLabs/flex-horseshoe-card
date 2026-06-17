@@ -2154,13 +2154,7 @@ ${this._renderHorseshoeGauges()}
   }
 
   _renderHorseShoes() {
-    if (this.config?.layout?.horseshoes_v2 === 'legacy') {
-      return svg``;
-    }
-
-    return svg`
-    ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
-  `;
+    return svg``;
   }
 
   _renderHorseShoe(horseshoe, index) {

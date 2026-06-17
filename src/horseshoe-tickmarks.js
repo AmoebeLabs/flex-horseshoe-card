@@ -41,6 +41,10 @@ function degreesToArcLength(lengthDeg, radius) {
 /**
  * Resolves the fill color for one tick based on fixed or color-stop mode.
  */
+function isTickmarksEnabled(runtimeConfig) {
+  return runtimeConfig?.show?.tickmarks ?? runtimeConfig?.show?.ticks;
+}
+
 function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
   const colorMode = tickConfig?.color_mode;
 
@@ -59,7 +63,7 @@ function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
  * Builds the optional fixed or color-stop tickmark background layer items.
  */
 export function buildTickBackgroundItems(runtimeConfig, geometry) {
-  if (!runtimeConfig?.show?.ticks) {
+  if (!isTickmarksEnabled(runtimeConfig)) {
     return [];
   }
 
@@ -121,6 +125,39 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
           limited: minorThicknessByValue?.has(value) && thickness !== configuredThickness,
         });
       }
+      const tickFill = getTickColor(tickConfig, tickStyles, value, runtimeConfig);
+      const renderStyles = {
+        ...baseRenderStyles,
+        fill: tickFill ?? tickStyles.fill,
+      };
+
+      if (tickFill === undefined && runtimeConfig.dev?.debug_colors) {
+        console.log('[horseshoe-tickmarks] unresolved tick fill', {
+          layerName,
+          value,
+          colorMode: tickConfig.color_mode,
+          colorStops: runtimeConfig.colorStops,
+        });
+      }
+
+      if (tickConfig.shape === 'circle') {
+        const point = geometry.pointAt(angle, radius);
+
+        return {
+          key: `${layerName}-${index}`,
+          shape: 'circle',
+          x: point.x,
+          y: point.y,
+          radius: Number(tickConfig.radius ?? width / 2),
+          value,
+          thickness,
+          startAngle: angle,
+          endAngle: angle,
+          styles: renderStyles,
+          className: layerName === 'major' ? 'horseshoe__tick-major' : 'horseshoe__tick-minor',
+        };
+      }
+
       const bandWidth = width;
       // Thickness is stored as arc length and converted to angular span for the band path.
       const tickDegrees = arcLengthToDegrees(thickness, radius);
@@ -142,21 +179,6 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         },
       );
 
-      const tickFill = getTickColor(tickConfig, tickStyles, value, runtimeConfig);
-      const renderStyles = {
-        ...baseRenderStyles,
-        fill: tickFill ?? tickStyles.fill,
-      };
-
-      if (tickFill === undefined && runtimeConfig.dev?.debug_colors) {
-        console.log('[horseshoe-tickmarks] unresolved tick fill', {
-          layerName,
-          value,
-          colorMode: tickConfig.color_mode,
-          colorStops: runtimeConfig.colorStops,
-        });
-      }
-
       return {
         key: `${layerName}-${index}`,
         path,
@@ -168,14 +190,14 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
         className: layerName === 'major' ? 'horseshoe__tick-major' : 'horseshoe__tick-minor',
       };
     })
-    .filter((item) => item.path);
+    .filter((item) => item.path || item.shape === 'circle');
 }
 
 /**
  * Builds all major and minor tick path items for the current scale.
  */
 export default function buildTickPathItems(runtimeConfig, geometry) {
-  if (!runtimeConfig?.show?.ticks) {
+  if (!isTickmarksEnabled(runtimeConfig)) {
     return [];
   }
 
