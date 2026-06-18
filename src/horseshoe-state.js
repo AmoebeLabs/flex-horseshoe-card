@@ -112,7 +112,7 @@ export function normalizeRuntimeConfig(config) {
     throw new Error('[V2] Missing horseshoe_scale.type');
   }
 
-  if ((horseshoeScale.type === 'spline' || horseshoeScale.type === 'spline2') && !horseshoeScale.spline) {
+  if ((horseshoeScale.type === 'splineorg' || horseshoeScale.type === 'spline') && !horseshoeScale.spline) {
     throw new Error('[V2] Missing horseshoe_scale.spline');
   }
 

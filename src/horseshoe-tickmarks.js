@@ -223,10 +223,10 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
       ? buildTickValues(min, max, minorTickSize).filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
       : [];
 
-  // spline/spline2 can compress value ranges; this map stores per-minor maximum thickness.
+  // spline scales can compress value ranges; this map stores per-minor maximum thickness.
   const minorThicknessByValue = new Map();
 
-  if ((runtimeConfig.horseshoe_scale.type === 'spline' || runtimeConfig.horseshoe_scale.type === 'spline2') && majorValues.length > 1 && minorValues.length) {
+  if ((runtimeConfig.horseshoe_scale.type === 'splineorg' || runtimeConfig.horseshoe_scale.type === 'spline') && majorValues.length > 1 && minorValues.length) {
     const minorRadius = geometry.radius + Number(minorTickConfig.offset ?? 0);
     const majorThickness = Number(majorTickConfig.thickness);
     // Use an early non-start interval as the visual reference for relative spline compression.

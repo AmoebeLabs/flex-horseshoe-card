@@ -25,7 +25,7 @@ The new horseshoe implementation uses a layered pipeline:
 
 The key design rule is that render layers should not know about scale modes, spline, or bidirectional mapping. They receive coordinates/angles from `GaugeGeometry`.
 
-This makes changes like `bar_mode`, `spline`, `spline2`, labels, tickmarks, backgrounds, and colorstop segments move together. If geometry is right, all layers are right. If geometry is wrong, all layers are consistently wrong and the bug is isolated.
+This makes changes like `bar_mode`, `spline`, labels, tickmarks, backgrounds, and colorstop segments move together. If geometry is right, all layers are right. If geometry is wrong, all layers are consistently wrong and the bug is isolated.
 
 ## Legacy Horseshoe Compatibility
 

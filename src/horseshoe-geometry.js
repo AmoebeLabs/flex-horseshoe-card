@@ -171,7 +171,7 @@ class NaturalCubicSpline {
 }
 
 /**
- * Monotone cubic spline used by spline2 to preserve anchor ordering without overshoot.
+ * Monotone cubic spline used by the default spline scale to preserve anchor ordering without overshoot.
  */
 class MonotoneCubicSpline {
   constructor(x, y) {
@@ -270,16 +270,16 @@ export class GaugeScale {
 
     this.points = GaugeScale.buildPoints(config);
 
-    if (this.type === 'spline') {
-      this.spline = new CubicSpline(
+    if (this.type === 'splineorg') {
+      this.splineorg = new CubicSpline(
         this.points.map((point) => point.value),
         this.points.map((point) => point.position),
       );
       return;
     }
 
-    if (this.type === 'spline2') {
-      this.spline2 = new MonotoneCubicSpline(
+    if (this.type === 'spline') {
+      this.spline = new MonotoneCubicSpline(
         this.points.map((point) => point.value),
         this.points.map((point) => point.position),
       );
@@ -292,13 +292,13 @@ export class GaugeScale {
   }
 
   /**
-   * Builds and sorts the scale points used by linear, spline, and spline2 scales.
+   * Builds and sorts the scale points used by linear, splineorg, and spline scales.
    *
    * @param {object} config - Normalized horseshoe scale configuration.
    * @returns {Array<object>} Scale point definitions with value and position.
    */
   static buildPoints(config) {
-    if (config.type !== 'spline' && config.type !== 'spline2') {
+    if (config.type !== 'splineorg' && config.type !== 'spline') {
       return [
         { value: Number(config.min), position: 0 },
         { value: Number(config.max), position: 1 },
@@ -317,8 +317,8 @@ export class GaugeScale {
       .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.position))
       .sort((a, b) => a.value - b.value);
 
-    if (config.type === 'spline2') {
-      // spline2 always includes scale min/max so the monotone spline covers the full range.
+    if (config.type === 'spline') {
+      // The default spline always includes scale min/max so the monotone spline covers the full range.
       const points = [
         { value: Number(config.min), position: 0 },
         ...anchors,
@@ -349,12 +349,12 @@ export class GaugeScale {
   toRatio(value) {
     const numericValue = Number(value);
 
-    if (this.type === 'spline') {
-      return clamp(this.spline.get(numericValue), 0, 1);
+    if (this.type === 'splineorg') {
+      return clamp(this.splineorg.get(numericValue), 0, 1);
     }
 
-    if (this.type === 'spline2') {
-      return clamp(this.spline2.get(numericValue), 0, 1);
+    if (this.type === 'spline') {
+      return clamp(this.spline.get(numericValue), 0, 1);
     }
 
     return clamp((numericValue - this.min) / (this.max - this.min), 0, 1);
@@ -526,10 +526,13 @@ export class GaugeGeometry {
     const numericValue = Number(value);
     const symmetricalBidirectional = this.barMode === 'bidirectional' || this.barMode === 'bidirectional_symmetrical';
 
+    // Normal, linear bidirectional, and one-sided scales use the configured scale directly.
     if (!symmetricalBidirectional || this.scale.min >= 0 || this.scale.max <= 0) {
       return this.scaleValueToRatio(numericValue);
     }
 
+    // Symmetrical bidirectional bars reserve the visual midpoint for value 0.
+    // The negative side is compressed into 0..0.5, the positive side into 0.5..1.
     const zeroScaleRatio = this.scaleValueToRatio(0);
 
     if (numericValue < 0) {
