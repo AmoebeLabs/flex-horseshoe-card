@@ -44,6 +44,7 @@ import Merge from './merge.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoesLayout from './layout/horseshoes-layout.js';
+import HorseshoeGauge from './horseshoe-gauge.js';
 import Label from './labels.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
@@ -1016,6 +1017,7 @@ class FlexHorseshoeCard extends LitElement {
       Colors.colorCache = {};
       const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
       Palette.applyAll(this, this.palettes, mode);
+      this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1057,6 +1059,20 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
+    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => {
+      const entityIndex = horseshoe.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return horseshoe;
+      }
+
+      horseshoe.setState(entity, entityConfig);
+
+      return horseshoe;
+    });
+
     this.horseshoes = this.horseshoes.map((horseshoe, index) => {
       const entityIndex = horseshoe.entity_index ?? 0;
       const entityConfig = this.resolvedEntityConfigs[entityIndex];
@@ -1075,7 +1091,7 @@ class FlexHorseshoeCard extends LitElement {
       // Do state mapping here?
       const smItem = this._getStateMapItem(horseshoe.horseshoe_state, entity);
       if (smItem) {
-        console.log('State map item found for horseshoe', index, ':', smItem);
+        // console.log('State map item found for horseshoe', index, ':', smItem);
         state = smItem.value;
       }
       const horseshoeScale = Templates.getJsTemplateOrValue({ entity_index: entityIndex }, horseshoe.horseshoe_scale);
@@ -1278,7 +1294,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1434,74 +1450,6 @@ class FlexHorseshoeCard extends LitElement {
     return result;
   }
 
-  _evaluateStaticCalcV2(value) {
-    const expression = value.slice(5, -1).trim();
-
-    if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
-      throw new Error(`Invalid static calc expression '${value}'`);
-    }
-
-    const calcFns = {
-      sin: Math.sin,
-      cos: Math.cos,
-      tan: Math.tan,
-      abs: Math.abs,
-      round: Math.round,
-      floor: Math.floor,
-      ceil: Math.ceil,
-      min: Math.min,
-      max: Math.max,
-      sqrt: Math.sqrt,
-      PI: Math.PI,
-    };
-
-    // eslint-disable-next-line no-new-func
-    const result = Function(...Object.keys(calcFns), `"use strict"; return (${expression});`)(...Object.values(calcFns));
-
-    if (typeof result !== 'number' || !Number.isFinite(result)) {
-      throw new Error(`Static calc expression '${value}' did not return a finite number`);
-    }
-
-    return result;
-  }
-
-  _evaluateStaticCalcV1(value) {
-    const expression = value.slice(5, -1).trim();
-
-    if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
-      throw new Error(`Invalid static calc expression '${value}'`);
-    }
-
-    // eslint-disable-next-line no-new-func
-    const result = Function(`"use strict"; return (${expression});`)();
-
-    if (typeof result !== 'number' || !Number.isFinite(result)) {
-      throw new Error(`Static calc expression '${value}' did not return a number`);
-    }
-
-    return result;
-  }
-
-  _evaluateStaticConfigV1(config) {
-    if (this._isStaticCalc(config)) {
-      return this._evaluateStaticCalc(config);
-    }
-
-    if (Array.isArray(config)) {
-      return config.map((item) => this._evaluateStaticConfig(item));
-    }
-
-    if (config && typeof config === 'object') {
-      Object.entries(config).forEach(([key, value]) => {
-        config[key] = this._evaluateStaticConfig(value);
-      });
-
-      return config;
-    }
-
-    return config;
-  }
-
   _isStaticNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
   }
@@ -1538,22 +1486,6 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       resolvedItem[targetKey] += value;
-    });
-
-    return resolvedItem;
-  }
-
-  _applySameAsDeltasV1(item, resolvedItem) {
-    Object.entries(item).forEach(([key, value]) => {
-      if (!key.startsWith('same_as_d')) return;
-
-      const targetKey = key.substring('same_as_d'.length);
-
-      if (resolvedItem[targetKey] === undefined) {
-        throw new Error(`same_as delta '${key}' requires '${targetKey}'`);
-      }
-
-      resolvedItem[targetKey] = Number(resolvedItem[targetKey]) + Number(value);
     });
 
     return resolvedItem;
@@ -1669,225 +1601,8 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
-  _resolveSameAsItemsV7(items) {
-    const resolvedItemsById = new Map();
-
-    return items.map((item, index) => {
-      let resolvedItem;
-
-      if (item.same_as === undefined) {
-        resolvedItem = item;
-      } else {
-        const base = resolvedItemsById.get(String(item.same_as));
-
-        if (!base) {
-          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-        }
-
-        const { same_as, same_as_replace = [], ...restOfFields } = item;
-
-        resolvedItem = Merge.mergeDeep(base, restOfFields);
-
-        same_as_replace.forEach((field) => {
-          // eslint-disable-next-line prefer-object-has-own
-          if (Object.prototype.hasOwnProperty.call(restOfFields, field)) {
-            resolvedItem[field] = restOfFields[field];
-          }
-        });
-
-        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
-
-        delete resolvedItem.same_as;
-        delete resolvedItem.same_as_replace;
-
-        Object.keys(resolvedItem)
-          .filter((key) => key.startsWith('same_as_d'))
-          .forEach((key) => delete resolvedItem[key]);
-      }
-
-      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
-
-      return resolvedItem;
-    });
-  }
-
-  _resolveSameAsItemsV6(items) {
-    const resolvedItemsById = new Map();
-
-    return items.map((item, index) => {
-      let resolvedItem;
-
-      if (item.same_as === undefined) {
-        resolvedItem = item;
-      } else {
-        const base = resolvedItemsById.get(String(item.same_as));
-
-        if (!base) {
-          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-        }
-
-        const { same_as, same_as_merge = 'merge', same_as_key, ...restOfFields } = item;
-
-        resolvedItem = this._mergeSameAsItem(base, restOfFields, same_as_merge, same_as_key);
-        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
-
-        delete resolvedItem.same_as;
-        Object.keys(resolvedItem)
-          .filter((key) => key.startsWith('same_as_d'))
-          .forEach((key) => delete resolvedItem[key]);
-      }
-
-      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
-
-      return resolvedItem;
-    });
-  }
-
-  _resolveSameAsItemsV5(items) {
-    const resolvedItemsById = new Map();
-
-    return items.map((item, index) => {
-      let resolvedItem;
-
-      if (item.same_as === undefined) {
-        resolvedItem = item;
-      } else {
-        const base = resolvedItemsById.get(String(item.same_as));
-
-        if (!base) {
-          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-        }
-
-        const { same_as, ...restOfFields } = item;
-
-        resolvedItem = Merge.mergeDeep(base, restOfFields);
-        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
-
-        delete resolvedItem.same_as;
-        Object.keys(resolvedItem)
-          .filter((key) => key.startsWith('same_as_d'))
-          .forEach((key) => delete resolvedItem[key]);
-      }
-
-      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
-
-      return resolvedItem;
-    });
-  }
-
-  _resolveSameAsItemsV4(items) {
-    const resolvedItemsById = new Map();
-
-    return items.map((item, index) => {
-      let resolvedItem;
-
-      if (item.same_as === undefined) {
-        resolvedItem = item;
-      } else {
-        const base = resolvedItemsById.get(String(item.same_as));
-
-        if (!base) {
-          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-        }
-
-        const { same_as, same_as_dxpos, same_as_dypos, same_as_dlength, same_as_dradius, ...restOfFields } = item;
-        resolvedItem = Merge.mergeDeep(base, restOfFields);
-
-        if (same_as_dxpos !== undefined) {
-          resolvedItem.xpos = Number(resolvedItem.xpos) + Number(same_as_dxpos);
-        }
-
-        if (same_as_dypos !== undefined) {
-          resolvedItem.ypos = Number(resolvedItem.ypos) + Number(same_as_dypos);
-        }
-
-        if (same_as_dlength !== undefined) {
-          resolvedItem.length = Number(resolvedItem.length) + Number(same_as_dlength);
-        }
-
-        if (same_as_dradius !== undefined) {
-          resolvedItem.radius = Number(resolvedItem.radius) + Number(same_as_dradius);
-        }
-      }
-
-      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
-
-      return resolvedItem;
-    });
-  }
-
-  _resolveSameAsItemsV3(items) {
-    const itemsById = new Map(items.map((item) => [String(item.id), item]));
-
-    return items.map((item, index) => {
-      if (item.same_as === undefined) return item;
-
-      const base = itemsById.get(String(item.same_as));
-
-      if (!base) {
-        throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-      }
-
-      const { same_as, same_as_dxpos, same_as_dypos, ...restOfFields } = item;
-
-      const mergedItem = Merge.mergeDeep(base, restOfFields);
-
-      if (same_as_dxpos !== undefined) {
-        if (mergedItem.xpos === undefined) {
-          throw new Error(`same_as_dxpos requires xpos for item ${index}`);
-        }
-
-        mergedItem.xpos += same_as_dxpos;
-      }
-
-      if (same_as_dypos !== undefined) {
-        if (mergedItem.ypos === undefined) {
-          throw new Error(`same_as_dypos requires ypos for item ${index}`);
-        }
-
-        mergedItem.ypos += same_as_dypos;
-      }
-
-      return mergedItem;
-    });
-  }
-
-  _resolveSameAsItemsV2(items) {
-    const itemsById = new Map(items.map((item) => [String(item.id), item]));
-
-    return items.map((item, index) => {
-      if (item.same_as === undefined) return item;
-
-      const base = itemsById.get(String(item.same_as));
-
-      if (!base) {
-        throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-      }
-
-      const { same_as, ...restOfFields } = item;
-
-      return Merge.mergeDeep(base, restOfFields);
-    });
-  }
-
-  _resolveSameAsItemsV1(items) {
-    return items.map((item, index, array) => {
-      if (item.same_as === undefined) return item;
-
-      const base = array[item.same_as];
-
-      if (!base) {
-        throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-      }
-
-      const { same_as, ...restOfFields } = item;
-
-      return Merge.mergeDeep(base, restOfFields);
-    });
-  }
-
   _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1906,7 +1621,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -2014,19 +1729,16 @@ class FlexHorseshoeCard extends LitElement {
         throw Error('No layout defined');
       }
       if (config?.palettes) {
+        this.palettesLoaded = false;
         Palette.loadAll(config?.palettes).then((palettes) => {
           this.palettes = palettes;
           const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
           Colors.setElement(this);
           Palette.applyAll(this, palettes, mode);
-          if (!this.palettesLoaded) {
-            Colors.colorCache = {};
-            Object.keys(Colors.colorCache)
-              .filter((key) => key.startsWith('var('))
-              .forEach((key) => delete Colors.colorCache[key]);
-            this.palettesLoaded = true;
-            this.setHass(this._hass, true);
-          }
+          Colors.colorCache = {};
+          this.palettesLoaded = true;
+          this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
+          this.setHass(this._hass, true);
           this.requestUpdate();
         });
       }
@@ -2095,7 +1807,7 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.horseshoes = HorseshoesLayout.setConfig(config, Templates);
-
+      this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
       const defaultHorseshoe = this.horseshoes?.[0];
 
       if (defaultHorseshoe) {
@@ -2354,6 +2066,42 @@ class FlexHorseshoeCard extends LitElement {
    *      - use align-items: center on the parent container of the svg.
    *
    */
+  /** *****************************************************************************
+   * _renderSvgDefs()
+   *
+   * Summary.
+   * Renders reusable SVG definitions for filters and other shared drawing helpers.
+   */
+  _renderSvgDefs() {
+    return svg`
+      <defs>
+        <filter id="fhs-inset-1" x="-50%" y="-50%" width="400%" height="400%">
+          <feComponentTransfer in="SourceAlpha">
+            <feFuncA type="table" tableValues="1 0"></feFuncA>
+          </feComponentTransfer>
+          <feGaussianBlur stdDeviation="1"></feGaussianBlur>
+          <feOffset dx="0" dy="1" result="offsetblur"></feOffset>
+          <feFlood flood-color="rgba(0, 0, 0, 0.3)" result="color"></feFlood>
+          <feComposite in2="offsetblur" operator="in"></feComposite>
+          <feComposite in2="SourceAlpha" operator="in"></feComposite>
+          <feMerge>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+            <feMergeNode></feMergeNode>
+          </feMerge>
+        </filter>
+
+        <filter id="fhs-inset-2">
+          <feOffset dx="1" dy="1"></feOffset>
+          <feGaussianBlur stdDeviation="0.5" result="offset-blur"></feGaussianBlur>
+          <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
+          <feFlood flood-color="black" flood-opacity="0.4" result="color"></feFlood>
+          <feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
+          <feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
+        </filter>
+      </defs>
+    `;
+  }
+
   _renderSvg() {
     // For some reason, using a var/const for the viewboxsize doesn't work.
     // Even if the Chrome inspector shows 200 200. So hardcode for now!
@@ -2365,10 +2113,12 @@ class FlexHorseshoeCard extends LitElement {
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
+            ${this._renderSvgDefs()}
             <g id="circles" class="circles">
               ${this._renderCircles()}
             </g>
           ${this._renderHorseShoes()}
+${this._renderHorseshoeGauges()}          
             <g id="datagroup" class="datagroup">
               ${this._renderHorizontalLines()}
               ${this._renderVerticalLines()}
@@ -2396,10 +2146,15 @@ class FlexHorseshoeCard extends LitElement {
    * The horseshoes are rotated 220 degrees and are 2 * 26/36 * Math.PI * r in size
    * There you get your value of 408.4070449 ;-)
    */
-  _renderHorseShoes() {
+
+  _renderHorseshoeGauges() {
     return svg`
-    ${this.horseshoes?.map((horseshoe, index) => this._renderHorseShoe(horseshoe, index)) ?? svg``}
+    ${this.horseshoeGauges?.map((horseshoe) => horseshoe.render()) ?? svg``}
   `;
+  }
+
+  _renderHorseShoes() {
+    return svg``;
   }
 
   _renderHorseShoe(horseshoe, index) {
@@ -3136,9 +2891,9 @@ class FlexHorseshoeCard extends LitElement {
     return url.endsWith('.svg');
   }
 
-  _isSvgUrlV1(url) {
-    return /\.svg(?:[?#].*)?$/i.test(url);
-  }
+  // _isSvgUrlV1(url) {
+  //   return /\.svg(?:[?#].*)?$/i.test(url);
+  // }
 
   _isUrlIcon(icon) {
     return typeof icon === 'string' && /^url\(['"]?.+['"]?\)$/i.test(icon.trim());
@@ -3191,41 +2946,6 @@ class FlexHorseshoeCard extends LitElement {
             >
               ${svgNode}
             </svg>
-          </g>
-        </g>
-      </g>
-    </g>
-  `;
-  }
-
-  _renderCachedSvgUrlIconV1(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
-    const rotate = item.rotate ?? 0;
-
-    const x1 = cx - iconPixels * adjust;
-    // const y1 = cy - iconPixels * 0.5 - iconPixels * 0.25;
-    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
-
-    const scale = iconPixels / 24;
-
-    const iconCx = x1 + 12 * scale;
-    const iconCy = y1 + 12 * scale;
-
-    const svgNode = this.svgUrlCache[url].cloneNode(true);
-    svgNode.classList.remove('hidden');
-
-    return svg`
-    <g
-      transform="${this._getGroupScaleTransform(item)}"
-      style="${this._getGroupScaleStyle(item)}"
-    >
-      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
-        <g class="icon-style-animation" style="${styleMap(configStyle)}">
-          <g class="icon-rotate" transform="rotate(${rotate})">
-            <g class="icon-scale" transform="scale(${scale})">
-              <g class="icon-center" transform="translate(-12 -12)">
-                ${svgNode}
-              </g>
-            </g>
           </g>
         </g>
       </g>

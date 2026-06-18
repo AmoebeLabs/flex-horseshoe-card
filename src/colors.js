@@ -1,3 +1,5 @@
+import { converter, parse } from 'culori';
+
 import { stateColorCss, stateColorBrightness } from './frontend_mods/common/entity/state_color.ts';
 import { stateActive } from './frontend_mods/common/entity/state_active.ts';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
@@ -24,6 +26,7 @@ export default class Colors {
   static {
     Colors.colorCache = {};
     Colors.element = undefined;
+    Colors.unresolvedColor = false;
   }
 
   /** *****************************************************************************
@@ -325,7 +328,25 @@ export default class Colors {
   }
 
   static getColorVariable(argColor) {
-    const varName = argColor.slice(4, -1).trim();
+    const varBody = argColor.slice(4, -1).trim();
+    let varName = varBody;
+    let fallback = '';
+    let depth = 0;
+
+    // CSS var fallback syntax uses a top-level comma: var(--name, fallback).
+    for (let i = 0; i < varBody.length; i += 1) {
+      const char = varBody[i];
+
+      if (char === '(') {
+        depth += 1;
+      } else if (char === ')') {
+        depth -= 1;
+      } else if (char === ',' && depth === 0) {
+        varName = varBody.slice(0, i).trim();
+        fallback = varBody.slice(i + 1).trim();
+        break;
+      }
+    }
 
     const color = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
     // console.log('getColorVariable - ', argColor, varName, color, Colors.element);
@@ -337,7 +358,9 @@ export default class Colors {
 
     const llColor = getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
     // console.log('getColorVariable - ll', argColor, varName, color, llColor, Colors.element);
-    return llColor;
+    if (llColor) return llColor;
+
+    return fallback;
   }
 
   static getLovelaceColorVariable(argColor) {
@@ -371,6 +394,11 @@ export default class Colors {
   static getGradientValue(argColorA, argColorB, argValue) {
     const resultColorA = Colors.colorToRGBA(argColorA);
     const resultColorB = Colors.colorToRGBA(argColorB);
+
+    if (!resultColorA || !resultColorB) {
+      Colors.unresolvedColor = true;
+      return undefined;
+    }
 
     // We have a rgba() color array from cache or canvas.
     // Calculate color in between, and return #hex value as a result.
@@ -461,23 +489,60 @@ export default class Colors {
     if (retColor) return retColor;
 
     let theColor = argColor;
-    // Check for 'var' colors
-    const a0 = argColor.substr(0, 3);
-    if (a0.valueOf() === 'var') {
-      theColor = Colors.getColorVariable(argColor);
+    const isCssVar = argColor.substr(0, 3).valueOf() === 'var';
+
+    if (isCssVar) {
+      theColor = argColor;
+
+      for (let i = 0; i < 10 && theColor.trim().startsWith('var('); i += 1) {
+        theColor = Colors.getColorVariable(theColor.trim());
+
+        // Palette variables can be requested before Palette.applyAll() has written them.
+        // Do not let canvas convert an unresolved variable to black and then cache that.
+        if (!theColor) {
+          Colors.unresolvedColor = true;
+          if (Colors.element?.dev?.debug_colors) {
+            console.log('[horseshoe-colors] unresolved css var', { argColor });
+          }
+          return undefined;
+        }
+      }
       // console.log('getting colorToRGBA ', argColor, theColor);
     }
 
-    // Get color from canvas. This always returns an rgba() value...
-    const canvas = window.document.createElement('canvas');
+    let parsedColor = parse(theColor);
 
-    canvas.width = canvas.height = 1;
-    const ctx = canvas.getContext('2d');
+    if (!parsedColor) {
+      const resolver = window.document.createElement('span');
+      const sentinel = 'rgb(1, 2, 3)';
 
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = theColor;
-    ctx.fillRect(0, 0, 1, 1);
-    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
+      // Let the browser reduce modern CSS color functions to a computed rgb() value.
+      resolver.style.color = sentinel;
+      resolver.style.color = theColor;
+      Colors.element.appendChild(resolver);
+      const computedColor = window.getComputedStyle(resolver).color;
+      resolver.remove();
+
+      if (computedColor !== sentinel) {
+        parsedColor = parse(computedColor);
+      }
+
+      if (!parsedColor) {
+        Colors.unresolvedColor = true;
+        if (Colors.element?.dev?.debug_colors) {
+          console.log('[horseshoe-colors] unparseable color', { argColor, resolvedColor: theColor, computedColor });
+        }
+        return undefined;
+      }
+    }
+
+    const rgbColor = converter('rgb')(parsedColor);
+    const outColor = [
+      Math.round(Math.min(Math.max(rgbColor.r, 0), 1) * 255),
+      Math.round(Math.min(Math.max(rgbColor.g, 0), 1) * 255),
+      Math.round(Math.min(Math.max(rgbColor.b, 0), 1) * 255),
+      Math.round((rgbColor.alpha ?? 1) * 255),
+    ];
 
     Colors.colorCache[argColor] = outColor;
 
