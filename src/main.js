@@ -45,6 +45,7 @@ import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
+import LineTool from './line-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -80,6 +81,7 @@ class FlexHorseshoeCard extends LitElement {
     this.viewBox = { width: SVG_VIEW_BOX, height: SVG_VIEW_BOX };
     this.colorStops = {};
     this.animations = {};
+    this.animations.lines = {};
     this.animations.vlines = {};
     this.animations.hlines = {};
     this.animations.circles = {};
@@ -90,6 +92,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.areas = {};
     this.animations.states = {};
     this.rectangleTools = [];
+    this.lineTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -1067,6 +1070,20 @@ class FlexHorseshoeCard extends LitElement {
       return rectangleTool;
     });
 
+    this.lineTools = (this.lineTools ?? []).map((lineTool) => {
+      const entityIndex = lineTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return lineTool;
+      }
+
+      lineTool.setState(entity, entityConfig);
+
+      return lineTool;
+    });
+
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1074,6 +1091,10 @@ class FlexHorseshoeCard extends LitElement {
         this.config.animations[animation].map((item) => {
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) {
             return false;
+          }
+
+          if (item.lines) {
+            item.lines.forEach((item2) => this._updateAnimationStyles('lines', item2));
           }
 
           if (item.vlines) {
@@ -1152,7 +1173,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1228,20 +1249,6 @@ class FlexHorseshoeCard extends LitElement {
     if (layout?.icons) {
       layout.icons.forEach((item) => {
         item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
-    if (layout?.hlines) {
-      layout.hlines.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-        item.svg.length = Utils.calculateSvgDimension(item.length);
-      });
-    }
-
-    if (layout?.vlines) {
-      layout.vlines.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-        item.svg.length = Utils.calculateSvgDimension(item.length);
       });
     }
 
@@ -1460,7 +1467,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1479,7 +1486,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1688,6 +1695,7 @@ class FlexHorseshoeCard extends LitElement {
       this._computeGroupDimensions(this.config);
       this._computeSvgDimensions(this.config);
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
+      this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -1867,8 +1875,7 @@ class FlexHorseshoeCard extends LitElement {
             </g>
           ${this._renderHorseshoeGauges()}
             <g id="datagroup" class="datagroup">
-              ${this._renderHorizontalLines()}
-              ${this._renderVerticalLines()}
+              ${this._renderLines()}
               ${this._renderIcons()}
               ${this._renderEntityAreas()}
               ${this._renderEntityNames()}
@@ -2978,143 +2985,17 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /** *****************************************************************************
-   * _renderHorizontalLines()
+   * _renderLines()
    *
    * Summary.
-   * Renders the specified lines in the grid.
+   * Renders generic lines plus hlines/vlines translated through LineTool.
    *
    */
 
-  _renderHorizontalLine(item) {
-    const HLINES_STYLES = {
-      'stroke-linecap': 'round',
-      stroke: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'stroke-width': '2',
-    };
-
-    const entityIndex = item.entity_index ?? 0;
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    const configStyle = {
-      ...HLINES_STYLES,
-      ...itemStyleDict,
-    };
-
-    const animationStyle = ConfigHelper.toStyleDict(this.animations?.hlines?.[item.animation_id] ?? {});
-
-    const stateStyle = {
-      ...animationStyle,
-    };
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.stroke = stopColor;
-    }
-
-    const styles = {
-      ...configStyle,
-      ...stateStyle,
-    };
-
+  _renderLines() {
     return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <line
-          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          class="line__horizontal"
-          x1="${item.svg.xpos - item.svg.length / 2}"
-          y1="${item.svg.ypos}"
-          x2="${item.svg.xpos + item.svg.length / 2}"
-          y2="${item.svg.ypos}"
-          style=${styleMap(styles)}
-        ></line>
-      </g>
-  `;
-  }
-
-  _renderHorizontalLines() {
-    const { layout } = this.config;
-
-    if (!layout?.hlines) return svg``;
-
-    const svgItems = layout.hlines.map((item) => this._renderHorizontalLine(item));
-
-    return svg`${svgItems}`;
-  }
-
-  /** *****************************************************************************
-   * _renderVerticalLines()
-   *
-   * Summary.
-   * Renders the specified lines in the grid.
-   *
-   */
-
-  _renderVerticalLine(item) {
-    const VLINES_STYLES = {
-      'stroke-linecap': 'round',
-      stroke: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'stroke-width': '2',
-    };
-
-    const entityIndex = item.entity_index ?? 0;
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    const configStyle = {
-      ...VLINES_STYLES,
-      ...itemStyleDict,
-    };
-
-    const animationStyle = ConfigHelper.toStyleDict(this.animations?.vlines?.[item.animation_id] ?? {});
-
-    const stateStyle = {
-      ...animationStyle,
-    };
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.stroke = stopColor;
-    }
-
-    const styles = {
-      ...configStyle,
-      ...stateStyle,
-    };
-
-    return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <line
-          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          class="line__vertical"
-          x1="${item.svg.xpos}"
-          y1="${item.svg.ypos - item.svg.length / 2}"
-          x2="${item.svg.xpos}"
-          y2="${item.svg.ypos + item.svg.length / 2}"
-          style=${styleMap(styles)}
-        ></line>
-      </g>
+      ${this.lineTools?.map((lineTool) => lineTool.render()) ?? svg``}
     `;
-  }
-
-  _renderVerticalLines() {
-    const { layout } = this.config;
-
-    if (!layout?.vlines) return svg``;
-
-    const svgItems = layout.vlines.map((item) => this._renderVerticalLine(item));
-
-    return svg`${svgItems}`;
   }
 
   /** *****************************************************************************
