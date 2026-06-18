@@ -44,6 +44,7 @@ import Merge from './merge.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
+import RectangleTool from './rectangle-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -82,11 +83,13 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.vlines = {};
     this.animations.hlines = {};
     this.animations.circles = {};
+    this.animations.rectangles = {};
     this.animations.icons = {};
     this.animations.iconsIcon = {};
     this.animations.names = {};
     this.animations.areas = {};
     this.animations.states = {};
+    this.rectangleTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -1050,6 +1053,20 @@ class FlexHorseshoeCard extends LitElement {
       return horseshoe;
     });
 
+    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => {
+      const entityIndex = rectangleTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return rectangleTool;
+      }
+
+      rectangleTool.setState(entity, entityConfig);
+
+      return rectangleTool;
+    });
+
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1069,6 +1086,10 @@ class FlexHorseshoeCard extends LitElement {
 
           if (item.circles) {
             item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
+          }
+
+          if (item.rectangles) {
+            item.rectangles.forEach((item2) => this._updateAnimationStyles('rectangles', item2));
           }
 
           if (item.icons) {
@@ -1131,7 +1152,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1439,7 +1460,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1458,7 +1479,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1666,6 +1687,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this._computeGroupDimensions(this.config);
       this._computeSvgDimensions(this.config);
+      this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -1837,6 +1859,9 @@ class FlexHorseshoeCard extends LitElement {
             class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
             ${this._renderSvgDefs()}
+            <g id="rectangles" class="rectangles">
+              ${this._renderRectangles()}
+            </g>
             <g id="circles" class="circles">
               ${this._renderCircles()}
             </g>
@@ -3154,6 +3179,20 @@ class FlexHorseshoeCard extends LitElement {
     const svgItems = layout.circles.map((item) => this._renderCircle(item));
 
     return svg`${svgItems}`;
+  }
+
+  /** *****************************************************************************
+   * _renderRectangles()
+   *
+   * Summary.
+   * Renders the specified rectangles in the grid.
+   *
+   */
+
+  _renderRectangles() {
+    return svg`
+      ${this.rectangleTools?.map((rectangleTool) => rectangleTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
