@@ -46,6 +46,7 @@ import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
+import CircleTool from './circle-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -93,6 +94,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.states = {};
     this.rectangleTools = [];
     this.lineTools = [];
+    this.circleTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -1084,6 +1086,20 @@ class FlexHorseshoeCard extends LitElement {
       return lineTool;
     });
 
+    this.circleTools = (this.circleTools ?? []).map((circleTool) => {
+      const entityIndex = circleTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return circleTool;
+      }
+
+      circleTool.setState(entity, entityConfig);
+
+      return circleTool;
+    });
+
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1249,14 +1265,6 @@ class FlexHorseshoeCard extends LitElement {
     if (layout?.icons) {
       layout.icons.forEach((item) => {
         item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
-    if (layout?.circles) {
-      layout.circles.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-        // item.svg.radius = Utils.calculateSvgDimension(item.radius);
-        item.svg.radius = item.radius;
       });
     }
 
@@ -1696,6 +1704,7 @@ class FlexHorseshoeCard extends LitElement {
       this._computeSvgDimensions(this.config);
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
       this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
+      this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -3002,64 +3011,14 @@ class FlexHorseshoeCard extends LitElement {
    * _renderCircles()
    *
    * Summary.
-   * Renders the specified circles in the grid.
+   * Renders circles through CircleTool instances.
    *
    */
 
-  _renderCircle(item) {
-    const CIRCLES_STYLES = {};
-
-    const entityIndex = item.entity_index ?? 0;
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    const configStyle = {
-      ...CIRCLES_STYLES,
-      ...itemStyleDict,
-    };
-
-    const animationStyle = ConfigHelper.toStyleDict(this.animations?.circles?.[item.animation_id] ?? {});
-
-    const stateStyle = {
-      ...animationStyle,
-    };
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.stroke = stopColor;
-    }
-
-    const styles = {
-      ...configStyle,
-      ...stateStyle,
-    };
-
-    return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <circle
-          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          class="svg__dot"
-          cx="${item.svg.xpos}"
-          cy="${item.svg.ypos}"
-          r="${item.svg.radius}"
-          style=${styleMap(styles)}
-        ></circle>
-      </g>
-    `;
-  }
-
   _renderCircles() {
-    const { layout } = this.config;
-
-    if (!layout?.circles) return svg``;
-
-    const svgItems = layout.circles.map((item) => this._renderCircle(item));
-
-    return svg`${svgItems}`;
+    return svg`
+      ${this.circleTools?.map((circleTool) => circleTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
