@@ -104,73 +104,6 @@ class CubicSpline {
 }
 
 /**
- * Natural cubic spline implementation kept for spline experiments and compatibility.
- */
-class NaturalCubicSpline {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.n = x.length;
-
-    this.a = [...y];
-    this.b = new Array(this.n - 1).fill(0);
-    this.c = new Array(this.n).fill(0);
-    this.d = new Array(this.n - 1).fill(0);
-
-    const h = new Array(this.n - 1);
-
-    for (let i = 0; i < this.n - 1; i += 1) {
-      h[i] = x[i + 1] - x[i];
-    }
-
-    const alpha = new Array(this.n - 1).fill(0);
-
-    for (let i = 1; i < this.n - 1; i += 1) {
-      alpha[i] = (3 / h[i]) * (this.a[i + 1] - this.a[i]) - (3 / h[i - 1]) * (this.a[i] - this.a[i - 1]);
-    }
-
-    const l = new Array(this.n).fill(1);
-    const mu = new Array(this.n).fill(0);
-    const z = new Array(this.n).fill(0);
-
-    for (let i = 1; i < this.n - 1; i += 1) {
-      l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
-      mu[i] = h[i] / l[i];
-      z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
-    }
-
-    for (let j = this.n - 2; j >= 0; j -= 1) {
-      this.c[j] = z[j] - mu[j] * this.c[j + 1];
-      this.b[j] = (this.a[j + 1] - this.a[j]) / h[j] - (h[j] * (this.c[j + 1] + 2 * this.c[j])) / 3;
-      this.d[j] = (this.c[j + 1] - this.c[j]) / (3 * h[j]);
-    }
-  }
-
-  get(value) {
-    if (value <= this.x[0]) {
-      return this.y[0];
-    }
-
-    if (value >= this.x[this.n - 1]) {
-      return this.y[this.n - 1];
-    }
-
-    let index = 0;
-
-    for (let i = 0; i < this.n - 1; i += 1) {
-      if (value >= this.x[i] && value <= this.x[i + 1]) {
-        index = i;
-        break;
-      }
-    }
-
-    const diff = value - this.x[index];
-
-    return this.a[index] + this.b[index] * diff + this.c[index] * diff * diff + this.d[index] * diff * diff * diff;
-  }
-}
-
-/**
  * Monotone cubic spline used by the default spline scale to preserve anchor ordering without overshoot.
  */
 class MonotoneCubicSpline {
@@ -318,23 +251,19 @@ export class GaugeScale {
       .sort((a, b) => a.value - b.value);
 
     if (config.type === 'spline') {
-      // The default spline always includes scale min/max so the monotone spline covers the full range.
-      const points = [
-        { value: Number(config.min), position: 0 },
-        ...anchors,
-        { value: Number(config.max), position: 1 },
+      const minValue = Number(config.min);
+      const maxValue = Number(config.max);
+      // The default spline owns its endpoints: scale min is position 0 and scale max is position 1.
+      // Anchors exactly on min/max are ignored here so they cannot collapse the usable arc range.
+      const innerAnchors = anchors.filter((point) => point.value > minValue && point.value < maxValue);
+
+      return [
+        { value: minValue, position: 0 },
+        ...innerAnchors,
+        { value: maxValue, position: 1 },
       ]
         .filter((point) => Number.isFinite(point.value) && Number.isFinite(point.position))
         .sort((a, b) => a.value - b.value);
-
-      // Later duplicate values replace earlier ones before the final sorted point list is returned.
-      const byValue = new Map();
-
-      points.forEach((point) => {
-        byValue.set(point.value, point);
-      });
-
-      return [...byValue.values()].sort((a, b) => a.value - b.value);
     }
 
     return anchors;
