@@ -1,5 +1,6 @@
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
+import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
  * Shared base for layout tools that receive static config from the card and resolve runtime state per hass update.
@@ -14,14 +15,20 @@ export default class BaseTool {
    * @param {string} cardId - Stable card id for generated SVG ids.
    * @param {LitElement} card - Parent card instance with shared render helpers.
    * @param {string} animationSection - Animation bucket name for this tool type.
+   * @param {string} zposSection - Layer bucket name for zpos defaults.
    */
-  constructor(config, index, templates, cardId, card, animationSection) {
+  constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection) {
     this.config = config;
     this.index = index;
     this.templates = templates;
     this.cardId = cardId;
     this.card = card;
     this.animationSection = animationSection;
+    this.zposSection = zposSection;
+    this.defaultZpos = DEFAULT_ZPOS[zposSection] ?? 0;
+    this.config.zpos ??= this.defaultZpos;
+    this.zpos = this.config.zpos;
+    this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? 0;
 
     this.entity = undefined;
@@ -43,6 +50,7 @@ export default class BaseTool {
     this.runtimeConfig = Templates.getJsTemplateOrValue(this.config, this.config, {
       resolveKeys: true,
     });
+    this.zpos = this.runtimeConfig.zpos ?? this.defaultZpos;
   }
 
   /**
