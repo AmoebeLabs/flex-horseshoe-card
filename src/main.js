@@ -21,11 +21,9 @@
 import { LitElement, html, css, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { selectUnit } from '@formatjs/intl-utils';
-import { SVGInjector } from '@tanem/svg-injector';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
-import { stateIconName } from './frontend_mods/common/entity/state_icon_name.js';
 import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
 import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/common/datetime/format_date.ts';
@@ -34,15 +32,13 @@ import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, forma
 import { formatDuration } from './frontend_mods/common/datetime/format_duration.ts';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
 import { computeEntityUnitDisplay } from './frontend_mods/common/entity/compute_entity_unit_display.ts';
-import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import Utils from './utils.js';
 import Merge from './merge.js';
-import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
-import { FONT_SIZE, SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
+import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
@@ -50,6 +46,7 @@ import CircleTool from './circle-tool.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
+import IconTool from './icon-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -101,6 +98,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools = [];
     this.areaTools = [];
     this.stateTools = [];
+    this.iconTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -109,10 +107,6 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedVariables = {};
     this.iconCache = {};
-    this.iconsSvg = [];
-    this.pendingIconPath = [];
-    this.iconsId = [];
-
     this.svgUrlCache ||= {};
 
     // Theme mode support
@@ -804,90 +798,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _buildMyIcon(stateObj, entityConfig, stateMapConfig, entityAnimation) {
-    if (!stateObj || !entityConfig) {
-      return undefined;
-    }
-
-    if (entityAnimation) {
-      return entityAnimation;
-    }
-
-    if (stateMapConfig?.icon) {
-      return stateMapConfig.icon;
-    }
-
-    if (entityConfig.icon) {
-      return entityConfig.icon;
-    }
-
-    const entityId = entityConfig.entity;
-    const attribute = entityConfig.attribute;
-    const attributeValue = attribute ? stateObj.attributes?.[attribute] : undefined;
-    const domain = stateObj.entity_id?.split('.')[0];
-
-    if (stateObj.attributes?.icon && !attribute) {
-      return stateObj.attributes.icon;
-    }
-
-    // Sync weather attribute fallback
-    if (attribute && domain === 'weather') {
-      const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
-
-      if (weatherIcon) {
-        return weatherIcon;
-      }
-    }
-
-    this.entitiesIcon ??= {};
-    this.entitiesIconKey ??= {};
-    this.entitiesIconPending ??= {};
-
-    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
-
-    const key = attribute
-      ? [entityId, 'attribute', attribute, attributeValue ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|')
-      : [entityId, 'state', stateObj.state ?? '', domain ?? '', stateObj.attributes?.device_class ?? '', stateObj.attributes?.icon ?? ''].join('|');
-
-    if (this.entitiesIconKey[iconId] === key) {
-      return this.entitiesIcon[iconId];
-    }
-
-    this.entitiesIconKey[iconId] = key;
-
-    if (!this.entitiesIconPending[iconId]) {
-      this.entitiesIconPending[iconId] = true;
-
-      const iconPromise = attribute
-        ? attributeIcon(this._hass, stateObj, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
-        : entityIcon(this._hass.entities, this._hass.config, this._hass.connection, stateObj);
-
-      iconPromise
-        .then((icon) => {
-          if (this.entitiesIconKey[iconId] !== key) {
-            return;
-          }
-
-          if (!icon) {
-            return;
-          }
-
-          if (this.entitiesIcon[iconId] !== icon) {
-            this.entitiesIcon[iconId] = icon;
-            this.requestUpdate();
-          }
-        })
-        .catch((err) => {
-          console.error(attribute ? '_buildMyIcon attributeIcon failed' : '_buildMyIcon entityIcon failed', entityId, attribute ?? '', err);
-        })
-        .finally(() => {
-          this.entitiesIconPending[iconId] = false;
-        });
-    }
-
-    return this.entitiesIcon[iconId];
-  }
-
   themeIsDarkMode() {
     return this.theme.darkMode === true;
   }
@@ -1063,6 +973,20 @@ class FlexHorseshoeCard extends LitElement {
       stateTool.setState(entity, entityConfig);
 
       return stateTool;
+    });
+
+    this.iconTools = (this.iconTools ?? []).map((iconTool) => {
+      const entityIndex = iconTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return iconTool;
+      }
+
+      iconTool.setState(entity, entityConfig);
+
+      return iconTool;
     });
 
     if (this.config.animations) {
@@ -1276,15 +1200,6 @@ class FlexHorseshoeCard extends LitElement {
 
   _isStaticNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
-  }
-
-  _getStateMapItem(item, entityState) {
-    const entries = item?.state_map?.map;
-    if (!entries) return undefined;
-
-    const state = entityState?.state;
-
-    return entries.find((entry) => entry.state === state) ?? entries.find((entry) => entry.state === 'default');
   }
 
   _applySameAsDeltas(item, resolvedItem, index) {
@@ -1637,12 +1552,6 @@ class FlexHorseshoeCard extends LitElement {
       this.config = newConfig;
       this.bar_mode = newConfig.bar_mode || 'normal';
 
-      if (this.config.layout?.icons) {
-        this.config.layout.icons.forEach((iconConfig, index) => {
-          this.iconsId[index] = Math.random().toString(36).substr(2, 9);
-        });
-      }
-
       // Get aspectratio. This can be defined at card level or layout level
       this.aspectratio = (this.config.layout.aspectratio || this.config.aspectratio || '1/1').trim();
 
@@ -1659,6 +1568,7 @@ class FlexHorseshoeCard extends LitElement {
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
+      this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -2126,561 +2036,29 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
-  /** *****************************************************************************
-   * _renderIcon()
+  /**
+   * Injects external SVG URL icon placeholders after Lit updates the DOM.
    *
-   * Summary.
-   * Renders a single icon.
-   *
+   * @param {Map} changedProperties - Lit changed properties map.
    */
   updated(changedProperties) {
     super.updated?.(changedProperties);
 
-    this._injectSvgUrlIcons();
-  }
-
-  _isSvgUrl(url) {
-    return url.endsWith('.svg');
-  }
-
-  _isUrlIcon(icon) {
-    return typeof icon === 'string' && /^url\(['"]?.+['"]?\)$/i.test(icon.trim());
-  }
-
-  _renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
-    const svgNode = this.svgUrlCache[url].cloneNode(true);
-
-    const rotate = item.rotate ?? 0;
-
-    const x1 = cx - iconPixels * adjust;
-    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
-
-    const scale = iconPixels / 24;
-
-    const iconCx = x1 + 12 * scale;
-    const iconCy = y1 + 12 * scale;
-
-    svgNode.classList.remove('hidden');
-
-    return svg`
-    <g
-      transform="${this._getGroupScaleTransform(item)}"
-      style="${this._getGroupScaleStyle(item)}"
-    >
-      <g
-        class="icon-position"
-        transform="translate(${iconCx} ${iconCy})"
-        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-      >
-        <rect
-          x="${-iconPixels / 2}"
-          y="${-iconPixels / 2}"
-          height="${iconPixels}px"
-          width="${iconPixels}px"
-          stroke-width="0px"
-          fill="rgba(0,0,0,0)"
-        ></rect>
-
-        <g class="icon-style-animation" style="${styleMap(configStyle)}">
-          <g class="icon-rotate" transform="rotate(${rotate})">
-            <svg
-              x="${-iconPixels / 2}"
-              y="${-iconPixels / 2}"
-              width="${iconPixels}"
-              height="${iconPixels}"
-              viewBox="0 0 24 24"
-              overflow="visible"
-            >
-              ${svgNode}
-            </svg>
-          </g>
-        </g>
-      </g>
-    </g>
-  `;
-  }
-
-  _getUrlFromCssUrl(value) {
-    return value
-      .trim()
-      .replace(/^url\(['"]?/i, '')
-      .replace(/['"]?\)$/, '');
-  }
-
-  _renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust) {
-    const rotate = item.rotate ?? 0;
-
-    const x1 = cx - iconPixels * adjust;
-    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
-
-    const scale = iconPixels / 24;
-
-    const iconCx = x1 + 12 * scale;
-    const iconCy = y1 + 12 * scale;
-
-    return svg`
-    <g
-      transform="${this._getGroupScaleTransform(item)}"
-      style="${this._getGroupScaleStyle(item)}"
-    >
-      <g class="icon-position" transform="translate(${iconCx} ${iconCy})">
-        <g class="icon-rotate" transform="rotate(${rotate})">
-          <g class="icon-scale" transform="scale(${scale})">
-            <g class="icon-center" transform="translate(-12 -12)">
-              <svg
-                class="icon-svg-url hidden"
-                data-src="${url}"
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-              >
-                <image
-                  href="${url}"
-                  width="24"
-                  height="24"
-                />
-              </svg>
-            </g>
-          </g>
-        </g>
-      </g>
-    </g>
-  `;
-  }
-
-  _injectSvgUrlIcons() {
-    const elements = this.shadowRoot.querySelectorAll('svg.icon-svg-url[data-src]:not(.injected-svg)');
-
-    if (!elements.length) return;
-
-    SVGInjector(elements, {
-      beforeEach(svgNode) {
-        svgNode.removeAttribute('height');
-        svgNode.removeAttribute('width');
-      },
-
-      afterEach: (err, injectedSvg) => {
-        if (err || !injectedSvg) return;
-
-        const url = injectedSvg.dataset.src;
-        if (!url) return;
-
-        this.svgUrlCache[url] = injectedSvg.cloneNode(true);
-      },
-
-      afterAll: () => {
-        this.requestUpdate();
-      },
-
-      cacheRequests: false,
-      evalScripts: 'once',
-      httpRequestWithCredentials: false,
-      renumerateIRIElements: false,
-    });
-  }
-
-  _renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
-    if (this.svgUrlCache[url]) {
-      return this._renderCachedSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
-    }
-
-    return this._renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust);
-  }
-
-  _renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust) {
-    const rotate = item.rotate ?? 0;
-
-    const x1 = cx - iconPixels * adjust;
-    const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
-
-    const scale = iconPixels / 24;
-
-    const iconCx = x1 + 12 * scale;
-    const iconCy = y1 + 12 * scale;
-
-    return svg`
-    <g
-      transform="${this._getGroupScaleTransform(item)}"
-      style="${this._getGroupScaleStyle(item)}"
-    >
-      <g
-        class="icon-position"
-        transform="translate(${iconCx} ${iconCy})"
-        @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-      >
-        <rect
-          x="${-iconPixels / 2}"
-          y="${-iconPixels / 2}"
-          height="${iconPixels}px"
-          width="${iconPixels}px"
-          stroke-width="0px"
-          fill="rgba(0,0,0,0)"
-        ></rect>
-
-        <g class="icon-style-animation" style="${styleMap(configStyle)}">
-          <g class="icon-rotate" transform="rotate(${rotate})">
-            <g class="icon-scale" transform="scale(${scale})">
-              <g class="icon-center" transform="translate(-12 -12)">
-                <image
-                  href="${url}"
-                  width="24"
-                  height="24"
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </g>
-            </g>
-          </g>
-        </g>
-      </g>
-    </g>
-  `;
-  }
-
-  computeEntityColor(entityState) {
-    // 1. Fallback: If no data present or is unavailable. Get neurral state icon color
-    if (!entityState || entityState.state === 'off' || entityState.state === 'unavailable' || entityState.state === 'unknown') {
-      return 'var(--state-icon-color)';
-    }
-
-    const state = entityState.state;
-
-    // Might be a weird fix, but it works
-    if (!isNaN(state) || state.endsWith('W') || state.endsWith('kWh') || state.endsWith('V')) {
-      return 'var(--state-icon-color)';
-    }
-
-    const domain = entityState.entity_id.split('.')[0];
-    const deviceClass = entityState.attributes.device_class;
-
-    // Neutral color for sensors
-    if (domain === 'sensor') {
-      return 'var(--state-icon-color)';
-    }
-
-    // 3. Get colors
-
-    // A: Color lights (RGB)
-    if (domain === 'light' && entityState.attributes.rgb_color && state === 'on') {
-      const [r, g, b] = entityState.attributes.rgb_color;
-      return `rgb(${r}, ${g}, ${b})`;
-    }
-
-    // B: Binary sensors
-    if (domain === 'binary_sensor' && deviceClass && state === 'on') {
-      return `var(--state-binary_sensor-${deviceClass}-on-color, var(--state-icon-active-color))`;
-    }
-
-    // C: Climate stuff
-    if (domain === 'climate') {
-      return `var(--state-climate-${state}-color, var(--state-icon-active-color))`;
-    }
-
-    // D: Default on/off devices
-    if (state === 'on') {
-      return `var(--state-${domain}-active-color, var(--state-${domain}-color, var(--state-icon-active-color)))`;
-    }
-
-    // The rest of the stuff
-    return 'var(--state-icon-color)';
-  }
-
-  _renderIcon(item, index) {
-    if (!item) return;
-
-    item.entity = item.entity ? item.entity : 0;
-
-    this.iconCache ||= {};
-    this.iconsSvg ||= [];
-    this.pendingIconPath ||= [];
-
-    // const iconSize = item.icon_size ? item.icon_size : 2;
-    const iconSize = item.icon_size ? item.icon_size : item.size ? item.size : 2;
-    const iconPixels = iconSize * FONT_SIZE;
-
-    // Fix xpos/ypos = 0
-    // const x = (item.xpos ?? 50) / 100;
-    // const y = (item.ypos ?? 50) / 100;
-
-    // const cx = x * SVG_VIEW_BOX;
-    // const cy = y * SVG_VIEW_BOX;
-
-    const cx = item.svg.xpos;
-    const cy = item.svg.ypos;
-    const align = item.align ? item.align : 'center';
-    const adjust = align === 'center' ? 0.5 : align === 'start' ? -1 : 1;
-
-    let xpx = cx - iconPixels * adjust;
-    let ypx = cy - iconPixels * adjust;
-    let foIconPixels = iconPixels;
-    const entityIndex = item.entity_index ?? 0;
-
-    const entityState = this.entities[entityIndex];
-
-    const smItem = this._getStateMapItem(item, entityState);
-
-    if (smItem) {
-      item = Merge.mergeDeep(item, smItem);
-    }
-
-    // new new new new
-    const haStyle = Colors.getHaEntityIconStyle(entityState);
-    const DEFAULT_ICON_COLOR = {};
-    DEFAULT_ICON_COLOR.fill = haStyle.fill;
-    DEFAULT_ICON_COLOR.color = haStyle.color;
-    DEFAULT_ICON_COLOR.filter = haStyle.filter;
-
-    // Config styles from icon itself.
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
-
-    // Runtime animation styles.
-    const stateStyle = this.animations?.icons?.[item.animation_id] ?? {};
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      configStyle.fill = stopColor;
-      configStyle.color = stopColor;
-    }
-
-    // Runtime animation styles overwrite static/config styles.
-    configStyle = {
-      ...DEFAULT_ICON_COLOR,
-      ...configStyle,
-      ...stateStyle,
-    };
-
-    const haIcon = this._buildMyIcon(this.entities[entityIndex], this.resolvedEntityConfigs[entityIndex], smItem, this.animations?.iconsIcon?.[item.animation_id]);
-    const icon = haIcon;
-
-    if (this._isUrlIcon(icon)) {
-      const url = this._getUrlFromCssUrl(icon);
-
-      if (this._isSvgUrl(url)) {
-        return this._renderSvgUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
-      }
-
-      return this._renderImageUrlIcon(item, entityIndex, url, configStyle, iconPixels, cx, cy, adjust);
-    }
-
-    if (this.iconCache[icon]) {
-      this.iconsSvg[index] = this.iconCache[icon];
-    } else {
-      this.iconsSvg[index] = undefined;
-
-      if (this.pendingIconPath[index] !== icon) {
-        this.pendingIconPath[index] = icon;
-
-        let attempts = 0;
-        const maxAttempts = 40;
-        const delay = 50;
-
-        const readIconPath = () => {
-          if (this.pendingIconPath[index] !== icon) return;
-
-          const iconSvg = this._getRenderedHaIconPath(index);
-
-          if (iconSvg) {
-            this.iconsSvg[index] = iconSvg;
-            this.iconCache[icon] = iconSvg;
-            this.pendingIconPath[index] = undefined;
-
-            this.requestUpdate();
-            return;
-          }
-
-          attempts += 1;
-
-          if (attempts >= maxAttempts) {
-            this.pendingIconPath[index] = undefined;
-            return;
-          }
-
-          window.setTimeout(readIconPath, delay);
-        };
-
-        const afterRender =
-          this?.updateComplete && typeof this.updateComplete.then === 'function'
-            ? this.updateComplete
-            : this.updateComplete && typeof this.updateComplete.then === 'function'
-              ? this.updateComplete
-              : // eslint-disable-next-line no-promise-executor-return
-                new Promise((resolve) => window.requestAnimationFrame(resolve));
-
-        afterRender.then(() => {
-          window.setTimeout(readIconPath, 0);
-        });
-      }
-    }
-
-    const iconSvg = this.iconsSvg[index];
-
-    if (iconSvg) {
-      const x1 = cx - iconPixels * adjust;
-      const y1 = cy - iconPixels * 0.5 - (item.yposc ? 0 : iconPixels * 0.25);
-
-      const scale = iconPixels / 24;
-      const rotate = item.rotate ?? 0;
-
-      const iconCx = x1 + 12 * scale;
-      const iconCy = y1 + 12 * scale;
-
-      configStyle['transform-origin'] ??= '0 0';
-
-      return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <g
-          id="icon-rendered-${this.iconsId[index]}"
-          class="icon-position"
-          transform="translate(${iconCx} ${iconCy})"
-          @click=${(e) => this.handlePopup(e, this.entities[item.entity_index])}
-        >
-          <rect
-            x="${-iconPixels / 2}"
-            y="${-iconPixels / 2}"
-            height="${iconPixels}px"
-            width="${iconPixels}px"
-            stroke-width="0px"
-            fill="rgba(0,0,0,0)"
-          ></rect>
-
-          <g class="icon-style-animation" style="${styleMap(configStyle)}">
-            <g class="icon-rotate" transform="rotate(${rotate})">
-              <g class="icon-scale" transform="scale(${scale})">
-                <g class="icon-center" transform="translate(-12 -12)">
-                  <path d="${iconSvg}"></path>
-                </g>
-              </g>
-            </g>
-          </g>
-        </g>
-      </g>
-      `;
-    }
-
-    return svg`
-    <foreignObject
-      width="0px"
-      height="0px"
-      x="${xpx}"
-      y="${ypx}"
-      overflow="hidden"
-    >
-      <body>
-        <div
-          xmlns="http://www.w3.org/1999/xhtml"
-          class="div__icon hover"
-          style="
-            line-height: ${foIconPixels}px;
-            position: relative;
-            border-style: solid;
-            border-width: 0px;
-            border-color: rgba(0,0,0,0);
-            fill: rgba(0,0,0,0);
-            color: rgba(0,0,0,0);
-          "
-        >
-          <ha-icon
-            .icon=${icon}
-            id="icon-${this.iconsId[index]}"
-          ></ha-icon>
-        </div>
-      </body>
-    </foreignObject>
-  `;
-  }
-
-  _getRenderedHaIconPath(index) {
-    const iconElement = this.shadowRoot.getElementById(`icon-${this.iconsId[index]}`);
-
-    return iconElement?.shadowRoot?.querySelector('*')?.path;
-  }
-
-  _scheduleIconPathRead(icon, index) {
-    if (!icon) return;
-
-    if (this.iconCache[icon]) {
-      this.iconsSvg[index] = this.iconCache[icon];
-      return;
-    }
-
-    if (this.pendingIconPath[index] === icon) {
-      return;
-    }
-
-    this.pendingIconPath[index] = icon;
-
-    let attempts = 0;
-    const maxAttempts = 40;
-    const delay = 50;
-
-    const readIconPath = () => {
-      if (this.pendingIconPath[index] !== icon) {
-        return;
-      }
-
-      if (this.iconCache[icon]) {
-        this.iconsSvg[index] = this.iconCache[icon];
-        this.pendingIconPath[index] = undefined;
-        this.requestUpdate();
-        return;
-      }
-
-      const iconSvg = this._getRenderedHaIconPath();
-
-      if (iconSvg) {
-        this.iconsSvg[index] = iconSvg;
-        this.iconCache[icon] = iconSvg;
-        this.pendingIconPath[index] = undefined;
-        this.requestUpdate();
-        return;
-      }
-
-      attempts += 1;
-
-      if (attempts >= maxAttempts) {
-        this.pendingIconPath[index] = undefined;
-        return;
-      }
-
-      this._iconPathTimer = window.setTimeout(readIconPath, delay);
-    };
-
-    const afterRender =
-      this.updateComplete && typeof this.updateComplete.then === 'function'
-        ? this.updateComplete
-        : new Promise((resolve) => {
-            window.requestAnimationFrame(resolve);
-          });
-
-    afterRender.then(() => {
-      this._iconPathTimer = window.setTimeout(readIconPath, 0);
-    });
+    this.iconTools?.[0]?.injectSvgUrlIcons();
   }
 
   /** *****************************************************************************
    * _renderIcons()
    *
    * Summary.
-   * Renders all the icons in the list.
+   * Renders icons through IconTool instances.
    *
    */
 
   _renderIcons() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.icons) return;
-
-    const svgItems = layout.icons.map(
-      (item, index) => svg`
-            ${this._renderIcon(item, index)}
-          `,
-    );
-
-    return svg`${svgItems}`;
+    return svg`
+      ${this.iconTools?.map((iconTool) => iconTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
@@ -2796,19 +2174,6 @@ class FlexHorseshoeCard extends LitElement {
     const actionConfig = entityConfig?.tap_action ?? this.config?.tap_action ?? { action: 'more-info' };
 
     this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
-  }
-
-  /** *****************************************************************************
-   * _buildIcon()
-   *
-   * Summary.
-   * Builds the Icon specification name.
-   *
-   */
-  _buildIcon(entityState, entityConfig, entityAnimation) {
-    return (
-      entityAnimation || entityConfig?.icon || entityState?.attributes?.icon || stateIconName(entityState) // From modified HA files
-    );
   }
 
   /** *****************************************************************************
