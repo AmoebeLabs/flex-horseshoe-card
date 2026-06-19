@@ -1,4 +1,5 @@
 import { svg } from 'lit';
+import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 import Colors from './colors.js';
 import { createValueAnimatorState, DEFAULT_STATE_ANIMATION, getStateAnimationConfig as getAnimatorConfig, startValueAnimation as runValueAnimation } from './horseshoe-animator.js';
 import { GaugeGeometry, GaugeScale } from './horseshoe-geometry.js';
@@ -168,6 +169,10 @@ export default class HorseshoeGauge {
     this.cardId = cardId;
     this.card = card;
     this.entity_index = config.entity_index ?? 0;
+    this.defaultZpos = DEFAULT_ZPOS.horseshoes_v2;
+    this.config.zpos ??= this.defaultZpos;
+    this.zpos = this.config.zpos;
+    this.renderIndex = DEFAULT_RENDER_INDEX.horseshoes_v2 + index;
     this.show = config.show;
 
     this.entity = undefined;
@@ -205,6 +210,7 @@ export default class HorseshoeGauge {
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
 
     this.runtimeConfig = stateData.runtimeConfig;
+    this.zpos = this.runtimeConfig.zpos ?? this.defaultZpos;
     this.rawState = stateData.rawState;
     this.mappedState = stateData.mappedState;
     this.value = nextValue;
