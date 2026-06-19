@@ -49,6 +49,7 @@ import LineTool from './line-tool.js';
 import CircleTool from './circle-tool.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
+import StateTool from './state-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -99,6 +100,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = [];
     this.nameTools = [];
     this.areaTools = [];
+    this.stateTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -886,89 +888,6 @@ class FlexHorseshoeCard extends LitElement {
     return this.entitiesIcon[iconId];
   }
 
-  _formatEntityStateParts(stateObj, entityConfig) {
-    const isAttribute = entityConfig.attribute !== undefined;
-    const formatConfig = entityConfig.format || {}; // Fallback to empty dict if not defined
-
-    // 1. Fetch the absolute raw value from state or attribute
-    let rawValue = isAttribute ? stateObj.attributes[entityConfig.attribute] : stateObj.state;
-
-    // 2. Handle absolute raw state bypass (raw_state_keep)
-    // When raw_state_keep is true, 'raw is raw' and we skip all formatting/translations immediately
-    if (formatConfig.raw_state_keep === true) {
-      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
-        rawValue = rawValue.replace(/_/g, ' ');
-      }
-      return [{ type: 'value', value: rawValue }];
-    }
-
-    // 3. Fallback to standard Home Assistant frontend parts splitting
-    const parts = isAttribute ? this._hass.formatEntityAttributeValueToParts(stateObj, entityConfig.attribute) : this._hass.formatEntityStateToParts(stateObj, this._buildState(stateObj.state, entityConfig));
-
-    // 4. Determine if the value is numeric
-    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
-
-    // 5. Advanced number formatting (separator, decimals_min, decimals_max)
-    // Text-based states naturally skip this block and keep their HA translations intact
-    let formattedValue;
-    if (isNumeric) {
-      const activeLocale = formatConfig.locale || this._hass.locale?.language || this._hass.language || 'en-US';
-
-      // Find the pre-formatted value that Home Assistant generated
-      const haValuePart = parts.find((part) => part.type === 'value');
-      let haDecimals; // Fixed: declared cleanly without undefined for ESLint (no-undef-init)
-
-      // Convert to string safely to ensure lastIndexOf never crashes on pure numbers
-      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
-        const haValueStr = String(haValuePart.value);
-        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
-        if (decimalIndex !== -1) {
-          haDecimals = haValueStr.length - decimalIndex - 1;
-        } else {
-          haDecimals = 0;
-        }
-      }
-
-      // Calculate maximum digits first (highest user priority, fallback to HA decimals, fallback to 2)
-      const maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 2);
-
-      // Calculate minimum digits (highest user priority, fallback to HA decimals, fallback to 0)
-      let minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : entityConfig.decimals !== undefined ? Number(entityConfig.decimals) : 0);
-
-      // Fixed: minDigits can NEVER be larger than maxDigits.
-      // If the user limits max to 1, the minimum pulls down to 1 as well.
-      if (minDigits > maxDigits) {
-        minDigits = maxDigits;
-      }
-
-      const numberOptions = {
-        // Disables the browser's thousands grouping when separator is set to false
-        useGrouping: formatConfig.separator !== false,
-        minimumFractionDigits: minDigits,
-        maximumFractionDigits: maxDigits,
-      };
-
-      try {
-        formattedValue = new Intl.NumberFormat(activeLocale, numberOptions).format(Number(rawValue));
-      } catch (error) {
-        console.error('Error formatting numeric state inside parts:', error);
-      }
-    }
-
-    // 6. Map everything back to the SVG-ready parts array
-    return parts.map((part) => {
-      if (part.type === 'value' && formattedValue !== undefined) {
-        return { ...part, value: formattedValue };
-      }
-
-      if (part.type === 'unit' && entityConfig.unit !== undefined) {
-        return { ...part, value: entityConfig.unit };
-      }
-
-      return part;
-    });
-  }
-
   themeIsDarkMode() {
     return this.theme.darkMode === true;
   }
@@ -1020,7 +939,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this.entities[index] = entity;
 
-      const newStateStr = this._buildState(entity.state, entityConfig);
+      const newStateStr = StateTool.buildState(entity.state, entityConfig, this._hass, entity);
 
       // testing
       const stateObj = entity;
@@ -1033,7 +952,7 @@ class FlexHorseshoeCard extends LitElement {
 
       // eslint-disable-next-line prefer-object-has-own
       if (entityConfig.attribute && Object.prototype.hasOwnProperty.call(entity.attributes, entityConfig.attribute)) {
-        const newAttributeStr = this._buildState(entity.attributes[entityConfig.attribute], entityConfig);
+        const newAttributeStr = StateTool.buildState(entity.attributes[entityConfig.attribute], entityConfig, this._hass, entity);
 
         if (newAttributeStr !== this.attributesStr[index]) {
           this.attributesStr[index] = newAttributeStr;
@@ -1130,6 +1049,20 @@ class FlexHorseshoeCard extends LitElement {
       areaTool.setState(entity, entityConfig);
 
       return areaTool;
+    });
+
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => {
+      const entityIndex = stateTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return stateTool;
+      }
+
+      stateTool.setState(entity, entityConfig);
+
+      return stateTool;
     });
 
     if (this.config.animations) {
@@ -1279,12 +1212,6 @@ class FlexHorseshoeCard extends LitElement {
 
   _computeSvgDimensions(config) {
     const layout = config.layout;
-
-    if (layout?.states) {
-      layout.states.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
 
     if (layout?.icons) {
       layout.icons.forEach((item) => {
@@ -1731,6 +1658,7 @@ class FlexHorseshoeCard extends LitElement {
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
+      this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -1955,10 +1883,10 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /** *****************************************************************************
-   * _renderEntityState()
+   * _getGroupScaleTransform()
    *
    * Summary.
-   * Renders the entity or attribute state of a single item.
+   * Builds the group scale and flip transform for layout tools.
    *
    */
   _getGroupScaleTransform(item) {
@@ -1981,140 +1909,6 @@ class FlexHorseshoeCard extends LitElement {
     if (!group?.scale || !group.svg) return `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px; transform-box:view-box;`;
 
     return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
-  }
-
-  _renderEntityState(item) {
-    if (!item) return svg``;
-
-    const entityIndex = item.entity_index ?? 0;
-
-    // compute x,y or dx,dy positions. Spec center if not specified.
-    const x = item.svg.xpos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-    const y = item.svg.ypos ?? SVG_DEFAULT_DIMENSIONS_HALF;
-
-    const dx = item.dx ? item.dx : '0';
-    const dy = item.dy ? item.dy : '0';
-
-    const STATE_STYLES = {
-      'font-size': '1em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-
-    const UOM_STYLES = {
-      opacity: '0.7',
-    };
-
-    // Config styles for the main state value.
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    // Config styles for the UOM. These are optional and override the implicit UOM styles.
-    const uomConfig = item.uom ?? {};
-
-    const resolvedUomStyles = Templates.getJsTemplateOrValue(item, uomConfig.styles);
-    const itemUomStyleDict = ConfigHelper.toStyleDict(resolvedUomStyles);
-
-    const uomDx = uomConfig.dx ?? '0.1';
-    const uomDy = uomConfig.dy ?? '-0.45';
-
-    // Runtime animation styles. Animation styles win over normal state styles.
-    let stateStyle = {};
-    if (this.animations?.states?.[item.animation_id]) {
-      stateStyle = {
-        ...this.animations.states[item.animation_id],
-      };
-    }
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.fill = stopColor;
-    }
-
-    // Runtime styles overwrite statically configured styles.
-    const configStyle = {
-      ...STATE_STYLES,
-      ...itemStyleDict,
-      ...stateStyle,
-    };
-
-    // Keep old implicit UOM behavior:
-    // UOM font-size is derived from the final state font-size.
-    const fsuomStr = configStyle['font-size'];
-    let fsuomValue = 0.5;
-    let fsuomType = 'em';
-
-    const fsuomMatch = String(fsuomStr)
-      .trim()
-      .match(/^(\d*\.?\d+)([a-z%]+)$/i);
-
-    if (fsuomMatch) {
-      fsuomValue = Number(fsuomMatch[1]) * 0.6;
-      fsuomType = fsuomMatch[2];
-    } else {
-      console.error('Cannot determine font-size for state', fsuomStr);
-    }
-
-    const fsuomStyle = {
-      'font-size': `${fsuomValue}${fsuomType}`,
-    };
-
-    // Order matters:
-    // 1. Start from state style.
-    // 2. Apply old default UOM overrides.
-    // 3. Apply old implicit computed UOM font-size.
-    // 4. Let explicit styles_uom override all of that.
-    const uomStyle = {
-      ...configStyle,
-      ...UOM_STYLES,
-      ...fsuomStyle,
-      ...itemUomStyleDict,
-    };
-
-    const entity = this.entities[entityIndex];
-    const entityConfig = this.resolvedEntityConfigs[entityIndex] ?? {};
-
-    const parts = this._formatEntityStateParts(entity, entityConfig);
-    let state = '';
-    let unit = '';
-
-    parts.forEach((part) => {
-      if (part.type === 'unit') {
-        unit += part.value;
-      } else {
-        if (part.type === 'value') {
-          state += part.value;
-        }
-      }
-    });
-
-    state = state.trim();
-    unit = unit.trim();
-    const uom = this._buildUom(entity, entityConfig, unit);
-
-    return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <text @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}>
-          <tspan
-            class="state__value"
-            x="${x}"
-            y="${y}"
-            dx="${dx}em"
-            dy="${dy}em"
-            style=${styleMap(configStyle)}
-          >${state}</tspan><tspan
-            class="state__uom"
-            dx="${uomDx}em"
-            dy="${uomDy}em"
-            style=${styleMap(uomStyle)}
-          >${uom}</tspan>
-        </text>
-      </g>
-    `;
   }
 
   // formatStateString(inState, entityConfig) {
@@ -2322,23 +2116,14 @@ class FlexHorseshoeCard extends LitElement {
    * _renderStates()
    *
    * Summary.
-   * Renders the states.
+   * Renders states through StateTool instances.
    *
    */
 
   _renderEntityStates() {
-    const { layout } = this.config;
-
-    if (!layout) return;
-    if (!layout.states) return;
-
-    const svgItems = layout.states.map(
-      (item) => svg`
-            ${this._renderEntityState(item)}
-          `,
-    );
-
-    return svg`${svgItems}`;
+    return svg`
+      ${this.stateTools?.map((stateTool) => stateTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
@@ -3024,257 +2809,6 @@ class FlexHorseshoeCard extends LitElement {
     return (
       entityAnimation || entityConfig?.icon || entityState?.attributes?.icon || stateIconName(entityState) // From modified HA files
     );
-  }
-
-  /** *****************************************************************************
-   * _buildUom()
-   *
-   * Summary.
-   * Builds the Unit of Measurement string.
-   *
-   */
-
-  _buildUom(entityState, entityConfig, unit) {
-    return entityConfig.unit || unit || '';
-  }
-
-  /** *****************************************************************************
-   * card::_buildStateString()
-   *
-   * Summary.
-   * Builds the State string.
-   * If state is not a number, the state is returned AS IS, otherwise the state
-   * is converted if specified before it is returned as a string
-   *
-   * IMPORTANT NOTE:
-   * - do NOT replace isNaN() by Number.isNaN(). They are INCOMPATIBLE !!!!!!!!!
-   */
-
-  _buildState(inState, entityConfig) {
-    // Keep undefined as state. Do NOT change this one!!
-    if (typeof inState === 'undefined') return inState;
-    // inState seems to be null when light is off!
-    if (inState === null) return inState;
-
-    // New in v2.5.1: Check for built-in state converters
-    if (entityConfig.convert) {
-      // Match converter with parameter between ()
-      let splitted = entityConfig.convert.match(/(^\w+)\((\d+)\)/);
-      let converter;
-      let parameter;
-      // If no parameters found, just the converter
-      if (splitted === null) {
-        converter = entityConfig.convert;
-      } else if (splitted.length === 3) {
-        // If parameter found, process...
-        converter = splitted[1];
-        parameter = Number(splitted[2]);
-      }
-      switch (converter) {
-        case 'brightness_pct':
-          inState = inState === 'undefined' ? 'undefined' : `${Math.round((inState / 255) * 100)}`;
-          break;
-        case 'multiply':
-          inState = `${Math.round(inState * parameter)}`;
-          break;
-        case 'divide':
-          inState = `${Math.round(inState / parameter)}`;
-          break;
-        case 'rgb_csv':
-        case 'rgb_hex':
-          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/dialogs/more-info/components/lights/ha-favorite-color-button.ts#L39
-          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/common/color/convert-light-color.ts
-          // private get _rgbColor(): [number, number, number] {
-          //   if (this.color) {
-          //     if ("hs_color" in this.color) {
-          //       return hs2rgb([this.color.hs_color[0], this.color.hs_color[1] / 100]);
-          //     }
-          //     if ("color_temp_kelvin" in this.color) {
-          //       return temperature2rgb(this.color.color_temp_kelvin);
-          //     }
-          //     if ("rgb_color" in this.color) {
-          //       return this.color.rgb_color;
-          //     }
-          //     if ("rgbw_color" in this.color) {
-          //       return rgbw2rgb(this.color.rgbw_color);
-          //     }
-          //     if ("rgbww_color" in this.color) {
-          //       return rgbww2rgb(
-          //         this.color.rgbww_color,
-          //         this.stateObj?.attributes.min_color_temp_kelvin,
-          //         this.stateObj?.attributes.max_color_temp_kelvin
-          //       );
-          //     }
-          //   }
-          //   return [255, 255, 255];
-          // }
-          if (entityConfig.attribute) {
-            let entity = this._hass.states[entityConfig.entity];
-            switch (entity.attributes.color_mode) {
-              case 'unknown':
-                break;
-              case 'onoff':
-                break;
-              case 'brightness':
-                break;
-              case 'color_temp':
-                if (entity.attributes.color_temp_kelvin) {
-                  let rgb = temperature2rgb(entity.attributes.color_temp_kelvin);
-
-                  const hsvColor = rgb2hsv(rgb);
-                  // Modify the real rgb color for better contrast
-                  if (hsvColor[1] < 0.4) {
-                    // Special case for very light color (e.g: white)
-                    if (hsvColor[1] < 0.1) {
-                      hsvColor[2] = 225;
-                    } else {
-                      hsvColor[1] = 0.4;
-                    }
-                  }
-                  rgb = hsv2rgb(hsvColor);
-
-                  rgb[0] = Math.round(rgb[0]);
-                  rgb[1] = Math.round(rgb[1]);
-                  rgb[2] = Math.round(rgb[2]);
-                  if (converter === 'rgb_csv') {
-                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-                  } else {
-                    inState = rgb2hex(rgb);
-                  }
-                } else {
-                  if (converter === 'rgb_csv') {
-                    inState = `${255},${255},${255}`;
-                  } else {
-                    inState = '#ffffff00';
-                  }
-                }
-                break;
-              case 'hs':
-                {
-                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
-                  rgb[0] = Math.round(rgb[0]);
-                  rgb[1] = Math.round(rgb[1]);
-                  rgb[2] = Math.round(rgb[2]);
-
-                  if (converter === 'rgb_csv') {
-                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-                  } else {
-                    inState = rgb2hex(rgb);
-                  }
-                }
-                break;
-              case 'rgb':
-                {
-                  const hsvColor = rgb2hsv(this.stateObj.attributes.rgb_color);
-                  // Modify the real rgb color for better contrast
-                  if (hsvColor[1] < 0.4) {
-                    // Special case for very light color (e.g: white)
-                    if (hsvColor[1] < 0.1) {
-                      hsvColor[2] = 225;
-                    } else {
-                      hsvColor[1] = 0.4;
-                    }
-                  }
-                  const rgbColor = hsv2rgb(hsvColor);
-                  if (converter === 'rgb_csv') {
-                    inState = rgbColor.toString();
-                  } else {
-                    inState = rgb2hex(rgbColor);
-                  }
-                }
-                break;
-              case 'rgbw':
-                {
-                  let rgb = rgbw2rgb(entity.attributes.rgbw_color);
-                  rgb[0] = Math.round(rgb[0]);
-                  rgb[1] = Math.round(rgb[1]);
-                  rgb[2] = Math.round(rgb[2]);
-
-                  if (converter === 'rgb_csv') {
-                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-                  } else {
-                    inState = rgb2hex(rgb);
-                  }
-                }
-                break;
-              case 'rgbww':
-                {
-                  let rgb = rgbww2rgb(entity.attributes.rgbww_color, entity.attributes?.min_color_temp_kelvin, entity.attributes?.max_color_temp_kelvin);
-                  rgb[0] = Math.round(rgb[0]);
-                  rgb[1] = Math.round(rgb[1]);
-                  rgb[2] = Math.round(rgb[2]);
-
-                  if (converter === 'rgb_csv') {
-                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-                  } else {
-                    inState = rgb2hex(rgb);
-                  }
-                }
-                break;
-              case 'white':
-                break;
-              case 'xy':
-                if (entity.attributes.hs_color) {
-                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
-                  // https://github.com/home-assistant/frontend/blob/8580d3f9bf59ffbcbe4187a0d7a58cc23d9822df/src/dialogs/more-info/components/lights/ha-more-info-light-brightness.ts#L76
-                  // background slider has opacity of 0.2. Looks nice also, yes??
-                  const hsvColor = rgb2hsv(rgb);
-                  // Modify the real rgb color for better contrast
-                  if (hsvColor[1] < 0.4) {
-                    // Special case for very light color (e.g: white)
-                    if (hsvColor[1] < 0.1) {
-                      hsvColor[2] = 225;
-                    } else {
-                      hsvColor[1] = 0.4;
-                    }
-                  }
-                  rgb = hsv2rgb(hsvColor);
-                  rgb[0] = Math.round(rgb[0]);
-                  rgb[1] = Math.round(rgb[1]);
-                  rgb[2] = Math.round(rgb[2]);
-
-                  if (converter === 'rgb_csv') {
-                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-                  } else {
-                    inState = rgb2hex(rgb);
-                  }
-                } else if (entity.attributes.color) {
-                  // We should have h and s, including brightness...
-                  let hsl = {};
-                  hsl.l = entity.attributes.brightness;
-                  hsl.h = entity.attributes.color.h || entity.attributes.color.hue;
-                  hsl.s = entity.attributes.color.s || entity.attributes.color.saturation;
-                  // Convert HSL value to RGB
-                  // HERE
-                  let { r, g, b } = Colors.hslToRgb(hsl);
-                  if (converter === 'rgb_csv') {
-                    inState = `${r},${g},${b}`;
-                  } else {
-                    const rHex = Colors.padZero(r.toString(16));
-                    const gHex = Colors.padZero(g.toString(16));
-                    const bHex = Colors.padZero(b.toString(16));
-                    inState = `#${rHex}${gHex}${bHex}`;
-                  }
-                } else if (entity.attributes.xy_color) {
-                }
-                break;
-              default:
-                break;
-            }
-          }
-          break;
-        default:
-          console.error(`Unknown converter [${converter}] specified for entity [${entityConfig.entity}]!`);
-          break;
-      }
-    }
-    if (typeof inState === 'undefined') {
-      return undefined;
-    }
-    if (Number.isNaN(inState)) {
-      return inState;
-    }
-    return inState.toString();
   }
 
   /** *****************************************************************************
