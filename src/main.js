@@ -590,6 +590,10 @@ class FlexHorseshoeCard extends LitElement {
         overflow: hidden;
       }
 
+      .icon-svg-url.hidden {
+        display: none;
+      }
+
       .state {
         position: relative;
         display: flex;
@@ -782,7 +786,28 @@ class FlexHorseshoeCard extends LitElement {
       }) ?? []
     );
   }
-  /** *****************************************************************************
+
+  _setToolEntityState(tool) {
+    const entityIndex = tool.entity_index;
+
+    if (entityIndex === undefined || entityIndex === null) {
+      tool.setState(undefined, undefined);
+      return tool;
+    }
+
+    const entityConfig = this.resolvedEntityConfigs[entityIndex];
+    const entity = this.entities[entityIndex];
+
+    if (!entity || !entityConfig) {
+      return tool;
+    }
+
+    tool.setState(entity, entityConfig);
+
+    return tool;
+  }
+
+  /** **************************************************************************************
    * hass()
    *
    * Summary.
@@ -869,117 +894,21 @@ class FlexHorseshoeCard extends LitElement {
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
 
-    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => {
-      const entityIndex = horseshoe.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
+    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
 
-      if (!entity || !entityConfig) {
-        return horseshoe;
-      }
+    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
 
-      horseshoe.setState(entity, entityConfig);
+    this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
 
-      return horseshoe;
-    });
+    this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
 
-    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => {
-      const entityIndex = rectangleTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
 
-      if (!entity || !entityConfig) {
-        return rectangleTool;
-      }
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
 
-      rectangleTool.setState(entity, entityConfig);
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
 
-      return rectangleTool;
-    });
-
-    this.lineTools = (this.lineTools ?? []).map((lineTool) => {
-      const entityIndex = lineTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return lineTool;
-      }
-
-      lineTool.setState(entity, entityConfig);
-
-      return lineTool;
-    });
-
-    this.circleTools = (this.circleTools ?? []).map((circleTool) => {
-      const entityIndex = circleTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return circleTool;
-      }
-
-      circleTool.setState(entity, entityConfig);
-
-      return circleTool;
-    });
-
-    this.nameTools = (this.nameTools ?? []).map((nameTool) => {
-      const entityIndex = nameTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return nameTool;
-      }
-
-      nameTool.setState(entity, entityConfig);
-
-      return nameTool;
-    });
-
-    this.areaTools = (this.areaTools ?? []).map((areaTool) => {
-      const entityIndex = areaTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return areaTool;
-      }
-
-      areaTool.setState(entity, entityConfig);
-
-      return areaTool;
-    });
-
-    this.stateTools = (this.stateTools ?? []).map((stateTool) => {
-      const entityIndex = stateTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return stateTool;
-      }
-
-      stateTool.setState(entity, entityConfig);
-
-      return stateTool;
-    });
-
-    this.iconTools = (this.iconTools ?? []).map((iconTool) => {
-      const entityIndex = iconTool.entity_index ?? 0;
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
-      const entity = this.entities[entityIndex];
-
-      if (!entity || !entityConfig) {
-        return iconTool;
-      }
-
-      iconTool.setState(entity, entityConfig);
-
-      return iconTool;
-    });
+    this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
@@ -1582,7 +1511,10 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _getItemStateValue(item = {}) {
-    const entityIndex = item.entity_index ?? 0;
+    const entityIndex = item.entity_index;
+
+    if (entityIndex === undefined || entityIndex === null) return undefined;
+
     const entity = this.entities?.[entityIndex];
     const entityConfig = this.config?.entities?.[entityIndex];
 

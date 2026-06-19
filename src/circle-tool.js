@@ -37,7 +37,7 @@ export default class CircleTool extends BaseTool {
       ...config,
     };
 
-    super(circleConfig, index, templates, cardId, card, 'circles');
+    super(circleConfig, index, templates, cardId, card, 'circles', 'circles', undefined);
 
     this.config.svg = this.calculateSvgDimensions();
     this.runtimeConfig = this.config;

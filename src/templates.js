@@ -179,8 +179,10 @@ export default class Templates {
   }
 
   static _getItemEntityIndex(item = {}) {
+    if (item.entity_index === undefined || item.entity_index === null) return undefined;
+
     const entityIndex = Number(item.entity_index);
-    return Number.isFinite(entityIndex) ? entityIndex : 0;
+    return Number.isFinite(entityIndex) ? entityIndex : undefined;
   }
 
   /**
