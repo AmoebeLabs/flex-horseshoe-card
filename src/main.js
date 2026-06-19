@@ -1732,55 +1732,69 @@ class FlexHorseshoeCard extends LitElement {
             class="${cardFilter}"
           viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
             ${this._renderSvgDefs()}
-            <g id="rectangles" class="rectangles">
-              ${this._renderRectangles()}
-            </g>
-            <g id="circles" class="circles">
-              ${this._renderCircles()}
-            </g>
-          ${this._renderHorseshoeGauges()}
-            <g id="datagroup" class="datagroup">
-              ${this._renderLines()}
-              ${this._renderIcons()}
-              ${this._renderEntityAreas()}
-              ${this._renderEntityNames()}
-              ${this._renderEntityStates()}
+            <g id="layout-tools" class="layout-tools">
+              ${this._renderLayoutTools()}
             </g>
         </svg>
       `;
   }
 
-  _renderHorseshoeGauges() {
-    return svg`
-    ${this.horseshoeGauges?.map((horseshoe) => horseshoe.render()) ?? svg``}
-  `;
+  /**
+   * Returns every renderable layout tool in one list for global zpos sorting.
+   *
+   * @returns {Array<object>} Renderable tool instances.
+   */
+  _getRenderableTools() {
+    return [
+      ...(this.rectangleTools ?? []),
+      ...(this.circleTools ?? []),
+      ...(this.horseshoeGauges ?? []),
+      ...(this.lineTools ?? []),
+      ...(this.iconTools ?? []),
+      ...(this.areaTools ?? []),
+      ...(this.nameTools ?? []),
+      ...(this.stateTools ?? []),
+    ];
   }
 
-  /** *****************************************************************************
-   * _renderEntityNames()
+  /**
+   * Converts sort fields to finite numbers so zpos templates cannot break sorting.
    *
-   * Summary.
-   * Renders names through NameTool instances.
-   *
+   * @param {*} value - Tool sort field value.
+   * @param {number} fallback - Value used when conversion fails.
+   * @returns {number} Finite sort value.
    */
+  _getToolSortNumber(value, fallback = 0) {
+    const numberValue = Number(value);
 
-  _renderEntityNames() {
-    return svg`
-      ${this.nameTools?.map((nameTool) => nameTool.render()) ?? svg``}
-    `;
+    return Number.isFinite(numberValue) ? numberValue : fallback;
   }
 
-  /** *****************************************************************************
-   * _renderEntityAreas()
+  /**
+   * Sorts tools first by configured layer, then by existing render order.
    *
-   * Summary.
-   * Renders areas through AreaTool instances.
-   *
+   * @param {object} firstTool - First renderable tool.
+   * @param {object} secondTool - Second renderable tool.
+   * @returns {number} Sort comparison result.
    */
+  _sortRenderableTools(firstTool, secondTool) {
+    const zposDifference = this._getToolSortNumber(firstTool.zpos) - this._getToolSortNumber(secondTool.zpos);
 
-  _renderEntityAreas() {
+    if (zposDifference !== 0) return zposDifference;
+
+    return this._getToolSortNumber(firstTool.renderIndex) - this._getToolSortNumber(secondTool.renderIndex);
+  }
+
+  /**
+   * Renders all layout tools through one globally sorted zpos pipeline.
+   *
+   * @returns {TemplateResult} Sorted SVG layout tool templates.
+   */
+  _renderLayoutTools() {
     return svg`
-      ${this.areaTools?.map((areaTool) => areaTool.render()) ?? svg``}
+      ${this._getRenderableTools()
+        .sort((firstTool, secondTool) => this._sortRenderableTools(firstTool, secondTool))
+        .map((tool) => tool.render())}
     `;
   }
 
@@ -1813,20 +1827,6 @@ class FlexHorseshoeCard extends LitElement {
     return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
   }
 
-  /** **************************************************************************************
-   * _renderStates()
-   *
-   * Summary.
-   * Renders states through StateTool instances.
-   *
-   */
-
-  _renderEntityStates() {
-    return svg`
-      ${this.stateTools?.map((stateTool) => stateTool.render()) ?? svg``}
-    `;
-  }
-
   /**
    * Injects external SVG URL icon placeholders after Lit updates the DOM.
    *
@@ -1837,63 +1837,6 @@ class FlexHorseshoeCard extends LitElement {
 
     this.iconTools?.[0]?.injectSvgUrlIcons();
   }
-
-  /** *****************************************************************************
-   * _renderIcons()
-   *
-   * Summary.
-   * Renders icons through IconTool instances.
-   *
-   */
-
-  _renderIcons() {
-    return svg`
-      ${this.iconTools?.map((iconTool) => iconTool.render()) ?? svg``}
-    `;
-  }
-
-  /** *****************************************************************************
-   * _renderLines()
-   *
-   * Summary.
-   * Renders generic lines plus hlines/vlines translated through LineTool.
-   *
-   */
-
-  _renderLines() {
-    return svg`
-      ${this.lineTools?.map((lineTool) => lineTool.render()) ?? svg``}
-    `;
-  }
-
-  /** *****************************************************************************
-   * _renderCircles()
-   *
-   * Summary.
-   * Renders circles through CircleTool instances.
-   *
-   */
-
-  _renderCircles() {
-    return svg`
-      ${this.circleTools?.map((circleTool) => circleTool.render()) ?? svg``}
-    `;
-  }
-
-  /** *****************************************************************************
-   * _renderRectangles()
-   *
-   * Summary.
-   * Renders the specified rectangles in the grid.
-   *
-   */
-
-  _renderRectangles() {
-    return svg`
-      ${this.rectangleTools?.map((rectangleTool) => rectangleTool.render()) ?? svg``}
-    `;
-  }
-
   /** *****************************************************************************
    * _handleClick()
    *
