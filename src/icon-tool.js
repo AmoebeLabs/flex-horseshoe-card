@@ -39,7 +39,10 @@ export default class IconTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
-    super(config, index, templates, cardId, card, 'icons');
+    const hasStandaloneIconSource = config.icon !== undefined || config.state_map !== undefined;
+    const defaultEntityIndex = hasStandaloneIconSource ? undefined : 0;
+
+    super(config, index, templates, cardId, card, 'icons', 'icons', defaultEntityIndex);
 
     this.config.svg = this.calculateSvgDimensions();
     this.runtimeConfig = this.config;
@@ -113,16 +116,16 @@ export default class IconTool extends BaseTool {
   buildIcon(stateMapConfig, item = this.runtimeConfig) {
     const entityAnimation = this.card.animations?.iconsIcon?.[item.animation_id];
 
-    if (!this.entity || !this.entityConfig) {
-      return undefined;
-    }
-
     if (entityAnimation) {
       return entityAnimation;
     }
 
     if (stateMapConfig?.icon) {
       return stateMapConfig.icon;
+    }
+
+    if (!this.entity || !this.entityConfig) {
+      return item.icon;
     }
 
     if (this.entityConfig.icon) {
@@ -451,7 +454,9 @@ export default class IconTool extends BaseTool {
       renderItem = Merge.mergeDeep(item, smItem);
     }
 
-    const haStyle = Colors.getHaEntityIconStyle(this.entity);
+    const haStyle = this.entity
+      ? Colors.getHaEntityIconStyle(this.entity)
+      : { fill: 'currentColor', color: 'var(--state-icon-color)' };
     const defaultIconColor = {};
     defaultIconColor.fill = haStyle.fill;
     defaultIconColor.color = haStyle.color;
@@ -483,6 +488,10 @@ export default class IconTool extends BaseTool {
       }
 
       return this.renderImageUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust);
+    }
+
+    if (!icon) {
+      return svg``;
     }
 
     if (this.card.iconCache[icon]) {

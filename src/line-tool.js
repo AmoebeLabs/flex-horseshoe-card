@@ -69,7 +69,7 @@ export default class LineTool extends BaseTool {
       ...config,
     };
 
-    super(lineConfig, index, templates, cardId, card, lineConfig.animation_section);
+    super(lineConfig, index, templates, cardId, card, lineConfig.animation_section, lineConfig.animation_section, undefined);
 
     this.validateOrientation(this.config.orientation);
     this.config.svg = this.calculateSvgDimensions();

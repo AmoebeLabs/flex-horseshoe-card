@@ -37,7 +37,7 @@ export default class RectangleTool extends BaseTool {
       ...config,
     };
 
-    super(rectangleConfig, index, templates, cardId, card, 'rectangles');
+    super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined);
 
     this.config.svg = this.calculateSvgDimensions();
     this.runtimeConfig = this.config;

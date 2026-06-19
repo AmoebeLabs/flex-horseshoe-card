@@ -16,8 +16,9 @@ export default class BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    * @param {string} animationSection - Animation bucket name for this tool type.
    * @param {string} zposSection - Layer bucket name for zpos defaults.
+   * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
    */
-  constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection) {
+  constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection, defaultEntityIndex = 0) {
     this.config = config;
     this.index = index;
     this.templates = templates;
@@ -29,7 +30,7 @@ export default class BaseTool {
     this.config.zpos ??= this.defaultZpos;
     this.zpos = this.config.zpos;
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
-    this.entity_index = config.entity_index ?? 0;
+    this.entity_index = config.entity_index ?? defaultEntityIndex;
 
     this.entity = undefined;
     this.entityConfig = undefined;
@@ -123,6 +124,11 @@ export default class BaseTool {
    * @param {Event} event - Click event.
    */
   handlePopup(event) {
-    this.card.handlePopup(event, this.card.entities[this.entity_index]);
+    if (this.entity_index === undefined || this.entity_index === null) return;
+
+    const entity = this.card.entities[this.entity_index];
+    if (!entity) return;
+
+    this.card.handlePopup(event, entity);
   }
 }
