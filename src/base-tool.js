@@ -77,6 +77,21 @@ export default class BaseTool {
   }
 
   /**
+   * Applies the existing SVG text ellipsis behavior used by text layout tools.
+   *
+   * @param {string} text - Text to shorten.
+   * @param {number} ellipsis - Maximum character count.
+   * @returns {string} Original or shortened text.
+   */
+  textEllipsis(text, ellipsis) {
+    if (ellipsis && ellipsis < text.length) {
+      return text.slice(0, ellipsis - 1).concat('...');
+    }
+
+    return text;
+  }
+
+  /**
    * Returns the SVG transform for the configured group and item flip settings.
    *
    * @returns {string} SVG transform value.

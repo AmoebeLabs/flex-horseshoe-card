@@ -47,6 +47,8 @@ import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
 import CircleTool from './circle-tool.js';
+import NameTool from './name-tool.js';
+import AreaTool from './area-tool.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -95,6 +97,8 @@ class FlexHorseshoeCard extends LitElement {
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
+    this.nameTools = [];
+    this.areaTools = [];
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -1100,6 +1104,34 @@ class FlexHorseshoeCard extends LitElement {
       return circleTool;
     });
 
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => {
+      const entityIndex = nameTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return nameTool;
+      }
+
+      nameTool.setState(entity, entityConfig);
+
+      return nameTool;
+    });
+
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => {
+      const entityIndex = areaTool.entity_index ?? 0;
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entity = this.entities[entityIndex];
+
+      if (!entity || !entityConfig) {
+        return areaTool;
+      }
+
+      areaTool.setState(entity, entityConfig);
+
+      return areaTool;
+    });
+
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1127,6 +1159,14 @@ class FlexHorseshoeCard extends LitElement {
 
           if (item.rectangles) {
             item.rectangles.forEach((item2) => this._updateAnimationStyles('rectangles', item2));
+          }
+
+          if (item.names) {
+            item.names.forEach((item2) => this._updateAnimationStyles('names', item2));
+          }
+
+          if (item.areas) {
+            item.areas.forEach((item2) => this._updateAnimationStyles('areas', item2));
           }
 
           if (item.icons) {
@@ -1240,24 +1280,8 @@ class FlexHorseshoeCard extends LitElement {
   _computeSvgDimensions(config) {
     const layout = config.layout;
 
-    if (layout?.names) {
-      layout.names.forEach((item) => {
-        // item.svg = {
-        //   xpos: Utils.calculateSvgDimension(item.xpos),
-        //   ypos: Utils.calculateSvgDimension(item.ypos),
-        // };
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
     if (layout?.states) {
       layout.states.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
-    if (layout?.areas) {
-      layout.areas.forEach((item) => {
         item.svg = this._calculateSvgCoordinatesInGroup(item);
       });
     }
@@ -1705,6 +1729,8 @@ class FlexHorseshoeCard extends LitElement {
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
       this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
+      this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
+      this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
 
       Templates.setContext({
         hass: this._hass,
@@ -1904,149 +1930,28 @@ class FlexHorseshoeCard extends LitElement {
    * _renderEntityNames()
    *
    * Summary.
-   * Renders the given name to the card. If name not given a space is rendered.
-   * The location of the name is specified in the layout.
+   * Renders names through NameTool instances.
    *
    */
 
-  _renderEntityName(item) {
-    const ENTITY_NAME_STYLES = {
-      'font-size': '1.5em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-
-    const entityIndex = item.entity_index ?? 0;
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    const configStyle = {
-      ...ENTITY_NAME_STYLES,
-      ...itemStyleDict,
-    };
-
-    const animationStyle = this.animations?.names?.[item.animation_id] ?? {};
-
-    const stateStyle = {
-      ...animationStyle,
-    };
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.stroke = stopColor;
-    }
-
-    const styles = {
-      ...configStyle,
-      ...stateStyle,
-    };
-
-    // const name = this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]);
-    const name = this.textEllipsis(this._buildName(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
-
-    return svg`
-      <g
-          transform="${this._getGroupScaleTransform(item)}"
-          style="${this._getGroupScaleStyle(item)}"
-          >
-          <text
-            @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-            >
-              <tspan
-                class="entity__name"
-                x="${item.svg.xpos}"
-                y="${item.svg.ypos}"
-                style=${styleMap(styles)}>
-                ${name}</tspan>
-          </text>
-          </g>
-        `;
-  }
-
   _renderEntityNames() {
-    const { layout } = this.config;
-
-    if (!layout?.names) return svg``;
-
-    const svgItems = layout.names.map((item) => this._renderEntityName(item));
-
-    return svg`${svgItems}`;
+    return svg`
+      ${this.nameTools?.map((nameTool) => nameTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
    * _renderEntityAreas()
    *
    * Summary.
-   * Renders the given area to the card. If area not given a space is rendered.
-   * The location of the area is specified in the layout.
+   * Renders areas through AreaTool instances.
    *
    */
 
-  _renderEntityArea(item) {
-    const AREA_STYLES = {
-      'font-size': '1em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-
-    const entityIndex = item.entity_index ?? 0;
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-    const configStyle = {
-      ...AREA_STYLES,
-      ...itemStyleDict,
-    };
-
-    const animationStyle = ConfigHelper.toStyleDict(this.animations?.areas?.[item.animation_id] ?? {});
-
-    const stateStyle = {
-      ...animationStyle,
-    };
-
-    const stopColor = this._getItemColorFromStops(item);
-    if (stopColor) {
-      stateStyle.stroke = stopColor;
-    }
-
-    const styles = {
-      ...configStyle,
-      ...stateStyle,
-    };
-
-    const area = this.textEllipsis(this._buildArea(this.entities[item.entity_index], this.resolvedEntityConfigs[item.entity_index]), item?.max_characters ?? item?.ellipsis);
-
-    return svg`
-      <g
-        transform="${this._getGroupScaleTransform(item)}"
-        style="${this._getGroupScaleStyle(item)}"
-        >
-        <text
-          @click=${(e) => this.handlePopup(e, this.entities[entityIndex])}
-          >
-            <tspan
-              class="entity__area"
-              x="${item.svg.xpos}"
-              y="${item.svg.ypos}"
-              style=${styleMap(styles)}>
-              ${area}</tspan>
-        </text>
-      </g>
-      `;
-  }
-
   _renderEntityAreas() {
-    const { layout } = this.config;
-
-    if (!layout?.areas) return svg``;
-
-    const svgItems = layout.areas.map((item) => this._renderEntityArea(item));
-
-    return svg`${svgItems}`;
+    return svg`
+      ${this.areaTools?.map((areaTool) => areaTool.render()) ?? svg``}
+    `;
   }
 
   /** *****************************************************************************
@@ -3106,66 +3011,6 @@ class FlexHorseshoeCard extends LitElement {
     const actionConfig = entityConfig?.tap_action ?? this.config?.tap_action ?? { action: 'more-info' };
 
     this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
-  }
-
-  /** *****************************************************************************
-   * Summary.
-   * Very simple form of ellipsis, which is not supported by SVG.
-   * Cutoff text at number of characters and add '...'.
-   * This does NOT take into account the actual width of a character!
-   *
-   */
-  textEllipsis(argText, argEllipsis) {
-    if (argEllipsis && argEllipsis < argText.length) {
-      return argText.slice(0, argEllipsis - 1).concat('...');
-    } else {
-      return argText;
-    }
-  }
-
-  /** *****************************************************************************
-   * _buildArea()
-   *
-   * Summary.
-   * Builds the Area string.
-   *
-   */
-
-  _buildArea(entityState, entityConfig) {
-    if (entityConfig.area) {
-      return entityConfig.area;
-    }
-    if (!this._hass || !this._hass.areas) return '';
-
-    // 1. Haal de live-registratie van de entiteit op
-    const entityRegistry = this._hass.entities && this._hass.entities[entityConfig.entity];
-    // 2. Kijk of de entiteit DIRECT een area_id heeft gekregen
-    let areaId = entityRegistry ? entityRegistry.area_id : null;
-
-    // 3. Als de entiteit geen directe ruimte heeft, kijk dan of hij via een device gekoppeld is
-    if (!areaId && entityRegistry && entityRegistry.device_id && this._hass.devices) {
-      const device = this._hass.devices[entityRegistry.device_id];
-      areaId = device ? device.area_id : null;
-    }
-
-    // 4. Zoek de area-naam op in het register met de gevonden areaId
-    if (areaId) {
-      const area = this._hass.areas[areaId];
-      return area ? area.name : '';
-    }
-    return '?';
-  }
-
-  /** *****************************************************************************
-   * _buildName()
-   *
-   * Summary.
-   * Builds the Name string.
-   *
-   */
-
-  _buildName(entityState, entityConfig) {
-    return entityConfig.name ?? entityState.attributes.friendly_name ?? entityState?.entity_id ?? '?';
   }
 
   /** *****************************************************************************
