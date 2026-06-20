@@ -45,7 +45,7 @@ export default class HorseshoeGauge {
     return horseshoes
       .filter(Boolean)
       .map((horseshoeConfig, index) => HorseshoeGauge.applyLegacyTickmarkCompat(horseshoeConfig))
-      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, config.layout?.groups), index, templates, cardId, card))
+      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, card.groupManager), index, templates, cardId, card))
       .filter((horseshoe) => horseshoe.show?.horseshoe !== false);
   }
 

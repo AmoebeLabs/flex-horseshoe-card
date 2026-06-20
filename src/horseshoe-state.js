@@ -16,9 +16,9 @@ const DEFAULT_STATE_ANIMATION = {
 /**
  * Applies the minimal base defaults needed before entity state is resolved.
  */
-export function normalizeBaseConfig(config, index, groups) {
+export function normalizeBaseConfig(config, index, groupManager) {
   const entityIndex = config.entity_index ?? 0;
-  const groupConfig = config.group ? groups?.[config.group] : undefined;
+  const groupConfig = groupManager.getGroupForItem(config);
 
   return {
     entity_index: entityIndex,
