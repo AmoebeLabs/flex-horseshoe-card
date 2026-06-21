@@ -30,7 +30,7 @@ import { computeStateDomain } from './frontend_mods/common/entity/compute_state_
 import Colors from './colors.js';
 import Utils from './utils.js';
 import Merge from './merge.js';
-import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
+import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, DEFAULT_ZPOS } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
@@ -39,6 +39,7 @@ import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import IconTool from './icon-tool.js';
+import GroupManager from './group-manager.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -91,6 +92,7 @@ class FlexHorseshoeCard extends LitElement {
     this.areaTools = [];
     this.stateTools = [];
     this.iconTools = [];
+    this.groupManager = undefined;
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
     this.isAndroid = false;
@@ -1025,34 +1027,17 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _calculateSvgCoordinatesInGroup(item) {
-    const svg = {
-      xpos: Utils.calculateSvgDimension(item.xpos),
-      ypos: Utils.calculateSvgDimension(item.yposc || item.ypos),
-    };
-
-    const group = this.config.layout?.groups?.[item.group];
-
-    if (!item.group || !group) return svg;
-
-    const halfPercent = (SVG_DEFAULT_DIMENSIONS_HALF / SVG_DEFAULT_DIMENSIONS) * 100;
-
-    return {
-      xpos: Utils.calculateSvgDimension(group.xpos + item.xpos - halfPercent),
-      ypos: Utils.calculateSvgDimension(group.ypos + (item.yposc || item.ypos) - halfPercent),
-    };
+    return this.groupManager.calculateSvgCoordinatesInGroup(item);
   }
 
   _computeGroupDimensions(config) {
-    const groups = config.layout?.groups;
+    const groups = this.groupManager.groups;
 
-    if (!groups) return;
-
-    Object.entries(groups).forEach(([groupName, group]) => {
-      group.svg = {
-        xpos: Utils.calculateSvgDimension(group.xpos),
-        ypos: Utils.calculateSvgDimension(group.ypos),
-      };
+    Object.keys(groups).forEach((groupName) => {
+      groups[groupName] = this.groupManager.getGroup(groupName);
     });
+
+    config.layout.groups = groups;
   }
 
   _computeSvgDimensions(config) {
@@ -1306,12 +1291,13 @@ class FlexHorseshoeCard extends LitElement {
 
   _evaluateConstants(config) {
     const constants = config.constants;
+    const calcConstants = {
+      zpos: { ...DEFAULT_ZPOS },
+    };
 
     if (!constants || typeof constants !== 'object') {
-      return {};
+      return calcConstants;
     }
-
-    const calcConstants = {};
 
     Object.entries(constants).forEach(([key, value]) => {
       constants[key] = this._evaluateStaticConfig(value, calcConstants);
@@ -1466,11 +1452,12 @@ class FlexHorseshoeCard extends LitElement {
         // },
       };
 
+      this.config = newConfig;
+      this.groupManager = new GroupManager(this.config.layout?.groups);
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
       this._prepareItemColorStops(newConfig);
 
-      this.config = newConfig;
       this.bar_mode = newConfig.bar_mode || 'normal';
 
       // Get aspectratio. This can be defined at card level or layout level
@@ -1738,25 +1725,11 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   _getGroupScaleTransform(item) {
-    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
-
-    if (!group?.scale && !item?.flip) return '';
-
-    const scaleX = group?.scale?.x ?? group?.scale ?? 1;
-    const scaleY = group?.scale?.y ?? group?.scale ?? 1;
-
-    const flipX = item?.flip === 'x' || item?.flip === 'both' ? -1 : 1;
-    const flipY = item?.flip === 'y' || item?.flip === 'both' ? -1 : 1;
-
-    return `scale(${scaleX * flipX}, ${scaleY * flipY})`;
+    return this.groupManager.getGroupScaleTransform(item);
   }
 
   _getGroupScaleStyle(item) {
-    const group = item?.group ? this.config?.layout?.groups?.[item.group] : undefined;
-
-    if (!group?.scale || !group.svg) return `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px; transform-box:view-box;`;
-
-    return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
+    return this.groupManager.getGroupScaleStyle(item);
   }
 
   /**

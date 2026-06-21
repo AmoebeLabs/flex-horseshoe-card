@@ -28,7 +28,8 @@ export default class BaseTool {
     this.zposSection = zposSection;
     this.defaultZpos = DEFAULT_ZPOS[zposSection] ?? 0;
     this.config.zpos ??= this.defaultZpos;
-    this.zpos = this.config.zpos;
+    this.config.dzpos ??= 0;
+    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? defaultEntityIndex;
 
@@ -51,7 +52,7 @@ export default class BaseTool {
     this.runtimeConfig = Templates.getJsTemplateOrValue(this.config, this.config, {
       resolveKeys: true,
     });
-    this.zpos = this.runtimeConfig.zpos ?? this.defaultZpos;
+    this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
   }
 
   /**
