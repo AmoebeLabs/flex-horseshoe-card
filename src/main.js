@@ -35,6 +35,7 @@ import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
 import CircleTool from './circle-tool.js';
+import ArcTool from './arc-tool.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
@@ -79,6 +80,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.vlines = {};
     this.animations.hlines = {};
     this.animations.circles = {};
+    this.animations.arcs = {};
     this.animations.rectangles = {};
     this.animations.icons = {};
     this.animations.iconsIcon = {};
@@ -88,6 +90,7 @@ class FlexHorseshoeCard extends LitElement {
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
+    this.arcTools = [];
     this.nameTools = [];
     this.areaTools = [];
     this.stateTools = [];
@@ -904,6 +907,8 @@ class FlexHorseshoeCard extends LitElement {
 
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
 
+    this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
+
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
 
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
@@ -935,6 +940,10 @@ class FlexHorseshoeCard extends LitElement {
 
           if (item.circles) {
             item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
+          }
+
+          if (item.arcs) {
+            item.arcs.forEach((item2) => this._updateAnimationStyles('arcs', item2));
           }
 
           if (item.rectangles) {
@@ -1009,7 +1018,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1247,7 +1256,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1266,7 +1275,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1473,6 +1482,7 @@ class FlexHorseshoeCard extends LitElement {
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
       this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
+      this.arcTools = ArcTool.setConfig(this.config, Templates, this.cardId, this);
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
@@ -1667,6 +1677,7 @@ class FlexHorseshoeCard extends LitElement {
     return [
       ...(this.rectangleTools ?? []),
       ...(this.circleTools ?? []),
+      ...(this.arcTools ?? []),
       ...(this.horseshoeGauges ?? []),
       ...(this.lineTools ?? []),
       ...(this.iconTools ?? []),
