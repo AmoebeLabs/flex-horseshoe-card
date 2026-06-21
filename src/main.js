@@ -30,7 +30,7 @@ import { computeStateDomain } from './frontend_mods/common/entity/compute_state_
 import Colors from './colors.js';
 import Utils from './utils.js';
 import Merge from './merge.js';
-import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
+import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, DEFAULT_ZPOS } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
@@ -1291,12 +1291,13 @@ class FlexHorseshoeCard extends LitElement {
 
   _evaluateConstants(config) {
     const constants = config.constants;
+    const calcConstants = {
+      zpos: { ...DEFAULT_ZPOS },
+    };
 
     if (!constants || typeof constants !== 'object') {
-      return {};
+      return calcConstants;
     }
-
-    const calcConstants = {};
 
     Object.entries(constants).forEach(([key, value]) => {
       constants[key] = this._evaluateStaticConfig(value, calcConstants);
