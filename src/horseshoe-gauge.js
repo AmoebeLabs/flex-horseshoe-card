@@ -1,5 +1,5 @@
 import { svg } from 'lit';
-import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
+import BaseTool from './base-tool.js';
 import Colors from './colors.js';
 import { createValueAnimatorState, DEFAULT_STATE_ANIMATION, getStateAnimationConfig as getAnimatorConfig, startValueAnimation as runValueAnimation } from './horseshoe-animator.js';
 import { GaugeGeometry, GaugeScale } from './horseshoe-geometry.js';
@@ -21,7 +21,7 @@ import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickma
 /**
  * Coordinates runtime state, geometry, path builders, and SVG render layers for one v2 horseshoe.
  */
-export default class HorseshoeGauge {
+export default class HorseshoeGauge extends BaseTool {
   /**
    * Builds gauge instances from the v2 horseshoe layout configuration.
    *
@@ -163,17 +163,8 @@ export default class HorseshoeGauge {
    * @param {LitElement} card - Card instance used for targeted DOM updates.
    */
   constructor(config, index, templates, cardId, card) {
-    this.config = config;
-    this.index = index;
-    this.templates = templates;
-    this.cardId = cardId;
-    this.card = card;
-    this.entity_index = config.entity_index ?? 0;
-    this.defaultZpos = DEFAULT_ZPOS.horseshoes_v2;
-    this.config.zpos ??= this.defaultZpos;
-    this.config.dzpos ??= 0;
-    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
-    this.renderIndex = DEFAULT_RENDER_INDEX.horseshoes_v2 + index;
+    super(config, index, templates, cardId, card, 'horseshoes_v2', 'horseshoes_v2', 0);
+
     this.show = config.show;
 
     this.entity = undefined;
