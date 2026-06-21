@@ -171,7 +171,8 @@ export default class HorseshoeGauge {
     this.entity_index = config.entity_index ?? 0;
     this.defaultZpos = DEFAULT_ZPOS.horseshoes_v2;
     this.config.zpos ??= this.defaultZpos;
-    this.zpos = this.config.zpos;
+    this.config.dzpos ??= 0;
+    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = DEFAULT_RENDER_INDEX.horseshoes_v2 + index;
     this.show = config.show;
 
@@ -210,7 +211,7 @@ export default class HorseshoeGauge {
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
 
     this.runtimeConfig = stateData.runtimeConfig;
-    this.zpos = this.runtimeConfig.zpos ?? this.defaultZpos;
+    this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
     this.rawState = stateData.rawState;
     this.mappedState = stateData.mappedState;
     this.value = nextValue;
