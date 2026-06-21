@@ -5,6 +5,27 @@ import { svg } from 'lit';
  */
 export default class HorseshoeLabels {
   /**
+   * Truncates label text when an ellipsis limit is configured.
+   *
+   * @param {string} text - Original label text.
+   * @param {number|string|undefined} ellipsis - Maximum number of visible characters.
+   * @returns {string} Truncated label text.
+   */
+  static applyEllipsis(text, ellipsis) {
+    const maxLength = Number(ellipsis);
+
+    if (!Number.isFinite(maxLength) || maxLength <= 0 || text.length <= maxLength) {
+      return text;
+    }
+
+    if (maxLength === 1) {
+      return '…';
+    }
+
+    return `${text.slice(0, maxLength - 1)}…`;
+  }
+
+  /**
    * Renders one label using the configured label orientation.
    *
    * @param {object} labelConfig - Label render configuration.
@@ -43,6 +64,8 @@ export default class HorseshoeLabels {
     const scaleX = flipX ? -1 : 1;
     const scaleY = flipY ? -1 : 1;
 
+    const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+
     return svg`
       <text
         x="${point.x}"
@@ -57,7 +80,7 @@ export default class HorseshoeLabels {
           translate(${-point.x} ${-point.y})
         "
       >
-        ${labelConfig.label}
+        ${labelText}
       </text>
     `;
   }
@@ -69,8 +92,8 @@ export default class HorseshoeLabels {
    * @returns {TemplateResult} SVG textPath template.
    */
   static renderArcLabel(labelConfig) {
-    const labelText = String(labelConfig.label ?? '');
-    const arcSize = 24;
+    const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+    const arcSize = Number(labelConfig.arcSize ?? 24);
     const labelGeometry = HorseshoeLabels.getLabelGeometry({
       angle: labelConfig.angle,
       transformContext: labelConfig.transformContext,

@@ -498,30 +498,81 @@ function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
  */
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const stateMap = runtimeConfig.state_map.map;
-  const gap = runtimeConfig.horseshoe_state.segment_gap;
+  const segmentGap = runtimeConfig.horseshoe_state.segment_gap;
+  const colorStopGap = Number(runtimeConfig.colorStops?.gap ?? 0);
   const count = stateMap.length;
 
   if (!count) {
     return [];
   }
 
-  // State-map mode divides the full arc into equal visual slots.
+  // Segment mode shows equal visual slots. Categorical mode reuses the color-stop scale segment that contains the mapped value.
   const step = geometry.arcDegrees / count;
+  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  const colorStopPoints = [
+    {
+      value: Number(runtimeConfig.horseshoe_scale.min),
+      color: colorStops[0]?.color,
+    },
+    ...colorStops.map((stop) => ({
+      value: Number(stop.value),
+      color: stop.color,
+    })),
+    {
+      value: Number(runtimeConfig.horseshoe_scale.max),
+      color: colorStops[colorStops.length - 1]?.color,
+    },
+  ];
 
-  return stateMap.map((item, index) => {
+  const arcs = stateMap.map((item, index) => {
     const active = Number(item.value) === Number(value);
+    const itemValue = Number(item.value);
+    let startAngle = geometry.startAngle + index * step + segmentGap / 2;
+    let endAngle = geometry.startAngle + (index + 1) * step - segmentGap / 2;
+    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorStops, runtimeConfig.show?.horseshoe_style === 'colorstopgradient');
+    let segmentStartValue;
+    let segmentEndValue;
+
+    if (runtimeConfig.horseshoe_state.mode === 'categorical') {
+      for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
+        const pointA = colorStopPoints[colorStopIndex];
+        const pointB = colorStopPoints[colorStopIndex + 1];
+        const isFirst = colorStopIndex === 0;
+        const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
+
+        if (isInSegment) {
+          const isLast = colorStopIndex === colorStopPoints.length - 2;
+
+          segmentStartValue = pointA.value;
+          segmentEndValue = pointB.value;
+          startAngle = isFirst ? geometry.valueToAngle(pointA.value) : geometry.valueToAngle(pointA.value) + colorStopGap / 2;
+          endAngle = isLast ? geometry.valueToAngle(pointB.value) : geometry.valueToAngle(pointB.value) - colorStopGap / 2;
+          segmentColor = item.color ?? pointA.color;
+          break;
+        }
+      }
+    }
 
     return {
       key: `mapped-state-${index}`,
-      startAngle: geometry.startAngle + index * step + gap / 2,
-      endAngle: geometry.startAngle + (index + 1) * step - gap / 2,
+      startAngle,
+      endAngle,
       startCap: index === 0 ? runtimeConfig.horseshoe_state.linecap.start : 'butt',
       endCap: index === count - 1 ? runtimeConfig.horseshoe_state.linecap.end : 'butt',
       active,
       value: item.value,
-      label: item.label ?? String(item.state),
+      startValue: segmentStartValue,
+      endValue: segmentEndValue,
+      color: segmentColor,
+      label: item.display_label ?? item.label ?? String(item.state ?? item.value),
     };
   });
+
+  if (runtimeConfig.horseshoe_state.mode === 'categorical') {
+    return arcs.filter((arc) => arc.active);
+  }
+
+  return arcs;
 }
 
 /**
@@ -533,7 +584,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
  * @returns {Array<object>} State arc definitions.
  */
 function buildStateArcs(runtimeConfig, geometry, value) {
-  if (runtimeConfig.horseshoe_state.mode === 'segment') {
+  if (runtimeConfig.horseshoe_state.mode === 'segment' || runtimeConfig.horseshoe_state.mode === 'categorical') {
     return buildMappedStateArcs(runtimeConfig, geometry, value);
   }
 
@@ -607,7 +658,10 @@ export function buildScalePathItems(runtimeConfig, geometry) {
  */
 function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
   const value = Number(labelConfig.value);
-  const angle = geometry.valueToAngle(value);
+  const angle = labelConfig.angle !== undefined ? Number(labelConfig.angle) : geometry.valueToAngle(value);
+  const startAngle = labelConfig.startValue !== undefined ? geometry.valueToAngle(Number(labelConfig.startValue)) : undefined;
+  const endAngle = labelConfig.endValue !== undefined ? geometry.valueToAngle(Number(labelConfig.endValue)) : undefined;
+  const arcSize = startAngle !== undefined && endAngle !== undefined ? Math.max(1, Math.abs(endAngle - startAngle)) : undefined;
   const radius = geometry.radius + Number(runtimeConfig.horseshoe_labels.offset ?? runtimeConfig.horseshoe_state.width + 2);
   const point = geometry.pointAt(angle, radius);
 
@@ -617,6 +671,7 @@ function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
     text: labelConfig.text ?? String(value),
     role: labelConfig.role ?? 'label',
     angle,
+    arcSize,
     radius,
     x: point.x,
     y: point.y,
@@ -719,6 +774,53 @@ function buildLabelStopItems(runtimeConfig) {
         : [];
 
     labelStops = [...colorStopLabels, ...tickLabels];
+  }
+
+  if (labelsAt === 'segment' || labelsAt === 'categorical') {
+    const stateMap = asArray(runtimeConfig.state_map?.map);
+
+    if (runtimeConfig.horseshoe_state?.mode === 'categorical') {
+      const colorStopPoints = [
+        { value: Number(runtimeConfig.horseshoe_scale.min) },
+        ...colorStops.map((stop) => ({ value: Number(stop.value) })),
+        { value: Number(runtimeConfig.horseshoe_scale.max) },
+      ];
+
+      labelStops = stateMap.map((item) => {
+        const itemValue = Number(item.value);
+        let labelValue = itemValue;
+        let labelStartValue;
+        let labelEndValue;
+
+        for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
+          const pointA = colorStopPoints[colorStopIndex];
+          const pointB = colorStopPoints[colorStopIndex + 1];
+          const isFirst = colorStopIndex === 0;
+          const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
+
+          if (isInSegment) {
+            labelValue = (pointA.value + pointB.value) / 2;
+            labelStartValue = pointA.value;
+            labelEndValue = pointB.value;
+            break;
+          }
+        }
+
+        return {
+          value: labelValue,
+          startValue: labelStartValue,
+          endValue: labelEndValue,
+          text: item.display_label ?? item.label ?? String(item.state ?? item.value),
+          role: 'segment',
+        };
+      });
+    } else {
+      labelStops = stateMap.map((item) => ({
+        value: item.value,
+        text: item.display_label ?? item.label ?? String(item.state ?? item.value),
+        role: 'segment',
+      }));
+    }
   }
 
   // Normalize label stops into sorted, in-range, unique values before applying spacing.

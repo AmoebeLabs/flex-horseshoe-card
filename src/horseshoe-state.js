@@ -328,6 +328,8 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     : undefined;
   const nextValue = Number(mappedState?.value ?? value);
 
+  runtimeConfig.mapped_state = mappedState;
+
   return {
     runtimeConfig,
     rawState: entity.state,
