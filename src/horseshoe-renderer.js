@@ -176,6 +176,8 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
           horseshoeIndex,
           index,
           label: labelItem.text,
+          styles: labelItem.styles,
+          relation: labelItem.relation,
           ellipsis: runtimeConfig.horseshoe_labels.ellipsis,
           angle: labelItem.angle,
           arcSize: runtimeConfig.horseshoe_labels.arc_size ?? labelItem.arcSize,

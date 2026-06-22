@@ -236,6 +236,20 @@ export function normalizeRuntimeConfig(config) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
+      categorical: horseshoeLabels.categorical
+        ? {
+            ...horseshoeLabels.categorical,
+            state_map: horseshoeLabels.categorical.state_map
+              ? {
+                  ...horseshoeLabels.categorical.state_map,
+                  map: (horseshoeLabels.categorical.state_map.map ?? []).map((entry) => ({
+                    ...entry,
+                    styles: ConfigHelper.toStyleDict(entry.styles),
+                  })),
+                }
+              : horseshoeLabels.categorical.state_map,
+          }
+        : horseshoeLabels.categorical,
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {

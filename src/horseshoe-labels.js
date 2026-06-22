@@ -1,4 +1,5 @@
 import { svg } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
 
 /**
  * Renders label text, badge shapes, and label helper geometry for v2 horseshoes.
@@ -65,13 +66,18 @@ export default class HorseshoeLabels {
     const scaleY = flipY ? -1 : 1;
 
     const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+    const labelStyle = {
+      'dominant-baseline': 'central',
+      fill: 'var(--primary-text-color)',
+      ...(labelConfig.styles ?? {}),
+    };
 
     return svg`
       <text
         x="${point.x}"
         y="${point.y}"
         text-anchor="middle"
-        style="dominant-baseline:central;fill:var(--primary-text-color)"
+        style=${styleMap(labelStyle)}
         class="horseshoe-label"
         transform="
           translate(${point.x} ${point.y})
@@ -93,6 +99,10 @@ export default class HorseshoeLabels {
    */
   static renderArcLabel(labelConfig) {
     const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+    const labelStyle = {
+      fill: 'currentColor',
+      ...(labelConfig.styles ?? {}),
+    };
     const arcSize = Number(labelConfig.arcSize ?? 24);
     const labelGeometry = HorseshoeLabels.getLabelGeometry({
       angle: labelConfig.angle,
@@ -155,7 +165,7 @@ export default class HorseshoeLabels {
 
         <text
           class="horseshoe-label"
-          style="fill:currentColor"
+          style=${styleMap(labelStyle)}
           dy="0em"
         >
           <textPath
