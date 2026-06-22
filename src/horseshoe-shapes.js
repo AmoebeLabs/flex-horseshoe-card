@@ -494,7 +494,7 @@ function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
  *
  * @param {number} index - Index of the state map entry being processed.
  * @param {number} currentIndex - Index of the current mapped state.
- * @returns {string} Stable before/current/after relation for categorical rendering and labels.
+ * @returns {string} Stable before/current/after relation for string-state rendering and labels.
  */
 function getMappedStateRelation(index, currentIndex) {
   if (currentIndex < 0) {
@@ -520,7 +520,7 @@ function getMappedStateRelation(index, currentIndex) {
  * @returns {object|undefined} Label state-map entry.
  */
 function getLabelStateMapEntry(runtimeConfig, state) {
-  return asArray(runtimeConfig.horseshoe_labels?.categorical?.state_map?.map).find((entry) => String(entry.state) === String(state));
+  return asArray(runtimeConfig.horseshoe_labels?.stringstate?.state_map?.map).find((entry) => String(entry.state) === String(state));
 }
 
 /**
@@ -541,7 +541,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     return [];
   }
 
-  // Segment mode shows equal visual slots. Categorical modes reuse the color-stop scale segment that contains the mapped value.
+  // Segment mode shows equal visual slots. String-state modes reuse the color-stop scale segment that contains the mapped value.
   const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(value));
   const step = geometry.arcDegrees / count;
   const colorStops = asArray(runtimeConfig.colorStops?.colors);
@@ -563,7 +563,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const arcs = stateMap.map((item, index) => {
     const relation = getMappedStateRelation(index, currentIndex);
     const active = relation === 'current';
-    const highlighted = runtimeConfig.horseshoe_state.mode === 'categorical_progress'
+    const highlighted = runtimeConfig.horseshoe_state.mode === 'stringstate_level'
       ? relation === 'before' || relation === 'current'
       : active;
     const itemValue = Number(item.value);
@@ -573,7 +573,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     let segmentStartValue;
     let segmentEndValue;
 
-    if (runtimeConfig.horseshoe_state.mode === 'categorical' || runtimeConfig.horseshoe_state.mode === 'categorical_progress') {
+    if (runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level') {
       for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
         const pointA = colorStopPoints[colorStopIndex];
         const pointB = colorStopPoints[colorStopIndex + 1];
@@ -609,10 +609,6 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     };
   });
 
-  if (runtimeConfig.horseshoe_state.mode === 'categorical' || runtimeConfig.horseshoe_state.mode === 'categorical_progress') {
-    return arcs.filter((arc) => arc.active);
-  }
-
   return arcs;
 }
 
@@ -625,7 +621,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
  * @returns {Array<object>} State arc definitions.
  */
 function buildStateArcs(runtimeConfig, geometry, value) {
-  if (runtimeConfig.horseshoe_state.mode === 'segment' || runtimeConfig.horseshoe_state.mode === 'categorical' || runtimeConfig.horseshoe_state.mode === 'categorical_progress') {
+  if (runtimeConfig.horseshoe_state.mode === 'segment' || runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level') {
     return buildMappedStateArcs(runtimeConfig, geometry, value);
   }
 
@@ -817,12 +813,12 @@ function buildLabelStopItems(runtimeConfig) {
     labelStops = [...colorStopLabels, ...tickLabels];
   }
 
-  if (labelsAt === 'segment' || labelsAt === 'categorical') {
+  if (labelsAt === 'segment' || labelsAt === 'stringstate') {
     const stateMap = asArray(runtimeConfig.state_map?.map);
 
     const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(runtimeConfig.mapped_state?.value));
 
-    if (runtimeConfig.horseshoe_state?.mode === 'categorical' || runtimeConfig.horseshoe_state?.mode === 'categorical_progress') {
+    if (runtimeConfig.horseshoe_state?.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state?.mode === 'stringstate_level') {
       const colorStopPoints = [
         { value: Number(runtimeConfig.horseshoe_scale.min) },
         ...colorStops.map((stop) => ({ value: Number(stop.value) })),
@@ -851,6 +847,26 @@ function buildLabelStopItems(runtimeConfig) {
           }
         }
 
+        const roleStyles = ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles);
+        const stateRoleStyles = ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles);
+        const stateStyles = ConfigHelper.toStyleDict(labelStateEntry?.styles);
+        const styles = {
+          ...roleStyles,
+          ...stateRoleStyles,
+          ...stateStyles,
+        };
+
+        if (runtimeConfig.debug_labels || runtimeConfig.dev?.debug_labels) {
+          console.log('[horseshoe-labels] string-state label style', {
+            state: item.state,
+            relation,
+            roleStyles,
+            stateRoleStyles,
+            stateStyles,
+            styles,
+          });
+        }
+
         return {
           value: labelValue,
           startValue: labelStartValue,
@@ -858,11 +874,7 @@ function buildLabelStopItems(runtimeConfig) {
           text: labelStateEntry?.label ?? item.display_label ?? String(item.state ?? item.value),
           role: 'segment',
           relation,
-          styles: {
-            ...ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.categorical?.segment_roles?.[relation]?.styles),
-            ...ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles),
-            ...ConfigHelper.toStyleDict(labelStateEntry?.styles),
-          },
+          styles,
         };
       });
     } else {
@@ -877,7 +889,7 @@ function buildLabelStopItems(runtimeConfig) {
           role: 'segment',
           relation,
           styles: {
-            ...ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.categorical?.segment_roles?.[relation]?.styles),
+            ...ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles),
             ...ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles),
             ...ConfigHelper.toStyleDict(labelStateEntry?.styles),
           },

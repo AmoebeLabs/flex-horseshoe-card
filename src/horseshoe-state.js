@@ -236,20 +236,20 @@ export function normalizeRuntimeConfig(config) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
-      categorical: horseshoeLabels.categorical
+      stringstate: horseshoeLabels.stringstate
         ? {
-            ...horseshoeLabels.categorical,
-            state_map: horseshoeLabels.categorical.state_map
+            ...horseshoeLabels.stringstate,
+            state_map: horseshoeLabels.stringstate.state_map
               ? {
-                  ...horseshoeLabels.categorical.state_map,
-                  map: (horseshoeLabels.categorical.state_map.map ?? []).map((entry) => ({
+                  ...horseshoeLabels.stringstate.state_map,
+                  map: (horseshoeLabels.stringstate.state_map.map ?? []).map((entry) => ({
                     ...entry,
                     styles: ConfigHelper.toStyleDict(entry.styles),
                   })),
                 }
-              : horseshoeLabels.categorical.state_map,
+              : horseshoeLabels.stringstate.state_map,
           }
-        : horseshoeLabels.categorical,
+        : horseshoeLabels.stringstate,
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {

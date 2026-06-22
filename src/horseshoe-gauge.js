@@ -216,6 +216,14 @@ export default class HorseshoeGauge extends BaseTool {
     this.geometry = new GaugeGeometry(this.runtimeConfig, this.scale);
     this.refreshPathItemCacheKey();
 
+    const stringStateMode = this.runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || this.runtimeConfig.horseshoe_state.mode === 'stringstate_level';
+
+    // String states are discrete. CSS transitions animate their styles; numeric interpolation would produce unmapped intermediate states.
+    if (stringStateMode) {
+      this.displayValue = this.value;
+      return;
+    }
+
     // The first state assignment initializes the display value without animating from an empty state.
     if (!Number.isFinite(this.displayValue)) {
       this.displayValue = this.value;
@@ -249,6 +257,7 @@ export default class HorseshoeGauge extends BaseTool {
           state,
         };
         const formattedState = this.card._hass.formatEntityState?.(entity, state);
+        const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
         const computedState = computeStateDisplay(
           this.card._hass.localize,
           stateEntity,
@@ -257,7 +266,8 @@ export default class HorseshoeGauge extends BaseTool {
           this.card._hass.config,
           this.card._hass.entities,
         );
-        const displayLabel = formattedState ?? computedState;
+        const displayLabel = [formattedState, formattedStateEntity, computedState]
+          .find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
 
         if (this.runtimeConfig?.dev?.debug_state_map || this.runtimeConfig?.debug_state_map) {
           console.log('[horseshoe-state-map] display label', {
@@ -265,6 +275,7 @@ export default class HorseshoeGauge extends BaseTool {
             activeState: entity.state,
             state,
             formattedState,
+            formattedStateEntity,
             computedState,
             displayLabel,
             entry,

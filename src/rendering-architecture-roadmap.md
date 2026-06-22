@@ -184,13 +184,13 @@ Children only need local coordinates. Group position, scale, and rotation are ha
 
 ## Extra Horseshoe Ideas
 
-These ideas are useful follow-up features, but each should stay in its own PR. They affect rendering behavior and need visual testing across normal, bidirectional, spline, and categorical horseshoes.
+These ideas are useful follow-up features, but each should stay in its own PR. They affect rendering behavior and need visual testing across normal, bidirectional, spline, and string-state horseshoes.
 
-### Categorical Progress Mode
+### String-State Modes And Levels
 
-Current categorical mode should stay as-is: only the active mapped state is drawn as the highlighted horseshoe state segment.
+`stringstate_mode` shows one nominal string-state segment: only the current mapped state is highlighted.
 
-A second mode could show the active state plus all lower states, similar to progress, but based on categorical state order instead of a continuous numeric range.
+`stringstate_level` shows ordered string-state levels: the current state plus all lower states are highlighted.
 
 The segment role should always be calculated the same way: compare each entry index in `state_map.map` with the current mapped state index. That gives one stable relation for every state:
 
@@ -204,21 +204,21 @@ Possible config direction:
 
 ```yaml
 horseshoe_state:
-  mode: categorical_progress
+  mode: stringstate_level
 ```
 
-This is feasible and logically separate from the current categorical mode. The order should come from `state_map.map`, because that is already the configured category order. The implementation should still use the same segment geometry as categorical mode, so labels, backgrounds, color stops, and gaps keep matching. State path items and label items should both receive the same segment role.
+This is feasible and keeps nominal modes separate from ordered levels. For `stringstate_level`, the order should come from `state_map.map`, because that is already the configured level order. The implementation should still use the same segment geometry as string-state mode, so labels, backgrounds, color stops, and gaps keep matching. State path items and label items should both receive the same segment role.
 
 Rendering then becomes mode-specific, while the test stays identical:
 
-- `categorical`: render/highlight only `current`
-- `categorical_progress`: render/highlight `before` and `current`; keep `after` unrendered or inactive
+- `stringstate_mode`: render/highlight only `current`
+- `stringstate_level`: render/highlight `before` and `current`; keep `after` unrendered or inactive
 
-This keeps label styling predictable in every categorical mode, because labels can always test `before/current/after`.
+This keeps label styling predictable in every string-state mode, because labels can always test `before/current/after`.
 
 ### Label Contrast On Colored Segments
 
-Labels placed on top of colored scale or state segments may need a light or dark text color depending on the segment color. This is a real readability issue, especially for categorical labels rendered directly on the horseshoe.
+Labels placed on top of colored scale or state segments may need a light or dark text color depending on the segment color. This is a real readability issue, especially for string-state labels rendered directly on the horseshoe.
 
 The safest and clearest option is explicit per-label-state styling. SVG cannot detect the actual background behind text, and even the intended background can be ambiguous: scale segment, active state segment, label background, horseshoe background, or another layer. Automatic contrast could only work in narrow cases where the label builder knows the exact segment color, so it should not be the first implementation.
 
@@ -226,25 +226,25 @@ Possible config direction:
 
 ```yaml
 horseshoe_state:
-  mode: categorical
+  mode: stringstate_mode
 
 horseshoe_labels:
-  categorical:
+  stringstate:
     segment_roles:
       current:
         styles:
           - font-weight: bold
     state_map:
       map:
-      - state: low
+        - state: low
         styles:
           - fill: black
-      - state: high
+        - state: high
         styles:
           - fill: white
 ```
 
-This is feasible and useful. Categorical label presentation belongs under `horseshoe_labels.categorical`, because these options only apply when labels are driven by categorical state-map entries. It can still use the same `state_map.map` structure as icons. The first implementation should use `horseshoe_labels.categorical.state_map.map` for explicit per-state label styles. Segment role styles can live under `horseshoe_labels.categorical.segment_roles`, using the same `styles` key everywhere. A derived contrast option can be reconsidered later, but only for cases where the intended background segment is unambiguous. Rendering should only receive the final style.
+This is feasible and useful. String-state label presentation belongs under `horseshoe_labels.stringstate`, because these options only apply when labels are driven by string-state state-map entries. It can still use the same `state_map.map` structure as icons. The first implementation should use `horseshoe_labels.stringstate.state_map.map` for explicit per-state label styles. Segment role styles can live under `horseshoe_labels.stringstate.segment_roles`, using the same `styles` key everywhere. A derived contrast option can be reconsidered later, but only for cases where the intended background segment is unambiguous. Rendering should only receive the final style.
 
 ### Light And Dark Color Stops
 
@@ -280,7 +280,7 @@ This is feasible, but it should be handled in color-stop normalization, not in r
 
 Some background layers are currently either one fixed arc or color-stop segments. A useful extra mode would draw fixed-color backgrounds using the same segment boundaries as `color_stops`, while still using one configured fill or stroke color.
 
-This would make backgrounds visually line up with color-stop scales, categorical segments, labels, and tick backgrounds. It is especially useful when filters or shadows are applied to a grouped background.
+This would make backgrounds visually line up with color-stop scales, string-state segments, labels, and tick backgrounds. It is especially useful when filters or shadows are applied to a grouped background.
 
 Possible config direction:
 
