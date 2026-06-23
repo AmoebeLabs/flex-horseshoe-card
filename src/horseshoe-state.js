@@ -75,7 +75,7 @@ export function getZeroRatio(horseshoeScale) {
 /**
  * Builds the full normalized runtime configuration used by the v2 renderer.
  */
-export function normalizeRuntimeConfig(config) {
+export function normalizeRuntimeConfig(config, colorStopMode) {
   const show = {
     horseshoe: true,
     horseshoe_style: 'fixed',
@@ -143,13 +143,13 @@ export function normalizeRuntimeConfig(config) {
 
   // Keep both color_stops and colorstops aliases on the runtime config for compatibility.
   const colorStopsConfig = config.color_stops ?? config.colorstops;
-  const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig), horseshoeScale.max);
+  const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig, colorStopMode), horseshoeScale.max);
   const firstColorStop = colorStops.colors[0];
   const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
   const colorStopsMinMax = ColorStops.normalize({
     [horseshoeScale.min]: firstColorStop.color,
     [horseshoeScale.max]: lastColorStop.color,
-  });
+  }, colorStopMode);
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
@@ -318,7 +318,7 @@ export function getStateMapItem(stateMap, rawState, value) {
 /**
  * Resolves templates, entity attributes, state mapping, and numeric gauge value.
  */
-export function getGaugeStateData(config, templates, entityIndex, entity, entityConfig) {
+export function getGaugeStateData(config, templates, entityIndex, entity, entityConfig, colorStopMode) {
   const item = {
     entity_index: entityIndex,
   };
@@ -328,7 +328,7 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     resolveKeys: true,
   });
 
-  const runtimeConfig = normalizeRuntimeConfig(resolvedConfig);
+  const runtimeConfig = normalizeRuntimeConfig(resolvedConfig, colorStopMode);
 
   let value = entity.state;
 

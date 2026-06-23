@@ -197,7 +197,7 @@ export default class HorseshoeGauge extends BaseTool {
     this.entityConfig = entityConfig;
 
     // State resolution may change both the numeric value and runtime config via templates.
-    const stateData = getGaugeStateData(this.config, this.templates, this.entity_index, entity, entityConfig);
+    const stateData = getGaugeStateData(this.config, this.templates, this.entity_index, entity, entityConfig, this.card.getActiveColorStopMode());
 
     const nextValue = stateData.value;
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;

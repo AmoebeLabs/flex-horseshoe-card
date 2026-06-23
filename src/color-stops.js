@@ -52,7 +52,7 @@
 import Templates from './templates.js';
 
 export default class ColorStops {
-  static normalize(value) {
+  static normalize(value, mode) {
     if (!value) {
       return {
         scales: {},
@@ -84,7 +84,7 @@ export default class ColorStops {
     // color_stops:
     //   0: red
     //   10: green
-    if (ColorStops.isPlainObject(value) && !value.colors && !value.scales) {
+    if (ColorStops.isPlainObject(value) && !value.colors && !value.scales && !value.modes) {
       return {
         scales: {},
         colors: ColorStops.normalizeColors(value),
@@ -105,7 +105,7 @@ export default class ColorStops {
       return {
         ...value,
         scales: ColorStops.normalizeScales(value.scales),
-        colors: ColorStops.normalizeColors(value.colors),
+        colors: ColorStops.normalizeColors(ColorStops.getModeColors(value, mode)),
       };
     }
 
@@ -113,6 +113,19 @@ export default class ColorStops {
       scales: {},
       colors: [],
     };
+  }
+
+  static getModeColors(value, mode) {
+    const fallbackColors = value.colors;
+    const modeConfig = mode && ColorStops.isPlainObject(value.modes)
+      ? value.modes[mode]
+      : undefined;
+
+    if (modeConfig === undefined || modeConfig === null) {
+      return fallbackColors;
+    }
+
+    return modeConfig;
   }
 
   static normalizeScales(value) {
