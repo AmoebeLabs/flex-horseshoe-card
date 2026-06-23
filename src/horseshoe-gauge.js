@@ -16,6 +16,7 @@ import {
 } from './horseshoe-renderer.js';
 import { buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
 import { getGaugeStateData, normalizeBaseConfig } from './horseshoe-state.js';
+import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
 import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
 /**
@@ -202,15 +203,26 @@ export default class HorseshoeGauge extends BaseTool {
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
 
     this.runtimeConfig = stateData.runtimeConfig;
+    this.runtimeConfig.state_map = this.buildStateMapDisplayLabels(this.runtimeConfig.state_map, entity);
+    const mappedState = this.runtimeConfig.state_map?.map?.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value)) ?? stateData.mappedState;
+    this.runtimeConfig.mapped_state = mappedState;
     this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
     this.rawState = stateData.rawState;
-    this.mappedState = stateData.mappedState;
+    this.mappedState = mappedState;
     this.value = nextValue;
 
     // Recreate scale and geometry after template resolution so spline anchors and layout stay current.
     this.scale = new GaugeScale(this.runtimeConfig.horseshoe_scale);
     this.geometry = new GaugeGeometry(this.runtimeConfig, this.scale);
     this.refreshPathItemCacheKey();
+
+    const stringStateMode = this.runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || this.runtimeConfig.horseshoe_state.mode === 'stringstate_level';
+
+    // String states are discrete. CSS transitions animate their styles; numeric interpolation would produce unmapped intermediate states.
+    if (stringStateMode) {
+      this.displayValue = this.value;
+      return;
+    }
 
     // The first state assignment initializes the display value without animating from an empty state.
     if (!Number.isFinite(this.displayValue)) {
@@ -224,6 +236,58 @@ export default class HorseshoeGauge extends BaseTool {
         toValue: this.value,
       });
     }
+  }
+
+  /**
+   * Adds Home Assistant translated display labels to every state_map entry.
+   *
+   * @param {object} stateMap - Runtime state_map config.
+   * @param {object} entity - Home Assistant entity state object.
+   * @returns {object} State map with display_label values.
+   */
+  buildStateMapDisplayLabels(stateMap, entity) {
+    if (!stateMap?.map) return stateMap;
+
+    return {
+      ...stateMap,
+      map: stateMap.map.map((entry) => {
+        const state = String(entry.state ?? entry.value);
+        const stateEntity = {
+          ...entity,
+          state,
+        };
+        const formattedState = this.card._hass.formatEntityState?.(entity, state);
+        const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
+        const computedState = computeStateDisplay(
+          this.card._hass.localize,
+          stateEntity,
+          this.card._hass.locale,
+          [],
+          this.card._hass.config,
+          this.card._hass.entities,
+        );
+        const displayLabel = [formattedState, formattedStateEntity, computedState]
+          .find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
+
+        if (this.runtimeConfig?.dev?.debug_state_map || this.runtimeConfig?.debug_state_map) {
+          console.log('[horseshoe-state-map] display label', {
+            entity_id: entity.entity_id,
+            activeState: entity.state,
+            state,
+            formattedState,
+            formattedStateEntity,
+            computedState,
+            displayLabel,
+            entry,
+          });
+        }
+
+        return {
+          ...entry,
+          display_label: displayLabel ?? entry.display_label,
+        };
+      }),
+    };
   }
 
   /**
@@ -290,6 +354,7 @@ export default class HorseshoeGauge extends BaseTool {
         styles: this.runtimeConfig.horseshoe_state.styles,
       },
       state_map: this.runtimeConfig.state_map,
+      mapped_state: this.runtimeConfig.mapped_state,
       horseshoe_labels: this.runtimeConfig.horseshoe_labels,
       horseshoe_tickmarks: this.runtimeConfig.horseshoe_tickmarks,
     });

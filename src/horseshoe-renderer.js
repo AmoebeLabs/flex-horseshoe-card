@@ -124,8 +124,9 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId
     <g class="horseshoe__state-layer">
       ${renderStateLinearGradient(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex)}
       ${statePathItems.map((pathItem) => {
-        // Inactive mapped segments render with the scale style so only the active segment stands out.
-        const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
+        const isStringStateMode = runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level';
+        // String-state modes keep every segment path mounted so only styles change between states.
+        const arcBaseStyle = pathItem.arc.active === false && !isStringStateMode ? scaleStyle : stateStyle;
         const fill = runtimeConfig.show?.horseshoe_style === 'lineargradient' && pathItem.arc.active !== false
           ? `url('#${gradientId}')`
           : pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
@@ -133,6 +134,14 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId
           ...arcBaseStyle,
           fill,
         };
+
+        if (isStringStateMode && renderStyle.transition === undefined) {
+          renderStyle.transition = 'fill 600ms ease, opacity 600ms ease, filter 600ms ease';
+        }
+
+        if (isStringStateMode && pathItem.arc.active === false) {
+          renderStyle.opacity = runtimeConfig.horseshoe_state.inactive_opacity ?? '0';
+        }
 
         if (!pathItem.path) {
           renderStyle.opacity = '0';
@@ -176,7 +185,11 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
           horseshoeIndex,
           index,
           label: labelItem.text,
+          styles: labelItem.styles,
+          relation: labelItem.relation,
+          ellipsis: runtimeConfig.horseshoe_labels.ellipsis,
           angle: labelItem.angle,
+          arcSize: runtimeConfig.horseshoe_labels.arc_size ?? labelItem.arcSize,
           cx: geometry.cx,
           cy: geometry.cy,
           radius: labelItem.radius,
@@ -443,7 +456,8 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
       return;
     }
 
-    const arcBaseStyle = pathItem.arc.active === false ? scaleStyle : stateStyle;
+    const isStringStateMode = runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level';
+    const arcBaseStyle = pathItem.arc.active === false && !isStringStateMode ? scaleStyle : stateStyle;
     const fill = runtimeConfig.show?.horseshoe_style === 'lineargradient' && pathItem.arc.active !== false
       ? `url('#${gradientId}')`
       : pathItem.arc.color ?? arcBaseStyle.fill ?? runtimeConfig.horseshoe_state.color ?? 'none';
@@ -451,6 +465,14 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
       ...arcBaseStyle,
       fill,
     };
+
+    if (isStringStateMode && renderStyle.transition === undefined) {
+      renderStyle.transition = 'fill 600ms ease, opacity 600ms ease, filter 600ms ease';
+    }
+
+    if (isStringStateMode && pathItem.arc.active === false) {
+      renderStyle.opacity = runtimeConfig.horseshoe_state.inactive_opacity ?? '0';
+    }
 
     if (!pathItem.path) {
       renderStyle.opacity = '0';

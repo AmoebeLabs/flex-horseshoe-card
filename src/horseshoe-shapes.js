@@ -1,4 +1,5 @@
 import Colors from './colors.js';
+import ConfigHelper from './config-helper.js';
 
 /**
  * Returns arrays unchanged so color stop and label builders can iterate predictably.
@@ -489,6 +490,40 @@ function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
 }
 
 /**
+ * Compares one mapped state index with the current mapped state index.
+ *
+ * @param {number} index - Index of the state map entry being processed.
+ * @param {number} currentIndex - Index of the current mapped state.
+ * @returns {string} Stable before/current/after relation for string-state rendering and labels.
+ */
+function getMappedStateRelation(index, currentIndex) {
+  if (currentIndex < 0) {
+    return 'after';
+  }
+
+  if (index < currentIndex) {
+    return 'before';
+  }
+
+  if (index > currentIndex) {
+    return 'after';
+  }
+
+  return 'current';
+}
+
+/**
+ * Finds label-specific state-map metadata for one raw state.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {string|number} state - Raw state from the value state map.
+ * @returns {object|undefined} Label state-map entry.
+ */
+function getLabelStateMapEntry(runtimeConfig, state) {
+  return asArray(runtimeConfig.horseshoe_labels?.stringstate?.state_map?.map).find((entry) => String(entry.state) === String(state));
+}
+
+/**
  * Builds one segment per mapped state and marks the active segment.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
@@ -498,30 +533,83 @@ function buildBidirectionalStateArcs(runtimeConfig, geometry, value) {
  */
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const stateMap = runtimeConfig.state_map.map;
-  const gap = runtimeConfig.horseshoe_state.segment_gap;
+  const segmentGap = runtimeConfig.horseshoe_state.segment_gap;
+  const colorStopGap = Number(runtimeConfig.colorStops?.gap ?? 0);
   const count = stateMap.length;
 
   if (!count) {
     return [];
   }
 
-  // State-map mode divides the full arc into equal visual slots.
+  // Segment mode shows equal visual slots. String-state modes reuse the color-stop scale segment that contains the mapped value.
+  const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(value));
   const step = geometry.arcDegrees / count;
+  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  const colorStopPoints = [
+    {
+      value: Number(runtimeConfig.horseshoe_scale.min),
+      color: colorStops[0]?.color,
+    },
+    ...colorStops.map((stop) => ({
+      value: Number(stop.value),
+      color: stop.color,
+    })),
+    {
+      value: Number(runtimeConfig.horseshoe_scale.max),
+      color: colorStops[colorStops.length - 1]?.color,
+    },
+  ];
 
-  return stateMap.map((item, index) => {
-    const active = Number(item.value) === Number(value);
+  const arcs = stateMap.map((item, index) => {
+    const relation = getMappedStateRelation(index, currentIndex);
+    const active = relation === 'current';
+    const highlighted = runtimeConfig.horseshoe_state.mode === 'stringstate_level'
+      ? relation === 'before' || relation === 'current'
+      : active;
+    const itemValue = Number(item.value);
+    let startAngle = geometry.startAngle + index * step + segmentGap / 2;
+    let endAngle = geometry.startAngle + (index + 1) * step - segmentGap / 2;
+    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorStops, runtimeConfig.show?.horseshoe_style === 'colorstopgradient');
+    let segmentStartValue;
+    let segmentEndValue;
+
+    if (runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level') {
+      for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
+        const pointA = colorStopPoints[colorStopIndex];
+        const pointB = colorStopPoints[colorStopIndex + 1];
+        const isFirst = colorStopIndex === 0;
+        const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
+
+        if (isInSegment) {
+          const isLast = colorStopIndex === colorStopPoints.length - 2;
+
+          segmentStartValue = pointA.value;
+          segmentEndValue = pointB.value;
+          startAngle = isFirst ? geometry.valueToAngle(pointA.value) : geometry.valueToAngle(pointA.value) + colorStopGap / 2;
+          endAngle = isLast ? geometry.valueToAngle(pointB.value) : geometry.valueToAngle(pointB.value) - colorStopGap / 2;
+          segmentColor = item.color ?? pointA.color;
+          break;
+        }
+      }
+    }
 
     return {
       key: `mapped-state-${index}`,
-      startAngle: geometry.startAngle + index * step + gap / 2,
-      endAngle: geometry.startAngle + (index + 1) * step - gap / 2,
+      startAngle,
+      endAngle,
       startCap: index === 0 ? runtimeConfig.horseshoe_state.linecap.start : 'butt',
       endCap: index === count - 1 ? runtimeConfig.horseshoe_state.linecap.end : 'butt',
-      active,
+      active: highlighted,
+      relation,
       value: item.value,
-      label: item.label ?? String(item.state),
+      startValue: segmentStartValue,
+      endValue: segmentEndValue,
+      color: segmentColor,
+      label: item.display_label ?? item.label ?? String(item.state ?? item.value),
     };
   });
+
+  return arcs;
 }
 
 /**
@@ -533,7 +621,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
  * @returns {Array<object>} State arc definitions.
  */
 function buildStateArcs(runtimeConfig, geometry, value) {
-  if (runtimeConfig.horseshoe_state.mode === 'segment') {
+  if (runtimeConfig.horseshoe_state.mode === 'segment' || runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level') {
     return buildMappedStateArcs(runtimeConfig, geometry, value);
   }
 
@@ -607,7 +695,10 @@ export function buildScalePathItems(runtimeConfig, geometry) {
  */
 function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
   const value = Number(labelConfig.value);
-  const angle = geometry.valueToAngle(value);
+  const angle = labelConfig.angle !== undefined ? Number(labelConfig.angle) : geometry.valueToAngle(value);
+  const startAngle = labelConfig.startValue !== undefined ? geometry.valueToAngle(Number(labelConfig.startValue)) : undefined;
+  const endAngle = labelConfig.endValue !== undefined ? geometry.valueToAngle(Number(labelConfig.endValue)) : undefined;
+  const arcSize = startAngle !== undefined && endAngle !== undefined ? Math.max(1, Math.abs(endAngle - startAngle)) : undefined;
   const radius = geometry.radius + Number(runtimeConfig.horseshoe_labels.offset ?? runtimeConfig.horseshoe_state.width + 2);
   const point = geometry.pointAt(angle, radius);
 
@@ -617,6 +708,7 @@ function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
     text: labelConfig.text ?? String(value),
     role: labelConfig.role ?? 'label',
     angle,
+    arcSize,
     radius,
     x: point.x,
     y: point.y,
@@ -719,6 +811,91 @@ function buildLabelStopItems(runtimeConfig) {
         : [];
 
     labelStops = [...colorStopLabels, ...tickLabels];
+  }
+
+  if (labelsAt === 'segment' || labelsAt === 'stringstate') {
+    const stateMap = asArray(runtimeConfig.state_map?.map);
+
+    const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(runtimeConfig.mapped_state?.value));
+
+    if (runtimeConfig.horseshoe_state?.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state?.mode === 'stringstate_level') {
+      const colorStopPoints = [
+        { value: Number(runtimeConfig.horseshoe_scale.min) },
+        ...colorStops.map((stop) => ({ value: Number(stop.value) })),
+        { value: Number(runtimeConfig.horseshoe_scale.max) },
+      ];
+
+      labelStops = stateMap.map((item, index) => {
+        const relation = getMappedStateRelation(index, currentIndex);
+        const labelStateEntry = getLabelStateMapEntry(runtimeConfig, item.state);
+        const itemValue = Number(item.value);
+        let labelValue = itemValue;
+        let labelStartValue;
+        let labelEndValue;
+
+        for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
+          const pointA = colorStopPoints[colorStopIndex];
+          const pointB = colorStopPoints[colorStopIndex + 1];
+          const isFirst = colorStopIndex === 0;
+          const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
+
+          if (isInSegment) {
+            labelValue = (pointA.value + pointB.value) / 2;
+            labelStartValue = pointA.value;
+            labelEndValue = pointB.value;
+            break;
+          }
+        }
+
+        const roleStyles = ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles);
+        const stateRoleStyles = ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles);
+        const stateStyles = ConfigHelper.toStyleDict(labelStateEntry?.styles);
+        const styles = {
+          ...roleStyles,
+          ...stateRoleStyles,
+          ...stateStyles,
+        };
+
+        if (runtimeConfig.debug_labels || runtimeConfig.dev?.debug_labels) {
+          console.log('[horseshoe-labels] string-state label style', {
+            state: item.state,
+            relation,
+            roleStyles,
+            stateRoleStyles,
+            stateStyles,
+            styles,
+          });
+        }
+
+        return {
+          value: labelValue,
+          startValue: labelStartValue,
+          endValue: labelEndValue,
+          text: labelStateEntry?.label ?? item.display_label ?? String(item.state ?? item.value),
+          role: 'segment',
+          relation,
+          styles,
+        };
+      });
+    } else {
+      labelStops = stateMap.map((item, index) => {
+        const labelStateEntry = getLabelStateMapEntry(runtimeConfig, item.state);
+
+        const relation = getMappedStateRelation(index, currentIndex);
+
+        return {
+          value: item.value,
+          text: labelStateEntry?.label ?? item.display_label ?? String(item.state ?? item.value),
+          role: 'segment',
+          relation,
+          styles: {
+            ...ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles),
+            ...ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles),
+            ...ConfigHelper.toStyleDict(labelStateEntry?.styles),
+          },
+        };
+      });
+    }
   }
 
   // Normalize label stops into sorted, in-range, unique values before applying spacing.

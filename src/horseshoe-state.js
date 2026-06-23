@@ -236,6 +236,20 @@ export function normalizeRuntimeConfig(config) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
+      stringstate: horseshoeLabels.stringstate
+        ? {
+            ...horseshoeLabels.stringstate,
+            state_map: horseshoeLabels.stringstate.state_map
+              ? {
+                  ...horseshoeLabels.stringstate.state_map,
+                  map: (horseshoeLabels.stringstate.state_map.map ?? []).map((entry) => ({
+                    ...entry,
+                    styles: ConfigHelper.toStyleDict(entry.styles),
+                  })),
+                }
+              : horseshoeLabels.stringstate.state_map,
+          }
+        : horseshoeLabels.stringstate,
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {
@@ -327,6 +341,8 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     ? getStateMapItem(runtimeConfig.state_map.map, entity.state, value)
     : undefined;
   const nextValue = Number(mappedState?.value ?? value);
+
+  runtimeConfig.mapped_state = mappedState;
 
   return {
     runtimeConfig,

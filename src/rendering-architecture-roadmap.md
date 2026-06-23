@@ -35,14 +35,9 @@ Conceptually:
 
 ```js
 const legacyConfig = HorseshoeGauge.getLegacyRootConfig(config);
-const layoutConfigs = Array.isArray(config.layout?.horseshoes_v2)
-  ? config.layout.horseshoes_v2
-  : [];
+const layoutConfigs = Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : [];
 
-const horseshoes = [
-  ...(legacyConfig ? [legacyConfig] : []),
-  ...layoutConfigs,
-];
+const horseshoes = [...(legacyConfig ? [legacyConfig] : []), ...layoutConfigs];
 ```
 
 Later, when `horseshoes_v2` becomes the normal implementation, this should move to `layout.horseshoes`.
@@ -101,9 +96,9 @@ renderSvg() {
 Item modules can follow a common lifecycle:
 
 ```js
-setConfig(config, templates, context)
-setHass(hass, entities, resolvedEntityConfigs)
-render()
+setConfig(config, templates, context);
+setHass(hass, entities, resolvedEntityConfigs);
+render();
 ```
 
 ## Zpos Direction
@@ -130,14 +125,7 @@ const DEFAULT_ZPOS = {
 Then render order can become data-driven:
 
 ```js
-const renderItems = [
-  ...circles.items,
-  ...horseshoes.items,
-  ...icons.items,
-  ...states.items,
-  ...names.items,
-  ...lines.items,
-].sort((a, b) => a.zpos - b.zpos);
+const renderItems = [...circles.items, ...horseshoes.items, ...icons.items, ...states.items, ...names.items, ...lines.items].sort((a, b) => a.zpos - b.zpos);
 ```
 
 This makes circles, rectangles, icons, states, names, horseshoes, and other objects usable as layers. A circle can be a background behind text, a rectangle can sit behind a circle, and a horseshoe can be placed behind or in front of other items.
@@ -193,6 +181,117 @@ The SVG structure can then become:
 ```
 
 Children only need local coordinates. Group position, scale, and rotation are handled once at the group level.
+
+## Extra Horseshoe Ideas
+
+These ideas are useful follow-up features, but each should stay in its own PR. They affect rendering behavior and need visual testing across normal, bidirectional, spline, and string-state horseshoes.
+
+### String-State Modes And Levels
+
+`stringstate_mode` shows one nominal string-state segment: only the current mapped state is highlighted.
+
+`stringstate_level` shows ordered string-state levels: the current state plus all lower states are highlighted.
+
+The segment role should always be calculated the same way: compare each entry index in `state_map.map` with the current mapped state index. That gives one stable relation for every state:
+
+- `before`: lower states before the current state
+- `current`: the current mapped state
+- `after`: higher states after the current state
+
+That segment role must be available consistently for both state paths and labels. The mode should only decide whether a segment is rendered/highlighted. Labels should use the same segment role data, so styling does not depend on a separate or duplicated interpretation of the current state.
+
+Possible config direction:
+
+```yaml
+horseshoe_state:
+  mode: stringstate_level
+```
+
+This is feasible and keeps nominal modes separate from ordered levels. For `stringstate_level`, the order should come from `state_map.map`, because that is already the configured level order. The implementation should still use the same segment geometry as string-state mode, so labels, backgrounds, color stops, and gaps keep matching. State path items and label items should both receive the same segment role.
+
+Rendering then becomes mode-specific, while the test stays identical:
+
+- `stringstate_mode`: render/highlight only `current`
+- `stringstate_level`: render/highlight `before` and `current`; keep `after` unrendered or inactive
+
+This keeps label styling predictable in every string-state mode, because labels can always test `before/current/after`.
+
+### Label Contrast On Colored Segments
+
+Labels placed on top of colored scale or state segments may need a light or dark text color depending on the segment color. This is a real readability issue, especially for string-state labels rendered directly on the horseshoe.
+
+The safest and clearest option is explicit per-label-state styling. SVG cannot detect the actual background behind text, and even the intended background can be ambiguous: scale segment, active state segment, label background, horseshoe background, or another layer. Automatic contrast could only work in narrow cases where the label builder knows the exact segment color, so it should not be the first implementation.
+
+Possible config direction:
+
+```yaml
+horseshoe_state:
+  mode: stringstate_mode
+
+horseshoe_labels:
+  stringstate:
+    segment_roles:
+      current:
+        styles:
+          - font-weight: bold
+    state_map:
+      map:
+        - state: low
+        styles:
+          - fill: black
+        - state: high
+        styles:
+          - fill: white
+```
+
+This is feasible and useful. String-state label presentation belongs under `horseshoe_labels.stringstate`, because these options only apply when labels are driven by string-state state-map entries. It can still use the same `state_map.map` structure as icons. The first implementation should use `horseshoe_labels.stringstate.state_map.map` for explicit per-state label styles. Segment role styles can live under `horseshoe_labels.stringstate.segment_roles`, using the same `styles` key everywhere. A derived contrast option can be reconsidered later, but only for cases where the intended background segment is unambiguous. Rendering should only receive the final style.
+
+### Light And Dark Color Stops
+
+Color stops could support different colors for Home Assistant light and dark themes, similar to external palettes. This avoids forcing users to make every color a CSS variable when they want a different scale per theme.
+
+Possible config direction:
+
+```yaml
+color_stops:
+  mode: gradient
+  gap: 3
+  colors:
+    - value: 0
+      color: '#3388ff'
+    - value: 1
+      color: '#ffaa00'
+  themes:
+    light:
+      - value: 0
+        color: '#005fcc'
+      - value: 1
+        color: '#cc6600'
+    dark:
+      - value: 0
+        color: '#66aaff'
+      - value: 1
+        color: '#ffcc66'
+```
+
+This is feasible, but it should be handled in color-stop normalization, not in renderers. Renderers should receive one resolved `colorStops` object. The selected theme can come from the Home Assistant theme state.
+
+### Segmented Fixed Backgrounds
+
+Some background layers are currently either one fixed arc or color-stop segments. A useful extra mode would draw fixed-color backgrounds using the same segment boundaries as `color_stops`, while still using one configured fill or stroke color.
+
+This would make backgrounds visually line up with color-stop scales, string-state segments, labels, and tick backgrounds. It is especially useful when filters or shadows are applied to a grouped background.
+
+Possible config direction:
+
+```yaml
+show:
+  horseshoe_background: fixed_segments
+horseshoe_background:
+  color: rgba(255, 255, 255, 0.08)
+```
+
+This is feasible and consistent with the current path-building architecture. It belongs in the shared background/arc item builder, so horseshoe background, label background, and tick background can reuse the same behavior.
 
 ## Why This Matters
 

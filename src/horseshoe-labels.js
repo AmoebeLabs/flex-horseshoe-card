@@ -1,9 +1,31 @@
 import { svg } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
 
 /**
  * Renders label text, badge shapes, and label helper geometry for v2 horseshoes.
  */
 export default class HorseshoeLabels {
+  /**
+   * Truncates label text when an ellipsis limit is configured.
+   *
+   * @param {string} text - Original label text.
+   * @param {number|string|undefined} ellipsis - Maximum number of visible characters.
+   * @returns {string} Truncated label text.
+   */
+  static applyEllipsis(text, ellipsis) {
+    const maxLength = Number(ellipsis);
+
+    if (!Number.isFinite(maxLength) || maxLength <= 0 || text.length <= maxLength) {
+      return text;
+    }
+
+    if (maxLength === 1) {
+      return '…';
+    }
+
+    return `${text.slice(0, maxLength - 1)}…`;
+  }
+
   /**
    * Renders one label using the configured label orientation.
    *
@@ -43,12 +65,19 @@ export default class HorseshoeLabels {
     const scaleX = flipX ? -1 : 1;
     const scaleY = flipY ? -1 : 1;
 
+    const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+    const labelStyle = {
+      'dominant-baseline': 'central',
+      fill: 'var(--primary-text-color)',
+      ...(labelConfig.styles ?? {}),
+    };
+
     return svg`
       <text
         x="${point.x}"
         y="${point.y}"
         text-anchor="middle"
-        style="dominant-baseline:central;fill:var(--primary-text-color)"
+        style=${styleMap(labelStyle)}
         class="horseshoe-label"
         transform="
           translate(${point.x} ${point.y})
@@ -57,7 +86,7 @@ export default class HorseshoeLabels {
           translate(${-point.x} ${-point.y})
         "
       >
-        ${labelConfig.label}
+        ${labelText}
       </text>
     `;
   }
@@ -69,8 +98,12 @@ export default class HorseshoeLabels {
    * @returns {TemplateResult} SVG textPath template.
    */
   static renderArcLabel(labelConfig) {
-    const labelText = String(labelConfig.label ?? '');
-    const arcSize = 24;
+    const labelText = HorseshoeLabels.applyEllipsis(String(labelConfig.label ?? ''), labelConfig.ellipsis);
+    const labelStyle = {
+      fill: 'currentColor',
+      ...(labelConfig.styles ?? {}),
+    };
+    const arcSize = Number(labelConfig.arcSize ?? 24);
     const labelGeometry = HorseshoeLabels.getLabelGeometry({
       angle: labelConfig.angle,
       transformContext: labelConfig.transformContext,
@@ -132,7 +165,7 @@ export default class HorseshoeLabels {
 
         <text
           class="horseshoe-label"
-          style="fill:currentColor"
+          style=${styleMap(labelStyle)}
           dy="0em"
         >
           <textPath
