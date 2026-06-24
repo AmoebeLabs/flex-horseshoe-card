@@ -58,6 +58,55 @@ export function normalizeLinecap(linecap) {
   };
 }
 
+const STRINGSTATE_RELATIONS = ['before', 'current', 'after'];
+
+/**
+ * Normalizes string-state label role and state-map style dictionaries.
+ */
+function normalizeStringstateLabelConfig(config) {
+  if (!config) {
+    return config;
+  }
+
+  const normalized = {
+    ...config,
+  };
+
+  STRINGSTATE_RELATIONS.forEach((relation) => {
+    if (normalized[relation]) {
+      normalized[relation] = {
+        ...normalized[relation],
+        styles: ConfigHelper.toStyleDict(normalized[relation].styles),
+      };
+    }
+  });
+
+  if (normalized.state_map) {
+    normalized.state_map = {
+      ...normalized.state_map,
+      map: (normalized.state_map.map ?? []).map((entry) => {
+        const normalizedEntry = {
+          ...entry,
+          styles: ConfigHelper.toStyleDict(entry.styles),
+        };
+
+        STRINGSTATE_RELATIONS.forEach((relation) => {
+          if (normalizedEntry[relation]) {
+            normalizedEntry[relation] = {
+              ...normalizedEntry[relation],
+              styles: ConfigHelper.toStyleDict(normalizedEntry[relation].styles),
+            };
+          }
+        });
+
+        return normalizedEntry;
+      }),
+    };
+  }
+
+  return normalized;
+}
+
 /**
  * Computes the normalized zero position for bidirectional scales.
  */
@@ -236,20 +285,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
-      stringstate: horseshoeLabels.stringstate
-        ? {
-            ...horseshoeLabels.stringstate,
-            state_map: horseshoeLabels.stringstate.state_map
-              ? {
-                  ...horseshoeLabels.stringstate.state_map,
-                  map: (horseshoeLabels.stringstate.state_map.map ?? []).map((entry) => ({
-                    ...entry,
-                    styles: ConfigHelper.toStyleDict(entry.styles),
-                  })),
-                }
-              : horseshoeLabels.stringstate.state_map,
-          }
-        : horseshoeLabels.stringstate,
+      stringstate_level: normalizeStringstateLabelConfig(horseshoeLabels.stringstate_level),
+      stringstate_mode: normalizeStringstateLabelConfig(horseshoeLabels.stringstate_mode),
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {
