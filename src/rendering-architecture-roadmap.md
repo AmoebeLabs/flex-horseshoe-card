@@ -297,6 +297,10 @@ horseshoe_background:
 
 This is feasible and consistent with the current path-building architecture. It belongs in the shared background/arc item builder, so horseshoe background, label background, and tick background can reuse the same behavior.
 
+## Generic Color Filter
+
+See color-filter-architecture.md document.
+
 ## Why This Matters
 
 The new horseshoe work showed the practical benefit of central geometry and smaller modules:

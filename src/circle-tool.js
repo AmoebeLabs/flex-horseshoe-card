@@ -94,7 +94,7 @@ export default class CircleTool extends BaseTool {
           cx="${this.runtimeConfig.svg.xpos}"
           cy="${this.runtimeConfig.svg.ypos}"
           r="${this.runtimeConfig.svg.radius}"
-          style=${styleMap(styles)}
+          style=${styleMap(this.getRenderStyles(styles))}
         ></circle>
       </g>
     `;

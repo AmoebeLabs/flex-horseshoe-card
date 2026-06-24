@@ -77,7 +77,7 @@ export default class HorseshoeLabels {
         x="${point.x}"
         y="${point.y}"
         text-anchor="middle"
-        style=${styleMap(labelStyle)}
+        style=${styleMap(labelConfig.applyColorFilter ? labelConfig.applyColorFilter(labelStyle) : labelStyle)}
         class="horseshoe-label"
         transform="
           translate(${point.x} ${point.y})
@@ -165,7 +165,7 @@ export default class HorseshoeLabels {
 
         <text
           class="horseshoe-label"
-          style=${styleMap(labelStyle)}
+          style=${styleMap(labelConfig.applyColorFilter ? labelConfig.applyColorFilter(labelStyle) : labelStyle)}
           dy="0em"
         >
           <textPath

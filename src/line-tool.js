@@ -183,7 +183,7 @@ export default class LineTool extends BaseTool {
           y1="${this.runtimeConfig.svg.y1}"
           x2="${this.runtimeConfig.svg.x2}"
           y2="${this.runtimeConfig.svg.y2}"
-          style=${styleMap(styles)}
+          style=${styleMap(this.getRenderStyles(styles))}
         ></line>
       </g>
     `;

@@ -117,7 +117,7 @@ export default class AreaTool extends BaseTool {
             class="entity__area"
             x="${this.runtimeConfig.svg.xpos}"
             y="${this.runtimeConfig.svg.ypos}"
-            style=${styleMap(styles)}>
+            style=${styleMap(this.getRenderStyles(styles))}>
             ${this.area}</tspan>
         </text>
       </g>

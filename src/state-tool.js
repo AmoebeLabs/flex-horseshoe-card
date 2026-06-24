@@ -676,12 +676,12 @@ export default class StateTool extends BaseTool {
             y="${this.runtimeConfig.svg.ypos}"
             dx="${dx}em"
             dy="${dy}em"
-            style=${styleMap(styles)}
+            style=${styleMap(this.getRenderStyles(styles))}
           >${this.state}</tspan><tspan
             class="state__uom"
             dx="${uomDx}em"
             dy="${uomDy}em"
-            style=${styleMap(uomStyle)}
+            style=${styleMap(this.getRenderStyles(uomStyle))}
           >${this.uom}</tspan>
         </text>
       </g>

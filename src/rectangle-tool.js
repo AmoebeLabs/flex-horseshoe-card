@@ -131,7 +131,7 @@ export default class RectangleTool extends BaseTool {
           @click=${(event) => this.handlePopup(event)}
           class="rectangle-tool"
           d="${this.buildRoundedRectanglePath()}"
-          style=${styleMap(styles)}
+          style=${styleMap(this.getRenderStyles(styles))}
         ></path>
       </g>
     `;
