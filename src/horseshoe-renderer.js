@@ -86,12 +86,16 @@ export function renderScaleLayer(runtimeConfig, geometry, scalePathItems, applyC
         // Arc-specific colors win over the layer style so color-stop segments keep their colors.
         const fill = pathItem.arc.color ?? runtimeConfig.horseshoe_scale.color ?? scaleStyle.fill ?? 'none';
 
+        const renderStyle = {
+          fill,
+        };
+
         return pathItem.path
           ? svg`
               <path
                 class="horseshoe__scale"
                 d=${pathItem.path}
-                fill="${fill}"
+                style=${styleMap(applyColorFilter(renderStyle, pathItem))}
               ></path>
             `
           : svg``;
