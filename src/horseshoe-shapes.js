@@ -519,8 +519,24 @@ function getMappedStateRelation(index, currentIndex) {
  * @param {string|number} state - Raw state from the value state map.
  * @returns {object|undefined} Label state-map entry.
  */
+function getStringstateLabelConfig(runtimeConfig) {
+  const mode = runtimeConfig.horseshoe_state?.mode;
+
+  return mode === 'stringstate_mode' || mode === 'stringstate_level'
+    ? runtimeConfig.horseshoe_labels?.[mode]
+    : undefined;
+}
+
 function getLabelStateMapEntry(runtimeConfig, state) {
-  return asArray(runtimeConfig.horseshoe_labels?.stringstate?.state_map?.map).find((entry) => String(entry.state) === String(state));
+  return asArray(getStringstateLabelConfig(runtimeConfig)?.state_map?.map).find((entry) => String(entry.state) === String(state));
+}
+
+function getStringstateRoleStyles(runtimeConfig, relation) {
+  return ConfigHelper.toStyleDict(getStringstateLabelConfig(runtimeConfig)?.[relation]?.styles);
+}
+
+function getStringstateStateRoleStyles(labelStateEntry, relation) {
+  return ConfigHelper.toStyleDict(labelStateEntry?.[relation]?.styles);
 }
 
 /**
@@ -847,13 +863,13 @@ function buildLabelStopItems(runtimeConfig) {
           }
         }
 
-        const roleStyles = ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles);
-        const stateRoleStyles = ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles);
+        const roleStyles = getStringstateRoleStyles(runtimeConfig, relation);
         const stateStyles = ConfigHelper.toStyleDict(labelStateEntry?.styles);
+        const stateRoleStyles = getStringstateStateRoleStyles(labelStateEntry, relation);
         const styles = {
           ...roleStyles,
-          ...stateRoleStyles,
           ...stateStyles,
+          ...stateRoleStyles,
         };
 
         if (runtimeConfig.debug_labels || runtimeConfig.dev?.debug_labels) {
@@ -889,9 +905,9 @@ function buildLabelStopItems(runtimeConfig) {
           role: 'segment',
           relation,
           styles: {
-            ...ConfigHelper.toStyleDict(runtimeConfig.horseshoe_labels?.stringstate?.segment_roles?.[relation]?.styles),
-            ...ConfigHelper.toStyleDict(labelStateEntry?.segment_roles?.[relation]?.styles),
+            ...getStringstateRoleStyles(runtimeConfig, relation),
             ...ConfigHelper.toStyleDict(labelStateEntry?.styles),
+            ...getStringstateStateRoleStyles(labelStateEntry, relation),
           },
         };
       });
