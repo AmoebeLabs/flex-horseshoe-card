@@ -437,7 +437,7 @@ function getStatePathElement(statePathElements, card, cardId, horseshoeIndex, pa
  * @param {string} cardId - Card id namespace.
  * @param {number} horseshoeIndex - Gauge index.
  */
-export function updateStatePathElements(runtimeConfig, statePathItems, statePathElements, card, cardId, horseshoeIndex) {
+export function updateStatePathElements(runtimeConfig, statePathItems, statePathElements, card, cardId, horseshoeIndex, applyColorFilter = (styles) => styles) {
   const stateStyle = {
     ...runtimeConfig.horseshoe_state.styles,
   };
@@ -490,7 +490,7 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
     pathElement.setAttribute('d', pathItem.path || '');
     pathElement.setAttribute(
       'style',
-      Object.entries(renderStyle).map(([property, value]) => `${property}: ${value}`).join('; '),
+      Object.entries(applyColorFilter(renderStyle, pathItem)).map(([property, value]) => `${property}: ${value}`).join('; '),
     );
   });
 }

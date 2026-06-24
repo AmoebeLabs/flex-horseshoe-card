@@ -564,6 +564,14 @@ export default class HorseshoeGauge extends BaseTool {
     const value = Number(options.value ?? this.displayValue ?? this.value);
 
     const statePathItems = buildStatePathItems(this.runtimeConfig, this.geometry, value);
-    updateStatePathElements(this.runtimeConfig, statePathItems, this.statePathElements, this.card, this.cardId, this.index);
+    updateStatePathElements(
+      this.runtimeConfig,
+      statePathItems,
+      this.statePathElements,
+      this.card,
+      this.cardId,
+      this.index,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_state?.color_filter]),
+    );
   }
 }
