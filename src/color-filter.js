@@ -4,7 +4,7 @@ import Colors from './colors.js';
 import Merge from './merge.js';
 
 const COLOR_PROPERTIES = ['fill', 'stroke', 'color', 'stop-color', 'flood-color'];
-const FILTER_KEYS = ['grayscale', 'monochrome', 'duotone', 'lightness', 'brightness', 'contrast', 'saturation', 'opacity'];
+const FILTER_KEYS = ['grayscale', 'monochrome', 'duotone', 'preserve_neutral', 'lightness', 'brightness', 'contrast', 'saturation', 'opacity'];
 const toRgb = converter('rgb');
 const toOklch = converter('oklch');
 
@@ -150,11 +150,11 @@ export default class ColorFilter {
     }
 
     if (filter.monochrome !== undefined) {
-      rgbColor = ColorFilter.applyMonochrome(rgbColor, filter.monochrome, card);
+      rgbColor = ColorFilter.applyMonochrome(rgbColor, filter, card);
     }
 
     if (filter.duotone !== undefined) {
-      rgbColor = ColorFilter.applyDuotone(rgbColor, filter.duotone, card);
+      rgbColor = ColorFilter.applyDuotone(rgbColor, filter, card);
     }
 
     if (filter.lightness !== undefined) {
@@ -242,9 +242,14 @@ export default class ColorFilter {
    * @param {LitElement} card - Card element used to resolve CSS variables.
    * @returns {object} Monochrome RGB color.
    */
-  static applyMonochrome(rgbColor, monochromeColor, card) {
-    const target = ColorFilter.resolveColor(monochromeColor, card);
+  static applyMonochrome(rgbColor, filter, card) {
     const sourceOklch = toOklch(rgbColor);
+
+    if (filter.preserve_neutral && ColorFilter.isNeutralOklch(sourceOklch)) {
+      return rgbColor;
+    }
+
+    const target = ColorFilter.resolveColor(filter.monochrome, card);
     const targetOklch = toOklch(target);
 
     return toRgb({
@@ -262,10 +267,15 @@ export default class ColorFilter {
    * @param {LitElement} card - Card element used to resolve CSS variables.
    * @returns {object} Duotone RGB color.
    */
-  static applyDuotone(rgbColor, duotone, card) {
-    const darkColor = ColorFilter.resolveColor(duotone.dark, card);
-    const lightColor = ColorFilter.resolveColor(duotone.light, card);
+  static applyDuotone(rgbColor, filter, card) {
     const sourceOklch = toOklch(rgbColor);
+
+    if (filter.preserve_neutral && ColorFilter.isNeutralOklch(sourceOklch)) {
+      return rgbColor;
+    }
+
+    const darkColor = ColorFilter.resolveColor(filter.duotone.dark, card);
+    const lightColor = ColorFilter.resolveColor(filter.duotone.light, card);
 
     return ColorFilter.mixRgb(darkColor, lightColor, sourceOklch.l);
   }
@@ -316,6 +326,18 @@ export default class ColorFilter {
       ...oklchColor,
       c: Math.max(0, oklchColor.c * amount),
     });
+  }
+
+  /**
+   * Returns true for black, white, and neutral gray colors in OKLCH space.
+   *
+   * @param {object} oklchColor - Culori OKLCH color.
+   * @returns {boolean} Whether the color should stay neutral.
+   */
+  static isNeutralOklch(oklchColor) {
+    return oklchColor.l <= 0.001
+      || oklchColor.l >= 0.999
+      || Math.abs(oklchColor.c ?? 0) <= 0.0001;
   }
 
   /**
