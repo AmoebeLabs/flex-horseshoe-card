@@ -249,14 +249,16 @@ export default class ColorFilter {
       return rgbColor;
     }
 
-    const target = ColorFilter.resolveColor(filter.monochrome, card);
+    const monochrome = ColorFilter.normalizeMonochromeFilter(filter.monochrome);
+    const target = ColorFilter.resolveColor(monochrome.color, card);
     const targetOklch = toOklch(target);
-
-    return toRgb({
+    const monochromeColor = toRgb({
       ...targetOklch,
       l: sourceOklch.l,
       alpha: rgbColor.alpha,
     });
+
+    return ColorFilter.mixRgb(rgbColor, monochromeColor, monochrome.amount);
   }
 
   /**
@@ -274,10 +276,12 @@ export default class ColorFilter {
       return rgbColor;
     }
 
-    const darkColor = ColorFilter.resolveColor(filter.duotone.dark, card);
-    const lightColor = ColorFilter.resolveColor(filter.duotone.light, card);
+    const duotone = ColorFilter.normalizeDuotoneFilter(filter.duotone);
+    const darkColor = ColorFilter.resolveColor(duotone.dark, card);
+    const lightColor = ColorFilter.resolveColor(duotone.light, card);
+    const duotoneColor = ColorFilter.mixRgb(darkColor, lightColor, sourceOklch.l);
 
-    return ColorFilter.mixRgb(darkColor, lightColor, sourceOklch.l);
+    return ColorFilter.mixRgb(rgbColor, duotoneColor, duotone.amount);
   }
 
   /**
@@ -326,6 +330,37 @@ export default class ColorFilter {
       ...oklchColor,
       c: Math.max(0, oklchColor.c * amount),
     });
+  }
+
+  /**
+   * Normalizes monochrome shorthand and amount configuration.
+   *
+   * @param {string|object} monochrome - Color string or { color, amount } config.
+   * @returns {object} Normalized monochrome config.
+   */
+  static normalizeMonochromeFilter(monochrome) {
+    return typeof monochrome === 'object'
+      ? {
+          color: monochrome.color,
+          amount: monochrome.amount ?? 1,
+        }
+      : {
+          color: monochrome,
+          amount: 1,
+        };
+  }
+
+  /**
+   * Normalizes duotone amount configuration.
+   *
+   * @param {object} duotone - Duotone filter config.
+   * @returns {object} Normalized duotone config.
+   */
+  static normalizeDuotoneFilter(duotone) {
+    return {
+      ...duotone,
+      amount: duotone.amount ?? 1,
+    };
   }
 
   /**
