@@ -828,6 +828,16 @@ class FlexHorseshoeCard extends LitElement {
     return this.theme.darkMode === false;
   }
 
+  getActiveColorStopMode() {
+    const hassDarkMode = this._hass?.themes?.darkMode;
+
+    if (hassDarkMode !== undefined) {
+      return hassDarkMode === true ? 'dark' : 'light';
+    }
+
+    return this.themeIsDarkMode() ? 'dark' : 'light';
+  }
+
   set hass(hass) {
     this.setHass(hass);
   }
@@ -855,9 +865,11 @@ class FlexHorseshoeCard extends LitElement {
       this.theme.name = themeName;
       this.theme.darkMode = themeDarkMode;
       Colors.colorCache = {};
-      const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
+      const mode = this.getActiveColorStopMode();
       Palette.applyAll(this, this.palettes, mode);
+      this._prepareItemColorStops(this.config);
       this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
+      entityHasChanged = true;
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
@@ -1021,7 +1033,7 @@ class FlexHorseshoeCard extends LitElement {
     const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
-      const items = config.layout?.[section];
+      const items = config?.layout?.[section];
 
       if (!Array.isArray(items)) return;
 
@@ -1030,7 +1042,7 @@ class FlexHorseshoeCard extends LitElement {
 
         const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
 
-        item._colorStops = ColorStops.normalize(resolvedColorStops);
+        item._colorStops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
       });
     });
   }
@@ -1387,7 +1399,7 @@ class FlexHorseshoeCard extends LitElement {
         this.palettesLoaded = false;
         Palette.loadAll(config?.palettes).then((palettes) => {
           this.palettes = palettes;
-          const mode = this.hass?.themes?.darkMode ? 'dark' : 'light';
+          const mode = this.getActiveColorStopMode();
           Colors.setElement(this);
           Palette.applyAll(this, palettes, mode);
           Colors.colorCache = {};

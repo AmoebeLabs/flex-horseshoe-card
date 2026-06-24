@@ -137,7 +137,7 @@ export default class ArcTool extends BaseTool {
           @click=${(event) => this.handlePopup(event)}
           class="arc-tool"
           d="${this.buildArcPath()}"
-          style=${styleMap(styles)}
+          style=${styleMap(this.getRenderStyles(styles))}
         ></path>
       </g>
     `;

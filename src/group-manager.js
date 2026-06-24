@@ -48,6 +48,26 @@ export default class GroupManager {
   }
 
   /**
+   * Returns configured groups from card root to the item own group.
+   *
+   * @param {object} item - Layout item that can reference a group.
+   * @returns {Array<object>} Group config chain in cascade order.
+   */
+  getGroupChainForItem(item) {
+    const groupId = item?.group ?? CARD_GROUP_ID;
+    const chain = [];
+    let currentId = groupId;
+
+    while (currentId) {
+      const group = this.groups[currentId];
+      chain.unshift(group);
+      currentId = currentId === CARD_GROUP_ID ? undefined : group.parent ?? CARD_GROUP_ID;
+    }
+
+    return chain;
+  }
+
+  /**
    * Returns one group after applying the full parent chain.
    *
    * @param {string} groupId - Group id from layout.groups or the implicit card root.

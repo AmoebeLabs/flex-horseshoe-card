@@ -248,7 +248,9 @@ This is feasible and useful. String-state label presentation belongs under `hors
 
 ### Light And Dark Color Stops
 
-Color stops could support different colors for Home Assistant light and dark themes, similar to external palettes. This avoids forcing users to make every color a CSS variable when they want a different scale per theme.
+Extended color-stop configs should be able to define theme-specific colors without replacing the normal `colors` block. This mirrors the palette approach: the default `colors` remain the fallback, and optional mode-specific colors can override them when Home Assistant switches between light and dark mode.
+
+The shape should use `modes`, not `themes`, because these are runtime color modes resolved from Home Assistant state. `light` and `dark` are both optional. If the active mode is missing, the normal `colors` block stays active.
 
 Possible config direction:
 
@@ -261,7 +263,7 @@ color_stops:
       color: '#3388ff'
     - value: 1
       color: '#ffaa00'
-  themes:
+  modes:
     light:
       - value: 0
         color: '#005fcc'
@@ -274,7 +276,9 @@ color_stops:
         color: '#ffcc66'
 ```
 
-This is feasible, but it should be handled in color-stop normalization, not in renderers. Renderers should receive one resolved `colorStops` object. The selected theme can come from the Home Assistant theme state.
+This should also work for both supported color-stop shapes: object/dictionary configs and list entries that use `value` plus `color`. The `modes.light` and `modes.dark` blocks use that same shape directly, without an extra nested `colors` block. The selected mode should be resolved before color-stop normalization finishes, so renderers still receive one resolved `colorStops` object and do not need to know about light/dark mode.
+
+A Home Assistant theme change must update this. If `hass.themes.darkMode` changes, the card should resolve color stops again and invalidate the affected path-item caches. The existing dark-mode detection path can be reused if it already tracks `darkMode`; otherwise this needs to be added at the same level where palette/theme changes currently trigger cache invalidation.
 
 ### Segmented Fixed Backgrounds
 
@@ -292,6 +296,10 @@ horseshoe_background:
 ```
 
 This is feasible and consistent with the current path-building architecture. It belongs in the shared background/arc item builder, so horseshoe background, label background, and tick background can reuse the same behavior.
+
+## Generic Color Filter
+
+See color-filter-architecture.md document.
 
 ## Why This Matters
 

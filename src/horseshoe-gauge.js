@@ -197,7 +197,7 @@ export default class HorseshoeGauge extends BaseTool {
     this.entityConfig = entityConfig;
 
     // State resolution may change both the numeric value and runtime config via templates.
-    const stateData = getGaugeStateData(this.config, this.templates, this.entity_index, entity, entityConfig);
+    const stateData = getGaugeStateData(this.config, this.templates, this.entity_index, entity, entityConfig, this.card.getActiveColorStopMode());
 
     const nextValue = stateData.value;
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
@@ -408,7 +408,12 @@ export default class HorseshoeGauge extends BaseTool {
   renderHorseshoeBackground() {
     const backgroundItems = this.getCachedPathItems('horseshoeBackgroundItems', () => buildHorseshoeBackgroundItems(this.runtimeConfig, this.geometry));
 
-    return renderHorseshoeBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
+    return renderHorseshoeBackgroundLayer(
+      this.runtimeConfig,
+      this.geometry,
+      backgroundItems,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_background?.color_filter]),
+    );
   }
 
   /**
@@ -417,7 +422,12 @@ export default class HorseshoeGauge extends BaseTool {
   renderScale() {
     const scalePathItems = this.getCachedPathItems('scalePathItems', () => buildScalePathItems(this.runtimeConfig, this.geometry));
 
-    return renderScaleLayer(this.runtimeConfig, this.geometry, scalePathItems);
+    return renderScaleLayer(
+      this.runtimeConfig,
+      this.geometry,
+      scalePathItems,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_scale?.color_filter]),
+    );
   }
 
   /**
@@ -426,7 +436,14 @@ export default class HorseshoeGauge extends BaseTool {
   renderState() {
     const statePathItems = buildStatePathItems(this.runtimeConfig, this.geometry, this.displayValue ?? this.value);
 
-    return renderStateLayer(this.runtimeConfig, this.geometry, statePathItems, this.cardId, this.index);
+    return renderStateLayer(
+      this.runtimeConfig,
+      this.geometry,
+      statePathItems,
+      this.cardId,
+      this.index,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_state?.color_filter]),
+    );
   }
 
   /**
@@ -434,8 +451,18 @@ export default class HorseshoeGauge extends BaseTool {
    */
   renderTickmarks() {
     const tickPathItems = this.getCachedPathItems('tickPathItems', () => buildTickPathItems(this.runtimeConfig, this.geometry));
+    const applyTickmarkColorFilter = (styles, pathItem) => {
+      const tickConfig = pathItem.className === 'horseshoe__tick-major'
+        ? this.runtimeConfig.horseshoe_tickmarks?.ticks_major
+        : this.runtimeConfig.horseshoe_tickmarks?.ticks_minor;
 
-    return renderTickmarksLayer(tickPathItems);
+      return this.getRenderStyles(styles, [
+        this.runtimeConfig.horseshoe_tickmarks?.color_filter,
+        tickConfig?.color_filter,
+      ]);
+    };
+
+    return renderTickmarksLayer(tickPathItems, applyTickmarkColorFilter);
   }
 
   /**
@@ -453,7 +480,14 @@ export default class HorseshoeGauge extends BaseTool {
   renderLabels() {
     const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.runtimeConfig, this.geometry));
 
-    return renderLabelsLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
+    return renderLabelsLayer(
+      this.runtimeConfig,
+      this.geometry,
+      this.cardId,
+      this.index,
+      labelItems,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.color_filter]),
+    );
   }
 
   /**
@@ -462,7 +496,12 @@ export default class HorseshoeGauge extends BaseTool {
   renderLabelBackground() {
     const backgroundItems = this.getCachedPathItems('labelBackgroundItems', () => buildLabelBackgroundItems(this.runtimeConfig, this.geometry));
 
-    return renderLabelBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
+    return renderLabelBackgroundLayer(
+      this.runtimeConfig,
+      this.geometry,
+      backgroundItems,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.background?.color_filter]),
+    );
   }
 
   /**
@@ -471,7 +510,14 @@ export default class HorseshoeGauge extends BaseTool {
   renderLabelBadges() {
     const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.runtimeConfig, this.geometry));
 
-    return renderLabelBadgesLayer(this.runtimeConfig, this.geometry, this.cardId, this.index, labelItems);
+    return renderLabelBadgesLayer(
+      this.runtimeConfig,
+      this.geometry,
+      this.cardId,
+      this.index,
+      labelItems,
+      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.badges?.color_filter]),
+    );
   }
 
   /**

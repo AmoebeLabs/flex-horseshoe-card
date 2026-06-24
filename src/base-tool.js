@@ -1,4 +1,5 @@
 import ConfigHelper from './config-helper.js';
+import ColorFilter from './color-filter.js';
 import Templates from './templates.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
@@ -70,6 +71,41 @@ export default class BaseTool {
       ...itemStyleDict,
       ...animationStyle,
     };
+  }
+
+  /**
+   * Builds the color-filter cascade for this tool in visual context order.
+   *
+   * This only exposes the configured filters; renderers decide when to apply them.
+   *
+   * @param {Array<object>} extraFilters - Extra filters such as layer or segment filters.
+   * @returns {Array<object>} Ordered color_filter configs.
+   */
+  getColorFilterCascade(extraFilters = []) {
+    const groupFilters = this.card.groupManager
+      .getGroupChainForItem(this.runtimeConfig)
+      .map((group) => group.color_filter);
+
+    return [
+      this.card.config.color_filter,
+      ...groupFilters,
+      this.runtimeConfig.color_filter,
+      ...extraFilters,
+    ];
+  }
+
+  /**
+   * Applies the resolved color-filter cascade to a final style dictionary.
+   *
+   * This helper is intentionally not wired into renderers yet; it exists so the
+   * final render step can be tested explicitly before any broad integration.
+   *
+   * @param {object} styles - Final render style dictionary.
+   * @param {Array<object>} extraFilters - Extra filters such as layer or segment filters.
+   * @returns {object} Render style dictionary with filtered color properties.
+   */
+  getRenderStyles(styles, extraFilters = []) {
+    return ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
   }
 
   /**

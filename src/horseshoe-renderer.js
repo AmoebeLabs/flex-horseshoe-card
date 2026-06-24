@@ -75,13 +75,13 @@ function renderStateLinearGradient(runtimeConfig, geometry, statePathItems, card
  * @param {Array<object>} scalePathItems - Renderable scale path items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderScaleLayer(runtimeConfig, geometry, scalePathItems) {
+export function renderScaleLayer(runtimeConfig, geometry, scalePathItems, applyColorFilter = (styles) => styles) {
   const scaleStyle = {
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
   return svg`
-    <g class="horseshoe__scale-layer" style=${styleMap(scaleStyle)}>
+    <g class="horseshoe__scale-layer" style=${styleMap(applyColorFilter(scaleStyle))}>
       ${scalePathItems.map((pathItem) => {
         // Arc-specific colors win over the layer style so color-stop segments keep their colors.
         const fill = pathItem.arc.color ?? runtimeConfig.horseshoe_scale.color ?? scaleStyle.fill ?? 'none';
@@ -109,7 +109,7 @@ export function renderScaleLayer(runtimeConfig, geometry, scalePathItems) {
  * @param {number} horseshoeIndex - Gauge index.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex) {
+export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId, horseshoeIndex, applyColorFilter = (styles) => styles) {
   const stateStyle = {
     ...runtimeConfig.horseshoe_state.styles,
   };
@@ -155,7 +155,7 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId
             data-horseshoe-state-path="${pathElementId}"
             class="horseshoe__state"
             d="${pathItem.path}"
-            style=${styleMap(renderStyle)}
+            style=${styleMap(applyColorFilter(renderStyle, pathItem))}
           ></path>
         `;
       })}
@@ -173,13 +173,13 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, cardId
  * @param {Array<object>} labelItems - Positioned label items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeIndex, labelItems) {
+export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeIndex, labelItems, applyColorFilter = (styles) => styles) {
   const labelStyle = {
     ...runtimeConfig.horseshoe_labels.styles,
   };
 
   return svg`
-    <g class="horseshoe__labels-layer" style=${styleMap(labelStyle)}>
+    <g class="horseshoe__labels-layer" style=${styleMap(applyColorFilter(labelStyle))}>
       ${labelItems.map((labelItem, index) => (
         HorseshoeLabels.renderLabel({
           horseshoeIndex,
@@ -199,6 +199,7 @@ export function renderLabelsLayer(runtimeConfig, geometry, cardId, horseshoeInde
           isMax: labelItem.role === 'max',
           transformContext: geometry.getTransformContext(),
           inverseTransform: geometry.getInverseGroupTransform(),
+          applyColorFilter,
         })
       ))}
     </g>
@@ -222,6 +223,7 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
     layerClass,
     itemClass,
     styles = {},
+    applyColorFilter = (style) => style,
   } = options;
 
   const { filter, ...pathStyles } = styles;
@@ -241,7 +243,7 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
               <path
                 class=${itemClass}
                 d=${backgroundItem.path}
-                style=${styleMap(renderStyle)}
+                style=${styleMap(applyColorFilter(renderStyle, backgroundItem))}
               ></path>
             `
           : svg``;
@@ -258,11 +260,12 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
  * @param {Array<object>} backgroundItems - Horseshoe background arc items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
+export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgroundItems, applyColorFilter) {
   return renderArcBackgroundLayer(geometry, backgroundItems, {
     layerClass: 'horseshoe__background-layer',
     itemClass: 'horseshoe__background',
     styles: runtimeConfig.horseshoe_background.styles,
+    applyColorFilter,
   });
 }
 
@@ -274,11 +277,12 @@ export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgrou
  * @param {Array<object>} backgroundItems - Label background arc items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
+export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundItems, applyColorFilter) {
   return renderArcBackgroundLayer(geometry, backgroundItems, {
     layerClass: 'horseshoe__label-background-layer',
     itemClass: 'horseshoe__label-background',
     styles: runtimeConfig.horseshoe_labels.background.styles,
+    applyColorFilter,
   });
 }
 
@@ -292,7 +296,7 @@ export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundIt
  * @param {Array<object>} labelItems - Positioned label items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderLabelBadgesLayer(runtimeConfig, geometry, cardId, horseshoeIndex, labelItems) {
+export function renderLabelBadgesLayer(runtimeConfig, geometry, cardId, horseshoeIndex, labelItems, applyColorFilter = (styles) => styles) {
   if (!labelItems.length || !runtimeConfig.show.label_badges) {
     return svg``;
   }
@@ -302,7 +306,7 @@ export function renderLabelBadgesLayer(runtimeConfig, geometry, cardId, horsesho
   };
 
   return svg`
-    <g class="horseshoe__label-badges-layer" style=${styleMap(badgeStyle)}>
+    <g class="horseshoe__label-badges-layer" style=${styleMap(applyColorFilter(badgeStyle))}>
       ${labelItems.map((labelItem, index) => HorseshoeLabels.renderLabelBadge({
         horseshoeIndex,
         index,
@@ -341,7 +345,7 @@ export function renderTickmarkBackgroundLayer(runtimeConfig, geometry, backgroun
  * @param {Array<object>} tickPathItems - Renderable tickmark path items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderTickmarksLayer(tickPathItems) {
+export function renderTickmarksLayer(tickPathItems, applyColorFilter = (styles) => styles) {
   if (!tickPathItems.length) {
     return svg``;
   }
@@ -359,7 +363,7 @@ export function renderTickmarksLayer(tickPathItems) {
               data-thickness="${pathItem.thickness ?? ''}"
               data-start-angle="${pathItem.startAngle ?? ''}"
               data-end-angle="${pathItem.endAngle ?? ''}"
-              style=${styleMap(pathItem.styles ?? {})}
+              style=${styleMap(applyColorFilter(pathItem.styles ?? {}, pathItem))}
             ></circle>
           `
         : svg`
@@ -370,7 +374,7 @@ export function renderTickmarksLayer(tickPathItems) {
               data-thickness="${pathItem.thickness ?? ''}"
               data-start-angle="${pathItem.startAngle ?? ''}"
               data-end-angle="${pathItem.endAngle ?? ''}"
-              style=${styleMap(pathItem.styles ?? {})}
+              style=${styleMap(applyColorFilter(pathItem.styles ?? {}, pathItem))}
             ></path>
           `))}
     </g>

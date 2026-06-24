@@ -472,11 +472,11 @@ export default class IconTool extends BaseTool {
       configStyle.color = stopColor;
     }
 
-    configStyle = {
+    configStyle = this.getRenderStyles({
       ...defaultIconColor,
       ...configStyle,
       ...stateStyle,
-    };
+    }, renderItem === item ? [] : [renderItem.color_filter]);
 
     const icon = this.buildIcon(smItem, renderItem);
 

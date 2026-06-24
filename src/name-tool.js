@@ -96,7 +96,7 @@ export default class NameTool extends BaseTool {
             class="entity__name"
             x="${this.runtimeConfig.svg.xpos}"
             y="${this.runtimeConfig.svg.ypos}"
-            style=${styleMap(styles)}>
+            style=${styleMap(this.getRenderStyles(styles))}>
             ${this.name}</tspan>
         </text>
       </g>
