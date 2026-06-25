@@ -1397,6 +1397,16 @@ class FlexHorseshoeCard extends LitElement {
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
+      // Testing teal on all cards!!!!!!!!!!!
+      // config.color_filter = {};
+      // config.color_filter.monochrome = {};
+      // config.color_filter.monochrome.color = 'teal';
+      // config.color_filter.monochrome.amount = 0.6;
+      // config.color_filter.preserve_neutral = true;
+      // config.color_filter.lightness = {};
+      // config.color_filter.lightness.min = 0.2;
+      // config.color_filter.lightness.max = 1;
+
       this.dev = { ...config.dev };
 
       if (!config.entities) {

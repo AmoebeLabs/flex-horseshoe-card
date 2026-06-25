@@ -1,12 +1,10 @@
 import { svg } from 'lit';
+import { selectUnit } from '@formatjs/intl-utils';
 import { styleMap } from 'lit/directives/style-map.js';
-// Future state formatting support will need these Home Assistant formatter helpers again.
-// import { selectUnit } from '@formatjs/intl-utils';
-// import { formatNumber, getDefaultFormatOptions } from './frontend_mods/common/number/format_number.ts';
-// import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/common/datetime/format_date.ts';
-// import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/common/datetime/format_time.ts';
-// import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/common/datetime/format_date_time.ts';
-// import { formatDuration } from './frontend_mods/common/datetime/format_duration.ts';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
+import { formatDuration } from './frontend_mods/datetimejs/duration.js';
 import ConfigHelper from './config-helper.js';
 import BaseTool from './base-tool.js';
 import Colors from './colors.js';
@@ -147,7 +145,7 @@ export default class StateTool extends BaseTool {
                 break;
               case 'rgb':
                 {
-                  const hsvColor = rgb2hsv((stateObj?.attributes?.rgb_color ?? entity.attributes.rgb_color));
+                  const hsvColor = rgb2hsv(stateObj?.attributes?.rgb_color ?? entity.attributes.rgb_color);
                   // Modify the real rgb color for better contrast
                   if (hsvColor[1] < 0.4) {
                     // Special case for very light color (e.g: white)
@@ -301,13 +299,125 @@ export default class StateTool extends BaseTool {
   }
 
   /**
+   * Applies the explicit state format option after entity conversion but before final number formatting.
+   *
+   * @param {string|number} inState - State value after StateTool.buildState() conversion.
+   * @returns {string|number} Formatted state value.
+   */
+  formatStateString(inState) {
+    const stateFormat = this.entityConfig.format;
+
+    // Object-style format config is used for options like raw_state_keep and decimals_min/max.
+    if (typeof stateFormat !== 'string') {
+      return inState;
+    }
+
+    const lang = this.card._hass.selectedLanguage || this.card._hass.language;
+    const locale = { ...this.card._hass.locale, language: lang };
+
+    if (
+      [
+        'relative',
+        'total',
+        'datetime',
+        'datetime-short',
+        'datetime-short_with-year',
+        'datetime_seconds',
+        'datetime-numeric',
+        'date',
+        'date_month',
+        'date_month_year',
+        'date-short',
+        'date-numeric',
+        'date_weekday',
+        'date_weekday_day',
+        'date_weekday-short',
+        'time',
+        'time-24h',
+        'time-24h_date-short',
+        'time_weekday',
+        'time_seconds',
+      ].includes(stateFormat)
+    ) {
+      const timestamp = new Date(inState);
+
+      if (Number.isNaN(timestamp.getTime())) {
+        return inState;
+      }
+
+      switch (stateFormat) {
+        case 'relative': {
+          const diff = selectUnit(timestamp, new Date());
+
+          return new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+        }
+        case 'total':
+        case 'precision':
+          return 'Not Yet Supported';
+        case 'datetime':
+          return formatDateTime(timestamp, locale);
+        case 'datetime-short':
+          return formatShortDateTime(timestamp, locale);
+        case 'datetime-short_with-year':
+          return formatShortDateTimeWithYear(timestamp, locale);
+        case 'datetime_seconds':
+          return formatDateTimeWithSeconds(timestamp, locale);
+        case 'datetime-numeric':
+          return formatDateTimeNumeric(timestamp, locale);
+        case 'date':
+          return formatDate(timestamp, locale);
+        case 'date_month':
+          return formatDateMonth(timestamp, locale);
+        case 'date_month_year':
+          return formatDateMonthYear(timestamp, locale);
+        case 'date-short':
+          return formatDateShort(timestamp, locale);
+        case 'date-numeric':
+          return formatDateNumeric(timestamp, locale);
+        case 'date_weekday':
+          return formatDateWeekday(timestamp, locale);
+        case 'date_weekday-short':
+          return formatDateWeekdayShort(timestamp, locale);
+        case 'date_weekday_day':
+          return formatDateWeekdayDay(timestamp, locale);
+        case 'time':
+          return formatTime(timestamp, locale);
+        case 'time-24h':
+          return formatTime24h(timestamp);
+        case 'time-24h_date-short':
+          return Date.now() - timestamp.getTime() < 86400000 ? formatTime24h(timestamp) : formatDateShort(timestamp, locale);
+        case 'time_weekday':
+          return formatTimeWeekday(timestamp, locale);
+        case 'time_seconds':
+          return formatTimeWithSeconds(timestamp, locale);
+        default:
+          return inState;
+      }
+    }
+
+    if (Number.isNaN(parseFloat(inState)) || !Number.isFinite(Number(inState))) {
+      return inState;
+    }
+
+    if (stateFormat === 'brightness' || stateFormat === 'brightness_pct') {
+      return `${Math.round((inState / 255) * 100)} %`;
+    }
+
+    if (stateFormat === 'duration') {
+      return formatDuration(inState, 's');
+    }
+
+    return inState;
+  }
+
+  /**
    * Builds Home Assistant formatter parts for the current entity state.
    *
    * @returns {Array<object>} Formatter parts split into value and unit entries.
    */
   formatEntityStateParts() {
     const isAttribute = this.entityConfig.attribute !== undefined;
-    const formatConfig = this.entityConfig.format || {};
+    const formatConfig = typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
     let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
 
     // raw_state_keep bypasses Home Assistant translation/formatting and returns the raw value directly.
@@ -319,9 +429,13 @@ export default class StateTool extends BaseTool {
       return [{ type: 'value', value: rawValue }];
     }
 
-    const parts = isAttribute
-      ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute)
-      : this.card._hass.formatEntityStateToParts(this.entity, StateTool.buildState(this.entity.state, this.entityConfig, this.card._hass, this.entity));
+    let stateValue = StateTool.buildState(rawValue, this.entityConfig, this.card._hass, this.entity);
+
+    if (this.entityConfig.format !== undefined) {
+      stateValue = this.formatStateString(stateValue);
+    }
+
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute, stateValue) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
     const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
     let formattedValue;
 
@@ -336,8 +450,8 @@ export default class StateTool extends BaseTool {
         haDecimals = decimalIndex !== -1 ? haValueStr.length - decimalIndex - 1 : 0;
       }
 
-      const maxDigits = formatConfig.decimals_max ?? (haDecimals !== undefined ? haDecimals : this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : 2);
-      let minDigits = formatConfig.decimals_min ?? (haDecimals !== undefined ? haDecimals : this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : 0);
+      const maxDigits = formatConfig.decimals_max ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 2);
+      let minDigits = formatConfig.decimals_min ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 0);
 
       if (minDigits > maxDigits) {
         minDigits = maxDigits;
