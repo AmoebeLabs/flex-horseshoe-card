@@ -124,8 +124,12 @@ export default class IconTool extends BaseTool {
       return stateMapConfig.icon;
     }
 
-    if (!this.entity || !this.entityConfig) {
+    if (item.icon) {
       return item.icon;
+    }
+
+    if (!this.entity || !this.entityConfig) {
+      return undefined;
     }
 
     if (this.entityConfig.icon) {
