@@ -26,12 +26,11 @@ export default class ColorFilter {
 
     filters.forEach((filterConfig) => {
       if (!filterConfig) return;
-
       const resolvedFilter = ConfigHelper.toDict(filterConfig, {
-        mapValue: (value) => value,
+        skipFalse: false,
       });
-      const { inherit, ...filter } = resolvedFilter;
 
+      const { inherit, ...filter } = resolvedFilter;
       if (inherit === false) {
         mergedFilter = {};
       }
@@ -80,12 +79,8 @@ export default class ColorFilter {
    * @returns {object} Filter settings for this property.
    */
   static getFilterForProperty(colorFilter, property) {
-    const propertyFilter = colorFilter[property] && typeof colorFilter[property] === 'object'
-      ? colorFilter[property]
-      : {};
-    const globalFilter = Object.fromEntries(
-      Object.entries(colorFilter).filter(([key]) => FILTER_KEYS.includes(key)),
-    );
+    const propertyFilter = colorFilter[property] && typeof colorFilter[property] === 'object' ? colorFilter[property] : {};
+    const globalFilter = Object.fromEntries(Object.entries(colorFilter).filter(([key]) => FILTER_KEYS.includes(key)));
 
     return {
       ...globalFilter,
@@ -100,8 +95,7 @@ export default class ColorFilter {
    * @returns {boolean} Whether any transform should run.
    */
   static hasAnyFilter(filter) {
-    return FILTER_KEYS.some((key) => filter?.[key] !== undefined)
-      || COLOR_PROPERTIES.some((property) => ColorFilter.hasFilter(ColorFilter.getFilterForProperty(filter ?? {}, property)));
+    return FILTER_KEYS.some((key) => filter?.[key] !== undefined) || COLOR_PROPERTIES.some((property) => ColorFilter.hasFilter(ColorFilter.getFilterForProperty(filter ?? {}, property)));
   }
 
   /**
@@ -198,9 +192,7 @@ export default class ColorFilter {
     const oklchColor = toOklch(rgbColor);
     const grayscaleIsMap = typeof grayscale === 'object';
     const grayscaleAmount = grayscaleIsMap ? 1 : Number(grayscale);
-    const mappedLightness = grayscaleIsMap
-      ? Number(grayscale.min) + (oklchColor.l * (Number(grayscale.max) - Number(grayscale.min)))
-      : oklchColor.l;
+    const mappedLightness = grayscaleIsMap ? Number(grayscale.min) + oklchColor.l * (Number(grayscale.max) - Number(grayscale.min)) : oklchColor.l;
     const targetColor = {
       ...oklchColor,
       l: ColorFilter.clamp(mappedLightness, 0, 1),
@@ -224,9 +216,7 @@ export default class ColorFilter {
   static applyLightness(rgbColor, lightness) {
     const oklchColor = toOklch(rgbColor);
     const lightnessIsMap = typeof lightness === 'object';
-    const mappedLightness = lightnessIsMap
-      ? Number(lightness.min) + (oklchColor.l * (Number(lightness.max) - Number(lightness.min)))
-      : Number(lightness);
+    const mappedLightness = lightnessIsMap ? Number(lightness.min) + oklchColor.l * (Number(lightness.max) - Number(lightness.min)) : Number(lightness);
 
     return toRgb({
       ...oklchColor,
@@ -310,9 +300,9 @@ export default class ColorFilter {
   static applyContrast(rgbColor, amount) {
     return {
       ...rgbColor,
-      r: ColorFilter.clamp(((rgbColor.r - 0.5) * amount) + 0.5, 0, 1),
-      g: ColorFilter.clamp(((rgbColor.g - 0.5) * amount) + 0.5, 0, 1),
-      b: ColorFilter.clamp(((rgbColor.b - 0.5) * amount) + 0.5, 0, 1),
+      r: ColorFilter.clamp((rgbColor.r - 0.5) * amount + 0.5, 0, 1),
+      g: ColorFilter.clamp((rgbColor.g - 0.5) * amount + 0.5, 0, 1),
+      b: ColorFilter.clamp((rgbColor.b - 0.5) * amount + 0.5, 0, 1),
     };
   }
 
@@ -370,9 +360,8 @@ export default class ColorFilter {
    * @returns {boolean} Whether the color should stay neutral.
    */
   static isNeutralOklch(oklchColor) {
-    return oklchColor.l <= 0.001
-      || oklchColor.l >= 0.999
-      || Math.abs(oklchColor.c ?? 0) <= 0.0001;
+    return oklchColor.l <= 0.005 || oklchColor.l >= 0.995 || Math.abs(oklchColor.c ?? 0) <= 0.0005;
+    // return oklchColor.l <= 0.001 || oklchColor.l >= 0.999 || Math.abs(oklchColor.c ?? 0) <= 0.0001;
   }
 
   /**
@@ -408,10 +397,10 @@ export default class ColorFilter {
 
     return {
       mode: 'rgb',
-      r: ColorFilter.clamp(colorA.r + ((colorB.r - colorA.r) * ratio), 0, 1),
-      g: ColorFilter.clamp(colorA.g + ((colorB.g - colorA.g) * ratio), 0, 1),
-      b: ColorFilter.clamp(colorA.b + ((colorB.b - colorA.b) * ratio), 0, 1),
-      alpha: ColorFilter.clamp((colorA.alpha ?? 1) + (((colorB.alpha ?? 1) - (colorA.alpha ?? 1)) * ratio), 0, 1),
+      r: ColorFilter.clamp(colorA.r + (colorB.r - colorA.r) * ratio, 0, 1),
+      g: ColorFilter.clamp(colorA.g + (colorB.g - colorA.g) * ratio, 0, 1),
+      b: ColorFilter.clamp(colorA.b + (colorB.b - colorA.b) * ratio, 0, 1),
+      alpha: ColorFilter.clamp((colorA.alpha ?? 1) + ((colorB.alpha ?? 1) - (colorA.alpha ?? 1)) * ratio, 0, 1),
     };
   }
 
