@@ -842,6 +842,16 @@ class FlexHorseshoeCard extends LitElement {
     this.setHass(hass);
   }
 
+  /*
+   * If theme mode changed. It takes some time for the DOM to be complete
+   * RequestUpdate() after that to make sure the palette colors are loaded, and processed
+   */
+  async _updateGradientsAfterRender() {
+    await this.updateComplete;
+    await new Promise(requestAnimationFrame);
+    this.requestUpdate();
+  }
+
   setHass(hass, forceUpdate = false) {
     this._hass = hass;
 
@@ -869,6 +879,7 @@ class FlexHorseshoeCard extends LitElement {
       Palette.applyAll(this, this.palettes, mode);
       this._prepareItemColorStops(this.config);
       this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
+      this._updateGradientsAfterRender();
       entityHasChanged = true;
     }
 
@@ -1594,7 +1605,6 @@ class FlexHorseshoeCard extends LitElement {
     return html`
       <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style=${styleMap(cardStyle)}>
         <div class="container" id="container">${this._renderSvg()}</div>
-
       </ha-card>
     `;
   }
