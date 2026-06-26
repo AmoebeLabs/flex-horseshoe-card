@@ -204,7 +204,18 @@ export default class HorseshoeGauge extends BaseTool {
 
     this.runtimeConfig = stateData.runtimeConfig;
     this.runtimeConfig.state_map = this.buildStateMapDisplayLabels(this.runtimeConfig.state_map, entity);
-    const mappedState = this.runtimeConfig.state_map?.map?.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value)) ?? stateData.mappedState;
+    // Display labels are added after state resolution; keep runtime fields from the active mapped state.
+    const displayMappedState = this.runtimeConfig.state_map?.map?.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
+    let mappedState = stateData.mappedState;
+
+    if (displayMappedState) {
+      mappedState = {
+        ...stateData.mappedState,
+        ...displayMappedState,
+        color: stateData.mappedState?.color ?? displayMappedState.color,
+      };
+    }
+
     this.runtimeConfig.mapped_state = mappedState;
     this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
     this.rawState = stateData.rawState;
@@ -247,6 +258,10 @@ export default class HorseshoeGauge extends BaseTool {
    */
   buildStateMapDisplayLabels(stateMap, entity) {
     if (!stateMap?.map) return stateMap;
+
+    if (stateMap.type === 'rank_state') {
+      return stateMap;
+    }
 
     return {
       ...stateMap,
