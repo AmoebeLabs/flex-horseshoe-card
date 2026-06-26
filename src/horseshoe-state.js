@@ -373,6 +373,95 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     value = entity.attributes[entityConfig.attribute];
   }
 
+  if (runtimeConfig.state_map?.type === 'rank_state') {
+    // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
+    const sourceColorStops = runtimeConfig.colorStops;
+    const numericValue = Number(value);
+    let activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
+
+    // Step 2: translate the raw numeric entity value through the original color-stop thresholds.
+    if (numericValue <= Number(sourceColorStops.colors[0].value)) {
+      activeSourceStop = sourceColorStops.colors[0];
+    } else if (numericValue >= Number(sourceColorStops.colors[sourceColorStops.colors.length - 1].value)) {
+      activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
+    } else {
+      for (let index = 0; index < sourceColorStops.colors.length - 1; index += 1) {
+        const startColorStop = sourceColorStops.colors[index];
+        const endColorStop = sourceColorStops.colors[index + 1];
+
+        if (numericValue >= Number(startColorStop.value) && numericValue < Number(endColorStop.value)) {
+          activeSourceStop = startColorStop;
+          break;
+        }
+      }
+    }
+
+    // Step 3: collect one representative render color for every rank.
+    const sourceColorByRank = new Map();
+
+    sourceColorStops.colors.forEach((colorStop) => {
+      const rankKey = String(colorStop.rank);
+
+      if (!sourceColorByRank.has(rankKey)) {
+        sourceColorByRank.set(rankKey, colorStop.color);
+      }
+    });
+
+    // Step 4: convert rank->state entries into the value-space expected by existing string-state rendering.
+    const rankedStateMap = {
+      ...runtimeConfig.state_map,
+      map: runtimeConfig.state_map.map.map((entry, index) => ({
+        ...entry,
+        value: index + 0.5,
+        color: entry.color ?? sourceColorByRank.get(String(entry.rank)),
+      })),
+    };
+    // Step 5: use the active rank from the source stop to find the derived string state.
+    const mappedStateIndex = rankedStateMap.map.findIndex((entry) => String(entry.rank) === String(activeSourceStop.rank));
+    const mappedState = {
+      ...rankedStateMap.map[mappedStateIndex],
+      color: activeSourceStop.color,
+      source_value: value,
+      source_color_stop: activeSourceStop,
+    };
+    // Step 6: build ranked render color stops so scale, state, labels, and backgrounds share one value-space.
+    const rankedColorStops = {
+      ...sourceColorStops,
+      colors: rankedStateMap.map.map((entry, index) => ({
+        value: index,
+        color: entry.color,
+        rank: entry.rank,
+        state: entry.state,
+      })),
+    };
+    // Step 7: switch this horseshoe runtime scale from numeric source values to ranked render values.
+    const rankedScale = {
+      ...runtimeConfig.horseshoe_scale,
+      min: 0,
+      max: rankedStateMap.map.length,
+    };
+    const firstColorStop = rankedColorStops.colors[0];
+    const lastColorStop = rankedColorStops.colors[rankedColorStops.colors.length - 1];
+
+    // Step 8: publish a normal runtime config; downstream shapes/renderers do not know about rank_state.
+    runtimeConfig.sourceColorStops = sourceColorStops;
+    runtimeConfig.colorStops = rankedColorStops;
+    runtimeConfig.colorStopsMinMax = ColorStops.normalize({
+      [rankedScale.min]: firstColorStop.color,
+      [rankedScale.max]: lastColorStop.color,
+    });
+    runtimeConfig.horseshoe_scale = rankedScale;
+    runtimeConfig.state_map = rankedStateMap;
+    runtimeConfig.mapped_state = mappedState;
+
+    return {
+      runtimeConfig,
+      rawState: entity.state,
+      mappedState,
+      value: Number(mappedState.value),
+    };
+  }
+
   // State maps may replace textual entity states before the gauge receives its numeric value.
   const mappedState = runtimeConfig.state_map
     ? getStateMapItem(runtimeConfig.state_map.map, entity.state, value)
