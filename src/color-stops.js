@@ -1,58 +1,22 @@
-// color-stops.js
-//
-// color_stops:
-//   0: var(--theme-gradient-color-01)
-//   10: var(--theme-gradient-color-02)
-
-// colorstops:
-//   colors:
-//     0: '#49ce4b'
-//     600: '#fed125'
-
-// colorstops:
-//   scales:
-//     default:
-//       min: 0
-//       max: 5000
-//   colors:
-//     - value: 0
-//       color: '#49ce4b'
-//       rank: 1
-//     - value: 600
-//       color: '#fed125'
-//       rank: 1
-
-// Using templates in color stops is fully supported.
-// color_stops:
-//   "[[[ return states['input_number.low'].state; ]]]": |
-//     [[[
-//       return states['input_boolean.warning'].state === 'on'
-//         ? 'red'
-//         : 'green';
-//     ]]]
-
-// colorstops:
-//   scales:
-//     default:
-//       min: |
-//         [[[
-//           return Number(states['input_number.scale_min'].state);
-//         ]]]
-//       max: |
-//         [[[
-//           return Number(states['input_number.scale_max'].state);
-//         ]]]
-//   colors:
-//     - value: |
-//         [[[
-//           return Number(states['input_number.low'].state);
-//         ]]]
-//       color: '#49ce4b'
-//       rank: 1
 import Templates from './templates.js';
 
+/**
+ * Normalizes every supported color-stop config shape into one runtime object.
+ *
+ * The renderer expects a predictable structure: a scales dictionary and a sorted
+ * colors array. This class accepts the compact FHS shapes, SAK-style shapes,
+ * template output, and optional light/dark mode blocks.
+ */
 export default class ColorStops {
+  /**
+   * Converts a raw color-stop config into the normalized runtime shape.
+   *
+   * @param {object|Array<object>|undefined} value - Raw color-stop config or template output.
+   * @param {string|undefined} mode - Active color-stop mode, usually light or dark.
+   * @returns {{scales: object, colors: Array<object>}} Normalized color-stop config.
+   */
   static normalize(value, mode) {
+    // No config means no scales and no color stops; callers can render their fixed color path.
     if (!value) {
       return {
         scales: {},
@@ -60,7 +24,7 @@ export default class ColorStops {
       };
     }
 
-    // FHC list shape:
+    // FHS list shape:
     //
     // color_stops:
     //   - 0: red
@@ -79,7 +43,7 @@ export default class ColorStops {
       };
     }
 
-    // FHC dict shape:
+    // FHS dict shape:
     //
     // color_stops:
     //   0: red
@@ -105,7 +69,7 @@ export default class ColorStops {
       return {
         ...value,
         scales: ColorStops.normalizeScales(value.scales),
-        colors: ColorStops.normalizeColors(ColorStops.getModeColors(value, mode)),
+        colors: ColorStops.normalizeColors(ColorStops.getDarkOrLightColors(value, mode)),
       };
     }
 
@@ -115,19 +79,30 @@ export default class ColorStops {
     };
   }
 
-  static getModeColors(value, mode) {
-    const fallbackColors = value.colors;
-    const modeConfig = mode && ColorStops.isPlainObject(value.modes)
-      ? value.modes[mode]
-      : undefined;
+  /**
+   * Selects the active mode-specific color list or falls back to the default list.
+   *
+   * @param {object} value - Color-stop config containing colors and optional modes.
+   * @param {string|undefined} mode - Active color-stop mode, usually light or dark.
+   * @returns {object|Array<object>|undefined} Raw colors block for the active mode.
+   */
+  static getDarkOrLightColors(value, mode) {
+    const standardColors = value.colors;
+    const darkOrLightColors = mode && ColorStops.isPlainObject(value.modes) ? value.modes[mode] : undefined;
 
-    if (modeConfig === undefined || modeConfig === null) {
-      return fallbackColors;
+    if (darkOrLightColors === undefined || darkOrLightColors === null) {
+      return standardColors;
     }
 
-    return modeConfig;
+    return darkOrLightColors;
   }
 
+  /**
+   * Normalizes optional named scale definitions while preserving their fields.
+   *
+   * @param {object|undefined} value - Raw scales dictionary.
+   * @returns {object} Normalized scales dictionary.
+   */
   static normalizeScales(value) {
     if (!ColorStops.isPlainObject(value)) return {};
 
@@ -143,68 +118,12 @@ export default class ColorStops {
     );
   }
 
-  // static normalizeColors(value) {
-  //   if (!value) return [];
-
-  //   // SAK v2:
-  //   //
-  //   // colors:
-  //   //   - value: 0
-  //   //     color: '#49ce4b'
-  //   //     rank: 1
-  //   if (Array.isArray(value)) {
-  //     return value
-  //       .map((entry) => ColorStops.normalizeColorEntry(entry))
-  //       .filter(Boolean)
-  //       .sort((a, b) => a.value - b.value);
-  //   }
-
-  //   // FHC current + SAK v1:
-  //   //
-  //   // color_stops:
-  //   //   0: red
-  //   //   10: blue
-  //   //
-  //   // or:
-  //   //
-  //   // colorstops:
-  //   //   colors:
-  //   //     0: red
-  //   //     10: blue
-  //   if (ColorStops.isPlainObject(value)) {
-  //     return Object.entries(value)
-  //       .map(([rawValue, color]) => {
-  //         const numericValue = Number(rawValue);
-
-  //         if (!Number.isFinite(numericValue)) return null;
-
-  //         return {
-  //           value: numericValue,
-  //           color: String(color),
-  //         };
-  //       })
-  //       .filter(Boolean)
-  //       .sort((a, b) => a.value - b.value);
-  //   }
-
-  //   return [];
-  // }
-
-  // static normalizeColorEntry(entry) {
-  //   if (!ColorStops.isPlainObject(entry)) return null;
-
-  //   const value = Number(entry.value);
-
-  //   if (!Number.isFinite(value)) return null;
-  //   if (entry.color === undefined || entry.color === null) return null;
-
-  //   return {
-  //     ...entry,
-  //     value,
-  //     color: String(entry.color),
-  //   };
-  // }
-
+  /**
+   * Normalizes a colors block into sorted color-stop entries.
+   *
+   * @param {object|Array<object>|undefined} value - Raw colors block.
+   * @returns {Array<object>} Sorted color-stop entries with numeric values.
+   */
   static normalizeColors(value) {
     if (!value) return [];
 
@@ -220,6 +139,7 @@ export default class ColorStops {
     //   - 10: red
     //   - 20: green
     if (Array.isArray(value)) {
+      // flatMap keeps both supported array shapes in one sequential flow.
       return value
         .flatMap((entry) => ColorStops.normalizeColorArrayEntry(entry))
         .filter(Boolean)
@@ -241,6 +161,12 @@ export default class ColorStops {
     return [];
   }
 
+  /**
+   * Normalizes one array entry, supporting explicit entries and list-of-dicts entries.
+   *
+   * @param {object} entry - One raw array entry from the colors list.
+   * @returns {Array<object>} Zero, one, or many normalized color-stop entries.
+   */
   static normalizeColorArrayEntry(entry) {
     // SAK v2 shape:
     //
@@ -252,7 +178,7 @@ export default class ColorStops {
       return normalizedEntry ? [normalizedEntry] : [];
     }
 
-    // FHC list-of-dicts shape:
+    // FHS list-of-dicts shape:
     //
     // - 10: red
     // - 20: green
@@ -265,6 +191,13 @@ export default class ColorStops {
     return [];
   }
 
+  /**
+   * Normalizes a compact value/color pair into the canonical stop shape.
+   *
+   * @param {string|number} rawValue - Color-stop value from an object key.
+   * @param {string} color - Color configured for that value.
+   * @returns {object|null} Normalized color-stop entry or null when invalid.
+   */
   static normalizeColorPair(rawValue, color) {
     const numericValue = Number(rawValue);
 
@@ -277,6 +210,15 @@ export default class ColorStops {
     };
   }
 
+  /**
+   * Normalizes an explicit color-stop entry while preserving extra metadata.
+   *
+   * Fields such as rank, state, label, or future metadata must survive because
+   * other runtime layers can use them after color-stop normalization.
+   *
+   * @param {object} entry - Raw explicit color-stop entry.
+   * @returns {object|null} Normalized color-stop entry or null when invalid.
+   */
   static normalizeColorEntry(entry) {
     if (!ColorStops.isPlainObject(entry)) return null;
 
@@ -292,6 +234,13 @@ export default class ColorStops {
     };
   }
 
+  /**
+   * Duplicates a single stop at maxValue so segment builders have a span to draw.
+   *
+   * @param {object} colorStops - Normalized color-stop config.
+   * @param {number} maxValue - Scale maximum used for the synthetic stop.
+   * @returns {object} Color-stop config with at least two stops when possible.
+   */
   static ensureMinimumStops(colorStops, maxValue) {
     if (!colorStops?.colors || colorStops.colors.length !== 1) {
       return colorStops;
@@ -309,10 +258,22 @@ export default class ColorStops {
     };
   }
 
+  /**
+   * Checks for plain object config blocks.
+   *
+   * @param {*} value - Value to check.
+   * @returns {boolean} True when the value is a non-array object.
+   */
   static isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
+  /**
+   * Manual normalizer smoke test for supported config shapes and template output.
+   *
+   * This is intentionally kept in this file because it documents the accepted
+   * input shapes next to the normalization code that handles them.
+   */
   static _testColorStopsNormalizer() {
     const item = {
       entity_index: 0,
@@ -320,7 +281,7 @@ export default class ColorStops {
 
     const tests = [
       {
-        name: 'FHC dict',
+        name: 'FHS dict',
         raw: {
           0: 'red',
           10: 'green',
@@ -329,7 +290,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC dict with quoted keys',
+        name: 'FHS dict with quoted keys',
         raw: {
           0: 'red',
           10: 'green',
@@ -338,17 +299,17 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC list of dicts',
+        name: 'FHS list of dicts',
         raw: [{ 0: 'red' }, { 10: 'green' }, { 20: 'blue' }],
       },
 
       {
-        name: 'FHC list of dicts with quoted keys',
+        name: 'FHS list of dicts with quoted keys',
         raw: [{ 0: 'red' }, { 10: 'green' }, { 20: 'blue' }],
       },
 
       {
-        name: 'FHC dict with template values',
+        name: 'FHS dict with template values',
         raw: {
           0: `[[[
           return 'red';
@@ -363,7 +324,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC list with template values',
+        name: 'FHS list with template values',
         raw: [
           {
             0: `[[[
@@ -384,7 +345,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC dict with template keys',
+        name: 'FHS dict with template keys',
         raw: {
           '[[[ return 0; ]]]': 'red',
           '[[[ return 10; ]]]': 'green',
@@ -393,7 +354,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC dict with template keys and values',
+        name: 'FHS dict with template keys and values',
         raw: {
           '[[[ return 0; ]]]': `[[[
           return 'red';
@@ -408,7 +369,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'FHC list with template keys and values',
+        name: 'FHS list with template keys and values',
         raw: [
           {
             '[[[ return 0; ]]]': `[[[
@@ -429,7 +390,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'Whole FHC color_stops as template returning dict',
+        name: 'Whole FHS color_stops as template returning dict',
         raw: `[[[
         return {
           0: 'red',
@@ -440,7 +401,7 @@ export default class ColorStops {
       },
 
       {
-        name: 'Whole FHC color_stops as template returning list',
+        name: 'Whole FHS color_stops as template returning list',
         raw: `[[[
         return [
           { 0: 'red' },
@@ -622,6 +583,7 @@ export default class ColorStops {
     ];
 
     tests.forEach((test) => {
+      // Templates are resolved first because normalize() expects final values and numeric keys.
       const resolved = Templates.getJsTemplateOrValue(item, test.raw, { resolveKeys: true });
 
       const normalized = ColorStops.normalize(resolved);
