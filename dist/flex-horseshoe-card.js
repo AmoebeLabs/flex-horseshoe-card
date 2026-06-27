@@ -406,28 +406,28 @@ const ce=1;let he=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
           </g>
         </g>
       </g>
-    `}getRenderedHaIconPath(){const e=this.card.shadowRoot.getElementById(`icon-${this.iconId}`);return e?.shadowRoot?.querySelector("*")?.path}render(){const e=this.runtimeConfig;e.entity=e.entity?e.entity:0;const t=12*(e.icon_size?e.icon_size:e.size?e.size:2),r=e.svg.xpos,s=e.svg.ypos,o=e.align?e.align:"center",i="center"===o?.5:"start"===o?-1:1,a=r-t*i,n=s-t*i,l=t,c=this.getStateMapItem();let h=e;c&&(h=$o.mergeDeep(e,c));const u=this.entity?yo.getHaEntityIconStyle(this.entity):{fill:"currentColor",color:"var(--state-icon-color)"},d={};d.fill=u.fill,d.color=u.color,d.filter=u.filter;const m=ge.getJsTemplateOrValue(h,h.styles);let p=pe.toStyleDict(m);const g=this.card.animations?.icons?.[h.animation_id]??{},f=this.card._getItemColorFromStops(h);f&&(p.fill=f,p.color=f),p=this.getRenderStyles({...d,...p,...g},h===e?[]:[h.color_filter]);const y=this.buildIcon(c,h);if(this.isUrlIcon(y)){const e=this.getUrlFromCssUrl(y);return this.isSvgUrl(e)?this.renderSvgUrlIcon(h,e,p,t,r,s,i):this.renderImageUrlIcon(h,e,p,t,r,s,i)}if(!y)return U``;if(this.card.iconCache[y])this.iconSvg=this.card.iconCache[y];else if(this.iconSvg=void 0,this.pendingIconPath!==y){this.pendingIconPath=y;let e=0;const t=40,r=50,s=()=>{if(this.pendingIconPath!==y)return;const o=this.getRenderedHaIconPath();if(o)return this.iconSvg=o,this.card.iconCache[y]=o,this.pendingIconPath=void 0,void this.card.requestUpdate();e+=1,e>=t?this.pendingIconPath=void 0:window.setTimeout(s,r)};(this.card?.updateComplete&&"function"==typeof this.card.updateComplete.then?this.card.updateComplete:new Promise((e=>{window.requestAnimationFrame(e)}))).then((()=>{window.setTimeout(s,0)}))}if(this.iconSvg){const e=r-t*i,o=s-.5*t-(h.yposc?0:.25*t),a=t/24,n=h.rotate??0,l=e+12*a,c=o+12*a;return p["transform-origin"]??="0 0",U`
+    `}getRenderedHaIconPath(){const e=this.card.shadowRoot.getElementById(`icon-${this.iconId}`);return e?.shadowRoot?.querySelector("*")?.path}render(){const e=this.runtimeConfig;e.entity=e.entity?e.entity:0;const t=this.getStateMapItem();let r=e;t&&(r=$o.mergeDeep(e,t));const s=void 0!==r.icon_size_percent?Number(r.icon_size_percent)/100*bo:12*(r.icon_size?r.icon_size:r.size?r.size:2),o=e.svg.xpos,i=e.svg.ypos,a=r.align?r.align:"center",n="center"===a?.5:"start"===a?-1:1,l=o-s*n,c=i-s*n,h=s,u=this.entity?yo.getHaEntityIconStyle(this.entity):{fill:"currentColor",color:"var(--state-icon-color)"},d={};d.fill=u.fill,d.color=u.color,d.filter=u.filter;const m=ge.getJsTemplateOrValue(r,r.styles);let p=pe.toStyleDict(m);const g=this.card.animations?.icons?.[r.animation_id]??{},f=this.card._getItemColorFromStops(r);f&&(p.fill=f,p.color=f),p=this.getRenderStyles({...d,...p,...g},r===e?[]:[r.color_filter]);const y=this.buildIcon(t,r);if(this.isUrlIcon(y)){const e=this.getUrlFromCssUrl(y);return this.isSvgUrl(e)?this.renderSvgUrlIcon(r,e,p,s,o,i,n):this.renderImageUrlIcon(r,e,p,s,o,i,n)}if(!y)return U``;if(this.card.iconCache[y])this.iconSvg=this.card.iconCache[y];else if(this.iconSvg=void 0,this.pendingIconPath!==y){this.pendingIconPath=y;let e=0;const t=40,r=50,s=()=>{if(this.pendingIconPath!==y)return;const o=this.getRenderedHaIconPath();if(o)return this.iconSvg=o,this.card.iconCache[y]=o,this.pendingIconPath=void 0,void this.card.requestUpdate();e+=1,e>=t?this.pendingIconPath=void 0:window.setTimeout(s,r)};(this.card?.updateComplete&&"function"==typeof this.card.updateComplete.then?this.card.updateComplete:new Promise((e=>{window.requestAnimationFrame(e)}))).then((()=>{window.setTimeout(s,0)}))}if(this.iconSvg){const e=o-s*n,t=i-.5*s-(r.yposc?0:.25*s),a=s/24,l=r.rotate??0,c=e+12*a,h=t+12*a;return p["transform-origin"]??="0 0",U`
         <g
-          transform="${this.getGroupScaleTransform(h)}"
-          style="${this.getGroupScaleStyle(h)}"
+          transform="${this.getGroupScaleTransform(r)}"
+          style="${this.getGroupScaleStyle(r)}"
         >
           <g
             id="icon-rendered-${this.iconId}"
             class="icon-position"
-            transform="translate(${l} ${c})"
+            transform="translate(${c} ${h})"
             @click=${e=>this.handlePopup(e)}
           >
             <rect
-              x="${-t/2}"
-              y="${-t/2}"
-              height="${t}px"
-              width="${t}px"
+              x="${-s/2}"
+              y="${-s/2}"
+              height="${s}px"
+              width="${s}px"
               stroke-width="0px"
               fill="rgba(0,0,0,0)"
             ></rect>
 
             <g class="icon-style-animation" style="${me(p)}">
-              <g class="icon-rotate" transform="rotate(${n})">
+              <g class="icon-rotate" transform="rotate(${l})">
                 <g class="icon-scale" transform="scale(${a})">
                   <g class="icon-center" transform="translate(-12 -12)">
                     <path d="${this.iconSvg}"></path>
@@ -441,8 +441,8 @@ const ce=1;let he=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
       <foreignObject
         width="0px"
         height="0px"
-        x="${a}"
-        y="${n}"
+        x="${l}"
+        y="${c}"
         overflow="hidden"
       >
         <body>
@@ -450,7 +450,7 @@ const ce=1;let he=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,
             xmlns="http://www.w3.org/1999/xhtml"
             class="div__icon hover"
             style="
-              line-height: ${l}px;
+              line-height: ${h}px;
               position: relative;
               border-style: solid;
               border-width: 0px;
