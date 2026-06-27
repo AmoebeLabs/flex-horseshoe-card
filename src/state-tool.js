@@ -267,6 +267,11 @@ export default class StateTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
+    config.show = {
+      uom: 'end',
+      ...(config.show ?? {}),
+    };
+
     super(config, index, templates, cardId, card, 'states');
 
     this.config.svg = this.calculateSvgDimensions();
@@ -435,7 +440,7 @@ export default class StateTool extends BaseTool {
       stateValue = this.formatStateString(stateValue);
     }
 
-    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute, stateValue) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
     const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
     let formattedValue;
 
@@ -775,8 +780,39 @@ export default class StateTool extends BaseTool {
     const dx = this.runtimeConfig.dx ? this.runtimeConfig.dx : '0';
     const dy = this.runtimeConfig.dy ? this.runtimeConfig.dy : '0';
     const uomConfig = this.runtimeConfig.uom ?? {};
-    const uomDx = uomConfig.dx ?? '0.1';
-    const uomDy = uomConfig.dy ?? '-0.45';
+    const uomPosition = this.runtimeConfig.show.uom;
+    let uomTemplate = svg``;
+
+    // show.uom controls the relative position of the unit against the state value.
+    if (uomPosition === 'end') {
+      const uomDx = uomConfig.dx ?? '0.1';
+      const uomDy = uomConfig.dy ?? '-0.45';
+
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        dx="${uomDx}em"
+        dy="${uomDy}em"
+        style=${styleMap(this.getRenderStyles(uomStyle))}
+      >${this.uom}</tspan>`;
+    } else if (uomPosition === 'bottom') {
+      const uomDy = uomConfig.dy ?? '1.5';
+
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        x="${this.runtimeConfig.svg.xpos}"
+        dy="${uomDy}em"
+        style=${styleMap(this.getRenderStyles(uomStyle))}
+      >${this.uom}</tspan>`;
+    } else if (uomPosition === 'top') {
+      const uomDy = uomConfig.dy ?? '-1.5';
+
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        x="${this.runtimeConfig.svg.xpos}"
+        dy="${uomDy}em"
+        style=${styleMap(this.getRenderStyles(uomStyle))}
+      >${this.uom}</tspan>`;
+    }
 
     return svg`
       <g
@@ -791,12 +827,7 @@ export default class StateTool extends BaseTool {
             dx="${dx}em"
             dy="${dy}em"
             style=${styleMap(this.getRenderStyles(styles))}
-          >${this.state}</tspan><tspan
-            class="state__uom"
-            dx="${uomDx}em"
-            dy="${uomDy}em"
-            style=${styleMap(this.getRenderStyles(uomStyle))}
-          >${this.uom}</tspan>
+          >${this.state}</tspan>${uomTemplate}
         </text>
       </g>
     `;
