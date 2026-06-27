@@ -57,6 +57,8 @@ const DEFAULT_SHOW = {
   scale_style: 'fixed',
 };
 
+const STATIC_REF_MARKER = Symbol('fhs-static-ref');
+
 // ++ Class ++++++++++
 
 class FlexHorseshoeCard extends LitElement {
@@ -1254,11 +1256,29 @@ class FlexHorseshoeCard extends LitElement {
         }
 
         const { same_as, same_as_replace = [], ...restOfFields } = item;
-
         const baseForMerge = { ...base };
+        const replacePaths = [...same_as_replace];
 
-        same_as_replace.forEach((field) => {
-          delete baseForMerge[field];
+        // A direct ref(...) inside a same_as override means: replace this exact config path first, then merge local fields.
+        const collectRefReplacePaths = (value, path) => {
+          if (value && typeof value === 'object' && value[STATIC_REF_MARKER]) {
+            replacePaths.push(path.join('.'));
+            return;
+          }
+
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            Object.entries(value).forEach(([field, fieldValue]) => {
+              collectRefReplacePaths(fieldValue, [...path, field]);
+            });
+          }
+        };
+
+        Object.entries(restOfFields).forEach(([field, value]) => {
+          collectRefReplacePaths(value, [field]);
+        });
+
+        replacePaths.forEach((fieldPath) => {
+          this._deleteSameAsReplacePath(baseForMerge, fieldPath);
         });
 
         resolvedItem = Merge.mergeDeep(baseForMerge, restOfFields);
@@ -1276,6 +1296,34 @@ class FlexHorseshoeCard extends LitElement {
 
       return resolvedItem;
     });
+  }
+
+  /**
+   * Deletes a same_as replacement path from the inherited base before the final merge.
+   *
+   * A plain field keeps the old same_as_replace behavior. Dot paths allow replacing
+   * nested config such as color_stops.colors without removing color_stops.gap.
+   * Parent objects are cloned while walking the path, so earlier resolved same_as
+   * items remain unchanged.
+   *
+   * @param {object} baseForMerge Inherited same_as base that will be merged afterward.
+   * @param {string} fieldPath Top-level field or dot path to remove from the base.
+   */
+  _deleteSameAsReplacePath(baseForMerge, fieldPath) {
+    const path = String(fieldPath).split('.');
+    let current = baseForMerge;
+
+    // Walk to the parent object, cloning every level that is kept in the base.
+    for (let index = 0; index < path.length - 1; index += 1) {
+      const field = path[index];
+
+      if (current[field] === undefined) return;
+
+      current[field] = Array.isArray(current[field]) ? [...current[field]] : { ...current[field] };
+      current = current[field];
+    }
+
+    delete current[path[path.length - 1]];
   }
 
   _resolveSectionSameAs(config) {
@@ -1351,7 +1399,16 @@ class FlexHorseshoeCard extends LitElement {
       throw new Error(`Static ref '${refName}' not found`);
     }
 
-    return this._cloneStaticValue(constants[refName]);
+    const resolvedRef = this._cloneStaticValue(constants[refName]);
+
+    // Mark object and array refs internally so same_as can replace that exact path instead of deep-merging it.
+    if (resolvedRef && typeof resolvedRef === 'object') {
+      Object.defineProperty(resolvedRef, STATIC_REF_MARKER, {
+        value: true,
+      });
+    }
+
+    return resolvedRef;
   }
 
   _resolveStaticRefs(value, constants = {}) {
@@ -1380,7 +1437,16 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this._evaluateStaticConfig(item, constants));
+      const evaluatedArray = value.map((item) => this._evaluateStaticConfig(item, constants));
+
+      // Arrays are recreated during calc evaluation; keep the ref marker for same_as replacement.
+      if (value[STATIC_REF_MARKER]) {
+        Object.defineProperty(evaluatedArray, STATIC_REF_MARKER, {
+          value: true,
+        });
+      }
+
+      return evaluatedArray;
     }
 
     if (value && typeof value === 'object') {
