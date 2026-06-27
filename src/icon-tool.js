@@ -7,7 +7,7 @@ import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Templates from './templates.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
-import { FONT_SIZE } from './const.js';
+import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
 import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
 
 /**
@@ -442,21 +442,24 @@ export default class IconTool extends BaseTool {
 
     item.entity = item.entity ? item.entity : 0;
 
-    const iconSize = item.icon_size ? item.icon_size : item.size ? item.size : 2;
-    const iconPixels = iconSize * FONT_SIZE;
-    const cx = item.svg.xpos;
-    const cy = item.svg.ypos;
-    const align = item.align ? item.align : 'center';
-    const adjust = align === 'center' ? 0.5 : align === 'start' ? -1 : 1;
-    const xpx = cx - iconPixels * adjust;
-    const ypx = cy - iconPixels * adjust;
-    const foIconPixels = iconPixels;
     const smItem = this.getStateMapItem();
     let renderItem = item;
 
     if (smItem) {
       renderItem = Merge.mergeDeep(item, smItem);
     }
+
+    // icon_size_percent is relative to the full square SVG viewbox; icon_size keeps the legacy font-size based sizing.
+    const iconPixels = renderItem.icon_size_percent !== undefined
+      ? (Number(renderItem.icon_size_percent) / 100) * SVG_VIEW_BOX
+      : (renderItem.icon_size ? renderItem.icon_size : renderItem.size ? renderItem.size : 2) * FONT_SIZE;
+    const cx = item.svg.xpos;
+    const cy = item.svg.ypos;
+    const align = renderItem.align ? renderItem.align : 'center';
+    const adjust = align === 'center' ? 0.5 : align === 'start' ? -1 : 1;
+    const xpx = cx - iconPixels * adjust;
+    const ypx = cy - iconPixels * adjust;
+    const foIconPixels = iconPixels;
 
     const haStyle = this.entity
       ? Colors.getHaEntityIconStyle(this.entity)
