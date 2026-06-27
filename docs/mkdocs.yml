@@ -154,7 +154,7 @@ nav:
           # - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
           # - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
           # - Environment Card: examples/demo-cards/environment-card.md
-          - Kleenex Pollen Card 34: examples/demo-cards/demo-card-kleenex-pollen-34.md
+          - Kleenex Pollen Cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
           - Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
           # - Light Card: examples/demo-cards/light-card.md
           # - Person Card: examples/demo-cards/person-card.md

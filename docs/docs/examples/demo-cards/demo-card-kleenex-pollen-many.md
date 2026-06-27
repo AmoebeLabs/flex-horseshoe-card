@@ -31,15 +31,38 @@ tags:
 
 
 ##:material-horseshoe: More Visualizations
+[:octicons-tag-24: 5.4.7-dev.12][github-releases]
+
+Card 55 shows three horseshoes that show the state of the pollen for trees, grass and weed.
+
+- The pollen levels are displayd as levels
+- Labels are displayed on the state of the horseshoes
+- The active state has bold text
+- two arc shapes are used as background for the icon (external svg) and the text
 
 ![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
 ![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
 
+Card 54 is a slight variation of card 55.
+
+- A grayscale color filter is configured to lower the intensity of the colors
+
+!!! info "The color filters do not alter external images and svgs"
+
 ![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
 ![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
 
+Card 53 shows a more traditional horseshoe
+
+- It shows the labels separate, around the horseshoe
+- A grayscale color filter is configured to lower the intensity of the colors
+
 ![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
 ![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
+
+Card 52 is another variation.
+
+- It displayes the pollen levels as a mode/single state, so only the active state is displayed
 
 ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-light)
 ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-dark)
@@ -48,12 +71,13 @@ tags:
 These demo cards require:
 
 - The Kleenex Pollen Radar custom integration available through HACS.
-- Some SVG files from Github to be put in the `www/images/kleenex` folder"
+- Some SVG files from Github to be put in the `www/images/kleenex` folder
     - /local/images/kleenex/pollen_tree_low.svg, moderate, high and very_high
     - /local/images/kleenex/pollen_grass_low.svg, moderate, high and very_high
     - /local/images/kleenex/pollen_weed_low.svg, moderate, high and very_high
 
 
+!!! warning "The Kleenex integration does NOT translate the `very_high` state. You have to override that label in the label settings of the horseshoe"
 
 !!! info "Images and colors used for this card are adapted versions from Isabella Alströms pollen images"
 
@@ -291,6 +315,277 @@ These demo cards require:
                     same_as_dxpos: calc(dxPos2)
 
     ```
+
+![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
+
+[:octicons-tag-24: 5.4.7-dev.12][github-releases]
+??? Info "YAML Definition for card \#55"
+    ```yaml  linenums="1" hl_lines="1"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+        # - entity: input_select.fake_pollen_trees
+          area: ':55v2:'
+          name: 'Trees'
+        - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+          name: 'Grass'
+          area: 'Kleenex Pollen'
+        - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+          name: 'Weed'
+
+      aspectratio: 3/1.2
+      constants:
+        radius0: 38 #36
+        xpos0: 50
+        dxPos1: 100
+        dxPos2: 100
+        arcsUpperArcDegrees: 210
+        pollen_tree_map:
+          map:
+            - state: 'low'
+              value: 0
+              icon: url(/local/images/kleenex/pollen_tree_low.svg)
+            - state: 'moderate'
+              value: 1
+              icon: url(/local/images/kleenex/pollen_tree_moderate.svg)
+            - state: 'high'
+              value: 2
+              icon: url(/local/images/kleenex/pollen_tree_high.svg)
+            - state: 'very_high'
+              value: 3
+              icon: url(/local/images/kleenex/pollen_tree_very_high.svg)
+        pollen_grass_map:
+          map:
+            - state: 'low'
+              value: 0
+              icon: url(/local/images/kleenex/pollen_grass_low.svg)
+            - state: 'moderate'
+              value: 1
+              icon: url(/local/images/kleenex/pollen_grass_moderate.svg)
+            - state: 'high'
+              value: 2
+              icon: url(/local/images/kleenex/pollen_grass_high.svg)
+            - state: 'very_high'
+              value: 3
+              icon: url(/local/images/kleenex/pollen_grass_very_high.svg)
+
+      layout:
+        arcs:
+          - id: upperhalf_0
+            xpos: calc(xpos0)
+            ypos: 70
+            radius: calc(radius0 - 10)
+            arc_degrees: calc(arcsUpperArcDegrees)
+            styles:
+              fill: var(--disabled-text-color)
+              fill-opacity: 0.3
+              stroke-opacity: 0.3
+              stroke-width: 1
+              stroke: gray
+          - id: upperhalf_1
+            same_as: upperhalf_0
+            same_as_dxpos: calc(dxPos1)
+          - same_as: upperhalf_1
+            same_as_dxpos: calc(dxPos2)
+
+          - id: lowerhalf_0
+            xpos: calc(xpos0)
+            ypos: 70
+            radius: calc(radius0 - 10)
+            arc_degrees: calc(360 - arcsUpperArcDegrees - 10)
+            flip: y
+            styles:
+              stroke-opacity: 0.3
+              stroke-width: 1
+              stroke: gray
+          - id: lowerhalf_1
+            same_as: lowerhalf_0
+            same_as_dxpos: calc(dxPos1)
+          - same_as: lowerhalf_1
+            same_as_dxpos: calc(dxPos2)
+        areas:
+          - entity_index: 0
+            xpos: 0
+            ypos: 120
+            styles:
+              - font-size: 0.75em
+              - text-transform: none     
+              - text-anchor: start                       
+          - entity_index: 1
+            xpos: 150
+            ypos: 10
+            styles:
+              - font-size: 1.7em
+              - text-transform: none     
+        icons:
+          - entity_index: 0
+            xpos: calc(xpos0)
+            yposc: 60
+            size: 4.5
+            state_map:
+              ref(pollen_tree_map)
+
+          - entity_index: 1
+            xpos: calc(xpos0)
+            same_as: 0
+            same_as_dxpos: calc(dxPos1)
+            same_as_replace:
+              - state_map
+            state_map:
+              ref(pollen_grass_map)
+
+          - entity_index: 2
+            same_as: 1
+            same_as_dxpos: calc(dxPos2)
+            same_as_replace:
+              - state_map
+            state_map:
+              map:
+                - state: 'low'
+                  value: 0
+                  icon: url(/local/images/kleenex/pollen_weed_low.svg)
+                - state: 'moderate'
+                  value: 1
+                  icon: url(/local/images/kleenex/pollen_weed_moderate.svg)
+                - state: 'high'
+                  value: 2
+                  icon: url(/local/images/kleenex/pollen_weed_high.svg)
+                - state: 'very_high'
+                  value: 3
+                  icon: url(/local/images/kleenex/pollen_weed_very_high.svg)
+        hlines:
+          - xpos: 150
+            ypos: 15
+            length: 80
+            styles:
+              - stroke: var(--disabled-text-color);
+
+        names:
+          - entity_index: 0
+            xpos: calc(xpos0)
+            ypos: 90
+            styles:
+              - font-size: 1.5em
+              - text-transform: none     
+          - entity_index: 1
+            same_as: 0
+            same_as_dxpos: calc(dxPos1)
+          - entity_index: 2
+            same_as: 1
+            same_as_dxpos: calc(dxPos2)
+
+        horseshoes:
+          - entity_index: 0
+            debug_state_map: false
+            xpos: calc(xpos0)
+            ypos: 70
+            radius: calc(radius0)
+            tickmarks_radius: calc(radius0)
+            arc_degrees: 360
+            flip: both
+            
+            show:
+              horseshoe: true
+              scale_tickmarks: false
+              horseshoe_style: colorstop
+              scale_style: colorstop
+              labels_at: stringstate
+              ticks: false
+              label_badges: false
+              label_background: none
+            # 
+            horseshoe_scale:
+              min: 0
+              max: 4
+              width: 27 #25
+              gap: 0
+              linecap: butt
+              color_filter:
+                grayscale:
+                  min: 0.2
+                  max: 0.6
+            
+              styles:
+                opacity: 0.3
+            #
+            horseshoe_tickmarks:
+              ticks_major:
+                ticksize: 1
+                color_mode: colorstop
+                width: 12
+                offset: -9
+                thickness: 3
+                styles:
+                  - stroke: var(--primary-text-color)
+                  - fill: var(--primary-text-color)
+                  - opacity: 0.7
+            #
+            horseshoe_labels:
+              debug_labels: true
+              distance_min: 0.3
+              ticksize_min: 0.3
+              orientation: arc
+              offset: 0
+              stringstate_level:
+                  before:
+                    styles:
+                      - fill: var(--primary-background-color)
+                      - opacity: 0.6
+                  current:
+                    styles:
+                      - fill: var(--primary-background-color)
+                      - font-weight: bold
+                  after:
+                    styles:
+                      - opacity: 0.35
+                  state_map:
+                    map:
+                      - state: very_high
+                        label: Very High #Zeer Hoog
+                        current:
+                          styles:
+                            - fill: var(--primary-text-color)
+              styles:
+                - font-size: 1.2em
+                - opacity: 1
+                - color: var(--primary-text-color)
+                - font-weight: normal
+            #
+            horseshoe_state:
+              mode: stringstate_level
+              debug_state_map: false
+              width: 27
+              linecap: butt
+              state_map:
+                map:
+                  - state: 'low'
+                    value: 0.99
+                  - state: 'moderate'
+                    value: 1.99
+                  - state: 'high'
+                    value: 2.99
+                  - state: 'very_high'
+                    value: 3.99
+              styles:
+                - stroke-linecap: butt
+            #
+            color_stops:
+              gap: 2
+              colors:
+                0: '#838383'
+                1: '#fcc449'
+                2: '#ed8003'
+                3: '#e73f10'
+
+          - entity_index: 1
+            same_as: 0
+            same_as_dxpos: calc(dxPos1)
+          - entity_index: 2
+            same_as: 1
+            same_as_dxpos: calc(dxPos2)
+
+    ```
+
 
 <!-- Image references -->
 
