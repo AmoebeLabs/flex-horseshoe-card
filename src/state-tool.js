@@ -440,7 +440,7 @@ export default class StateTool extends BaseTool {
       stateValue = this.formatStateString(stateValue);
     }
 
-    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute, stateValue) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
     const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
     let formattedValue;
 
