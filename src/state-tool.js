@@ -451,7 +451,10 @@ export default class StateTool extends BaseTool {
 
       if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
         const haValueStr = String(haValuePart.value);
-        const decimalIndex = Math.max(haValueStr.lastIndexOf('.'), haValueStr.lastIndexOf(','));
+        const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
+        const decimalIndex = haValueStr.lastIndexOf(decimalSeparator);
+
+        // Only the locale decimal separator counts here; thousands separators must not create fake decimals.
         haDecimals = decimalIndex !== -1 ? haValueStr.length - decimalIndex - 1 : 0;
       }
 
