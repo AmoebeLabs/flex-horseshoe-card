@@ -43,6 +43,7 @@ import IconTool from './icon-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
+import ChildCards from './child-cards.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -79,6 +80,7 @@ class FlexHorseshoeCard extends LitElement {
     this.colorStops = {};
     this.animations = {};
     this.animations.lines = {};
+    this.childCards = new ChildCards(this);
     this.animations.vlines = {};
     this.animations.hlines = {};
     this.animations.circles = {};
@@ -579,6 +581,24 @@ class FlexHorseshoeCard extends LitElement {
         flex-direction: column;
       }
 
+      .fhs-child-card-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .fhs-child-card {
+        position: absolute;
+        pointer-events: auto;
+        overflow: hidden;
+      }
+
+      .fhs-child-card > * {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
       .labelContainer {
         position: absolute;
         top: 0;
@@ -856,6 +876,7 @@ class FlexHorseshoeCard extends LitElement {
 
   setHass(hass, forceUpdate = false) {
     this._hass = hass;
+    this.childCards.setHass(hass);
 
     Templates.setContext({
       hass: this._hass,
@@ -1282,12 +1303,22 @@ class FlexHorseshoeCard extends LitElement {
 
       this.dev = { ...config.dev };
 
-      if (!config.entities) {
+      const hasChildCards = Array.isArray(config.cards);
+
+      if (!hasChildCards && !config.entities) {
         throw Error('No entities defined');
       }
 
-      if (!config.layout) {
+      if (!hasChildCards && !config.layout) {
         throw Error('No layout defined');
+      }
+
+      if (hasChildCards && !config.layout) {
+        config.layout = {};
+      }
+
+      if (hasChildCards && !config.entities) {
+        config.entities = [];
       }
       if (config?.palettes) {
         this.palettesLoaded = false;
@@ -1328,7 +1359,7 @@ class FlexHorseshoeCard extends LitElement {
 
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
 
-      if (resolvedEntitiesConfig) {
+      if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
         if (newdomain !== 'sensor') {
@@ -1393,6 +1424,7 @@ class FlexHorseshoeCard extends LitElement {
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
+      this.childCards.setConfig(this.config.cards ?? []);
 
       Templates.setContext({
         hass: this._hass,
@@ -1486,8 +1518,11 @@ class FlexHorseshoeCard extends LitElement {
     const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
 
     return html`
-      <ha-card @click=${(e) => this.handlePopup(e, this.entities[0])} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">${this._renderSvg()}</div>
+      <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
+        <div class="container" id="container">
+          ${this._renderSvg()}
+          ${this.childCards.render()}
+        </div>
       </ha-card>
     `;
   }
@@ -1704,6 +1739,22 @@ class FlexHorseshoeCard extends LitElement {
         break;
       }
     }
+  }
+
+  /**
+   * Handles clicks on the parent FHS card shell.
+   *
+   * Child cards own their own click handling, so clicks inside a child wrapper
+   * must not open the parent popup. A cards-only parent also has no entity 0.
+   *
+   * @param {Event} e - Click event from the parent ha-card.
+   */
+  handleCardClick(e) {
+    const clickedChildCard = e.composedPath().some((node) => node.classList?.contains('fhs-child-card'));
+
+    if (clickedChildCard || !this.entities[0]) return;
+
+    this.handlePopup(e, this.entities[0]);
   }
 
   /** *****************************************************************************
