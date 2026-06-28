@@ -41,6 +41,7 @@ import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import IconTool from './icon-tool.js';
 import GroupManager from './group-manager.js';
+import SameAs from './same-as.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -56,8 +57,6 @@ const DEFAULT_SHOW = {
   horseshoe_style: 'fixed',
   scale_style: 'fixed',
 };
-
-const STATIC_REF_MARKER = Symbol('fhs-static-ref');
 
 // ++ Class ++++++++++
 
@@ -1142,202 +1141,6 @@ class FlexHorseshoeCard extends LitElement {
     return typeof value === 'number' && Number.isFinite(value);
   }
 
-  _applySameAsDeltas(item, resolvedItem, index) {
-    Object.entries(item).forEach(([key, value]) => {
-      if (!key.startsWith('same_as_d')) return;
-
-      const targetKey = key.substring('same_as_d'.length);
-
-      if (!targetKey) {
-        throw new Error(`Invalid same_as delta field '${key}' for item ${index}`);
-      }
-
-      if (resolvedItem[targetKey] === undefined) {
-        throw new Error(`same_as delta '${key}' requires '${targetKey}' for item ${index}`);
-      }
-
-      if (!this._isStaticNumber(resolvedItem[targetKey])) {
-        throw new Error(`same_as delta '${key}' requires numeric '${targetKey}' for item ${index}`);
-      }
-
-      if (!this._isStaticNumber(value)) {
-        throw new Error(`same_as delta '${key}' must be numeric for item ${index}`);
-      }
-
-      resolvedItem[targetKey] += value;
-    });
-
-    return resolvedItem;
-  }
-
-  // eslint-disable-next-line default-param-last
-  _mergeSameAsItem(base, override, mergeMode = 'merge', mergeKey) {
-    const merged = Merge.mergeDeep(base, override);
-
-    Object.entries(override).forEach(([field, value]) => {
-      const fieldMergeMode = value?.same_as_merge ?? mergeMode;
-      const fieldMergeKey = value?.same_as_key ?? mergeKey;
-
-      if (fieldMergeMode === 'replace') {
-        const { same_as_merge, same_as_key, ...cleanValue } = value;
-        merged[field] = cleanValue;
-        return;
-      }
-
-      if (fieldMergeMode === 'keyed') {
-        if (!fieldMergeKey) {
-          throw new Error(`same_as_key is required when same_as_merge is keyed for field '${field}'`);
-        }
-
-        const { same_as_merge, same_as_key, ...cleanValue } = value;
-
-        merged[field] = Merge.mergeDeep(base[field] ?? {}, cleanValue);
-
-        Object.entries(cleanValue).forEach(([subField, subValue]) => {
-          if (!Array.isArray(base[field]?.[subField]) || !Array.isArray(subValue)) return;
-
-          merged[field][subField] = this._mergeListByKey(base[field][subField], subValue, fieldMergeKey);
-        });
-      }
-    });
-
-    return merged;
-  }
-
-  _mergeSameAsKeyed(base, override, mergeKey) {
-    const merged = Merge.mergeDeep(base, override);
-
-    if (!mergeKey) {
-      throw new Error('same_as_key is required when same_as_merge is keyed');
-    }
-
-    Object.keys(override).forEach((field) => {
-      if (!Array.isArray(base[field]) || !Array.isArray(override[field])) return;
-
-      merged[field] = this._mergeListByKey(base[field], override[field], mergeKey);
-    });
-
-    return merged;
-  }
-
-  _mergeListByKey(baseList, overrideList, key) {
-    const itemsByKey = new Map();
-
-    baseList.forEach((item) => {
-      itemsByKey.set(String(item[key]), item);
-    });
-
-    overrideList.forEach((item) => {
-      const itemKey = String(item[key]);
-
-      if (itemsByKey.has(itemKey)) {
-        itemsByKey.set(itemKey, Merge.mergeDeep(itemsByKey.get(itemKey), item));
-      } else {
-        itemsByKey.set(itemKey, item);
-      }
-    });
-
-    return [...itemsByKey.values()];
-  }
-
-  _resolveSameAsItems(items) {
-    const resolvedItemsById = new Map();
-
-    return items.map((item, index) => {
-      let resolvedItem;
-
-      if (item.same_as === undefined) {
-        resolvedItem = item;
-      } else {
-        const base = resolvedItemsById.get(String(item.same_as));
-
-        if (!base) {
-          throw new Error(`same_as '${item.same_as}' not found for item ${index}`);
-        }
-
-        const { same_as, same_as_replace = [], ...restOfFields } = item;
-        const baseForMerge = { ...base };
-        const replacePaths = [...same_as_replace];
-
-        // A direct ref(...) inside a same_as override means: replace this exact config path first, then merge local fields.
-        const collectRefReplacePaths = (value, path) => {
-          if (value && typeof value === 'object' && value[STATIC_REF_MARKER]) {
-            replacePaths.push(path.join('.'));
-            return;
-          }
-
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            Object.entries(value).forEach(([field, fieldValue]) => {
-              collectRefReplacePaths(fieldValue, [...path, field]);
-            });
-          }
-        };
-
-        Object.entries(restOfFields).forEach(([field, value]) => {
-          collectRefReplacePaths(value, [field]);
-        });
-
-        replacePaths.forEach((fieldPath) => {
-          this._deleteSameAsReplacePath(baseForMerge, fieldPath);
-        });
-
-        resolvedItem = Merge.mergeDeep(baseForMerge, restOfFields);
-        resolvedItem = this._applySameAsDeltas(item, resolvedItem);
-
-        delete resolvedItem.same_as;
-        delete resolvedItem.same_as_replace;
-
-        Object.keys(resolvedItem)
-          .filter((key) => key.startsWith('same_as_d'))
-          .forEach((key) => delete resolvedItem[key]);
-      }
-
-      resolvedItemsById.set(String(resolvedItem.id), resolvedItem);
-
-      return resolvedItem;
-    });
-  }
-
-  /**
-   * Deletes a same_as replacement path from the inherited base before the final merge.
-   *
-   * A plain field keeps the old same_as_replace behavior. Dot paths allow replacing
-   * nested config such as color_stops.colors without removing color_stops.gap.
-   * Parent objects are cloned while walking the path, so earlier resolved same_as
-   * items remain unchanged.
-   *
-   * @param {object} baseForMerge Inherited same_as base that will be merged afterward.
-   * @param {string} fieldPath Top-level field or dot path to remove from the base.
-   */
-  _deleteSameAsReplacePath(baseForMerge, fieldPath) {
-    const path = String(fieldPath).split('.');
-    let current = baseForMerge;
-
-    // Walk to the parent object, cloning every level that is kept in the base.
-    for (let index = 0; index < path.length - 1; index += 1) {
-      const field = path[index];
-
-      if (current[field] === undefined) return;
-
-      current[field] = Array.isArray(current[field]) ? [...current[field]] : { ...current[field] };
-      current = current[field];
-    }
-
-    delete current[path[path.length - 1]];
-  }
-
-  _resolveSectionSameAs(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
-
-    layoutSections.forEach((section) => {
-      const items = config.layout?.[section];
-
-      if (!Array.isArray(items)) return;
-
-      config.layout[section] = this._resolveSameAsItems(items);
-    });
-  }
-
   _assignIdItems(items) {
     return items.map((item, index) => ({
       ...item,
@@ -1403,7 +1206,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Mark object and array refs internally so same_as can replace that exact path instead of deep-merging it.
     if (resolvedRef && typeof resolvedRef === 'object') {
-      Object.defineProperty(resolvedRef, STATIC_REF_MARKER, {
+      Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, {
         value: true,
       });
     }
@@ -1440,8 +1243,8 @@ class FlexHorseshoeCard extends LitElement {
       const evaluatedArray = value.map((item) => this._evaluateStaticConfig(item, constants));
 
       // Arrays are recreated during calc evaluation; keep the ref marker for same_as replacement.
-      if (value[STATIC_REF_MARKER]) {
-        Object.defineProperty(evaluatedArray, STATIC_REF_MARKER, {
+      if (value[SameAs.STATIC_REF_MARKER]) {
+        Object.defineProperty(evaluatedArray, SameAs.STATIC_REF_MARKER, {
           value: true,
         });
       }
@@ -1504,13 +1307,13 @@ class FlexHorseshoeCard extends LitElement {
       this._resolveStaticRefs(config, config.constants);
       this._evaluateStaticConfig(config, calcConstants);
 
-      this._resolveSectionSameAs(config);
+      SameAs.compile(config);
 
       // this._assignSectionIds(config);
       // this._evaulateConstants(config);
       // this._resolveStaticRefs(config);
       // this._evaluateStaticConfig(config);
-      // this._resolveSectionSameAs(config);
+      // SameAs.compile(config);
 
       Templates.setContext({
         hass: this._hass,
