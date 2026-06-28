@@ -574,6 +574,13 @@ class FlexHorseshoeCard extends LitElement {
         padding: 5px 5px 5px 5px;
       }
 
+      :host([embedded]) ha-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+      }
+
       .container {
         position: relative;
         height: 100%;
@@ -597,6 +604,12 @@ class FlexHorseshoeCard extends LitElement {
         display: block;
         width: 100%;
         height: 100%;
+      }
+
+      .fhs-child-card--frameless {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
       }
 
       .labelContainer {
@@ -1288,6 +1301,12 @@ class FlexHorseshoeCard extends LitElement {
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
+
+      if (config.embedded === true) {
+        this.setAttribute('embedded', '');
+      } else {
+        this.removeAttribute('embedded');
+      }
       // Root template compilation must happen before required sections are checked.
       // Testing teal on all cards!!!!!!!!!!!
       // config.color_filter = {};
