@@ -22,37 +22,94 @@ export default class CardTemplates {
   static compile(config, card) {
     delete config.fhs_templates;
 
-    if (config.template === undefined) return config;
-
     card.lovelace = card.lovelace || Utils.getLovelace();
 
-    const templateName = typeof config.template === 'string' ? config.template : config.template.name;
-    const templateVariables = typeof config.template === 'string' ? undefined : config.template.variables;
-    const template = CardTemplates.getTemplate(card, templateName);
-    const templateConfig = CardTemplates.replaceVariables(templateVariables, template);
-    const cardConfig = { ...config };
+    if (config.template !== undefined) {
+      const compiledConfig = CardTemplates.compileTemplateUse(config, card);
 
-    delete cardConfig.template;
+      if (compiledConfig.dev?.debug || config.dev?.debug) {
+        console.log('[FHS templates] compiled root template', {
+          template: config.template,
+          compiledConfig,
+        });
+      }
 
-    const compiledConfig = CardTemplates.mergeTemplateConfig(templateConfig, cardConfig);
-
-    if (compiledConfig.dev?.debug || cardConfig.dev?.debug) {
-      console.log('[FHC templates] compiled root template', {
-        templateName,
-        template,
-        templateConfig,
-        cardConfig,
-        compiledConfig,
+      // Replace the input config in-place so setConfig can continue with the normal pipeline.
+      Object.keys(config).forEach((key) => delete config[key]);
+      Object.entries(compiledConfig).forEach(([key, value]) => {
+        config[key] = value;
       });
     }
 
-    // Replace the input config in-place so setConfig can continue with the normal pipeline.
+    const compiledTemplateParts = CardTemplates.compileTemplateParts(config, card);
+
     Object.keys(config).forEach((key) => delete config[key]);
-    Object.entries(compiledConfig).forEach(([key, value]) => {
+    Object.entries(compiledTemplateParts).forEach(([key, value]) => {
       config[key] = value;
     });
 
     return config;
+  }
+
+  /**
+   * Compiles one object that contains a `template:` key.
+   *
+   * The template type selects the body property from the template catalog. A
+   * `type: color_stops` template returns `color_stops:`, a `type: state_map`
+   * template returns `state_map:`, and a `type: card` template returns `card:`.
+   * The local object is then merged over that body so keys like `id` can still
+   * be overridden at the place where the template is used.
+   *
+   * @param {object} configPart - Config object containing `template`.
+   * @param {object} card - FHS card instance used to access Lovelace templates.
+   * @returns {object} Config object with the template body applied.
+   */
+  static compileTemplateUse(configPart, card) {
+    const templateName = typeof configPart.template === 'string' ? configPart.template : configPart.template.name;
+    const templateVariables = typeof configPart.template === 'string' ? undefined : configPart.template.variables;
+    const template = CardTemplates.getTemplate(card, templateName);
+    const templateConfig = CardTemplates.replaceVariables(templateVariables, template);
+    const localConfig = Merge.mergeDeep({}, configPart);
+
+    delete localConfig.template;
+
+    return CardTemplates.mergeTemplateConfig(templateConfig, localConfig);
+  }
+
+  /**
+   * Compiles nested template uses inside the current FHS config.
+   *
+   * This runs before ref(), calc() and same_as, so a template can still contain
+   * normal FHS config syntax. The `cards[]` section is skipped deliberately: a
+   * child card is a normal Lovelace card and must keep its own template key for
+   * its own implementation.
+   *
+   * @param {object|Array} configPart - Current config object or list.
+   * @param {object} card - FHS card instance used to access Lovelace templates.
+   * @returns {object|Array} The same config structure with nested templates compiled.
+   */
+  static compileTemplateParts(configPart, card) {
+    if (Array.isArray(configPart)) {
+      return configPart.map((item) => CardTemplates.compileTemplateParts(item, card));
+    }
+
+    if (configPart && typeof configPart === 'object') {
+      if (configPart.template !== undefined) {
+        const compiledConfigPart = CardTemplates.compileTemplateUse(configPart, card);
+
+        return CardTemplates.compileTemplateParts(compiledConfigPart, card);
+      }
+
+      const compiledConfigPart = {};
+
+      Object.entries(configPart).forEach(([key, value]) => {
+        compiledConfigPart[key] = key === 'cards' ? value : CardTemplates.compileTemplateParts(value, card);
+      });
+
+      return compiledConfigPart;
+    }
+
+    return configPart;
   }
 
   /**
@@ -105,7 +162,7 @@ export default class CardTemplates {
    */
   static replaceVariables(variables, template) {
     if (!variables && !template.template.defaults) {
-      return template[template.template.type];
+      return Merge.mergeDeep({}, template[template.template.type]);
     }
 
     let variableArray = variables?.slice(0) ?? [];
