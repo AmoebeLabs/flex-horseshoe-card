@@ -22,9 +22,13 @@ export default class Merge {
           //
           // concatenate and then reduce/merge the array based on id's if present??
           //
-          prev[key] = pVal.concat(...oVal);
+          prev[key] = pVal.concat(...oVal.map((item) => (isObject(item) ? this.mergeDeep(Array.isArray(item) ? [] : {}, item) : item)));
         } else if (isObject(pVal) && isObject(oVal)) {
           prev[key] = this.mergeDeep(pVal, oVal);
+        } else if (Array.isArray(oVal)) {
+          prev[key] = oVal.map((item) => (isObject(item) ? this.mergeDeep(Array.isArray(item) ? [] : {}, item) : item));
+        } else if (isObject(oVal)) {
+          prev[key] = this.mergeDeep({}, oVal);
         } else {
           prev[key] = oVal;
         }
