@@ -1,7 +1,7 @@
 import { html } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 
-const PLACEMENT_FIELDS = ['xpos', 'ypos', 'width', 'height', 'zpos'];
+const PLACEMENT_FIELDS = ['xpos', 'ypos', 'width', 'height', 'zpos', 'embedded', 'frameless'];
 
 /**
  * Creates and positions normal Lovelace child cards inside FHS.
@@ -39,6 +39,10 @@ export default class ChildCards {
 
         PLACEMENT_FIELDS.forEach((field) => delete childConfig[field]);
 
+        if (itemConfig.type === 'custom:flex-horseshoe-card' && itemConfig.embedded !== false) {
+          childConfig.embedded = true;
+        }
+
         const cardElement = await helpers.createCardElement(childConfig);
 
         if (this.parentCard._hass) {
@@ -53,10 +57,12 @@ export default class ChildCards {
           width: itemConfig.width,
           height: itemConfig.height,
           zpos: itemConfig.zpos,
+          frameless: itemConfig.frameless !== false,
         };
       }),
     );
     this.parentCard.requestUpdate();
+    this.parentCard.updateComplete.then(() => this.removeChildCardShells());
   }
 
   /**
@@ -78,6 +84,49 @@ export default class ChildCards {
    *
    * @returns {TemplateResult} Child card layer template.
    */
+  async removeChildCardShells() {
+    const findHaCard = (element) => {
+      if (element.localName === 'ha-card') return element;
+
+      const shadowHaCard = element.shadowRoot?.querySelector('ha-card');
+      if (shadowHaCard) return shadowHaCard;
+
+      const shadowChildHaCard = Array.from(element.shadowRoot?.children ?? []).map((child) => findHaCard(child)).find((haCard) => haCard);
+      if (shadowChildHaCard) return shadowChildHaCard;
+
+      return Array.from(element.children).map((child) => findHaCard(child)).find((haCard) => haCard);
+    };
+
+    await Promise.all(
+      this.items.map(async (item) => {
+        if (!item.frameless) return;
+
+        if (item.card.updateComplete) {
+          await item.card.updateComplete;
+        }
+
+        // External cards can render their ha-card after they are connected. Try a
+        // few frames so cards like markdown can finish their own first render.
+        await [1, 2, 3, 4, 5].reduce(async (previousAttempt) => {
+          const haCardAlreadyFound = await previousAttempt;
+          if (haCardAlreadyFound) return haCardAlreadyFound;
+
+          await new Promise(requestAnimationFrame);
+          const haCard = findHaCard(item.card);
+
+          if (!haCard) return false;
+
+          haCard.style.background = 'transparent';
+          haCard.style.border = '0';
+          haCard.style.boxShadow = 'none';
+          haCard.style.padding = '0';
+
+          return true;
+        }, Promise.resolve(false));
+      }),
+    );
+  }
+
   render() {
     return html`
       <div class="fhs-child-card-layer">
@@ -93,7 +142,7 @@ export default class ChildCards {
               'z-index': String(item.zpos ?? item.index),
             };
 
-            return html`<div class="fhs-child-card" style=${styleMap(style)}>${item.card}</div>`;
+            return html`<div class="fhs-child-card ${item.frameless ? 'fhs-child-card--frameless' : ''}" style=${styleMap(style)}>${item.card}</div>`;
           })}
       </div>
     `;
