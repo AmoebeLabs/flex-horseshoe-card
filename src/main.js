@@ -1101,11 +1101,11 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _isStaticCalc(value) {
+  _isCalcExpression(value) {
     return typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
   }
 
-  _evaluateStaticCalc(value, constants = {}) {
+  _calculateStaticCalc(value, constants = {}) {
     const expression = value.slice(5, -1).trim();
 
     if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
@@ -1172,7 +1172,7 @@ class FlexHorseshoeCard extends LitElement {
     return value;
   }
 
-  _evaluateConstants(config) {
+  _buildConstants(config) {
     const constants = config.constants;
     const calcConstants = {
       zpos: { ...DEFAULT_ZPOS },
@@ -1183,7 +1183,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     Object.entries(constants).forEach(([key, value]) => {
-      constants[key] = this._evaluateStaticConfig(value, calcConstants);
+      constants[key] = this._calculateStaticValues(value, calcConstants);
 
       if (this._isStaticNumber(constants[key])) {
         calcConstants[key] = constants[key];
@@ -1193,7 +1193,7 @@ class FlexHorseshoeCard extends LitElement {
     return calcConstants;
   }
 
-  _resolveStaticRef(value, constants) {
+  _replaceStaticRef(value, constants) {
     if (!this._isStaticRef(value)) return value;
 
     const refName = value.slice(4, -1).trim();
@@ -1214,18 +1214,18 @@ class FlexHorseshoeCard extends LitElement {
     return resolvedRef;
   }
 
-  _resolveStaticRefs(value, constants = {}) {
+  _replaceStaticRefs(value, constants = {}) {
     if (this._isStaticRef(value)) {
-      return this._resolveStaticRef(value, constants);
+      return this._replaceStaticRef(value, constants);
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this._resolveStaticRefs(item, constants));
+      return value.map((item) => this._replaceStaticRefs(item, constants));
     }
 
     if (value && typeof value === 'object') {
       Object.entries(value).forEach(([key, itemValue]) => {
-        value[key] = this._resolveStaticRefs(itemValue, constants);
+        value[key] = this._replaceStaticRefs(itemValue, constants);
       });
 
       return value;
@@ -1234,13 +1234,13 @@ class FlexHorseshoeCard extends LitElement {
     return value;
   }
 
-  _evaluateStaticConfig(value, constants = {}) {
-    if (this._isStaticCalc(value)) {
-      return this._evaluateStaticCalc(value, constants);
+  _calculateStaticValues(value, constants = {}) {
+    if (this._isCalcExpression(value)) {
+      return this._calculateStaticCalc(value, constants);
     }
 
     if (Array.isArray(value)) {
-      const evaluatedArray = value.map((item) => this._evaluateStaticConfig(item, constants));
+      const evaluatedArray = value.map((item) => this._calculateStaticValues(item, constants));
 
       // Arrays are recreated during calc evaluation; keep the ref marker for same_as replacement.
       if (value[SameAs.STATIC_REF_MARKER]) {
@@ -1254,7 +1254,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (value && typeof value === 'object') {
       Object.entries(value).forEach(([key, itemValue]) => {
-        value[key] = this._evaluateStaticConfig(itemValue, constants);
+        value[key] = this._calculateStaticValues(itemValue, constants);
       });
 
       return value;
@@ -1302,17 +1302,17 @@ class FlexHorseshoeCard extends LitElement {
 
       this._assignSectionIds(config);
 
-      const calcConstants = this._evaluateConstants(config);
+      const calcConstants = this._buildConstants(config);
 
-      this._resolveStaticRefs(config, config.constants);
-      this._evaluateStaticConfig(config, calcConstants);
+      this._replaceStaticRefs(config, config.constants);
+      this._calculateStaticValues(config, calcConstants);
 
       SameAs.compile(config);
 
       // this._assignSectionIds(config);
-      // this._evaulateConstants(config);
-      // this._resolveStaticRefs(config);
-      // this._evaluateStaticConfig(config);
+      // this._buildConstants(config);
+      // this._replaceStaticRefs(config);
+      // this._calculateStaticValues(config);
       // SameAs.compile(config);
 
       Templates.setContext({
