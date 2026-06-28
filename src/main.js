@@ -42,6 +42,7 @@ import StateTool from './state-tool.js';
 import IconTool from './icon-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
+import CardTemplates from './card-templates.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -1266,6 +1267,7 @@ class FlexHorseshoeCard extends LitElement {
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
+      // Root template compilation must happen before required sections are checked.
       // Testing teal on all cards!!!!!!!!!!!
       // config.color_filter = {};
       // config.color_filter.monochrome = {};
@@ -1275,6 +1277,8 @@ class FlexHorseshoeCard extends LitElement {
       // config.color_filter.lightness = {};
       // config.color_filter.lightness.min = 0.2;
       // config.color_filter.lightness.max = 1;
+
+      CardTemplates.compile(config, this);
 
       this.dev = { ...config.dev };
 
