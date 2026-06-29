@@ -98,179 +98,200 @@ For FHS child cards, the only extra thing the parent may add is an embedded/fram
 
 ## Template Scope
 
-Templates should be usable where users naturally maintain reusable dashboard config. Preferred scopes:
-
-```yaml
-# Dashboard or view level when Home Assistant passes that config through.
-fhs_templates: !include fhs_templates.yaml
-
-# Card level fallback, always available because it is inside this card config.
-type: custom:flex-horseshoe-card
-fhs_templates: !include fhs_templates.yaml
-```
-
-The implementation should treat `fhs_templates` as a dictionary that is available before card template expansion starts. If Home Assistant does not expose dashboard/view-level custom keys to the card instance, then card-level `fhs_templates` remains the supported fallback.
-
-No different template syntax should be introduced for different scopes. A template named `awair_tile` must look the same whether it came from dashboard, view or card config.
-
-## Template Definition
-
-Templates can live in an `fhs_templates` section:
+Templates should be usable where users naturally maintain reusable dashboard config. The supported shape is a dashboard or view-level `fhs_templates.templates` dictionary:
 
 ```yaml
 fhs_templates:
-  awair_tile:
-    constants:
-      radius: 40
-      state_y: 55
-      name_y: 68
-
-    color_stops: ref(awair_score_colorstops)
-
-    layout:
-      groups:
-        tile:
-          xpos: 50
-          ypos: 50
-
-      rectangles:
-        - id: bg
-          group: tile
-          xpos: 50
-          ypos: 50
-          width: 42
-          height: 42
-          radius: 4
-
-      horseshoes:
-        - id: gauge
-          group: tile
-          entity_index: 0
-          radius: calc(radius)
-
-      states:
-        - id: state
-          group: tile
-          entity_index: 0
-          xpos: 50
-          ypos: calc(state_y)
-
-      names:
-        - id: name
-          group: tile
-          entity_index: 0
-          xpos: 50
-          ypos: calc(name_y)
+  templates:
+    awair_tile:
+      template:
+        type: card
+      card:
+        # normal FHS card config
 ```
 
-A template may contain the same reusable parts as a card:
+The card looks up templates from the Lovelace config and rawConfig, including their views. The syntax of one template is the same regardless of where Home Assistant exposes that dictionary.
+
+No separate template syntax should be introduced for different scopes. A template named `awair_tile` must be reusable by a root FHS card and by an FHS child card.
+
+## Template Definition
+
+Templates live in an `fhs_templates.templates` dictionary. Each template declares its body type explicitly.
+
+A full card template uses `type: card` and a `card:` body. Keep concrete entities in the card instance when the same template must be reused for different entities. The template should contain the reusable card structure:
 
 ```yaml
-constants:
-palettes:
+fhs_templates:
+  templates:
+    awair_tile:
+      template:
+        type: card
+        defaults:
+          - label: Awair
+          - max: 100
+      card:
+        constants:
+          max: '[[max]]'
+          label: '[[label]]'
+          state_y: 55
+          name_y: 68
+
+        layout:
+          groups:
+            tile:
+              xpos: 50
+              ypos: 50
+
+          rectangles:
+            - id: bg
+              group: tile
+              xpos: 50
+              ypos: 50
+              width: 42
+              height: 42
+              radius: 4
+
+          states:
+            - id: state
+              group: tile
+              entity_index: 0
+              xpos: 50
+              ypos: calc(state_y)
+
+          names:
+            - id: name
+              group: tile
+              entity_index: 0
+              xpos: 50
+              ypos: calc(name_y)
+```
+
+Use that card template from a normal FHS card instance. The instance supplies concrete entities and any template variables that differ per use:
+
+```yaml
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_score
+    name: Awair Element
+    area: Study
+  - entity: sensor.awair_element_study_temperature
+    name: Temp
+    area: Study
+
+template:
+  name: awair_tile
+  variables:
+    - label: Study Awair
+    - max: 100
+```
+
+Reusable sub-config uses its own type and matching body key:
+
+```yaml
+fhs_templates:
+  templates:
+    awair_score_colorstops:
+      template:
+        type: color_stops
+      color_stops:
+        colors:
+          - value: 0
+            color: '#7e39d6'
+            rank: 4
+          - value: 79.5
+            color: '#49ce4b'
+            rank: 0
+```
+
+Use inside a card or another template:
+
+```yaml
 color_stops:
-color_filter:
-styles:
-layout:
+  template:
+    name: awair_score_colorstops
 ```
 
-The instance supplies the data and placement:
+A layout item can also be a template use. The local keys override or extend the template body:
 
 ```yaml
-cards:
-  - template: awair_tile
+horseshoes:
+  - template:
+      name: awair_level_horseshoe
     id: voc
-    xpos: 75
-    ypos: 50
-    entities:
-      - entity: sensor.awair_voc
-    color_stops: ref(awair_voc_colorstops)
+    entity_index: 2
 ```
 
 ## Template Input
 
-FHS must understand `template:` itself before the normal config pipeline continues.
+FHS must understand `template:` before the normal config pipeline continues.
 
-`variables` stays, but only as template input. This matches how template systems normally work.
+`variables` is only template input for `[[...]]` replacement. The old use of root-level `variables` as JavaScript-template storage is removed. Fixed/reused values inside a card use `constants`.
 
-The old use of `variables` as a general JavaScript-template value store should disappear. Values that are fixed/reused inside the card move to `constants`.
-
-Use `variables` for values supplied by the root template use or by a `cards[]` template instance. Use `constants` for fixed reusable values inside the template/card.
+Template use:
 
 ```yaml
-fhs_templates:
-  awair_tile:
-    constants:
-      label: VOC
-      state_y: 55
-
-    layout:
-      names:
-        - id: name
-          text: calc(label)
-          ypos: calc(state_y)
+template:
+  name: awair_tile
+  variables:
+    - entity: sensor.awair_score
+    - label: Awair
+    - max: 100
 ```
 
-Instance override:
+Inside the template body:
 
 ```yaml
-cards:
-  - template: awair_tile
-    id: voc
-    constants:
-      label: VOC
+constants:
+  max: '[[max]]'
+  label: '[[label]]'
 ```
+
+The concrete `entities:` list normally stays in the card instance. Put entities in a template only when that template is intentionally bound to those exact entities.
 
 Rule:
 
 ```text
-constants = fixed reusable values owned by the template/card
-variables = template input supplied by root template use or cards[] instance
+variables = input supplied to one template use for [[...]] replacement
+constants = fixed/reusable values owned by the compiled card config
 ```
 
-## Card Instance Placement Uses Groups
+JavaScript templates receive `constants`, not `variables`.
 
-A template instance should be positioned by an automatically created group.
+## Child Card Composition Does Not Use Groups
 
-Example:
+`cards[]` does not expand child content into the parent FHS layout. A child card is a real Lovelace card instance created by the Home Assistant card helper.
+
+That means child placement is HTML wrapper placement, not SVG group placement. The parent FHS card does not create generated groups for child cards and does not move child tools into the parent SVG.
+
+Current model:
+
+```text
+parent FHS
+-> own SVG/tools/groups/entities/templates
+-> child-card wrapper div
+   -> real child card instance
+      -> own SVG/tools/groups/entities/templates
+```
+
+The parent owns only:
 
 ```yaml
 cards:
-  - template: awair_tile
-    id: voc
-    xpos: 75
+  - type: custom:flex-horseshoe-card
+    xpos: 25
     ypos: 50
+    width: 40
+    height: 40
+    zpos: 100
 ```
 
-The template expander creates a group for this instance, for example:
+The child owns everything inside its own config:
 
 ```yaml
-layout:
-  groups:
-    card_voc:
-      xpos: 75
-      ypos: 50
-```
-
-All layout items expanded from the template are placed under that group unless they already specify a more specific generated child group.
-
-The normal group rule remains unchanged:
-
-```text
-50,50 is the local center
-parent.x + child.x - 50 gives the effective x
-parent.y + child.y - 50 gives the effective y
-```
-
-This keeps card placement consistent with the existing group tree. No separate card-position math is needed.
-
-## Group Namespacing
-
-Template groups must be namespaced per instance so multiple copies do not collide.
-
-Template:
-
-```yaml
+template:
+  name: awair_tile
+entities:
+  - entity: sensor.awair_voc
 layout:
   groups:
     tile:
@@ -278,106 +299,59 @@ layout:
       ypos: 50
 ```
 
-Instance:
+Those child groups are local to the child card. They are not visible to the parent and are not namespaced by the parent.
+
+## No Cross-Card Namespacing Or Entity Mapping
+
+Because every child card is a separate card instance, the parent must not rewrite child internals.
+
+The parent does not:
+
+- namespace child `layout.groups`;
+- namespace child item `id` values;
+- rewrite child `same_as`;
+- append child `entities` to the parent `entities`;
+- shift child `entity_index`;
+- compile child `ref()` or `calc()`;
+- merge child tools into the parent SVG.
+
+Each child card runs its own normal `setConfig()` pipeline. Therefore ids, filters, SVG defs, groups, color stops, templates and entities remain unique by card instance.
+
+If a child card is FHS, it handles its own FHS config. If a child card is SAK, markdown, graph, or another custom card, it handles its own config. FHS parent only positions the created element and forwards `hass`.
+
+## Template Use Inside Child Cards
+
+A child card may still use `template:`. The parent must pass that key through unchanged.
+
+Example:
 
 ```yaml
 cards:
-  - template: awair_tile
-    id: voc
+  - type: custom:flex-horseshoe-card
+    template:
+      name: awair_tile
+      variables:
+        - entity: sensor.awair_voc
+        - label: VOC
+    xpos: 25
+    ypos: 50
+    width: 40
+    height: 40
 ```
 
-Expanded group ids:
+The parent strips only placement fields before creating the child card:
 
 ```yaml
-layout:
-  groups:
-    card_voc:
-      xpos: 75
-      ypos: 50
-
-    card_voc_tile:
-      parent: card_voc
-      xpos: 50
-      ypos: 50
+xpos:
+ypos:
+width:
+height:
+zpos:
+embedded:
+frameless:
 ```
 
-Expanded items that used `group: tile` become:
-
-```yaml
-group: card_voc_tile
-```
-
-Items without a group get:
-
-```yaml
-group: card_voc
-```
-
-That makes the complete template movable as one unit.
-
-## Entity Index Mapping
-
-Inside a template, `entity_index` is local to the template instance.
-
-Template:
-
-```yaml
-layout:
-  states:
-    - id: state
-      entity_index: 0
-```
-
-Instance:
-
-```yaml
-cards:
-  - template: awair_tile
-    id: voc
-    entities:
-      - entity: sensor.awair_voc
-```
-
-During expansion:
-
-1. The instance entities are appended to the root `entities` list.
-2. The template layout entity indexes are shifted by the append position.
-
-So if the root already has 4 entities, template `entity_index: 0` becomes root `entity_index: 4`.
-
-This keeps all tools unchanged. Tools still receive a normal global `entity_index` after expansion.
-
-## Item Id Namespacing
-
-Layout item ids must also be namespaced per instance so `same_as` stays local and predictable.
-
-Template:
-
-```yaml
-layout:
-  rectangles:
-    - id: bg
-    - id: fg
-      same_as: bg
-```
-
-Instance id:
-
-```yaml
-id: voc
-```
-
-Expanded:
-
-```yaml
-layout:
-  rectangles:
-    - id: voc_bg
-    - id: voc_fg
-      same_as: voc_bg
-```
-
-The same rule applies to every layout section.
+The remaining config goes directly to Home Assistant's card helper. The child card then compiles its own templates exactly as if it had been placed directly in Lovelace.
 
 ## same_as Belongs In Its Own Module
 
@@ -418,61 +392,105 @@ No duplicate same_as implementation should be added for templates.
 
 ## Template Expansion Module
 
-Template expansion should also live outside `main.js`.
-
-Suggested file:
+Template expansion lives outside `main.js` in:
 
 ```text
 card-templates.js
 ```
 
-Suggested API:
+Current API:
 
 ```js
-CardTemplates.expand(config);
+CardTemplates.compile(config, card);
 ```
 
-That function performs the whole template expansion step before the normal config pipeline continues.
+That function compiles templates for the current FHS card only. It does not create child cards and it does not expand `cards[]` into the parent layout.
 
-Linear flow inside `CardTemplates.expand(config)`:
+Linear flow inside `CardTemplates.compile(config, card)`:
 
-1. Read `config.fhs_templates`.
-2. Read `config.cards`.
-3. For each card instance, copy the selected template.
-4. Merge template config with instance config, where the instance wins.
-5. Append instance entities to root `entities` and remember the entity index offset.
-6. Namespace layout group ids and item ids with the instance id.
-7. Shift `entity_index` values by the entity offset.
-8. Create the instance root group from `xpos`, `ypos`, `scale`, `rotate` and `flip` when supported by groups.
-9. Append the expanded layout sections to the root layout sections.
-10. Merge reusable sections such as constants, palettes, color stops, styles and filters into the root config.
-11. Remove `cards` from the final config or keep it only for debug; tools should not see it.
+1. Remove local `fhs_templates` from the card config so tools do not see it.
+2. Get the Lovelace config reference for dashboard/view-level templates.
+3. If the current card has root `template:`, compile that template into the current card config.
+4. Walk the current card config and compile nested template objects such as `color_stops.template`, `state_map.template`, or one layout item with `template`.
+5. Skip the `cards[]` section while walking nested templates. Child cards keep their own `template` keys and compile themselves.
+6. Return normal FHS config so the existing config pipeline can continue.
 
-After this step, the rest of the card should not know templates existed.
+The template engine is intentionally simple:
+
+```text
+template.name -> catalog entry -> template.type -> catalogEntry[type] -> merge local overrides
+```
+
+Examples:
+
+```yaml
+color_stops:
+  template:
+    name: fhs_colorstops_awair_score
+```
+
+uses:
+
+```yaml
+fhs_templates:
+  templates:
+    fhs_colorstops_awair_score:
+      template:
+        type: color_stops
+      color_stops:
+        colors:
+          - value: 0
+            color: green
+```
+
+A layout item can also be a template use:
+
+```yaml
+horseshoes:
+  - template:
+      name: fhs_horseshoe_awair_level
+    id: score
+    entity_index: 0
+```
+
+uses:
+
+```yaml
+fhs_templates:
+  templates:
+    fhs_horseshoe_awair_level:
+      template:
+        type: horseshoe
+      horseshoe:
+        radius: 40
+        arc_degrees: 270
+```
+
+The template engine does not validate that `type: horseshoe` is used inside `layout.horseshoes`. If the user puts the wrong template type in the wrong section, that is a real config error and the normal builder may fail.
 
 ## Merge Rules
 
 Template expansion is not the same as `same_as`.
 
-Template merge is card-level config merge:
+Template merge is config-object merge:
 
 ```text
-template config + instance config = instance card config
+template body + local config = compiled config object
 ```
 
-The instance wins.
-
-Lists in layout sections should not be merged by index. They are concatenated after namespacing.
-
-Reusable dictionaries are merged by key:
+The local config wins. That allows this pattern:
 
 ```yaml
-constants:
-palettes:
-color_stops:
-styles:
-color_filter:
+horseshoes:
+  - template:
+      name: fhs_horseshoe_awair_level
+    id: voc
+    entity_index: 2
 ```
+
+The template body supplies the reusable shape, and the local object supplies the instance-specific id/entity/position overrides.
+
+Use `Merge.mergeDeep()` for cloning and merging template bodies. Do not use object spread for config/template cloning, because template bodies and arrays must become writable normal config objects before the rest of the pipeline mutates them.
 
 Direct `ref(...)` replacement remains handled by the existing ref/same_as behavior later in the pipeline. Do not duplicate that logic in the template module.
 
@@ -710,9 +728,10 @@ SameAs.compile(config);
 
 Template lookup order:
 
-1. card config `fhs_templates`;
-2. dashboard/view templates if Home Assistant exposes them to the card;
-3. otherwise no magic fallback.
+1. Lovelace config `fhs_templates.templates`;
+2. Lovelace rawConfig `fhs_templates.templates`;
+3. the same lookup inside each view in both objects;
+4. otherwise no magic fallback.
 
 Build and test:
 
@@ -822,7 +841,7 @@ Default child card mode should be frameless unless explicitly disabled.
 The parent wrapper can mark child cards:
 
 ```html
-<div class="fhs-child-card fhs-child-card--frameless">
+<div class="fhs-child-card fhs-child-card--frameless"></div>
 ```
 
 After the helper-created card renders, try to neutralize the visible `ha-card` shell:

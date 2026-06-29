@@ -10,9 +10,9 @@ tags:
 
 # YAML card structure
 
-A Flexible Horseshoe Card is configured with YAML. The card definition starts with the card type and then adds the parts the card needs: entities, card options, styles, animations, and the visual layout.
+A Flexible Horseshoe Card is configured with YAML. The card definition starts with the card type and then adds the parts the card needs: entities, card options, styles, animations, optional templates, composed cards, and the visual layout.
 
-The `layout` section contains the visual elements that are drawn on the card, such as horseshoes, states, names, icons, circles, and lines.
+The `layout` section contains the visual elements drawn on the card, such as horseshoes, states, names, icons, circles, and lines.
 
 This page gives a high-level overview of the card structure. The individual sections are explained in more detail on their own pages.
 
@@ -20,7 +20,7 @@ This page gives a high-level overview of the card structure. The individual sect
 
 A typical card has this structure:
 
-```yaml linenums="1" hl_lines="1 4 7 10 13 18 21 24 27 30 33 36 39 42 45"
+```yaml linenums="1" hl_lines="1 4 7 10 13 16 19 22 25 28 31 34 37 40 43 46 49"
 - type: custom:flex-horseshoe-card
 
   entities:
@@ -33,6 +33,12 @@ A typical card has this structure:
 
   animations:
     <animation definitions>
+
+  template:
+    <template definition>
+
+  cards:
+    - <composed card definitions>
 
   layout:
 
@@ -67,6 +73,43 @@ A typical card has this structure:
       - <vertical line layout items>
 ```
 
+## :material-horseshoe: Load a card from a template
+
+A card can use a named template to define its structure. The template provides the reusable card configuration, while the card instance can provide its own entities and variables.
+
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  template:
+    name: awair_tile
+    entities:
+      - entity: sensor.awair_score
+    variables:
+      - fhs_max: 100
+```
+
+Use templates when multiple cards share the same layout or styling but use different entities, values, or variables.
+
+## :material-horseshoe: Compose multiple cards
+
+You can define and place other cards inside a Flexible Horseshoe Card by using the top-level `cards` section.
+
+Each composed card can have its own type, template, entities, position, and size.
+
+```yaml linenums="1"
+type: custom:flex-horseshoe-card
+cards:
+  - type: custom:flex-horseshoe-card
+    template: awair_tile
+    xpos: 25
+    ypos: 50
+    width: 40
+    height: 40
+    entities:
+      - entity: sensor.awair_score
+```
+
+Composed cards are positioned on the parent card canvas. Use `xpos` and `ypos` to place the card, and `width` and `height` to control its size.
+
 ## :material-horseshoe: Top-level card options
 
 The top level of the card contains the general configuration.
@@ -78,13 +121,15 @@ The top level of the card contains the general configuration.
 | `aspectratio` | Defines the shape of the card |
 | `styles` | Styles the card itself, such as background color or background image |
 | `animations` | Defines reusable animations |
+| `template` | Loads a named template for the card |
+| `cards` | Defines one or more cards placed inside the current card |
 | `layout` | Contains the visual elements shown on the card |
 
 ## :material-horseshoe: Entities
 
 The `entities` section defines the data the card can use.
 
-A minimal entity definition only needs the entity id:
+A minimal entity definition only needs the entity ID:
 
 ```yaml linenums="1"
 entities:
@@ -116,7 +161,7 @@ For example:
 aspectratio: 1/1
 ```
 
-creates a square card. In this case, the base layout canvas is `100 x 100`.
+This creates a square card. In this case, the base layout canvas is `100 x 100`.
 
 A wider card can use another ratio:
 
@@ -250,4 +295,5 @@ For more detail, continue with the pages about:
 - groups and positioning
 - CSS styling
 - templating
+- composed cards
 - reuse

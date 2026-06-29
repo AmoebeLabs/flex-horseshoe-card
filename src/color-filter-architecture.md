@@ -1,141 +1,88 @@
-# Flexible Horseshoe Card
+# Flexible Horseshoe Card - Color Filter Architecture
 
-# Color Engine Architecture (Draft v2)
+## Goal
 
-> Architecture Decision Document (ADD)
+`color_filter` transforms real colors before render without relying on browser CSS filters. The implementation uses Culori and returns normal renderable RGB/RGBA colors.
 
----
+The filter is applied late, after the normal style/color selection is known. It should behave like `styles`: config decides the cascade, render receives final style values.
 
-# 1. Vision
+## Current Scope
 
-The Color Engine provides a generic, browser-independent way to resolve and transform
-colors for every visual element inside the Flexible Horseshoe Card.
+The current implementation lives in `color-filter.js`.
 
-Instead of depending on CSS filters, all transformations are performed internally
-using Culori (OKLCH / OKLab).
-
-Goals:
-
-- One color system
-- One inheritance model
-- One processing pipeline
-- Theme awareness
-- Browser independence
-- Reusable everywhere
-
----
-
-# 2. Core Principles
-
-- Colors are semantic data, not CSS effects.
-- `color_filter` follows the same cascade model as `styles`.
-- Users describe _what_ they want.
-- The engine decides _how_ to process it.
-- Rendering always receives resolved RGB colors.
-
----
-
-# 3. Hierarchy
+Supported color properties:
 
 ```text
-Root Configuration
-        ↓
-Group
-        ↓
-Child Group
-        ↓
-Item
-        ↓
-State / Segment
-        ↓
-Animation
+fill
+stroke
+color
+stop-color
+flood-color
 ```
 
-Root behaves as the visual root context.
+Supported filter keys:
 
-No dedicated `card:` object is required.
+```text
+grayscale
+monochrome
+duotone
+preserve_neutral
+lightness
+brightness
+contrast
+saturation
+opacity
+```
 
----
+Not currently supported:
 
-# 4. Cascade
+```text
+theme_monochrome
+theme_duotone
+hue rotation
+tint
+invert
+sepia
+threshold
+separate grayscale_map key
+separate lightness_map key
+```
 
-Each level may:
+`grayscale` and `lightness` already support both direct numeric values and `{ min, max }` mapping objects, so separate `*_map` keys are not needed.
 
-- inherit parent filters
-- disable inheritance
-- add filters
-- override filters
+## Cascade
 
-Example:
+`color_filter` uses an ordered cascade and is merged with `Merge.mergeDeep()`.
+
+Current sources include:
+
+```text
+root card color_filter
+active group color_filter entries
+item/tool color_filter
+layer-specific color_filter where supported
+state/color-stop specific color_filter where supported
+```
+
+A filter can reset inherited filters with:
 
 ```yaml
 color_filter:
-  monochrome: '#2B93A6'
-
-groups:
-  warning:
-    color_filter:
-      inherit: false
+  inherit: false
 ```
 
----
+After `inherit: false`, only the filters defined at that level and below remain active.
 
-# 5. Processing Pipeline
+## Property-Specific Filters
 
-```text
-Resolve source color
-        ↓
-Resolve theme mode
-        ↓
-Normalize
-        ↓
-Remap
-        ↓
-Adjustments
-        ↓
-Opacity
-        ↓
-Convert to RGB
-        ↓
-Render
-```
-
-Pipeline order is internal and fixed.
-
-Users never configure processing order.
-
----
-
-# 6. Theme Modes (already implemented)
-
-Extended color stop definitions may support multiple modes.
+A filter can apply globally:
 
 ```yaml
-color_stops:
-  modes:
-    light:
-      - value: 0
-        color: green
-      - value: 100
-        color: red
-
-    dark:
-      - value: 0
-        color: red
-      - value: 100
-        color: green
+color_filter:
+  grayscale: 1
 ```
 
-Selection:
-
-```
-hass.themes.darkMode
-```
-
-# Specific for fill and stroke for example
-
-Select per property that the filter should apply to.
-But what about if you want the filter to apply to all colors. So color, fill, stroke, ? more?
+Or only to one color property:
 
 ```yaml
 color_filter:
@@ -146,245 +93,247 @@ color_filter:
     saturation: 0.4
 ```
 
-```Javascript
-applyColorFilterToStyle(styles, colorFilter) {
-  for (const [property, filter] of Object.entries(colorFilter)) {
-    styles[property] = applyColorFilter(styles[property], filter);
-  }
-}
+Global filter keys and property-specific filter keys are merged per property. Property-specific settings win for that property.
+
+## Processing Order
+
+The processing order is fixed in code:
+
+```text
+source color
+-> resolve CSS color / CSS var to RGBA
+-> grayscale
+-> monochrome
+-> duotone
+-> lightness
+-> brightness
+-> contrast
+-> saturation
+-> opacity
+-> RGB/RGBA for render
 ```
 
----
+Users do not configure this order.
 
-# 7. Built-in Filters
+The filter skips these color values because they are not concrete colors:
 
-## Grayscale
-
-Convert colors to grayscale.
-
-- grayscale mapping
-- custom lightness range
-
-same question as before> separate lightness and lightness_map, or support both forms, dus as grayscale.
-
-```yaml
-grayscale: 1
-lightness_map:
-  min: 0.25
-  max: 0.85
+```text
+none
+currentColor
+inherit
+url(...)
 ```
 
-## Monochrome
+## Supported Filters
 
-```yaml
-color_filter:
-  monochrome: '#2B93A6'
-```
+### grayscale
 
-Preserve relative lightness.
-
-Use cases:
-
-- branding
-- print
-- simplified dashboards
-
-## Duotone
+Numeric value mixes between original color and full grayscale.
 
 ```yaml
 color_filter:
-  duotone:
-    dark: '#1B4965'
-    light: '#C2E7F0'
+  grayscale: 1
 ```
-
-Preserve relative lightness while mapping every color
-between two selected colors.
-
-## Theme Monochrome
-
-```yaml
-color_filter:
-  theme_monochrome: primary
-```
-
-## Theme Duotone
-
-```yaml
-color_filter:
-  theme_duotone:
-    dark: primary
-    light: accent
-```
-
----
-
-# 8. Adjustments
-
-May be combined freely.
-
-```yaml
-color_filter:
-  brightness: 1.1
-  contrast: 1.05
-  saturation: 0.8
-  opacity: 0.7
-```
-
-The engine always applies them in a consistent order.
-
----
-
-# 9. Groups
-
-Groups become visual contexts.
-
-```yaml
-groups:
-  energy:
-    color_filter:
-      monochrome: '#2B93A6'
-
-  warning:
-    color_filter:
-      inherit: false
-```
-
-This allows complete visual zones to share behavior.
-
----
-
-# 10. Root Configuration
-
-Root styles and root color filters act as the card context.
-
-```yaml
-styles: ...
-
-color_filter:
-  monochrome: '#2B93A6'
-```
-
----
-
-# 11. Recipes
-
-## Monochrome
-
-```yaml
-color_filter:
-  monochrome: '#2B93A6'
-```
-
-## Duotone
-
-```yaml
-color_filter:
-  duotone:
-    dark: '#1B4965'
-    light: '#C2E7F0'
-```
-
-## Grayscale setting and mapping
 
 ```yaml
 color_filter:
   grayscale: 0.4
 ```
 
+Object value maps source lightness into a configured range and makes the result grayscale.
+
 ```yaml
 color_filter:
-  grayscale_map:
+  grayscale:
     min: 0.25
     max: 0.85
 ```
 
-or, if possible combined, so always named grayscale. Which can be a numerical value, and a min/max map.
+### lightness
 
-## Exclude one group
+Numeric value sets absolute OKLCH lightness.
 
 ```yaml
-groups:
-  warning:
-    color_filter:
-      inherit: false
+color_filter:
+  lightness: 0.7
 ```
 
-## Theme aware color stops
+Object value maps current lightness into a configured range.
+
+```yaml
+color_filter:
+  lightness:
+    min: 0.2
+    max: 0.9
+```
+
+### monochrome
+
+String shorthand maps colors to one color family while preserving source lightness.
+
+```yaml
+color_filter:
+  monochrome: teal
+```
+
+Object form adds `amount`. `amount: 1` means full monochrome; lower values mix with the original color.
+
+```yaml
+color_filter:
+  monochrome:
+    color: teal
+    amount: 0.6
+```
+
+### duotone
+
+Maps colors between two endpoint colors using source lightness as the mix position.
+
+```yaml
+color_filter:
+  duotone:
+    dark: '#1B4965'
+    light: '#C2E7F0'
+```
+
+`amount` is supported here too.
+
+```yaml
+color_filter:
+  duotone:
+    dark: '#1B4965'
+    light: '#C2E7F0'
+    amount: 0.7
+```
+
+### preserve_neutral
+
+Keeps black, white and neutral gray unchanged for `monochrome` and `duotone`.
+
+```yaml
+color_filter:
+  monochrome:
+    color: teal
+    amount: 1
+  preserve_neutral: true
+```
+
+This is useful for text, dividers and neutral backgrounds.
+
+### brightness
+
+Multiplies OKLCH lightness.
+
+```yaml
+color_filter:
+  brightness: 1.1
+```
+
+### contrast
+
+Moves RGB channels away from or toward middle gray.
+
+```yaml
+color_filter:
+  contrast: 1.05
+```
+
+### saturation
+
+Multiplies OKLCH chroma.
+
+```yaml
+color_filter:
+  saturation: 0.8
+```
+
+### opacity
+
+Multiplies the current alpha channel.
+
+```yaml
+color_filter:
+  opacity: 0.7
+```
+
+## Theme-Aware Color Stops
+
+This is related but separate from `color_filter`.
+
+Extended color stop definitions can choose different colors for light/dark theme mode:
 
 ```yaml
 color_stops:
   modes:
     light:
-      - value: 0
-        color: green
+      colors:
+        - value: 0
+          color: green
+        - value: 100
+          color: red
 
     dark:
-      - value: 0
-        color: red
+      colors:
+        - value: 0
+          color: red
+        - value: 100
+          color: green
 ```
 
----
+Theme mode selection is based on Home Assistant dark mode. After the active color stop color is selected, a `color_filter` can still transform that resulting color during render.
 
-# 12. Future Filters
+## Recipes
 
-- grayscale
-- grayscale mapping
-- monochrome
-- duotone
-- theme monochrome
-- theme duotone
-- brightness
-- contrast
-- saturation
-- hue rotation
-- opacity
-- tint
-- invert
+### Grayscale Scale, Colored State
 
----
+Put the filter on the scale only:
 
-# 13. Mermaid
-
-```mermaid
-graph TD
-Root --> Group
-Group --> ChildGroup
-ChildGroup --> Item
-Item --> State
-State --> Animation
+```yaml
+horseshoe_scale:
+  color_filter:
+    grayscale:
+      min: 0.25
+      max: 0.85
 ```
 
-```mermaid
-graph LR
-Color --> Theme
-Theme --> Normalize
-Normalize --> Remap
-Remap --> Adjust
-Adjust --> Alpha
-Alpha --> RGB
-RGB --> Render
+Do not put the same filter on `horseshoe_state` if the active state should keep the original color stop color.
+
+### Monochrome Card With Neutral Text Preserved
+
+```yaml
+color_filter:
+  monochrome:
+    color: teal
+    amount: 0.8
+  preserve_neutral: true
 ```
 
----
+### Fill Only
 
-# 14. Implementation Notes
+```yaml
+color_filter:
+  fill:
+    duotone:
+      dark: '#1B4965'
+      light: '#C2E7F0'
+      amount: 0.7
+```
 
-- Cache resolved colors.
-- Rebuild on theme changes.
-- Rebuild color stops when modes change.
-- Render layer never performs defaults.
-- Render layer only consumes resolved colors.
+### Disable Inheritance For One Group
 
----
+```yaml
+layout:
+  groups:
+    warning:
+      color_filter:
+        inherit: false
+```
 
-# 15. Summary
+## Implementation Notes
 
-The Color Engine provides a generic color architecture with:
-
-- one cascade
-- one processing pipeline
-- theme awareness
-- browser independence
-- reusable transformations
-- support for branding, accessibility and advanced visualization.
+- `color_filter` is config data, not a CSS `filter` string.
+- Filters are applied to concrete color properties in style dictionaries.
+- CSS variables are resolved through the existing color engine before Culori transforms are applied.
+- If no filter is configured, colors must not change.
+- Filter application belongs as late as possible, where the final render style is known.
+- Template and palette loading should not be modified by the filter engine.
