@@ -20,7 +20,7 @@ This page gives a high-level overview of the card structure. The individual sect
 
 A typical card has this structure:
 
-```yaml linenums="1" hl_lines="1 4 7 10 13 16 19 22 25 28 31 34 37 40 43 46 49"
+```yaml linenums="1" hl_lines="1 3 6 8 11 14 17 20 22 25 28 31 34 37 40 43 46 49"
 - type: custom:flex-horseshoe-card
 
   entities:
