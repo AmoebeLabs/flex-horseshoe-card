@@ -173,6 +173,7 @@ nav:
       - Localization: core-concepts/localization.md
       - Animations: core-concepts/animations.md
       - Color Stops: core-concepts/color-stops.md
+      - Color Filters: core-concepts/color-filters.md
       - CSS Styling: core-concepts/css-styling.md
       - Templating: core-concepts/templating.md
   - Card Layout Sections:

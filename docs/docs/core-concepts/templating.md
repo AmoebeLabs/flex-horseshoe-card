@@ -1,14 +1,269 @@
 ---
 template: main.html
-title: JavaScript templating
-description: Use JavaScript templates to create dynamic configuration based on entity states and attributes.
+title: Templates
+description: Define reusable Flexible Horseshoe Card templates and use JavaScript templates for dynamic values.
 tags:
   - Templating
+  - Templates
   - JavaScript
   - Dynamic Configuration
 ---
 
-# JavaScript templating
+# Templates
+
+The Flexible Horseshoe Card supports two template systems:
+
+- **FHS templates** define reusable configuration blocks, such as card templates, color stop templates, state map templates, and other named template parts.
+- **JavaScript templates** make individual configuration values dynamic while the card is running.
+
+FHS templates are stored in an `fhs_templates` section. This section can be placed in a view or at dashboard level, depending on where you want the templates to be available.
+
+JavaScript templates are written directly inside card configuration values with triple brackets. They are used when a value should depend on an entity state, attribute, or another Home Assistant state.
+
+## :material-horseshoe: FHS templates
+
+FHS templates are named reusable configuration blocks.
+
+They are always defined inside `fhs_templates.templates`:
+
+```yaml linenums="1"
+fhs_templates:
+  templates:
+    <template_name>:
+      template:
+        type: <template_type>
+      <template_content>
+```
+
+The `template.type` field defines what kind of template it is. A template can describe a complete card, but it can also describe reusable parts such as `color_stops` or `state_maps`.
+
+## :material-horseshoe: Where to define `fhs_templates`
+
+The `fhs_templates` section can be defined in a view or in the dashboard configuration.
+
+Use a view-level `fhs_templates` section when the templates are only needed by cards in that view.
+
+Use a dashboard-level `fhs_templates` section when several views should share the same templates.
+
+The structure of the template itself stays the same in both cases:
+
+```yaml linenums="1"
+fhs_templates:
+  templates:
+    awair_test:
+      template:
+        type: card
+      card:
+        entities:
+          - entity: sensor.awair_score
+```
+
+## :material-horseshoe: Template types
+
+FHS templates can be used for different kinds of reusable configuration.
+
+| Template type | Used for |
+| :------------ | :------- |
+| `card` | Reusing a complete or partial Flexible Horseshoe Card configuration |
+| `color_stops` | Reusing color stop definitions |
+| `state_map` / `state_maps` | Reusing state-to-value mappings |
+| other supported template parts | Reusing other named configuration fragments supported by the card |
+
+A `card` template contains a `card` section. Other template types use their own matching content section.
+
+## :material-horseshoe: Template defaults and placeholders
+
+Templates can define default values. These defaults can then be used inside the template content with placeholders.
+
+Placeholders are written with double square brackets:
+
+```yaml linenums="1"
+'[[entity]]'
+'[[label]]'
+'[[max]]'
+```
+
+Defaults are defined under `template.defaults`:
+
+```yaml linenums="1"
+template:
+  type: card
+  defaults:
+    - label: Score
+    - max: 100
+```
+
+When the template is used, the caller can override these values. Values that are not overridden fall back to the defaults.
+
+## :material-horseshoe: Card templates
+
+A `card` template defines reusable card configuration.
+
+Use a card template when multiple cards share the same layout, styling, entities structure, constants, or other card options.
+
+```yaml linenums="1"
+fhs_templates:
+  templates:
+    awair_test:
+      template:
+        type: card
+        defaults:
+          - label: Score
+          - max: 100
+      card:
+        entities:
+          - entity: '[[entity]]'
+            name: '[[label]]'
+
+        dev:
+          debug: true
+
+        constants:
+          max: '[[max]]'
+
+        layout:
+          states:
+            - entity_index: 0
+              xpos: 50
+              ypos: 50
+              color_stops:
+                template:
+                  name: fhs_colorstops_awair_score
+
+          names:
+            - entity_index: 0
+              xpos: 50
+              ypos: 65
+              color_stops:
+                template:
+                  name: fhs_colorstops_awair_score
+```
+
+This template defines a reusable card named `awair_test`.
+
+The card template expects an `entity` value and has default values for `label` and `max`. Inside the template, these values are inserted with `[[entity]]`, `[[label]]`, and `[[max]]`.
+
+The example also shows that a card template can reference other templates. Both the `states` and `names` layout items use the same `color_stops` template named `fhs_colorstops_awair_score`.
+
+## :material-horseshoe: Loading a card template
+
+A card can load a named card template with the top-level `template` option.
+
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  template:
+    name: awair_test
+    entity: sensor.awair_score
+    label: Score
+    max: 100
+```
+
+The template provides the reusable card configuration. The card instance provides the values that should be inserted into the placeholders.
+
+## :material-horseshoe: Color stop templates
+
+Color stop templates let you reuse the same color stop definition in multiple layout items or multiple cards.
+
+A color stop template is useful when several states, names, horseshoes, or other visual elements should use the same value-to-color rules.
+
+```yaml linenums="1"
+fhs_templates:
+  templates:
+    fhs_colorstops_awair_score:
+      template:
+        type: color_stops
+      color_stops:
+        0: '#d32f2f'
+        60: '#fbc02d'
+        80: '#388e3c'
+        100: '#00c853'
+```
+
+You can then reference the template from a card or from another card template:
+
+```yaml linenums="1"
+color_stops:
+  template:
+    name: fhs_colorstops_awair_score
+```
+
+This keeps repeated color logic in one place.
+
+## :material-horseshoe: State map templates
+
+State map templates let you reuse mappings from states to labels, icons, colors, styles, or other supported values.
+
+Use them when the same state interpretation is needed in more than one card or layout item.
+
+```yaml linenums="1"
+fhs_templates:
+  templates:
+    fhs_state_map_battery:
+      template:
+        type: state_map
+      state_map:
+        charging:
+          label: Charging
+          icon: mdi:battery-charging
+        discharging:
+          label: Discharging
+          icon: mdi:battery-arrow-down
+        idle:
+          label: Idle
+          icon: mdi:battery
+```
+
+A card or template can reference the state map by name:
+
+```yaml linenums="1"
+state_map:
+  template:
+    name: fhs_state_map_battery
+```
+
+Use the singular or plural template type that matches the supported configuration field in your card version.
+
+## :material-horseshoe: Compose multiple cards
+
+You can define and place other cards inside a Flexible Horseshoe Card by using the top-level `cards` section.
+
+Each composed card can have its own type, template, entities, position, and size.
+
+```yaml linenums="1"
+type: custom:flex-horseshoe-card
+cards:
+  - type: custom:flex-horseshoe-card
+    template:
+      name: awair_test
+      entity: sensor.awair_score
+      label: Score
+      max: 100
+    xpos: 25
+    ypos: 50
+    width: 40
+    height: 40
+```
+
+Composed cards are positioned on the parent card canvas. Use `xpos` and `ypos` to place the card, and `width` and `height` to control its size.
+
+## :material-horseshoe: When to use FHS templates
+
+Use FHS templates when configuration should be reusable before the card is rendered.
+
+| Use | Best option |
+| :-- | :---------- |
+| Reuse a complete or partial card configuration | `type: card` template |
+| Create similar cards with different entities | Card template with placeholders |
+| Create similar cards with different labels or limits | Card template with defaults and placeholders |
+| Reuse the same color stop rules | `type: color_stops` template |
+| Reuse the same state mapping | `type: state_map` or `type: state_maps` template |
+| Place multiple reusable cards inside one card | `cards` with card templates |
+
+FHS templates are static reusable definitions. They are resolved as part of the card configuration.
+
+Use JavaScript templates when a value must be calculated dynamically while the card is active.
+
+## :material-horseshoe: JavaScript templating
 
 JavaScript templates make parts of the card configuration dynamic.
 
@@ -19,9 +274,13 @@ This is useful when a visual element should change while Home Assistant is runni
 !!! info "Available since v5.4.1"
     JavaScript templates are supported in the `styles` section for dynamic styling based on entity or attribute values.
 
-    Later versions also add template support in other parts of the configuration, such as entity definitions, color stops, and reusable variables.
+    Later versions (as of v5.4.7) also add template support in other parts of the configuration, such as entity definitions, color stops, and reusable constants.
 
-## :material-horseshoe: Template syntax
+!!! warning "Breaking change in v5.4.7-dev.14"
+    The `variables` are renamed to `constants` as `variables` are used by the Template engine to replace card, colors and more with a defined template.
+    You have to move the stuff under `variables` to the `constants` section, and rename the `variables[]` to `constants[]`. The functinality remains the same!
+
+## :material-horseshoe: JavaScript template syntax
 
 A JavaScript template is written between triple brackets:
 
@@ -45,15 +304,15 @@ fill: |
 
 The template must return the value that should be used by the card.
 
-## :material-horseshoe: Available variables
+## :material-horseshoe: Available constants
 
-The following variables are available inside JavaScript templates:
+The following constants are available inside JavaScript templates:
 
 | Variable | Description |
 | :------- | :---------- |
 | `state` | The state of the entity connected to the current item |
 | `states` | All Home Assistant states from `hass.states` |
-| `variables` | Reusable values or templates defined in the card-level `variables` section |
+| `constants` | Reusable values or templates defined in the card-level `constants` section |
 
 ### `state`
 
@@ -76,16 +335,16 @@ const value = Number(states['sensor.battery_power'].state);
 ```
 
 !!! note
-    Entity ids must be written as strings inside square brackets, for example `states['sensor.battery_power']`.
+    Entity IDs must be written as strings inside square brackets, for example `states['sensor.battery_power']`.
 
-### `variables`
+### `constants`
 
-Use `variables` when you want to reuse the same template or value in multiple places.
+Use `constants` when you want to reuse the same template or value in multiple places.
 
 Example:
 
 ```yaml linenums="1"
-[[[ return variables['flashAnimation']; ]]]
+[[[ return constants['flashAnimation']; ]]]
 ```
 
 ## :material-horseshoe: Dynamic styling based on the current entity
@@ -134,9 +393,9 @@ names:
           ]]]
 ```
 
-## :material-horseshoe: Reusing templates with `variables`
+## :material-horseshoe: Reusing JavaScript templates with `constants`
 
-For larger cards, templates can become repetitive. The card-level `variables` section lets you define reusable templates or reusable values once and use them in multiple places.
+For larger cards, templates can become repetitive. The card-level `constants` section lets you define reusable templates or reusable values once and use them in multiple places.
 
 This keeps the YAML easier to read and makes later changes safer.
 
@@ -168,7 +427,7 @@ This keeps the YAML easier to read and makes later changes safer.
     - entity: light.livingroom_light_duo_left_light
       name: 'extra hall'
       icon: mdi:lightbulb
-  variables:
+  constants:
     # Flash if state > 0.3. 3 times for 1 second
     flashAnimation: |
       [[[
@@ -188,7 +447,7 @@ This keeps the YAML easier to read and makes later changes safer.
           3: `[[[ return 'red'; ]]]`,
           5: `[[[ return 'purple'; ]]]`,
         };
-        ]]]
+      ]]]
     # Color stop definition defined fully by JavaScript template
     testColorStops2: |
       [[[
@@ -201,7 +460,7 @@ This keeps the YAML easier to read and makes later changes safer.
           5: 'purple',
         };
       ]]]
-    # Full YAML definition of a colorstop
+    # Full YAML definition of a color stop
     testColorStops3:
       0: 'blue'
       0.1: 'green'
@@ -211,9 +470,9 @@ This keeps the YAML easier to read and makes later changes safer.
       5: 'purple'
 ```
 
-## :material-horseshoe: Using reusable templates
+## :material-horseshoe: Using reusable JavaScript templates
 
-After defining reusable values or templates in `variables`, you can reference them elsewhere in the card.
+After defining reusable values or templates in `constants`, you can reference them elsewhere in the card.
 
 This example uses a reusable animation template for the horseshoe state and a reusable color stop definition for the horseshoe colors.
 
@@ -240,26 +499,26 @@ horseshoes:
       styles:
         - animation: |
             [[[
-              return variables['flashAnimation'];
+              return constants['flashAnimation'];
             ]]]
     color_stops: |
-      [[[ return variables['testColorStops3']; ]]]
+      [[[ return constants['testColorStops3']; ]]]
 ```
 
 ## :material-horseshoe: Advanced example: heavily templated battery card
 
-The example below shows how far JavaScript templating can be taken. It combines reusable variables, dynamic entity icons, dynamic icon colors, state-based animations, and direct access to several Home Assistant states.
+The example below shows how far JavaScript templating can be taken. It combines reusable constants, dynamic entity icons, dynamic icon colors, state-based animations, and direct access to several Home Assistant states.
 
 !!! warning "Advanced example"
     This example is intentionally large. It is meant to show what is possible, not as a recommended starting point for every card.
 
     It was created before Reuse™ was implemented.
-    When a card starts to contain many repeated templates, consider simplifying the logic, using `variables`, or moving repeated behavior into smaller reusable pieces.
+    When a card starts to contain many repeated templates, consider simplifying the logic, using `constants`, or moving repeated behavior into smaller reusable pieces.
 
 ??? info "Advanced example with a lot of templating!"
     ```yaml title="Advanced templated battery card" linenums="1"
     type: custom:flex-horseshoe-card
-    variables:
+    constants:
       batteryLevel: |
         [[[
           const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
@@ -284,8 +543,8 @@ The example below shows how far JavaScript templating can be taken. It combines 
           [[[
             const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
 
-            const level = variables['batteryLevel'];
-            const charging = variables['batteryCharging'];
+            const level = constants['batteryLevel'];
+            const charging = constants['batteryCharging'];
 
             if (!Number.isFinite(soc)) return 'mdi:battery-unknown';
 
@@ -352,8 +611,8 @@ The example below shows how far JavaScript templating can be taken. It combines 
                 [[[
                   const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
 
-                  const level = variables['batteryLevel'];
-                  const charging = variables['batteryCharging'];
+                  const level = constants['batteryLevel'];
+                  const charging = constants['batteryCharging'];
 
                   if (!Number.isFinite(soc)) return 'mdi:battery-unknown';
 
@@ -392,8 +651,8 @@ The example below shows how far JavaScript templating can be taken. It combines 
                 [[[
                   const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
 
-                  const level = variables['batteryLevel'];
-                  const charging = variables['batteryCharging'];
+                  const level = constants['batteryLevel'];
+                  const charging = constants['batteryCharging'];
 
                   if (!Number.isFinite(soc)) return 'mdi:battery-unknown';
 
@@ -476,8 +735,8 @@ The example below shows how far JavaScript templating can be taken. It combines 
                 [[[
                   const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
 
-                  const level = variables['batteryLevel'];
-                  const charging = variables['batteryCharging'];
+                  const level = constants['batteryLevel'];
+                  const charging = constants['batteryCharging'];
 
                   if (!Number.isFinite(soc)) return 'mdi:battery-unknown';
 
@@ -516,8 +775,8 @@ The example below shows how far JavaScript templating can be taken. It combines 
                 [[[
                   const soc = Number(states['sensor.sh15t_a2572404405_battery_level_soc']?.state);
 
-                  const level = variables['batteryLevel'];
-                  const charging = variables['batteryCharging'];
+                  const level = constants['batteryLevel'];
+                  const charging = constants['batteryCharging'];
 
                   if (!Number.isFinite(soc)) return 'mdi:battery-unknown';
 
@@ -711,37 +970,45 @@ The example below shows how far JavaScript templating can be taken. It combines 
 
 ## :material-horseshoe: What this example demonstrates
 
-This card uses templating in several different places:
+This card uses JavaScript templating in several different places:
 
 | Template location | Purpose |
 | :---------------- | :------ |
-| `variables.batteryLevel` | Converts the battery state of charge to a rounded battery icon level |
-| `variables.batteryCharging` | Checks whether the battery is currently charging |
+| `constants.batteryLevel` | Converts the battery state of charge to a rounded battery icon level |
+| `constants.batteryCharging` | Checks whether the battery is currently charging |
 | `entities.icon` | Selects different icons based on battery, grid, or power flow state |
 | `animations.icons.icon` | Updates icons as part of state-based animation rules |
 | `animations.icons.styles.fill` | Changes icon colors dynamically |
 | `layout.icons.styles.fill` | Applies dynamic fallback colors directly on layout icons |
 
-The example also shows why `variables` are important. Without them, the same battery-level and charging logic would have to be repeated even more often.
+The example also shows why `constants` are important. Without them, the same battery-level and charging logic would have to be repeated even more often.
 
-## :material-horseshoe: Static configuration vs dynamic templates
+## :material-horseshoe: Static configuration, FHS templates, and dynamic templates
 
-JavaScript templates are meant for values that can change while the card is active.
+FHS templates and JavaScript templates solve different problems.
 
-Use static configuration when a value is known in advance. Use JavaScript templates when the value depends on an entity state, attribute, or other dynamic data.
+Use static configuration when a value is known in advance. Use FHS templates when you want to reuse card configuration, color stops, state maps, or other named configuration fragments. Use JavaScript templates when a value depends on an entity state, attribute, or other dynamic data.
 
 | Use | Best option |
 | :-- | :---------- |
-| Reuse the same static style block | `constants` and `ref()` |
+| Reuse a complete or partial card configuration | FHS `card` template |
+| Create multiple similar cards with different entities | FHS card template with placeholders |
+| Create multiple similar cards with different limits or labels | FHS card template with defaults |
+| Reuse the same color stop rules | FHS `color_stops` template |
+| Reuse the same state mapping | FHS `state_map` or `state_maps` template |
+| Place multiple reusable cards inside one card | `cards` with FHS card templates |
+| Reuse the same static style block inside one card | `constants` and `ref()` |
 | Calculate a fixed position or size | `calc()` |
 | Copy similar layout items | `same_as` |
 | Change a style based on an entity state | JavaScript template |
 | Change an icon based on an entity state | JavaScript template |
-| Reuse a dynamic expression | `variables` |
+| Reuse a dynamic expression inside one card | JavaScript template in `constants` |
 
 ## :material-horseshoe: Practical tips
 
 Keep templates as small as possible. Short templates are easier to read, debug, and reuse.
+
+Use card templates for repeated card structures. Use JavaScript templates only for values that need to change dynamically.
 
 Convert numeric states with `Number()` before comparing them:
 
@@ -754,4 +1021,4 @@ Always return a valid value for the field you are templating. For example, a sty
 When reading another entity through `states`, make sure that entity exists. Missing or unavailable entities can otherwise return unexpected values.
 
 !!! tip
-    Use `variables` for templates that appear more than once. This keeps large cards cleaner and makes behavior easier to change later.
+    Use card templates for repeated card layouts. Use `constants` for templates or values that appear more than once inside a card.

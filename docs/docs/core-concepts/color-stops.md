@@ -90,6 +90,96 @@ The card supports several color stop formats.
 
 For new cards, the preferred or preferred compact format is recommended. The legacy form is mainly kept for existing configurations.
 
+## :material-horseshoe: Light and dark mode color stops
+
+Color stops can define separate values for Home Assistant light and dark mode.
+
+This uses a `modes` section with `light` and/or `dark` entries. The structure follows the same idea as Home Assistant theme modes: the active Home Assistant mode determines which mode-specific definition is used.
+
+```yaml linenums="1"
+color_stops:
+  gap: 2
+  colors:
+    0: '#838383'
+    1: '#fcc449'
+    2: '#ed8003'
+    3: '#e73f10'
+  modes:
+    dark:
+      0: 'light-gray'
+      1: 'yellow'
+      2: '#ed8003'
+      3: '#e73f10'
+    light:
+      0: '#838383'
+      1: '#fcc449'
+      2: '#ed8003'
+      3: '#e73f10'
+```
+
+When the current Home Assistant mode has a matching entry in `modes`, that mode definition is used.
+
+If the current mode does not have a matching entry, the card falls back to the normal `colors` definition.
+
+This means:
+
+| Active mode | Used definition |
+| :---------- | :-------------- |
+| Light mode and `modes.light` exists | `modes.light` |
+| Dark mode and `modes.dark` exists | `modes.dark` |
+| Light mode but `modes.light` is missing | `colors` |
+| Dark mode but `modes.dark` is missing | `colors` |
+| No `modes` section is defined | `colors` |
+
+The normal `colors` definition is therefore still useful as the default color stop set.
+
+!!! note
+    The `modes` section is not a color format by itself. It selects a mode-specific color stop definition for the active Home Assistant theme mode.
+
+### Dark mode only
+
+You can define only a dark mode override and keep `colors` as the default fallback for light mode:
+
+```yaml linenums="1"
+color_stops:
+  gap: 2
+  colors:
+    0: '#838383'
+    1: '#fcc449'
+    2: '#ed8003'
+    3: '#e73f10'
+  modes:
+    dark:
+      0: 'light-gray'
+      1: 'yellow'
+      2: '#ed8003'
+      3: '#e73f10'
+```
+
+In this example, dark mode uses `modes.dark`. Light mode falls back to `colors`.
+
+### Light mode only
+
+You can also define only a light mode override and keep `colors` as the default fallback for dark mode:
+
+```yaml linenums="1"
+color_stops:
+  gap: 2
+  colors:
+    0: '#111111'
+    1: '#9b6b00'
+    2: '#b85f00'
+    3: '#b91c1c'
+  modes:
+    light:
+      0: '#838383'
+      1: '#fcc449'
+      2: '#ed8003'
+      3: '#e73f10'
+```
+
+In this example, light mode uses `modes.light`. Dark mode falls back to `colors`.
+
 ## :material-horseshoe: Using color stops on horseshoes
 
 Horseshoes can use color stops in different ways. The selected behavior is configured with `show.horseshoe_style`.
@@ -107,9 +197,8 @@ Common styles include:
 | `colorstop` | Uses the color that matches the current state |
 | `colorstopgradient` | Uses color stops as a gradient along the horseshoe |
 | `fixed` | Uses a fixed horseshoe color instead of value-based color stops |
-| `lineargradient` | Always shows a linear gradient using first and last color in the color stop list |
+| `lineargradient` | Always shows a linear gradient using the first and last color in the color stop list |
 | `autominmax` | Uses the min and max value from the scale |
-
 
 ## :material-horseshoe: Color stops and scale values
 
@@ -155,7 +244,8 @@ Color stops are not limited to horseshoes. They can also be used on layout items
 
 In these cases, the numeric state of the connected entity determines the color of the item.
 
-!!! info "Only true color stops are supported at this time. No colorstopgradients for instance"
+!!! info "Only true color stops are supported at this time"
+    Layout items use the matching color stop for the current value. Color stop gradients are not supported for these items at this time.
 
 Example with a state and an area:
 
@@ -166,7 +256,7 @@ Example with a state and an area:
     - entity: light.1st_floor_hall_light
 
   constants:
-    colorStop:
+    colorStops:
       colors:
         0: 'blue'
         1: 'green'
@@ -175,32 +265,33 @@ Example with a state and an area:
         4: 'red'
         5: 'purple'
 
-  states:
-    - id: 0
-      entity_index: 0
-      xpos: 50
-      ypos: 30
-      styles:
-        - font-size: 3em;
-      color_stops: ref(colorStops)
+  layout:
+    states:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 30
+        styles:
+          - font-size: 3em;
+        color_stops: ref(colorStops)
 
-  areas:
-    - id: 0
-      entity_index: 0
-      xpos: 50
-      ypos: 85
-      styles:
-        - font-size: 1.2em;
-      color_stops: ref(colorStops)
+    areas:
+      - id: 0
+        entity_index: 0
+        xpos: 50
+        ypos: 85
+        styles:
+          - font-size: 1.2em;
+        color_stops: ref(colorStops)
 ```
 
 This example uses the same color stops for the state and the area. Both are connected to `entity_index: 0`, so both use the numeric state of the first entity.
 
-## :material-horseshoe: Color stops with theme or external palettes CSS variables
+## :material-horseshoe: Color stops with theme or external palette CSS variables
 
-Color stops work well with theme and external palettes.
+Color stops work well with Home Assistant themes and external palettes.
 
-Instead of hardcoding colors such as `red` or `#ff0000`, you can use CSS variables loaded from a palette:
+Instead of hardcoding colors such as `red` or `#ff0000`, you can use CSS variables loaded from a theme or palette:
 
 ```yaml linenums="1"
 color_stops:
@@ -214,7 +305,9 @@ color_stops:
     5: var(--fhs-sys-rainbow-purple)
 ```
 
-This makes it easier to keep colors consistent across multiple cards. It also allows light and dark mode variants when the palette provides them.
+This makes it easier to keep colors consistent across multiple cards.
+
+If you need explicit Home Assistant light and dark mode definitions, use `modes.light` and `modes.dark` inside `color_stops`.
 
 For more details, see the external palettes page.
 
@@ -239,24 +332,42 @@ color_stops: |
   ]]]
 ```
 
-You can also define reusable color stop definitions in `variables` and use them where needed:
+You can also define reusable color stop definitions in `constants` and use them where needed:
 
 ```yaml linenums="1"
-variables:
+constants:
   batteryColorStops:
-    0: red
-    20: orange
-    60: yellow
-    80: green
+    colors:
+      0: red
+      20: orange
+      60: yellow
+      80: green
 
 layout:
   horseshoes:
     - entity_index: 0
       color_stops: |
-        [[[ return variables['batteryColorStops']; ]]]
+        [[[ return constants['batteryColorStops']; ]]]
 ```
 
-For more details about template syntax and reusable variables, see the JavaScript templating page.
+or:
+
+```yaml linenums="1"
+constants:
+  batteryColorStops:
+    colors:
+      0: red
+      20: orange
+      60: yellow
+      80: green
+
+layout:
+  horseshoes:
+    - entity_index: 0
+      color_stops: ref(batteryColorStops)
+```
+
+For more details about template syntax and reusable constants, see the JavaScript templating page.
 
 ## :material-horseshoe: Choosing a color stop style
 
@@ -266,14 +377,19 @@ For more details about template syntax and reusable variables, see the JavaScrip
 | Smooth gradient along the horseshoe | `horseshoe_style: colorstopgradient` |
 | Straight gradient effect where supported | `horseshoe_style: lineargradient` |
 | Fixed horseshoe color | `horseshoe_style: fixed` with a configured color |
-| Shared colors across many cards | External palettes with CSS variables |
-| Dynamic color stop definitions | JavaScript templates or `variables` |
+| Shared colors across many cards | External palettes, theme variables, or reusable `color_stops` |
+| Different color stops for light and dark mode | `color_stops.modes.light` and `color_stops.modes.dark` |
+| Dynamic color stop definitions | JavaScript templates or FHS templates |
 
 ## :material-horseshoe: Practical tips
 
 Keep color stop values close to the value range of the entity or horseshoe scale. A `0..100` scale is usually easiest for percentages.
 
 Use clear threshold values for status-like colors. For example, battery colors often make more sense as `0`, `20`, `60`, and `80` than as many small steps.
+
+Use `modes.light` and `modes.dark` when the thresholds stay the same but the colors need to match the active Home Assistant theme mode.
+
+Use the normal `colors` definition as the fallback when a light or dark mode override is missing.
 
 Use external palettes when several cards should share the same color language.
 
