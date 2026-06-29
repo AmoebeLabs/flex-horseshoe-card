@@ -1,0 +1,1032 @@
+<!--
+  Copyright (c) 2016-2021 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+--> <!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="The versatile custom Flexible Horseshoe Card for Home Assistant allows you to create your horseshoe alike visualizations."><meta name=author content=Marco><link href=https://flexible-horseshoe-card-manual.amoebelabs.com/ rel=canonical><link href=getting-started/introduction/ rel=next><link rel=icon href=assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.6"><!-- The full title (config.site_name) is a bit long, so use a shortened version for each page. Better for SEO --><title>Frontpage - Flexibile Horseshoe Card</title><link rel=stylesheet href=assets/stylesheets/main.484c7ddc.min.css><link rel=stylesheet href=assets/stylesheets/palette.ab4e12ef.min.css><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><link rel=stylesheet href=assets/stylesheets/extra.css><script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script><script id=__analytics>function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-492WMK51S3"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-492WMK51S3",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-492WMK51S3",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script><script>"undefined"!=typeof __md_analytics&&__md_analytics()</script><!-- Extra style sheets (can't be set in mkdocs.yml due to content hash) --><!-- <link --><!-- rel="stylesheet" --><!-- href="overrides/assets/stylesheets/main.scss" --><!-- /> --><!-- https://realfavicongenerator.net/favicon_result?file_id=p1ftihlel1f021dkg1imh1ak6c5e6#.YiYs4OiZNZc --><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><!-- <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"> --><!-- <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"> --><link rel=manifest href=/site.webmanifest><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><meta name=msapplication-TileColor content=#da532c><meta name=theme-color content=#ffffff><!--  --><!--  --><!--  --><!--  --><!-- OpenGraph / Facebook meta data --><meta property=og:type content=website><meta property=og:title content="Frontpage - Flexible Horseshoe Card for Home Assistant"><meta property=og:description content="The versatile custom Flexible Horseshoe Card for Home Assistant allows you to create your horseshoe alike visualizations."><meta content=https://flexible-horseshoe-card-manual.amoebelabs.com/ property=og:url><meta property=og:image content=https://swiss-army-knife-card-manual.amoebelabs.com/assets/social/sak-opengraph-1200x630.png><meta property=og:image:type content=image/png><meta property=og:image:width content=1200><meta property=og:image:height content=630><!-- Twitter meta data --><meta name=twitter:card content=summary_large_image><meta name=twitter:title content="Frontpage - Flexible Horseshoe Card for Home Assistant"><meta name=twitter:site content=@AmoebeLabs><meta name=twitter:creator content=@AmoebeLabs><meta name=twitter:description content="The versatile custom Flexible Horseshoe Card for Home Assistant allows you to create your horseshoe alike visualizations."><meta name=twitter:image content=https://swiss-army-knife-card-manual.amoebelabs.com/assets/social/sak-twitter-800x420.png><script type=text/javascript>
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "bp6hyc03b1");
+  </script><!-- https://webcode.tools/generators/json-ld/organization --><script type=application/ld+json>
+  {
+    "@context": "http://schema.org/",
+    "@type": "Organization",
+    "name": "AmoebeLabs",
+    "url": "https://amoebelabs.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Eindhoven",
+      "addressCountry": "Netherlands"
+    },
+    "sameAs": ["https://instagram.com/amoebelabs", "https://twitter.com/amoebeLabs", "https://github.com/amoebelabs", "https://www.buymeacoffee.com/amoebelabs"]
+  }
+  </script><script type=application/ld+json>
+    {
+      "@context": "http://schema.org/",
+      "@type": "HowTo",
+      "name": "Flexible Horseshoe Custom Card",
+      "description": "The custom Flexible Horseshoe card for Home Assistant allows you to create your own visualization using the SVG tools and CSS styling options this card provides.",
+      "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-triple-example-1500x1600.webp",
+      "totalTime": "PT1H",
+      "supply": [
+        {
+          "@type": "HowToSupply",
+          "name": "Brains"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Creativity"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Time"
+        }, {
+          "@type": "HowToSupply",
+          "name": "Knowledge of YAML"
+        }
+      ],
+      "tool": [
+        {
+          "@type": "HowToTool",
+          "name": "Circle"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Ellipse"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Line"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Rectangle"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "RectangelEx"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Regular Poly"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Text"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Horse Shoe"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Segmented Arc"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Slider"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Switch"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "User SVG"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Area"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Icon"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity Name"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity State"
+        },
+        {
+          "@type": "HowToTool",
+          "name": "Entity History"
+        }
+      ],
+      "step": [
+        {
+          "@type": "HowToStep",
+          "name": "Installation",
+          "text": "The installation can be done in two ways, automatic installation using HACS or manual installation.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-dashboard.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/start/installation/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Designing your card",
+          "text": "Designing your card is all about creativity. Get inspiration from examples you find on the internet, or fully design your own layout given the tools that are available",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-circles-background-ad.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/start/designing-your-card/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Circle Tool",
+          "text": "The Circle tool is based on the SVG basic <circle>element shape",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-6.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/circle-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Ellipse Tool",
+          "text": "The Ellipse tool is based on the SVG basic <ellipse>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-10.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/ellipse-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Line Tool",
+          "text": "The Line tool is based on the SVG basic <line> element shape",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-1b.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/line-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Rectangle Tool",
+          "text": "The Rectangle tool is based on the SVG basic <rect>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-9.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/rectangle-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Extended Rectangle Tool",
+          "text": "The RectEx tool is based on the SVG basic <path>element shape.
+The RectEx tool lets you define the radius for each corner, where the Rectangle tool lets you specify a single radius for all corners.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-9.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/rectangle-ex-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Regular Polygon Tool",
+          "text": "The Regular Polygon tool is a tool build on the Shläfli symbol.
+It can build both regular convex polygons and regular star polygons.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/regular-poly-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Text Tool",
+          "text": "The Text tool is based on the SVG basic <text>element shape.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/text-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Horse Shoe Tool",
+          "text": "This tool is not yet available...",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-3.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/horseshoe-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Segmented Arc Tool",
+          "text": "The Segmented Arc tool is a complex, multi-part tool with a custom animation.
+The tool consists of multiple separate segments that 'behave' like a single, segmented object.
+The Arc can be between 0 and 360 degrees with configurable start and end angle. It can have an additional scale. The Arc supports colorstops and colorlists to display the state value.
+It is by far the most complex tool. Was fun to make, and fairly unique.
+The 360 degrees arc takes a prominent place in many examples.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-7.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/segarc-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Slider Tool",
+          "text": "The slider tool is an input tool with a configurable track, active track, thumb and label position, and styling.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-2.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/slider-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Switch Tool",
+          "text": "The Switch tool is based on two SVG basic <rectangle> element shapes.
+It is a composite tool with a built-in animation to move the thumb to 'off' or 'on' position and to change the color to 'off' or 'on' color.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-2.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/switch-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the User SVG Tool",
+          "text": "The User SVG tool makes it possible to add (external) SVGs to your card.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-6.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/usersvg-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Area Tool",
+          "text": "The Entity Area tool displays the Home Assistant Entity Area value.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-4.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-area-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Icon Tool",
+          "text": "The Entity Icon tool displays the Home Assistant Entity Icon.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-3.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-icon-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity Name Tool",
+          "text": "The Entity Name tool displays the Home Assistant Entity Name text.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-11-m3-c11-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-name-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity State Tool",
+          "text": "The Entity State tool displays the Home Assistant Entity State value and unit of measurement.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-light.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-state-tool/"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Using the Entity History Tool",
+          "text": "The Entity History tool is a horizontal or vertical bar chart (sparkline) and displayes some history of an Home Assistant Entity. It is a basic chart, more of a sparkline with only display functionality.",
+          "image": "https://swiss-army-knife-card-manual.amoebelabs.com/assets/screenshots/sak-example-12-m3-d06-dark.png",
+          "url": "https://swiss-army-knife-card-manual.amoebelabs.com/tools/entity-barchart-tool/"
+        }
+      ]
+    }
+    </script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=amoebelabs-light data-md-color-accent=amoebelabs-light> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> </div> <div data-md-component=announce> <aside class=md-banner> <div class="md-banner__inner md-grid md-typeset"> <!-- Add announcement here, including arbitrary HTML --> <a style=color:white;opacity:.9; onmouseover="this.style.color='white';this.style.fontSize=''" ;&quot; onmouseout="this.style.color='white';;this.style.fontSize=''"> <span style=font-size:16px;>Note:</span> BETA Documentation! Still very much in flux! </a> </div> </aside> </div> <header class="md-header md-header--shadow md-header--lifted" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=. title="Flexible Horseshoe Card for Home Assistant" class="md-header__button md-logo" aria-label="Flexible Horseshoe Card for Home Assistant" data-md-component=logo> <img src=assets/logo/fhs-logo.svg alt=logo> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> Flexible Horseshoe Card for Home Assistant </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Frontpage </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media=(prefers-color-scheme) data-md-color-scheme=default data-md-color-primary=amoebelabs-light data-md-color-accent=amoebelabs-light aria-label="Switch to light mode" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=amoebelabs-light data-md-color-accent=amoebelabs-light aria-label="Switch to dark mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_2 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=amoebelabs-dark data-md-color-accent=amoebelabs-dark aria-label="Switch to system preference" type=radio name=__palette id=__palette_2> <label class="md-header__button md-icon" title="Switch to system preference" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/amoebelabs/flex-horseshoe-card title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> Flexible Horseshoe Card </div> </a> </div> </nav> <nav class=md-tabs aria-label=Tabs data-md-component=tabs> <div class=md-grid> <ul class=md-tabs__list> <li class="md-tabs__item md-tabs__item--active"> <a href=. class=md-tabs__link> Home </a> </li> <li class=md-tabs__item> <a href=getting-started/introduction/ class=md-tabs__link> Getting started </a> </li> <li class=md-tabs__item> <a href=examples/overview/ class=md-tabs__link> Examples </a> </li> <li class=md-tabs__item> <a href=core-concepts/card-structure/ class=md-tabs__link> Core Concepts </a> </li> <li class=md-tabs__item> <a href=sections/layout-overview/ class=md-tabs__link> Card Layout Sections </a> </li> <li class=md-tabs__item> <a href=reuse/reuse-introduction/ class=md-tabs__link> Reuse - Better/Easier/Less YAML </a> </li> </ul> </div> </nav> </header> <div class=md-container data-md-component=container> <!-- Additional styles for landing page --> <!-- Root font-size is set to 20px by MkDocs. --> <style>
+  :root {
+    --fhs-section-bg: #111418;
+    --fhs-hero-bg-top: #14181d;
+    --fhs-hero-bg-mid: #171b21;
+    --fhs-font-color--dark: rgba(255, 255, 255, 0.92);
+  }
+
+  /* ================================================= Landing: header/static + hide regular page chrome */
+  .md-header {
+    position: initial;
+  }
+  .md-main__inner {
+    margin: 0;
+  }
+  .md-content {
+    display: none;
+  }
+
+  @media screen and (min-width: 60em) {
+    .md-sidebar--secondary {
+      display: none;
+    }
+  }
+  @media screen and (min-width: 76.25em) {
+    .md-sidebar--primary {
+      display: none;
+    }
+  }
+
+  body,
+  .md-main {
+    background: var(--fhs-section-bg);
+  }
+
+  /* ================================================= Hero */
+  .fhs-hero {
+    position: relative;
+    min-height: 880px;
+    margin: 0;
+    padding: 5rem 2rem 18rem;
+    overflow: hidden;
+    color: white;
+    text-align: center;
+  }
+  .fhs-hero {
+    background: linear-gradient(to bottom, var(--md-primary-fg-color--900) 0%, var(--fhs-hero-bg-mid) 100%, var(--fhs-hero-bg-mid) 100%);
+  }
+
+  .md-main,
+  .md-content,
+  .fhs-hero {
+    overflow-x: hidden;
+  }
+  body {
+    overflow-x: hidden;
+  }
+
+  .fhs-hero::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -1px;
+    width: 2150px;
+    height: 620px;
+    transform: translateX(-50%);
+    background: #171b21;
+    clip-path: polygon(0 0, 50% 100%, 100% 0, 100% 100%, 0 100%);
+    z-index: 3;
+  }
+
+  .fhs-hero::after {
+    width: 4000px;
+    aspect-ratio: 2150 / 620;
+    height: auto;
+  }
+
+  .fhs-hero__content {
+    position: relative;
+    z-index: 4;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .fhs-hero__content h1 {
+    margin: 0;
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    font-size: clamp(2.6rem, 6vw, 3rem);
+    font-size: clamp(2.2rem, 6vw, 60px);
+    line-height: 1;
+    font-weight: 800;
+    color: white;
+  }
+
+  .fhs-hero__content p {
+    margin: 1.2rem auto 2rem;
+    max-width: 620px;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .fhs-hero__button {
+    display: inline-block;
+    padding: 0.9rem 1.5rem;
+    border-radius: 999px;
+    background: var(--md-accent-fg-color--400);
+    color: white !important;
+    font-weight: 700;
+    font-size: 1.5rem;
+    text-decoration: none;
+  }
+
+  /* factor = (0.5 - cos(30°)/2) / 2 */
+  /* factor = 0.03349364905 */
+  .fhs-hero__stage {
+    position: absolute;
+    --fhs-hero-image-width: 900px;
+
+    width: var(--fhs-hero-image-width);
+    left: 50%;
+    bottom: 64px;
+
+    transform: translateX(calc(-50% + var(--fhs-hero-image-width) * 0.03349364905));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .fhs-hero__board {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform: rotate(-30deg) skewX(30deg) scaleY(0.8);
+    transform-origin: center;
+    filter: drop-shadow(35px 45px 45px rgba(0, 0, 0, 0.45));
+  }
+
+  /* Heel hard en hoog zwevend met zwarte schaduw */
+  .fhs-hero__board {
+    opacity: 0.9;
+    filter: drop-shadow(-53px 53px 7px black);
+  }
+
+  /* Iets realistischer */
+  .fhs-hero__board {
+    opacity: 0.9;
+    filter: drop-shadow(-42px 42px 18px rgba(0, 0, 0, 0.75));
+  }
+
+  /* Nog zwevend, maar minder hard */
+  /* .fhs-hero__board {
+      opacity: 0.9;
+      filter: drop-shadow(-36px 36px 22px rgba(0, 0, 0, 0.65));
+    } */
+
+  /* Meer premium */
+  /* .fhs-hero__board {
+      opacity: 0.92;
+      filter: drop-shadow(-30px 34px 24px rgba(0, 0, 0, 0.55));
+    } */
+
+  @media screen and (max-width: 76.25em) {
+    .fhs-hero__stage {
+      /* bottom: 64px; */
+      /* --fhs-hero-image-width: 760px; */
+    }
+  }
+  @media screen and (max-width: 60em) {
+    .fhs-hero__stage {
+      /* bottom: 64px; */
+      /* --fhs-hero-image-width: 520px; */
+      /* --fhs-hero-image-width: 760px; */
+    }
+  }
+
+  /* ================================================= Strip (links/icons with separators) */
+  .fhs-strip {
+    padding: 1.6rem 0;
+  }
+  .fhs-strip__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .fhs-strip__row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 0;
+    color: var(--md-default-fg-color);
+    color: var(--fhs-font-color--dark);
+  }
+
+  .fhs-strip__item {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .fhs-strip__item + .fhs-strip__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18%;
+    bottom: 18%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+  [data-md-color-scheme='default'] .fhs-strip__item + .fhs-strip__item::before {
+    background: rgba(0, 0, 0, 0.18);
+  }
+
+  .fhs-strip__item img {
+    height: 28px;
+    width: auto;
+    display: block;
+  }
+  .fhs-strip__item svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+  }
+  .fhs-strip__item--badge img {
+    height: 32px;
+  }
+
+  /* Strip mono (fill-only; no stroke outlines) */
+  .fhs-strip__item svg path,
+  .fhs-strip__item svg circle,
+  .fhs-strip__item svg ellipse,
+  .fhs-strip__item svg polygon,
+  .fhs-strip__item svg polyline,
+  .fhs-strip__item svg line {
+    fill: currentColor !important;
+    stroke: none !important;
+  }
+
+  /* keep explicit none */
+  .fhs-strip__item svg [fill='none'],
+  .fhs-strip__item svg [style*='fill: none'] {
+    fill: none !important;
+  }
+  .fhs-strip__item svg rect {
+    fill: none !important;
+    stroke: none !important;
+  }
+
+  /* ================================================= Features (Forgejo-style) */
+  .fhs-features--forgejo {
+    position: relative;
+    background: transparent;
+  }
+
+  .fhs-features--forgejo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: #171b21;
+    z-index: 0;
+  }
+
+  .fhs-features--forgejo > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .fhs-features__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4rem 1rem 5rem;
+    text-align: center;
+  }
+
+  .fhs-features__title {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(2rem, 4vw, 60px);
+    line-height: 1.05;
+    line-height: 1.5;
+    font-weight: 800;
+    background: linear-gradient(90deg, #2b93a6, #e4572e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .fhs-features__lead {
+    margin: 0 auto;
+    max-width: 780px;
+    padding: 1rem 0;
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.82);
+    color: var(--fhs-font-color--dark);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .fhs-features__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 4rem;
+    justify-content: center;
+    margin: 2.5rem auto 0;
+    max-width: 980px;
+    text-align: left;
+  }
+
+  .fhs-feature {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .fhs-feature:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  .fhs-feature__icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    color: var(--md-accent-fg-color);
+    color: var(--md-accent-fg-color--300);
+  }
+  .fhs-feature__icon svg {
+    width: 42px;
+    height: 42px;
+  }
+
+  .fhs-feature__title {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.92);
+    color: var(--fhs-font-color--dark);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.55rem;
+    text-decoration-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .fhs-feature__body p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.74);
+    line-height: 1.55;
+  }
+
+  @media (max-width: 60em) {
+    .fhs-features__grid {
+      grid-template-columns: 1fr;
+      gap: 1.6rem;
+    }
+    .fhs-feature:nth-last-child(-n + 2) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .fhs-feature:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  .fhs-feature {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0 0 1.2rem 0;
+    margin: 0;
+    text-decoration: none;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .fhs-feature:hover .fhs-feature__body strong {
+    text-decoration-color: rgba(255, 255, 255, 0.28);
+  }
+
+  .fhs-feature__body strong {
+    display: block;
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.92);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.55rem;
+    text-decoration-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .fhs-feature__body span {
+    display: block;
+    color: rgba(255, 255, 255, 0.74);
+    line-height: 1.55;
+    font-size: 0.8rem;
+  }
+  .fhs-feature__body code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.82em;
+    padding: 0.08em 0.35em;
+    border-radius: 0.4em;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .fhs-hero__cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  /* terug naar “pill” */
+  .fhs-hero__button {
+    display: inline-block; /* i.p.v. block */
+    width: auto;
+  }
+
+  /* badge ook gewoon inline */
+  .fhs-hero__release {
+    display: inline-block;
+  }
+  .fhs-hero__release img {
+    display: block;
+    height: 32px;
+    width: auto;
+  }
+  /* .fhs-hero__stage {
+        position: relative;
+      } */
+
+  /* .fhs-hero__board {
+        filter: grayscale(1) opacity(0.9) drop-shadow(20px 28px 28px rgba(0, 0, 0, 0.28));
+      } */
+  /* .fhs-hero__board {
+        filter: revert-layer;
+      } */
+  /* Set red line in centre to check alignment of all items */
+  /* .fhs-hero::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: red;
+      z-index: 99;
+    } */
+
+  .fhs-hero {
+    background: #17474f; /* tijdelijk egaal */
+  }
+  .fhs-hero__title {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+  }
+
+  .fhs-hero__title-icon {
+    width: 0.85em;
+    height: 0.85em;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+  @media (max-width: 600px) {
+    .fhs-hero__title {
+      flex-direction: column;
+      gap: 0.15em;
+    }
+
+    .fhs-hero__title-icon {
+      width: 0.75em;
+      height: 0.75em;
+    }
+  }
+  .feature-svg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .feature-svg svg {
+    display: block;
+    width: min(100%, 420px);
+    height: auto;
+  }
+
+  .feature-svg__image {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+    --svg-bg: #0f171a;
+  }
+
+  .cls-1 {
+    fill: #cb816c;
+  }
+  .cls-2 {
+    fill: #e29078;
+  }
+  .cls-2a {
+    fill: #df876c;
+  }
+  .cls-2b {
+    fill: #df876c;
+  }
+  .cls-2c {
+    fill: #df876c;
+  }
+  .cls-2d {
+    fill: blue;
+  }
+
+  .cls-4 {
+    fill: #e7a693;
+  }
+  .cls-5 {
+    fill: #875648;
+  }
+  .cls-6 {
+    fill: #edbcae;
+  }
+  .cls-7 {
+    fill: white;
+  }
+  .cls-8 {
+    fill: #e29078;
+  }
+  .cls-9 {
+    fill: #f3d2c9;
+  }
+  .cls-10 {
+    fill: #fdf9f3;
+  }
+  .cls-3 {
+    fill: #e9cfac;
+  }
+
+  /* Filler of shoes */
+  .feature-svg .cls-1 {
+    fill: #e94770;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #cb816c;
+  }
+  /* Dark outer lines of body */
+  .feature-svg .cls-2 {
+    fill: #25262a;
+    fill: #e29078;
+    fill: #e29178;
+    fill: #db7657;
+    fill: #df876c;
+    /* fill: var(--md-default-fg-color); */
+    /* fill: var(--svg-bg); */
+  }
+  /* Human Imagination text */
+  .feature-svg .cls-2a {
+    fill: #25262a;
+    fill: #e29078;
+    fill: var(--md-default-fg-color);
+    fill: rgba(255, 255, 255, 0.92);
+    fill: #f2f2f2;
+    fill: var(--fhs-font-color--dark);
+    /* fill: var(--svg-bg); */
+  }
+  /* Created With text */
+  .feature-svg .cls-2b {
+    fill: #25262a;
+    fill: #e29078;
+    fill: var(--md-default-fg-color);
+    fill: rgba(255, 255, 255, 0.92);
+    fill: #f2f2f2;
+    fill: var(--fhs-font-color--dark);
+    /* fill: var(--svg-bg); */
+  }
+  .feature-svg .cls-2c {
+    fill: #25262a;
+    fill: #e29078;
+    fill: var(--md-default-fg-color);
+    fill: rgba(255, 255, 255, 0.92);
+    fill: #f2f2f2;
+    fill: var(--fhs-font-color--dark);
+    /* fill: var(--svg-bg); */
+  }
+
+  /* The music notes */
+  .feature-svg .cls-2d {
+    fill: #25262a;
+    fill: rgba(255, 255, 255, 0.92);
+    /* fill: var(--svg-bg); */
+    fill: var(--md-primary-fg-color);
+  }
+  /* Lower part of hands */
+  .feature-svg .cls-3 {
+    fill: #e9cfac;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #e9cfac;
+
+    /* fill: #f9e8e3; */
+  }
+  /* Lighter lines body */
+  .feature-svg .cls-4 {
+    fill: #f18eae;
+    fill: #e29078;
+    /* fill: var(--svg-bg); */
+    /* fill: #f8e4dd; */
+    fill: #e7a693;
+  }
+  /* Lower line of shoes */
+  .feature-svg .cls-5 {
+    fill: #bc3d62;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #875648;
+  }
+  /* Bod darker lines. */
+  .feature-svg .cls-6 {
+    fill: #f3eaf5;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #edbcae;
+  }
+  /* Part of hands */
+  .feature-svg .cls-7 {
+    fill: #fff;
+    /* fill: var(--svg-bg); */
+  }
+  /* Upper part of shoes */
+  .feature-svg .cls-8 {
+    fill: #fac56e;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #e29078;
+  }
+  /* Center body color */
+  .feature-svg .cls-9 {
+    fill: #f7c4d6;
+    fill: #e29078;
+    fill: var(--svg-bg);
+    fill: #f3d2c9;
+  }
+  /* Part of hands */
+  .feature-svg .cls-10 {
+    fill: #fdf9f3;
+
+    fill: var(--svg-bg);
+    fill: #fdf9f3;
+  }
+
+  .fhs-home-footer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    font-size: 2em;
+    padding-bottom: 1em;
+    color: var(--fhs-font-color--dark);
+  }
+  .fhs-home-footer img {
+    width: 2em;
+    height: 2em;
+  }
+
+  .fhs-home-footer__inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+</style> <!-- Hero for landing page --> <section class=fhs-hero> <div class=fhs-hero__content> <h1 class=fhs-hero__title> <svg class=fhs-hero__title-icon viewbox="0 0 24 24" aria-hidden=true> <path d="M19,4H20V1H16V4C16,4 18,8 18,12C18,16 16,19 12,19C8,19 6,16 6,12C6,8 8,4 8,4V1H4V4H5C5,4 2,8 2,14C2,19 7,23 12,23C17,23 22,19 22,14C22,8 19,4 19,4M4,13C3.4,13 3,12.6 3,12C3,11.4 3.4,11 4,11C4.6,11 5,11.4 5,12C5,12.6 4.6,13 4,13M6,19C5.4,19 5,18.6 5,18C5,17.4 5.4,17 6,17C6.6,17 7,17.4 7,18C7,18.6 6.6,19 6,19M12,22C11.4,22 11,21.6 11,21C11,20.4 11.4,20 12,20C12.6,20 13,20.4 13,21C13,21.6 12.6,22 12,22M18,19C17.4,19 17,18.6 17,18C17,17.4 17.4,17 18,17C18.6,17 19,17.4 19,18C19,18.6 18.6,19 18,19M20,13C19.4,13 19,12.6 19,12C19,11.4 19.4,11 20,11C20.6,11 21,11.4 21,12C21,12.6 20.6,13 20,13Z"/> </svg> Flexible Horseshoe Card </h1> <p>Build advanced Home Assistant dashboards with your favourite horse.</p> <div class=fhs-hero__cta> <a class=fhs-hero__release href=https://github.com/AmoebeLabs/flex-horseshoe-card/releases> <img alt=release src="https://img.shields.io/github/v/release/AmoebeLabs/flex-horseshoe-card?style=for-the-badge&logo=github&color=477d8d&labelColor=black"> </a> <a href=getting-started/introduction/ class=fhs-hero__button>Get started</a> </div> </div> <div class=fhs-hero__stage> <img class=fhs-hero__board src=assets/screenshots/hero-image.png alt="AmoebeLabs Flexible Horseshoe custom card for Home Assistant triple example" draggable=false> </div> </section> <section class="fhs-features fhs-features--forgejo" id=features> <div class=fhs-features__inner> <div class=fhs-features__head> <h2 class=fhs-features__title>Design. Build. Enjoy.</h2> <!-- <p class="fhs-features__lead"></p> --> </div> <div class=fhs-features__grid> <!-- Higly Configurable --> <a href=examples/overview/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:arm-flex --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M3 18.34C3 18.34 4 7.09 7 3L12 4L11 7.09H9V14.25H10C12 11.18 16.14 10.06 18.64 11.18C21.94 12.71 21.64 17.32 18.64 19.36C16.24 21 9 22.43 3 18.34Z"/> </svg> <!-- <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17v2h6v-2H3m0-6v2h10v-2H3m0-6v2h14V5H3m16 0v2h2V5h-2m-4 6v2h6v-2h-6m-4 6v2h10v-2H11" /></svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Powerful, Highly configurable</h3> <span>Configure your card with custom sizing and populate it with any number of entities, horseshoes, lines, circles, and more.</span> <span>Position elements individually or as groups. Design once, reuse configurations, duplicate components, and create cards exactly the way you imagine them.</span> </div> </a> <!-- Less YAML --> <a href=reuse/reuse-introduction/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:wrench-clock --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M10 6.2C10 4.3 8.8 2.6 7 2V5.7H4V2C2.2 2.6 1 4.3 1 6.2C1 8.1 2.2 9.8 4 10.4V21.4C4 21.8 4.2 22 4.5 22H6.5C6.8 22 7 21.8 7 21.5V10.5C8.8 9.9 10 8.2 10 6.2M16 8C16 8 15.9 8 16 8C12.1 8.1 9 11.2 9 15C9 18.9 12.1 22 16 22S23 18.9 23 15 19.9 8 16 8M16 20C13.2 20 11 17.8 11 15S13.2 10 16 10 21 12.2 21 15 18.8 20 16 20M15 11V16L18.6 18.2L19.4 17L16.5 15.3V11H15Z"/> </svg> <!-- mdi:content-copy --> <!-- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+          </svg> --> <!-- <svg viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M22 8c0-.55-.45-1-1-1h-7c-.55 0-1 .45-1 1s.45 1 1 1h7c.55 0 1-.45 1-1m-9 8c0 .55.45 1 1 1h7c.55 0 1-.45 1-1s-.45-1-1-1h-7c-.55 0-1 .45-1 1M10.47 4.63c.39.39.39 1.02 0 1.41l-4.23 4.25c-.39.39-1.02.39-1.42 0L2.7 8.16a.996.996 0 1 1 1.41-1.41l1.42 1.42l3.54-3.54c.38-.38 1.02-.38 1.4 0m.01 8.01c.39.39.39 1.02 0 1.41L6.25 18.3c-.39.39-1.02.39-1.42 0L2.7 16.16a.996.996 0 1 1 1.41-1.41l1.42 1.42l3.54-3.54c.38-.38 1.02-.38 1.41.01"
+            />
+          </svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Build faster with less YAML</h3> <span>Use <code>same_as</code> to reuse similar items within sections instead of copying blocks.</span> <span>Define <code>constants</code>, and use them with <code>ref()</code> for shared color stops between items, or <code>calc()</code> to calculate positions and sizes so layouts stay consistent.</span> </div> </a> <!-- Build for and with Home Assistant --> <a href=core-concepts/localization/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:home-assistant --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M21.8,13H20V21H13V17.67L15.79,14.88L16.5,15C17.66,15 18.6,14.06 18.6,12.9C18.6,11.74 17.66,10.8 16.5,10.8A2.1,2.1 0 0,0 14.4,12.9L14.5,13.61L13,15.13V9.65C13.66,9.29 14.1,8.6 14.1,7.8A2.1,2.1 0 0,0 12,5.7A2.1,2.1 0 0,0 9.9,7.8C9.9,8.6 10.34,9.29 11,9.65V15.13L9.5,13.61L9.6,12.9A2.1,2.1 0 0,0 7.5,10.8A2.1,2.1 0 0,0 5.4,12.9A2.1,2.1 0 0,0 7.5,15L8.21,14.88L11,17.67V21H4V13H2.25C1.83,13 1.42,13 1.42,12.79C1.43,12.57 1.85,12.15 2.28,11.72L11,3C11.33,2.67 11.67,2.33 12,2.33C12.33,2.33 12.67,2.67 13,3L17,7V6H19V9L21.78,11.78C22.18,12.18 22.59,12.59 22.6,12.8C22.6,13 22.2,13 21.8,13M7.5,12A0.9,0.9 0 0,1 8.4,12.9A0.9,0.9 0 0,1 7.5,13.8A0.9,0.9 0 0,1 6.6,12.9A0.9,0.9 0 0,1 7.5,12M16.5,12C17,12 17.4,12.4 17.4,12.9C17.4,13.4 17,13.8 16.5,13.8A0.9,0.9 0 0,1 15.6,12.9A0.9,0.9 0 0,1 16.5,12M12,6.9C12.5,6.9 12.9,7.3 12.9,7.8C12.9,8.3 12.5,8.7 12,8.7C11.5,8.7 11.1,8.3 11.1,7.8C11.1,7.3 11.5,6.9 12,6.9Z"/> </svg> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Build for and with Home Assistant</h3> <span>The horseshoe card integrates deeply with Home Assistant, automatically using locales, translations, icons, and state-based icon colors for a seamless experience.</span> <span>Override icons, precision, units, and names in the entities section whenever needed.</span> </div> </a> <!-- Templating with JavaScript --> <a href=core-concepts/templating/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:code-brackets --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path fill=currentColor d=M15,4V6H18V18H15V20H20V4M4,4V20H9V18H6V6H9V4H4Z /></svg> <!-- <svg viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M10.67 21c-.35 0-.62-.31-.57-.66L11 14H7.5c-.88 0-.33-.75-.31-.78c1.26-2.23 3.15-5.53 5.65-9.93a.577.577 0 0 1 1.07.37l-.9 6.34h3.51c.4 0 .62.19.4.66c-3.29 5.74-5.2 9.09-5.75 10.05c-.1.18-.29.29-.5.29"
+            />
+          </svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Templating</h3> <span>Support for JavaScript templating throughout most areas of the card configuration enables highly dynamic cards with custom logic and behavior.</span> <span>Support for card templates, but also color stops, state maps and more, enable reusing the same card for different sensors.</span> </div> </a> <!-- Color stops --> <a href=core-concepts/color-stops/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:format-color-fill --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M19,11.5C19,11.5 17,13.67 17,15A2,2 0 0,0 19,17A2,2 0 0,0 21,15C21,13.67 19,11.5 19,11.5M5.21,10L10,5.21L14.79,10M16.56,8.94L7.62,0L6.21,1.41L8.59,3.79L3.44,8.94C2.85,9.5 2.85,10.47 3.44,11.06L8.94,16.56C9.23,16.85 9.62,17 10,17C10.38,17 10.77,16.85 11.06,16.56L16.56,11.06C17.15,10.47 17.15,9.5 16.56,8.94Z"/> </svg> <!-- <svg viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M9.19 6.35c-2.04 2.29-3.44 5.58-3.57 5.89l-2.26-.97c-.65-.28-.81-1.13-.31-1.63l3.01-3.01c.47-.47 1.15-.68 1.81-.55zm1.49 10.16c.3.3.74.38 1.12.2c1.16-.54 3.65-1.81 5.26-3.42c4.59-4.59 4.63-8.33 4.36-9.93a.98.98 0 0 0-.79-.79c-1.6-.27-5.34-.23-9.93 4.36c-1.61 1.61-2.87 4.1-3.42 5.26c-.18.38-.09.83.2 1.12zm6.97-1.7c-2.29 2.04-5.58 3.44-5.89 3.57l.97 2.26c.28.65 1.13.81 1.63.31l3.01-3.01c.47-.47.68-1.15.55-1.81zm-8.71 2.6a3 3 0 0 1-.82 2.71c-.77.77-3.16 1.34-4.71 1.64c-.69.13-1.3-.48-1.17-1.17c.3-1.55.86-3.94 1.64-4.71a3 3 0 0 1 2.71-.82c1.17.22 2.13 1.18 2.35 2.35M13 9c0-1.1.9-2 2-2s2 .9 2 2s-.9 2-2 2s-2-.9-2-2"
+            />
+          </svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Color stops</h3> <span>Use fixed colors, entity state-based color stops, or gradients to dynamically style horseshoes, names, lines, circles, icons, and more.</span> </div> </a> <!-- Themes and Palettes --> <a href=core-concepts/external-palettes/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:palette --> <svg viewbox="0 0 24 24"> <path fill=currentColor d="M12 3c-4.97 0-9 3.58-9 8c0 3.31 2.69 6 6 6h1.5a1.5 1.5 0 0 1 0 3H9a1 1 0 0 0 0 2h3c5 0 9-4.03 9-9s-4.03-9-9-9M7.5 11A1.5 1.5 0 1 1 9 9.5A1.5 1.5 0 0 1 7.5 11m3-4A1.5 1.5 0 1 1 12 5.5A1.5 1.5 0 0 1 10.5 7m4 0A1.5 1.5 0 1 1 16 5.5A1.5 1.5 0 0 1 14.5 7m2 4A1.5 1.5 0 1 1 18 9.5A1.5 1.5 0 0 1 16.5 11"/> </svg> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Themes & palettes</h3> <span>Fully compatible with existing Home Assistant themes. </span> <span>Load external JSON color palettes with built-in light and dark mode support to create your own unique look and branding.</span> </div> </a> <!-- SVG --> <a href=core-concepts/css-styling/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:svg --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M5.13,10.71H8.87L6.22,8.06C5.21,8.06 4.39,7.24 4.39,6.22A1.83,1.83 0 0,1 6.22,4.39C7.24,4.39 8.06,5.21 8.06,6.22L10.71,8.87V5.13C10,4.41 10,3.25 10.71,2.54C11.42,1.82 12.58,1.82 13.29,2.54C14,3.25 14,4.41 13.29,5.13V8.87L15.95,6.22C15.95,5.21 16.76,4.39 17.78,4.39C18.79,4.39 19.61,5.21 19.61,6.22C19.61,7.24 18.79,8.06 17.78,8.06L15.13,10.71H18.87C19.59,10 20.75,10 21.46,10.71C22.18,11.42 22.18,12.58 21.46,13.29C20.75,14 19.59,14 18.87,13.29H15.13L17.78,15.95C18.79,15.95 19.61,16.76 19.61,17.78A1.83,1.83 0 0,1 17.78,19.61C16.76,19.61 15.95,18.79 15.95,17.78L13.29,15.13V18.87C14,19.59 14,20.75 13.29,21.46C12.58,22.18 11.42,22.18 10.71,21.46C10,20.75 10,19.59 10.71,18.87V15.13L8.06,17.78C8.06,18.79 7.24,19.61 6.22,19.61C5.21,19.61 4.39,18.79 4.39,17.78C4.39,16.76 5.21,15.95 6.22,15.95L8.87,13.29H5.13C4.41,14 3.25,14 2.54,13.29C1.82,12.58 1.82,11.42 2.54,10.71C3.25,10 4.41,10 5.13,10.71Z"/> </svg> <!-- <svg viewBox="0 0 10 16">
+            <path
+              fill="currentColor"
+              d="M10 5c0-1.11-.89-2-2-2a1.993 1.993 0 0 0-1 3.72v.3c-.02.52-.23.98-.63 1.38c-.4.4-.86.61-1.38.63c-.83.02-1.48.16-2 .45V4.72a1.993 1.993 0 0 0-1-3.72C.88 1 0 1.89 0 3a2 2 0 0 0 1 1.72v6.56c-.59.35-1 .99-1 1.72c0 1.11.89 2 2 2c1.11 0 2-.89 2-2c0-.53-.2-1-.53-1.36c.09-.06.48-.41.59-.47c.25-.11.56-.17.94-.17c1.05-.05 1.95-.45 2.75-1.25S8.95 7.77 9 6.73h-.02C9.59 6.37 10 5.73 10 5zM2 1.8c.66 0 1.2.55 1.2 1.2c0 .65-.55 1.2-1.2 1.2C1.35 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2zm0 12.41c-.66 0-1.2-.55-1.2-1.2c0-.65.55-1.2 1.2-1.2c.65 0 1.2.55 1.2 1.2c0 .65-.55 1.2-1.2 1.2zm6-8c-.66 0-1.2-.55-1.2-1.2c0-.65.55-1.2 1.2-1.2c.65 0 1.2.55 1.2 1.2c0 .65-.55 1.2-1.2 1.2z"
+            />
+          </svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Built on SVG and CSS</h3> <span>100% built with Scalable Vector Graphics (SVG), using CSS styling and animations to fully control the appearance and behavior of most horseshoe elements.</span> </div> </a> <!-- Compatible with the original Horseshoe --> <a href=sections/horseshoes-section/ class=fhs-feature> <div class=fhs-feature__icon> <!-- mdi:horseshoe --> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"> <path fill=currentColor d="M19,4H20V1H16V4C16,4 18,8 18,12C18,16 16,19 12,19C8,19 6,16 6,12C6,8 8,4 8,4V1H4V4H5C5,4 2,8 2,14C2,19 7,23 12,23C17,23 22,19 22,14C22,8 19,4 19,4M4,13C3.4,13 3,12.6 3,12C3,11.4 3.4,11 4,11C4.6,11 5,11.4 5,12C5,12.6 4.6,13 4,13M6,19C5.4,19 5,18.6 5,18C5,17.4 5.4,17 6,17C6.6,17 7,17.4 7,18C7,18.6 6.6,19 6,19M12,22C11.4,22 11,21.6 11,21C11,20.4 11.4,20 12,20C12.6,20 13,20.4 13,21C13,21.6 12.6,22 12,22M18,19C17.4,19 17,18.6 17,18C17,17.4 17.4,17 18,17C18.6,17 19,17.4 19,18C19,18.6 18.6,19 18,19M20,13C19.4,13 19,12.6 19,12C19,11.4 19.4,11 20,11C20.6,11 21,11.4 21,12C21,12.6 20.6,13 20,13Z"/> </svg> <!-- mdi:wrench-clock --> <!-- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M10 6.2C10 4.3 8.8 2.6 7 2V5.7H4V2C2.2 2.6 1 4.3 1 6.2C1 8.1 2.2 9.8 4 10.4V21.4C4 21.8 4.2 22 4.5 22H6.5C6.8 22 7 21.8 7 21.5V10.5C8.8 9.9 10 8.2 10 6.2M16 8C16 8 15.9 8 16 8C12.1 8.1 9 11.2 9 15C9 18.9 12.1 22 16 22S23 18.9 23 15 19.9 8 16 8M16 20C13.2 20 11 17.8 11 15S13.2 10 16 10 21 12.2 21 15 18.8 20 16 20M15 11V16L18.6 18.2L19.4 17L16.5 15.3V11H15Z"
+            />
+          </svg> --> <!-- <svg viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M22 2s-7.64-.37-13.66 7.88C3.72 16.21 2 22 2 22l1.94-1c1.44-2.5 2.19-3.53 3.6-5c2.53.74 5.17.65 7.46-2c-2-.56-3.6-.43-5.96-.19C11.69 12 13.5 11.6 16 12l1-2c-1.8-.34-3-.37-4.78.04C14.19 8.65 15.56 7.87 18 8l1.21-1.93c-1.56-.11-2.5.06-4.29.5c1.61-1.46 3.08-2.12 5.22-2.25c0 0 1.05-1.89 1.86-2.32"
+            />
+          </svg> --> </div> <div class=fhs-feature__body> <h3 class=fhs-feature__title>Backwards compatible</h3> <span>The rejuvenated horseshoe implementation remains fully compatible with the original horseshoe YAML configuration</span> <span>Existing cards continue to work without modification.</span> <span><small>** CSS or card-mod customizations targeting the previous HTML/SVG structure may need adjustments.</small></span> </div> </a> </div> </div> </section> <!-- Icon strip... --> <section class=feature-svg> <svg class=feature-svg__image viewbox="0 0 215 206" aria-hidden=true> <svg id=stickers xmlns=http://www.w3.org/2000/svg viewbox="0 0 214.02 205.43"> <defs> <style>
+          .cls-1 {
+            fill: #e94770;
+          }
+
+          .cls-2 {
+            fill: #25262a;
+          }
+
+          .cls-3 {
+            fill: #e9cfac;
+          }
+
+          .cls-4 {
+            fill: #f18eae;
+          }
+
+          .cls-5 {
+            fill: #bc3d62;
+          }
+
+          .cls-6 {
+            fill: #f3eaf5;
+          }
+
+          .cls-7 {
+            fill: #fff;
+          }
+
+          .cls-8 {
+            fill: #fac56e;
+          }
+
+          .cls-9 {
+            fill: #f7c4d6;
+          }
+
+          .cls-10 {
+            fill: #fdf9f3;
+          }
+        </style> </defs> <g id=human-imagination> <path class=cls-2 d=M200.74,132.06c0-3.93-3.21-5-3.21-5,0,0,1.9-3.57-1.19-7.14-3.09-3.57-10.95,1.79-10.95,1.79-1.19-2.14-3.45-4.76-8.09-2.02-4.64,2.74-5.95,6.07-5.95,6.07,0,0-1.43-.83-3.69-1.07-2.26-.24-3.93,3.45-3.93,3.45-3.69-.36-7.33-4.07-7.33-4.07,3.61-5.58,1.14-13.66,1.14-13.66,1.67-.12,6.43-1.67,8.21-10.12,1.79-8.45-4.05-12.62-4.05-12.62-.36-3.21-2.02-5.71-2.02-5.71,4.4-5.36-.83-10.83-7.14-15.59-6.31-4.76-14.64-6.78-14.64-6.78,0,0,2.02-4.88-.6-8.21-2.62-3.33-6.66-6.31-15-4.4-8.33,1.9-8.81,6.07-8.81,6.07-3.45-2.26-6.78.71-6.78.71-4.4-6.66-15.95-6.66-24.04-.36-8.09,6.31-8.93,13.92-8.93,13.92-12.85.12-15.11,10.24-15.11,10.24-12.26,2.14-6.43,10.83-6.43,10.83,0,0-5.47,0-9.28,8.45-4.24,9.41.06,15.94.06,15.94-11.47,8.7-11.84,21.02-11.84,21.02-3.48-.8-5.36.62-6.61,5-1.25,4.37,2.5,5.8,2.5,5.8-2.23,7.68-.45,13.39,4.2,16.6,4.64,3.21,7.94,0,7.94,0,0,0,1.79,1.7,6.16,1.96,4.37.27,4.11-3.48,4.11-3.48,1.7.45,1.7,0,1.7,0,0,0-.27,5.98-.18,11.96.09,5.98.18,12.14,5.89,13.92s10.98,1.96,16.69,1.7c5.71-.27,9.64-3.21,10.44-4.46.8-1.25,0-4.28,0-4.28,0,0,1.52-1.79.45-7.41-1.07-5.62-6.34-5.71-6.34-5.71,0,0,5.53-1.34,12.32-5.89,6.78-4.55,11.87-12.85,11.87-12.85,4.11,2.95,7.94,2.05,7.94,2.05,5.89,4.28,8.84,12.23,8.84,12.23-1.96,1.25-4.64,4.02-4.28,6.96s3.57,3.57,3.57,3.57c-.45,2.41-.45,8.12,1.96,12.14.94,1.57,2.06,2.76,3.38,3.66-.01.57.05,1.46.46,2.17.65,1.13,6.25.83,9.58.06.07-.02.13-.03.2-.05,4.96-.44,11.71-3,22.8-10.21,7.24-4.71,10.43-7.77,11.79-9.97,1.2-1.63,2.85-4.78,1.81-7.37-.87-2.16-1.74-2.12-2.1-1.99-1.4-7.84-9.18-9.96-15.78-6.28-7.05,3.93-8.84,8.3-8.84,8.3,0,0,.54-3.39-.98-6.16-1.52-2.77-6.25-1.43-6.25-1.43-3.39-7.94-7.05-12.32-7.05-12.32,9.91.09,14.04-10.41,14.04-10.41,2.38.48,4.28-.12,4.28-.12,6.55,9.16,14.64,8.33,14.64,8.33,0,0,.04,4.47,4.41,5.19s5.59-2.93,5.59-2.93c0,0,2.86,4.64,8.69,6.07,5.83,1.43,12.62.12,16.19-3.09,3.57-3.21.95-7.85.95-7.85,0,0,2.62-1.19,2.62-5.12ZM72.38,152.98s-.27-3.84-4.73-2.41c0,0-4.55-4.02-9.28-.98,0,0,.98-7.5-8.84-9.46,0,0,1.16-4.2-1.25-5.62-2.41-1.43-4.46-1.43-4.46-1.43,0,0-.36-2.59,2.68-6.43,0,0,4.11,13.66,18.12,10.71,0,0,1.96,8.21,13.48,10.62,0,0-2.14,3.48-5.71,5Z /> <ellipse class=cls-2 cx=69.35 cy=184.84 rx=29.01 ry=4.37 /> <ellipse class=cls-2 cx=139.42 cy=188.59 rx=28.74 ry=4.37 /> <path class=cls-9 d=M56.85,107.81c2.55-.64,5.18-.54,7.14,1.52s1.07,5.71.45,6.78-1.87,1.16-5.18,1.43c-3.3.27-10.62,3.3-13.57,6.78-2.95,3.48-3.66,7.14-3.75,10.8,0,0-1.96,2.23-8.48,1.16,0,0,.54-9.91,5-16.07,4.46-6.16,12.67-10.98,18.39-12.41Z /> <path class=cls-9 d=M48.19,125.04s1.96-2.5,8.57-5.09c0,0-.71,3.21.36,5.27,1.07,2.05,1.87,2.14,1.87,2.14,0,0,1.07-.36.71-.89s-2.86-3.93-1.13-7.2c0,0,3.27-.83,5.83-.83,0,0,3.09-1.67,2.56-6.13-.54-4.46-3.87-6.01-5.24-6.37s-4.58-.12-7.91.95c-3.33,1.07-9.34,5.06-9.34,5.06,0,0-2.56-6.9-.18-12.73,2.38-5.83,6.55-8.39,9.88-8.69,3.33-.3,6.01,2.44,6.19,3.51s.83,1.31,1.19.24-2.62-6.55-8.33-6.19c0,0-2.86-5,2.02-7.44,4.88-2.44,13.75-.12,16.72,2.56s3.81,9.22,1.55,13.51-8.87,5.89-12.91,5c-4.05-.89-5.18-3.15-5.53-4.28s-1.67-.3-1.73.48.6,2.98,3.15,4.4c0,0-.36,2.08-2.14,2.8s.89,1.31,1.79.3c.89-1.01,1.25-1.61,1.61-2.44,0,0,7.74,3.87,15.77-3.39,0,0-.77,3.78-.24,6.5s1.52,4.51,1.96,4.55,1.03-.85.76-2.05c-.27-1.2-2.37-5.09.45-11.78,2.81-6.69,7.81-9.6,8.79-10s.67-1.56-.76-.94-5.8,3.08-7.45,6.02c0,0-.13-8.12-4.73-11.02-4.6-2.9-9.46-3.17-11.02-3.08,0,0-.13-3.53,6.02-6.61,6.16-3.08,9.95-1.2,11.16,0,1.2,1.2,1.52.71,1.47.27s-1.79-3.21-4.02-3.88c0,0,1.34-7.72,7.5-12.41s12.67-5.04,16.83-3.66,6.11,3.79,6.02,6.87c-.09,3.08-.8,4.42-.54,4.69s1.25.31,1.87-2.68-.04-4.91-.04-4.91c0,0,3.84-2.68,6.83.31,2.99,2.99-.22,10.26-2.32,11.56s-2.86,1.74-2.37,2.14,2.99-.67,4.86-3.03c1.87-2.37,4.82-9.15-.27-13.21,0,0,4.15-4.46,11.56-5.09,7.41-.62,13.17,5.36,10.35,11.11,0,0-4.02-.18-6.92.04,0,0,.04-2.19-2.05-3.84-1.47-1.16-3.79-.13-3.61.45s.71-.27,2.59.8c1.87,1.07,1.65,4.24-.13,5.62-1.79,1.38-1.61,1.38-1.29,1.87s3.21.31,4.42-3.61c0,0,6.78-.58,15.58,3.44,8.79,4.02,11.74,8.61,13.52,10.58s.94,4.51.8,4.95-.62.71-.62.71c0,0-2.23-3.75-5.71-2.23-3.48,1.52-2.41,4.28-5.22,6.29-2.81,2.01-7.14,5.13-10,6.83s-4.33,2.14-4.33,2.14c0,0-1.7-2.19-3.26-2.37s-1.87.89-.67,1.2,3.26,1.92,4.2,4.78c.94,2.86.4,5,.18,6.47s1.16,1.16,1.65.13.76-3.66.76-3.66c0,0,4.82-3.08,9.77-4.91s7.63-1.2,7.63-1.2c0,0,1.03,3.26,4.51,2.9,3.48-.36,3.75-3.26,3.79-5.71,0,0,3.66,3.75,1.65,9.86s-4.06,8.43-9.68,7.41c-5.62-1.03-6.56-2.59-6.56-2.59,0,0,2.05-2.95,1.74-5.94s-1.56-2.63-1.92-2.1,1.07,5.13-1.7,7.63-6.56,3.84-7.36,3.88-.36.98,1.92.67,4.82-.89,6.56-2.99c0,0,3.88,3.44,8.79,3.57,0,0,2.86,5.36.89,10.35-1.96,5-6.07,8.52-6.96,8.93s-2.1.89-5.27.89c0,0,2.68-3.39,1.83-9.19,0,0,.85-1.65,3.61-2.99s2.86-1.56,2.28-1.87-3.97-.13-6.25,2.86c0,0-1.07-2.28-2.05-3.08s-2.28.58-1.61,1.74,3.12,4.95,1.56,9.37-5.31,8.75-9.37,10.84-8.75,1.74-11.02.18c-2.28-1.56-4.46-4.78-4.69-5.27s-1.16.4-.27,2.23,2.28,3.21,3.35,4.06c0,0-2.59,3.93-8.43,6.07s-9.64-.71-9.64-.71c0,0-2.1-.62-2.63.36s-3.84,7.19-9.06,11.38c-5.22,4.2-10.89,6.92-13.57,7.5-2.68.58-2.19,1.52-2.19,1.52,0,0-2.05-.09-2.86.18,0,0-2.37-4.15-2.19-6.78.18-2.63.94-4.37,1.47-4.64s8.03-4.69,11.16-8.61c3.12-3.93,2.32-3.48,1.65-4.24s-1.96,2.05-4.46,4.11c0,0-5.98-1.03-9.15-3.39-3.17-2.37-5.09-5.94-5.44-6.29s-1.43-.89-3.66-.89-10.4,1.61-14.06-9.91Z /> <path class=cls-2 d=M141.92,72.46c.6-.11,5.44.45,8.26,2.63l-.13,1.47s-2.9-1.83-5.13-2.59c-2.23-.76-3.08-.71-3.3-.76s-.18-.67.31-.76Z /> <path class=cls-2 d=M152.22,73.49c-.36.12-1.43.54-2.45,2.1-1.03,1.56-.8,3.39-.54,3.57s.85-.31.94-.8.18-1.41,1.12-2.59c.85-1.07,1.47-1.29,1.79-1.47s-.31-.98-.85-.8Z /> <path class=cls-9 d=M133.84,94.2s7.63-3.57,11.07-5.89,4.28-2.99,4.28-2.99c0,0,1.16,3.44,1.56,3.88s1.38-.18,1.16-.58-1.65-3.44-.8-6.2,3.61-4.37,5.94-1.34c2.32,3.03,3.26,7.36,3.35,10.22.09,2.86-1.52,4.11-3.12,3.44s-3.17-3.88-3.57-3.97-.67.58-.49,1.03c0,0-5.36.22-9.19,2.1-3.84,1.87-8.26,4.51-8.26,4.51,0,0-.76-3.12-1.92-4.2Z /> <path class=cls-2 d=M154.01,81.97c2.9-1.03,6.46,9.82,4.15,10.76-2.1.85-7.81-9.46-4.15-10.76Z /> <path class=cls-4 d=M154.43,83.72c2.05-.73,4.58,6.95,2.94,7.62-1.49.6-5.53-6.7-2.94-7.62Z /> <path class=cls-2 d=M112.28,73.76c.9-.73,1.74.13,1.16,1.07s-1.79,1.79-2.54,3.3-.8,2.41-1.07,2.59-1.47.18-1.16-1.25,1.47-3.97,3.61-5.71Z /> <path class=cls-2 d=M123.84,67.33c.62-.21,4.82,0,6.47.76s.4,1.79-.13,1.74-3.3-.67-5.04-.76-2.37-1.38-1.29-1.74Z /> <path class=cls-2 d=M116.37,83.44c.15.42,2.5,7.59,6.78,5.71s-.27-8.57-.58-8.66-1.65.4-1.12,1.38,3.44,4.42,1.07,5.58-4.78-4.2-4.95-4.73-1.38.22-1.2.71Z /> <path class=cls-2 d=M125.43,79.61c-.47-.98.67-1.92,1.29-.76.76,1.42,2.23,4.37,3.97,3.84s.4-3.88-.49-5.27-.09-2.41.76-1.74,4.24,6.69,1.03,8.57-5.31-2.05-6.56-4.64Z /> <path class=cls-2 d=M154.86,99.29c.92-.07,1.43-3.12,1.43-3.12l1.7-.04s-.13,2.72-1.92,3.75c-1.79,1.03-2.1.76-2.5.45s.18-.94,1.29-1.03Z /> <path class=cls-9 d=M155.44,125.17s2.59,4.64,7.54,4.73c0,0-1.38,4.2-1.12,7.59,0,0-8.84-1.07-11.78-6.83,0,0,2.9-1.56,5.36-5.49Z /> <path class=cls-10 d=M170.03,130.66c.31-1.56.36-2.9-.89-3.26s-3.3.31-4.28,5.53c-.98,5.22-.48,7.37.24,8.48,1.09,1.7,3.82,1.83,4.58,1.2s1.38-1.79,1.96-2.05,1.2-.18,1.47,0,4.11,4.95,9.82,5.62c5.71.67,12.27-1.7,12.27-1.7,0,0-3.39-.13-6.65-.89-3.26-.76-5.09-2.19-5-4.82s1.61-3.44,3.21-4.06c0,0-2.81-2.23.27-6.38,0,0-.71-.18-1.2-.58,0,0,.31,5.44-3.48,8.84-3.79,3.39-7.01-.04-7.01-4.2s1.2-4.91,1.96-4.78.94.04.67,1.07c-.27,1.03-1.43,6.34,1.03,7.19,2.45.85,5.18-5.98,4.73-9.95-.45-3.97-1.87-6.83-5.22-4.69-3.35,2.14-5.36,6.29-6.16,9.55-.8,3.26-2.23,3.75-2.41,2.81s.09-2.95.09-2.95Z /> <path class=cls-10 d=M185.7,122.85s.36,1.52.31,2.86c0,0,1.07,1.2,2.32,1.34,0,0,3.39-1.83,7.01-.8,0,0,1.34-1.87.62-3.53s-3.79-1.83-5.8-1.38c-2.01.45-4.46,1.52-4.46,1.52Z /> <path class=cls-10 d=M188.24,134.14s-1.52-3.03.8-4.91c2.32-1.87,6.74-1.29,8.35.27s1.56,4.64-.31,6.07c0,0-5.49-2.01-8.84-1.43Z /> <path class=cls-10 d=M187.21,136.02c2.05-.4,4.06-.31,6.56.22s3.66,1.34,3.75,3.44-.76,3.08-.76,3.08c0,0-5.13.09-7.72-.62-2.59-.71-3.88-1.96-3.7-3.88s1.87-2.23,1.87-2.23Z /> <path class=cls-10 d=M30.3,142.71c-2.59-.54-3.61-.8-3.66-2.14s.04-3.57.89-4.28c.85-.71,2.19-.71,2.45-.4s-.67,1.38,1.56,2.14,7.54.45,9.64-.27c2.1-.71,2.05-1.74,2.05-1.74,0,0,4.78-.58,4.11,2.28-.67,2.86-1.65,2.81-3.3,2.95s-1.16,1.7-.09,1.65,2.5.36,4.51-1.43c0,0,4.02.67,6.47,3.44,2.45,2.77.85,6.2.85,6.2,0,0-1.52-1.2-2.14-1.29s-1.65.8-1.2,1.16,3.35,2.81,1.92,5.22-3.61,2.05-4.64,1.16-2.23-2.81-2.63-2.99-1.47.54-.89,1.2,2.14,2.95,2.14,3.84-.76,2.45-4.46,2.14c-3.7-.31-6.56-6.02-6.83-6.78s-1.74-.49-1.38.62c.36,1.12,1.61,3.75,2.59,4.46,0,0-3.93,2.28-7.77-2.9-3.84-5.18-1.92-12.05-1.92-12.05,0,0,3.88.8,4.78.67.89-.13.89-1.52.31-1.92s-3.35-.94-3.35-.94Z /> <path class=cls-10 d=M52.39,159.89l1.16-.09s-.67,14.24.62,18.74,2.54,4.33,6.47,5.09c3.93.76,10.31,1.43,14.28.31,3.97-1.12,7.68-3.84,7.68-3.84,0,0,.22,1.38-.22,2.19s-4.02,4.06-15.31,3.35c-11.29-.71-14.24-1.56-14.59-8.93-.36-7.36-.09-16.83-.09-16.83Z /> <path class=cls-10 d=M69.3,167.48s.94-.71,1.83-1.12c0,0-2.32-2.59-2.14-7.27.18-4.69,1.92-5.89,1.92-5.89,0,0-.45-1.52-1.38-1.38s-1.79,3.08-2.14,7.27c-.36,4.2,1.03,6.83,1.92,8.39Z /> <path class=cls-1 d=M66.98,151.95s-3.26-3.35-8.52.54c0,0-.31,1.56-1.61,2.1,0,0,.13,3.03-1.74,4.15,0,0-.04,13.25,0,17.18.04,3.93.94,5.8,6.34,6.47s10.13,1.12,14.95-.62c4.82-1.74,6.92-4.51,7.05-5.13s.22-8.75-5.58-8.97-10.26,2.86-11.83,4.51c-1.56,1.65-2.28,1.12-2.28.62s1.29-2.9,3.97-4.51c0,0-1.96-2.99-2.14-8.21-.18-5.22,1.38-8.12,1.38-8.12Z /> <path class=cls-9 d=M114.16,147.93s3.93,4.55,5.98,9.37c2.05,4.82,1.96,5.67,1.96,5.67,0,0,3.61-.58,8.43-2.68s5.22-2.59,5.22-2.59c0,0-2.95-8.75-8.21-15.8,0,0-2.63,0-4.46-1.25,0,0-1.25,4.55-8.93,7.27Z /> <path class=cls-1 d=M118.35,169.85c-1.6-.5-2.95-2.14-.71-5.18,0,0,3.63,2.02,13.12-1.98,9.79-4.12,9.01-6.33,9.01-6.33,0,0,2.59,0,2.23,3.21-.36,3.21-2.5,3.57-3.12,4.55s-.36,1.43.36,1.34,1.61-.71,2.86-1.96l.36.8s-3.3,6.25-3.21,6.69,1.61.45,1.87-.09,3.3-8.03,8.12-13.03c4.82-5,11.6-5.18,14.19-2.68,2.59,2.5,3.57,4.91,3.57,4.91,0,0-7.97,2.65-13.63,7.94-5.65,5.3-17.38,13.63-21.36,15-3.99,1.37-6.07,2.02-7.32,1.79s-5.89-4.7-4.58-13.09c0,0,4.34,0,5.06-.71s.06-1.01.06-1.01c0,0-3.09,1.01-6.87-.18Z /> <path class=cls-2 d=M132.42,187.58c-.19-.01,8.69-3.63,15.35-9.58,6.66-5.95,13.03-10.29,16.36-12.08,3.33-1.79,4.22-1.01,3.39,2.02-.83,3.03-12.5,10.65-19.52,14.64-7.02,3.99-11.84,5.3-15.59,5Z /> <path class=cls-4 d=M132.78,158.06c-.06-.24-2.02-8.39-3.81-12.67-.69-1.65-1.18-2.75-1.53-3.48-.25,0-.95-.04-1.8-.22.95,1.73,2.92,5.77,4.1,9.72,1.55,5.18,1.73,7.14,2.2,7.2.48.06.89-.3.83-.54ZM121.18,143.63c.85,1.47,2.64,4.84,3.75,8.72,1.49,5.24,1.01,5.47,1.49,5.24.48-.24.06-4.05-.65-6.31,0,0,1.01,2.32,1.9,5.59.89,3.27,1.43,2.32,1.55,2.14.11-.17-2.99-11.84-6.64-17.25-.29.51-.74,1.15-1.39,1.86ZM118.8,145.64c-.5.34-1.06.68-1.68,1,.98,1.08,2.88,3.52,4.23,7.38,1.9,5.42,1.31,5.3,1.9,5.42.6.12,1.13-.36,1.25-.65.12-.3-1.49-6.31-3.69-9.88-1.07-1.74-1.68-2.72-2.02-3.26Z /> <g> <path class=cls-2a d=M29.02,104.27c-.05-.64-.12-1.36-.15-2.12-2.17-.53-3.8-.84-5.95-1.84-.74-.32-.95-.61-.76-1.69.1-.56.38-1.11.99-1.17.97-.12,8.15,2.57,11.74,2.23.48-.04.87-.07,1.33.2.79.42.58,1.28.3,1.99-.38,1.08-.94.86-5.68.68-.12.68.08,1.41.31,2.09.14.31,2.46.32,4.59.66.43.07.69.4.66.81-.13,2.08-.39,1.91-1.16,1.96-4.04.36-9.57-.55-13.04-1.69-.6-.2-1.1-.28-1.44-.88-.59-.99-.4-2.9,1.84-2.42.4.1,3.6.71,6.41,1.19Z /> <path class=cls-2a d=M27.06,89.66c-.49-.32-1.18-.66-1.43-1.23-.33-.76.41-1.32,1.15-1.29.43,0,.83.19,1.21.34,2.73,1.13,5.52,2.22,8.39,3,1.3.37,4.74.47,3.17,2.18-.8.9-4.3-.11-5.94-.41.85.65,1.63,1.32,2.44,1.99.6.51,1.07,1.02.77,1.88-1.15,3.42-6.95,1.51-10.73.35-2.16-.66-3.37-.97-2.92-2.57.16-.51.49-.96,1.11-.94,2.06.11,9.67,3.1,10.2,2.54.85-.85-5.22-4.36-7.42-5.85Z /> <path class=cls-2a d=M35.61,78.14c4.32,3.42,7.44,3.9,6.95,5.3-.35,1.05-1.46.46-2.06.2-2.72-1.29-5.28-3.17-8.17-4.05-.32-.13-.83-.38-1.18-.17-.42.28-.41.95-.25,1.35.87,2.54,5.44,4.82,8.4,5.71.67.2,1.44.41,1.65,1.25.18.69-.21,1.4-.56,1.61-.24.13-.48.11-.7.07-1.61-.21-3.15-.77-4.71-1.23-1.6-.52-3.18-1.07-4.72-1.7-3.69-1.53-4.16-1.91-3.85-2.94.21-.7.63-2.24,1.56-1.92.15.04.84.21.87.36-.11-.62-.41-1.15-.41-1.78-.06-1.22.58-3.11,1.94-3.24.66-.06,1.93.34,2.41.65-1.51-.97-.92-5.58,2.13-4.82,1.93.48,3.52,1.79,5.13,2.85.86.53,1.72,1.04,2.69,1.35.6.2,1.43.01,1.71.79.22.74-.3,2.69-4.08.8-1.74-.87-3.36-1.96-5.13-2.71-1.16-.48-1.93.43.39,2.3Z /> <path class=cls-2a d=M48.4,72.36c.04,1.2-.66,2.13-1.52,2.97-1.82,1.69-7.17-.05-9.9-4.88-1.43-2.48-1.38-5.31,1.19-7.18.38-.3.82-.36,1.3-.16.43.21.31-.16,1.81-1.11.33-.18.78-.04,1.15.35.75.88,1.5,1.76,2.29,2.58,1.59,1.74,2.41,2.59,4.98,4.6,1.13.85,1.81.77,1.59,1.27-.9,2.19-2.12,1.62-2.89,1.55ZM39.31,65.89c-.89,1.6,3.03,7.09,5.86,7.81.63.16,1.13-.21,1.08-.71-.05-.35-.08-.73-.24-1.04-.6-1.24-1.31-2.43-2.19-3.45-.7-.84-3.47-4.41-4.51-2.6Z /> <path class=cls-2a d=M52.76,59.37c1.88,2.38,3.65,3.8,3.76,4.53.02.07.05.13.02.2-.06.38-1.01,1.16-1.45,1.21-.73.07-6.27-2.56-7.27-2.93.47.59,5.72,5.54,5.75,5.56.51.51.18.75-.06,1-.35.36-.74.98-1.34.88-1.44-.23-9.99-8.98-10.11-10.68-.05-.62.85-1.32,1.34-1.5.75-.27,1.55.3,2.2.62,1.76.85,3.43,1.83,5.3,2.48-1.05-.99-1.99-2.04-2.87-3.17-1.43-1.85-2.06-2.15-1.51-2.85.55-.74,1.43-1.01,1.79-.92.67.13,2.83,3.65,4.46,5.57Z /> <path class=cls-2a d=M66.59,55.56c.17.19.29.37.37.59.28.95-1.43,1.9-2.1,1.6-.25-.09-2.3-1.57-4.8-5.52-.63-.97-3.03-5-2.69-6.11.16-.6,1.19-.93,1.75-1.17,1.25-.56,1.07-.05,2.56,2.99,2.19,4.5,3.38,5.67,4.91,7.62Z /> <path class=cls-2a d=M72.5,43.37c1.56,5.28,3.84,7.47,2.63,8.34-.89.66-1.46-.46-1.8-1.03-1.48-2.62-2.49-5.64-4.35-8.02-.19-.29-.46-.79-.87-.82-.51-.01-.88.55-.98.95-.75,2.57,1.67,7.08,3.58,9.5.44.55.95,1.16.63,1.97-.25.67-.98,1.02-1.39.99-.27-.03-.45-.18-.61-.35-1.2-1.1-2.13-2.45-3.14-3.72-1.01-1.35-1.99-2.7-2.88-4.11-2.13-3.37-2.3-3.96-1.45-4.63.58-.45,1.81-1.47,2.38-.67.1.12.57.66.5.8.26-.57.33-1.17.69-1.69.66-1.03,2.26-2.21,3.45-1.53.57.33,1.39,1.39,1.6,1.92-.68-1.66,2.46-5.09,4.52-2.71,1.31,1.5,1.84,3.49,2.55,5.28.39.93.81,1.84,1.42,2.65.38.51,1.16.84.95,1.63-.24.74-1.79,2.03-3.79-1.7-.92-1.71-1.62-3.54-2.63-5.17-.68-1.06-1.83-.76-1,2.11Z /> <path class=cls-2a d=M86.3,45.65c-.62,1.03-1.7,1.44-2.88,1.68-2.44.45-6.01-3.91-5.71-9.44.13-2.86,1.7-5.22,4.87-5.4.48-.05.89.14,1.18.56.25.41.35.04,2.12.04.38.03.68.38.78.91.16,1.14.32,2.29.54,3.41.4,2.33.63,3.48,1.72,6.55.49,1.32,1.11,1.63.66,1.93-1.93,1.36-2.66.23-3.27-.25ZM82.12,35.3c-1.61.87-1.27,7.6.73,9.73.44.47,1.07.44,1.3-.02.15-.32.32-.66.36-1.01.16-1.36.21-2.76.01-4.09-.14-1.09-.55-5.58-2.4-4.62Z /> <path class=cls-2a d=M91.83,37.45c.15.55,1.13,5.18,2.4,5.07,1.01-.11.53-2.38.22-2.82-.44-.56-.88.36-1.13-.35-.06-.24-.42-1.09-.07-1.22.47-.19.97-.36,1.49-.5.34-.06.89-.3,1.22-.07.7.56,1.71,4.44.51,6.03-.86,1.14-2.77,1.3-3.97.68-2.59-1.29-4.03-6.32-4.07-9.1,0-1.43.18-2.97,1.04-4.11.65-.86,1.67-1.39,2.73-1.19.96.2,1.82.84,2.16,1.76.12.32.66,2.32-.02,2.7-.46.22-1.83.81-1.93-.07-.05-.41.08-1.77-.49-1.95-1.1-.35-.39,4-.09,5.12Z /> <path class=cls-2a d=M101.38,41.55c.08.24.12.46.1.68-.12.98-2.07,1.18-2.56.64-.2-.18-1.49-2.35-2.23-6.97-.2-1.14-.81-5.78-.06-6.67.38-.49,1.46-.39,2.07-.38,1.37-.02,1,.37,1.17,3.76.23,5,.86,6.54,1.5,8.94Z /> <path class=cls-2a d=M110.12,34.76c0,3.03.5,5.24.14,5.89-.02.07-.05.13-.1.17-.28.26-1.51.28-1.89.05-.62-.4-3.33-5.9-3.89-6.81,0,.76,1.05,7.89,1.06,7.92.09.72-.32.7-.66.75-.5.06-1.19.31-1.6-.15-.99-1.08-2.26-13.24-1.3-14.65.35-.52,1.49-.5,1.98-.34.76.25,1.03,1.2,1.34,1.85.85,1.76,1.55,3.56,2.62,5.23-.21-1.43-.29-2.84-.28-4.26.02-2.34-.28-2.97.58-3.17.89-.24,1.75.1,1.98.38.44.51-.05,4.62.04,7.13Z /> <path class=cls-2a d=M117.73,39.89c-.92.78-2.08.82-3.27.66-2.46-.36-4.44-5.64-2.36-10.78,1.05-2.67,3.29-4.4,6.35-3.55.47.11.8.42.94.91.11.47.32.15,2,.72.35.15.52.58.44,1.12-.22,1.14-.43,2.27-.59,3.41-.37,2.33-.52,3.5-.49,6.76.04,1.41.53,1.9,0,2.04-2.27.66-2.59-.64-3.02-1.29ZM117.11,28.74c-1.81.31-3.65,6.79-2.44,9.45.27.59.87.76,1.24.4.24-.26.52-.52.66-.84.59-1.24,1.08-2.54,1.33-3.87.22-1.07,1.28-5.46-.78-5.15Z /> <path class=cls-2a d=M134.28,29.67c-.25.83-.56.84-1.31.69-1.08-.23-4.26-.65-4.36-.53-.07.09-.73,3.59-.98,6.28-.3,3.37.07,4.78-1.03,5.18-.51.15-1.24.23-1.52-.3-.72-1.31-.14-9.03.43-11.31-.12-.04-1.41-.07-1.92-.01-.28.01-.83.13-.99-.23-.08-.16-.02-1.04.19-1.78.33-1.08.39-1.01,1.58-.99,2.73.04,5.2.21,7.95.47,2.41.2,2.73,0,1.96,2.53ZM132.84,33.53c-1.68,5.88.01,7.76-1.36,8.01-.48.06-1.13-.02-1.59-.18-.73-.3-.65-1.9-.7-2.56-.14-1.96-.06-6.19,1.18-7.74.21-.27.33-.26.55-.24,3.5.25,2.37,1.21,1.91,2.71Z /> <path class=cls-2a d=M140.33,42.63c-3.47,1.54-6.18-2.74-5.33-7.72.56-3.31,2.61-6.52,5.94-6.49,6.5.09,4.09,12.18-.61,14.2ZM142.1,35.05c-1.82-.12-2.84-1.6-2.77-3.14-1.13,1.62-1.62,4.84-1.71,5.72-.09.88-.02,4.39,1.78,3.33,1.37-.78,2.46-4.32,2.69-5.9ZM141.34,31.13c-.51.96-.27,2.12.87,2.15,0-.92-.08-1.79-.87-2.15Z /> <path class=cls-2a d=M153.36,39.18c-1.13,2.82-1.49,5.05-2.06,5.52-.05.05-.09.11-.16.12-.36.13-1.51-.3-1.77-.66-.43-.6-.9-6.72-1.07-7.77-.28.7-1.96,7.72-1.97,7.75-.18.7-.56.53-.89.45-.49-.13-1.22-.16-1.43-.73-.52-1.37,2.83-13.13,4.25-14.09.51-.35,1.57.09,1.96.42.61.52.52,1.5.55,2.22.14,1.95.11,3.89.48,5.83.34-1.4.78-2.74,1.32-4.06.89-2.16.85-2.86,1.72-2.72.91.11,1.59.74,1.69,1.09.22.64-1.77,4.27-2.62,6.64Z /> </g> <g> <path class=cls-2b d=M40.26,51.86c-.03-.25.61-1.49,1.1-1.38.25.07,1.37,1.04,1.55,2.34.27,2.23-2.86,4.12-5.79,2.01-3.74-2.65-5.76-6.85-2.46-8.68.64-.34,1.32-.26,1.98.16,1.27.83,2.85,2.57,1.26,3.65-.67.45-.65-.5-2.1-1.7-.57-.49-1.11-.09.07,1.78,1.59,2.44,4.59,4.21,5.17,3.62.5-.53-.73-1.45-.78-1.8Z /> <path class=cls-2b d=M42.79,47.07c.35-.15.71-.25,1.08-.42,1.06-.53,1.51-.82,1.65-.42.33.86-.66,1.4-2.09,2.13-.17.07-.35.12-.47.2.55.78,2.55,1.67,2.37,2.32-.1.37-.88.82-1.08.82-.18-.02-1.88-.74-4.38-3.56-.73-.83-2.58-3.1-2.77-3.95-.13-.6,1.04-1.38,1.19-1.33.17.03.6,1.36.58.78-.1-1.3.49-2.33,1.31-2.85.55-.35,1.45-.19,1.91.25.52.51.88,1.31,1.02,2.04.2,1.06-.06,3.26-.32,3.99ZM41.71,46.76c-.12-1.38.37-3.48-.81-4.55-.25-.22-.45-.18-.61.08-.89,1.27.89,3.64,1.42,4.47Z /> <path class=cls-2b d=M47.79,40.66c.17.01.74.7.75.75.03.1,0,.15-.26.6-.06.08-.46.72-.43.75.56.64,1.13,1.29,1.72,1.96,1.41-1.64,1.56-1.89,2.26-1.35.22.18.21.38.09.61-2.26,4.2-3.14,3.09-4.22,2-1.94-1.93-3.9-4.21-5.29-6.55-.24-.42-.24-.85-.06-1.29.95-2.24,2.65-3.19,3.16-3.17.28,0,.92.76.75,1.25-.2.52-.8.76-1.55,2.01-.17.27-.12.26,2.16,3.26.12.14.66-.86.92-.84Z /> <path class=cls-2b d=M55.61,40.49c-.22.88-.91,1.4-1.71,1.83-1.66.85-5.16-1.5-6.15-5.54-.52-2.08.09-4.11,2.33-4.94.34-.14.67-.09.97.15.27.24.26-.05,1.53-.43.28-.06.57.13.76.49.36.79.73,1.57,1.13,2.33.79,1.58,1.21,2.36,2.65,4.33.64.84,1.15.93.89,1.24-1.09,1.4-1.86.74-2.4.53ZM50.37,33.96c-.97.98.74,5.74,2.63,6.83.42.24.86.08.93-.29.04-.26.09-.54.04-.8-.18-1.01-.45-2.02-.88-2.94-.34-.75-1.6-3.89-2.73-2.8Z /> <path class=cls-2b d=M60.11,27.93c.08.34-.06.48-.98,1.14-.78.57-.82.38-.68.73,2.4,5.54,4.4,6.48,3.69,7.51-.23.34-.65.69-1.07.51-.72-.35-2.9-3.43-4.43-6.43-.02-.04-.2-.49-.27-.52-.03,0-.05,0-.07.02-1.22.66-1.58,1.41-1.94.94-.45-.63-.69-1.4-.7-1.64-.03-.31.24-.46,1.75-1.46,1.11-.75,2.2-1.44,3.36-2.08.21-.11.55-.23.75-.08.22.17.51,1.12.59,1.38Z /> <path class=cls-2b d=M65.84,28.48c.16.05.55.85.55.9,0,.1-.03.15-.39.52-.07.06-.62.59-.6.63.39.75.8,1.52,1.21,2.31,1.75-1.27,1.96-1.48,2.51-.79.17.23.11.42-.05.61-3.18,3.56-3.77,2.27-4.57.97-1.44-2.33-2.81-5-3.62-7.6-.14-.46-.04-.88.24-1.27,1.44-1.95,3.31-2.49,3.81-2.35.27.07.71.95.44,1.39-.32.46-.96.56-1.98,1.6-.23.23-.17.22,1.35,3.67.09.17.84-.68,1.09-.6Z /> <path class=cls-2b d=M66.49,21.99c1.3-.62,2.71-.8,3.87.15,2.28,1.88,3.6,5.16,2.82,8.04-.61,2.35-2.23,2.83-2.85,1.92-2.05-2.91-3.43-5.88-4-7.84-.23-.78-.76-1.83.15-2.27ZM68.48,23.46c.15.66,1.65,4.06,2.62,5.86.34.62.48-.19.48-.53.2-4.31-3.32-6.47-3.11-5.33Z /> <path class=cls-2b d=M81.66,23.17c.1-2.17-.04-2.37.77-2.55.37-.07.63-.12.93.16.42.41.75,1,1.14,1.47-.27-.31-1.06-5.85-.49-6.64.26-.35,1.47-.57,1.82-.31.36.28.14.77.17,1.99.05,2.1.34,4.22.87,6.28.22.87.79,1.53-.98,1.85-.58.13-.79.07-1.2-.37-.23-.27-.49-.49-.72-.74.11,1.79.62,2.91.11,3.48-.3.31-.92.36-1.3.4-.54.09-.79-.35-1.06-.73-1.03-1.5-1.92-3.13-2.6-4.86-.38-.99-.71-2-.96-3.05-.19-.7-.7-1.88.2-2.3.53-.26,1.36-.37,1.52.3.98,4,1.29,4.45,1.78,5.63Z /> <path class=cls-2b d=M91.26,24.19c.07.18.11.34.1.51-.06.74-1.51.96-1.89.57-.15-.13-1.2-1.71-1.92-5.14-.19-.85-.81-4.31-.28-5,.27-.38,1.08-.34,1.53-.36,1.03-.06.76.24,1.01,2.78.35,3.74.88,4.87,1.44,6.64Z /> <path class=cls-2b d=M97.86,14.8c-3.02.59-2.71.46-2.67.81.36,6.43,2.33,8.09.22,8.58-.55.15-.77-.46-.95-.93-.84-2.31-1.42-4.71-1.71-7.17-.06-.35-.27-.19-.53-.14-.97.17-1.29.42-1.47.17-.09-.1-.21-.75-.19-1.33.04-.84.1-.8.97-1.01,1.84-.42,4.09-.9,5.91-1.03.49-.04.89-.21.95,1.45-.01.34-.08.51-.51.59ZM104.17,22.15c.08.18.1.29,0,.43-.27.38-.9.45-1.36.43-.86.01-.85-.47-1.9-3.84,0-.02-.39.12-.41.12-.38.16-1.13.65-1.08.79.17.57.28,1.14.43,1.71.31,1.33.34,1.49-.07,1.59-1.74.43-1.72.55-2.21-.99-.47-1.54-.84-3.12-1.13-4.72-.35-2.09-.34-2.18,1.09-2.32.19,0,.42-.07.6-.01.31.11.3.5.4.76.63,2.35.49,2.35.65,2.27.18-.08,1.54-.59,1.54-.59,0,0-.42-1.93-.39-4.35,0-.29-.14-.91.17-1.03.33-.13.64-.31.99-.37.39-.07.93-.02,1.05.41.15.55.2,6.2,1.64,9.69Z /> </g> <path class=cls-2c d=M29.56,55.57c1.38-2.99,4.88-.07,3.3,2.1-1.58,2.17-4.34.16-3.3-2.1Z /> <path class=cls-2c d=M25.22,62.37c.93-1.89,4.26-.67,3.68,1.17-.58,1.84-7.2,11.96-8.56,17.77s-4.51.19,4.88-18.93Z /> <path class=cls-2c d=M107.86,14.79c2.66-.75,2.64,3.43.05,3.66s-2.9-2.86-.05-3.66Z /> <path class=cls-2c d=M115.67,14.43c2.07-.21,17.02,2.74,21.76,6.19,4.73,3.45-7.85-1.04-13.71-1.69-5.87-.65-7.65-.89-9.04-.85-1.39.04-2.1-3.34,1-3.65Z /> <path class=cls-2d d=M168.48,80.6c-2.01.84-1.62,6.73,2.2,4.85,3.82-1.88-.26-8.02-1.75-10.42l-1.49-2.39,3.11-2.52s2.46,3.11,4.53,6.99c0,0-2.39.78-1.16,3.56s5.05,1.1,4.14-2.91c-.91-4.01-6.15-11.19-7.05-10.68s-6.41,4.53-6.02,5.76c.39,1.23,3.17,4.72,4.21,6.21s-.71,1.55-.71,1.55Z /> <path class=cls-2d d=M181.81,64.29s-2.52-1.88-3.82.32,3.17,5.11,5.05.97c1.88-4.14,1.16-9.96,1.16-9.96,0,0,2.33,3.88,3.49,3.43s1.62-1.62,1.62-1.62c0,0-4.27-4.92-5.44-5.24s-1.16,1.16-1.29,3.75-.32,5.63-.78,8.35Z /> <path class=cls-2d d=M158.97,47.02c-.72-.07-.26,1.1.26,2.91s3.11,6.66,3.11,6.66c0,0-4.08-.91-2.65,3.24,1.42,4.14,6.99,1.29,5.82-1.68s-4.4-8.67-4.4-8.67c0,0,2.72,2.07,3.49,2.07s1.36-.65-.71-2.39-4.27-2.07-4.92-2.14Z /> <path class=cls-2 d=M158.33,143.89c-1.6-.26-3.98-.51-6.38-2.34s-4.29-3.98-5.26-5.6.61-1.46.83-1.18,1.88,3.57,4.88,5.61c3,2.04,5.96,2.06,6.32,2.34s.14,1.26-.39,1.17Z /> <path class=cls-2 d=M155.43,63.34c.96,1.13-.14,1.23-.71.81s-2.74-2.6-6.5-4.32c-3.76-1.72-6.72-1.55-6.92-2s-.34-1.11,1.3-.87,3.87.55,7.17,2.29,5.66,4.09,5.66,4.09Z /> <path class=cls-2 d=M37.57,112.48c1.26-.7.89.65.29,1.27s-5.22,3.88-6.58,8c-1.36,4.12-1.12,7.28-1.25,7.53s-.88.67-1.04-1.08.31-5.92,1.84-8.61,5.05-6.17,6.75-7.11Z /> <path class=cls-10 d=M124.84,187.24s-.13,1.85,2.46,1.73c2.59-.13,10.14-4.53,14.62-8.11,4.49-3.58,10.78-8.46,15.92-12.6,5.13-4.14,8.77-4.89,9.53-4.83,1.59.13,1.68.06,1.46-.87s-.78-1.26-1.97-.98c-1.88.43-4.31.52-10.14,5.22-5.82,4.7-10.83,9.36-17.43,13.33-6.6,3.97-10.74,6.64-14.45,7.12Z /> <path class=cls-7 d=M30.95,142.85c-1.09-2.4.17-3.9,1.19-4.66-.21-.05-.41-.1-.59-.16-2.23-.76-1.29-1.83-1.56-2.14-.27-.31-1.61-.31-2.45.4-.85.71-.94,2.95-.89,4.28.04,1.34,1.07,1.61,3.66,2.14,0,0,.27.05.65.14ZM31.25,145.39c-1.31-.2-2.69-.49-2.69-.49,0,0-1.92,6.87,1.92,12.05,1.53,2.06,3.07,2.94,4.37,3.25-3.73-3.48-3.78-11.32-3.6-14.81Z /> <path class=cls-3 d=M54.93,144.9c-.23-.25-.47-.49-.71-.71.77,2.39.34,4.51-.12,5.79.71.35,1.68,1.12,1.68,1.12,0,0,1.61-3.44-.85-6.2ZM38.75,157.76c1.24,1.74,3.04,3.61,5.11,3.78,3.7.31,4.46-1.25,4.46-2.14,0-.44-.38-1.22-.84-1.98-1.46,4.04-6.05,1.99-8.74.34ZM49.12,156.76c.2.22.4.43.59.59,1.03.89,3.21,1.25,4.64-1.16.88-1.49.11-3-.72-4.02.26,3.67-2.68,4.46-4.52,4.58Z /> <path class=cls-3 d=M188.55,143.6c-3.26-.76-5.09-2.19-5-4.82.09-2.63,1.61-3.44,3.21-4.06,0,0-2.81-2.23.27-6.38,0,0-.71-.18-1.21-.58,0,0,.3,5.21-3.25,8.62l-.17,1.83c-1.34,3.03,1.52,5.62,1.52,5.62-6.16.8-11.78-5.44-11.78-5.44-3.88,2.44-6.57.58-7.84-.75-.03,1.99.34,3.08.79,3.78,1.09,1.7,3.82,1.83,4.58,1.2.76-.62,1.38-1.79,1.96-2.05s1.21-.18,1.47,0,4.11,4.95,9.82,5.62c5.71.67,12.27-1.7,12.27-1.7,0,0-3.39-.13-6.65-.89Z /> <path class=cls-6 d=M91.96,65.7c-1.21-.37-2.98,7.97,2.02,9.88,5,1.9,7.97-6.07,7.14-7.02s-3.21,5.24-6.19,3.21-1.43-5.59-2.98-6.07Z /> <path class=cls-6 d=M70.3,114.49c-1.02.04-3.09,4.28-.12,4.28s3.57,1.31,3.57,2.5,1.67.24,1.43-2.98c-.24-3.21-1.79-3.93-4.88-3.81Z /> <path class=cls-6 d=M99.46,96.4c-.35-2.79-3.57-5.12-8.33-2.5s-9.76,6.78-6.9,16.3,9.88,9.64,13.09,8.33.89-4.12-3.09-4.64c-2.74-.36-9.52-4.76-6.31-12.38,3.21-7.62,8.09-5,8.69-3.33s3.09.12,2.86-1.79Z /> <path class=cls-6 d=M89.94,128.18c-3.33-1.55-5.71-4.05-1.55-3.45,4.17.6,8.75.88,12.02-1.07,5.59-3.33,5-6.78,5.83-7.38s4.28,6.43-3.33,10.83c-7.62,4.4-12.97,1.07-12.97,1.07Z /> <path class=cls-6 d=M136.59,118.42c-2.29-1.99-4.17,1.31-3.21,3.09s1.55,5.83-1.67,9.16c-3.21,3.33-4.88,2.14-4.05,4.17s7.38-1.79,9.76-6.78c2.38-5,.95-8.09-.83-9.64Z /> <path class=cls-6 d=M134.09,62.13c-2.47-.47-4.17,2.14-.48,3.09,3.69.95,7.62,1.9,11.78,3.93s4.52-.83,2.74-2.5-7.74-3.33-14.04-4.52Z /> <path class=cls-6 d=M78.02,70.8c-1.54-1.16-5.17-2.41-10.73.37-2.51,1.26-3.97,2.58-4.83,3.72,2.42-1.31,6.25-2.93,9.98-2.29,3.77.65,5.4-.6,5.58-1.8ZM54.17,90.52c-3.33.3-7.5,2.86-9.88,8.69-2.38,5.83.18,12.73.18,12.73,0,0,3.66-2.43,6.85-4-.76-.96-3.26-2.43-3.51-5.23-.36-3.93,2.5-9.28,6.55-9.16,2.48.07,3.49-1.11,3.48-2.17-1.02-.58-2.28-.97-3.66-.85ZM71.97,83.2c-2.98-2.68-11.84-5-16.72-2.56-.75.38-1.32.81-1.74,1.28-.13,1.01.49,1.94,2.16,2.1,3.75.36,8.75-.89,12.32,1.79,2.41,1.81,4.65.83,5.47-.65-.41-.77-.91-1.44-1.48-1.96ZM85.8,86.12c0,.24-.18.51-.57.67-.98.4-5.98,3.3-8.79,10-2.81,6.69-.71,10.58-.45,11.78.06.27.08.52.06.75,1.52,1.15,3.34,1.45,3.41-.54.12-3.33-3.33-5-.95-11.54,2.38-6.55,7.97-6.55,9.64-8.93,1.19-1.71-.21-2.64-2.35-2.19ZM100.23,51.49c-4.15-1.38-10.67-1.03-16.83,3.66-6.16,4.69-7.5,12.41-7.5,12.41,2.23.67,3.97,3.44,4.02,3.88,0,0,2.99-13.48,12.75-16.93,7.24-2.56,11.67.65,13.47,2.47-.47-2.42-2.4-4.32-5.91-5.49ZM125.85,48.14c-7.41.62-11.56,5.09-11.56,5.09,1.55,1.24,2.35,2.73,2.67,4.27,1.27-1.72,5.07-6.01,11.54-6.2,3.55-.1,5.7.29,7,.78-1.9-2.57-5.52-4.28-9.65-3.93ZM107.55,55.46s.48,1.38.24,3.63c1.88-1.09,5.38-2.32,7.68,1.59.3-1.88.09-3.72-1.09-4.9-2.99-2.99-6.83-.31-6.83-.31Z /> <path class=cls-2 d=M70.51,115.26c-.98.16-2.28-1.65-.36-2.05,1.92-.4,5.27.04,5.94,3.75s-1.38,6.43-2.01,6.56-2.01-.67-1.2-1.74,1.74-2.95,1.07-4.86-2.63-1.79-3.44-1.65Z /> <path class=cls-6 d=M59.52,135.01c-5.73-3.8-7.04-10.4-7.34-12.92-2.98,1.67-3.99,2.95-3.99,2.95,2.71,8.54,7.91,9.86,11.32,9.98Z /> <path class=cls-6 d=M46.74,116.75c9.02-4.41,15.93-5.75,18.09-6.09-.19-.49-.46-.94-.84-1.34-1.96-2.05-4.59-2.15-7.14-1.52-5.71,1.43-13.92,6.25-18.39,12.41-4.38,6.05-4.98,15.7-5,16.05l.04.02c.95.15,1.8.24,2.56.27.21-3.83,1.61-15.37,10.67-19.8Z /> <path class=cls-6 d=M151.11,82.42c-.15.5-.23,1.01-.26,1.52.48-1.09,1.44-2.16,3.26-2.85.94-.36,1.82-.45,2.63-.36-2.26-2.54-4.83-.96-5.64,1.69ZM144.91,88.31c-3.44,2.32-11.07,5.89-11.07,5.89.4.37.76.99,1.05,1.65l15.5-7.33c-.5-1.14-1.2-3.2-1.2-3.2,0,0-.85.67-4.28,2.99Z /> <path class=cls-4 d=M83.87,127.35c.48.71,2.02,8.21,13.69,8.45,11.66.24,15.71-8.69,15.71-8.69l-3.93-2.86s.95,0-2.02,3.33-7.62,5-14.4,3.93c-6.78-1.07-9.04-4.17-9.04-4.17Z /> <path class=cls-4 d=M80.89,80.52s1.96-2.92,4.7-1.73c0,0,5.06,9.22,14.1,1.67,0,0-7.14,2.2-9.7-1.25-2.56-3.45-2.38-4.52-2.38-4.52,0,0-3.63-.12-5.24,1.61s-1.49,4.22-1.49,4.22Z /> <path class=cls-4 d=M77.02,91.88c1.4-2.5,4.76-4.64,6.62-5.62-2.75-.49-5.36.74-5.36.74-.49-5.54-5.85-7.5-10.25-8.16,1.38.46,2.83,1.11,4.26,2.01,4.6,2.9,4.73,11.02,4.73,11.02ZM70.78,104.85s-.1,3.51,3.3,3.99c-.3-.74-.58-1.68-.8-2.77-.54-2.72.24-6.5.24-6.5-6.38,5.77-12.58,4.51-14.86,3.75,2.29,1.65,6.26,3.14,12.12,1.53ZM117.08,58.31c.32,3.27-1.32,6.61-2.52,8.13-.93,1.18-2.03,2.04-2.94,2.55,1.02-.09,2.78-.71,4.87-3.35,2.41-3.06,1.36-5.96.6-7.33ZM56.72,120.19c.03-.15.05-.24.05-.24-.2.08-.39.16-.59.23.16,0,.34,0,.54,0ZM67.33,132.58c-1.83,1.14-3.77,1.89-5.4,2.37.12,0,.23,0,.33,0,2.23,0,3.3.54,3.66.89.36.36,2.28,3.93,5.44,6.29,3.17,2.37,9.15,3.39,9.15,3.39,1.8-1.48,2.97-3.35,3.74-4-12.4,1.65-16.92-8.94-16.92-8.94ZM66.97,112.3c.54,4.46-2.56,6.13-2.56,6.13-2.56,0-5.83.83-5.83.83-.18.34-.31.68-.4,1.01,1.64.17,3.68.6,5.35,1.71,3.21,2.14,4.99-4.02,3.45-9.69Z /> <path class=cls-4 d=M105.29,102.65s9.34,6.25,7.08,18.45c0,0,8.57,8.27,17.55-1.13,0,0-1.37,3.69-4.58,5.53-3.21,1.84-5.65,2.32-8.87,1.96-3.21-.36-6.96-1.31-7.08-4.22,0,0,1.61-7.08-1.13-10.95s-5-5.42-5-5.42c0,0,2.08-3.39,2.02-4.22Z /> <path class=cls-4 d=M82.56,106.52s.19,13.14,8.69,15.23c8.21,2.02,11.43-4.17,10.12-4.76,0,0-1.43,2.5-7.5,1.9-6.07-.6-9.64-5.59-11.31-12.38Z /> <path class=cls-4 d=M142.64,119.73c0,2.26.26,6.54-3.91,11.9-3.96,5.09-11.2,6.19-15.54,6.96,2.38,1.38,6.81,1.61,10.68-.39,4.06-2.1,7.81-6.43,9.37-10.84,1.08-3.07.23-5.83-.61-7.63ZM121.25,139.41c-.06-.05-.13-.11-.19-.16.02.05.08.1.19.16Z /> <path class=cls-4 d=M150.87,125.44c-2.75,1.14-4.32.84-5.18.37-.49,3.03-1.82,4.71-1.82,4.71,3.17,0,4.37-.49,5.27-.89s5-3.93,6.96-8.93c.09-.22.16-.45.23-.67-1.03,1.91-2.78,4.29-5.47,5.41ZM154.56,112.35s1.01.34,1.84,1.32c-.47-1.97-1.19-3.32-1.19-3.32-4.91-.13-8.79-3.57-8.79-3.57-1.66,2-4.04,2.62-6.23,2.94-.11.02-.22.04-.33.05,0,0,0,0,0,0,0,0,3.4,1.62,6.37.2,0,0,4.64,3.09,8.33,2.38Z /> <path class=cls-4 d=M128.38,56.68c.92,1.34.9,2.62.9,2.62,2.9-.22,6.92-.04,6.92-.04.63-1.29.83-2.58.68-3.81-.35.44-.79.81-1.36,1.09-2.56,1.28-5.49.68-7.14.15Z /> <path class=cls-4 d=M114.75,102.59s5.09,2.86,6.16,7.05c0,0,1.34,4.55,4.82,2.77,0,0-2.41,2.41-6.07,2.95,0,0-.8-10.18-4.91-12.76Z /> <path class=cls-2 d=M118.31,114.86s-.04-5.13-2.1-8.43c-2.05-3.3-3.08-4.02-2.68-4.69s1.74-.18,3.97,2.95,3.03,9.73,3.03,9.73c0,0,2.95-.98,4.6-2.59,1.65-1.61,1.79-1.61,2.05-1.43s.58.89.49,1.12-3.39,4.46-7.27,4.86c-3.88.4-5.22-.94-5.36-1.16s.49-.94.76-.89,1.38.49,2.5.54Z /> <path class=cls-6 d=M78.69,129.37s.46,3.14,3.3,5c2.32,1.52,5.38,2.32,5.38,2.32,0,0-6.01,3.13-10.2-3.57,0,0,1.43-1.96,1.52-3.75Z /> <path class=cls-2 d=M71.89,133.96c.37.15,3.12.58,4.51-1.79s1.07-4.37,1.47-4.95,1.61-.13,1.52.89-.58,4.6-3.17,6.43c-2.59,1.83-4.6.98-5.09.58s-.22-1.56.76-1.16Z /> <path class=cls-2 d=M76.53,133.47s1.61,2.45,4.02,3.75c2.41,1.29,6.11.85,6.56.67s.76-1.07.27-1.2-4.24.09-6.07-.62-3.7-4.02-3.7-4.02l-1.07,1.43Z /> <path class=cls-4 d=M56.13,99.32c.81.93,2.17,1.89,4.47,2.39,4.05.89,10.65-.71,12.91-5,1.02-1.92,1.4-4.3,1.26-6.58-.39,1.7-1.25,3.7-2.92,5.92-4.35,5.77-12.55,4.17-15.72,3.27Z /> <path class=cls-4 d=M87.92,69.27s.48,8.57,6.19,9.04c5.71.48,9.52-5.71,9.52-5.71,0,0-2.26,9.88-9.4,8.69-7.14-1.19-6.9-6.78-6.31-12.02Z /> <path class=cls-4 d=M98.09,101.16s3.75.72,4.23-4.64-7.5-4.28-7.5-4.28c0,0,4.64.6,4.64,4.17s-1.37,4.76-1.37,4.76Z /> <path class=cls-2 d=M98.09,101.16c.32-.83,2.41-4.02-.98-7.01-3.79-3.34-11.69,3.97-12.45,8.03s-.18,11.65,4.42,14.42c4.6,2.77,7.59,2.1,10.22.27,2.63-1.83,2.9-2.19,3.3-1.25s-3.44,4.55-7.41,4.51c-3.97-.04-9.73-2.1-11.83-8.48s.04-12.5,3.21-15.8c3.17-3.3,9.06-6.02,12.27-2.19,3.21,3.84.71,7.41.36,7.9s-1.34.18-1.12-.4Z /> <path class=cls-4 d=M94.94,107.47s1.9,3.45,7.85,3.09c0,0,4.4-.12,6.31,4.4,0,0-3.33-7.38-5.83-8.09,0,0-2.02,2.62-8.33.6Z /> <path class=cls-4 d=M127.54,141.91s-2.63,0-4.46-1.25c0,0-1.25,4.55-8.93,7.27,0,0,1.46,1.69,3.07,4.11,2.06-1.15,5.8-3.6,6.82-6.78,0,0,3.27,1.12,6.47,1.14-.88-1.51-1.87-3.04-2.96-4.49Z /> <path class=cls-6 d=M84.97,141.42c.67.76,1.47.31-1.65,4.24-3.12,3.93-10.62,8.35-11.16,8.61s-1.29,2.01-1.47,4.64c0,0,12.47-4.19,18.18-12.76,5.71-8.57-3.9-4.73-3.9-4.73Z /> <path class=cls-4 d=M96.78,147.41c-.89-.06-1.43.89-3.81,3.57-2.38,2.68-14.22,10.71-14.88,11.07,0,0-1.61,1.96,3.93-1.37,5.53-3.33,10.83-7.8,12.79-9.4,1.96-1.61,2.86-3.81,1.96-3.87ZM95.05,145.63c.42-.89-.54-1.67-1.01-1.67s-1.49,1.84-5.71,6.72c-4.22,4.88-13.43,8.98-14.52,9.76-.42.3,0,1.01.48,1.01s2.14-.83,9.4-5.47c7.26-4.64,10.95-9.46,11.37-10.35ZM73.75,158.36c.3-.06,2.8-1.07,7.14-4.11,4.34-3.03,8.87-8.45,8.99-8.93.12-.48-.3-1.07-.71-1.01s-2.26,2.74-5.59,5.95c-3.33,3.21-9.52,6.78-10.35,7.14-.42.18.24,1.01.54.95Z /> <path class=cls-6 d=M76.97,137.64c-1.44-.95-2.14-1.19-4.22-.83s-2.38,1.19.12,3.27,6.31,2.74,7.74,2.5,2.86-2.2,1.43-2.56-2.62-.77-5.06-2.38Z /> <path class=cls-4 d=M52.5,86.02c.23,1.19.72,2.06.72,2.06,3.86-.24,6.47,2.18,7.64,4.1-.17-1.53-.67-3.53-2.08-4.68-1.94-1.59-5.01-1.57-6.29-1.48Z /> <path class=cls-6 d=M116,117.35c-1.19-.24-2.74,2.26-1.19,3.09s7.85.83,10.71-1.67c2.86-2.5,3.93-4.4,3.57-5s-1.67-.12-4.05,1.67-6.07,2.5-9.04,1.9Z /> <path class=cls-6 d=M128.98,93.31c-1.56-.28-4.88,1.55-2.74,2.74s4.17,1.07,4.64,4.17,2.38,2.14,2.14-.6-.71-5.71-4.05-6.31Z /> <path class=cls-4 d=M145.28,96.88c4.74-1.48,7.5-1.84,8.85-1.91-.47-.64-.65-1.22-.65-1.22,0,0-2.68-.62-7.63,1.21-4.95,1.83-9.77,4.91-9.77,4.91,0,0-.27,2.63-.76,3.66,0,0,2.71-4.39,9.97-6.65Z /> <path class=cls-4 d=M95.41,82.33s4.29,1.82,7.5-1.87c3.21-3.69,2.23-9.15,2.23-9.15,0,0-.8,3.2-2.59,5.34s-7.14,5.68-7.14,5.68Z /> <path class=cls-2 d=M86.75,74.07s-1.16-2.54,1.38-7.1c2.54-4.55,4.51-6.2,5.44-6.83s1.38-.18,1.2.22-4.73,3.79-5.98,8.97c-1.25,5.18,1.61,11.96,7.32,10.84s7.19-9.33,7.45-9.86,1.47,0,1.56.98-2.54,10.84-9.73,11.02c-7.19.18-8.66-7.01-8.66-7.01,0,0-3.26.4-4.51,2.81s-.89,3.66-1.52,3.75-1.83-.18-1.07-2.68c.76-2.5,2.68-5.36,7.1-5.13Z /> <path class=cls-4 d=M41.95,135.12c.09-3.66.8-7.32,3.75-10.8,2.95-3.48,10.26-6.52,13.57-6.78,3.3-.27,4.55-.36,5.18-1.43.35-.59.77-1.98.75-3.45-.47.88-1.09,1.84-1.67,2.19-1.19.71-10.95,1.9-18.68,7.14-6.72,4.55-5.72,12.33-5.34,14.29,1.79-.42,2.45-1.16,2.45-1.16Z /> <path class=cls-4 d=M154.38,131.24c1.29-1.79,1.81-3.47,2-4.75-.63-.75-.95-1.32-.95-1.32-2.45,3.93-5.36,5.49-5.36,5.49,2.95,5.76,11.78,6.83,11.78,6.83-.09-1.08,0-2.24.15-3.32-4.65,1.25-7.63-2.92-7.63-2.92Z /> <path class=cls-5 d=M76.4,181.76c4.82-1.74,6.92-4.51,7.05-5.13.05-.24.1-1.64-.22-3.26-1.14,1.02-2.52,2.19-4.18,3.49-5.71,4.46-15.89,2.68-19.99,1.96-2.17-.38-3.34-3.34-3.96-6.05,0,1.29,0,2.39.02,3.15.04,3.93.94,5.8,6.34,6.47,5.4.67,10.13,1.12,14.95-.62Z /> <path class=cls-8 d=M61.56,154.9c1.89-.28,3.37-.3,4.51-.19.4-1.8.92-2.76.92-2.76,0,0-3.26-3.35-8.52.54,0,0-.31,1.56-1.61,2.1,0,0,.05,1.16-.35,2.31,1.67-.98,3.42-1.75,5.06-1.99Z /> <path class=cls-8 d=M77.44,169.95c2.23.3,3.94.84,5.22,1.43-.76-1.91-2.17-3.62-4.79-3.72-5.37-.21-9.59,2.42-11.43,4.12,2.33-.96,6.69-2.39,11-1.82Z /> <path class=cls-10 d=M138.67,165.37c-.22-.19-.19-.6.21-1.23.62-.98,2.77-1.34,3.12-4.55.36-3.21-2.23-3.21-2.23-3.21,0,0,.78,2.21-9.01,6.33-9.49,3.99-13.12,1.98-13.12,1.98-2.23,3.03-.89,4.67.71,5.18,3.78,1.19,6.87.18,6.87.18,0,0,.59.27.04.91,3.48-.54,8.17-1.99,13.41-5.56Z /> <path class=cls-8 d=M124.69,184.84c1.18.22,3.09-.34,6.64-1.55-6.12-.31-7.97-9.2-8.36-11.68-1.38.14-2.86.14-2.86.14-1.31,8.39,3.33,12.85,4.58,13.09Z /> <path class=cls-5 d=M167,160.12s-.33-.8-1.1-1.96c-6.88.73-12.55,4.96-15.5,10.13-2.63,4.61-14.61,12.18-19.54,15.16.37-.12.74-.25,1.15-.39,3.99-1.37,15.71-9.7,21.36-15,5.65-5.3,13.63-7.94,13.63-7.94Z /> <path class=cls-8 d=M163.38,155.16c-2.62-2.45-9.35-2.24-14.14,2.72-2.58,2.67-4.65,6.06-6.05,8.72.29,1.09.98,2.32,2.46.85,2.26-2.26,2.92-8.63,9.22-9.88,4.61-.91,7.82-1.51,8.52-2.41Z /> <path class=cls-4 d=M106.43,139.27s7.96-1.28,10.4-8.83c0,0,9.58,1.96,14.4-4.88l-.6-5.06s-3.21,4.4-6.19,5.53c-2.98,1.13-4.94,1.79-7.5,1.67l-2.56-.12s1.51,6.36-7.96,11.69Z /> <path class=cls-2 d=M83.32,125.8c.31.09,8.75,8.93,19.37,3.93,11.6-5.46,4.95-20.75.13-21.6,0,0-1.61,1.74-5.04.8-3.44-.94-3.44-2.9-2.68-2.63s4.64,3.35,7.19.45,1.96-5.71,2.28-6.16,1.03-.27,1.12.67-.27,4.55-1.38,5.36c0,0,8.66,4.86,5.8,16.6,0,0,1.61,4.2,9.15,3.53,7.54-.67,10.13-6.74,10.13-6.74,0,0-1.65-1.79-1.56-2.19s.58-.89,1.61-.36,3.79,3.3,2.95,8.12c-.85,4.82-3.39,6.2-4.33,6.52s-1.96-.36-1.2-.54,3.7-2.54,3.7-5.89-.4-3.88-.4-3.88c0,0-3.57,5-7.85,5.89-4.28.89-6.92.67-6.92.67,0,0-.76,5.58-4.15,8.17s-4.51,2.77-4.78,2.77-.45-1.43-.04-1.47,3.44-1.34,5.31-4.15c1.87-2.81,2.37-5.58,2.37-5.58,0,0-2.99-1.07-4.33-2.99,0,0-2.68,7.41-12.27,7.72s-13.92-5.67-14.5-6.34-.09-.8.36-.67Z /> </g> </svg> </svg> </section> <section class=fhs-strip aria-label=Links> <div class=fhs-strip__inner> <div class=fhs-strip__row> <a class=fhs-strip__item href=https://www.buymeacoffee.com/amoebelabs/ target=_blank rel=noopener title="Buy Marco from AmoebeLabs some coffee"> <svg width=884 height=1279 viewbox="0 0 884 1279" fill=none xmlns=http://www.w3.org/2000/svg> <path d="M791.109 297.518L790.231 297.002L788.201 296.383C789.018 297.072 790.04 297.472 791.109 297.518V297.518Z" fill=currentcolor></path> <path d="M803.896 388.891L802.916 389.166L803.896 388.891Z" fill=currentcolor></path> <path d="M791.484 297.377C791.359 297.361 791.237 297.332 791.118 297.29C791.111 297.371 791.111 297.453 791.118 297.534C791.252 297.516 791.379 297.462 791.484 297.377V297.377Z" fill=currentcolor></path> <path d="M791.113 297.529H791.244V297.447L791.113 297.529Z" fill=currentcolor></path> <path d="M803.111 388.726L804.591 387.883L805.142 387.573L805.641 387.04C804.702 387.444 803.846 388.016 803.111 388.726V388.726Z" fill=currentcolor></path> <path d="M793.669 299.515L792.223 298.138L791.243 297.605C791.77 298.535 792.641 299.221 793.669 299.515V299.515Z" fill=currentcolor></path> <path d="M430.019 1186.18C428.864 1186.68 427.852 1187.46 427.076 1188.45L427.988 1187.87C428.608 1187.3 429.485 1186.63 430.019 1186.18Z" fill=currentcolor></path> <path d="M641.187 1144.63C641.187 1143.33 640.551 1143.57 640.705 1148.21C640.705 1147.84 640.86 1147.46 640.929 1147.1C641.015 1146.27 641.084 1145.46 641.187 1144.63Z" fill=currentcolor></path> <path d="M619.284 1186.18C618.129 1186.68 617.118 1187.46 616.342 1188.45L617.254 1187.87C617.873 1187.3 618.751 1186.63 619.284 1186.18Z" fill=currentcolor></path> <path d="M281.304 1196.06C280.427 1195.3 279.354 1194.8 278.207 1194.61C279.136 1195.06 280.065 1195.51 280.684 1195.85L281.304 1196.06Z" fill=currentcolor></path> <path d="M247.841 1164.01C247.704 1162.66 247.288 1161.35 246.619 1160.16C247.093 1161.39 247.489 1162.66 247.806 1163.94L247.841 1164.01Z" fill=currentcolor></path> <path d="M472.623 590.836C426.682 610.503 374.546 632.802 306.976 632.802C278.71 632.746 250.58 628.868 223.353 621.274L270.086 1101.08C271.74 1121.13 280.876 1139.83 295.679 1153.46C310.482 1167.09 329.87 1174.65 349.992 1174.65C349.992 1174.65 416.254 1178.09 438.365 1178.09C462.161 1178.09 533.516 1174.65 533.516 1174.65C553.636 1174.65 573.019 1167.08 587.819 1153.45C602.619 1139.82 611.752 1121.13 613.406 1101.08L663.459 570.876C641.091 563.237 618.516 558.161 593.068 558.161C549.054 558.144 513.591 573.303 472.623 590.836Z" fill=#FFDD00></path> <path d="M78.6885 386.132L79.4799 386.872L79.9962 387.182C79.5987 386.787 79.1603 386.435 78.6885 386.132V386.132Z" fill=currentcolor></path> <path d="M879.567 341.849L872.53 306.352C866.215 274.503 851.882 244.409 819.19 232.898C808.711 229.215 796.821 227.633 788.786 220.01C780.751 212.388 778.376 200.55 776.518 189.572C773.076 169.423 769.842 149.257 766.314 129.143C763.269 111.85 760.86 92.4243 752.928 76.56C742.604 55.2584 721.182 42.8009 699.88 34.559C688.965 30.4844 677.826 27.0375 666.517 24.2352C613.297 10.1947 557.342 5.03277 502.591 2.09047C436.875 -1.53577 370.983 -0.443234 305.422 5.35968C256.625 9.79894 205.229 15.1674 158.858 32.0469C141.91 38.224 124.445 45.6399 111.558 58.7341C95.7448 74.8221 90.5829 99.7026 102.128 119.765C110.336 134.012 124.239 144.078 138.985 150.737C158.192 159.317 178.251 165.846 198.829 170.215C256.126 182.879 315.471 187.851 374.007 189.968C438.887 192.586 503.87 190.464 568.44 183.618C584.408 181.863 600.347 179.758 616.257 177.304C634.995 174.43 647.022 149.928 641.499 132.859C634.891 112.453 617.134 104.538 597.055 107.618C594.095 108.082 591.153 108.512 588.193 108.942L586.06 109.252C579.257 110.113 572.455 110.915 565.653 111.661C551.601 113.175 537.515 114.414 523.394 115.378C491.768 117.58 460.057 118.595 428.363 118.647C397.219 118.647 366.058 117.769 334.983 115.722C320.805 114.793 306.661 113.611 292.552 112.177C286.134 111.506 279.733 110.801 273.333 110.009L267.241 109.235L265.917 109.046L259.602 108.134C246.697 106.189 233.792 103.953 221.025 101.251C219.737 100.965 218.584 100.249 217.758 99.2193C216.932 98.1901 216.482 96.9099 216.482 95.5903C216.482 94.2706 216.932 92.9904 217.758 91.9612C218.584 90.9319 219.737 90.2152 221.025 89.9293H221.266C232.33 87.5721 243.479 85.5589 254.663 83.8038C258.392 83.2188 262.131 82.6453 265.882 82.0832H265.985C272.988 81.6186 280.026 80.3625 286.994 79.5366C347.624 73.2302 408.614 71.0801 469.538 73.1014C499.115 73.9618 528.676 75.6996 558.116 78.6935C564.448 79.3474 570.746 80.0357 577.043 80.8099C579.452 81.1025 581.878 81.4465 584.305 81.7391L589.191 82.4445C603.438 84.5667 617.61 87.1419 631.708 90.1703C652.597 94.7128 679.422 96.1925 688.713 119.077C691.673 126.338 693.015 134.408 694.649 142.03L696.731 151.752C696.786 151.926 696.826 152.105 696.852 152.285C701.773 175.227 706.7 198.169 711.632 221.111C711.994 222.806 712.002 224.557 711.657 226.255C711.312 227.954 710.621 229.562 709.626 230.982C708.632 232.401 707.355 233.6 705.877 234.504C704.398 235.408 702.75 235.997 701.033 236.236H700.895L697.884 236.649L694.908 237.044C685.478 238.272 676.038 239.419 666.586 240.486C647.968 242.608 629.322 244.443 610.648 245.992C573.539 249.077 536.356 251.102 499.098 252.066C480.114 252.57 461.135 252.806 442.162 252.771C366.643 252.712 291.189 248.322 216.173 239.625C208.051 238.662 199.93 237.629 191.808 236.58C198.106 237.389 187.231 235.96 185.029 235.651C179.867 234.928 174.705 234.177 169.543 233.397C152.216 230.798 134.993 227.598 117.7 224.793C96.7944 221.352 76.8005 223.073 57.8906 233.397C42.3685 241.891 29.8055 254.916 21.8776 270.735C13.7217 287.597 11.2956 305.956 7.64786 324.075C4.00009 342.193 -1.67805 361.688 0.472751 380.288C5.10128 420.431 33.165 453.054 73.5313 460.35C111.506 467.232 149.687 472.807 187.971 477.556C338.361 495.975 490.294 498.178 641.155 484.129C653.44 482.982 665.708 481.732 677.959 480.378C681.786 479.958 685.658 480.398 689.292 481.668C692.926 482.938 696.23 485.005 698.962 487.717C701.694 490.429 703.784 493.718 705.08 497.342C706.377 500.967 706.846 504.836 706.453 508.665L702.633 545.797C694.936 620.828 687.239 695.854 679.542 770.874C671.513 849.657 663.431 928.434 655.298 1007.2C653.004 1029.39 650.71 1051.57 648.416 1073.74C646.213 1095.58 645.904 1118.1 641.757 1139.68C635.218 1173.61 612.248 1194.45 578.73 1202.07C548.022 1209.06 516.652 1212.73 485.161 1213.01C450.249 1213.2 415.355 1211.65 380.443 1211.84C343.173 1212.05 297.525 1208.61 268.756 1180.87C243.479 1156.51 239.986 1118.36 236.545 1085.37C231.957 1041.7 227.409 998.039 222.9 954.381L197.607 711.615L181.244 554.538C180.968 551.94 180.693 549.376 180.435 546.76C178.473 528.023 165.207 509.681 144.301 510.627C126.407 511.418 106.069 526.629 108.168 546.76L120.298 663.214L145.385 904.104C152.532 972.528 159.661 1040.96 166.773 1109.41C168.15 1122.52 169.44 1135.67 170.885 1148.78C178.749 1220.43 233.465 1259.04 301.224 1269.91C340.799 1276.28 381.337 1277.59 421.497 1278.24C472.979 1279.07 524.977 1281.05 575.615 1271.72C650.653 1257.95 706.952 1207.85 714.987 1130.13C717.282 1107.69 719.576 1085.25 721.87 1062.8C729.498 988.559 737.115 914.313 744.72 840.061L769.601 597.451L781.009 486.263C781.577 480.749 783.905 475.565 787.649 471.478C791.392 467.391 796.352 464.617 801.794 463.567C823.25 459.386 843.761 452.245 859.023 435.916C883.318 409.918 888.153 376.021 879.567 341.849ZM72.4301 365.835C72.757 365.68 72.1548 368.484 71.8967 369.792C71.8451 367.813 71.9483 366.058 72.4301 365.835ZM74.5121 381.94C74.6842 381.819 75.2003 382.508 75.7337 383.334C74.925 382.576 74.4089 382.009 74.4949 381.94H74.5121ZM76.5597 384.641C77.2996 385.897 77.6953 386.689 76.5597 384.641V384.641ZM80.672 387.979H80.7752C80.7752 388.1 80.9645 388.22 81.0333 388.341C80.9192 388.208 80.7925 388.087 80.6548 387.979H80.672ZM800.796 382.989C793.088 390.319 781.473 393.726 769.996 395.43C641.292 414.529 510.713 424.199 380.597 419.932C287.476 416.749 195.336 406.407 103.144 393.382C94.1102 392.109 84.3197 390.457 78.1082 383.798C66.4078 371.237 72.1548 345.944 75.2003 330.768C77.9878 316.865 83.3218 298.334 99.8572 296.355C125.667 293.327 155.64 304.218 181.175 308.09C211.917 312.781 242.774 316.538 273.745 319.36C405.925 331.405 540.325 329.529 671.92 311.91C695.905 308.686 719.805 304.941 743.619 300.674C764.835 296.871 788.356 289.731 801.175 311.703C809.967 326.673 811.137 346.701 809.778 363.615C809.359 370.984 806.139 377.915 800.779 382.989H800.796Z" fill=currentcolor></path> </svg> </a> <a class=fhs-strip__item href=https://amoebelabs.com target=_blank rel=noopener title="AmoebeLabs main website"> <!--?xml version="1.0" encoding="UTF-8" standalone="no"?--> <!-- <?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"> --> <svg width=100% height=100% viewbox="0 0 199 199" version=1.1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink xml:space=preserve xmlns:serif=http://www.serif.com/ style="fill-rule: evenodd; clip-rule: evenodd; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 1.5"> <g id=Kruis-met-Elips serif:id="Kruis met Elips"></g> <g id=Symmetrisch> <g id=Nieuw-Logo serif:id="Nieuw Logo"> <circle cx=147.71 cy=51.564 r=21.26 style="fill: #e4572e; stroke: #ff5e2a; stroke-width: 0.24px"/> <path id=Rechter-Helft--Spiegelen-en--90-draaien- serif:id="Rechter Helft (Spiegelen en -90 draaien)" d="M109.106,72.963c-0.084,0.087 -0.148,0.151 -0.189,0.192c-5.081,5.081 -6.364,8.195 -7.527,9.358c-2.175,2.175 -5.614,7.754 -7.121,9.562c-4.813,5.775 -13.215,10.364 -19.327,18.513c-6.511,8.681 -6.554,8.632 -6.917,9.358c-0.6,1.201 -1.226,2.043 -1.754,2.63c5.8,1.776 10.023,7.176 10.023,13.555c-0,3.621 -1.361,6.926 -3.598,9.432c-0.059,0.095 -0.131,0.193 -0.218,0.293c-1.755,2.025 -3.768,4.575 -6.16,7.14l-0.15,0.16l-0.21,0.222c-0.226,0.24 -0.436,0.488 -0.629,0.746c-2.775,3.413 -4.439,7.765 -4.439,12.502c0,10.951 8.891,19.843 19.843,19.843c10.951,-0 19.842,-8.892 19.842,-19.843c0,-1.96 -0.284,-3.854 -0.815,-5.643c-0.128,-0.665 -0.299,-1.514 -0.565,-2.797c-0.77,-3.708 0.436,-7.557 1.008,-9.026c2.546,-7.127 9.36,-12.233 17.358,-12.233c9.717,-0 17.687,7.538 18.376,17.081c0.067,0.567 0.108,1.065 0.196,1.662c0.055,0.791 0.186,1.562 0.387,2.304c1.385,5.125 6.071,8.902 11.632,8.902c6.649,-0 12.047,-5.399 12.047,-12.048c-0,-4.992 -3.043,-9.279 -7.373,-11.105c-0.689,-0.333 -0.294,-0.283 -3.813,-1.127c-0.152,-0.037 -0.305,-0.075 -0.459,-0.115c-7.345,-1.26 -12.941,-7.665 -12.941,-15.366c0,-8.605 6.986,-15.591 15.591,-15.591c3.166,0 6.113,0.946 8.573,2.57c0.717,0.38 1.611,0.926 2.984,1.573c0.115,0.053 0.24,0.104 0.376,0.15c2.305,1.346 4.986,2.117 7.845,2.117c8.605,0 15.591,-6.985 15.591,-15.59c-0,-8.605 -6.986,-15.591 -15.591,-15.591c-2.302,0 -4.488,0.5 -6.455,1.397c-5.979,3.611 -12.986,5.69 -20.474,5.69c-15.099,-0 -28.24,-8.451 -34.947,-20.877Z" style="fill: #2b93a6; stroke: #2b93a6; stroke-width: 0.24px"/> <path id=Linker-Helft--Bron- serif:id="Linker Helft (Bron)" d="M125.358,89.423c-0.087,0.084 -0.151,0.148 -0.191,0.189c-5.082,5.081 -8.196,6.364 -9.359,7.527c-2.174,2.175 -7.754,5.614 -9.561,7.121c-5.776,4.813 -10.365,13.215 -18.514,19.327c-8.681,6.511 -8.632,6.554 -9.358,6.917c-1.201,0.6 -2.043,1.226 -2.63,1.755c-1.776,-5.801 -7.176,-10.024 -13.555,-10.024c-3.62,0 -6.926,1.361 -9.432,3.598c-0.095,0.059 -0.192,0.131 -0.292,0.218c-2.026,1.755 -4.576,3.768 -7.141,6.16l-0.159,0.15l-0.223,0.21c-0.239,0.226 -0.488,0.436 -0.745,0.63c-3.414,2.774 -7.765,4.438 -12.503,4.438c-10.951,-0 -19.842,-8.891 -19.842,-19.843c-0,-10.951 8.891,-19.842 19.842,-19.842c1.96,-0 3.854,0.285 5.643,0.815c0.665,0.128 1.515,0.299 2.797,0.566c3.708,0.769 7.558,-0.437 9.026,-1.009c7.127,-2.546 12.234,-9.36 12.234,-17.357c-0,-9.718 -7.539,-17.688 -17.081,-18.377c-0.568,-0.067 -1.065,-0.108 -1.662,-0.196c-0.792,-0.055 -1.562,-0.186 -2.305,-0.387c-5.125,-1.385 -8.901,-6.071 -8.901,-11.632c-0,-6.649 5.398,-12.047 12.047,-12.047c4.992,0 9.279,3.043 11.106,7.374c0.332,0.688 0.282,0.293 1.126,3.812c0.037,0.152 0.075,0.305 0.116,0.459c1.259,7.345 7.664,12.941 15.365,12.941c8.605,-0 15.591,-6.986 15.591,-15.591c-0,-3.166 -0.946,-6.112 -2.57,-8.573c-0.379,-0.716 -0.926,-1.611 -1.572,-2.984c-0.054,-0.115 -0.105,-0.24 -0.151,-0.376c-1.346,-2.305 -2.117,-4.985 -2.117,-7.845c-0,-8.604 6.986,-15.59 15.59,-15.59c8.605,-0 15.591,6.986 15.591,15.59c-0,2.302 -0.5,4.488 -1.397,6.455c-3.611,5.979 -5.69,12.986 -5.69,20.474c0,15.099 8.451,28.24 20.877,34.947Z" style="fill: #2b93a6; stroke: #2b93a6; stroke-width: 0.24px"/> </g> </g> <rect x=0 y=-0 width=198.425 height=198.425 style="fill: none"/> </svg> </a> <a class=fhs-strip__item href=https://material3-themes-manual.amoebelabs.com target=_blank rel=noopener title="Home Assistant Material 3 Themes manual"> <!--?xml version="1.0" encoding="UTF-8"?--> <svg xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink version=1.1 width=24 height=24 viewbox="0 0 24 24"> <path fill=currentColor d="M12,3L22,12H19V20H5V12H2L12,3M15,11.5V10C15,8.89 14.1,8 13,8H9V10H13V12H11V14H13V16H9V18H13A2,2 0 0,0 15,16V14.5A1.5,1.5 0 0,0 13.5,13A1.5,1.5 0 0,0 15,11.5Z"></path> </svg> </a> <a class=fhs-strip__item href=https://github.com/amoebelabs/ target=_blank rel=noopener title="AmoebeLabs Github repository"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 496 512"> <path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"></path> </svg> </a> <a class=fhs-strip__item href=https://twitter.com/amoebelabs/ target=_blank rel=noopener title="AmoebeLabs on Twitter"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"> <path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path> </svg> </a> <a class=fhs-strip__item href=https://www.instagram.com/amoebelabs/ target=_blank rel=noopener title="AmoebeLabs on Instagram"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"> <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"></path> </svg> </a> </div> </div> </section> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary md-nav--lifted" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=. title="Flexible Horseshoe Card for Home Assistant" class="md-nav__button md-logo" aria-label="Flexible Horseshoe Card for Home Assistant" data-md-component=logo> <img src=assets/logo/fhs-logo.svg alt=logo> </a> Flexible Horseshoe Card for Home Assistant </label> <div class=md-nav__source> <a href=https://github.com/amoebelabs/flex-horseshoe-card title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> Flexible Horseshoe Card </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <a href=. class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Home </span> </a> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_2> <label class=md-nav__link for=__nav_2 id=__nav_2_label tabindex=0> <span class=md-ellipsis> Getting started </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_2_label aria-expanded=false> <label class=md-nav__title for=__nav_2> <span class="md-nav__icon md-icon"></span> Getting started </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=getting-started/introduction/ class=md-nav__link> <span class=md-ellipsis> Introduction </span> </a> </li> <li class=md-nav__item> <a href=getting-started/installation/ class=md-nav__link> <span class=md-ellipsis> Install with HACS </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_3> <label class=md-nav__link for=__nav_3 id=__nav_3_label tabindex=0> <span class=md-ellipsis> Examples </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=false> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Examples </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=examples/overview/ class=md-nav__link> <span class=md-ellipsis> Overview </span> </a> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_3_2> <label class=md-nav__link for=__nav_3_2 id=__nav_3_2_label tabindex=0> <span class=md-ellipsis> Demo Cards </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_3_2_label aria-expanded=false> <label class=md-nav__title for=__nav_3_2> <span class="md-nav__icon md-icon"></span> Demo Cards </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=examples/demo-cards/demo-card-kleenex-pollen-many/ class=md-nav__link> <span class=md-ellipsis> Kleenex Pollen Cards </span> </a> </li> <li class=md-nav__item> <a href=examples/demo-cards/demo-card-electricity-many/ class=md-nav__link> <span class=md-ellipsis> Electricity Cards </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_4> <label class=md-nav__link for=__nav_4 id=__nav_4_label tabindex=0> <span class=md-ellipsis> Core Concepts </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_4_label aria-expanded=false> <label class=md-nav__title for=__nav_4> <span class="md-nav__icon md-icon"></span> Core Concepts </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=core-concepts/card-structure/ class=md-nav__link> <span class=md-ellipsis> Card Structure </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/entity-definitions/ class=md-nav__link> <span class=md-ellipsis> Entity Definitions </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/external-palettes/ class=md-nav__link> <span class=md-ellipsis> External Palettes </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/positioning-and-groups/ class=md-nav__link> <span class=md-ellipsis> Positioning and Groups </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/localization/ class=md-nav__link> <span class=md-ellipsis> Localization </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/animations/ class=md-nav__link> <span class=md-ellipsis> Animations </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/color-stops/ class=md-nav__link> <span class=md-ellipsis> Color Stops </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/color-filters/ class=md-nav__link> <span class=md-ellipsis> Color Filters </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/css-styling/ class=md-nav__link> <span class=md-ellipsis> CSS Styling </span> </a> </li> <li class=md-nav__item> <a href=core-concepts/templating/ class=md-nav__link> <span class=md-ellipsis> Templating </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_5> <label class=md-nav__link for=__nav_5 id=__nav_5_label tabindex=0> <span class=md-ellipsis> Card Layout Sections </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=false> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Card Layout Sections </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=sections/layout-overview/ class=md-nav__link> <span class=md-ellipsis> Overview </span> </a> </li> <li class=md-nav__item> <a href=sections/groups-section/ class=md-nav__link> <span class=md-ellipsis> Groups </span> </a> </li> <li class=md-nav__item> <a href=sections/visual-shapes-section/ class=md-nav__link> <span class=md-ellipsis> Visual Shapes </span> </a> </li> <li class=md-nav__item> <a href=sections/entities-section/ class=md-nav__link> <span class=md-ellipsis> Entity Parts </span> </a> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_5_5> <label class=md-nav__link for=__nav_5_5 id=__nav_5_5_label tabindex=0> <span class=md-ellipsis> Horseshoes </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_5_label aria-expanded=false> <label class=md-nav__title for=__nav_5_5> <span class="md-nav__icon md-icon"></span> Horseshoes </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=sections/horseshoes-section/ class=md-nav__link> <span class=md-ellipsis> Main </span> </a> </li> <li class=md-nav__item> <a href=sections/horseshoe-ticks/ class=md-nav__link> <span class=md-ellipsis> Ticks </span> </a> </li> <li class=md-nav__item> <a href=sections/horseshoe-labels/ class=md-nav__link> <span class=md-ellipsis> Labels </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type=checkbox id=__nav_6> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Reuse - Better/Easier/Less YAML </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=false> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Reuse - Better/Easier/Less YAML </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=reuse/reuse-introduction/ class=md-nav__link> <span class=md-ellipsis> An Introduction </span> </a> </li> <li class=md-nav__item> <a href=reuse/reuse-card-examples/ class=md-nav__link> <span class=md-ellipsis> Reuse Card Examples </span> </a> </li> <li class=md-nav__item> <a href=reuse/reuse-reference/ class=md-nav__link> <span class=md-ellipsis> Reuse Reference </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> </article> </div> <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> Back to top </button> </main> <footer class=fhs-home-footer> <div class=fhs-home-footer__inner> <img src=assets/logo/amoebelabs-logo.svg alt=AmoebeLabs> <span>Copyright &copy; 2020-2027 Marco @AmoebeLabs</span> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script> <script src=assets/javascripts/bundle.79ae519e.min.js></script> <script src=assets/javascripts/extra.js></script> <!-- Extra JavaScript (can't be set in mkdocs.yml due to content hash) --> <!-- <script src="overrides/assets/javascripts/bundle.js"></script> --> </body> </html>
