@@ -86,8 +86,8 @@ export default class Templates {
   /**
    * Runs JavaScript template code with the current card and Home Assistant context.
    *
-   * Exposes `hass`, `config`, `entity`, `entities`, `states`, `item`, and `user`
-   * to the template. Errors are logged only when dev debug is enabled and return
+   * Exposes `hass`, `config`, `entity`, `entities`, `states`, `constants`,
+   * `item`, and `user` to the template. Errors are logged only when dev debug is enabled and return
    * `undefined`.
    *
    * @param {object} item Card item context used to pick the active entity.
@@ -101,7 +101,7 @@ export default class Templates {
     const state = Templates._getTemplateState(item);
     const entity = entities?.[entityIndex];
     const states = hass?.states;
-    const variables = config?.variables ?? {};
+    const constants = config?.constants ?? {};
     const user = hass?.user;
     if (config?.dev?.debug) {
       console.log('Evaluating JavaScript template with context:', {
@@ -111,7 +111,7 @@ export default class Templates {
         entities,
         states,
         state,
-        variables,
+        constants,
         item,
         user,
       });
@@ -125,7 +125,7 @@ export default class Templates {
         'entities',
         'states',
         'state',
-        'variables',
+        'constants',
         'item',
         'user',
         `
@@ -134,7 +134,7 @@ export default class Templates {
         `,
       );
 
-      return fn(hass, config, entity, entities, states, state, variables, item, user);
+      return fn(hass, config, entity, entities, states, state, constants, item, user);
     } catch (error) {
       if (config?.dev?.debug) {
         console.error('[templates] JavaScript template error:', {
