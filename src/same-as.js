@@ -1,6 +1,7 @@
 import Merge from './merge.js';
 
 const LAYOUT_SECTIONS = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs'];
 
 /**
  * Compiles layout same_as declarations into normal layout item config.
@@ -23,6 +24,28 @@ export default class SameAs {
       if (!Array.isArray(items)) return;
 
       config.layout[section] = SameAs.compileItems(items);
+    });
+
+    SameAs.compileDefinitions(config.layout?.clips);
+    SameAs.compileDefinitions(config.layout?.masks);
+  }
+
+  /**
+   * Compiles same_as inside every supported shape section of clip/mask definitions.
+   *
+   * @param {object} definitions - layout.clips or layout.masks config.
+   */
+  static compileDefinitions(definitions) {
+    if (!definitions) return;
+
+    Object.values(definitions).forEach((definition) => {
+      DEF_SHAPE_SECTIONS.forEach((section) => {
+        const items = definition[section];
+
+        if (!Array.isArray(items)) return;
+
+        definition[section] = SameAs.compileItems(items);
+      });
     });
   }
 

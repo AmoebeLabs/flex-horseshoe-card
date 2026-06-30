@@ -122,7 +122,7 @@ export default class RectangleTool extends BaseTool {
 
     this.applyColorStops(styles, 'fill');
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -134,6 +134,6 @@ export default class RectangleTool extends BaseTool {
           style=${styleMap(this.getRenderStyles(styles))}
         ></path>
       </g>
-    `;
+    `);
   }
 }

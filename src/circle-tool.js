@@ -83,7 +83,7 @@ export default class CircleTool extends BaseTool {
 
     this.applyColorStops(styles, 'stroke');
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -97,6 +97,6 @@ export default class CircleTool extends BaseTool {
           style=${styleMap(this.getRenderStyles(styles))}
         ></circle>
       </g>
-    `;
+    `);
   }
 }

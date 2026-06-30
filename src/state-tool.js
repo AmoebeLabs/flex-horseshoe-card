@@ -817,7 +817,7 @@ export default class StateTool extends BaseTool {
       >${this.uom}</tspan>`;
     }
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -833,6 +833,6 @@ export default class StateTool extends BaseTool {
           >${this.state}</tspan>${uomTemplate}
         </text>
       </g>
-    `;
+    `);
   }
 }

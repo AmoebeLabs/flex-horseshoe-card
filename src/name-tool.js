@@ -86,7 +86,7 @@ export default class NameTool extends BaseTool {
 
     this.applyColorStops(styles, 'stroke');
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -100,6 +100,6 @@ export default class NameTool extends BaseTool {
             ${this.name}</tspan>
         </text>
       </g>
-    `;
+    `);
   }
 }

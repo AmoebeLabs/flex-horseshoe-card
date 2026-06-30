@@ -171,7 +171,7 @@ export default class LineTool extends BaseTool {
 
     this.applyColorStops(styles, 'stroke');
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -186,6 +186,6 @@ export default class LineTool extends BaseTool {
           style=${styleMap(this.getRenderStyles(styles))}
         ></line>
       </g>
-    `;
+    `);
   }
 }
