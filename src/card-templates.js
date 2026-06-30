@@ -210,7 +210,10 @@ export default class CardTemplates {
 
     Object.entries(cardConfig).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        mergedConfig[key] = Merge.mergeDeep([], value);
+        // mergeDeep() always starts from an object internally, so using it with
+        // an array as the root would turn entities[] into {0: ...}. Keep the
+        // root as an array and clone only object items inside it.
+        mergedConfig[key] = value.map((item) => (item && typeof item === 'object' ? Merge.mergeDeep(Array.isArray(item) ? [] : {}, item) : item));
         return;
       }
 
