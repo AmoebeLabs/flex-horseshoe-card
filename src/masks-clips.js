@@ -5,6 +5,7 @@ import Utils from './utils.js';
 import Merge from './merge.js';
 
 const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs'];
+const DEF_ORDERED_SHAPE_SECTION = 'shapes';
 const LAYOUT_SECTIONS = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
 
 /**
@@ -91,9 +92,10 @@ export default class MasksClips {
         rectangles: definition.rectangles ?? [],
         circles: definition.circles ?? [],
         arcs: definition.arcs ?? [],
+        shapes: definition.shapes ?? [],
       });
 
-      DEF_SHAPE_SECTIONS.forEach((section) => {
+      [...DEF_SHAPE_SECTIONS, DEF_ORDERED_SHAPE_SECTION].forEach((section) => {
         normalizedDefinitions[id][section] = normalizedDefinitions[id][section].map((shape) => {
           if (shape.dxpos === undefined && shape.dypos === undefined) return shape;
 
@@ -327,6 +329,18 @@ export default class MasksClips {
    * @returns {TemplateResult} Shape templates.
    */
   renderShapeSections(config, targetItem) {
+    // The traditional sections keep their fixed order for existing configs.
+    // The optional shapes[] list is for masks where SVG paint order matters:
+    // for example first a white arc, then black gradient overlays to fade edges.
+    if (config.shapes.length) {
+      return config.shapes.map((shape) => {
+        if (shape.type === 'rectangle') return this.renderRectangles([shape], targetItem);
+        if (shape.type === 'circle') return this.renderCircles([shape], targetItem);
+
+        return this.renderArcs([shape], targetItem);
+      });
+    }
+
     return svg`
       ${this.renderRectangles(config.rectangles, targetItem)}
       ${this.renderCircles(config.circles, targetItem)}
@@ -540,7 +554,7 @@ export default class MasksClips {
    * @returns {boolean} True when at least one shape uses dxpos/dypos.
    */
   definitionUsesRelativePosition(definition) {
-    return DEF_SHAPE_SECTIONS.some((section) => definition[section].some((shape) => shape.dxpos !== undefined || shape.dypos !== undefined));
+    return [...DEF_SHAPE_SECTIONS, DEF_ORDERED_SHAPE_SECTION].some((section) => definition[section].some((shape) => shape.dxpos !== undefined || shape.dypos !== undefined));
   }
 
   /**
@@ -559,7 +573,9 @@ export default class MasksClips {
       if (!Array.isArray(items)) return;
 
       items.forEach((item) => {
-        if (item[property] !== id) return;
+        const definitionIds = Array.isArray(item[property]) ? item[property] : [item[property]];
+
+        if (!definitionIds.includes(id)) return;
 
         itemsUsingDefinition.push({ section, item });
       });
@@ -618,7 +634,13 @@ export default class MasksClips {
     let result = content;
 
     if (item.mask) {
-      result = svg`<g mask="url(#${this.getMaskUseId(item.mask, item, section)})">${result}</g>`;
+      const maskIds = Array.isArray(item.mask) ? item.mask : [item.mask];
+
+      // Keep the render behavior identical to BaseTool: stacked masks are nested
+      // so every mask constrains the already masked content.
+      maskIds.forEach((maskId) => {
+        result = svg`<g mask="url(#${this.getMaskUseId(maskId, item, section)})">${result}</g>`;
+      });
     }
 
     if (item.clip) {

@@ -172,7 +172,13 @@ export default class BaseTool {
     let result = content;
 
     if (item.mask) {
-      result = svg`<g mask="url(#${this.card.masksClips.getMaskUseId(item.mask, item, this.zposSection)})">${result}</g>`;
+      const maskIds = Array.isArray(item.mask) ? item.mask : [item.mask];
+
+      // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
+      // each mask constrain the previous result, which is the useful combined effect.
+      maskIds.forEach((maskId) => {
+        result = svg`<g mask="url(#${this.card.masksClips.getMaskUseId(maskId, item, this.zposSection)})">${result}</g>`;
+      });
     }
 
     if (item.clip) {

@@ -56,7 +56,7 @@
           - offset: 0
             color: white
             opacity: 1
-          - offset: 75
+          - offset: 72
             color: white
             opacity: 1
           - offset: 100
@@ -73,10 +73,10 @@
           - offset: 0
             color: white
             opacity: 1
-          - offset: 45 #50 #58
+          - offset: 55
             color: white
-            opacity: 0.5
-          - offset: 50 #100
+            opacity: 1
+          - offset: 100
             color: white
             opacity: 0
     # Clip test: this hard-cuts the blue rectangle into a circle.
@@ -135,21 +135,21 @@
             styles:
               - fill: white
 
-      image-circle-soft:
-        circles:
-          - dxpos: 0
+      image-soft-fades:
+        shapes:
+          # The clip cuts the image to an arc. The mask is alpha-based: white is visible, transparent fades out.
+          - type: circle
+            dxpos: 0
             dypos: 0
             radius: 42
             styles:
               - fill: gradient(image-circle-edge-fade)
-
-      # this one does the bottom of the arc. pos is relevant and difficult
-      image-bottom-soft:
-        rectangles:
-          - dxpos: 0
-            dypos: 12
-            width: 70 #84
-            height: 70 #84
+          # This white-to-transparent rectangle controls the hard chord/bottom edge of the arc.
+          - type: rectangle
+            dxpos: 0
+            dypos: 24
+            width: 84
+            height: 34
             radius: 0
             styles:
               - fill: gradient(image-bottom-fade)
@@ -224,9 +224,7 @@
         icon_size_percent: 42
         icon: url(/local/images/backgrounds/map-background.jpg)
         clip: image-arc-window
-        mask:
-          - image-circle-soft
-          - image-bottom-soft
+        mask: image-soft-fades
         zpos: 100
 
     names:
