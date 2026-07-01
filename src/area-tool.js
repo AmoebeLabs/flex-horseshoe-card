@@ -107,7 +107,7 @@ export default class AreaTool extends BaseTool {
 
     this.applyColorStops(styles, 'stroke');
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -121,6 +121,6 @@ export default class AreaTool extends BaseTool {
             ${this.area}</tspan>
         </text>
       </g>
-    `;
+    `);
   }
 }

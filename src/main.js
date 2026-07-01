@@ -44,6 +44,7 @@ import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
+import MasksClips from './masks-clips.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -1185,6 +1186,7 @@ class FlexHorseshoeCard extends LitElement {
 
   _assignSectionIds(config) {
     const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+    const defShapeSections = ['rectangles', 'circles', 'arcs'];
 
     layoutSections.forEach((section) => {
       const items = config.layout?.[section];
@@ -1192,6 +1194,20 @@ class FlexHorseshoeCard extends LitElement {
       if (!Array.isArray(items)) return;
 
       config.layout[section] = this._assignIdItems(items);
+    });
+
+    [config.layout?.clips, config.layout?.masks].forEach((definitions) => {
+      if (!definitions) return;
+
+      Object.values(definitions).forEach((definition) => {
+        defShapeSections.forEach((section) => {
+          const items = definition[section];
+
+          if (!Array.isArray(items)) return;
+
+          definition[section] = this._assignIdItems(items);
+        });
+      });
     });
   }
 
@@ -1418,7 +1434,11 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.config = newConfig;
+      this.config.layout.gradients ??= {};
+      this.config.layout.clips ??= {};
+      this.config.layout.masks ??= {};
       this.groupManager = new GroupManager(this.config.layout?.groups);
+      this.masksClips = new MasksClips(this.config, this.cardId, this);
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
       this._prepareItemColorStops(newConfig);
@@ -1604,6 +1624,8 @@ class FlexHorseshoeCard extends LitElement {
           <feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
           <feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
         </filter>
+
+        ${this.masksClips.renderDefs()}
       </defs>
     `;
   }

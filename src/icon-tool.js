@@ -491,10 +491,10 @@ export default class IconTool extends BaseTool {
       const url = this.getUrlFromCssUrl(icon);
 
       if (this.isSvgUrl(url)) {
-        return this.renderSvgUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust);
+        return this.renderItemLayers(this.renderSvgUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust), renderItem);
       }
 
-      return this.renderImageUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust);
+      return this.renderItemLayers(this.renderImageUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust), renderItem);
     }
 
     if (!icon) {
@@ -559,7 +559,7 @@ export default class IconTool extends BaseTool {
 
       configStyle['transform-origin'] ??= '0 0';
 
-      return svg`
+      return this.renderItemLayers(svg`
         <g
           transform="${this.getGroupScaleTransform(renderItem)}"
           style="${this.getGroupScaleStyle(renderItem)}"
@@ -590,7 +590,7 @@ export default class IconTool extends BaseTool {
             </g>
           </g>
         </g>
-      `;
+      `, renderItem);
     }
 
     return svg`

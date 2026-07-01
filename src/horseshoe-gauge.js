@@ -322,7 +322,7 @@ export default class HorseshoeGauge extends BaseTool {
 
     const groupTransform = this.geometry.getGroupTransform();
 
-    return svg`
+    return this.renderItemLayers(svg`
       <g
         id="horseshoe-${this.index}"
         class="horseshoe"
@@ -337,7 +337,7 @@ export default class HorseshoeGauge extends BaseTool {
         ${this.renderLabelBadges()}
         ${this.renderLabels()}
       </g>
-    `;
+    `);
   }
 
   /**

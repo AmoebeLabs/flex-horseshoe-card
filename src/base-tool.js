@@ -1,3 +1,4 @@
+import { svg } from 'lit';
 import ConfigHelper from './config-helper.js';
 import ColorFilter from './color-filter.js';
 import Templates from './templates.js';
@@ -105,7 +106,9 @@ export default class BaseTool {
    * @returns {object} Render style dictionary with filtered color properties.
    */
   getRenderStyles(styles, extraFilters = []) {
-    return ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
+    const filteredStyles = ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
+
+    return this.card.masksClips.applyGradientRefs(filteredStyles);
   }
 
   /**
@@ -153,6 +156,38 @@ export default class BaseTool {
    */
   getGroupScaleStyle() {
     return this.card._getGroupScaleStyle(this.runtimeConfig);
+  }
+
+  /**
+   * Wraps this tool's rendered SVG content in configured clip and mask layers.
+   *
+   * The actual scoped ids live in MasksClips. Tools only know the user-facing
+   * `clip` and `mask` names from their runtime config.
+   *
+   * @param {TemplateResult} content - Rendered SVG content for this tool.
+   * @param {object} item - Runtime config that may contain clip/mask names.
+   * @returns {TemplateResult} Wrapped or unchanged SVG content.
+   */
+  renderItemLayers(content, item = this.runtimeConfig) {
+    let result = content;
+
+    if (item.mask) {
+      const maskIds = Array.isArray(item.mask) ? item.mask : [item.mask];
+
+      // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
+      // each mask constrain the previous result, which is the useful combined effect.
+      maskIds.forEach((maskId) => {
+        this.card.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
+          result = svg`<g mask="url(#${svgMaskId})">${result}</g>`;
+        });
+      });
+    }
+
+    if (item.clip) {
+      result = svg`<g clip-path="url(#${this.card.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
+    }
+
+    return result;
   }
 
   /**
