@@ -177,7 +177,9 @@ export default class BaseTool {
       // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
       // each mask constrain the previous result, which is the useful combined effect.
       maskIds.forEach((maskId) => {
-        result = svg`<g mask="url(#${this.card.masksClips.getMaskUseId(maskId, item, this.zposSection)})">${result}</g>`;
+        this.card.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
+          result = svg`<g mask="url(#${svgMaskId})">${result}</g>`;
+        });
       });
     }
 

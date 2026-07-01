@@ -47,38 +47,6 @@
             color: white
             opacity: 0
 
-      image-circle-edge-fade:
-        type: radial
-        cx: 50
-        cy: 50
-        r: 50
-        stops:
-          - offset: 0
-            color: white
-            opacity: 1
-          - offset: 75
-            color: white
-            opacity: 1
-          - offset: 100
-            color: white
-            opacity: 0
-
-      image-bottom-fade:
-        type: linear
-        x1: 0
-        y1: 0
-        x2: 0
-        y2: 100
-        stops:
-          - offset: 0
-            color: white
-            opacity: 1
-          - offset: 45 #50 #58
-            color: white
-            opacity: 0.5
-          - offset: 50 #100
-            color: white
-            opacity: 0
     # Clip test: this hard-cuts the blue rectangle into a circle.
     clips:
       circle-window:
@@ -135,24 +103,25 @@
             styles:
               - fill: white
 
-      image-circle-soft:
-        circles:
-          - dxpos: 0
-            dypos: 0
-            radius: 42
-            styles:
-              - fill: gradient(image-circle-edge-fade)
-
-      # this one does the bottom of the arc. pos is relevant and difficult
-      image-bottom-soft:
-        rectangles:
-          - dxpos: 0
-            dypos: 12
-            width: 70 #84
-            height: 70 #84
-            radius: 0
-            styles:
-              - fill: gradient(image-bottom-fade)
+      image-arc-soft:
+        soft_arc:
+          clip: image-arc-window
+          edge:
+            fade: 25
+            stops:
+              - offset: 0
+                opacity: 1
+              - offset: 100
+                opacity: 0
+          bottom:
+            fade: 8
+            stops:
+              - offset: 0
+                opacity: 1
+              - offset: 50
+                opacity: 0.5
+              - offset: 100
+                opacity: 0
 
     rectangles:
       # A square clipped by a circle. Should render as a circle.
@@ -223,10 +192,7 @@
         yposc: 50
         icon_size_percent: 42
         icon: url(/local/images/backgrounds/map-background.jpg)
-        clip: image-arc-window
-        mask:
-          - image-circle-soft
-          - image-bottom-soft
+        mask: image-arc-soft
         zpos: 100
 
     names:

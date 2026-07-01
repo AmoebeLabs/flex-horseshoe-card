@@ -1,7 +1,7 @@
 import Merge from './merge.js';
 
 const LAYOUT_SECTIONS = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
-const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs', 'shapes'];
+const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs'];
 
 /**
  * Compiles layout same_as declarations into normal layout item config.
