@@ -185,7 +185,7 @@ export default class MasksClips {
    * Returns one or more SVG mask ids for a configured mask name.
    *
    * soft_arc expands to two nested masks: one for the curved edge and one for
-   * the chord/bottom fade. Separate masks are needed because SVG mask shapes are
+   * the chord fade. Separate masks are needed because SVG mask shapes are
    * painted together; nesting makes the masks constrain each other.
    *
    * @param {string} id - User configured mask name.
@@ -197,7 +197,7 @@ export default class MasksClips {
     if (this.masks[id].soft_arc) {
       const maskId = this.getMaskId(id, item, section);
 
-      return [`${maskId}-edge`, `${maskId}-bottom`];
+      return [`${maskId}-edge`, `${maskId}-chord`];
     }
 
     return [this.getMaskUseId(id, item, section)];
@@ -366,7 +366,7 @@ export default class MasksClips {
    * Renders the generated masks for a soft_arc definition.
    *
    * The user supplies one arc clip and two fade widths. This function derives
-   * the visible circle and bottom/chord fade geometry from that clip arc, so the
+   * the visible circle and chord fade geometry from that clip arc, so the
    * YAML does not need hand-tuned rectangle positions or sizes.
    *
    * @param {string} id - User configured soft_arc mask name.
@@ -380,43 +380,64 @@ export default class MasksClips {
     const arc = this.clips[mask.soft_arc.clip].arcs[0];
     const arcDimensions = this.calculateArcDimensions(arc, item);
     const edgeGradientId = `${maskId}-edge-gradient`;
-    const bottomGradientId = `${maskId}-bottom-gradient`;
-    const edgeFade = Number(mask.soft_arc.edge.fade);
-    const edgeFadeStart = 100 - edgeFade;
+    const chordGradientId = `${maskId}-chord-gradient`;
+    const edgeStopsStart = Number(mask.soft_arc.edge.stops_start);
     const edgeStops = mask.soft_arc.edge.stops ?? [
       { offset: 0, opacity: 1 },
       { offset: 100, opacity: 0 },
     ];
-    const bottomStops = mask.soft_arc.bottom.stops ?? [
+    const chordStopsStart = Number(mask.soft_arc.chord.stops_start);
+    const chordStops = mask.soft_arc.chord.stops ?? [
       { offset: 0, opacity: 1 },
-      { offset: 50, opacity: 0.5 },
       { offset: 100, opacity: 0 },
     ];
-    const topY = arcDimensions.ypos - arcDimensions.radius;
-    const chordY = Math.max(arcDimensions.startY, arcDimensions.endY);
-    const bottomMaskHeight = arcDimensions.radius * 2;
-    const bottomMaskY = topY;
-    const bottomFade = bottomMaskHeight * (Number(mask.soft_arc.bottom.fade) / 100);
+    const chordDx = arcDimensions.endX - arcDimensions.startX;
+    const chordDy = arcDimensions.endY - arcDimensions.startY;
+    const chordLength = Math.sqrt(chordDx ** 2 + chordDy ** 2);
+    const chordMidX = (arcDimensions.startX + arcDimensions.endX) / 2;
+    const chordMidY = (arcDimensions.startY + arcDimensions.endY) / 2;
+    let normalX = -chordDy / chordLength;
+    let normalY = chordDx / chordLength;
+
+    // The chord mask fades from the arc center toward the chord. Flip the normal
+    // when needed so its positive direction points from center to the chord line.
+    if (((chordMidX - arcDimensions.xpos) * normalX) + ((chordMidY - arcDimensions.ypos) * normalY) < 0) {
+      normalX = -normalX;
+      normalY = -normalY;
+    }
+
+    const centerToChord = Math.abs(((chordMidX - arcDimensions.xpos) * normalX) + ((chordMidY - arcDimensions.ypos) * normalY));
+    const chordGradientStartX = arcDimensions.xpos;
+    const chordGradientStartY = arcDimensions.ypos;
+    const chordGradientEndX = arcDimensions.xpos + normalX * centerToChord;
+    const chordGradientEndY = arcDimensions.ypos + normalY * centerToChord;
+    const chordMaskSize = arcDimensions.radius * 2;
 
     return svg`
       <radialGradient id="${edgeGradientId}" gradientUnits="objectBoundingBox" cx="50%" cy="50%" r="50%">
         ${edgeStops.map((stop) => svg`
           <stop
-            offset="${edgeFadeStart + (Number(stop.offset) / 100) * edgeFade}%"
+            offset="${edgeStopsStart + (Number(stop.offset) / 100) * (100 - edgeStopsStart)}%"
             stop-color="white"
             stop-opacity="${stop.opacity}"
           ></stop>
         `)}
       </radialGradient>
-      <linearGradient id="${bottomGradientId}" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="0%" y2="100%">
-        ${bottomStops.map((stop) => svg`
+      <linearGradient
+        id="${chordGradientId}"
+        gradientUnits="userSpaceOnUse"
+        x1="${chordGradientStartX}"
+        y1="${chordGradientStartY}"
+        x2="${chordGradientEndX}"
+        y2="${chordGradientEndY}"
+      >
+        ${chordStops.map((stop) => svg`
           <stop
-            offset="${((chordY - bottomFade + (Number(stop.offset) / 100) * bottomFade - topY) / bottomMaskHeight) * 100}%"
+            offset="${chordStopsStart + (Number(stop.offset) / 100) * (100 - chordStopsStart)}%"
             stop-color="white"
             stop-opacity="${stop.opacity}"
           ></stop>
         `)}
-        <stop offset="100%" stop-color="white" stop-opacity="0"></stop>
       </linearGradient>
       <mask id="${maskId}-edge" maskUnits="userSpaceOnUse">
         <circle
@@ -427,14 +448,14 @@ export default class MasksClips {
           fill="url(#${edgeGradientId})"
         ></circle>
       </mask>
-      <mask id="${maskId}-bottom" maskUnits="userSpaceOnUse">
+      <mask id="${maskId}-chord" maskUnits="userSpaceOnUse">
         <rect
-          class="mask-clip-soft-arc-bottom"
+          class="mask-clip-soft-arc-chord"
           x="${arcDimensions.xpos - arcDimensions.radius}"
-          y="${bottomMaskY}"
-          width="${arcDimensions.radius * 2}"
-          height="${bottomMaskHeight}"
-          fill="url(#${bottomGradientId})"
+          y="${arcDimensions.ypos - arcDimensions.radius}"
+          width="${chordMaskSize}"
+          height="${chordMaskSize}"
+          fill="url(#${chordGradientId})"
         ></rect>
       </mask>
     `;

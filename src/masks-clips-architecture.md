@@ -1,633 +1,308 @@
-# FHS - Masks And Clips
+# FHS - Masks, Clips And Gradients
 
-## Basic Idea
+## Current Scope
 
-- `clip` = hard boundary (`<clipPath>`)
-- `mask` = transparency/fade (`<mask>`)
-- `layout.clips` and `layout.masks` are rendered inside SVG `<defs>`
-- visible items only reference a name
+This document describes the implemented masks/clips support in this branch.
 
-```yaml
-layout:
-  clips:
-    avatar-circle:
-      circles:
-        - xpos: 100
-          ypos: 100
-          radius: 50
+Supported definition sections:
 
-  masks:
-    avatar-fade:
-      circles:
-        - xpos: 100
-          ypos: 100
-          radius: 50
-          styles:
-            fill: url(#fhs-gradient-avatar-fade)
+- `layout.gradients`
+- `layout.clips`
+- `layout.masks`
 
-  icons:
-    - icon: url(/local/images/bird.png)
-      xpos: 100
-      ypos: 100
-      width: 100
-      height: 100
-      clip: avatar-circle
-      mask: avatar-fade
-```
+Supported mask/clip source shapes:
 
-Internal SVG:
+- `rectangles`
+- `circles`
+- `arcs`
 
-```svg
-<defs>
-  <clipPath id="fhs-clip-avatar-circle">
-    <circle cx="100" cy="100" r="50" />
-  </clipPath>
+Supported visible item usage:
 
-  <mask id="fhs-mask-avatar-fade">
-    <circle cx="100" cy="100" r="50" fill="url(#fhs-gradient-avatar-fade)" />
-  </mask>
-</defs>
-```
+- `clip: name`
+- `mask: name`
+- `mask: [name_a, name_b]` for nested masks
+- `styles: fill: gradient(name)` or `stroke: gradient(name)`
 
-### SVG Id Scope
+Not part of this PR:
 
-Clip and mask ids must be scoped per FHS card instance. Multiple cards can use the same config name, so the generated SVG id should include the card id.
+- path-based clip/mask definitions
+- horseshoe-as-mask source definitions
+- runtime `color_stop` values inside reusable gradients
 
-Example generated ids:
+## Basic Model
 
-```text
-fhs-${cardId}-clip-avatar-circle
-fhs-${cardId}-mask-avatar-fade
-```
+- `clip` is a hard boundary rendered as SVG `<clipPath>`.
+- `mask` is an alpha/transparency layer rendered as SVG `<mask>`.
+- `layout.gradients`, `layout.clips`, and `layout.masks` are rendered inside SVG `<defs>`.
+- Visible layout items reference masks/clips by user-facing name.
+- Generated SVG ids are scoped with the card id, so multiple cards can reuse the same config names.
 
-Item references must use the same scoped ids:
-
-```svg
-clip-path="url(#fhs-${cardId}-clip-avatar-circle)"
-mask="url(#fhs-${cardId}-mask-avatar-fade)"
-```
-
-### SVG Coordinate Units
-
-Clips and masks should use the same 0..200 user-space coordinate system as the rest of the FHS SVG. Set the units explicitly so browser SVG defaults cannot change the coordinate interpretation.
-
-```svg
-<clipPath id="fhs-${cardId}-clip-avatar-circle" clipPathUnits="userSpaceOnUse">
-  ...
-</clipPath>
-
-<mask id="fhs-${cardId}-mask-avatar-fade" maskUnits="userSpaceOnUse">
-  ...
-</mask>
-```
-
-Use on the item:
-
-```svg
-<g clip-path="url(#fhs-clip-avatar-circle)">
-  <g mask="url(#fhs-mask-avatar-fade)">
-    <image href="/local/images/bird.png" ... />
-  </g>
-</g>
-```
-
----
-
-## Why Separate Sections?
-
-Not this:
-
-```yaml
-defs:
-  avatar:
-    type: mask
-```
-
-Use this:
-
-```yaml
-layout:
-  clips: {}
-  masks: {}
-```
-
-Benefits:
-
-- no extra `type` key is needed
-- it is clear what becomes a `<clipPath>`
-- it is clear what becomes a `<mask>`
-- the same shape sections can be reused
-- implementation can be done step by step
-
----
-
-## Example 1 - Make An Image Circular With A Soft Edge
+Example:
 
 ```yaml
 layout:
   gradients:
-    avatar-fade-gradient:
+    circle-fade:
       type: radial
-      cx: 100
-      cy: 100
+      cx: 50
+      cy: 50
       r: 50
       stops:
-        - offset: 0%
+        - offset: 0
           color: white
           opacity: 1
-        - offset: 75%
+        - offset: 75
           color: white
           opacity: 1
-        - offset: 100%
-          color: black
-          opacity: 1
+        - offset: 100
+          color: white
+          opacity: 0
 
   clips:
     avatar-circle:
       circles:
-        - xpos: 100
-          ypos: 100
-          radius: 50
+        - dxpos: 0
+          dypos: 0
+          radius: 34
 
   masks:
-    avatar-fade:
+    avatar-soft-edge:
       circles:
-        - xpos: 100
-          ypos: 100
-          radius: 50
+        - dxpos: 0
+          dypos: 0
+          radius: 34
           styles:
-            fill: url(#fhs-gradient-avatar-fade-gradient)
+            - fill: gradient(circle-fade)
 
   icons:
-    - icon: url(/local/images/bird.png)
-      xpos: 100
-      ypos: 100
-      width: 100
-      height: 100
+    - id: avatar
+      icon: url(/local/images/avatar.jpg)
+      xpos: 50
+      ypos: 50
+      icon_size_percent: 34
       clip: avatar-circle
-      mask: avatar-fade
+      mask: avatar-soft-edge
 ```
 
-Result:
+## Coordinate Rules
 
-- the clip cuts hard at the circle boundary
-- the mask softens the edge
-- the image can never render outside the circle
+Clip/mask definitions use SVG `userSpaceOnUse`.
 
----
+Absolute source shapes use `xpos`/`ypos` just like normal layout items.
 
-## Example 2 - Card With A Round Notch
+Relative source shapes use `dxpos`/`dypos` and are rendered per visible item using that item as anchor:
+
+```yaml
+clips:
+  circle-window:
+    circles:
+      - dxpos: 0
+        dypos: 0
+        radius: 34
+```
+
+This lets one clip or mask definition be reused by multiple items without repeating absolute positions.
+
+## Gradients
+
+Gradients are defined under `layout.gradients` and referenced from styles with `gradient(name)`.
 
 ```yaml
 layout:
-  masks:
-    card-notch:
-      rectangles:
-        - xpos: 0
-          ypos: 0
-          width: 200
-          height: 120
-          radius: 16
-          styles:
-            fill: white
-
-      circles:
-        - xpos: 100
-          ypos: 0
-          radius: 20
-          styles:
-            fill: black
+  gradients:
+    blue-radial:
+      type: radial
+      cx: 50
+      cy: 35
+      r: 65
+      stops:
+        - offset: 0
+          color: '#e3f2fd'
+        - offset: 45
+          color: '#42a5f5'
+        - offset: 100
+          color: '#0d47a1'
 
   rectangles:
-    - xpos: 0
-      ypos: 0
-      width: 200
-      height: 120
-      radius: 16
-      mask: card-notch
-      styles:
-        fill: var(--ha-card-background)
-```
-
-Meaning inside the mask:
-
-- white rectangle = visible
-- black circle = removed
-- circle is half over the top edge
-- that creates the notch
-
-Note:
-
-- a mask does not change geometry
-- it only removes pixels
-- a stroke therefore does not automatically follow the new contour
-
----
-
-## Example 3 - Hard Shape With Soft Fade At Top And Bottom
-
-```yaml
-layout:
-  gradients:
-    fade-top-bottom:
-      type: linear
-      x1: 0
-      y1: 0
-      x2: 0
-      y2: 1
-      stops:
-        - offset: 0%
-          color: black
-          opacity: 1
-        - offset: 15%
-          color: white
-          opacity: 1
-        - offset: 85%
-          color: white
-          opacity: 1
-        - offset: 100%
-          color: black
-          opacity: 1
-
-  clips:
-    rounded-window:
-      rectangles:
-        - xpos: 20
-          ypos: 30
-          width: 160
-          height: 90
-          radius: 18
-
-  masks:
-    window-fade:
-      rectangles:
-        - xpos: 20
-          ypos: 30
-          width: 160
-          height: 90
-          radius: 18
-          styles:
-            fill: url(#fhs-gradient-fade-top-bottom)
-
-  icons:
-    - icon: url(/local/images/map-background.jpg)
-      xpos: 20
-      ypos: 30
-      width: 160
-      height: 90
-      clip: rounded-window
-      mask: window-fade
-      styles:
-        opacity: 0.85
-```
-
-Result:
-
-- image has hard rounded corners
-- top and bottom fade away
-- center remains fully visible
-
----
-
-## Example 4 - Multiple Shapes In One Mask
-
-```yaml
-layout:
-  gradients:
-    vignette:
-      type: radial
-      cx: 100
-      cy: 70
-      r: 100
-      stops:
-        - offset: 0%
-          color: white
-          opacity: 1
-        - offset: 70%
-          color: white
-          opacity: 1
-        - offset: 100%
-          color: black
-          opacity: 1
-
-  clips:
-    city-frame:
-      paths:
-        - d: M20 20 H180 L165 120 H35 L20 105 Z
-
-  masks:
-    city-vignette:
-      rectangles:
-        - xpos: 20
-          ypos: 20
-          width: 160
-          height: 100
-          styles:
-            fill: url(#fhs-gradient-vignette)
-
-      circles:
-        - xpos: 100
-          ypos: 70
-          radius: 35
-          styles:
-            fill: white
-
-      rectangles:
-        - xpos: 20
-          ypos: 20
-          width: 160
-          height: 100
-          styles:
-            fill: rgba(255, 255, 255, 0.5)
-
-  icons:
-    - icon: url(/local/images/city.jpg)
-      xpos: 20
-      ypos: 20
-      width: 160
-      height: 100
-      clip: city-frame
-      mask: city-vignette
-```
-
-This combines:
-
-- a hard polygon-like clip
-- a radial-gradient mask
-- an extra white circle as spotlight
-- a rectangle as base coverage
-
----
-
-## Example 5 - Horseshoe-Like Fade To Left And Right
-
-This is one mask, not two separate masks.
-
-```yaml
-layout:
-  gradients:
-    fade-left-right:
-      type: linear
-      x1: 0
-      y1: 0
-      x2: 1
-      y2: 0
-      stops:
-        - offset: 0%
-          color: black
-          opacity: 1
-        - offset: 20%
-          color: white
-          opacity: 1
-        - offset: 80%
-          color: white
-          opacity: 1
-        - offset: 100%
-          color: black
-          opacity: 1
-
-  masks:
-    hs-fade-both:
-      horseshoes:
-        - xpos: 100
-          ypos: 100
-          radius: 60
-          arc_degrees: 270
-          start_angle: -135
-          end_angle: 135
-          horseshoe_state:
-            width: 14
-            styles:
-              stroke: url(#fhs-gradient-fade-left-right)
-
-  icons:
-    - icon: url(/local/images/energy-texture.jpg)
+    - id: clipped_square
       xpos: 25
-      ypos: 25
-      width: 150
-      height: 150
-      mask: hs-fade-both
+      ypos: 26
+      width: 37
+      height: 37
+      clip: circle-window
+      styles:
+        - fill: gradient(blue-radial)
 ```
 
-Result:
+Numeric gradient coordinates and offsets use the same user-facing `0..100` style as the rest of FHS config. The renderer converts them to SVG percentages for `objectBoundingBox` gradients.
 
-- image is only visible in the horseshoe arc
-- left and right side of the arc fade away
-- center remains fully visible
+## Clips
 
-Note:
-
-- this requires horseshoes to render as mask sources later
-- this can be postponed for the first implementation
-
----
-
-## JavaScript - Basic Render Structure
-
-### Render Defs
-
-```js
-renderDefs() {
-  return html`
-    <defs>
-      ${this.renderGradients(this._layout.gradients)}
-      ${this.renderClips(this._layout.clips)}
-      ${this.renderMasks(this._layout.masks)}
-    </defs>
-  `;
-}
-```
-
-### Render Clips
-
-```js
-renderClips(clips) {
-  return Object.entries(clips).map(([id, clip]) => html`
-    <clipPath id=${`fhs-clip-${id}`}>
-      ${this.renderShapeSections(clip)}
-    </clipPath>
-  `);
-}
-```
-
-### Render Masks
-
-```js
-renderMasks(masks) {
-  return Object.entries(masks).map(([id, mask]) => html`
-    <mask id=${`fhs-mask-${id}`}>
-      ${this.renderShapeSections(mask)}
-    </mask>
-  `);
-}
-```
-
-### Reuse Existing Sections
-
-```js
-renderShapeSections(config) {
-  return html`
-    ${this.renderRectangles(config.rectangles)}
-    ${this.renderCircles(config.circles)}
-    ${this.renderLines(config.lines)}
-    ${this.renderPaths(config.paths)}
-  `;
-}
-```
-
-Possible later version:
-
-```js
-renderShapeSections(config) {
-  return html`
-    ${this.renderRectangles(config.rectangles)}
-    ${this.renderCircles(config.circles)}
-    ${this.renderLines(config.lines)}
-    ${this.renderPaths(config.paths)}
-    ${this.renderHorseshoes(config.horseshoes)}
-  `;
-}
-```
-
----
-
-## JavaScript - Clip And Mask On An Item
-
-Basic version:
-
-```js
-renderMaskedItem(item, content) {
-  const clip = item.clip && `url(#fhs-clip-${item.clip})`;
-  const mask = item.mask && `url(#fhs-mask-${item.mask})`;
-
-  return html`
-    <g clip-path=${clip}>
-      <g mask=${mask}>
-        ${content}
-      </g>
-    </g>
-  `;
-}
-```
-
-Without rendering empty attributes:
-
-```js
-renderItemLayers(item, content) {
-  let result = content;
-
-  if (item.mask) {
-    result = html`<g mask=${`url(#fhs-mask-${item.mask})`}>${result}</g>`;
-  }
-
-  if (item.clip) {
-    result = html`<g clip-path=${`url(#fhs-clip-${item.clip})`}>${result}</g>`;
-  }
-
-  return result;
-}
-```
-
-Use:
-
-```js
-renderIcon(item) {
-  const content = html`
-    <image
-      href=${item.iconUrl}
-      x=${item.x}
-      y=${item.y}
-      width=${item.width}
-      height=${item.height}
-      style=${styleMap(item.styles)}
-    />
-  `;
-
-  return this.renderItemLayers(item, content);
-}
-```
-
----
-
-## JavaScript - Order With Filter Later
-
-If filters are added later, this is usually the best order:
-
-```svg
-<g filter="url(#shadow)">
-  <g clip-path="url(#clip)">
-    <g mask="url(#mask)">
-      ...shape...
-    </g>
-  </g>
-</g>
-```
-
-In JavaScript:
-
-```js
-renderItemLayers(item, content) {
-  let result = content;
-
-  if (item.mask) {
-    result = html`<g mask=${`url(#fhs-mask-${item.mask})`}>${result}</g>`;
-  }
-
-  if (item.clip) {
-    result = html`<g clip-path=${`url(#fhs-clip-${item.clip})`}>${result}</g>`;
-  }
-
-  if (item.filter) {
-    result = html`<g filter=${`url(#fhs-filter-${item.filter})`}>${result}</g>`;
-  }
-
-  return result;
-}
-```
-
-Filter support can be postponed for now.
-
----
-
-## Normalization
-
-On visible items:
+A clip provides a hard boundary.
 
 ```yaml
-clip: avatar-circle
-mask: avatar-fade
+clips:
+  circle-window:
+    circles:
+      - dxpos: 0
+        dypos: 0
+        radius: 34
+
+rectangles:
+  - id: clipped_square
+    xpos: 25
+    ypos: 26
+    width: 37
+    height: 37
+    clip: circle-window
+    styles:
+      - fill: gradient(blue-radial)
 ```
 
-Internal normalized shape:
+Result: the rectangle renders as a hard circle.
 
-```js
-{
-  clip: 'avatar-circle',
-  mask: 'avatar-fade',
-  styles: { ... }
-}
-```
+## Masks
 
-On defs:
+A mask controls alpha/transparency.
+
+White means visible. Transparent means hidden. Normal SVG alpha mask behavior applies.
 
 ```yaml
-layout:
-  clips:
-    name:
-      circles: []
-      rectangles: []
-      paths: []
+masks:
+  top-notch:
+    rectangles:
+      - dxpos: 0
+        dypos: 0
+        width: 39
+        height: 26
+        radius: 8
+        styles:
+          - fill: white
+    circles:
+      - dxpos: 0
+        dypos: -13
+        radius: 13
+        styles:
+          - fill: gradient(notch-soft-mask)
 
-  masks:
-    name:
-      circles: []
-      rectangles: []
-      paths: []
+rectangles:
+  - id: notched_card
+    xpos: 25
+    ypos: 73
+    width: 39
+    height: 26
+    radius: 8
+    mask: top-notch
+    styles:
+      - fill: '#43a047'
 ```
 
-Important:
+## Nested Masks
 
-- no defaults in the render layer
-- normalization decides whether sections exist
-- render layer renders already-normalized config
-- `clips` and `masks` reuse the existing shape section structure, so templates and `same_as` can follow the same config pipeline
+Multiple masks can be applied as a list:
+
+```yaml
+mask:
+  - mask_a
+  - mask_b
+```
+
+The renderer nests the masks. This is important because multiple shapes inside one SVG mask are painted together, while nested masks constrain each other.
+
+## Soft Arc
+
+`soft_arc` is a specialized helper for fading an arc-shaped item without forcing users to hand-tune rectangle positions and sizes.
+
+It uses an existing arc clip definition as geometry source:
+
+```yaml
+clips:
+  image-arc-window:
+    arcs:
+      - dxpos: 0
+        dypos: 0
+        radius: 21
+        arc_degrees: 260
+        rotate: 0
+```
+
+Then the mask defines two fade directions:
+
+```yaml
+masks:
+  image-arc-soft:
+    soft_arc:
+      clip: image-arc-window
+      edge:
+        stops_start: 75
+        stops:
+          - offset: 0
+            opacity: 1
+          - offset: 100
+            opacity: 0
+      chord:
+        stops_start: 75
+        stops:
+          - offset: 0
+            opacity: 1
+          - offset: 50
+            opacity: 0.5
+          - offset: 100
+            opacity: 0
+```
+
+Usage:
+
+```yaml
+icons:
+  - id: map_image
+    entity_index: 0
+    xpos: 50
+    yposc: 50
+    icon_size_percent: 42
+    icon: url(/local/images/backgrounds/map-background.jpg)
+    clip: image-arc-window
+    mask: image-arc-soft
+```
+
+Meaning:
+
+- `edge` fades from the arc center toward the round outer edge.
+- `chord` fades from the arc center toward the straight chord line between the arc start and end points.
+- `stops_start` tells where the configured `stops` begin.
+- `stops.offset` is local to the range from `stops_start` to the edge/chord.
+
+This avoids the old hand-tuned config with `dypos`, `width`, and `height` for the chord fade.
+
+## Complete Test Example
+
+The current working test card lives in:
+
+```text
+masks-clips-example.yaml
+```
+
+It covers:
+
+- a rectangle clipped by a circle
+- a rectangle with a soft notch mask
+- a rectangle masked by an arc
+- an arc clipped by an arc clip
+- an image using `soft_arc` edge and chord fades
+
+## Implementation Notes
+
+- Definitions are normalized once during card setup.
+- Relative definitions with `dxpos`/`dypos` are rendered per visible item.
+- Gradients are card-scoped.
+- Clip and mask ids are card-scoped.
+- `gradient(name)` is translated to the scoped `url(#...)` form during render-style processing.
+- `soft_arc` generates item-scoped gradients and masks because its geometry depends on the visible item using it.
+
+## Separate Follow-Up
+
+Runtime item colors inside reusable gradients are intentionally not part of this PR. See:
+
+```text
+gradient-runtime-color-architecture.md
+```

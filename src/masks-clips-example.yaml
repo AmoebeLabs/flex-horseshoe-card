@@ -107,14 +107,14 @@
         soft_arc:
           clip: image-arc-window
           edge:
-            fade: 25
+            stops_start: 75
             stops:
               - offset: 0
                 opacity: 1
               - offset: 100
                 opacity: 0
-          bottom:
-            fade: 8
+          chord:
+            stops_start: 75
             stops:
               - offset: 0
                 opacity: 1
