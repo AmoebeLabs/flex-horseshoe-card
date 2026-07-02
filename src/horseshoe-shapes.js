@@ -388,6 +388,72 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
 }
 
 /**
+ * Builds smoothly-graduated state arcs for the `colorstopgradient` style.
+ *
+ * Unlike buildColorStopStateArcs (one solid arc per color-stop segment), this
+ * subdivides the active range into many short arcs, each filled with the
+ * interpolated color at its midpoint. The result is a smooth gradient that
+ * follows the curve of the horseshoe, clipped to the current value.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for value-to-angle mapping.
+ * @param {number} value - Current numeric state value.
+ * @param {number} fromAngle - Start angle of the active state range.
+ * @param {number} toAngle - End angle of the active state range.
+ * @returns {Array<object>} Micro-segment state arc definitions.
+ */
+
+function buildColorStopGradientStateArcs(runtimeConfig, geometry, value, fromAngle, toAngle) {
+  const min = Number(runtimeConfig.horseshoe_scale.min);
+  const max = Number(runtimeConfig.horseshoe_scale.max);
+  const clampedValue = Math.max(min, Math.min(Number(value), max));
+  const span = clampedValue - min;
+  if (span <= 0) {
+    return [];
+  }
+
+  // Number of micro-segments. Higher = smoother gradient, more SVG paths.
+  const SEGMENTS = 60;
+  const stepValue = span / SEGMENTS;
+
+  // Small angular overlap added to each segment's end so adjacent micro-arcs
+  // slightly cover each other, hiding sub-pixel antialiasing seams. Derived
+  // from the total arc span so it scales with gauge size / value range.
+  const fullStartAngle = geometry.valueToAngle(min);
+  const fullEndAngle = geometry.valueToAngle(clampedValue);
+  const overlap = Math.abs(fullEndAngle - fullStartAngle) / SEGMENTS * 0.5;
+
+  const stateArcs = [];
+
+  for (let i = 0; i < SEGMENTS; i += 1) {
+    const segStartValue = min + i * stepValue;
+    const segEndValue = min + (i + 1) * stepValue;
+    const segMidValue = (segStartValue + segEndValue) / 2;
+    const isLast = i === SEGMENTS - 1;
+    const startAngle = geometry.valueToAngle(segStartValue);
+    const endAngle = geometry.valueToAngle(segEndValue);
+    // Extend every segment (except the last) by a tiny overlap toward its end.
+    const direction = endAngle >= startAngle ? 1 : -1;
+    stateArcs.push({
+      key: `colorstopgradient-${i}`,
+      startAngle,
+      endAngle: isLast ? endAngle : endAngle + direction * overlap,
+      startCap: 'butt',
+      endCap: 'butt',
+      color: Colors.calculateStrokeColor(segMidValue, runtimeConfig.colorStops, true),
+    });
+  }
+
+  // Restore the configured state linecaps only on the global ends.
+  if (stateArcs.length) {
+    stateArcs[0].startCap = runtimeConfig.horseshoe_state.linecap.start;
+    stateArcs[stateArcs.length - 1].endCap = runtimeConfig.horseshoe_state.linecap.end;
+  }
+
+  return stateArcs;
+}
+
+/**
  * Selects the state arc color strategy and returns the arc definitions for it.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
@@ -432,7 +498,10 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     ];
   }
 
-  if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
+  if (strokeStyle === 'colorstopgradient') {
+    return buildColorStopGradientStateArcs(runtimeConfig, geometry, value, fromAngle, toAngle);
+  }
+  if (strokeStyle === 'colorstop') {
     return [
       {
         key: 'state-value',
@@ -440,7 +509,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        color: Colors.calculateStrokeColor(value, runtimeConfig.colorStops, strokeStyle === 'colorstopgradient'),
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorStops, false),
       },
     ];
   }
