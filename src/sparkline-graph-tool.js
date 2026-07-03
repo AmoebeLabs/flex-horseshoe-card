@@ -399,6 +399,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.historySeries = this.buildHistorySeries(history[0], entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
+        this.card._updateSparklineEntities();
         this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
         this.card.requestUpdate();
       })
