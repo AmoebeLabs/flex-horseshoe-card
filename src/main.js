@@ -40,6 +40,7 @@ import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import IconTool from './icon-tool.js';
+import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
@@ -100,6 +101,7 @@ class FlexHorseshoeCard extends LitElement {
     this.areaTools = [];
     this.stateTools = [];
     this.iconTools = [];
+    this.sparklineGraphTools = [];
     this.groupManager = undefined;
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
@@ -977,6 +979,8 @@ class FlexHorseshoeCard extends LitElement {
 
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
+    this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
+
     if (this.config.animations) {
       Object.keys(this.config.animations).map((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1463,6 +1467,7 @@ class FlexHorseshoeCard extends LitElement {
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
+      this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
       this.childCards.setConfig(this.config.cards ?? []);
 
       Templates.setContext({
@@ -1665,6 +1670,7 @@ class FlexHorseshoeCard extends LitElement {
       ...(this.areaTools ?? []),
       ...(this.nameTools ?? []),
       ...(this.stateTools ?? []),
+      ...(this.sparklineGraphTools ?? []),
     ];
   }
 
@@ -1733,6 +1739,7 @@ class FlexHorseshoeCard extends LitElement {
     super.updated?.(changedProperties);
 
     this.iconTools?.[0]?.injectSvgUrlIcons();
+    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }
   /** *****************************************************************************
    * _handleClick()
