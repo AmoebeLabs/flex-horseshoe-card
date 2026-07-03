@@ -1023,10 +1023,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [
-      ...this.resolvedEntityConfigs,
-      ...this._buildSparklineEntityConfigs(),
-    ];
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = hass.states[entityConfig.entity];
@@ -1064,10 +1061,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [
-      ...this.resolvedEntityConfigs,
-      ...this._buildSparklineEntityConfigs(),
-    ];
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
 
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
     this._updateSparklineEntities();
@@ -1702,8 +1696,6 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render({ config } = this) {
-    // console.log('render', this.cardId);
-
     const item = {
       entity_index: 0,
     };
@@ -1713,10 +1705,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">
-          ${this._renderSvg()}
-          ${this.childCards.render()}
-        </div>
+        <div class="container" id="container">${this._renderSvg()} ${this.childCards.render()}</div>
       </ha-card>
     `;
   }

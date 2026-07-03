@@ -424,9 +424,6 @@ export default class StateTool extends BaseTool {
    * @returns {Array<object>} Formatter parts split into value and unit entries.
    */
   formatEntityStateParts() {
-    // if (this.entityConfig.debug) {
-    console.log('StateTool.formatEntityStateParts', this.entityConfig.entity, this.entity);
-    // }
     const isAttribute = this.entityConfig.attribute !== undefined;
     const formatConfig = typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
     let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
