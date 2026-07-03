@@ -848,15 +848,17 @@ class FlexHorseshoeCard extends LitElement {
       const sparklineId = sparklineGraphTool.config.id;
 
       ['min', 'avg', 'max'].forEach((stat) => {
-        configs.push({
+        const statEntityConfig = {
           ...sourceEntityConfig,
           entity: `fhs_sparkline.${sparklineId}_${stat}`,
-          name: `${sparklineId} ${stat}`,
           local: true,
           source_entity_index: sourceEntityIndex,
           sparkline_id: sparklineId,
           sparkline_stat: stat,
-        });
+        };
+
+        delete statEntityConfig.name;
+        configs.push(statEntityConfig);
       });
     });
 
@@ -877,12 +879,18 @@ class FlexHorseshoeCard extends LitElement {
       ['min', 'avg', 'max'].forEach((stat, statIndex) => {
         const entityIndex = baseIndex + sparklineIndex * 3 + statIndex;
         const state = sparklineGraphTool.stats[stat];
+        const labelMap = {
+          min: 'min',
+          avg: 'mean',
+          max: 'max',
+        };
+        const label = labelMap[stat];
         const entity = Merge.mergeDeep(sourceEntity, {
           entity_id: `fhs_sparkline.${sparklineId}_${stat}`,
           state: String(state),
+          label,
           attributes: {
             ...sourceEntity.attributes,
-            friendly_name: `${sourceEntity.attributes.friendly_name ?? sourceEntity.entity_id} ${stat}`,
             source_entity_id: sourceEntity.entity_id,
             sparkline_id: sparklineId,
             sparkline_stat: stat,
@@ -892,6 +900,25 @@ class FlexHorseshoeCard extends LitElement {
         this.entities[entityIndex] = entity;
       });
     });
+  }
+
+  /**
+   * Refeeds all normal entity-bound tools after async sparkline history refresh.
+   *
+   * Sparkline history arrives outside the normal Home Assistant setHass pass. The
+   * local fhs_sparkline entities are updated there, so the existing tools that
+   * point at those entity_index values must receive their entity state again.
+   */
+  _updateToolsUsingSparklineEntities() {
+    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
+    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
+    this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
+    this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
+    this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
+    this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
   }
 
   _setToolEntityState(tool) {
@@ -1288,6 +1315,45 @@ class FlexHorseshoeCard extends LitElement {
     });
   }
 
+  /**
+   * Resolves item-level entity ids to entity_index values.
+   *
+   * This keeps user YAML readable (`entity: sensor.x` or
+   * `entity: fhs_sparkline.<sparkline_id>_avg`) while every tool still receives
+   * the same internal entity_index it already understands.
+   *
+   * @param {object} config - Card config after ids and static values are resolved.
+   * @param {Array<object>} resolvedEntitiesConfig - Normal HA entity configs.
+   */
+  _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
+    const entityIndexes = {};
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
+    const stats = ['min', 'avg', 'max'];
+    const sparklineBaseIndex = resolvedEntitiesConfig.length;
+
+    resolvedEntitiesConfig.forEach((entityConfig, index) => {
+      entityIndexes[entityConfig.entity] = index;
+    });
+
+    config.layout.sparklines?.forEach((sparkline, sparklineIndex) => {
+      stats.forEach((stat, statIndex) => {
+        entityIndexes[`fhs_sparkline.${sparkline.id}_${stat}`] = sparklineBaseIndex + sparklineIndex * stats.length + statIndex;
+      });
+    });
+
+    layoutSections.forEach((section) => {
+      const items = config.layout?.[section];
+
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (item.entity === undefined) return;
+
+        item.entity_index = entityIndexes[item.entity];
+      });
+    });
+  }
+
   _isStaticRef(value) {
     return typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')');
   }
@@ -1486,6 +1552,8 @@ class FlexHorseshoeCard extends LitElement {
           entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
         }
       });
+
+      this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
 
       const newConfig = {
         texts: [],

@@ -67,7 +67,11 @@ export default class NameTool extends BaseTool {
    * @returns {string} Name text.
    */
   buildName() {
-    return this.entityConfig.name ?? this.entity.attributes.friendly_name ?? this.entity?.entity_id ?? '?';
+    if (this.entity.label) {
+      return this.card._hass.localize(`ui.components.statistics_charts.statistic_types.${this.entity.label}`) || this.entity.label;
+    }
+
+    return this.entityConfig.name ?? this.entity.name ?? this.entity.attributes.friendly_name ?? this.entity?.entity_id ?? '?';
   }
 
   /**

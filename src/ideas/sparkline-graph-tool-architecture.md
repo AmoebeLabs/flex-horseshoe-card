@@ -350,12 +350,12 @@ changes in the state/name/icon tools.
 
 Use labels for translations:
 
-- highest for max
+- max for max
 - mean for avg
-- lowest for min
+- min for min
 
 ```js
-this.hass.localize(`component.sensor.state._.${localEntity.label}`);
+localEntity.name = this.hass.localize(`ui.components.statistics_charts.statistic_types.${localEntity.label}`);
 ```
 
 This must be done after set hass() is set. Probably in the renderer, as it must follow the current localization setting in Home Assistant. That setting can be changed runtime.
@@ -381,6 +381,38 @@ For `period: today`:
 - data = 00:00 to now
 
 This keeps the visual position stable during the day.
+
+Axes, Labels and Grid should be separate overlays. Just as with the horseshoe. So also separate in config from the sparkline. This way these layers can be easily enabled and disabled and styled with each their own `styles:` section.
+Major and minor ticksize could be made compatible with the horseshoe.
+
+The grid should be derived from the tick layers, not the other way around:
+
+- x-axis major ticks define the main vertical grid lines;
+- x-axis minor ticks can optionally define lighter vertical grid lines;
+- y-axis major ticks define the main horizontal grid lines;
+- y-axis minor ticks can optionally define lighter horizontal grid lines;
+- x/y labels render from the same tick values, so grid, tickmarks and labels stay aligned.
+
+The x-axis scale is known from the period configuration before rendering. For
+`period: today`, the display range is 00:00 -> 24:00 even when the data only runs
+to now. X tick positions can therefore be calculated from the configured period,
+`bins.per_hour`, and the graph draw area.
+
+The y-axis scale is dynamic. It must use the effective graph bounds after
+`SparklineGraph.update()` has processed the series. At that point the graph has
+calculated the same values used for drawing the line/area:
+
+- `Graph.min`
+- `Graph.max`
+- `Graph.drawArea.x`
+- `Graph.drawArea.y`
+- `Graph.drawArea.width`
+- `Graph.drawArea.height`
+
+Y-axis ticks, labels and horizontal grid lines should be generated after those
+values are known. This keeps the y-axis consistent with the actual visible graph.
+If explicit lower/upper bounds are added later, those bounds should feed the same
+`Graph.min` / `Graph.max` path so the axis/grid code does not need a second scale.
 
 ## Pointer And Touch Reuse
 
@@ -420,15 +452,22 @@ stay inside the sparkline tool.
 
 ## Interaction
 
-Interaction is a later phase.
-
-Possible additions:
+Possible interactions:
 
 - pointer/touch tracking
 - vertical indicator
 - active data point
 - hover/detail panel
 - snake overlay
+
+### Vertical indicator
+
+This indicator must follow the `period.calendar.bins.per_hour` setting. So it must "snap" to those bins while dragging or hovering.
+
+### Active data point
+
+Same as vertical indicator: must snap to the `per_hour` setting. A small circle with some configurable color and size should be used.
+Maybe the same setting can be used as used for the points on the line (circles too).
 
 ### Snake Overlay
 

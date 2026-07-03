@@ -171,6 +171,107 @@ export default class SparklineGraphTool extends BaseTool {
           chart_type: 'line',
           line: true,
           area: false,
+          grid: false,
+          tickmarks: false,
+          labels: false,
+          xlabels_at: 'ticks_major',
+          ylabels_at: 'ticks_major',
+        },
+      },
+      x_axis: {
+        ticks_major: {
+          ticksize: '1h',
+        },
+        ticks_minor: {
+          ticksize: '15min',
+        },
+        grid_major: {
+          styles: {
+            stroke: 'var(--divider-color)',
+            'stroke-width': 1,
+            opacity: 0.35,
+          },
+        },
+        grid_minor: {
+          styles: {
+            stroke: 'var(--divider-color)',
+            'stroke-width': 1,
+            opacity: 0.15,
+          },
+        },
+        tickmarks_major: {
+          size: 3,
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.45,
+          },
+        },
+        tickmarks_minor: {
+          size: 2,
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.25,
+          },
+        },
+        labels: {
+          offset: 4,
+          styles: {
+            fill: 'var(--primary-text-color)',
+            'font-size': '8px',
+            'text-anchor': 'middle',
+            'dominant-baseline': 'hanging',
+            opacity: 0.7,
+          },
+        },
+      },
+      y_axis: {
+        ticks_major: {
+          ticksize: 1,
+        },
+        ticks_minor: {
+          ticksize: 0.5,
+        },
+        grid_major: {
+          styles: {
+            stroke: 'var(--divider-color)',
+            'stroke-width': 1,
+            opacity: 0.35,
+          },
+        },
+        grid_minor: {
+          styles: {
+            stroke: 'var(--divider-color)',
+            'stroke-width': 1,
+            opacity: 0.15,
+          },
+        },
+        tickmarks_major: {
+          size: 3,
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.45,
+          },
+        },
+        tickmarks_minor: {
+          size: 2,
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.25,
+          },
+        },
+        labels: {
+          offset: 4,
+          styles: {
+            fill: 'var(--primary-text-color)',
+            'font-size': '8px',
+            'text-anchor': 'end',
+            'dominant-baseline': 'middle',
+            opacity: 0.7,
+          },
         },
       },
       line: {
@@ -196,6 +297,13 @@ export default class SparklineGraphTool extends BaseTool {
     if (normalizedConfig.area?.styles !== undefined) {
       normalizedConfig.area.styles = ConfigHelper.toStyleDict(normalizedConfig.area.styles);
     }
+    ['x_axis', 'y_axis'].forEach((axisName) => {
+      ['grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
+        if (normalizedConfig[axisName]?.[layerName]?.styles !== undefined) {
+          normalizedConfig[axisName][layerName].styles = ConfigHelper.toStyleDict(normalizedConfig[axisName][layerName].styles);
+        }
+      });
+    });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
 
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
@@ -216,6 +324,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements = {};
     this.historyPromise = undefined;
     this.historyRefreshAt = 0;
+    this.runtimeYScale = undefined;
     this.runtimeConfig = this.config;
     this.runtimeConfig.svg = this.svg;
   }
@@ -400,6 +509,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.series = this.historySeries;
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
+        this.card._updateToolsUsingSparklineEntities();
         this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
         this.card.requestUpdate();
       })
@@ -449,6 +559,30 @@ export default class SparklineGraphTool extends BaseTool {
    */
   updateGraphFromSeries() {
     this.Graph.update(this.series);
+
+    // Keep the y-axis and graph stable between small state updates. The graph
+    // engine first calculates raw min/max from the source series. The visible
+    // scale then snaps outward to the configured minor y ticksize. The runtime
+    // scale is allowed to grow when new data exceeds the current bounds, but it
+    // does not shrink on ordinary HA state updates. That keeps grid, labels and
+    // the line on the same stable y-scale during the active period.
+    const yTicksize = Number(this.runtimeConfig.y_axis.ticks_minor.ticksize);
+    const sourceValues = this.series.map((item) => Number(item.state));
+    const sourceMin = Math.min(...sourceValues);
+    const sourceMax = Math.max(...sourceValues);
+    const snappedMin = Math.floor(sourceMin / yTicksize) * yTicksize;
+    const snappedMax = Math.ceil(sourceMax / yTicksize) * yTicksize;
+
+    if (this.runtimeYScale === undefined) {
+      this.runtimeYScale = { min: snappedMin, max: snappedMax };
+    } else {
+      this.runtimeYScale.min = Math.min(this.runtimeYScale.min, snappedMin);
+      this.runtimeYScale.max = Math.max(this.runtimeYScale.max, snappedMax);
+    }
+
+    this.Graph.min = this.runtimeYScale.min;
+    this.Graph.max = this.runtimeYScale.max;
+
     this.linePath = this.Graph.getPath();
     this.areaPath = this.Graph.getArea(this.linePath);
     this.gradient[0] = this.Graph.computeGradient(
@@ -459,17 +593,33 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Calculates min/avg/max from the same graph series. These values become local
-   * fhs_sparkline entities in the next implementation step.
+   * Calculates min/max from the raw source values and calculates avg as a
+   * time-weighted average. Home Assistant history rows are state changes, so a
+   * value that only existed briefly must not count the same as a value that was
+   * active for hours.
    *
-   * @param {Array<object>} series - Current graph series.
+   * @param {Array<object>} series - Current graph source series.
    * @returns {object} Graph statistics.
    */
   calculateStatistics(series) {
-    const values = series.map((item) => Number(item.state));
+    const sortedSeries = series.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+    const values = sortedSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+    let weightedValue = 0;
+    let weightedDuration = 0;
+
+    sortedSeries.forEach((item, index) => {
+      const value = Number(item.state);
+      const startTime = new Date(item.last_changed).getTime();
+      const endTime = index < sortedSeries.length - 1 ? new Date(sortedSeries[index + 1].last_changed).getTime() : new Date().getTime();
+      const duration = endTime - startTime;
+
+      weightedValue += value * duration;
+      weightedDuration += duration;
+    });
+
+    const avg = weightedValue / weightedDuration;
 
     return { min, avg, max };
   }
@@ -681,6 +831,218 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Converts a configured x-axis ticksize into hours. X-axis ticksize is time
+   * based, for example 15min, 1h or 6h.
+   *
+   * @param {string|number} ticksize - Configured x-axis tick interval.
+   * @returns {number} Tick interval in hours.
+   */
+  xTicksizeToHours(ticksize) {
+    if (typeof ticksize === 'number') return ticksize;
+
+    const match = ticksize.match(/^(\d+(?:\.\d+)?)(m|min|h|hour)$/);
+    const value = Number(match[1]);
+    const unit = match[2];
+
+    if (unit === 'm' || unit === 'min') return value / 60;
+    return value;
+  }
+
+  /**
+   * Builds x-axis ticks from the configured period and ticksize. The current
+   * today period renders the full 00:00 -> 24:00 range so grid and labels stay
+   * stable while the day progresses.
+   *
+   * @param {string} level - major or minor.
+   * @returns {Array<object>} X-axis ticks.
+   */
+  buildXAxisTicks(level) {
+    const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
+    const ticks = [];
+
+    for (let hour = 0; hour <= 24; hour += ticksize) {
+      const x = this.Graph.drawArea.x + (hour / 24) * this.Graph.drawArea.width;
+      const wholeHours = Math.floor(hour);
+      const minutes = Math.round((hour - wholeHours) * 60);
+      const label = `${String(wholeHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+      ticks.push({ axis: 'x', level, value: hour, x, label });
+    }
+
+    return ticks;
+  }
+
+  /**
+   * Builds y-axis ticks from the effective graph bounds and configured ticksize.
+   * If the visible range is smaller than the ticksize and no configured tick
+   * falls inside the range, the y grid/labels intentionally render nothing.
+   *
+   * @param {string} level - major or minor.
+   * @returns {Array<object>} Y-axis ticks.
+   */
+  buildYAxisTicks(level) {
+    const ticksize = Number(this.runtimeConfig.y_axis[`ticks_${level}`].ticksize);
+    const min = this.Graph.min;
+    const max = this.Graph.max;
+    const graphMin = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, min)) : min;
+    const graphMax = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, max)) : max;
+    const yRatio = (graphMax - graphMin) / this.Graph.drawArea.height || 1;
+    const firstTick = Math.ceil(min / ticksize) * ticksize;
+    const ticks = [];
+
+    for (let value = firstTick; value <= max; value += ticksize) {
+      const graphValue = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, value)) : value;
+      const y = this.Graph.drawArea.height + this.Graph.drawArea.y - (graphValue - graphMin) / yRatio;
+      const label = new Intl.NumberFormat(this.card._hass.locale?.language || this.card._hass.language).format(value);
+
+      ticks.push({ axis: 'y', level, value, y, label });
+    }
+
+    return ticks;
+  }
+
+  /**
+   * Returns the ticks used for a labels layer. xlabels_at/ylabels_at decide
+   * which configured tick set receives labels.
+   *
+   * @param {string} axis - x or y.
+   * @returns {Array<object>} Label ticks.
+   */
+  buildLabelTicks(axis) {
+    const labelsAt = this.runtimeConfig.sparkline.show[`${axis}labels_at`];
+
+    if (labelsAt === 'none') return [];
+    if (labelsAt === 'all') return axis === 'x' ? [...this.buildXAxisTicks('minor'), ...this.buildXAxisTicks('major')] : [...this.buildYAxisTicks('minor'), ...this.buildYAxisTicks('major')];
+    if (labelsAt === 'ticks_minor') return axis === 'x' ? this.buildXAxisTicks('minor') : this.buildYAxisTicks('minor');
+    return axis === 'x' ? this.buildXAxisTicks('major') : this.buildYAxisTicks('major');
+  }
+
+  /**
+   * Renders the grid layer behind the graph. Grid lines are based on major
+   * ticks by default, matching the horseshoe-style tick model.
+   *
+   * @returns {TemplateResult|string} Grid layer SVG.
+   */
+  renderGrid() {
+    if (this.runtimeConfig.sparkline.show.grid !== true) return '';
+
+    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.grid_major.styles));
+    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.grid_major.styles));
+    const xTicks = this.buildXAxisTicks('major');
+    const yTicks = this.buildYAxisTicks('major');
+
+    return svg`
+      <g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
+        ${xTicks.map((tick) => svg`
+          <line
+            class="sparkline-grid-line sparkline-grid-line--x-major"
+            x1="${tick.x}"
+            y1="${this.Graph.drawArea.y}"
+            x2="${tick.x}"
+            y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+            style=${styleMap(xStyles)}
+          ></line>
+        `)}
+      </g>
+      <g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
+        ${yTicks.map((tick) => svg`
+          <line
+            class="sparkline-grid-line sparkline-grid-line--y-major"
+            x1="${this.Graph.drawArea.x}"
+            y1="${tick.y}"
+            x2="${this.Graph.drawArea.x + this.Graph.drawArea.width}"
+            y2="${tick.y}"
+            style=${styleMap(yStyles)}
+          ></line>
+        `)}
+      </g>
+    `;
+  }
+
+  /**
+   * Renders axis tickmarks as a separate layer above the graph.
+   *
+   * @returns {TemplateResult|string} Tickmark layer SVG.
+   */
+  renderTickmarks() {
+    if (this.runtimeConfig.sparkline.show.tickmarks !== true) return '';
+
+    const xTickConfig = this.runtimeConfig.x_axis.tickmarks_major;
+    const yTickConfig = this.runtimeConfig.y_axis.tickmarks_major;
+    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(xTickConfig.styles));
+    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(yTickConfig.styles));
+    const xTicks = this.buildXAxisTicks('major');
+    const yTicks = this.buildYAxisTicks('major');
+    const xTickSize = Utils.calculateSvgDimension(xTickConfig.size);
+    const yTickSize = Utils.calculateSvgDimension(yTickConfig.size);
+
+    return svg`
+      <g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
+        ${xTicks.map((tick) => svg`
+          <line
+            class="sparkline-tickmark sparkline-tickmark--x-major"
+            x1="${tick.x}"
+            y1="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+            x2="${tick.x}"
+            y2="${this.Graph.drawArea.y + this.Graph.drawArea.height + xTickSize}"
+            style=${styleMap(xStyles)}
+          ></line>
+        `)}
+      </g>
+      <g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
+        ${yTicks.map((tick) => svg`
+          <line
+            class="sparkline-tickmark sparkline-tickmark--y-major"
+            x1="${this.Graph.drawArea.x - yTickSize}"
+            y1="${tick.y}"
+            x2="${this.Graph.drawArea.x}"
+            y2="${tick.y}"
+            style=${styleMap(yStyles)}
+          ></line>
+        `)}
+      </g>
+    `;
+  }
+
+  /**
+   * Renders axis labels as a separate top layer. Labels use the same tick values
+   * as grid and tickmarks so the layers stay aligned.
+   *
+   * @returns {TemplateResult|string} Label layer SVG.
+   */
+  renderAxisLabels() {
+    if (this.runtimeConfig.sparkline.show.labels !== true) return '';
+
+    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.labels.styles));
+    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.labels.styles));
+    const xTicks = this.buildLabelTicks('x');
+    const yTicks = this.buildLabelTicks('y');
+
+    return svg`
+      <g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
+        ${xTicks.map((tick) => svg`
+          <text
+            class="sparkline-label sparkline-label--x"
+            x="${tick.x}"
+            y="${this.Graph.drawArea.y + this.Graph.drawArea.height + Utils.calculateSvgDimension(this.runtimeConfig.x_axis.labels.offset)}"
+            style=${styleMap(xStyles)}
+          >${tick.label}</text>
+        `)}
+      </g>
+      <g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
+        ${yTicks.map((tick) => svg`
+          <text
+            class="sparkline-label sparkline-label--y"
+            x="${this.Graph.drawArea.x - Utils.calculateSvgDimension(this.runtimeConfig.y_axis.labels.offset)}"
+            y="${tick.y}"
+            style=${styleMap(yStyles)}
+          >${tick.label}</text>
+        `)}
+      </g>
+    `;
+  }
+
+  /**
    * Builds area styles in the same order as the other FHS tools: base styles,
    * item styles, then area-specific styles. Rendering applies getRenderStyles().
    *
@@ -816,9 +1178,12 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.renderAreaMask()}
             ${this.renderLineMask()}
           </defs>
+          ${this.renderGrid()}
           ${this.renderArea()}
           ${this.renderLine()}
           ${this.renderActiveIndicator()}
+          ${this.renderTickmarks()}
+          ${this.renderAxisLabels()}
         </svg>
       </g>
     `;
