@@ -315,6 +315,7 @@ localEntityAliases['fhs_sparkline.temperature_history_avg'] = {
   source_entity_index: 0,
   graph_id: 'temperature_history',
   statistic: 'avg',
+  label: 'mean',
 };
 ```
 
@@ -341,9 +342,25 @@ The copied source state object keeps the normal HA metadata alive:
 - attributes used by formatting
 - future derived-state and color-stop behavior
 
-Only the local entity id, statistic state value, and optional display name are
+Only the local entity id, statistic state value, and optional display name (labels!!) are
 overridden. This is why graph statistics can use existing render code without
 changes in the state/name/icon tools.
+
+### Localizations
+
+Use labels for translations:
+
+- highest for max
+- mean for avg
+- lowest for min
+
+```js
+this.hass.localize(`component.sensor.state._.${localEntity.label}`);
+```
+
+This must be done after set hass() is set. Probably in the renderer, as it must follow the current localization setting in Home Assistant. That setting can be changed runtime.
+
+By using the source entity for the state, the state and unit are automatically retrieved from Home Assistant registry. The label translates to the (internal) name override. So the `names`, `states` and `icons` sections can be used without any change apart from the fact that an `entity` is initially used, and that the `entity_index` is automatically added to the item.
 
 ## Axes And Grid
 
@@ -364,7 +381,6 @@ For `period: today`:
 - data = 00:00 to now
 
 This keeps the visual position stable during the day.
-
 
 ## Pointer And Touch Reuse
 
@@ -458,8 +474,8 @@ window available for spline context.
 Possible engine-level API:
 
 ```js
-Graph.getPathSegmentByTime(startTime, endTime)
-Graph.getPathSegmentByX(x1, x2)
+Graph.getPathSegmentByTime(startTime, endTime);
+Graph.getPathSegmentByX(x1, x2);
 ```
 
 The implementation should prefer an engine-level segment method over rebuilding
