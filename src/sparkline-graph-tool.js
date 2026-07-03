@@ -172,6 +172,7 @@ export default class SparklineGraphTool extends BaseTool {
           line: true,
           area: false,
           grid: false,
+          axis: false,
           tickmarks: false,
           labels: false,
           xlabels_at: 'ticks_major',
@@ -179,6 +180,13 @@ export default class SparklineGraphTool extends BaseTool {
         },
       },
       x_axis: {
+        axis: {
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.45,
+          },
+        },
         ticks_major: {
           ticksize: '1h',
         },
@@ -227,6 +235,13 @@ export default class SparklineGraphTool extends BaseTool {
         },
       },
       y_axis: {
+        axis: {
+          styles: {
+            stroke: 'var(--primary-text-color)',
+            'stroke-width': 1,
+            opacity: 0.45,
+          },
+        },
         ticks_major: {
           ticksize: 1,
         },
@@ -298,7 +313,7 @@ export default class SparklineGraphTool extends BaseTool {
       normalizedConfig.area.styles = ConfigHelper.toStyleDict(normalizedConfig.area.styles);
     }
     ['x_axis', 'y_axis'].forEach((axisName) => {
-      ['grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
+      ['axis', 'grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
         if (normalizedConfig[axisName]?.[layerName]?.styles !== undefined) {
           normalizedConfig[axisName][layerName].styles = ConfigHelper.toStyleDict(normalizedConfig[axisName][layerName].styles);
         }
@@ -606,6 +621,10 @@ export default class SparklineGraphTool extends BaseTool {
     const values = sortedSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
+    const minItem = sortedSeries.find((item) => Number(item.state) === min);
+    const maxItem = sortedSeries.find((item) => Number(item.state) === max);
+    const min_time = minItem.last_changed;
+    const max_time = maxItem.last_changed;
     let weightedValue = 0;
     let weightedDuration = 0;
 
@@ -621,7 +640,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     const avg = weightedValue / weightedDuration;
 
-    return { min, avg, max };
+    return { min, avg, max, min_time, max_time };
   }
 
   /**
@@ -960,6 +979,40 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Renders the x/y axis baselines as a separate layer. The x-axis baseline is
+   * the bottom edge of the graph draw area; the y-axis baseline is the left edge.
+   *
+   * @returns {TemplateResult|string} Axis layer SVG.
+   */
+  renderAxis() {
+    if (this.runtimeConfig.sparkline.show.axis !== true) return '';
+
+    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.axis.styles));
+    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.axis.styles));
+
+    return svg`
+      <g class="sparkline-axis" style="pointer-events:none;">
+        <line
+          class="sparkline-axis-line sparkline-axis-line--x"
+          x1="${this.Graph.drawArea.x}"
+          y1="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+          x2="${this.Graph.drawArea.x + this.Graph.drawArea.width}"
+          y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+          style=${styleMap(xStyles)}
+        ></line>
+        <line
+          class="sparkline-axis-line sparkline-axis-line--y"
+          x1="${this.Graph.drawArea.x}"
+          y1="${this.Graph.drawArea.y}"
+          x2="${this.Graph.drawArea.x}"
+          y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+          style=${styleMap(yStyles)}
+        ></line>
+      </g>
+    `;
+  }
+
+  /**
    * Renders axis tickmarks as a separate layer above the graph.
    *
    * @returns {TemplateResult|string} Tickmark layer SVG.
@@ -1179,6 +1232,7 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.renderLineMask()}
           </defs>
           ${this.renderGrid()}
+          ${this.renderAxis()}
           ${this.renderArea()}
           ${this.renderLine()}
           ${this.renderActiveIndicator()}

@@ -847,7 +847,7 @@ class FlexHorseshoeCard extends LitElement {
       const sourceEntityConfig = this.resolvedEntityConfigs[sourceEntityIndex];
       const sparklineId = sparklineGraphTool.config.id;
 
-      ['min', 'avg', 'max'].forEach((stat) => {
+      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat) => {
         const statEntityConfig = {
           ...sourceEntityConfig,
           entity: `fhs_sparkline.${sparklineId}_${stat}`,
@@ -858,6 +858,12 @@ class FlexHorseshoeCard extends LitElement {
         };
 
         delete statEntityConfig.name;
+
+        if (stat === 'min_time' || stat === 'max_time') {
+          statEntityConfig.format = 'time';
+          statEntityConfig.unit = '';
+        }
+
         configs.push(statEntityConfig);
       });
     });
@@ -876,13 +882,15 @@ class FlexHorseshoeCard extends LitElement {
       const sourceEntity = this.entities[sparklineGraphTool.entity_index];
       const sparklineId = sparklineGraphTool.config.id;
 
-      ['min', 'avg', 'max'].forEach((stat, statIndex) => {
-        const entityIndex = baseIndex + sparklineIndex * 3 + statIndex;
+      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat, statIndex) => {
+        const entityIndex = baseIndex + sparklineIndex * 5 + statIndex;
         const state = sparklineGraphTool.stats[stat];
         const labelMap = {
           min: 'min',
           avg: 'mean',
           max: 'max',
+          min_time: 'min',
+          max_time: 'max',
         };
         const label = labelMap[stat];
         const entity = Merge.mergeDeep(sourceEntity, {
@@ -891,7 +899,8 @@ class FlexHorseshoeCard extends LitElement {
           label,
           attributes: {
             ...sourceEntity.attributes,
-            source_entity_id: sourceEntity.entity_id,
+            source_entity_id: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.entity_id,
+            unit_of_measurement: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.attributes.unit_of_measurement,
             sparkline_id: sparklineId,
             sparkline_stat: stat,
           },
@@ -1328,7 +1337,7 @@ class FlexHorseshoeCard extends LitElement {
   _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
     const entityIndexes = {};
     const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
-    const stats = ['min', 'avg', 'max'];
+    const stats = ['min', 'avg', 'max', 'min_time', 'max_time'];
     const sparklineBaseIndex = resolvedEntitiesConfig.length;
 
     resolvedEntitiesConfig.forEach((entityConfig, index) => {
