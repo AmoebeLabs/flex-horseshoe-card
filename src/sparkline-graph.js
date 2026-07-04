@@ -115,8 +115,10 @@ export default class SparklineGraph {
     if (this.config.period?.calendar?.period === 'day') {
       // HACK to make sure any calculation uses the right amount of hours for today only!!
       // Does not work for shifting to yesterday I think
-      let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+      let extraHours = this.config.period.calendar.duration.hour - 24;
+      let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600 + extraHours;
       this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
+      console.log('[update]', hours, extraHours, this.offsetHours, this.hours);
     }
 
     const histGroups = this._history.reduce((res, item) => this._reducer(res, item), []);
@@ -136,11 +138,14 @@ export default class SparklineGraph {
         break;
       case 'calendar':
         if (this.config.period?.calendar?.period === 'day') {
+          // If config says duration of 48 hours, then this.hours contains that config
           let hours = this.hours;
           if (this.config.period.calendar.offset === 0) {
-            hours = date.getHours() + date.getMinutes() / 60;
+            let extraHours = this.config.period.calendar.duration.hour - 24;
+            hours = date.getHours() + date.getMinutes() / 60 + extraHours;
           } else {
-            this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
+            // this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
+            this.offsetHours = Math.abs(this.config.period.calendar.offset * this.hours);
           }
           requiredNumOfPoints = Math.ceil(hours * this.points);
         }
@@ -236,7 +241,9 @@ export default class SparklineGraph {
   // The reducer should not have to check for hours. This wasn't required some changes ago
   // Must be looked in to...
   _reducer(res, item) {
-    const hours = this.config.period?.calendar?.period === 'day' ? (this.config.period.calendar.offset === 0 ? new Date().getHours() + new Date().getMinutes() / 60 : 24) : this.hours;
+    const extraHours = this.config.period?.calendar?.period === 'day' ? this.config.period.calendar.duration.hour - 24 : 0;
+
+    const hours = this.config.period?.calendar?.period === 'day' ? (this.config.period.calendar.offset === 0 ? new Date().getHours() + new Date().getMinutes() / 60 + extraHours : 24) : this.hours;
     const age = this._endTime - new Date(item.last_changed).getTime();
     const interval = (age / ONE_HOUR) * this.points - hours * this.points; // was this.hours!!
     const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
@@ -953,8 +960,13 @@ export default class SparklineGraph {
         // #TODO:
         // Should account for hours_to_show. Maybe user wants to show the past 48 hours.
         // Now I assume it is just yesterday, ie hours_to_show === 24
+        // this._endTime.setHours(0, 0, 0, 0);
+        // this.hours = 24;
+        console.log('[_updateEndTime] for period.type = calendar BEFORE', this._endTime);
+
+        this._endTime.setHours(-this.config.period.calendar.duration.hour);
         this._endTime.setHours(0, 0, 0, 0);
-        this.hours = 24;
+        console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
       }
     } else {
       switch (this._groupBy) {
