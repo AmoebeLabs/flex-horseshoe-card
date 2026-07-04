@@ -6,6 +6,8 @@ import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
 import SparklineGraph from './sparkline-graph.js';
+import { formatDateShort } from './frontend_mods/datetimejs/format_date.js';
+import { formatTime } from './frontend_mods/datetimejs/format_time.js';
 
 /**
  * Starting from the given index, increment the index until an array element with
@@ -152,7 +154,7 @@ export default class SparklineGraphTool extends BaseTool {
             hour: 24,
           },
           bins: {
-            per_hour: 1,
+            per_hour: 6,
           },
         },
       },
@@ -208,7 +210,7 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         tickmarks_major: {
-          size: 3,
+          size: 1,
           styles: {
             stroke: 'var(--primary-text-color)',
             'stroke-width': 1,
@@ -216,7 +218,7 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         tickmarks_minor: {
-          size: 2,
+          size: 0.5,
           styles: {
             stroke: 'var(--primary-text-color)',
             'stroke-width': 1,
@@ -224,10 +226,10 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         labels: {
-          offset: 4,
+          offset: 2,
           styles: {
             fill: 'var(--primary-text-color)',
-            'font-size': '8px',
+            'font-size': '0.5em',
             'text-anchor': 'middle',
             'dominant-baseline': 'hanging',
             opacity: 0.7,
@@ -263,7 +265,7 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         tickmarks_major: {
-          size: 3,
+          size: 1,
           styles: {
             stroke: 'var(--primary-text-color)',
             'stroke-width': 1,
@@ -271,7 +273,7 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         tickmarks_minor: {
-          size: 2,
+          size: 0.5,
           styles: {
             stroke: 'var(--primary-text-color)',
             'stroke-width': 1,
@@ -279,10 +281,10 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         labels: {
-          offset: 4,
+          offset: 2,
           styles: {
             fill: 'var(--primary-text-color)',
-            'font-size': '8px',
+            'font-size': '0.5em',
             'text-anchor': 'end',
             'dominant-baseline': 'middle',
             opacity: 0.7,
@@ -474,18 +476,30 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds the today history range. The graph engine keeps the visual scale at
-   * 00:00 -> 24:00 through its calendar period config.
+   * Builds the time window used by both the x-axis and the history request.
+   * Calendar windows stay anchored to midnight; rolling windows count backwards
+   * from now.
    *
    * @returns {object} Start and end Date objects.
    */
   getHistoryRange() {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const periodHours = this.runtimeConfig.period?.calendar?.duration?.hour ?? this.runtimeConfig.period?.rolling_window?.duration?.hour ?? 24;
+    const now = new Date();
+
+    if (this.runtimeConfig.period?.type === 'calendar' && this.runtimeConfig.period?.calendar?.period === 'day') {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      start.setHours(start.getHours() + (this.runtimeConfig.period?.calendar?.offset ?? 0) * 24 - (periodHours - 24));
+
+      return {
+        start,
+        end: new Date(start.getTime() + periodHours * 60 * 60 * 1000),
+      };
+    }
 
     return {
-      start,
-      end: new Date(),
+      start: new Date(now.getTime() - periodHours * 60 * 60 * 1000),
+      end: now,
     };
   }
 
@@ -518,7 +532,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     const range = this.getHistoryRange();
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
-    this.historyPromise = this.card._hass.callApi('GET', path)
+    this.historyPromise = this.card._hass
+      .callApi('GET', path)
       .then((history) => {
         this.historySeries = this.buildHistorySeries(history[0], entity);
         this.series = this.historySeries;
@@ -573,6 +588,8 @@ export default class SparklineGraphTool extends BaseTool {
    * Runs the reused graph engine and stores the generated FHS render paths.
    */
   updateGraphFromSeries() {
+    const range = this.getHistoryRange();
+    this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     this.Graph.update(this.series);
 
     // Keep the y-axis and graph stable between small state updates. The graph
@@ -826,9 +843,11 @@ export default class SparklineGraphTool extends BaseTool {
 
       return svg`
         <linearGradient id=${`grad-${this.cardId}-${this.index}-${i}`} gradientTransform="rotate(90)">
-          ${gradient.map((stop) => svg`
+          ${gradient.map(
+            (stop) => svg`
             <stop stop-color=${stop.color} offset=${`${stop.offset}%`}></stop>
-          `)}
+          `,
+          )}
         </linearGradient>
       `;
     });
@@ -843,10 +862,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Line style dictionary before render filters.
    */
   getLineStyles() {
-    return Merge.mergeDeep(
-      this.getStyles({ fill: 'none' }),
-      ConfigHelper.toStyleDict(this.runtimeConfig.line?.styles),
-    );
+    return Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.runtimeConfig.line?.styles));
   }
 
   /**
@@ -877,15 +893,24 @@ export default class SparklineGraphTool extends BaseTool {
    */
   buildXAxisTicks(level) {
     const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
-    const ticks = [];
+    const range = this.getHistoryRange();
+    const startDate = range.start;
+    const windowHours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
 
-    for (let hour = 0; hour <= 24; hour += ticksize) {
-      const x = this.Graph.drawArea.x + (hour / 24) * this.Graph.drawArea.width;
-      const wholeHours = Math.floor(hour);
-      const minutes = Math.round((hour - wholeHours) * 60);
-      const label = `${String(wholeHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const ticks = [];
+    let previousTickDate = null;
+
+    for (let hour = 0; hour <= windowHours; hour += ticksize) {
+      const tickDate = new Date(startDate.getTime() + hour * 60 * 60 * 1000);
+      const x = this.Graph.drawArea.x + (hour / windowHours) * this.Graph.drawArea.width;
+      const tickDay = tickDate.toDateString();
+      const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
+      const label = hour === 0 || tickDay !== previousTickDay
+        ? formatDateShort(tickDate, this.card._hass.locale, this.card._hass.config)
+        : formatTime(tickDate, this.card._hass.locale);
 
       ticks.push({ axis: 'x', level, value: hour, x, label });
+      previousTickDate = tickDate;
     }
 
     return ticks;
@@ -952,7 +977,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
-        ${xTicks.map((tick) => svg`
+        ${xTicks.map(
+          (tick) => svg`
           <line
             class="sparkline-grid-line sparkline-grid-line--x-major"
             x1="${tick.x}"
@@ -961,10 +987,12 @@ export default class SparklineGraphTool extends BaseTool {
             y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
             style=${styleMap(xStyles)}
           ></line>
-        `)}
+        `,
+        )}
       </g>
       <g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
-        ${yTicks.map((tick) => svg`
+        ${yTicks.map(
+          (tick) => svg`
           <line
             class="sparkline-grid-line sparkline-grid-line--y-major"
             x1="${this.Graph.drawArea.x}"
@@ -973,7 +1001,8 @@ export default class SparklineGraphTool extends BaseTool {
             y2="${tick.y}"
             style=${styleMap(yStyles)}
           ></line>
-        `)}
+        `,
+        )}
       </g>
     `;
   }
@@ -1031,7 +1060,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
-        ${xTicks.map((tick) => svg`
+        ${xTicks.map(
+          (tick) => svg`
           <line
             class="sparkline-tickmark sparkline-tickmark--x-major"
             x1="${tick.x}"
@@ -1040,10 +1070,12 @@ export default class SparklineGraphTool extends BaseTool {
             y2="${this.Graph.drawArea.y + this.Graph.drawArea.height + xTickSize}"
             style=${styleMap(xStyles)}
           ></line>
-        `)}
+        `,
+        )}
       </g>
       <g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
-        ${yTicks.map((tick) => svg`
+        ${yTicks.map(
+          (tick) => svg`
           <line
             class="sparkline-tickmark sparkline-tickmark--y-major"
             x1="${this.Graph.drawArea.x - yTickSize}"
@@ -1052,7 +1084,8 @@ export default class SparklineGraphTool extends BaseTool {
             y2="${tick.y}"
             style=${styleMap(yStyles)}
           ></line>
-        `)}
+        `,
+        )}
       </g>
     `;
   }
@@ -1073,24 +1106,28 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
-        ${xTicks.map((tick) => svg`
+        ${xTicks.map(
+          (tick) => svg`
           <text
             class="sparkline-label sparkline-label--x"
             x="${tick.x}"
             y="${this.Graph.drawArea.y + this.Graph.drawArea.height + Utils.calculateSvgDimension(this.runtimeConfig.x_axis.labels.offset)}"
             style=${styleMap(xStyles)}
           >${tick.label}</text>
-        `)}
+        `,
+        )}
       </g>
       <g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
-        ${yTicks.map((tick) => svg`
+        ${yTicks.map(
+          (tick) => svg`
           <text
             class="sparkline-label sparkline-label--y"
             x="${this.Graph.drawArea.x - Utils.calculateSvgDimension(this.runtimeConfig.y_axis.labels.offset)}"
             y="${tick.y}"
             style=${styleMap(yStyles)}
           >${tick.label}</text>
-        `)}
+        `,
+        )}
       </g>
     `;
   }
@@ -1102,10 +1139,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Area style dictionary before render filters.
    */
   getAreaStyles() {
-    return Merge.mergeDeep(
-      this.getStyles({}),
-      ConfigHelper.toStyleDict(this.runtimeConfig.area?.styles),
-    );
+    return Merge.mergeDeep(this.getStyles({}), ConfigHelper.toStyleDict(this.runtimeConfig.area?.styles));
   }
 
   /**
