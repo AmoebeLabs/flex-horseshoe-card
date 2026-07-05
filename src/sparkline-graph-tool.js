@@ -5,7 +5,7 @@ import BaseTool from './base-tool.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
-import SparklineGraph from './sparkline-graph.js';
+import SparklineGraph, { X, Y, V } from './sparkline-graph.js';
 import { formatDateShort } from './frontend_mods/datetimejs/format_date.js';
 import { formatTime } from './frontend_mods/datetimejs/format_time.js';
 
@@ -76,6 +76,8 @@ const interpolateStops = (stops) => {
  * @param {string} type - Transition type.
  * @returns {Array<object>} Threshold list for SparklineGraph.computeGradient().
  */
+const DEFAULT_COLORS = ['var(--theme-sys-color-primary)', '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', '#2ecc71', '#1abc9c', '#34495e', '#e67e22', '#7f8c8d', '#27ae60', '#2980b9', '#8e44ad'];
+
 const computeThresholds = (stops, type) => {
   const valuedStops = interpolateStops(stops);
   try {
@@ -165,6 +167,7 @@ export default class SparklineGraphTool extends BaseTool {
           aggregate_func: 'avg',
           smoothing: true,
         },
+        line_color: [...DEFAULT_COLORS],
         colorstops: {
           colors: [],
         },
@@ -332,9 +335,11 @@ export default class SparklineGraphTool extends BaseTool {
     this.series = [];
     this.historySeries = undefined;
     this.gradient = [];
+    this.length = [];
     this.linePath = undefined;
     this.areaPath = undefined;
     this.stats = {};
+    this.tooltip = {};
     this.activePoint = undefined;
     this.activeX = undefined;
     this.dragging = false;
@@ -358,11 +363,13 @@ export default class SparklineGraphTool extends BaseTool {
     const width = Utils.calculateSvgDimension(config.width);
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);
+    const line_width = Utils.calculateSvgDimension(config.sparkline?.[config.sparkline.show.chart_type]?.styles?.['stroke-width'] || config.sparkline?.line?.styles?.['stroke-width'] || config.line_width || 0);
 
     return {
       ...coordinates,
       width,
       height,
+      line_width,
       x: coordinates.xpos - width / 2,
       y: coordinates.ypos - height / 2,
       margin,
@@ -497,6 +504,17 @@ export default class SparklineGraphTool extends BaseTool {
       };
     }
 
+    if (this.runtimeConfig.period?.type === 'rolling_window') {
+      const binMinutes = 60 / (this.runtimeConfig.period?.rolling_window?.bins?.per_hour ?? 1);
+      const binMs = binMinutes * 60 * 1000;
+      const end = new Date(Math.ceil(now.getTime() / binMs) * binMs);
+
+      return {
+        start: new Date(end.getTime() - periodHours * 60 * 60 * 1000),
+        end,
+      };
+    }
+
     return {
       start: new Date(now.getTime() - periodHours * 60 * 60 * 1000),
       end: now,
@@ -535,7 +553,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
-        this.historySeries = this.buildHistorySeries(history[0], entity);
+        this.historySeries = this.buildHistorySeries(history[0], entity, range.end);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
@@ -555,19 +573,22 @@ export default class SparklineGraphTool extends BaseTool {
    *
    * @param {Array<object>} historyRows - Rows returned by the HA history API.
    * @param {object} currentEntity - Current HA state object.
+   * @param {Date} rangeEnd - End of the requested history window.
    * @returns {Array<object>} SparklineGraph history series.
    */
-  buildHistorySeries(historyRows, currentEntity) {
-    const rows = historyRows.concat([currentEntity]);
+  buildHistorySeries(historyRows, currentEntity, rangeEnd) {
+    const rows = historyRows.concat([Merge.mergeDeep(currentEntity, { last_changed: rangeEnd.toISOString() })]);
 
-    return rows.map((row) => {
-      const value = Number(row.state);
+    return rows
+      .filter((row) => row && Number.isFinite(Number(row.state)))
+      .map((row) => {
+        const value = Number(row.state);
 
-      return Merge.mergeDeep(row, {
-        state: value,
-        haState: row.state,
+        return Merge.mergeDeep(row, {
+          state: value,
+          haState: row.state,
+        });
       });
-    });
   }
 
   /**
@@ -617,10 +638,14 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.linePath = this.Graph.getPath();
     this.areaPath = this.Graph.getArea(this.linePath);
-    this.gradient[0] = this.Graph.computeGradient(
-      computeThresholds(this.runtimeConfig.sparkline.colorstops.colors, this.runtimeConfig.sparkline.colorstops_transition),
-      this.runtimeConfig.sparkline.state_values.logarithmic,
-    );
+    if (this.runtimeConfig.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
+      this.gradient[0] = this.Graph.computeGradient(
+        computeThresholds(this.runtimeConfig.sparkline.colorstops.colors, this.runtimeConfig.sparkline.colorstops_transition),
+        this.runtimeConfig.sparkline.state_values.logarithmic,
+      );
+    } else {
+      this.gradient = [];
+    }
     this.stats = this.calculateStatistics(this.series);
   }
 
@@ -634,7 +659,15 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Graph statistics.
    */
   calculateStatistics(series) {
-    const sortedSeries = series.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+    const sortedSeries = series
+      .filter((item) => item && Number.isFinite(Number(item.state)))
+      .concat()
+      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+
+    if (sortedSeries.length === 0) {
+      return {};
+    }
+
     const values = sortedSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -693,12 +726,40 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Snaps the pointer X to the closest graph sample X so hover and drag track
+   * the same interval positions as the rendered line.
+   *
+   * @param {number} x - Raw pointer X in SVG coordinates.
+   * @returns {number} Snapped graph X position.
+   */
+  snapPointerXToGraphPoint(x) {
+    const coords = this.Graph.coords;
+    if (!coords || coords.length === 0) return x;
+
+    let snappedX = coords[0][0];
+    let snappedDistance = Math.abs(x - snappedX);
+
+    for (let i = 1; i < coords.length; i += 1) {
+      const currentX = coords[i][0];
+      const currentDistance = Math.abs(x - currentX);
+
+      if (currentDistance < snappedDistance) {
+        snappedX = currentX;
+        snappedDistance = currentDistance;
+      }
+    }
+
+    return snappedX;
+  }
+
+  /**
    * Updates active pointer state for indicator/snake rendering.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Browser interaction event.
    */
   updateActivePointer(e) {
-    this.activeX = this.pointToGraphX(this.mouseEventToPoint(e));
+    const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
+    this.activeX = this.snapPointerXToGraphPoint(pointerX);
   }
 
   /**
@@ -865,6 +926,19 @@ export default class SparklineGraphTool extends BaseTool {
     return Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.runtimeConfig.line?.styles));
   }
 
+  computeColor(inState, i) {
+    const { colorstops, line_color } = this.runtimeConfig.sparkline;
+    const state = Number(inState) || 0;
+    console.log('computeColor BEFORE', state, colorstops.colors, line_color[i], line_color[0]);
+    const threshold = {
+      color: line_color[i] || line_color[0],
+      ...colorstops.colors.slice(-1)[0],
+      ...colorstops.colors.find((ele) => ele.value < state),
+    };
+    console.log('computeColor AFTER', state, colorstops.colors, line_color[i], line_color[0], threshold.color);
+    return this.card.config.entities[i].color || threshold.color;
+  }
+
   /**
    * Converts a configured x-axis ticksize into hours. X-axis ticksize is time
    * based, for example 15min, 1h or 6h.
@@ -896,18 +970,21 @@ export default class SparklineGraphTool extends BaseTool {
     const range = this.getHistoryRange();
     const startDate = range.start;
     const windowHours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+    const intervalCount = Math.max(1, this.Graph.hours * this.Graph.points - 1);
+    const intervalPerHour = this.Graph.points;
 
     const ticks = [];
     let previousTickDate = null;
 
-    for (let hour = 0; hour <= windowHours; hour += ticksize) {
+    const tickCount = Math.max(1, Math.ceil(windowHours / ticksize));
+    for (let tick = 0; tick < tickCount; tick += 1) {
+      const hour = tick * ticksize;
       const tickDate = new Date(startDate.getTime() + hour * 60 * 60 * 1000);
-      const x = this.Graph.drawArea.x + (hour / windowHours) * this.Graph.drawArea.width;
+      const tickIndex = hour * intervalPerHour;
+      const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
       const tickDay = tickDate.toDateString();
       const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
-      const label = hour === 0 || tickDay !== previousTickDay
-        ? formatDateShort(tickDate, this.card._hass.locale, this.card._hass.config)
-        : formatTime(tickDate, this.card._hass.locale);
+      const label = hour === 0 || tickDay !== previousTickDay ? formatDateShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale);
 
       ticks.push({ axis: 'x', level, value: hour, x, label });
       previousTickDate = tickDate;
@@ -1217,6 +1294,87 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Renders dots on the graph when show.points or line/area show_dots is set.
+   * The points use the graph engine coordinates directly so they stay aligned
+   * with the line and the active pointer.
+   *
+   * @returns {TemplateResult|string} Points SVG.
+   */
+  renderSvgPointV1(point, i) {
+    const color = this.computeColor(point[V], i);
+    return svg`
+    <circle
+      class='line--point'
+      ?inactive=${this.tooltip.index !== point[3]}
+      style=${`--mcg-hover: ${color};`}
+      stroke=${color}
+      fill=${color}
+      cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
+      @mouseover=${() => this.setTooltip(i, point[3], point[V])}
+      @mouseout=${() => (this.tooltip = {})}
+    />
+  `;
+  }
+
+  renderSvgPoint(point, i, bucketStart) {
+    const color = this.computeColor(point[V], i);
+    const source = this.series[point[3]];
+    return svg`
+    <circle
+      class='line--point'
+      ?inactive=${this.tooltip.index !== point[3]}
+      style=${`--mcg-hover: ${color};`}
+      data-point-index=${point[3]}
+      data-state=${point[V]}
+      data-last-changed=${source.last_changed}
+      data-bucket-start=${bucketStart}
+      data-bucket-end=${new Date(bucketStart).getTime() + (60 / this.Graph.points) * 60 * 1000}
+      stroke=${color}
+      fill=${color}
+      cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
+      @mouseover=${() => this.setTooltip(i, point[3], point[V])}
+      @mouseout=${() => (this.tooltip = {})}
+    />
+  `;
+  }
+
+  setTooltip(entityIndex, pointIndex, value) {
+    this.tooltip = {
+      entity: entityIndex,
+      index: pointIndex,
+      value,
+    };
+  }
+
+  renderSvgPoints(points, i) {
+    if (!points) return;
+    const color = this.computeColor(this.card.entities[i].state, i);
+    const range = this.getHistoryRange();
+    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
+    return svg`
+    <g class='line--points'
+      ?tooltip=${this.tooltip.entity === i}
+      ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== i}
+      ?init=${this.length[i]}
+      anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== 'hover'}
+      style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5 + 0.5}s` : '0s'}"
+      stroke-width=${this.svg.line_width / 2}
+      fill=${color}
+      stroke=${color}
+      >
+      ${points.map((point, pointIndex) => this.renderSvgPoint(point, i, new Date(range.start.getTime() + pointIndex * bucketMs).toISOString()))}
+    </g>`;
+  }
+
+  renderPoints() {
+    if (this.runtimeConfig.sparkline.show.points !== true && this.runtimeConfig.sparkline.line?.show_dots !== true && this.runtimeConfig.sparkline.area?.show_dots !== true) return '';
+
+    const points = this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
+
+    return this.renderSvgPoints(points, 0);
+  }
+
+  /**
    * Renders a minimal active indicator. The later snake uses the same pointer
    * state, but must be added through SparklineGraph segment-path support.
    *
@@ -1229,9 +1387,9 @@ export default class SparklineGraphTool extends BaseTool {
       <line
         class="sparkline-active-indicator"
         x1="${this.activeX}"
-        y1="0"
+        y1="${this.Graph.drawArea.y}"
         x2="${this.activeX}"
-        y2="${this.svg.height}"
+        y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
         style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;pointer-events:none;"
       ></line>
     `;
@@ -1269,6 +1427,7 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.renderAxis()}
           ${this.renderArea()}
           ${this.renderLine()}
+          ${this.renderPoints()}
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
           ${this.renderAxisLabels()}

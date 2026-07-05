@@ -860,7 +860,7 @@ class FlexHorseshoeCard extends LitElement {
         delete statEntityConfig.name;
 
         if (stat === 'min_time' || stat === 'max_time') {
-          statEntityConfig.format = 'time';
+          statEntityConfig.format = 'datetime-short'; // 'time';
           statEntityConfig.unit = '';
         }
 

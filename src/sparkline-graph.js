@@ -32,6 +32,7 @@ export default class SparklineGraph {
 
     this.config = config;
 
+    console.log('[SparklineGraph] constructor', width, height, margin, config, gradeValues, gradeRanks, stateMap);
     // Just trying to make sense for the graph drawing area
     //
     // @2023.07.02
@@ -78,6 +79,7 @@ export default class SparklineGraph {
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
     this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
+    console.log('[SparklineGraph] constructor', this);
   }
 
   get max() {
@@ -953,6 +955,12 @@ export default class SparklineGraph {
     }
   }
 
+  _snapToBin(date) {
+    const binMinutes = 60 / this.points;
+    const binMs = binMinutes * 60 * 1000;
+    return new Date(Math.ceil(date.getTime() / binMs) * binMs);
+  }
+
   _updateEndTime() {
     this._endTime = new Date();
     if (this.config.period.type === 'calendar') {
@@ -968,6 +976,8 @@ export default class SparklineGraph {
         this._endTime.setHours(0, 0, 0, 0);
         console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
       }
+    } else if (this.config.period.type === 'rolling_window') {
+      this._endTime = this._snapToBin(this._endTime);
     } else {
       switch (this._groupBy) {
         case 'month':
