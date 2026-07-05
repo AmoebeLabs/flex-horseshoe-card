@@ -507,7 +507,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.runtimeConfig.period?.type === 'rolling_window') {
       const binMinutes = 60 / (this.runtimeConfig.period?.rolling_window?.bins?.per_hour ?? 1);
       const binMs = binMinutes * 60 * 1000;
-      const end = new Date(Math.ceil(now.getTime() / binMs) * binMs);
+      const end = new Date(Math.floor(now.getTime() / binMs) * binMs);
 
       return {
         start: new Date(end.getTime() - periodHours * 60 * 60 * 1000),
@@ -1318,7 +1318,6 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgPoint(point, i, bucketStart) {
     const color = this.computeColor(point[V], i);
-    const source = this.series[point[3]];
     return svg`
     <circle
       class='line--point'
@@ -1326,7 +1325,6 @@ export default class SparklineGraphTool extends BaseTool {
       style=${`--mcg-hover: ${color};`}
       data-point-index=${point[3]}
       data-state=${point[V]}
-      data-last-changed=${source.last_changed}
       data-bucket-start=${bucketStart}
       data-bucket-end=${new Date(bucketStart).getTime() + (60 / this.Graph.points) * 60 * 1000}
       stroke=${color}

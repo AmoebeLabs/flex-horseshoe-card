@@ -958,7 +958,7 @@ export default class SparklineGraph {
   _snapToBin(date) {
     const binMinutes = 60 / this.points;
     const binMs = binMinutes * 60 * 1000;
-    return new Date(Math.ceil(date.getTime() / binMs) * binMs);
+    return new Date(Math.floor(date.getTime() / binMs) * binMs);
   }
 
   _updateEndTime() {
