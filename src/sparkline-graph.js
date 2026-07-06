@@ -128,6 +128,8 @@ export default class SparklineGraph {
       }
     }
 
+    // console.log('[update] histGroups BEFORE reducer', history, this.hours, this.points, this.offsetHours);
+
     const histGroups = this._history.reduce((res, item) => this._reducer(res, item), []);
     // drop potential out of bound entry's except one
     if (histGroups[0] && histGroups[0].length) {
@@ -141,7 +143,7 @@ export default class SparklineGraph {
     // Logging laat 24 6 0 zien. dus hours = 24. Klopt. points = 6. Huh? is dat die 10 minuten? offset = 0. Klopt.
     // Die 6 kun je toch nooit terugrekenen naar 5 minuten?
     // this.points moet dus bins.per_hour zijn. dus ook 12 in dit geval...
-    console.log('[update] histGroups', histGroups, this.hours, this.points, this.offsetHours);
+    // console.log('[update] histGroups AFTER reducer', histGroups, this.hours, this.points, this.offsetHours);
 
     // extend length to fill missing history.
     let requiredNumOfPoints;
@@ -260,7 +262,93 @@ export default class SparklineGraph {
   // The reducer should not have to check for hours. This wasn't required some changes ago
   // Must be looked in to...
 
+  // Finally working for calendar and rolling_window types
+
   _reducer(res, item) {
+    const { type } = this.config.period;
+    const period = this.config.period[type];
+
+    let hours = this.hours;
+
+    if (type === 'calendar' && period.period === 'day') {
+      const now = new Date();
+      const extraHours = period.duration.hour - 24;
+
+      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
+    }
+
+    let age = this._endTime - new Date(item.last_changed).getTime();
+
+    if (period.offset === 0 && age < 0) {
+      age = 0;
+    }
+
+    const endIndex = hours * this.points - 1;
+    const interval = (age / ONE_HOUR) * this.points - endIndex;
+    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+
+    if (!res[key]) res[key] = [];
+    res[key].push(item);
+
+    return res;
+  }
+
+  _reducerV4(res, item) {
+    const { type } = this.config.period;
+    const period = this.config.period[type];
+
+    let hours = this.hours;
+
+    if (type === 'calendar' && period.period === 'day') {
+      const now = new Date();
+      const extraHours = period.duration.hour - 24;
+
+      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
+    }
+
+    let age = this._endTime - new Date(item.last_changed).getTime();
+
+    if (period.offset === 0 && age < 0) {
+      age = 0;
+    }
+    if (age < 0) {
+      age = 0;
+    }
+
+    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
+    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+
+    if (!res[key]) res[key] = [];
+    res[key].push(item);
+
+    return res;
+  }
+
+  _reducerV3(res, item) {
+    const { type } = this.config.period;
+    const period = this.config.period[type];
+
+    let hours = this.hours;
+
+    if (type === 'calendar' && period.period === 'day') {
+      const now = new Date();
+      const extraHours = period.duration.hour - 24;
+
+      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
+    }
+
+    const age = this._endTime - new Date(item.last_changed).getTime();
+    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
+    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+
+    if (!res[key]) res[key] = [];
+    res[key].push(item);
+
+    return res;
+  }
+
+  // Crash on rolling window. empty result after reducer.
+  _reducerV2(res, item) {
     const { type } = this.config.period;
     const period = this.config.period[type];
 
@@ -283,6 +371,7 @@ export default class SparklineGraph {
     return res;
   }
 
+  // This one does not play well with the rolling_window: extended to end of day instead of current time
   _reducerV1(res, item) {
     const extraHours = this.config.period?.calendar?.period === 'day' ? this.config.period.calendar.duration.hour - 24 : 0;
 

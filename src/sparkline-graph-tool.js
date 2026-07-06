@@ -6,8 +6,8 @@ import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
 import SparklineGraph, { X, Y, V } from './sparkline-graph.js';
-import { formatDateShort } from './frontend_mods/datetimejs/format_date.js';
-import { formatTime } from './frontend_mods/datetimejs/format_time.js';
+import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
+import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
 
 /**
  * Starting from the given index, increment the index until an array element with
@@ -34,6 +34,7 @@ const findFirstValuedIndex = (stops, startIndex) => {
  * @param {Array} stops - Colorstop list.
  * @returns {Array<object>} Colorstops with value on every stop.
  */
+
 const interpolateStops = (stops) => {
   if (!stops || !stops.length) {
     return stops;
@@ -974,6 +975,53 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} X-axis ticks.
    */
   buildXAxisTicks(level) {
+    const ONE_HOUR = 60 * 60 * 1000;
+    const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
+    const range = this.getHistoryRange();
+    const windowHours = (range.end.getTime() - range.start.getTime()) / ONE_HOUR;
+    const intervalCount = Math.max(1, this.Graph.hours * this.Graph.points - 1);
+    const intervalPerHour = this.Graph.points;
+
+    const startDate = new Date(range.start);
+    startDate.setHours(Math.floor(startDate.getHours() / ticksize) * ticksize, 0, 0, 0);
+
+    const ticks = [];
+    let previousTickDate = null;
+
+    const tickCount = Math.max(1, Math.ceil(windowHours / ticksize) + 1);
+
+    for (let tick = 0; tick < tickCount; tick += 1) {
+      const tickDate = new Date(startDate);
+      tickDate.setHours(startDate.getHours() + tick * ticksize);
+
+      const hour = (tickDate.getTime() - range.start.getTime()) / ONE_HOUR;
+
+      // eslint-disable-next-line no-continue
+      if (hour < 0 || tickDate > range.end) continue;
+
+      const tickIndex = hour * intervalPerHour;
+      const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
+
+      const tickDay = tickDate.toDateString();
+      const previousTickDay = previousTickDate?.toDateString();
+
+      const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+
+      ticks.push({
+        axis: 'x',
+        level,
+        value: hour,
+        x,
+        label,
+      });
+
+      previousTickDate = tickDate;
+    }
+
+    return ticks;
+  }
+
+  buildXAxisTicksV1(level) {
     const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
     const range = this.getHistoryRange();
     const tickMs = ticksize * 60 * 60 * 1000;
@@ -993,8 +1041,9 @@ export default class SparklineGraphTool extends BaseTool {
       const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
       const tickDay = tickDate.toDateString();
       const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
-      const label = hour === 0 || tickDay !== previousTickDay ? formatDateShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale);
+      const label = hour === 0 || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
+      console.log('[buildXAxisTicks] stuff in loop: ', x, hour, tickIndex, intervalCount, tickDate, label, previousTickDate, previousTickDay, tickDay);
       ticks.push({ axis: 'x', level, value: hour, x, label });
       previousTickDate = tickDate;
     }
