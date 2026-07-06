@@ -65,8 +65,11 @@ export default class SparklineGraph {
     // Testing
     this._max = 0;
     this._min = 0;
-    this.points = this.config.period?.calendar?.bins?.per_hour || this.config.period?.rolling_window?.bins?.per_hour || 1;
-    this.hours = this.config.period?.calendar?.duration?.hour || this.config.period?.rolling_window?.duration?.hour || 24;
+    const period = this.config.period[this.config.period.type];
+    this.points = period.bins.per_hour || 1;
+    this.hours = period.duration.hour || 24;
+    // this.points = this.config.period?.calendar?.bins?.per_hour || this.config.period?.rolling_window?.bins?.per_hour || 1;
+    // this.hours = this.config.period?.calendar?.duration?.hour || this.config.period?.rolling_window?.duration?.hour || 24;
     this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
     this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName] || this._average;
     this._smoothing = this.config.sparkline.state_values?.smoothing;
@@ -114,13 +117,15 @@ export default class SparklineGraph {
     let date = new Date();
     date.getDate();
     this.offsetHours = 0;
-    if (this.config.period?.calendar?.period === 'day') {
-      // HACK to make sure any calculation uses the right amount of hours for today only!!
-      // Does not work for shifting to yesterday I think
-      let extraHours = this.config.period.calendar.duration.hour - 24;
-      let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600 + extraHours;
-      this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
-      console.log('[update]', hours, extraHours, this.offsetHours, this.hours);
+    if (this.config.period.type === 'calendar') {
+      if (this.config.period?.calendar?.period === 'day') {
+        // HACK to make sure any calculation uses the right amount of hours for today only!!
+        // Does not work for shifting to yesterday I think
+        let extraHours = this.config.period.calendar.duration.hour - 24;
+        let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600 + extraHours;
+        this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
+        console.log('[update]', hours, extraHours, this.offsetHours, this.hours);
+      }
     }
 
     const histGroups = this._history.reduce((res, item) => this._reducer(res, item), []);
@@ -128,6 +133,15 @@ export default class SparklineGraph {
     if (histGroups[0] && histGroups[0].length) {
       histGroups[0] = [histGroups[0][histGroups[0].length - 1]];
     }
+    // @2026.07.05
+    // Wat nu? bij rolling_window en instelling bins.per_hour van 12 zie ik in de logging dat een bin 10 minuten is
+    // dat moet dan dus 60 / 12 = 5 minuten zijn. zou dat oorzaak zijn dat grafiek rechte lijn toont? dus maar de helft
+    // van de grafiek kan vullen omdat bins 2x zo groot zijn als de bedoeling???????????????
+    //
+    // Logging laat 24 6 0 zien. dus hours = 24. Klopt. points = 6. Huh? is dat die 10 minuten? offset = 0. Klopt.
+    // Die 6 kun je toch nooit terugrekenen naar 5 minuten?
+    // this.points moet dus bins.per_hour zijn. dus ook 12 in dit geval...
+    console.log('[update] histGroups', histGroups, this.hours, this.points, this.offsetHours);
 
     // extend length to fill missing history.
     let requiredNumOfPoints;
@@ -221,7 +235,10 @@ export default class SparklineGraph {
 
   _reducerMinMax(res, item) {
     const age = this._endTime - new Date(item.last_changed).getTime();
+    // const endIndex = this.config.period.type === 'rolling_window' ? this.hours * this.points - 1 : this.hours * this.points;
+    // const interval = (age / ONE_HOUR) * this.points - endIndex;
     const interval = (age / ONE_HOUR) * this.points - this.hours * this.points;
+
     const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
     if (!res[0]) res[0] = [];
     if (!res[1]) res[1] = [];
@@ -242,11 +259,37 @@ export default class SparklineGraph {
   // #TODO @2023.07.26:
   // The reducer should not have to check for hours. This wasn't required some changes ago
   // Must be looked in to...
+
   _reducer(res, item) {
+    const { type } = this.config.period;
+    const period = this.config.period[type];
+
+    let hours = this.hours;
+
+    if (type === 'calendar' && period.period === 'day') {
+      const now = new Date();
+      const extraHours = period.duration.hour - 24;
+
+      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : 24;
+    }
+
+    const age = this._endTime - new Date(item.last_changed).getTime();
+    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
+    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+
+    if (!res[key]) res[key] = [];
+    res[key].push(item);
+
+    return res;
+  }
+
+  _reducerV1(res, item) {
     const extraHours = this.config.period?.calendar?.period === 'day' ? this.config.period.calendar.duration.hour - 24 : 0;
 
     const hours = this.config.period?.calendar?.period === 'day' ? (this.config.period.calendar.offset === 0 ? new Date().getHours() + new Date().getMinutes() / 60 + extraHours : 24) : this.hours;
     const age = this._endTime - new Date(item.last_changed).getTime();
+    // const endIndex = this.config.period.type === 'rolling_window' ? hours * this.points - 1 : hours * this.points;
+    // const interval = (age / ONE_HOUR) * this.points - endIndex; // was this.hours!!
     const interval = (age / ONE_HOUR) * this.points - hours * this.points; // was this.hours!!
     const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
     if (!res[key]) res[key] = [];
@@ -977,7 +1020,10 @@ export default class SparklineGraph {
         console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
       }
     } else if (this.config.period.type === 'rolling_window') {
+      // keep the real current time for rolling windows
+      console.log('[_updateEndTime] for period.type = rolling_window BEFORE', this._endTime);
       this._endTime = this._snapToBin(this._endTime);
+      console.log('[_updateEndTime] for period.type = rolling_window AFTER', this._endTime);
     } else {
       switch (this._groupBy) {
         case 'month':

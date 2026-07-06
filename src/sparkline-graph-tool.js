@@ -143,7 +143,7 @@ export default class SparklineGraphTool extends BaseTool {
       height: 25,
       margin: 0,
       history: {
-        period: 'today',
+        period: 'rolling_window', // maakt niet uit wat hier staat? wordt niet gebruikt??
         refresh_interval: '5min',
       },
       period: {
@@ -155,8 +155,14 @@ export default class SparklineGraphTool extends BaseTool {
           duration: {
             hour: 24,
           },
+          // 2026.07.05 aantal van deze calender instelling overschrijftr dus de rolling window instelling. waar nu weer
+          // aangetoond dus. maar wat gevolg voor rst van grafiek? nog onduidelijk. blijft tot einde van de dag lopen. of eigenlijk tot de helft vreemd genoeg
+          // komt dus nooit verder. waar zit deze rare fout.
+          //
+          // er zitten ergens testen die hierdoor fout gaan. want die kijken of één van de twee bestaat. zonder het type te controleren
+          // ik vermoed dat het daarom misgaat dus... Gevolgen??
           bins: {
-            per_hour: 6,
+            per_hour: 4, // 6, wel heel toevallig. kijken met 12 dan eens... grafiek nog steeds fout. lijkt erop alsof deze bij rolling_window wordt overschreven?
           },
         },
       },
@@ -325,6 +331,7 @@ export default class SparklineGraphTool extends BaseTool {
       });
     });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
+    console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
 
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
 
@@ -505,13 +512,9 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (this.runtimeConfig.period?.type === 'rolling_window') {
-      const binMinutes = 60 / (this.runtimeConfig.period?.rolling_window?.bins?.per_hour ?? 1);
-      const binMs = binMinutes * 60 * 1000;
-      const end = new Date(Math.floor(now.getTime() / binMs) * binMs);
-
       return {
-        start: new Date(end.getTime() - periodHours * 60 * 60 * 1000),
-        end,
+        start: new Date(now.getTime() - periodHours * 60 * 60 * 1000),
+        end: now,
       };
     }
 
@@ -577,9 +580,11 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} SparklineGraph history series.
    */
   buildHistorySeries(historyRows, currentEntity, rangeEnd) {
-    const rows = historyRows.concat([Merge.mergeDeep(currentEntity, { last_changed: rangeEnd.toISOString() })]);
+    const rows = historyRows.concat([currentEntity]);
 
-    return rows
+    console.log('buildHistorySeries', rows, currentEntity, rangeEnd);
+    // return rows
+    let newRows = rows
       .filter((row) => row && Number.isFinite(Number(row.state)))
       .map((row) => {
         const value = Number(row.state);
@@ -589,6 +594,8 @@ export default class SparklineGraphTool extends BaseTool {
           haState: row.state,
         });
       });
+    console.log('buildHistorySeries', newRows, currentEntity, rangeEnd);
+    return newRows;
   }
 
   /**
@@ -612,6 +619,7 @@ export default class SparklineGraphTool extends BaseTool {
     const range = this.getHistoryRange();
     this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     this.Graph.update(this.series);
+    console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
 
     // Keep the y-axis and graph stable between small state updates. The graph
     // engine first calculates raw min/max from the source series. The visible
@@ -968,7 +976,8 @@ export default class SparklineGraphTool extends BaseTool {
   buildXAxisTicks(level) {
     const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
     const range = this.getHistoryRange();
-    const startDate = range.start;
+    const tickMs = ticksize * 60 * 60 * 1000;
+    const startDate = new Date(Math.floor(range.start.getTime() / tickMs) * tickMs);
     const windowHours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     const intervalCount = Math.max(1, this.Graph.hours * this.Graph.points - 1);
     const intervalPerHour = this.Graph.points;
