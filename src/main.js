@@ -893,9 +893,12 @@ class FlexHorseshoeCard extends LitElement {
           max_time: 'max',
         };
         const label = labelMap[stat];
+        const sourceEntityConfig = this.resolvedEntityConfigs[sparklineGraphTool.entity_index];
+        const sourceDecimals = sourceEntityConfig.decimals !== undefined ? Number(sourceEntityConfig.decimals) : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
+        const roundedState = stat === 'avg' && Number.isFinite(Number(state)) ? Number(state).toFixed(sourceDecimals) : String(state);
         const entity = Merge.mergeDeep(sourceEntity, {
           entity_id: `fhs_sparkline.${sparklineId}_${stat}`,
-          state: String(state),
+          state: roundedState,
           label,
           attributes: {
             ...sourceEntity.attributes,
