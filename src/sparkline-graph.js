@@ -32,7 +32,7 @@ export default class SparklineGraph {
 
     this.config = config;
 
-    console.log('[SparklineGraph] constructor', width, height, margin, config, gradeValues, gradeRanks, stateMap);
+    // console.log('[SparklineGraph] constructor', width, height, margin, config, gradeValues, gradeRanks, stateMap);
     // Just trying to make sense for the graph drawing area
     //
     // @2023.07.02
@@ -82,7 +82,7 @@ export default class SparklineGraph {
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
     this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
-    console.log('[SparklineGraph] constructor', this);
+    // console.log('[SparklineGraph] constructor', this);
   }
 
   get max() {
@@ -290,99 +290,6 @@ export default class SparklineGraph {
     if (!res[key]) res[key] = [];
     res[key].push(item);
 
-    return res;
-  }
-
-  _reducerV4(res, item) {
-    const { type } = this.config.period;
-    const period = this.config.period[type];
-
-    let hours = this.hours;
-
-    if (type === 'calendar' && period.period === 'day') {
-      const now = new Date();
-      const extraHours = period.duration.hour - 24;
-
-      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
-    }
-
-    let age = this._endTime - new Date(item.last_changed).getTime();
-
-    if (period.offset === 0 && age < 0) {
-      age = 0;
-    }
-    if (age < 0) {
-      age = 0;
-    }
-
-    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
-
-    if (!res[key]) res[key] = [];
-    res[key].push(item);
-
-    return res;
-  }
-
-  _reducerV3(res, item) {
-    const { type } = this.config.period;
-    const period = this.config.period[type];
-
-    let hours = this.hours;
-
-    if (type === 'calendar' && period.period === 'day') {
-      const now = new Date();
-      const extraHours = period.duration.hour - 24;
-
-      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
-    }
-
-    const age = this._endTime - new Date(item.last_changed).getTime();
-    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
-
-    if (!res[key]) res[key] = [];
-    res[key].push(item);
-
-    return res;
-  }
-
-  // Crash on rolling window. empty result after reducer.
-  _reducerV2(res, item) {
-    const { type } = this.config.period;
-    const period = this.config.period[type];
-
-    let hours = this.hours;
-
-    if (type === 'calendar' && period.period === 'day') {
-      const now = new Date();
-      const extraHours = period.duration.hour - 24;
-
-      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : 24;
-    }
-
-    const age = this._endTime - new Date(item.last_changed).getTime();
-    const interval = (age / ONE_HOUR) * this.points - hours * this.points;
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
-
-    if (!res[key]) res[key] = [];
-    res[key].push(item);
-
-    return res;
-  }
-
-  // This one does not play well with the rolling_window: extended to end of day instead of current time
-  _reducerV1(res, item) {
-    const extraHours = this.config.period?.calendar?.period === 'day' ? this.config.period.calendar.duration.hour - 24 : 0;
-
-    const hours = this.config.period?.calendar?.period === 'day' ? (this.config.period.calendar.offset === 0 ? new Date().getHours() + new Date().getMinutes() / 60 + extraHours : 24) : this.hours;
-    const age = this._endTime - new Date(item.last_changed).getTime();
-    // const endIndex = this.config.period.type === 'rolling_window' ? hours * this.points - 1 : hours * this.points;
-    // const interval = (age / ONE_HOUR) * this.points - endIndex; // was this.hours!!
-    const interval = (age / ONE_HOUR) * this.points - hours * this.points; // was this.hours!!
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
-    if (!res[key]) res[key] = [];
-    res[key].push(item);
     return res;
   }
 
@@ -1102,17 +1009,17 @@ export default class SparklineGraph {
         // Now I assume it is just yesterday, ie hours_to_show === 24
         // this._endTime.setHours(0, 0, 0, 0);
         // this.hours = 24;
-        console.log('[_updateEndTime] for period.type = calendar BEFORE', this._endTime);
+        // console.log('[_updateEndTime] for period.type = calendar BEFORE', this._endTime);
 
         this._endTime.setHours(-this.config.period.calendar.duration.hour);
         this._endTime.setHours(0, 0, 0, 0);
-        console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
+        // console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
       }
     } else if (this.config.period.type === 'rolling_window') {
       // keep the real current time for rolling windows
-      console.log('[_updateEndTime] for period.type = rolling_window BEFORE', this._endTime);
+      // console.log('[_updateEndTime] for period.type = rolling_window BEFORE', this._endTime);
       this._endTime = this._snapToBin(this._endTime);
-      console.log('[_updateEndTime] for period.type = rolling_window AFTER', this._endTime);
+      // console.log('[_updateEndTime] for period.type = rolling_window AFTER', this._endTime);
     } else {
       switch (this._groupBy) {
         case 'month':

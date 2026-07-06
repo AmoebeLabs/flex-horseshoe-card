@@ -583,8 +583,8 @@ export default class SparklineGraphTool extends BaseTool {
   buildHistorySeries(historyRows, currentEntity, rangeEnd) {
     const rows = historyRows.concat([currentEntity]);
 
-    console.log('buildHistorySeries', rows, currentEntity, rangeEnd);
-    // return rows
+    // // console.log('buildHistorySeries', rows, currentEntity, rangeEnd);
+    // // return rows
     let newRows = rows
       .filter((row) => row && Number.isFinite(Number(row.state)))
       .map((row) => {
@@ -595,7 +595,7 @@ export default class SparklineGraphTool extends BaseTool {
           haState: row.state,
         });
       });
-    console.log('buildHistorySeries', newRows, currentEntity, rangeEnd);
+    // console.log('buildHistorySeries', newRows, currentEntity, rangeEnd);
     return newRows;
   }
 
@@ -620,7 +620,7 @@ export default class SparklineGraphTool extends BaseTool {
     const range = this.getHistoryRange();
     this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     this.Graph.update(this.series);
-    console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
+    // console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
 
     // Keep the y-axis and graph stable between small state updates. The graph
     // engine first calculates raw min/max from the source series. The visible
@@ -1006,6 +1006,8 @@ export default class SparklineGraphTool extends BaseTool {
       const previousTickDay = previousTickDate?.toDateString();
 
       const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+      // const label = hour === 0 || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+      // const label = hour % 24 === 0 ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
       ticks.push({
         axis: 'x',
