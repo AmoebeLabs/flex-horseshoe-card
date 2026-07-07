@@ -623,29 +623,16 @@ export default class SparklineGraphTool extends BaseTool {
     this.Graph.update(this.series);
     // console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
 
-    // Keep the y-axis and graph stable between small state updates. The graph
-    // engine first calculates raw min/max from the source series. The visible
-    // scale then snaps outward to the configured minor y ticksize. The runtime
-    // scale is allowed to grow when new data exceeds the current bounds, but it
-    // does not shrink on ordinary HA state updates. That keeps grid, labels and
-    // the line on the same stable y-scale during the active period.
+    // Keep the y-axis aligned to the rendered graph, then snap the visible
+    // bounds outward to the configured y tick grid so the chart gets breathing
+    // room above and below the data.
     const yTicksizeConfig = this.runtimeConfig.y_axis.ticks_minor.ticksize;
     const yTicksize = yTicksizeConfig == null || yTicksizeConfig === 'auto' ? this.getAutoYAxisTicksize('minor') : Number(yTicksizeConfig);
-    const sourceValues = this.series.map((item) => Number(item.state));
-    const sourceMin = Math.min(...sourceValues);
-    const sourceMax = Math.max(...sourceValues);
-    const snappedMin = Math.floor(sourceMin / yTicksize) * yTicksize;
-    const snappedMax = Math.ceil(sourceMax / yTicksize) * yTicksize;
+    const snappedMin = Math.floor(this.Graph.min / yTicksize) * yTicksize;
+    const snappedMax = Math.ceil(this.Graph.max / yTicksize) * yTicksize;
 
-    if (this.runtimeYScale === undefined) {
-      this.runtimeYScale = { min: snappedMin, max: snappedMax };
-    } else {
-      this.runtimeYScale.min = Math.min(this.runtimeYScale.min, snappedMin);
-      this.runtimeYScale.max = Math.max(this.runtimeYScale.max, snappedMax);
-    }
-
-    this.Graph.min = this.runtimeYScale.min;
-    this.Graph.max = this.runtimeYScale.max;
+    this.Graph.min = snappedMin;
+    this.Graph.max = snappedMax;
 
     this.linePath = this.Graph.getPath();
     this.areaPath = this.Graph.getArea(this.linePath);
@@ -1125,7 +1112,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (totalDuration <= 0) return { ticksize: 0, ticks: [] };
 
-    const approxLabelWidth = 1 * fontWidthPixels + 12; // 16;
+    const approxLabelWidth = 1 * fontWidthPixels + FONT_SIZE; // 16;
     const maxLabels = Math.floor(chartWidthPixels / approxLabelWidth);
     const effectiveMaxLabels = Math.max(maxLabels, 4);
     const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
