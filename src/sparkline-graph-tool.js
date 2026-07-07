@@ -1193,8 +1193,10 @@ export default class SparklineGraphTool extends BaseTool {
         const tickDay = tickDate.toDateString();
         const previousTickDay = previousTickDate?.toDateString();
 
-        const label =
-          !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+        const isMidnight = tickDate.getHours() === 0 && tickDate.getMinutes() === 0 && tickDate.getSeconds() === 0 && tickDate.getMilliseconds() === 0;
+        const label = isMidnight || (previousTickDate && tickDay !== previousTickDay)
+          ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
+          : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
         ticks.push({
           axis: 'x',
