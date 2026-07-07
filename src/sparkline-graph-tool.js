@@ -8,6 +8,7 @@ import Utils from './utils.js';
 import SparklineGraph, { X, Y, V } from './sparkline-graph.js';
 import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
 import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
+import { FONT_SIZE } from './const.js';
 
 /**
  * Starting from the given index, increment the index until an array element with
@@ -200,10 +201,10 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         ticks_major: {
-          ticksize: '1h',
+          ticksize: 'auto',
         },
         ticks_minor: {
-          ticksize: '15min',
+          ticksize: 'auto',
         },
         grid_major: {
           styles: {
@@ -255,10 +256,10 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         ticks_major: {
-          ticksize: 1,
+          ticksize: 'auto',
         },
         ticks_minor: {
-          ticksize: 0.5,
+          ticksize: 'auto',
         },
         grid_major: {
           styles: {
@@ -628,7 +629,8 @@ export default class SparklineGraphTool extends BaseTool {
     // scale is allowed to grow when new data exceeds the current bounds, but it
     // does not shrink on ordinary HA state updates. That keeps grid, labels and
     // the line on the same stable y-scale during the active period.
-    const yTicksize = Number(this.runtimeConfig.y_axis.ticks_minor.ticksize);
+    const yTicksizeConfig = this.runtimeConfig.y_axis.ticks_minor.ticksize;
+    const yTicksize = yTicksizeConfig == null || yTicksizeConfig === 'auto' ? this.getAutoYAxisTicksize('minor') : Number(yTicksizeConfig);
     const sourceValues = this.series.map((item) => Number(item.state));
     const sourceMin = Math.min(...sourceValues);
     const sourceMax = Math.max(...sourceValues);
@@ -967,6 +969,206 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Reads the configured axis label font size from the style dictionary. The
+   * builder uses this to size auto ticks without inventing a second config.
+   *
+   * @param {string} axis - x or y.
+   * @param {number} fallback - Default font size in pixels.
+   * @returns {number} Font size in pixels.
+   */
+  resolveAxisFontSizePixels(axis, fallback = FONT_SIZE) {
+    const fontSize = this.runtimeConfig[`${axis}_axis`]?.labels?.styles?.['font-size'];
+
+    if (typeof fontSize === 'number') {
+      return fontSize;
+    }
+
+    if (typeof fontSize !== 'string') {
+      return fallback;
+    }
+
+    const value = Number.parseFloat(fontSize);
+
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
+
+    if (fontSize.endsWith('px')) {
+      return value;
+    }
+
+    if (fontSize.endsWith('em') || fontSize.endsWith('rem')) {
+      return value * FONT_SIZE;
+    }
+
+    if (fontSize.endsWith('%')) {
+      return (value / 100) * FONT_SIZE;
+    }
+
+    return value;
+  }
+
+  /**
+   * Calculates the auto x-axis tick size from available width and label font
+   * size. This reuses the example perfect-axis logic for the interval choice.
+   *
+   * @param {string} level - major or minor.
+   * @param {object} range - History range returned by getHistoryRange().
+   * @returns {number} Tick interval in hours.
+   */
+  getAutoXAxisTicksize(level, range) {
+    const fontSizePixels = this.resolveAxisFontSizePixels('x', FONT_SIZE);
+    const fontWidthPixels = Math.max(3, fontSizePixels * (level === 'minor' ? 0.35 : 0.45));
+    const perfect = this.calculatePerfectXAxis(range.start, range.end, this.Graph.drawArea.width, fontWidthPixels);
+
+    return perfect.ticksize / (60 * 60 * 1000);
+  }
+
+  /**
+   * Calculates the auto y-axis tick size from available height and label font
+   * size. This reuses the example perfect-axis logic for the interval choice.
+   *
+   * @param {string} level - major or minor.
+   * @returns {number} Tick interval in data units.
+   */
+  getAutoYAxisTicksize(level) {
+    const fontSizePixels = this.resolveAxisFontSizePixels('y', FONT_SIZE);
+    const fontHeightPixels = Math.max(6, fontSizePixels * (level === 'minor' ? 0.65 : 0.85));
+    const perfect = this.calculatePerfectYAxis(this.Graph.min, this.Graph.max, this.Graph.drawArea.height, fontHeightPixels);
+
+    return level === 'minor' ? Math.max(perfect.interval / 2, 0.5) : Math.max(perfect.interval, 0.5);
+  }
+
+  /**
+   * Calculates human-readable Y-axis ticks, limits, and intervals for a chart.
+   *
+   * @param {number} dataMin - The lowest sensor value in the dataset.
+   * @param {number} dataMax - The highest sensor value in the dataset.
+   * @param {number} chartHeightPixels - The vertical height of the SVG chart area.
+   * @param {number} fontHeightPixels - The size of the font used for labels (default: 12).
+   * @returns {object} An object containing grid limits, interval, and an array of tick values.
+   */
+  calculatePerfectYAxis(dataMin, dataMax, chartHeightPixels, fontHeightPixels = FONT_SIZE) {
+    // 1. Prevent crash if min and max are identical (e.g., a flat line of a constant value)
+    if (dataMin === dataMax) {
+      dataMin -= 1;
+      dataMax += 1;
+    }
+
+    // 2. Calculate maximum labels that can fit vertically including padding (2x font height)
+    const minSpacePerLabel = fontHeightPixels * 1.5;
+    const maxLabels = Math.floor(chartHeightPixels / minSpacePerLabel);
+
+    // Safety check: always allow at least 2 labels (bottom and top)
+    const effectiveMaxLabels = Math.max(maxLabels, 2);
+
+    // 3. Calculate raw step size
+    const range = dataMax - dataMin;
+    const rawStep = range / (effectiveMaxLabels - 1);
+
+    // 4. Logarithmic magic: determine the order of magnitude (the exponent)
+    const exponent = Math.floor(Math.log10(rawStep));
+    const powerOfTen = 10 ** exponent;
+
+    // 5. Normalize the step size to a value between 1 and 10
+    const normalizedStep = rawStep / powerOfTen;
+
+    // 6. Select the closest clean "human-friendly" interval
+    let chosenStep;
+    if (normalizedStep <= 1.0) chosenStep = 1.0;
+    else if (normalizedStep <= 2.0) chosenStep = 2.0;
+    else if (normalizedStep <= 5.0) chosenStep = 5.0;
+    else chosenStep = 10.0;
+
+    // The final interval (e.g., 0.5 or 5000)
+    const interval = chosenStep * powerOfTen;
+
+    // 7. Round the min and max limits to clean numbers (Nice Scaling)
+    const gridMin = Math.floor(dataMin / interval) * interval;
+    const gridMax = Math.ceil(dataMax / interval) * interval;
+
+    // 8. Generate all individual tick values for the grid lines
+    const ticks = [];
+    let currentValue = gridMin;
+
+    // Prevent infinite loops caused by JS floating-point rounding errors
+    const precision = Math.max(0, -exponent + 2);
+
+    while (currentValue <= gridMax + interval / 100) {
+      ticks.push(Number(currentValue.toFixed(precision)));
+      currentValue += interval;
+    }
+
+    // Return all data required to render the SVG
+    return {
+      gridMin: Number(gridMin.toFixed(precision)),
+      gridMax: Number(gridMax.toFixed(precision)),
+      interval,
+      ticks, // The list of values where lines and labels should be drawn
+    };
+  }
+
+  /**
+   * Calculates human-readable X-axis time ticks and formats them for SVG.
+   * Switches to a date format (e.g., "5 Jul") on midnight transitions.
+   *
+   * @param {number|Date} minTime - The earliest timestamp in the data (ms or Date).
+   * @param {number|Date} maxTime - The latest timestamp in the data (ms or Date).
+   * @param {number} chartWidthPixels - The horizontal width of the SVG chart area.
+   * @param {number} fontWidthPixels - Average pixel width of a character (default: 7).
+   * @returns {array} Array of tick objects containing value, x-coordinate, and string label.
+   */
+  calculatePerfectXAxis(minTime, maxTime, chartWidthPixels, fontWidthPixels = FONT_SIZE * 0.6) {
+    const minMs = new Date(minTime).getTime();
+    const maxMs = new Date(maxTime).getTime();
+    const totalDuration = maxMs - minMs;
+
+    if (totalDuration <= 0) return { ticksize: 0, ticks: [] };
+
+    const approxLabelWidth = 1 * fontWidthPixels + 12; // 16;
+    const maxLabels = Math.floor(chartWidthPixels / approxLabelWidth);
+    const effectiveMaxLabels = Math.max(maxLabels, 4);
+    const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
+
+    const timeIntervals = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000, 7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000, 2629800000];
+
+    let selectedIndex = timeIntervals.findIndex((interval) => interval >= minTimeStep);
+    if (selectedIndex < 0) {
+      selectedIndex = timeIntervals.length - 1;
+    }
+
+    while (selectedIndex > 0 && totalDuration / timeIntervals[selectedIndex] < 2) {
+      selectedIndex -= 1;
+    }
+
+    const selectedInterval = timeIntervals[selectedIndex];
+
+    let currentTickMs = Math.ceil(minMs / selectedInterval) * selectedInterval;
+    const ticks = [];
+    let previousTickDate = null;
+
+    while (currentTickMs <= maxMs) {
+      const tickDate = new Date(currentTickMs);
+      const percentage = (currentTickMs - minMs) / totalDuration;
+      const xPixel = percentage * chartWidthPixels;
+      const tickDay = tickDate.toDateString();
+      const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
+      const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+
+      ticks.push({
+        value: currentTickMs,
+        x: Number(xPixel.toFixed(1)),
+        label,
+      });
+
+      previousTickDate = tickDate;
+      currentTickMs += selectedInterval;
+    }
+
+    return { ticksize: selectedInterval, ticks };
+  }
+
+  /**
    * Builds x-axis ticks from the configured period and ticksize. The current
    * today period renders the full 00:00 -> 24:00 range so grid and labels stay
    * stable while the day progresses.
@@ -976,8 +1178,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   buildXAxisTicks(level) {
     const ONE_HOUR = 60 * 60 * 1000;
-    const ticksize = this.xTicksizeToHours(this.runtimeConfig.x_axis[`ticks_${level}`].ticksize);
     const range = this.getHistoryRange();
+    const ticksizeConfig = this.runtimeConfig.x_axis[`ticks_${level}`].ticksize;
+    const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoXAxisTicksize(level, range) : this.xTicksizeToHours(ticksizeConfig);
     const windowHours = (range.end.getTime() - range.start.getTime()) / ONE_HOUR;
     const intervalCount = Math.max(1, this.Graph.hours * this.Graph.points - 1);
     const intervalPerHour = this.Graph.points;
@@ -996,28 +1199,26 @@ export default class SparklineGraphTool extends BaseTool {
 
       const hour = (tickDate.getTime() - range.start.getTime()) / ONE_HOUR;
 
-      // eslint-disable-next-line no-continue
-      if (hour < 0 || tickDate > range.end) continue;
+      if (hour >= 0 && tickDate <= range.end) {
+        const tickIndex = hour * intervalPerHour;
+        const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
 
-      const tickIndex = hour * intervalPerHour;
-      const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
+        const tickDay = tickDate.toDateString();
+        const previousTickDay = previousTickDate?.toDateString();
 
-      const tickDay = tickDate.toDateString();
-      const previousTickDay = previousTickDate?.toDateString();
+        const label =
+          !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
-      const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
-      // const label = hour === 0 || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
-      // const label = hour % 24 === 0 ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+        ticks.push({
+          axis: 'x',
+          level,
+          value: hour,
+          x,
+          label,
+        });
 
-      ticks.push({
-        axis: 'x',
-        level,
-        value: hour,
-        x,
-        label,
-      });
-
-      previousTickDate = tickDate;
+        previousTickDate = tickDate;
+      }
     }
 
     return ticks;
@@ -1062,7 +1263,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} Y-axis ticks.
    */
   buildYAxisTicks(level) {
-    const ticksize = Number(this.runtimeConfig.y_axis[`ticks_${level}`].ticksize);
+    const ticksizeConfig = this.runtimeConfig.y_axis[`ticks_${level}`].ticksize;
+    const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoYAxisTicksize(level) : Number(ticksizeConfig);
     const min = this.Graph.min;
     const max = this.Graph.max;
     const graphMin = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, min)) : min;
