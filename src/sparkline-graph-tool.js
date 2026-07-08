@@ -708,12 +708,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {DOMPoint} Point in this tool SVG coordinate space.
    */
   mouseEventToPoint(e) {
-    const pointer = e.touches ? e.touches[0] : e;
-    const svgBox = this.elements.svg.getBoundingClientRect();
-    const p = this.elements.svg.createSVGPoint();
+    let p = this.elements.svg.createSVGPoint();
 
-    p.x = ((pointer.clientX - svgBox.left) / svgBox.width) * this.svg.width;
-    p.y = ((pointer.clientY - svgBox.top) / svgBox.height) * this.svg.height;
+    p.x = e.touches ? e.touches[0].clientX : e.clientX;
+    p.y = e.touches ? e.touches[0].clientY : e.clientY;
+    const ctm = this.elements.svg.getScreenCTM().inverse();
+    p = p.matrixTransform(ctm);
     return p;
   }
 
@@ -907,7 +907,6 @@ export default class SparklineGraphTool extends BaseTool {
 
     tooltip.style.left = `${touch.clientX - containerBox.left}px`;
     tooltip.style.top = `${touch.clientY - containerBox.top}px`;
-    console.log('updateTooltipPositionDom', tooltip.style.left, tooltip.style.top, touch.clientX, touch.clientY, containerBox.left, containerBox.top);
   }
 
   updateTooltipContentDom() {
@@ -1117,11 +1116,17 @@ export default class SparklineGraphTool extends BaseTool {
     console.log('[sparkline attach refs]', this.index, this.elements);
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
 
+    function Frame2() {
+      this.rid = null;
+      this.updateActivePointer(this.pointerEvent);
+    }
+
     function pointerMove(e) {
       e.preventDefault();
 
       if (this.dragging) {
-        this.updateActivePointer(e);
+        this.pointerEvent = e;
+        if (!this.rid) this.rid = window.requestAnimationFrame(Frame2.bind(this));
       }
     }
 
@@ -1156,6 +1161,7 @@ export default class SparklineGraphTool extends BaseTool {
       window.addEventListener('pointerup', pointerUp.bind(this), false);
 
       this.dragging = true;
+      this.pointerEvent = e;
       this.elements.containerRect = this.elements.container?.getBoundingClientRect();
       this.updateActivePointer(e);
       this.updateTooltipVisibilityDom(true);
@@ -1177,6 +1183,11 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.dragging = false;
       this.activeX = undefined;
+      this.pointerEvent = undefined;
+      if (this.rid) {
+        window.cancelAnimationFrame(this.rid);
+        this.rid = null;
+      }
 
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
