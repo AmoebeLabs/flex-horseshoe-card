@@ -905,8 +905,14 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!tooltip || !containerBox || touch?.clientX === undefined || touch?.clientY === undefined) return;
 
-    tooltip.style.left = `${touch.clientX - containerBox.left}px`;
-    tooltip.style.top = `${touch.clientY - containerBox.top}px`;
+    let left = touch.clientX - containerBox.left;
+    let top = touch.clientY - containerBox.top;
+    const bounds = this.elements.tooltipBounds;
+
+    left = Math.max(bounds.left, Math.min(left, bounds.right));
+    top = Math.max(bounds.top, Math.min(top, bounds.bottom));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
   }
 
   updateTooltipContentDom() {
@@ -1136,6 +1142,15 @@ export default class SparklineGraphTool extends BaseTool {
       if (!this.hovering) {
         this.hovering = true;
         this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        const svgBox = this.elements.svg.getBoundingClientRect();
+        const scaleX = svgBox.width / this.svg.width;
+        const scaleY = svgBox.height / this.svg.height;
+        this.elements.tooltipBounds = {
+          left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
+          top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+          right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+          bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+        };
       }
       this.updateActivePointer(e);
     }
@@ -1162,7 +1177,16 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.dragging = true;
       this.pointerEvent = e;
-      this.elements.containerRect = this.elements.container?.getBoundingClientRect();
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+      const svgBox = this.elements.svg.getBoundingClientRect();
+      const scaleX = svgBox.width / this.svg.width;
+      const scaleY = svgBox.height / this.svg.height;
+      this.elements.tooltipBounds = {
+        left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
+        top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+        right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+        bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+      };
       this.updateActivePointer(e);
       this.updateTooltipVisibilityDom(true);
       this.updateActiveIndicatorDom();
