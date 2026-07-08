@@ -708,11 +708,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {DOMPoint} Point in this tool SVG coordinate space.
    */
   mouseEventToPoint(e) {
-    let p = this.elements.svg.createSVGPoint();
-    p.x = e.touches ? e.touches[0].clientX : e.clientX;
-    p.y = e.touches ? e.touches[0].clientY : e.clientY;
-    const ctm = this.elements.svg.getScreenCTM().inverse();
-    p = p.matrixTransform(ctm);
+    const pointer = e.touches ? e.touches[0] : e;
+    const svgBox = this.elements.svg.getBoundingClientRect();
+    const p = this.elements.svg.createSVGPoint();
+
+    p.x = ((pointer.clientX - svgBox.left) / svgBox.width) * this.svg.width;
+    p.y = ((pointer.clientY - svgBox.top) / svgBox.height) * this.svg.height;
     return p;
   }
 
@@ -875,7 +876,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateActiveIndicatorDom() {
-    this.elements.activeIndicator = this.elements.activeIndicator || this.card.shadowRoot.querySelector('.sparkline-active-indicator');
     const activeIndicator = this.elements.activeIndicator;
 
     if (!activeIndicator) return;
@@ -891,7 +891,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateTooltipVisibilityDom(show) {
-    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
     const tooltip = this.elements.tooltip;
 
     if (!tooltip) return;
@@ -900,40 +899,32 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateTooltipPositionDom(e) {
-    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
-    this.elements.container = this.elements.container || this.card.shadowRoot.getElementById('container');
     const tooltip = this.elements.tooltip;
-    const containerBox = this.elements.containerRect || this.elements.container?.getBoundingClientRect();
+    const containerBox = this.elements.containerRect;
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0] ?? e;
 
     if (!tooltip || !containerBox || touch?.clientX === undefined || touch?.clientY === undefined) return;
 
     tooltip.style.left = `${touch.clientX - containerBox.left}px`;
     tooltip.style.top = `${touch.clientY - containerBox.top}px`;
+    console.log('updateTooltipPositionDom', tooltip.style.left, tooltip.style.top, touch.clientX, touch.clientY, containerBox.left, containerBox.top);
   }
 
   updateTooltipContentDom() {
-    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
     const tooltip = this.elements.tooltip;
 
     if (!tooltip) return;
 
-    const title = tooltip.querySelector('.sparkline-tooltip__title');
-    const rows = tooltip.querySelectorAll('.sparkline-tooltip__row');
+    const title = this.elements.tooltipTitle;
+    const rows = this.elements.tooltipRows;
 
-    if (title) title.textContent = this.tooltip.title ?? '';
-    if (rows[0]) {
-      rows[0].children[0].textContent = this.tooltip.min?.label ?? '';
-      rows[0].children[1].textContent = this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : '';
-    }
-    if (rows[1]) {
-      rows[1].children[0].textContent = this.tooltip.avg?.label ?? '';
-      rows[1].children[1].textContent = this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : '';
-    }
-    if (rows[2]) {
-      rows[2].children[0].textContent = this.tooltip.max?.label ?? '';
-      rows[2].children[1].textContent = this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : '';
-    }
+    title.textContent = this.tooltip.title ?? '';
+    rows[0].children[0].textContent = this.tooltip.min?.label ?? '';
+    rows[0].children[1].textContent = this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : '';
+    rows[1].children[0].textContent = this.tooltip.avg?.label ?? '';
+    rows[1].children[1].textContent = this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : '';
+    rows[2].children[0].textContent = this.tooltip.max?.label ?? '';
+    rows[2].children[1].textContent = this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : '';
   }
 
   updateActivePointer(e) {
@@ -1117,12 +1108,14 @@ export default class SparklineGraphTool extends BaseTool {
   attachPointerHandlers() {
     this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
     this.elements.container = this.card.shadowRoot.getElementById('container');
-    this.elements.activeIndicator = this.card.shadowRoot.querySelector('.sparkline-active-indicator');
-    this.elements.tooltip = this.card.shadowRoot.querySelector('.sparkline-tooltip');
+    this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
+    this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
+    this.elements.tooltipTitle = this.elements.tooltip.querySelector('.sparkline-tooltip__title');
+    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
-    console.log('[attachPointerHandlers - BEFORE ', this.elements);
+    console.log('[sparkline attach refs]', this.index, this.elements);
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
-    console.log('[attachPointerHandlers - AFTER ', this.elements);
 
     function pointerMove(e) {
       e.preventDefault();
@@ -1135,13 +1128,20 @@ export default class SparklineGraphTool extends BaseTool {
     function hoverMove(e) {
       if (this.dragging) return;
 
+      if (!this.hovering) {
+        this.hovering = true;
+        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+      }
       this.updateActivePointer(e);
     }
 
     function hoverLeave() {
       if (this.dragging) return;
 
+      this.hovering = false;
       this.activeX = undefined;
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
       this.updateActiveIndicatorDom();
     }
 
@@ -2067,7 +2067,7 @@ export default class SparklineGraphTool extends BaseTool {
     };
 
     return html`
-      <div class="sparkline-tooltip" style=${styleMap(styles)}>
+      <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
         <div class="sparkline-tooltip__title"></div>
         <div class="sparkline-tooltip__row"><span></span><span></span></div>
         <div class="sparkline-tooltip__row"><span></span><span></span></div>
@@ -2085,6 +2085,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderActiveIndicator() {
     return svg`
       <line
+        id="sparkline-active-indicator-${this.cardId}-${this.index}"
         class="sparkline-active-indicator"
         x1="0"
         y1="${this.Graph.drawArea.y}"
