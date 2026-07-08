@@ -606,6 +606,7 @@ class FlexHorseshoeCard extends LitElement {
       .sparkline-tooltip {
         position: absolute;
         z-index: 5;
+        pointer-events: none;
         display: inline-block;
         width: auto;
         max-width: calc(100% - 24px);
@@ -1934,7 +1935,7 @@ class FlexHorseshoeCard extends LitElement {
     super.updated?.(changedProperties);
 
     this.iconTools?.[0]?.injectSvgUrlIcons();
-    // this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }
   /** *****************************************************************************
    * _handleClick()

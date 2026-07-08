@@ -355,12 +355,14 @@ export default class SparklineGraphTool extends BaseTool {
     this.areaPath = undefined;
     this.stats = {};
     this.tooltip = {};
+    this.tooltipVisible = false;
     this.activePoint = undefined;
     this.activeX = undefined;
     this.dragging = false;
     this.elements = {};
     this.historyPromise = undefined;
     this.historyRefreshAt = 0;
+    this.binBoundaryTimer = undefined;
     this.runtimeYScale = undefined;
     this.runtimeConfig = this.config;
     this.runtimeConfig.svg = this.svg;
@@ -456,7 +458,17 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.updateGraphFromSeries();
+
+    if (this.tooltipVisible && this.activeX !== undefined) {
+      const pointIndex = this.getPointIndexFromX(this.activeX);
+
+      if (pointIndex !== undefined) {
+        this.updateTooltipFromPointIndex(pointIndex);
+      }
+    }
+
     this.fetchHistoryIfNeeded(entity);
+    this.scheduleBinBoundaryRefresh();
   }
 
   /**
@@ -494,6 +506,30 @@ export default class SparklineGraphTool extends BaseTool {
     if (last.last_changed !== current.last_changed) {
       this.historySeries.push(current);
     }
+  }
+
+  scheduleBinBoundaryRefresh() {
+    window.clearTimeout(this.binBoundaryTimer);
+
+    if (!this.entity) return;
+
+    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
+    const now = Date.now();
+    const delay = bucketMs - (now % bucketMs) + 10;
+
+    this.binBoundaryTimer = window.setTimeout(() => {
+      if (this.historySeries) {
+        this.addCurrentEntityToHistory(this.entity);
+        this.series = this.historySeries;
+      } else {
+        this.series = this.buildRealtimeSeries(this.entity);
+      }
+
+      this.updateGraphFromSeries();
+      this.fetchHistoryIfNeeded(this.entity);
+      this.card.requestUpdate();
+      this.scheduleBinBoundaryRefresh();
+    }, delay);
   }
 
   /**
@@ -873,8 +909,8 @@ export default class SparklineGraphTool extends BaseTool {
     const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
     const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
     const pointer = event?.touches ? event.touches[0] : event;
-    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : svgBox ? svgBox.left - containerBox.left + point[X] * scaleX : point[X];
-    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : svgBox ? svgBox.top - containerBox.top + point[Y] * scaleY : point[Y];
+    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + point[X] * scaleX : point[X];
+    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + point[Y] * scaleY : point[Y];
 
     this.tooltip = {
       entity: this.entity_index,
@@ -893,6 +929,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   clearTooltip() {
     this.tooltip = {};
+    this.tooltipVisible = false;
   }
 
   updateActiveIndicatorDom() {
@@ -911,6 +948,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateTooltipVisibilityDom(show) {
+    this.tooltipVisible = show;
     const tooltip = this.elements.tooltip;
 
     if (!tooltip) return;
@@ -931,6 +969,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     left = Math.max(bounds.left, Math.min(left, bounds.right));
     top = Math.max(bounds.top, Math.min(top, bounds.bottom));
+    this.tooltip.x = left;
+    this.tooltip.y = top;
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
   }
@@ -1139,7 +1179,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
-    console.log('[sparkline attach refs]', this.index, this.elements);
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
 
     function Frame2() {
@@ -1165,13 +1204,20 @@ export default class SparklineGraphTool extends BaseTool {
         const svgBox = this.elements.svg.getBoundingClientRect();
         const scaleX = svgBox.width / this.svg.width;
         const scaleY = svgBox.height / this.svg.height;
+        const hoverPaddingX = this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
         this.elements.tooltipBounds = {
-          left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
+          left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
           top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
-          right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+          right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
           bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
         };
       }
+      this.updateActivePointer(e);
+    }
+
+    function containerHoverMove(e) {
+      if (this.dragging || !this.hovering) return;
+
       this.updateActivePointer(e);
     }
 
@@ -1247,7 +1293,8 @@ export default class SparklineGraphTool extends BaseTool {
     // Desktop hover is not part of the slider drag behavior. Keep it local to
     // the SVG so mouse users can inspect the graph without clicking.
     this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
-    this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+    this.elements.container.addEventListener('mousemove', containerHoverMove.bind(this), false);
+    this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
     this.elements.svg.dataset.pointerReady = 'true';
   }
 
@@ -2112,20 +2159,20 @@ export default class SparklineGraphTool extends BaseTool {
   renderTooltip() {
     const tooltipStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.tooltip?.styles);
     const styles = {
-      left: '0px',
-      top: '0px',
+      left: this.tooltip.x !== undefined ? `${this.tooltip.x}px` : '0px',
+      top: this.tooltip.y !== undefined ? `${this.tooltip.y}px` : '0px',
       transform: 'translate(-50%, calc(-100% - 6px))',
       'font-size': tooltipStyles['font-size'] ?? '0.5em',
       'max-width': 'calc(100% - 24px)',
-      display: 'none',
+      display: this.tooltipVisible ? 'block' : 'none',
     };
 
     return html`
       <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
-        <div class="sparkline-tooltip__title"></div>
-        <div class="sparkline-tooltip__row"><span></span><span></span></div>
-        <div class="sparkline-tooltip__row"><span></span><span></span></div>
-        <div class="sparkline-tooltip__row"><span></span><span></span></div>
+        <div class="sparkline-tooltip__title">${this.tooltip.title ?? ''}</div>
+        <div class="sparkline-tooltip__row"><span>${this.tooltip.min?.label ?? ''}</span><span>${this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : ''}</span></div>
+        <div class="sparkline-tooltip__row"><span>${this.tooltip.avg?.label ?? ''}</span><span>${this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : ''}</span></div>
+        <div class="sparkline-tooltip__row"><span>${this.tooltip.max?.label ?? ''}</span><span>${this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : ''}</span></div>
       </div>
     `;
   }
@@ -2141,11 +2188,11 @@ export default class SparklineGraphTool extends BaseTool {
       <line
         id="sparkline-active-indicator-${this.cardId}-${this.index}"
         class="sparkline-active-indicator"
-        x1="0"
+        x1="${this.activeX ?? 0}"
         y1="${this.Graph.drawArea.y}"
-        x2="0"
+        x2="${this.activeX ?? 0}"
         y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
-        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;visibility:hidden;pointer-events:none;"
+        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;visibility:${this.activeX === undefined ? 'hidden' : 'visible'};pointer-events:none;"
       ></line>
     `;
   }
