@@ -1,11 +1,12 @@
 /* eslint-disable no-useless-concat */
-import { svg } from 'lit';
+import { html, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import BaseTool from './base-tool.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
 import SparklineGraph, { X, Y, V } from './sparkline-graph.js';
+import StateTool from './state-tool.js';
 import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
 import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
 import { FONT_SIZE } from './const.js';
@@ -180,6 +181,11 @@ export default class SparklineGraphTool extends BaseTool {
           colors: [],
         },
         colorstops_transition: 'smooth',
+        tooltip: {
+          styles: {
+            'font-size': '0.9em',
+          },
+        },
         show: {
           chart_type: 'line',
           line: true,
@@ -710,6 +716,16 @@ export default class SparklineGraphTool extends BaseTool {
     return p;
   }
 
+  mouseEventToPointV1(e) {
+    let p = this.elements.svg.createSVGPoint();
+    const touch = e.touches?.[0] ?? e.changedTouches?.[0] ?? e;
+    p.x = touch.clientX;
+    p.y = touch.clientY;
+    const ctm = this.elements.svg.getScreenCTM().inverse();
+    p = p.matrixTransform(ctm);
+    return p;
+  }
+
   /**
    * Converts an SVG point into the active graph x position. Pointer movement can
    * go outside the graph; only the calculated graph x is clamped.
@@ -755,32 +771,378 @@ export default class SparklineGraphTool extends BaseTool {
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Browser interaction event.
    */
+  getPointIndexFromX(x) {
+    const coords = this.Graph.coords;
+    if (!coords || coords.length === 0) return undefined;
+
+    let snappedIndex = 0;
+    let snappedDistance = Math.abs(x - coords[0][0]);
+
+    for (let i = 1; i < coords.length; i += 1) {
+      const currentDistance = Math.abs(x - coords[i][0]);
+
+      if (currentDistance < snappedDistance) {
+        snappedIndex = i;
+        snappedDistance = currentDistance;
+      }
+    }
+
+    return snappedIndex;
+  }
+
+  getTooltipLabel(stat) {
+    const localized = this.card._hass.localize(`ui.panel.developer-tools.statistics.${stat === 'avg' ? 'mean' : stat}`);
+
+    if (!localized) return stat;
+
+    return localized.charAt(0).toUpperCase() + localized.slice(1);
+  }
+
+  formatTooltipStat(stat, rawValue) {
+    const sparklineId = this.config.id;
+    const entityId = `fhs_sparkline.${sparklineId}_${stat}`;
+    const entity = this.card.entities.find((item) => item?.entity_id === entityId) ?? this.card.entities[this.card.config.entities.length + this.index * 5 + this.getSparklineStatIndex(stat)];
+    const entityConfig = this.card.resolvedEntityConfigs.find((item) => item?.entity === entityId) ?? this.card.resolvedEntityConfigs[this.card.config.entities.length + this.index * 5 + this.getSparklineStatIndex(stat)];
+
+    if (!entity || !entityConfig) {
+      return { label: this.getTooltipLabel(stat), value: rawValue, uom: '' };
+    }
+
+    const formatter = Object.create(StateTool.prototype);
+    formatter.entity = {
+      ...entity,
+      state: rawValue,
+    };
+    formatter.entityConfig = entityConfig;
+    formatter.card = this.card;
+    formatter.state = '';
+    formatter.uom = '';
+    formatter.buildStateAndUom();
+
+    return {
+      label: this.getTooltipLabel(stat),
+      value: formatter.state,
+      uom: formatter.uom,
+    };
+  }
+
+  updateTooltipFromPointIndex(pointIndex, event) {
+    const bucket = this.Graph.bucketMeta[pointIndex];
+    const point = this.Graph.coords[pointIndex];
+    const locale = this.card._hass.locale;
+    const config = this.card._hass.config;
+    const svgBox = this.elements.svg?.getBoundingClientRect();
+    const containerBox = this.card.shadowRoot.getElementById('container')?.getBoundingClientRect();
+    const pointBox = event?.currentTarget?.getBoundingClientRect();
+
+    if (!bucket || !point || !containerBox) {
+      this.tooltip = {};
+      return;
+    }
+
+    const titleDate = bucket.end;
+    const title =
+      titleDate.getHours() === 0 && titleDate.getMinutes() === 0 && titleDate.getSeconds() === 0 && titleDate.getMilliseconds() === 0
+        ? formatDateVeryShort(titleDate, locale, config)
+        : formatTime(titleDate, locale, config);
+
+    const min = this.formatTooltipStat('min', bucket.min);
+    const avg = this.formatTooltipStat('avg', bucket.avg);
+    const max = this.formatTooltipStat('max', bucket.max);
+    const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
+    const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
+    const pointer = event?.touches ? event.touches[0] : event;
+    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : svgBox ? svgBox.left - containerBox.left + point[X] * scaleX : point[X];
+    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : svgBox ? svgBox.top - containerBox.top + point[Y] * scaleY : point[Y];
+
+    this.tooltip = {
+      entity: this.entity_index,
+      index: pointIndex,
+      x: centerX,
+      y: centerY,
+      title,
+      min,
+      avg,
+      max,
+      count: bucket.count,
+      containerWidth: containerBox.width,
+      containerHeight: containerBox.height,
+    };
+  }
+
+  clearTooltip() {
+    this.tooltip = {};
+  }
+
+  updateActiveIndicatorDom() {
+    this.elements.activeIndicator = this.elements.activeIndicator || this.card.shadowRoot.querySelector('.sparkline-active-indicator');
+    const activeIndicator = this.elements.activeIndicator;
+
+    if (!activeIndicator) return;
+
+    if (this.activeX === undefined) {
+      activeIndicator.style.visibility = 'hidden';
+      return;
+    }
+
+    activeIndicator.setAttribute('x1', `${this.activeX}`);
+    activeIndicator.setAttribute('x2', `${this.activeX}`);
+    activeIndicator.style.visibility = 'visible';
+  }
+
+  updateTooltipVisibilityDom(show) {
+    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
+    const tooltip = this.elements.tooltip;
+
+    if (!tooltip) return;
+
+    tooltip.style.display = show ? 'block' : 'none';
+  }
+
+  updateTooltipPositionDom(e) {
+    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
+    this.elements.container = this.elements.container || this.card.shadowRoot.getElementById('container');
+    const tooltip = this.elements.tooltip;
+    const containerBox = this.elements.containerRect || this.elements.container?.getBoundingClientRect();
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0] ?? e;
+
+    if (!tooltip || !containerBox || touch?.clientX === undefined || touch?.clientY === undefined) return;
+
+    tooltip.style.left = `${touch.clientX - containerBox.left}px`;
+    tooltip.style.top = `${touch.clientY - containerBox.top}px`;
+  }
+
+  updateTooltipContentDom() {
+    this.elements.tooltip = this.elements.tooltip || this.card.shadowRoot.querySelector('.sparkline-tooltip');
+    const tooltip = this.elements.tooltip;
+
+    if (!tooltip) return;
+
+    const title = tooltip.querySelector('.sparkline-tooltip__title');
+    const rows = tooltip.querySelectorAll('.sparkline-tooltip__row');
+
+    if (title) title.textContent = this.tooltip.title ?? '';
+    if (rows[0]) {
+      rows[0].children[0].textContent = this.tooltip.min?.label ?? '';
+      rows[0].children[1].textContent = this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : '';
+    }
+    if (rows[1]) {
+      rows[1].children[0].textContent = this.tooltip.avg?.label ?? '';
+      rows[1].children[1].textContent = this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : '';
+    }
+    if (rows[2]) {
+      rows[2].children[0].textContent = this.tooltip.max?.label ?? '';
+      rows[2].children[1].textContent = this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : '';
+    }
+  }
+
   updateActivePointer(e) {
     const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
     this.activeX = this.snapPointerXToGraphPoint(pointerX);
+    const pointIndex = this.getPointIndexFromX(this.activeX);
+    const previousIndex = this.tooltip.index;
+
+    if (pointIndex === undefined) {
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      return;
+    }
+
+    if (pointIndex !== previousIndex) {
+      this.updateTooltipFromPointIndex(pointIndex, e);
+      this.updateTooltipContentDom();
+    }
+
+    this.updateActiveIndicatorDom();
+    this.updateTooltipPositionDom(e);
+    this.updateTooltipVisibilityDom(true);
+  }
+
+  updateTooltipFromPointer(e) {
+    const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
+    const pointIndex = this.getPointIndexFromX(pointerX);
+
+    if (pointIndex === undefined) {
+      this.clearTooltip();
+      return;
+    }
+
+    this.updateTooltipFromPointIndex(pointIndex, e);
   }
 
   /**
    * Attaches the proven slider pointer handlers to the sparkline SVG after Lit
    * has rendered the element.
    */
-  attachPointerHandlers() {
-    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
 
-    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+  firstUpdatedFromSliderExample(changedProperties) {
+    // const thisValue = this;
+    this.labelValue = this._stateValue;
+
+    // function Frame() {
+    //   thisValue.rid = window.requestAnimationFrame(Frame);
+    //   thisValue.updateValue(thisValue, thisValue.m);
+    //   thisValue.updateThumb(thisValue, thisValue.m);
+    //   thisValue.updateActiveTrack(thisValue, thisValue.m);
+    // }
 
     function Frame2() {
-      this.rid = window.requestAnimationFrame(Frame2.bind(this));
-      this.card.requestUpdate();
+      this.rid = window.requestAnimationFrame(Frame2);
+      this.updateValue(this, this.m);
+      this.updateThumb(this, this.m);
+      this.updateActiveTrack(this, this.m);
     }
+
+    function pointerMove(e) {
+      let scaleValue;
+
+      e.preventDefault();
+
+      if (this.dragging) {
+        this.m = this.mouseEventToPoint(e);
+
+        switch (this.config.position.orientation) {
+          case 'horizontal':
+            scaleValue = this.svgCoordinateToSliderValue(this, this.m);
+            this.m.x = this.valueToSvg(this, scaleValue);
+            this.m.x = Math.max(this.svg.scale.min, Math.min(this.m.x, this.svg.scale.max));
+            this.m.x = Math.round(this.m.x / this.svg.scale.step) * this.svg.scale.step;
+            break;
+
+          case 'vertical':
+            scaleValue = this.svgCoordinateToSliderValue(this, this.m);
+            this.m.y = this.valueToSvg(this, scaleValue);
+            this.m.y = Math.round(this.m.y / this.svg.scale.step) * this.svg.scale.step;
+            break;
+
+          default:
+        }
+      }
+    }
+
+    if (this.dev.debug) console.log('slider - firstUpdated');
+    this.elements = {};
+    this.elements.svg = this._card.shadowRoot.getElementById('rangeslider-'.concat(this.toolId));
+    this.elements.capture = this.elements.svg.querySelector('#capture');
+    this.elements.track = this.elements.svg.querySelector('#rs-track');
+    this.elements.activeTrack = this.elements.svg.querySelector('#active-track');
+    this.elements.thumbGroup = this.elements.svg.querySelector('#rs-thumb-group');
+    this.elements.thumb = this.elements.svg.querySelector('#rs-thumb');
+    this.elements.label = this.elements.svg.querySelector('#rs-label tspan');
+
+    if (this.dev.debug) console.log('slider - firstUpdated svg = ', this.elements.svg, 'path=', this.elements.path, 'thumb=', this.elements.thumb, 'label=', this.elements.label, 'text=', this.elements.text);
+
+    function pointerDown(e) {
+      e.preventDefault();
+
+      // @NTS: Keep this comment for later!!
+      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      // @NTS: Keep this comment for later!!
+      // Below lines prevent slider working on Safari...
+      //
+      // window.addEventListener('mousemove', pointerMove.bind(this), false);
+      // window.addEventListener('touchmove', pointerMove.bind(this), false);
+      // window.addEventListener('mouseup', pointerUp.bind(this), false);
+      // window.addEventListener('touchend', pointerUp.bind(this), false);
+
+      const mousePos = this.mouseEventToPoint(e);
+      const thumbPos = this.svg.thumb.x1 + this.svg.thumb.cx;
+      if (mousePos.x > thumbPos - 10 && mousePos.x < thumbPos + this.svg.thumb.width + 10) {
+        // fireEvent(window, 'haptic', 'heavy');
+      } else {
+        // fireEvent(window, 'haptic', 'error');
+        return;
+      }
+
+      // User is dragging the thumb of the slider!
+      this.dragging = true;
+
+      // Check for drag_action. If none specified, or update_interval = 0, don't update while dragging...
+
+      if (this.config.user_actions?.drag_action && this.config.user_actions?.drag_action.update_interval) {
+        if (this.config.user_actions.drag_action.update_interval > 0) {
+          this.timeOutId = setTimeout(() => this.callDragService(), this.config.user_actions.drag_action.update_interval);
+        } else {
+          this.timeOutId = null;
+        }
+      }
+      this.m = this.mouseEventToPoint(e);
+
+      if (this.config.position.orientation === 'horizontal') {
+        this.m.x = Math.round(this.m.x / this.svg.scale.step) * this.svg.scale.step;
+      } else {
+        this.m.y = Math.round(this.m.y / this.svg.scale.step) * this.svg.scale.step;
+      }
+      if (this.dev.debug) console.log('pointerDOWN', Math.round(this.m.x * 100) / 100);
+    }
+
+    function pointerUp(e) {
+      e.preventDefault();
+
+      // @NTS: Keep this comment for later!!
+      // Safari: Fixes unable to grab pointer
+      window.removeEventListener('pointermove', pointerMove.bind(this), false);
+      window.removeEventListener('pointerup', pointerUp.bind(this), false);
+
+      window.removeEventListener('mousemove', pointerMove.bind(this), false);
+      window.removeEventListener('touchmove', pointerMove.bind(this), false);
+      window.removeEventListener('mouseup', pointerUp.bind(this), false);
+      window.removeEventListener('touchend', pointerUp.bind(this), false);
+
+      if (!this.dragging) return;
+
+      this.dragging = false;
+      clearTimeout(this.timeOutId);
+      this.target = 0;
+      if (this.dev.debug) console.log('pointerUP');
+      this.callTapService();
+    }
+
+    // @NTS: Keep this comment for later!!
+    // For things to work in Safari, we need separate touch and mouse down handlers...
+    // DON't ask WHY! The pointerdown method prevents listening on window events later on.
+    // ie, we can't move our finger
+
+    // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
+
+    this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
+    this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
+  }
+
+  attachPointerHandlers() {
+    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    this.elements.container = this.card.shadowRoot.getElementById('container');
+    this.elements.activeIndicator = this.card.shadowRoot.querySelector('.sparkline-active-indicator');
+    this.elements.tooltip = this.card.shadowRoot.querySelector('.sparkline-tooltip');
+
+    console.log('[attachPointerHandlers - BEFORE ', this.elements);
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+    console.log('[attachPointerHandlers - AFTER ', this.elements);
 
     function pointerMove(e) {
       e.preventDefault();
 
       if (this.dragging) {
         this.updateActivePointer(e);
-        Frame2.call(this);
       }
+    }
+
+    function hoverMove(e) {
+      if (this.dragging) return;
+
+      this.updateActivePointer(e);
+    }
+
+    function hoverLeave() {
+      if (this.dragging) return;
+
+      this.activeX = undefined;
+      this.updateActiveIndicatorDom();
     }
 
     function pointerDown(e) {
@@ -794,8 +1156,10 @@ export default class SparklineGraphTool extends BaseTool {
       window.addEventListener('pointerup', pointerUp.bind(this), false);
 
       this.dragging = true;
+      this.elements.containerRect = this.elements.container?.getBoundingClientRect();
       this.updateActivePointer(e);
-      Frame2.call(this);
+      this.updateTooltipVisibilityDom(true);
+      this.updateActiveIndicatorDom();
     }
 
     function pointerUp(e) {
@@ -814,26 +1178,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.dragging = false;
       this.activeX = undefined;
 
-      if (this.rid) {
-        window.cancelAnimationFrame(this.rid);
-        this.rid = null;
-      }
-
-      this.card.requestUpdate();
-    }
-
-    function hoverMove(e) {
-      if (this.dragging) return;
-
-      this.updateActivePointer(e);
-      this.card.requestUpdate();
-    }
-
-    function hoverLeave() {
-      if (this.dragging) return;
-
-      this.activeX = undefined;
-      this.card.requestUpdate();
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      this.elements.containerRect = undefined;
     }
 
     // For things to work in Safari, keep separate touch and mouse down handlers.
@@ -845,6 +1193,97 @@ export default class SparklineGraphTool extends BaseTool {
     // the SVG so mouse users can inspect the graph without clicking.
     this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
     this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+    this.elements.svg.dataset.pointerReady = 'true';
+  }
+
+  attachPointerHandlersV1() {
+    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    this.elements.container = this.card.shadowRoot.getElementById('container');
+    this.elements.activeIndicator = this.card.shadowRoot.querySelector('.sparkline-active-indicator');
+    this.elements.tooltip = this.card.shadowRoot.querySelector('.sparkline-tooltip');
+
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+
+    this._pointerMoveHandler =
+      this._pointerMoveHandler ||
+      ((e) => {
+        e.preventDefault();
+
+        if (this.dragging) {
+          this.updateActivePointer(e);
+        }
+      });
+
+    this._pointerDownHandler =
+      this._pointerDownHandler ||
+      ((e) => {
+        e.preventDefault();
+
+        if (e.type === 'touchstart') {
+          this.elements.containerRect = this.elements.container?.getBoundingClientRect();
+          window.addEventListener('touchmove', this._pointerMoveHandler, { passive: false });
+          window.addEventListener('touchend', this._pointerUpHandler, { passive: false });
+          window.addEventListener('touchcancel', this._pointerUpHandler, { passive: false });
+        } else {
+          window.addEventListener('mousemove', this._pointerMoveHandler, false);
+          window.addEventListener('mouseup', this._pointerUpHandler, false);
+        }
+
+        this.dragging = true;
+        this.updateActivePointer(e);
+      });
+
+    this._pointerUpHandler =
+      this._pointerUpHandler ||
+      ((e) => {
+        e.preventDefault();
+
+        window.removeEventListener('pointermove', this._pointerMoveHandler, false);
+        window.removeEventListener('pointerup', this._pointerUpHandler, false);
+        window.removeEventListener('mousemove', this._pointerMoveHandler, false);
+        window.removeEventListener('mouseup', this._pointerUpHandler, false);
+        window.removeEventListener('touchmove', this._pointerMoveHandler, false);
+        window.removeEventListener('touchend', this._pointerUpHandler, false);
+        window.removeEventListener('touchcancel', this._pointerUpHandler, false);
+
+        if (!this.dragging) return;
+
+        this.dragging = false;
+        this.activeX = undefined;
+        this.clearTooltip();
+        this.updateTooltipVisibilityDom(false);
+        this.updateActiveIndicatorDom();
+        this.elements.containerRect = undefined;
+      });
+
+    this._hoverMoveHandler =
+      this._hoverMoveHandler ||
+      ((e) => {
+        if (this.dragging) return;
+
+        this.updateActivePointer(e);
+      });
+
+    this._hoverLeaveHandler =
+      this._hoverLeaveHandler ||
+      (() => {
+        if (this.dragging) return;
+
+        this.activeX = undefined;
+        this.clearTooltip();
+        this.updateTooltipVisibilityDom(false);
+        this.updateActiveIndicatorDom();
+      });
+
+    // Keep separate touch and mouse starters. The move/up listeners are bound on
+    // window so the pointer can leave the SVG without breaking tracking.
+    this.elements.svg.addEventListener('touchstart', this._pointerDownHandler, { passive: false });
+    this.elements.svg.addEventListener('mousedown', this._pointerDownHandler, false);
+
+    // Desktop hover is not part of the slider drag behavior. Keep it local to
+    // the SVG so mouse users can inspect the graph without clicking.
+    this.elements.svg.addEventListener('mousemove', this._hoverMoveHandler, false);
+    this.elements.svg.addEventListener('mouseleave', this._hoverLeaveHandler, false);
     this.elements.svg.dataset.pointerReady = 'true';
   }
 
@@ -1194,9 +1633,10 @@ export default class SparklineGraphTool extends BaseTool {
         const previousTickDay = previousTickDate?.toDateString();
 
         const isMidnight = tickDate.getHours() === 0 && tickDate.getMinutes() === 0 && tickDate.getSeconds() === 0 && tickDate.getMilliseconds() === 0;
-        const label = isMidnight || (previousTickDate && tickDay !== previousTickDay)
-          ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
-          : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+        const label =
+          isMidnight || (previousTickDate && tickDay !== previousTickDay)
+            ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
+            : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
         ticks.push({
           axis: 'x',
@@ -1561,8 +2001,8 @@ export default class SparklineGraphTool extends BaseTool {
       stroke=${color}
       fill=${color}
       cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
-      @mouseover=${() => this.setTooltip(i, point[3], point[V])}
-      @mouseout=${() => (this.tooltip = {})}
+      @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
+      @mouseout=${() => this.clearTooltip()}
     />
   `;
   }
@@ -1581,18 +2021,10 @@ export default class SparklineGraphTool extends BaseTool {
       stroke=${color}
       fill=${color}
       cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
-      @mouseover=${() => this.setTooltip(i, point[3], point[V])}
-      @mouseout=${() => (this.tooltip = {})}
+      @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
+      @mouseout=${() => this.clearTooltip()}
     />
   `;
-  }
-
-  setTooltip(entityIndex, pointIndex, value) {
-    this.tooltip = {
-      entity: entityIndex,
-      index: pointIndex,
-      value,
-    };
   }
 
   renderSvgPoints(points, i) {
@@ -1623,6 +2055,27 @@ export default class SparklineGraphTool extends BaseTool {
     return this.renderSvgPoints(points, 0);
   }
 
+  renderTooltip() {
+    const tooltipStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.tooltip?.styles);
+    const styles = {
+      left: '0px',
+      top: '0px',
+      transform: 'translate(-50%, calc(-100% - 6px))',
+      'font-size': tooltipStyles['font-size'] ?? '0.5em',
+      'max-width': 'calc(100% - 24px)',
+      display: 'none',
+    };
+
+    return html`
+      <div class="sparkline-tooltip" style=${styleMap(styles)}>
+        <div class="sparkline-tooltip__title"></div>
+        <div class="sparkline-tooltip__row"><span></span><span></span></div>
+        <div class="sparkline-tooltip__row"><span></span><span></span></div>
+        <div class="sparkline-tooltip__row"><span></span><span></span></div>
+      </div>
+    `;
+  }
+
   /**
    * Renders a minimal active indicator. The later snake uses the same pointer
    * state, but must be added through SparklineGraph segment-path support.
@@ -1630,16 +2083,27 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
-    if (this.activeX === undefined) return '';
-
     return svg`
       <line
         class="sparkline-active-indicator"
-        x1="${this.activeX}"
+        x1="0"
         y1="${this.Graph.drawArea.y}"
-        x2="${this.activeX}"
+        x2="0"
         y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
-        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;pointer-events:none;"
+        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;visibility:hidden;pointer-events:none;"
+      ></line>
+    `;
+  }
+
+  renderActiveIndicatorV1() {
+    return svg`
+      <line
+        class="sparkline-active-indicator"
+        x1="0"
+        y1="${this.Graph.drawArea.y}"
+        x2="0"
+        y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
+        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0;pointer-events:none;"
       ></line>
     `;
   }

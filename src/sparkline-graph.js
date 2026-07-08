@@ -59,6 +59,7 @@ export default class SparklineGraph {
 
     this._history = undefined;
     this.coords = [];
+    this.bucketMeta = [];
     this.width = width;
     this.height = height;
     this.margin = margin;
@@ -184,6 +185,43 @@ export default class SparklineGraph {
     }
     this.min = Math.min(...this.coords.map((item) => Number(item[V])));
     this.max = Math.max(...this.coords.map((item) => Number(item[V])));
+
+    const bucketMs = ONE_HOUR / this.points;
+    const bucketStart = this._endTime.getTime() - this.hours * ONE_HOUR;
+    this.bucketMeta = [];
+    for (let i = 0; i < histGroups.length; i += 1) {
+      const bucket = histGroups[i];
+      const point = this.coords[i];
+      const start = new Date(bucketStart + i * bucketMs);
+      const end = new Date(start.getTime() + bucketMs);
+      const items = bucket ? bucket.filter(Boolean) : [];
+
+      if (items.length === 0) {
+        this.bucketMeta[i] = {
+          index: i,
+          start,
+          end,
+          value: point ? point[V] : undefined,
+          min: undefined,
+          avg: undefined,
+          max: undefined,
+          count: 0,
+        };
+      } else {
+        const values = items.map((item) => Number(item.state));
+        const sum = values.reduce((acc, value) => acc + value, 0);
+        this.bucketMeta[i] = {
+          index: i,
+          start,
+          end,
+          value: point ? point[V] : undefined,
+          min: Math.min(...values),
+          avg: sum / values.length,
+          max: Math.max(...values),
+          count: values.length,
+        };
+      }
+    }
 
     // Check for line and area for minmax calculations
     if (['line', 'area'].includes(this.config.sparkline.show.chart_type) && (this.config.sparkline.line?.show_minmax === true || this.config.sparkline.area?.show_minmax === true)) {

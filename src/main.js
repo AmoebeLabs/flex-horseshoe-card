@@ -597,6 +597,49 @@ class FlexHorseshoeCard extends LitElement {
         pointer-events: none;
       }
 
+      .sparkline-tooltip-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .sparkline-tooltip {
+        position: absolute;
+        z-index: 5;
+        display: inline-block;
+        width: auto;
+        max-width: calc(100% - 24px);
+        padding: 0.2em 0.3em;
+        border-radius: 0.3em;
+        background: var(--card-background-color, var(--ha-card-background, rgba(32, 32, 32, 0.94)));
+        color: var(--primary-text-color);
+        box-shadow: 0 0.35em 0.9em rgba(0, 0, 0, 0.22);
+        border: 1px solid var(--divider-color);
+        font-size: var(--sparkline-tooltip-font-size, 0.5em);
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        line-height: 1.15;
+        transform: translate(-50%, -100%);
+      }
+
+      .sparkline-tooltip__title {
+        font-weight: 600;
+        margin-bottom: 0.22em;
+        white-space: nowrap;
+      }
+
+      .sparkline-tooltip__row {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 0.6em;
+        align-items: baseline;
+        white-space: nowrap;
+      }
+
+      .sparkline-tooltip__row + .sparkline-tooltip__row {
+        margin-top: 0.08em;
+      }
+
       .fhs-child-card {
         position: absolute;
         pointer-events: auto;
@@ -1708,7 +1751,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">${this._renderSvg()} ${this.childCards.render()}</div>
+        <div class="container" id="container">${this._renderSvg()} ${this._renderSparklineTooltips()} ${this.childCards.render()}</div>
       </ha-card>
     `;
   }
@@ -1857,6 +1900,10 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
+  _renderSparklineTooltips() {
+    return html` <div class="sparkline-tooltip-layer">${this.sparklineGraphTools?.map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
+  }
+
   /** *****************************************************************************
    * _getGroupScaleTransform()
    *
@@ -1877,11 +1924,17 @@ class FlexHorseshoeCard extends LitElement {
    *
    * @param {Map} changedProperties - Lit changed properties map.
    */
+  firstUpdated(changedProperties) {
+    super.firstUpdated?.(changedProperties);
+
+    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+  }
+
   updated(changedProperties) {
     super.updated?.(changedProperties);
 
     this.iconTools?.[0]?.injectSvgUrlIcons();
-    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+    // this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }
   /** *****************************************************************************
    * _handleClick()
