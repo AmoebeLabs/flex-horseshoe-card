@@ -459,12 +459,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.updateGraphFromSeries();
 
-    if (this.tooltipVisible && this.activeX !== undefined) {
-      const pointIndex = this.getPointIndexFromX(this.activeX);
-
-      if (pointIndex !== undefined) {
-        this.updateTooltipFromPointIndex(pointIndex);
-      }
+    if (this.tooltipVisible && this.pointerEvent) {
+      this.updateActivePointer(this.pointerEvent);
     }
 
     this.fetchHistoryIfNeeded(entity);
@@ -526,6 +522,9 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       this.updateGraphFromSeries();
+      if (this.tooltipVisible && this.pointerEvent) {
+        this.updateActivePointer(this.pointerEvent);
+      }
       this.fetchHistoryIfNeeded(this.entity);
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
@@ -993,6 +992,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateActivePointer(e) {
+    this.pointerEvent = e;
     const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
     this.activeX = this.snapPointerXToGraphPoint(pointerX);
     const pointIndex = this.getPointIndexFromX(this.activeX);
@@ -1005,10 +1005,8 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    if (pointIndex !== previousIndex) {
-      this.updateTooltipFromPointIndex(pointIndex, e);
-      this.updateTooltipContentDom();
-    }
+    this.updateTooltipFromPointIndex(pointIndex, e);
+    this.updateTooltipContentDom();
 
     this.updateActiveIndicatorDom();
     this.updateTooltipPositionDom(e);
@@ -1225,6 +1223,7 @@ export default class SparklineGraphTool extends BaseTool {
       if (this.dragging) return;
 
       this.hovering = false;
+      this.pointerEvent = undefined;
       this.activeX = undefined;
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
