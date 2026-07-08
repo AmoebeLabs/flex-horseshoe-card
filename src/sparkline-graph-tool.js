@@ -449,6 +449,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.graphConfig = this.buildGraphConfig(this.runtimeConfig);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
     if (this.historySeries) {
+      this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
     } else {
       this.series = this.buildRealtimeSeries(entity);
@@ -467,14 +468,32 @@ export default class SparklineGraphTool extends BaseTool {
    */
   buildRealtimeSeries(entity) {
     const value = this.getEntityNumericState(entity);
+    const now = new Date().toISOString();
 
     return [
       {
         ...entity,
         state: value,
         haState: entity.state,
+        last_changed: now,
+        last_updated: now,
       },
     ];
+  }
+
+  /**
+   * Adds the current Home Assistant state as a normal history row. The reducer
+   * then processes fetched and live samples through the same bucket path.
+   *
+   * @param {object} entity - Current HA state object.
+   */
+  addCurrentEntityToHistory(entity) {
+    const current = this.buildRealtimeSeries(entity)[0];
+    const last = this.historySeries[this.historySeries.length - 1];
+
+    if (last.last_changed !== current.last_changed) {
+      this.historySeries.push(current);
+    }
   }
 
   /**
@@ -565,6 +584,7 @@ export default class SparklineGraphTool extends BaseTool {
       .callApi('GET', path)
       .then((history) => {
         this.historySeries = this.buildHistorySeries(history[0], entity, range.end);
+        this.addCurrentEntityToHistory(entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
@@ -841,7 +861,7 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    const titleDate = bucket.end;
+    const titleDate = bucket.start;
     const title =
       titleDate.getHours() === 0 && titleDate.getMinutes() === 0 && titleDate.getSeconds() === 0 && titleDate.getMilliseconds() === 0
         ? formatDateVeryShort(titleDate, locale, config)
@@ -1637,52 +1657,53 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {string} level - major or minor.
    * @returns {Array<object>} X-axis ticks.
    */
+  /**
+   * Builds x-axis ticks from the graph bucket starts and graph coordinates.
+   * Grid, tickmarks and labels must use the same x values as the rendered
+   * graph points. Therefore this maps each tick time to a bucket index and
+   * reads x from Graph.coords instead of recalculating chart geometry here.
+   *
+   * @param {string} level - major or minor.
+   * @returns {Array<object>} X-axis ticks.
+   */
   buildXAxisTicks(level) {
     const ONE_HOUR = 60 * 60 * 1000;
-    const range = this.getHistoryRange();
+    const bucketMeta = this.Graph.bucketMeta;
+    const firstBucket = bucketMeta[0];
+    const lastBucket = bucketMeta[bucketMeta.length - 1];
+    const range = { start: firstBucket.start, end: lastBucket.start };
     const ticksizeConfig = this.runtimeConfig.x_axis[`ticks_${level}`].ticksize;
     const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoXAxisTicksize(level, range) : this.xTicksizeToHours(ticksizeConfig);
-    const windowHours = (range.end.getTime() - range.start.getTime()) / ONE_HOUR;
-    const intervalCount = Math.max(1, this.Graph.hours * this.Graph.points - 1);
-    const intervalPerHour = this.Graph.points;
+    const tickMs = ticksize * ONE_HOUR;
+    const bucketMs = firstBucket.end.getTime() - firstBucket.start.getTime();
+    const startMs = firstBucket.start.getTime();
+    const endMs = lastBucket.start.getTime();
 
-    const startDate = new Date(range.start);
-    startDate.setHours(Math.floor(startDate.getHours() / ticksize) * ticksize, 0, 0, 0);
-
+    const startDate = new Date(Math.ceil(startMs / tickMs) * tickMs);
     const ticks = [];
     let previousTickDate = null;
 
-    const tickCount = Math.max(1, Math.ceil(windowHours / ticksize) + 1);
+    for (let tickMsValue = startDate.getTime(); tickMsValue <= endMs; tickMsValue += tickMs) {
+      const tickDate = new Date(tickMsValue);
+      const tickIndex = Math.round((tickMsValue - startMs) / bucketMs);
+      const point = this.Graph.coords[tickIndex];
+      const tickDay = tickDate.toDateString();
+      const previousTickDay = previousTickDate?.toDateString();
+      const isMidnight = tickDate.getHours() === 0 && tickDate.getMinutes() === 0 && tickDate.getSeconds() === 0 && tickDate.getMilliseconds() === 0;
+      const label =
+        isMidnight || (previousTickDate && tickDay !== previousTickDay)
+          ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
+          : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
 
-    for (let tick = 0; tick < tickCount; tick += 1) {
-      const tickDate = new Date(startDate);
-      tickDate.setHours(startDate.getHours() + tick * ticksize);
+      ticks.push({
+        axis: 'x',
+        level,
+        value: tickIndex,
+        x: point[X],
+        label,
+      });
 
-      const hour = (tickDate.getTime() - range.start.getTime()) / ONE_HOUR;
-
-      if (hour >= 0 && tickDate <= range.end) {
-        const tickIndex = hour * intervalPerHour;
-        const x = this.Graph.drawArea.x + (tickIndex / intervalCount) * this.Graph.drawArea.width;
-
-        const tickDay = tickDate.toDateString();
-        const previousTickDay = previousTickDate?.toDateString();
-
-        const isMidnight = tickDate.getHours() === 0 && tickDate.getMinutes() === 0 && tickDate.getSeconds() === 0 && tickDate.getMilliseconds() === 0;
-        const label =
-          isMidnight || (previousTickDate && tickDay !== previousTickDay)
-            ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
-            : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
-
-        ticks.push({
-          axis: 'x',
-          level,
-          value: hour,
-          x,
-          label,
-        });
-
-        previousTickDate = tickDate;
-      }
+      previousTickDate = tickDate;
     }
 
     return ticks;
@@ -2065,8 +2086,6 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvgPoints(points, i) {
     if (!points) return;
     const color = this.computeColor(this.card.entities[i].state, i);
-    const range = this.getHistoryRange();
-    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
     return svg`
     <g class='line--points'
       ?tooltip=${this.tooltip.entity === i}
@@ -2078,7 +2097,7 @@ export default class SparklineGraphTool extends BaseTool {
       fill=${color}
       stroke=${color}
       >
-      ${points.map((point, pointIndex) => this.renderSvgPoint(point, i, new Date(range.start.getTime() + pointIndex * bucketMs).toISOString()))}
+      ${points.map((point, pointIndex) => this.renderSvgPoint(point, i, this.Graph.bucketMeta[pointIndex].start.toISOString()))}
     </g>`;
   }
 

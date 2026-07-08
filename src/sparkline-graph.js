@@ -321,9 +321,19 @@ export default class SparklineGraph {
       age = 0;
     }
 
-    const endIndex = hours * this.points - 1;
-    const interval = (age / ONE_HOUR) * this.points - endIndex;
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+    let key;
+    if (type === 'rolling_window') {
+      // Rolling windows use an exclusive end time. A sample inside the active
+      // 10:30-11:00 bucket must therefore land on the last bucket index, not
+      // one bucket earlier.
+      const bucketCount = hours * this.points;
+      const ageInBuckets = (age / ONE_HOUR) * this.points;
+      key = Math.max(0, Math.min(bucketCount - 1, Math.floor(bucketCount - ageInBuckets)));
+    } else {
+      const endIndex = hours * this.points - 1;
+      const interval = (age / ONE_HOUR) * this.points - endIndex;
+      key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
+    }
 
     if (!res[key]) res[key] = [];
     res[key].push(item);
@@ -1054,9 +1064,12 @@ export default class SparklineGraph {
         // console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
       }
     } else if (this.config.period.type === 'rolling_window') {
-      // keep the real current time for rolling windows
+      // Rolling window buckets are stored by their start time. _endTime is the
+      // exclusive end of the active bucket, so 10:52 with 30-minute bins ends
+      // at 11:00 and the last rendered bucket starts at 10:30.
       // console.log('[_updateEndTime] for period.type = rolling_window BEFORE', this._endTime);
       this._endTime = this._snapToBin(this._endTime);
+      this._endTime = new Date(this._endTime.getTime() + (60 / this.points) * 60 * 1000);
       // console.log('[_updateEndTime] for period.type = rolling_window AFTER', this._endTime);
     } else {
       switch (this._groupBy) {
