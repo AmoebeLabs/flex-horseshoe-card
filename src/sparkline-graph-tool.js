@@ -1717,19 +1717,19 @@ export default class SparklineGraphTool extends BaseTool {
     const bucketMeta = this.Graph.bucketMeta;
     const firstBucket = bucketMeta[0];
     const lastBucket = bucketMeta[bucketMeta.length - 1];
-    const range = { start: firstBucket.start, end: lastBucket.start };
+    const range = { start: firstBucket.start, end: lastBucket.end };
     const ticksizeConfig = this.runtimeConfig.x_axis[`ticks_${level}`].ticksize;
     const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoXAxisTicksize(level, range) : this.xTicksizeToHours(ticksizeConfig);
     const tickMs = ticksize * ONE_HOUR;
     const bucketMs = firstBucket.end.getTime() - firstBucket.start.getTime();
     const startMs = firstBucket.start.getTime();
-    const endMs = lastBucket.start.getTime();
+    const endMs = lastBucket.end.getTime();
 
     const startDate = new Date(Math.ceil(startMs / tickMs) * tickMs);
     const ticks = [];
     let previousTickDate = null;
 
-    for (let tickMsValue = startDate.getTime(); tickMsValue <= endMs; tickMsValue += tickMs) {
+    for (let tickMsValue = startDate.getTime(); tickMsValue < endMs; tickMsValue += tickMs) {
       const tickDate = new Date(tickMsValue);
       const tickIndex = Math.round((tickMsValue - startMs) / bucketMs);
       const point = this.Graph.coords[tickIndex];
