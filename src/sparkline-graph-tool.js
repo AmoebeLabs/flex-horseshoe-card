@@ -434,6 +434,8 @@ export default class SparklineGraphTool extends BaseTool {
       height: this.svg.height,
       period: config.period,
       sparkline: config.sparkline,
+      x_axis: config.x_axis,
+      y_axis: config.y_axis,
     };
   }
 

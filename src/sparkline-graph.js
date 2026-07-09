@@ -1,5 +1,6 @@
 import Colors from './colors';
 import Utils from './utils';
+import { FONT_SIZE } from './const';
 
 export const X = 0;
 export const Y = 1;
@@ -60,6 +61,8 @@ export default class SparklineGraph {
     this._history = undefined;
     this.coords = [];
     this.bucketMeta = [];
+    this.xAxis = {};
+    this.yAxis = {};
     this.width = width;
     this.height = height;
     this.margin = margin;
@@ -258,6 +261,172 @@ export default class SparklineGraph {
       this.min = Math.min(...this.coordsMin.map((item) => Number(item[V])));
       this.max = Math.max(...this.coordsMax.map((item) => Number(item[V])));
     }
+
+    this.buildAxisGeometry();
+  }
+
+  /**
+   * Calculates reusable x-axis and y-axis geometry next to the existing graph
+   * API. The graph engine keeps providing coords/path helpers as before, while
+   * the tool layer can later consume these prepared ticks and ranges directly.
+   */
+  buildAxisGeometry() {
+    const fontSizeX = this.config.x_axis.labels.styles['font-size'];
+    const fontSizeY = this.config.y_axis.labels.styles['font-size'];
+    const parsedFontSizeX = Number.parseFloat(fontSizeX);
+    const parsedFontSizeY = Number.parseFloat(fontSizeY);
+    const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : (fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45);
+    const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : (fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85);
+    const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
+    const yAxis = this.calculateYAxisGeometry(fontHeightPixels);
+
+    this.xAxis = xAxis;
+    this.yAxis = yAxis;
+  }
+
+  /**
+   * Calculates the time range and tick positions for the x-axis without using
+   * graph coords. Calendar and rolling_window stay separated here, while the
+   * existing graph rendering remains untouched for now.
+   *
+   * @param {number} fontWidthPixels Average character width in pixels.
+   * @returns {object} Axis range, interval and ticks.
+   */
+  calculateXAxisGeometry(fontWidthPixels) {
+    const period = this.config.period[this.config.period.type];
+    const now = new Date();
+    let axisStart;
+    let axisEnd;
+    let dataStart;
+    let dataEnd;
+
+    if (this.config.period.type === 'calendar' && period.period === 'day') {
+      axisStart = new Date(now);
+      axisStart.setHours(0, 0, 0, 0);
+      axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
+      axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR);
+      dataStart = new Date(axisStart);
+      dataEnd = period.offset === 0 ? new Date(this._endTime) : new Date(axisEnd);
+    } else {
+      axisEnd = new Date(this._endTime);
+      axisStart = new Date(axisEnd.getTime() - this.hours * ONE_HOUR);
+      dataStart = new Date(axisStart);
+      dataEnd = new Date(axisEnd);
+    }
+
+    const minMs = axisStart.getTime();
+    const maxMs = axisEnd.getTime();
+    const totalDuration = maxMs - minMs;
+    const approxLabelWidth = 1 * fontWidthPixels + FONT_SIZE;
+    const maxLabels = Math.floor(this.drawArea.width / approxLabelWidth);
+    const effectiveMaxLabels = Math.max(maxLabels, 4);
+    const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
+    const timeIntervals = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000, 7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000, 2629800000];
+    let selectedIndex = timeIntervals.findIndex((interval) => interval >= minTimeStep);
+
+    if (selectedIndex < 0) selectedIndex = timeIntervals.length - 1;
+
+    while (selectedIndex > 0 && totalDuration / timeIntervals[selectedIndex] < 2) {
+      selectedIndex -= 1;
+    }
+
+    const interval = timeIntervals[selectedIndex];
+    const ticks = [];
+    let currentTickMs = Math.ceil(minMs / interval) * interval;
+
+    while (currentTickMs <= maxMs) {
+      const percentage = (currentTickMs - minMs) / totalDuration;
+      ticks.push({
+        time: new Date(currentTickMs),
+        timestamp: currentTickMs,
+        x: this.drawArea.x + percentage * this.drawArea.width,
+        isMidnight: new Date(currentTickMs).getHours() === 0 && new Date(currentTickMs).getMinutes() === 0,
+      });
+      currentTickMs += interval;
+    }
+
+    return {
+      start: axisStart,
+      end: axisEnd,
+      dataStart,
+      dataEnd,
+      interval,
+      ticks,
+    };
+  }
+
+  /**
+   * Calculates the numeric range and tick positions for the y-axis so the tool
+   * can later render grid and labels from engine output instead of recalculating
+   * them a second time.
+   *
+   * @param {number} fontHeightPixels Label height in pixels.
+   * @returns {object} Axis range, interval and ticks.
+   */
+  calculateYAxisGeometry(fontHeightPixels) {
+    let dataMin = this.min;
+    let dataMax = this.max;
+
+    if (dataMin === dataMax) {
+      dataMin -= 1;
+      dataMax += 1;
+    }
+
+    const minSpacePerLabel = fontHeightPixels * 1.5;
+    const maxLabels = Math.floor(this.drawArea.height / minSpacePerLabel);
+    const effectiveMaxLabels = Math.max(maxLabels, 2);
+
+    if (this._logarithmic) {
+      const graphMin = Math.log10(Math.max(1, dataMin));
+      const graphMax = Math.log10(Math.max(1, dataMax));
+      const minExponent = Math.floor(graphMin);
+      const maxExponent = Math.ceil(graphMax);
+      const ticks = [];
+
+      for (let exponent = minExponent; exponent <= maxExponent; exponent += 1) {
+        const value = 10 ** exponent;
+        if (value >= dataMin && value <= dataMax) {
+          const y = this.drawArea.height + this.drawArea.y - ((Math.log10(value) - graphMin) / (graphMax - graphMin)) * this.drawArea.height;
+          ticks.push({ value, y });
+        }
+      }
+
+      return {
+        min: dataMin,
+        max: dataMax,
+        interval: null,
+        ticks,
+      };
+    }
+
+    const range = dataMax - dataMin;
+    const rawStep = range / (effectiveMaxLabels - 1);
+    const exponent = Math.floor(Math.log10(rawStep));
+    const powerOfTen = 10 ** exponent;
+    const normalizedStep = rawStep / powerOfTen;
+    let chosenStep;
+
+    if (normalizedStep <= 1.0) chosenStep = 1.0;
+    else if (normalizedStep <= 2.0) chosenStep = 2.0;
+    else if (normalizedStep <= 5.0) chosenStep = 5.0;
+    else chosenStep = 10.0;
+
+    const interval = chosenStep * powerOfTen;
+    const min = Math.floor(dataMin / interval) * interval;
+    const max = Math.ceil(dataMax / interval) * interval;
+    const ticks = [];
+
+    for (let value = min; value <= max + interval / 100; value += interval) {
+      const y = this.drawArea.height + this.drawArea.y - ((value - min) / (max - min)) * this.drawArea.height;
+      ticks.push({ value, y });
+    }
+
+    return {
+      min,
+      max,
+      interval,
+      ticks,
+    };
   }
 
   // This reducer calculates the min and max in a bucket. This is the REAL min and max
