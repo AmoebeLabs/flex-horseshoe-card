@@ -352,7 +352,10 @@ export default class SparklineGraphTool extends BaseTool {
     this.gradient = [];
     this.length = [];
     this.linePath = undefined;
+    this.lineMinPath = undefined;
+    this.lineMaxPath = undefined;
     this.areaPath = undefined;
+    this.areaMinMaxPath = undefined;
     this.stats = {};
     this.tooltip = {};
     this.tooltipVisible = false;
@@ -688,6 +691,15 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.linePath = this.Graph.getPath();
     this.areaPath = this.Graph.getArea(this.linePath);
+    if (this.runtimeConfig.sparkline?.line?.show_minmax === true || this.runtimeConfig.sparkline?.area?.show_minmax === true) {
+      this.lineMinPath = this.Graph.getPathMin();
+      this.lineMaxPath = this.Graph.getPathMax();
+      this.areaMinMaxPath = this.Graph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
+    } else {
+      this.lineMinPath = undefined;
+      this.lineMaxPath = undefined;
+      this.areaMinMaxPath = undefined;
+    }
     if (this.runtimeConfig.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
       this.gradient[0] = this.Graph.computeGradient(
         computeThresholds(this.runtimeConfig.sparkline.colorstops.colors, this.runtimeConfig.sparkline.colorstops_transition),
@@ -1399,36 +1411,34 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.runtimeConfig.sparkline.show.chart_type !== 'area') return '';
     if (!fill) return '';
     const fade = this.runtimeConfig.sparkline.show.fill === 'fade';
-    // const init = this.length[i] || this.card.config.entities[i].show_line === false;
-    const init = false;
+    const init = this.length[i] || this.card.config.entities[i].show_line === false;
     const yZero = this.Graph.min >= 0 ? 0 : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
 
-    console.log('[renderSvgAreaMask] - config', this.runtimeConfig);
     return svg`
-      <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+      <linearGradient id=${`fill-grad-pos-${this.cardId}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-pos-${this.cardId}-${this.index}-${i}`}>
-        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${this.index}-${i})`}
+      <mask id=${`fill-grad-mask-pos-${this.cardId}-${i}`}>
+        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${i})`}
          />
       </mask>
-      <linearGradient id=${`fill-grad-neg-${this.cardId}-${this.index}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
+      <linearGradient id=${`fill-grad-neg-${this.cardId}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-neg-${this.cardId}-${this.index}-${i}`}>
-        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${this.index}-${i})`}
+      <mask id=${`fill-grad-mask-neg-${this.cardId}-${i}`}>
+        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${i})`}
          />
       </mask>
 
-    <mask id=${`fill-${this.cardId}-${this.index}-${i}`}>
+    <mask id=${`fill-${this.cardId}-${i}`}>
       <path class='fill'
         type=${this.runtimeConfig.sparkline.show.fill}
         .id=${i} anim=${this.runtimeConfig.sparkline.animate} ?init=${init}
         style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5}s` : '0s'}"
         fill='white'
-        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${this.index}-${i})` : ''}
+        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${i})` : ''}
         d=${fill}
       />
       ${
@@ -1438,12 +1448,215 @@ export default class SparklineGraphTool extends BaseTool {
             .id=${i} anim=${this.runtimeConfig.sparkline.animate} ?init=${init}
             style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5}s` : '0s'}"
             fill='white'
-            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${this.index}-${i})` : ''}
+            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${i})` : ''}
             d=${fill}
           />`
           : ''
       }
     </mask>`;
+  }
+
+  /**
+   * Renders area as a colored background rect through the area mask.
+   *
+   * @param {string} fill - Area path to show.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Area background SVG.
+   */
+  renderSvgAreaBackground(fill, i) {
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'area') return '';
+    if (!fill) return '';
+
+    const areaStyles = this.getAreaStyles();
+    const backgroundStyles = areaStyles;
+    backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
+    backgroundStyles.stroke = 'none';
+
+    return svg`
+      <rect
+        class="sparkline-area-rect"
+        x="0"
+        y="0"
+        width="${this.svg.width}"
+        height="${this.svg.height}"
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        mask="url(#fill-${this.cardId}-${i})"
+      ></rect>
+    `;
+  }
+
+  /**
+   * Renders the min/max area background when enabled.
+   *
+   * @param {string} fill - Min/max area path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Area min/max background SVG.
+   */
+  renderSvgAreaMinMaxMask(fill, i) {
+    if (!['area', 'line'].includes(this.runtimeConfig.sparkline.show.chart_type)) return '';
+    if (!fill) return '';
+
+    return svg`
+      <mask id=${`fillMinMax-${this.cardId}-${i}`}>
+        <path
+          class='fill'
+          type=${this.runtimeConfig.sparkline.show.fill}
+          .id=${i} anim=${this.runtimeConfig.sparkline.animate} ?init=${this.length[i]}
+          style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+          fill='white'
+          d=${fill}
+        />
+      </mask>
+    `;
+  }
+
+  /**
+   * Renders the min/max area background when enabled.
+   *
+   * @param {string} fill - Min/max area path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Area min/max background SVG.
+   */
+  renderSvgAreaMinMaxBackground(fill, i) {
+    if (!['area', 'line'].includes(this.runtimeConfig.sparkline.show.chart_type)) return '';
+    if (!fill) return '';
+
+    const areaStyles = this.getAreaStyles();
+    const backgroundStyles = areaStyles;
+    backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
+    backgroundStyles.stroke = 'none';
+
+    return svg`
+      <rect
+        class="sparkline-area-rect"
+        x="0"
+        y="0"
+        width="${this.svg.width}"
+        height="${this.svg.height}"
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        mask="url(#fillMinMax-${this.cardId}-${i})"
+      ></rect>
+    `;
+  }
+
+  /**
+   * Renders the mask used for gradient-backed line drawing.
+   *
+   * @param {string} line - Line path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Line mask definition.
+   */
+  renderSvgLineMask(line, i) {
+    if (!line) return '';
+
+    const lineStyles = this.getLineStyles();
+
+    return svg`
+      <mask id="sparkline-line-${this.cardId}-${i}">
+        <path
+          class="sparkline-line-mask"
+          fill="none"
+          stroke="white"
+          stroke-width="${lineStyles['stroke-width']}"
+          stroke-linecap="${lineStyles['stroke-linecap']}"
+          stroke-linejoin="${lineStyles['stroke-linejoin']}"
+          d="${line}"
+        ></path>
+      </mask>
+    `;
+  }
+
+  /**
+   * Renders the line background through the line mask.
+   *
+   * @param {string} line - Line path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Line background SVG.
+   */
+  renderSvgLineBackground(line, i) {
+    if (!line) return '';
+
+    const lineStyles = this.getLineStyles();
+    const backgroundStyles = lineStyles;
+    backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles);
+    backgroundStyles.stroke = 'none';
+
+    delete backgroundStyles['stroke-width'];
+    delete backgroundStyles['stroke-linecap'];
+    delete backgroundStyles['stroke-linejoin'];
+
+    return svg`
+      <rect
+        class="sparkline-line-rect"
+        x="0"
+        y="0"
+        width="${this.svg.width}"
+        height="${this.svg.height}"
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        mask="url(#sparkline-line-${this.cardId}-${i})"
+      ></rect>
+    `;
+  }
+
+  /**
+   * Renders the line min/max background through the min/max line mask.
+   *
+   * @param {string} line - Line path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Line min/max background SVG.
+   */
+  renderSvgLineMinMaxMask(line, i) {
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'line') return '';
+    if (!line) return '';
+
+    const lineStyles = this.getLineStyles();
+
+    return svg`
+      <mask id="sparkline-lineMinMax-${this.cardId}-${i}">
+        <path
+          class="sparkline-line-mask"
+          fill="none"
+          stroke="white"
+          stroke-width="${lineStyles['stroke-width']}"
+          stroke-linecap="${lineStyles['stroke-linecap']}"
+          stroke-linejoin="${lineStyles['stroke-linejoin']}"
+          d="${line}"
+        ></path>
+      </mask>
+    `;
+  }
+
+  /**
+   * Renders the line min/max background through the min/max line mask.
+   *
+   * @param {string} line - Line path.
+   * @param {number} i - Entity index.
+   * @returns {TemplateResult|string} Line min/max background SVG.
+   */
+  renderSvgLineMinMaxBackground(line, i) {
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'line') return '';
+    if (!line) return '';
+
+    const lineStyles = this.getLineStyles();
+    const backgroundStyles = lineStyles;
+    backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles);
+    backgroundStyles.stroke = 'none';
+
+    delete backgroundStyles['stroke-width'];
+    delete backgroundStyles['stroke-linecap'];
+    delete backgroundStyles['stroke-linejoin'];
+
+    return svg`
+      <rect
+        class="sparkline-line-rect"
+        x="0"
+        y="0"
+        width="${this.svg.width}"
+        height="${this.svg.height}"
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        mask="url(#sparkline-lineMinMax-${this.cardId}-${i})"
+      ></rect>
+    `;
   }
 
   /**
@@ -2045,24 +2258,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area SVG.
    */
   renderArea() {
-    if (this.runtimeConfig.sparkline.show.chart_type !== 'area' && this.runtimeConfig.sparkline.show.area !== true) return '';
-
-    const areaStyles = this.getAreaStyles();
-    const backgroundStyles = areaStyles;
-    backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
-    backgroundStyles.stroke = 'none';
-
-    return svg`
-      <rect
-        class="sparkline-area-rect"
-        x="0"
-        y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#fill-${this.cardId}-${this.index})"
-      ></rect>
-    `;
+    return this.renderSvgAreaBackground(this.areaPath, this.entity_index);
   }
 
   /**
@@ -2073,28 +2269,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line SVG.
    */
   renderLine() {
-    if (this.runtimeConfig.sparkline.show.chart_type !== 'line' && this.runtimeConfig.sparkline.show.line !== true && this.runtimeConfig.sparkline.show.chart_type !== 'area') return '';
-
-    const lineStyles = this.getLineStyles();
-    const backgroundStyles = lineStyles;
-    backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles);
-    backgroundStyles.stroke = 'none';
-
-    delete backgroundStyles['stroke-width'];
-    delete backgroundStyles['stroke-linecap'];
-    delete backgroundStyles['stroke-linejoin'];
-
-    return svg`
-      <rect
-        class="sparkline-line-rect"
-        x="0"
-        y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#sparkline-line-${this.cardId}-${this.index})"
-      ></rect>
-    `;
+    return this.renderSvgLineBackground(this.linePath, this.entity_index);
   }
 
   /**
@@ -2276,13 +2451,15 @@ export default class SparklineGraphTool extends BaseTool {
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
-            ${this.renderSvgAreaMask(this.areaPath, this.graphConfig.entity_index)}
-            ${this.renderLineMask()}
+            ${this.renderSvgAreaMask(this.areaPath, this.entity_index)}
+            ${this.renderSvgLineMask(this.linePath, this.entity_index)}
           </defs>
           ${this.renderGrid()}
           ${this.renderAxis()}
-          ${this.renderArea()}
-          ${this.renderLine()}
+          ${this.renderSvgAreaBackground(this.areaPath, this.entity_index)}
+          ${this.renderSvgAreaMinMaxBackground(this.areaMinMaxPath, this.entity_index)}
+          ${this.renderSvgLineBackground(this.linePath, this.entity_index)}
+          ${this.renderSvgLineMinMaxBackground(this.lineMinPath, this.entity_index)}
           ${this.renderPoints()}
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
