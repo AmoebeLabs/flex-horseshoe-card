@@ -132,6 +132,43 @@ export default class SparklineGraph {
       }
     }
 
+    // extend length to fill missing history.
+    let requiredNumOfPoints;
+    const bucketMs = ONE_HOUR / this.points;
+    this.calendarBucketStartMs = undefined;
+    this.calendarBucketCount = undefined;
+    // for now it is ok...
+    this.offsetHours = 0;
+    switch (this.config.period.type) {
+      case 'real_time':
+        requiredNumOfPoints = 1;
+        this.hours = 1;
+        break;
+      case 'calendar':
+        if (this.config.period?.calendar?.period === 'day') {
+          const calendarStart = new Date(date);
+          calendarStart.setHours(0, 0, 0, 0);
+          calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
+
+          if (this.config.period.calendar.offset === 0) {
+            this.calendarBucketCount = Math.ceil((this._endTime.getTime() - calendarStart.getTime()) / bucketMs);
+            this.calendarBucketStartMs = this._endTime.getTime() - this.calendarBucketCount * bucketMs;
+          } else {
+            this.offsetHours = Math.abs(this.config.period.calendar.offset * this.hours);
+            this.calendarBucketCount = Math.round((this.config.period.calendar.duration.hour * ONE_HOUR) / bucketMs);
+            this.calendarBucketStartMs = calendarStart.getTime();
+          }
+
+          requiredNumOfPoints = this.calendarBucketCount;
+        }
+        break;
+      case 'rolling_window':
+        requiredNumOfPoints = Math.ceil(this.hours * this.points);
+        break;
+      default:
+        break;
+    }
+
     // console.log('[update] histGroups BEFORE reducer', history, this.hours, this.points, this.offsetHours);
 
     const histGroups = this._history.reduce((res, item) => this._reducer(res, item), []);
@@ -149,36 +186,6 @@ export default class SparklineGraph {
     // this.points moet dus bins.per_hour zijn. dus ook 12 in dit geval...
     // console.log('[update] histGroups AFTER reducer', histGroups, this.hours, this.points, this.offsetHours);
 
-    // extend length to fill missing history.
-    let requiredNumOfPoints;
-    // for now it is ok...
-    this.offsetHours = 0;
-    switch (this.config.period.type) {
-      case 'real_time':
-        requiredNumOfPoints = 1;
-        this.hours = 1;
-        break;
-      case 'calendar':
-        if (this.config.period?.calendar?.period === 'day') {
-          // If config says duration of 48 hours, then this.hours contains that config
-          let hours = this.hours;
-          if (this.config.period.calendar.offset === 0) {
-            let extraHours = this.config.period.calendar.duration.hour - 24;
-            hours = date.getHours() + date.getMinutes() / 60 + extraHours;
-          } else {
-            // this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
-            this.offsetHours = Math.abs(this.config.period.calendar.offset * this.hours);
-          }
-          requiredNumOfPoints = Math.ceil(hours * this.points);
-        }
-        break;
-      case 'rolling_window':
-        requiredNumOfPoints = Math.ceil(this.hours * this.points);
-        break;
-      default:
-        break;
-    }
-
     histGroups.length = requiredNumOfPoints;
 
     try {
@@ -189,8 +196,7 @@ export default class SparklineGraph {
     this.min = Math.min(...this.coords.map((item) => Number(item[V])));
     this.max = Math.max(...this.coords.map((item) => Number(item[V])));
 
-    const bucketMs = ONE_HOUR / this.points;
-    const bucketStart = this._endTime.getTime() - this.hours * ONE_HOUR;
+    const bucketStart = this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
     this.bucketMeta = [];
     for (let i = 0; i < histGroups.length; i += 1) {
       const bucket = histGroups[i];
@@ -280,6 +286,8 @@ export default class SparklineGraph {
     const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
     const yAxis = this.calculateYAxisGeometry(fontHeightPixels);
 
+    this.min = yAxis.min;
+    this.max = yAxis.max;
     this.xAxis = xAxis;
     this.yAxis = yAxis;
   }
@@ -295,6 +303,7 @@ export default class SparklineGraph {
   calculateXAxisGeometry(fontWidthPixels) {
     const period = this.config.period[this.config.period.type];
     const now = new Date();
+    const bucketMs = ONE_HOUR / this.points;
     let axisStart;
     let axisEnd;
     let dataStart;
@@ -304,12 +313,12 @@ export default class SparklineGraph {
       axisStart = new Date(now);
       axisStart.setHours(0, 0, 0, 0);
       axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
-      axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR);
+      axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR - bucketMs);
       dataStart = new Date(axisStart);
-      dataEnd = period.offset === 0 ? new Date(this._endTime) : new Date(axisEnd);
+      dataEnd = period.offset === 0 ? new Date(this._snapToBin(new Date())) : new Date(axisEnd);
     } else {
-      axisEnd = new Date(this._endTime);
-      axisStart = new Date(axisEnd.getTime() - this.hours * ONE_HOUR);
+      axisStart = new Date(this.bucketMeta[0].start);
+      axisEnd = new Date(this.bucketMeta[this.bucketMeta.length - 1].start);
       dataStart = new Date(axisStart);
       dataEnd = new Date(axisEnd);
     }
@@ -332,7 +341,7 @@ export default class SparklineGraph {
 
     const interval = timeIntervals[selectedIndex];
     const ticks = [];
-    let currentTickMs = Math.ceil(minMs / interval) * interval;
+    let currentTickMs = minMs;
 
     while (currentTickMs <= maxMs) {
       const percentage = (currentTickMs - minMs) / totalDuration;
@@ -395,6 +404,7 @@ export default class SparklineGraph {
         min: dataMin,
         max: dataMax,
         interval: null,
+        minorInterval: null,
         ticks,
       };
     }
@@ -412,11 +422,13 @@ export default class SparklineGraph {
     else chosenStep = 10.0;
 
     const interval = chosenStep * powerOfTen;
-    const min = Math.floor(dataMin / interval) * interval;
-    const max = Math.ceil(dataMax / interval) * interval;
+    const minorInterval = interval / 2;
+    const min = Math.floor(dataMin / minorInterval) * minorInterval;
+    const max = Math.ceil(dataMax / minorInterval) * minorInterval;
     const ticks = [];
+    const majorStart = Math.ceil(min / interval) * interval;
 
-    for (let value = min; value <= max + interval / 100; value += interval) {
+    for (let value = majorStart; value <= max + interval / 100; value += interval) {
       const y = this.drawArea.height + this.drawArea.y - ((value - min) / (max - min)) * this.drawArea.height;
       ticks.push({ value, y });
     }
@@ -425,6 +437,7 @@ export default class SparklineGraph {
       min,
       max,
       interval,
+      minorInterval,
       ticks,
     };
   }
@@ -498,6 +511,10 @@ export default class SparklineGraph {
       const bucketCount = hours * this.points;
       const ageInBuckets = (age / ONE_HOUR) * this.points;
       key = Math.max(0, Math.min(bucketCount - 1, Math.floor(bucketCount - ageInBuckets)));
+    } else if (type === 'calendar' && period.period === 'day') {
+      const bucketMs = ONE_HOUR / this.points;
+      key = Math.floor((new Date(item.last_changed).getTime() - this.calendarBucketStartMs) / bucketMs);
+      key = Math.max(0, Math.min(this.calendarBucketCount - 1, key));
     } else {
       const endIndex = hours * this.points - 1;
       const interval = (age / ONE_HOUR) * this.points - endIndex;
@@ -1231,6 +1248,9 @@ export default class SparklineGraph {
         this._endTime.setHours(-this.config.period.calendar.duration.hour);
         this._endTime.setHours(0, 0, 0, 0);
         // console.log('[_updateEndTime] for period.type = calendar AFTER', this._endTime);
+      } else if (this.config.period.calendar.period === 'day') {
+        this._endTime = this._snapToBin(this._endTime);
+        this._endTime = new Date(this._endTime.getTime() + (60 / this.points) * 60 * 1000);
       }
     } else if (this.config.period.type === 'rolling_window') {
       // Rolling window buckets are stored by their start time. _endTime is the

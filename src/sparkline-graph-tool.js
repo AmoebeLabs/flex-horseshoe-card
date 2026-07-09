@@ -686,17 +686,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.Graph.update(this.series);
     // console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
 
-    // Keep the y-axis aligned to the rendered graph, then snap the visible
-    // bounds outward to the configured y tick grid so the chart gets breathing
-    // room above and below the data.
-    const yTicksizeConfig = this.runtimeConfig.y_axis.ticks_minor.ticksize;
-    const yTicksize = yTicksizeConfig == null || yTicksizeConfig === 'auto' ? this.getAutoYAxisTicksize('minor') : Number(yTicksizeConfig);
-    const snappedMin = Math.floor(this.Graph.min / yTicksize) * yTicksize;
-    const snappedMax = Math.ceil(this.Graph.max / yTicksize) * yTicksize;
-
-    this.Graph.min = snappedMin;
-    this.Graph.max = snappedMax;
-
     this.linePath = this.Graph.getPath();
     this.areaPath = this.Graph.getArea(this.linePath);
     if (this.runtimeConfig.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
@@ -859,28 +848,34 @@ export default class SparklineGraphTool extends BaseTool {
   formatTooltipStat(stat, rawValue) {
     const sparklineId = this.config.id;
     const entityId = `fhs_sparkline.${sparklineId}_${stat}`;
-    const entity = this.card.entities.find((item) => item?.entity_id === entityId) ?? this.card.entities[this.card.config.entities.length + this.index * 5 + this.getSparklineStatIndex(stat)];
-    const entityConfig = this.card.resolvedEntityConfigs.find((item) => item?.entity === entityId) ?? this.card.resolvedEntityConfigs[this.card.config.entities.length + this.index * 5 + this.getSparklineStatIndex(stat)];
+    const entity = this.card.entities.find((item) => item?.entity_id === entityId);
+    const entityConfig = this.card.resolvedEntityConfigs.find((item) => item?.entity === entityId);
 
     if (!entity || !entityConfig) {
       return { label: this.getTooltipLabel(stat), value: rawValue, uom: '' };
     }
 
-    const formatter = Object.create(StateTool.prototype);
-    formatter.entity = {
-      ...entity,
-      state: rawValue,
-    };
-    formatter.entityConfig = entityConfig;
-    formatter.card = this.card;
-    formatter.state = '';
-    formatter.uom = '';
-    formatter.buildStateAndUom();
+    const baseFormatter = Object.create(StateTool.prototype);
+    baseFormatter.entity = entity;
+    baseFormatter.entityConfig = entityConfig;
+    baseFormatter.card = this.card;
+    baseFormatter.state = '';
+    baseFormatter.uom = '';
+    baseFormatter.buildStateAndUom();
+
+    const activeLocale = this.card._hass.locale?.language || this.card._hass.language || 'en-US';
+    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
+    const decimalIndex = baseFormatter.state.lastIndexOf(decimalSeparator);
+    const decimals = decimalIndex !== -1 ? baseFormatter.state.length - decimalIndex - 1 : 0;
+    const formattedValue = new Intl.NumberFormat(activeLocale, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(Number(rawValue));
 
     return {
       label: this.getTooltipLabel(stat),
-      value: formatter.state,
-      uom: formatter.uom,
+      value: formattedValue,
+      uom: baseFormatter.uom,
     };
   }
 
@@ -986,11 +981,14 @@ export default class SparklineGraphTool extends BaseTool {
 
     title.textContent = this.tooltip.title ?? '';
     rows[0].children[0].textContent = this.tooltip.min?.label ?? '';
-    rows[0].children[1].textContent = this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : '';
+    rows[0].children[1].children[0].textContent = this.tooltip.min?.value ?? '';
+    rows[0].children[1].children[1].textContent = this.tooltip.min?.uom ? ` ${this.tooltip.min.uom}` : '';
     rows[1].children[0].textContent = this.tooltip.avg?.label ?? '';
-    rows[1].children[1].textContent = this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : '';
+    rows[1].children[1].children[0].textContent = this.tooltip.avg?.value ?? '';
+    rows[1].children[1].children[1].textContent = this.tooltip.avg?.uom ? ` ${this.tooltip.avg.uom}` : '';
     rows[2].children[0].textContent = this.tooltip.max?.label ?? '';
-    rows[2].children[1].textContent = this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : '';
+    rows[2].children[1].children[0].textContent = this.tooltip.max?.value ?? '';
+    rows[2].children[1].children[1].textContent = this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : '';
   }
 
   updateActivePointer(e) {
@@ -1715,44 +1713,19 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} X-axis ticks.
    */
   buildXAxisTicks(level) {
-    const ONE_HOUR = 60 * 60 * 1000;
-    const bucketMeta = this.Graph.bucketMeta;
-    const firstBucket = bucketMeta[0];
-    const lastBucket = bucketMeta[bucketMeta.length - 1];
-    const range = { start: firstBucket.start, end: lastBucket.end };
-    const ticksizeConfig = this.runtimeConfig.x_axis[`ticks_${level}`].ticksize;
-    const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoXAxisTicksize(level, range) : this.xTicksizeToHours(ticksizeConfig);
-    const tickMs = ticksize * ONE_HOUR;
-    const bucketMs = firstBucket.end.getTime() - firstBucket.start.getTime();
-    const startMs = firstBucket.start.getTime();
-    const endMs = lastBucket.end.getTime();
-
-    const startDate = new Date(Math.ceil(startMs / tickMs) * tickMs);
     const ticks = [];
-    let previousTickDate = null;
 
-    for (let tickMsValue = startDate.getTime(); tickMsValue < endMs; tickMsValue += tickMs) {
-      const tickDate = new Date(tickMsValue);
-      const tickIndex = Math.round((tickMsValue - startMs) / bucketMs);
-      const point = this.Graph.coords[tickIndex];
-      const tickDay = tickDate.toDateString();
-      const previousTickDay = previousTickDate?.toDateString();
-      const isMidnight = tickDate.getHours() === 0 && tickDate.getMinutes() === 0 && tickDate.getSeconds() === 0 && tickDate.getMilliseconds() === 0;
-      const label =
-        isMidnight || (previousTickDate && tickDay !== previousTickDay)
-          ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config)
-          : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+    this.Graph.xAxis.ticks.forEach((tick) => {
+      const label = tick.isMidnight ? formatDateVeryShort(tick.time, this.card._hass.locale, this.card._hass.config) : formatTime(tick.time, this.card._hass.locale, this.card._hass.config);
 
       ticks.push({
         axis: 'x',
         level,
-        value: tickIndex,
-        x: point[X],
+        value: tick.timestamp,
+        x: tick.x,
         label,
       });
-
-      previousTickDate = tickDate;
-    }
+    });
 
     return ticks;
   }
@@ -1796,23 +1769,18 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} Y-axis ticks.
    */
   buildYAxisTicks(level) {
-    const ticksizeConfig = this.runtimeConfig.y_axis[`ticks_${level}`].ticksize;
-    const ticksize = ticksizeConfig == null || ticksizeConfig === 'auto' ? this.getAutoYAxisTicksize(level) : Number(ticksizeConfig);
-    const min = this.Graph.min;
-    const max = this.Graph.max;
-    const graphMin = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, min)) : min;
-    const graphMax = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, max)) : max;
-    const yRatio = (graphMax - graphMin) / this.Graph.drawArea.height || 1;
-    const firstTick = Math.ceil(min / ticksize) * ticksize;
+    const formatter = new Intl.NumberFormat(this.card._hass.locale?.language || this.card._hass.language);
     const ticks = [];
 
-    for (let value = firstTick; value <= max; value += ticksize) {
-      const graphValue = this.runtimeConfig.sparkline.state_values.logarithmic ? Math.log10(Math.max(1, value)) : value;
-      const y = this.Graph.drawArea.height + this.Graph.drawArea.y - (graphValue - graphMin) / yRatio;
-      const label = new Intl.NumberFormat(this.card._hass.locale?.language || this.card._hass.language).format(value);
-
-      ticks.push({ axis: 'y', level, value, y, label });
-    }
+    this.Graph.yAxis.ticks.forEach((tick) => {
+      ticks.push({
+        axis: 'y',
+        level,
+        value: tick.value,
+        y: tick.y,
+        label: formatter.format(tick.value),
+      });
+    });
 
     return ticks;
   }
@@ -1828,8 +1796,6 @@ export default class SparklineGraphTool extends BaseTool {
     const labelsAt = this.runtimeConfig.sparkline.show[`${axis}labels_at`];
 
     if (labelsAt === 'none') return [];
-    if (labelsAt === 'all') return axis === 'x' ? [...this.buildXAxisTicks('minor'), ...this.buildXAxisTicks('major')] : [...this.buildYAxisTicks('minor'), ...this.buildYAxisTicks('major')];
-    if (labelsAt === 'ticks_minor') return axis === 'x' ? this.buildXAxisTicks('minor') : this.buildYAxisTicks('minor');
     return axis === 'x' ? this.buildXAxisTicks('major') : this.buildYAxisTicks('major');
   }
 
@@ -2167,19 +2133,50 @@ export default class SparklineGraphTool extends BaseTool {
       'max-width': 'calc(100% - 24px)',
       display: this.tooltipVisible ? 'block' : 'none',
     };
+    const valueCellStyles = {
+      display: 'inline-flex',
+      'align-items': 'baseline',
+      'justify-content': 'flex-end',
+      'text-align': 'right',
+      'white-space': 'nowrap',
+    };
+    const unitStyles = {
+      'font-size': '0.72em',
+      transform: 'translateY(-0.32em)',
+      opacity: '0.8',
+    };
 
     return html`
       <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
         <div class="sparkline-tooltip__title">${this.tooltip.title ?? ''}</div>
-        <div class="sparkline-tooltip__row"><span>${this.tooltip.min?.label ?? ''}</span><span>${this.tooltip.min ? `${this.tooltip.min.value}${this.tooltip.min.uom}` : ''}</span></div>
-        <div class="sparkline-tooltip__row"><span>${this.tooltip.avg?.label ?? ''}</span><span>${this.tooltip.avg ? `${this.tooltip.avg.value}${this.tooltip.avg.uom}` : ''}</span></div>
-        <div class="sparkline-tooltip__row"><span>${this.tooltip.max?.label ?? ''}</span><span>${this.tooltip.max ? `${this.tooltip.max.value}${this.tooltip.max.uom}` : ''}</span></div>
+        <div class="sparkline-tooltip__row">
+          <span>${this.tooltip.min?.label ?? ''}</span>
+          <span style=${styleMap(valueCellStyles)}>
+            <span>${this.tooltip.min?.value ?? ''}</span>
+            <span style=${styleMap(unitStyles)}>${this.tooltip.min?.uom ? ` ${this.tooltip.min.uom}` : ''}</span>
+          </span>
+        </div>
+        <div class="sparkline-tooltip__row">
+          <span>${this.tooltip.avg?.label ?? ''}</span>
+          <span style=${styleMap(valueCellStyles)}>
+            <span>${this.tooltip.avg?.value ?? ''}</span>
+            <span style=${styleMap(unitStyles)}>${this.tooltip.avg?.uom ? ` ${this.tooltip.avg.uom}` : ''}</span>
+          </span>
+        </div>
+        <div class="sparkline-tooltip__row">
+          <span>${this.tooltip.max?.label ?? ''}</span>
+          <span style=${styleMap(valueCellStyles)}>
+            <span>${this.tooltip.max?.value ?? ''}</span>
+            <span style=${styleMap(unitStyles)}>${this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : ''}</span>
+          </span>
+        </div>
       </div>
     `;
   }
 
   /**
-   * Renders a minimal active indicator. The later snake uses the same pointer
+   * Renders a minimal active indicator.
+   * The later snake uses the same pointer
    * state, but must be added through SparklineGraph segment-path support.
    *
    * @returns {TemplateResult|string} Active indicator SVG.
