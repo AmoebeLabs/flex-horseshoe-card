@@ -351,6 +351,17 @@ export default class SparklineGraphTool extends BaseTool {
     this.historySeries = undefined;
     this.gradient = [];
     this.length = [];
+    this.area = [];
+    this.areaMinMax = [];
+    this.line = [];
+    this.bar = [];
+    this.equalizer = [];
+    this.points = [];
+    this.barcodeChart = [];
+    this.barcodeChartBackground = [];
+    this.radialBarcodeChart = [];
+    this.radialBarcodeChartBackground = [];
+    this.graded = [];
     this.linePath = undefined;
     this.lineMinPath = undefined;
     this.lineMaxPath = undefined;
@@ -700,6 +711,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.lineMaxPath = undefined;
       this.areaMinMaxPath = undefined;
     }
+    this.area = this.areaPath ? [this.areaPath] : [];
+    this.areaMinMax = this.areaMinMaxPath ? [this.areaMinMaxPath] : [];
+    this.line = this.linePath ? [this.linePath] : [];
+    this.points = this.Graph.coords.length > 0 ? [this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex])] : [];
     if (this.runtimeConfig.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
       this.gradient[0] = this.Graph.computeGradient(
         computeThresholds(this.runtimeConfig.sparkline.colorstops.colors, this.runtimeConfig.sparkline.colorstops_transition),
@@ -2426,12 +2441,64 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  renderSvgTrafficLight(trafficLight, i) {
+    return '';
+  }
+
+  renderSvgGraded(trafficLights, i) {
+    return '';
+  }
+
+  renderSvgEqualizerMask(equalizer, index) {
+    return '';
+  }
+
+  renderSvgBarsMask(bars, index) {
+    return '';
+  }
+
+  renderSvgEqualizerBackground(equalizer, index) {
+    return '';
+  }
+
+  renderSvgBarsBackground(bars, index) {
+    return '';
+  }
+
+  renderSvgBars(bars, index) {
+    return '';
+  }
+
+  renderSvgRadialBarcodeBin(bin, path, index) {
+    return '';
+  }
+
+  renderSvgRadialBarcodeBackgroundBin(bin, path, index) {
+    return '';
+  }
+
+  renderSvgRadialBarcodeBackground(radius) {
+    return '';
+  }
+
+  renderSvgRadialBarcodeFace(radius) {
+    return '';
+  }
+
+  renderSvgRadialBarcode(radialBarcode, index) {
+    return '';
+  }
+
+  renderSvgBarcode(barcode, index) {
+    return '';
+  }
+
   /**
    * Renders one sparkline layout item.
    *
    * @returns {TemplateResult} SVG template for the sparkline.
    */
-  render() {
+  renderSvg() {
     const content = svg`
       <g
         transform="${this.getGroupScaleTransform()}"
@@ -2451,15 +2518,22 @@ export default class SparklineGraphTool extends BaseTool {
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
-            ${this.renderSvgAreaMask(this.areaPath, this.entity_index)}
-            ${this.renderSvgLineMask(this.linePath, this.entity_index)}
+            ${this.area.map((fill, i) => this.renderSvgAreaMask(fill, i))}
+            ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxMask(fill, i))}
+            ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
           </defs>
+          ${this.area.map((fill, i) => this.renderSvgAreaBackground(fill, i))}
+          ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxBackground(fill, i))}
+          ${this.line.map((line, i) => this.renderSvgLineBackground(line, i))}
+          ${this.bar.map((bars, i) => this.renderSvgBarsMask(bars, i))}
+          ${this.bar.map((bars, i) => this.renderSvgBarsBackground(bars, i))}
+          ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerMask(equalizer, i))}
+          ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerBackground(equalizer, i))}
+          ${this.barcodeChart.map((barcodePart, i) => this.renderSvgBarcode(barcodePart, i))}
+          ${this.radialBarcodeChart.map((radialPart, i) => this.renderSvgRadialBarcode(radialPart, i))}
+          ${this.graded.map((grade, i) => this.renderSvgGraded(grade, i))}
           ${this.renderGrid()}
           ${this.renderAxis()}
-          ${this.renderSvgAreaBackground(this.areaPath, this.entity_index)}
-          ${this.renderSvgAreaMinMaxBackground(this.areaMinMaxPath, this.entity_index)}
-          ${this.renderSvgLineBackground(this.linePath, this.entity_index)}
-          ${this.renderSvgLineMinMaxBackground(this.lineMinPath, this.entity_index)}
           ${this.renderPoints()}
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
@@ -2468,6 +2542,15 @@ export default class SparklineGraphTool extends BaseTool {
       </g>
     `;
 
-    return this.renderItemLayers(content);
+    return content;
+  }
+
+  /**
+   * Renders one sparkline layout item.
+   *
+   * @returns {TemplateResult} SVG template for the sparkline.
+   */
+  render() {
+    return this.renderItemLayers(this.renderSvg());
   }
 }
