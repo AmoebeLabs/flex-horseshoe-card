@@ -566,7 +566,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.runtimeConfig.period?.type === 'calendar' && this.runtimeConfig.period?.calendar?.period === 'day') {
       const start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+      start.setHours(0, 0, 0);
       start.setHours(start.getHours() + (this.runtimeConfig.period?.calendar?.offset ?? 0) * 24 - (periodHours - 24));
 
       return {
@@ -1389,18 +1389,61 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Renders the mask used for the area fill.
+   * Renders the original SAK area mask logic for the sparkline area fill.
    *
+   * @param {string} fill - Area path to mask.
+   * @param {number} i - Entity index.
    * @returns {TemplateResult|string} Area mask definition.
    */
-  renderAreaMask() {
-    if (!this.areaPath) return '';
+  renderSvgAreaMask(fill, i) {
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'area') return '';
+    if (!fill) return '';
+    const fade = this.runtimeConfig.sparkline.show.fill === 'fade';
+    // const init = this.length[i] || this.card.config.entities[i].show_line === false;
+    const init = false;
+    const yZero = this.Graph.min >= 0 ? 0 : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
 
+    console.log('[renderSvgAreaMask] - config', this.runtimeConfig);
     return svg`
-      <mask id="sparkline-area-${this.cardId}-${this.index}">
-        <path class="sparkline-area-mask" fill="white" d="${this.areaPath}"></path>
+      <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop stop-color='white' offset='0%' stop-opacity='1'/>
+        <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
+      </linearGradient>
+      <mask id=${`fill-grad-mask-pos-${this.cardId}-${this.index}-${i}`}>
+        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${this.index}-${i})`}
+         />
       </mask>
-    `;
+      <linearGradient id=${`fill-grad-neg-${this.cardId}-${this.index}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
+        <stop stop-color='white' offset='0%' stop-opacity='1'/>
+        <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
+      </linearGradient>
+      <mask id=${`fill-grad-mask-neg-${this.cardId}-${this.index}-${i}`}>
+        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${this.index}-${i})`}
+         />
+      </mask>
+
+    <mask id=${`fill-${this.cardId}-${this.index}-${i}`}>
+      <path class='fill'
+        type=${this.runtimeConfig.sparkline.show.fill}
+        .id=${i} anim=${this.runtimeConfig.sparkline.animate} ?init=${init}
+        style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+        fill='white'
+        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${this.index}-${i})` : ''}
+        d=${fill}
+      />
+      ${
+        this.Graph.min < 0
+          ? svg`<path class='fill'
+            type=${this.runtimeConfig.sparkline.show.fill}
+            .id=${i} anim=${this.runtimeConfig.sparkline.animate} ?init=${init}
+            style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+            fill='white'
+            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${this.index}-${i})` : ''}
+            d=${fill}
+          />`
+          : ''
+      }
+    </mask>`;
   }
 
   /**
@@ -2017,7 +2060,7 @@ export default class SparklineGraphTool extends BaseTool {
         width="${this.svg.width}"
         height="${this.svg.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#sparkline-area-${this.cardId}-${this.index})"
+        mask="url(#fill-${this.cardId}-${this.index})"
       ></rect>
     `;
   }
@@ -2233,7 +2276,7 @@ export default class SparklineGraphTool extends BaseTool {
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
-            ${this.renderAreaMask()}
+            ${this.renderSvgAreaMask(this.areaPath, this.graphConfig.entity_index)}
             ${this.renderLineMask()}
           </defs>
           ${this.renderGrid()}
