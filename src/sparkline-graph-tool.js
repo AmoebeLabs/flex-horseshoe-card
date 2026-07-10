@@ -1,7 +1,9 @@
+/* eslint-disable arrow-body-style */
 /* eslint-disable no-useless-concat */
 import { html, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import BaseTool from './base-tool.js';
+import Colors from './colors';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
@@ -1819,16 +1821,15 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   computeColor(inState, i) {
-    const { colorstops, line_color } = this.runtimeConfig.sparkline;
+    const { colorstops, line_color, colorstops_transition } = this.runtimeConfig.sparkline;
     const state = Number(inState) || 0;
-    // console.log('computeColor BEFORE', state, colorstops.colors, line_color[i], line_color[0]);
-    const threshold = {
-      color: line_color[i] || line_color[0],
-      ...colorstops.colors.slice(-1)[0],
-      ...colorstops.colors.find((ele) => ele.value < state),
-    };
-    // console.log('computeColor AFTER', state, colorstops.colors, line_color[i], line_color[0], threshold.color);
-    return this.card.config.entities[i].color || threshold.color;
+    const thresholdColor = Colors.calculateStrokeColor(
+      state,
+      colorstops,
+      colorstops_transition === 'smooth',
+    );
+
+    return this.card.config.entities[i].color || thresholdColor || line_color[i] || line_color[0];
   }
 
   /**
@@ -2577,7 +2578,9 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <mask id=${`equalizer-bg-${this.cardId}-${index}`}>
-        ${equalizer.map((equalizerPart) => equalizerPart.value.map((single, j) => svg`
+        ${equalizer.map((equalizerPart) => {
+          return equalizerPart.value.map(
+            (single, j) => svg`
           <rect
             x=${equalizerPart.x}
             y=${equalizerPart.y[j] - equalizerPart.height}
@@ -2585,7 +2588,9 @@ export default class SparklineGraphTool extends BaseTool {
             width=${Math.max(1, equalizerPart.width)}
             fill='white'
           ></rect>
-        `))}
+        `,
+          );
+        })}
       </mask>
     `;
   }
@@ -2673,8 +2678,10 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   renderSvgRadialBarcodeBin(bin, path, index) {
-    const color = this.computeColor(bin.value, 0);
+    const color = this.computeColor(bin.value, this.entity_index);
     const foregroundStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.radial_barcode?.foreground?.styles);
+    delete foregroundStyles.fill;
+    delete foregroundStyles.stroke;
 
     return svg`
       <path
@@ -2688,6 +2695,8 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgRadialBarcodeBackgroundBin(bin, path, index) {
     const backgroundStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.radial_barcode?.background?.styles);
+    delete backgroundStyles.fill;
+    delete backgroundStyles.stroke;
 
     return svg`
       <path
@@ -2741,20 +2750,25 @@ export default class SparklineGraphTool extends BaseTool {
     const hourMarksRadius = radius * 0.84;
     const hourNumbersRadius = radius * 0.74;
 
-    const renderDayNight = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_day_night === true
-      ? svg`
+    const renderDayNight = () => {
+      return this.runtimeConfig.sparkline.radial_barcode.face?.show_day_night === true
+        ? svg`
         <circle pathLength="1" r="${dayNightRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
       `
-      : '');
+        : '';
+    };
 
-    const renderHourMarks = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_marks === true
-      ? svg`
+    const renderHourMarks = () => {
+      return this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_marks === true
+        ? svg`
         <circle pathLength=${this.runtimeConfig.sparkline.radial_barcode.face.hour_marks_count} r="${hourMarksRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
       `
-      : '');
+        : '';
+    };
 
-    const renderAbsoluteHourNumbers = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'absolute'
-      ? svg`
+    const renderAbsoluteHourNumbers = () => {
+      return this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'absolute'
+        ? svg`
         <g>
           <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">24</text>
           <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">12</text>
@@ -2762,10 +2776,12 @@ export default class SparklineGraphTool extends BaseTool {
           <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">18</text>
         </g>
       `
-      : '');
+        : '';
+    };
 
-    const renderRelativeHourNumbers = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'relative'
-      ? svg`
+    const renderRelativeHourNumbers = () => {
+      return this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'relative'
+        ? svg`
         <g>
           <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">0</text>
           <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">-12</text>
@@ -2773,7 +2789,8 @@ export default class SparklineGraphTool extends BaseTool {
           <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">-6</text>
         </g>
       `
-      : '');
+        : '';
+    };
 
     return svg`
       ${renderDayNight()}
