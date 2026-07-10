@@ -926,7 +926,8 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   getRadialBarcodePointIndexFromEvent(e) {
-    const target = e?.currentTarget || document.elementFromPoint(e?.touches?.[0]?.clientX ?? e?.changedTouches?.[0]?.clientX, e?.touches?.[0]?.clientY ?? e?.changedTouches?.[0]?.clientY);
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : e?.currentTarget;
     const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     return Number(bin?.dataset?.pointIndex);
   }
@@ -1072,15 +1073,70 @@ export default class SparklineGraphTool extends BaseTool {
     this.updateActiveIndicatorDom();
   }
 
+  scheduleRadialHoverFrame() {
+    if (this._radialRafId) return;
+
+    this._radialRafId = window.requestAnimationFrame(() => {
+      this._radialRafId = null;
+
+      if (this._radialPendingLeave) {
+        this._radialPendingLeave = false;
+        this._radialPendingPointIndex = undefined;
+        this._radialPendingEvent = undefined;
+        this.restoreRadialActiveBinDom();
+        this.clearRadialTooltip();
+        return;
+      }
+
+      const pointIndex = this._radialPendingPointIndex;
+      const event = this._radialPendingEvent;
+      this._radialPendingPointIndex = undefined;
+      this._radialPendingEvent = undefined;
+
+      if (!Number.isFinite(pointIndex)) return;
+
+      this.updateTooltipFromRadialBarcode(pointIndex, event);
+    });
+  }
+
+  restoreRadialActiveBinDom() {
+    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    if (!bins) return;
+
+    bins.forEach((bin) => {
+      if (!bin.__fhsRadialOriginalStyle) return;
+
+      const restoreStyle = (prop, value) => {
+        if (value === '') {
+          bin.style.removeProperty(prop);
+        } else {
+          bin.style.setProperty(prop, value);
+        }
+      };
+
+      restoreStyle('opacity', bin.__fhsRadialOriginalStyle.opacity);
+      restoreStyle('filter', bin.__fhsRadialOriginalStyle.filter);
+      restoreStyle('stroke-width', bin.__fhsRadialOriginalStyle.strokeWidth);
+    });
+  }
+
   updateRadialActiveBinDom(pointIndex) {
     const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     if (!bins) return;
 
     bins.forEach((bin) => {
-      const isActive = Number(bin.dataset.pointIndex) === pointIndex;
-      bin.style.opacity = isActive ? '1' : '0.35';
-      bin.style.filter = isActive ? 'brightness(1.15)' : 'none';
-      bin.style.strokeWidth = isActive ? '2' : '1';
+      if (!bin.__fhsRadialOriginalStyle) {
+        bin.__fhsRadialOriginalStyle = {
+          opacity: bin.style.opacity,
+          filter: bin.style.filter,
+          strokeWidth: bin.style.strokeWidth,
+        };
+      }
+
+      const isActive = pointIndex >= 0 && Number(bin.dataset.pointIndex) === pointIndex;
+      bin.style.setProperty('opacity', isActive ? '1' : '0.35');
+      bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
+      bin.style.setProperty('stroke-width', isActive ? '2' : '1');
     });
   }
 
@@ -1352,7 +1408,10 @@ export default class SparklineGraphTool extends BaseTool {
           const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
           this.pointerEvent = e;
           this.activeX = undefined;
-          this.updateTooltipFromRadialBarcode(pointIndex, e);
+          this._radialPendingLeave = false;
+          this._radialPendingPointIndex = pointIndex;
+          this._radialPendingEvent = e;
+          this.scheduleRadialHoverFrame();
         });
 
       this._radialMoveHandler =
@@ -1361,7 +1420,10 @@ export default class SparklineGraphTool extends BaseTool {
           const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
           this.pointerEvent = e;
           this.activeX = undefined;
-          this.updateTooltipFromRadialBarcode(pointIndex, e);
+          this._radialPendingLeave = false;
+          this._radialPendingPointIndex = pointIndex;
+          this._radialPendingEvent = e;
+          this.scheduleRadialHoverFrame();
         });
 
       this._radialLeaveHandler =
@@ -1369,8 +1431,10 @@ export default class SparklineGraphTool extends BaseTool {
         (() => {
           this.pointerEvent = undefined;
           this.activeX = undefined;
-          this.updateRadialActiveBinDom(-1);
-          this.clearRadialTooltip();
+          this._radialPendingPointIndex = undefined;
+          this._radialPendingEvent = undefined;
+          this._radialPendingLeave = true;
+          this.scheduleRadialHoverFrame();
         });
 
       this._radialTouchMoveHandler =
@@ -1378,10 +1442,13 @@ export default class SparklineGraphTool extends BaseTool {
         ((e) => {
           e.preventDefault();
           const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
-          if (Number.isNaN(pointIndex)) return;
+          if (!Number.isFinite(pointIndex)) return;
           this.pointerEvent = e;
           this.activeX = undefined;
-          this.updateTooltipFromRadialBarcode(pointIndex, e);
+          this._radialPendingLeave = false;
+          this._radialPendingPointIndex = pointIndex;
+          this._radialPendingEvent = e;
+          this.scheduleRadialHoverFrame();
         });
 
       this._radialTouchEndHandler =
@@ -1389,8 +1456,10 @@ export default class SparklineGraphTool extends BaseTool {
         (() => {
           this.pointerEvent = undefined;
           this.activeX = undefined;
-          this.updateRadialActiveBinDom(-1);
-          this.clearRadialTooltip();
+          this._radialPendingPointIndex = undefined;
+          this._radialPendingEvent = undefined;
+          this._radialPendingLeave = true;
+          this.scheduleRadialHoverFrame();
         });
 
       this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
