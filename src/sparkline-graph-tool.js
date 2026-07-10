@@ -925,6 +925,12 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedX;
   }
 
+  getRadialBarcodePointIndexFromEvent(e) {
+    const target = e?.currentTarget || document.elementFromPoint(e?.touches?.[0]?.clientX ?? e?.changedTouches?.[0]?.clientX, e?.touches?.[0]?.clientY ?? e?.changedTouches?.[0]?.clientY);
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    return Number(bin?.dataset?.pointIndex);
+  }
+
   /**
    * Updates active pointer state for indicator/snake rendering.
    *
@@ -1035,9 +1041,47 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
+  updateTooltipFromRadialBarcode(pointIndex, event) {
+    this.activeX = undefined;
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    const svgBox = this.elements.svg.getBoundingClientRect();
+    const scaleX = svgBox.width / this.svg.width;
+    const scaleY = svgBox.height / this.svg.height;
+    this.elements.tooltipBounds = {
+      left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
+      top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+      right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+      bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+    };
+    this.updateRadialActiveBinDom(pointIndex);
+    this.updateActiveIndicatorDom();
+    this.updateTooltipFromPointIndex(pointIndex, event);
+    this.updateTooltipContentDom();
+    this.updateTooltipPositionDom(event);
+    this.updateTooltipVisibilityDom(true);
+  }
+
   clearTooltip() {
     this.tooltip = {};
     this.tooltipVisible = false;
+  }
+
+  clearRadialTooltip() {
+    this.clearTooltip();
+    this.updateTooltipVisibilityDom(false);
+    this.updateActiveIndicatorDom();
+  }
+
+  updateRadialActiveBinDom(pointIndex) {
+    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    if (!bins) return;
+
+    bins.forEach((bin) => {
+      const isActive = Number(bin.dataset.pointIndex) === pointIndex;
+      bin.style.opacity = isActive ? '1' : '0.35';
+      bin.style.filter = isActive ? 'brightness(1.15)' : 'none';
+      bin.style.strokeWidth = isActive ? '2' : '1';
+    });
   }
 
   updateActiveIndicatorDom() {
@@ -1066,14 +1110,24 @@ export default class SparklineGraphTool extends BaseTool {
 
   updateTooltipPositionDom(e) {
     const tooltip = this.elements.tooltip;
-    const containerBox = this.elements.containerRect;
+    const containerBox = this.elements.containerRect || this.elements.container.getBoundingClientRect();
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0] ?? e;
 
     if (!tooltip || !containerBox || touch?.clientX === undefined || touch?.clientY === undefined) return;
 
     let left = touch.clientX - containerBox.left;
     let top = touch.clientY - containerBox.top;
-    const bounds = this.elements.tooltipBounds;
+    const isTouch = e?.touches?.length > 0 || e?.changedTouches?.length > 0;
+    if (isTouch && this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode') {
+      left += 18;
+      top -= 28;
+    }
+    const bounds = this.elements.tooltipBounds || {
+      left: 0,
+      top: 0,
+      right: containerBox.width,
+      bottom: containerBox.height,
+    };
 
     left = Math.max(bounds.left, Math.min(left, bounds.right));
     top = Math.max(bounds.top, Math.min(top, bounds.bottom));
@@ -1290,6 +1344,69 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+
+    if (this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode') {
+      this._radialEnterHandler =
+        this._radialEnterHandler ||
+        ((e) => {
+          const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+          this.pointerEvent = e;
+          this.activeX = undefined;
+          this.updateTooltipFromRadialBarcode(pointIndex, e);
+        });
+
+      this._radialMoveHandler =
+        this._radialMoveHandler ||
+        ((e) => {
+          const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+          this.pointerEvent = e;
+          this.activeX = undefined;
+          this.updateTooltipFromRadialBarcode(pointIndex, e);
+        });
+
+      this._radialLeaveHandler =
+        this._radialLeaveHandler ||
+        (() => {
+          this.pointerEvent = undefined;
+          this.activeX = undefined;
+          this.updateRadialActiveBinDom(-1);
+          this.clearRadialTooltip();
+        });
+
+      this._radialTouchMoveHandler =
+        this._radialTouchMoveHandler ||
+        ((e) => {
+          e.preventDefault();
+          const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
+          if (Number.isNaN(pointIndex)) return;
+          this.pointerEvent = e;
+          this.activeX = undefined;
+          this.updateTooltipFromRadialBarcode(pointIndex, e);
+        });
+
+      this._radialTouchEndHandler =
+        this._radialTouchEndHandler ||
+        (() => {
+          this.pointerEvent = undefined;
+          this.activeX = undefined;
+          this.updateRadialActiveBinDom(-1);
+          this.clearRadialTooltip();
+        });
+
+      this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
+        bin.addEventListener('mouseenter', this._radialEnterHandler, false);
+        bin.addEventListener('mousemove', this._radialMoveHandler, false);
+        bin.addEventListener('mouseleave', this._radialLeaveHandler, false);
+      });
+
+      this.elements.svg.addEventListener('touchstart', this._radialTouchMoveHandler, { passive: false });
+      this.elements.svg.addEventListener('touchmove', this._radialTouchMoveHandler, { passive: false });
+      this.elements.svg.addEventListener('touchend', this._radialTouchEndHandler, { passive: false });
+      this.elements.svg.addEventListener('touchcancel', this._radialTouchEndHandler, { passive: false });
+
+      this.elements.svg.dataset.pointerReady = 'true';
+      return;
+    }
 
     function Frame2() {
       this.rid = null;
@@ -2499,6 +2616,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
+    if (this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode') return '';
+
     return svg`
       <line
         id="sparkline-active-indicator-${this.cardId}-${this.index}"
@@ -2685,6 +2804,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <path
+        class='sparkline-radial-barcode__bin'
+        data-point-index=${index}
         d=${path}
         fill=${color}
         stroke=${color}
@@ -2700,6 +2821,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <path
+        class='sparkline-radial-barcode__bg-bin'
+        data-point-index=${index}
         d=${path}
         fill='lightgray'
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
