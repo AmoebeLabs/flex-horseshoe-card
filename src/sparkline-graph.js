@@ -1161,15 +1161,17 @@ export default class SparklineGraph {
 
   getBars(position, total, columnSpacing = 4, rowSpacing = 4) {
     const coords = this._calcY(this.coords);
-    const xRatio = (this.drawArea.width + columnSpacing) / Math.ceil(this.hours * this.points) / total;
+    const bucketWidth = coords.length > 1 ? coords[1][X] - coords[0][X] : this.drawArea.width;
+    const barSlotWidth = bucketWidth / total;
     const yRatio = (this._max - this._min) / this.drawArea.height || 1;
     const offset = this._min < 0 ? Math.abs(this._min) / yRatio : 0;
 
+    const width = Math.max(1, barSlotWidth - columnSpacing);
     return coords.map((coord, i) => ({
-      x: xRatio * i * total + xRatio * position + this.drawArea.x, // Remove start spacing + spacing,
+      x: coord[X] + barSlotWidth * position - width / 2,
       y: this._min > 0 ? coord[Y] : coord[Y2],
       height: coord[V] > 0 ? (this._min < 0 ? coord[V] / yRatio : (coord[V] - this._min) / yRatio) : coord[Y] - coord[Y2],
-      width: xRatio - columnSpacing,
+      width,
       value: coord[V],
     }));
   }

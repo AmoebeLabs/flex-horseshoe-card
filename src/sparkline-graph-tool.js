@@ -181,6 +181,28 @@ export default class SparklineGraphTool extends BaseTool {
           colors: [],
         },
         colorstops_transition: 'smooth',
+        equalizer: {
+          value_buckets: 10,
+          square: false,
+        },
+        graded: {
+          square: false,
+        },
+        radial_barcode: {
+          size: 5,
+          line_width: 0,
+          face: {
+            show_day_night: false,
+            show_hour_marks: false,
+            show_hour_numbers: false,
+            hour_marks_count: 24,
+          },
+          background: {
+            styles: {
+              opacity: 0.3,
+            },
+          },
+        },
         tooltip: {
           styles: {
             'font-size': '0.9em',
@@ -362,6 +384,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.radialBarcodeChart = [];
     this.radialBarcodeChartBackground = [];
     this.graded = [];
+    this.radialBarcodeChartWidth = Utils.calculateSvgDimension(this.runtimeConfig?.sparkline?.radial_barcode?.size || 5);
     this.linePath = undefined;
     this.lineMinPath = undefined;
     this.lineMaxPath = undefined;
@@ -395,6 +418,9 @@ export default class SparklineGraphTool extends BaseTool {
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);
     const line_width = Utils.calculateSvgDimension(config.sparkline?.[config.sparkline.show.chart_type]?.styles?.['stroke-width'] || config.sparkline?.line?.styles?.['stroke-width'] || config.line_width || 0);
+    // this.svg.line_width = Utils.calculateSvgDimension(this.config.sparkline[this.config.sparkline.show.chart_type]?.line_width || this.config.line_width || 0);
+    const column_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.column_spacing || this.config.bar_spacing || 1);
+    const row_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.row_spacing || this.config.bar_spacing || 1);
 
     return {
       ...coordinates,
@@ -404,6 +430,8 @@ export default class SparklineGraphTool extends BaseTool {
       x: coordinates.xpos - width / 2,
       y: coordinates.ypos - height / 2,
       margin,
+      column_spacing,
+      row_spacing,
     };
   }
 
@@ -696,25 +724,80 @@ export default class SparklineGraphTool extends BaseTool {
    */
   updateGraphFromSeries() {
     const range = this.getHistoryRange();
+    const chartType = this.runtimeConfig.sparkline.show.chart_type;
+    const index = 0;
+    const total = 1;
+
     this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     this.Graph.update(this.series);
-    // console.log('updateGraphFromSeries', this.series, range, this.Graph.hours);
 
-    this.linePath = this.Graph.getPath();
-    this.areaPath = this.Graph.getArea(this.linePath);
-    if (this.runtimeConfig.sparkline?.line?.show_minmax === true || this.runtimeConfig.sparkline?.area?.show_minmax === true) {
-      this.lineMinPath = this.Graph.getPathMin();
-      this.lineMaxPath = this.Graph.getPathMax();
-      this.areaMinMaxPath = this.Graph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
-    } else {
-      this.lineMinPath = undefined;
-      this.lineMaxPath = undefined;
-      this.areaMinMaxPath = undefined;
+    this.area = [];
+    this.areaMinMax = [];
+    this.line = [];
+    this.bar = [];
+    this.equalizer = [];
+    this.points = [];
+    this.barcodeChart = [];
+    this.barcodeChartBackground = [];
+    this.radialBarcodeChart = [];
+    this.radialBarcodeChartBackground = [];
+    this.graded = [];
+
+    if (this.Graph.coords.length > 0) {
+      if (['area', 'line'].includes(chartType)) {
+        this.linePath = this.Graph.getPath();
+        if (this.entityConfig?.show_line !== false) {
+          this.line[index] = this.linePath;
+        }
+        if (chartType === 'area') {
+          this.areaPath = this.Graph.getArea(this.linePath);
+          this.area[index] = this.areaPath;
+        } else {
+          this.areaPath = undefined;
+        }
+
+        if (this.runtimeConfig.sparkline?.line?.show_minmax === true || this.runtimeConfig.sparkline?.area?.show_minmax === true) {
+          this.lineMinPath = this.Graph.getPathMin();
+          this.lineMaxPath = this.Graph.getPathMax();
+          this.areaMinMaxPath = this.Graph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
+          this.areaMinMax[index] = this.areaMinMaxPath;
+        } else {
+          this.lineMinPath = undefined;
+          this.lineMaxPath = undefined;
+          this.areaMinMaxPath = undefined;
+        }
+      } else {
+        this.linePath = undefined;
+        this.lineMinPath = undefined;
+        this.lineMaxPath = undefined;
+        this.areaPath = undefined;
+        this.areaMinMaxPath = undefined;
+      }
+
+      if (this.runtimeConfig.sparkline.show.points === true || this.runtimeConfig.sparkline?.line?.show_dots === true || this.runtimeConfig.sparkline?.area?.show_dots === true) {
+        this.points[index] = this.Graph.getPoints();
+      }
+
+      if (chartType === 'bar') {
+        this.bar[index] = this.Graph.getBars(index, total, 4, 4);
+      } else if (chartType === 'equalizer') {
+        this.Graph.levelCount = this.runtimeConfig.sparkline.equalizer.value_buckets;
+        this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.runtimeConfig.sparkline.equalizer.value_buckets;
+        this.equalizer[index] = this.Graph.getEqualizer(index, total, 4, 4);
+      } else if (chartType === 'graded') {
+        this.Graph.levelCount = this.runtimeConfig.sparkline.equalizer.value_buckets;
+        this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.runtimeConfig.sparkline.equalizer.value_buckets;
+        this.graded[index] = this.Graph.getGrades(index, total, 4, 4);
+      } else if (chartType === 'radial_barcode') {
+        this.radialBarcodeChartBackground[index] = this.Graph.getRadialBarcodeBackground(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        this.radialBarcodeChart[index] = this.Graph.getRadialBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        this.Graph.radialBarcodeBackground = this.radialBarcodeChartBackground[index];
+        this.Graph.radialBarcode = this.radialBarcodeChart[index];
+      } else if (chartType === 'barcode') {
+        this.barcodeChart[index] = this.Graph.getBarcode(index, total, 4, 4);
+      }
     }
-    this.area = this.areaPath ? [this.areaPath] : [];
-    this.areaMinMax = this.areaMinMaxPath ? [this.areaMinMaxPath] : [];
-    this.line = this.linePath ? [this.linePath] : [];
-    this.points = this.Graph.coords.length > 0 ? [this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex])] : [];
+
     if (this.runtimeConfig.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
       this.gradient[0] = this.Graph.computeGradient(
         computeThresholds(this.runtimeConfig.sparkline.colorstops.colors, this.runtimeConfig.sparkline.colorstops_transition),
@@ -1738,13 +1821,13 @@ export default class SparklineGraphTool extends BaseTool {
   computeColor(inState, i) {
     const { colorstops, line_color } = this.runtimeConfig.sparkline;
     const state = Number(inState) || 0;
-    console.log('computeColor BEFORE', state, colorstops.colors, line_color[i], line_color[0]);
+    // console.log('computeColor BEFORE', state, colorstops.colors, line_color[i], line_color[0]);
     const threshold = {
       color: line_color[i] || line_color[0],
       ...colorstops.colors.slice(-1)[0],
       ...colorstops.colors.find((ele) => ele.value < state),
     };
-    console.log('computeColor AFTER', state, colorstops.colors, line_color[i], line_color[0], threshold.color);
+    // console.log('computeColor AFTER', state, colorstops.colors, line_color[i], line_color[0], threshold.color);
     return this.card.config.entities[i].color || threshold.color;
   }
 
@@ -2442,55 +2525,308 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   renderSvgTrafficLight(trafficLight, i) {
-    return '';
+    const values = trafficLight.value || [];
+    return svg`
+      ${values.map((value, k) => {
+        const hasValue = typeof value !== 'undefined';
+        const color = hasValue ? this.computeColor(value + 0.001, 0) : 'var(--theme-sys-elevation-surface-neutral4)';
+        const rectY = Array.isArray(trafficLight.y) ? trafficLight.y[k] : trafficLight.y;
+        const rectHeight = Math.max(1, trafficLight.height - this.svg.line_width);
+        const rectWidth = Math.max(1, trafficLight.width - this.svg.line_width);
+        return svg`
+          <rect
+            x=${trafficLight.x + this.svg.line_width / 2}
+            y=${rectY - trafficLight.height + this.svg.line_width / 2}
+            height=${rectHeight}
+            width=${rectWidth}
+            fill=${color}
+            stroke=${color}
+            stroke-width=${this.svg.line_width ? this.svg.line_width : 0}
+            rx="0"
+            ry="0"
+            pathLength="10"
+          ></rect>
+        `;
+      })}
+    `;
   }
 
   renderSvgGraded(trafficLights, i) {
-    return '';
+    if (!trafficLights) return '';
+    const color = this.computeColor(this.card.entities[i].state, i);
+
+    return svg`
+      <g class='traffic-lights'
+        ?tooltip=${this.tooltip.entity === i}
+        ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== i}
+        ?init=${this.length[i]}
+        anim=${this.runtimeConfig.sparkline.animate && this.runtimeConfig.sparkline.show.points !== 'hover'}
+        style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${i * 0.5 + 0.5}s` : '0s'}"
+        fill=${color}
+        stroke=${color}
+        stroke-width=${this.svg.line_width / 2}
+      >
+        ${trafficLights.map((trafficLight) => this.renderSvgTrafficLight(trafficLight, i))}
+      </g>
+    `;
   }
 
   renderSvgEqualizerMask(equalizer, index) {
-    return '';
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'equalizer') return '';
+    if (!equalizer) return '';
+
+    return svg`
+      <mask id=${`equalizer-bg-${this.cardId}-${index}`}>
+        ${equalizer.map((equalizerPart) => equalizerPart.value.map((single, j) => svg`
+          <rect
+            x=${equalizerPart.x}
+            y=${equalizerPart.y[j] - equalizerPart.height}
+            height=${Math.max(1, equalizerPart.height)}
+            width=${Math.max(1, equalizerPart.width)}
+            fill='white'
+          ></rect>
+        `))}
+      </mask>
+    `;
   }
 
   renderSvgBarsMask(bars, index) {
-    return '';
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'bar') return '';
+    if (!bars) return '';
+
+    return svg`
+      <mask id=${`bars-bg-${this.cardId}-${index}`}>
+        ${bars.map(
+          (bar) => svg`
+          <rect
+            x=${bar.x}
+            y=${bar.y}
+            height=${Math.max(1, bar.height)}
+            width=${Math.max(1, bar.width)}
+            fill='white'
+          ></rect>
+        `,
+        )}
+      </mask>
+    `;
   }
 
   renderSvgEqualizerBackground(equalizer, index) {
-    return '';
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'equalizer') return '';
+    if (!equalizer) return '';
+
+    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-0)` : this.computeColor(this.card.entities[index].state, index);
+    return svg`
+      <rect
+        class='equalizer--bg'
+        ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== index}
+        id=${`equalizer-bg-${this.cardId}-${index}`}
+        fill=${fill}
+        height="100%"
+        width="100%"
+        mask=${`url(#equalizer-bg-${this.cardId}-${index})`}
+      ></rect>
+    `;
   }
 
   renderSvgBarsBackground(bars, index) {
-    return '';
+    if (this.runtimeConfig.sparkline.show.chart_type !== 'bar') return '';
+    if (!bars) return '';
+
+    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-0)` : this.computeColor(this.card.entities[index].state, index);
+    return svg`
+      <rect
+        class='bars--bg'
+        ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== index}
+        id=${`bars-bg-${this.cardId}-${index}`}
+        fill=${fill}
+        height="100%"
+        width="100%"
+        mask=${`url(#bars-bg-${this.cardId}-${index})`}
+      ></rect>
+    `;
   }
 
   renderSvgBars(bars, index) {
-    return '';
+    if (!bars) return '';
+
+    return svg`
+      <g class='bars' ?anim=${this.runtimeConfig.sparkline.animate}>
+        ${bars.map((bar, i) => {
+          const color = this.computeColor(bar.value, index);
+          return svg`
+            <rect
+              class='bar'
+              x=${bar.x}
+              y=${bar.y}
+              height=${Math.max(1, bar.height)}
+              width=${Math.max(1, bar.width)}
+              fill=${color}
+              stroke=${color}
+              @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
+              @mouseout=${() => this.clearTooltip()}
+            ></rect>
+          `;
+        })}
+      </g>
+    `;
   }
 
   renderSvgRadialBarcodeBin(bin, path, index) {
-    return '';
+    const color = this.computeColor(bin.value, 0);
+    const foregroundStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.radial_barcode?.foreground?.styles);
+
+    return svg`
+      <path
+        d=${path}
+        fill=${color}
+        stroke=${color}
+        style=${styleMap(this.getRenderStyles(foregroundStyles))}
+      ></path>
+    `;
   }
 
   renderSvgRadialBarcodeBackgroundBin(bin, path, index) {
-    return '';
+    const backgroundStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.radial_barcode?.background?.styles);
+
+    return svg`
+      <path
+        d=${path}
+        fill='lightgray'
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+      ></path>
+    `;
   }
 
   renderSvgRadialBarcodeBackground(radius) {
-    return '';
+    const { start, end, start2, end2, largeArcFlag, sweepFlag } = this.Graph._calcRadialBarcodeCoords(0, 359.9, true, radius, radius, this.radialBarcodeChartWidth);
+    const radius2 = { x: radius - this.radialBarcodeChartWidth, y: radius - this.radialBarcodeChartWidth };
+    const backgroundStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.radial_barcode?.background?.styles);
+
+    const d = [
+      'M',
+      start.x,
+      start.y,
+      'A',
+      radius,
+      radius,
+      0,
+      largeArcFlag,
+      sweepFlag,
+      end.x,
+      end.y,
+      'L',
+      end2.x,
+      end2.y,
+      'A',
+      radius2.x,
+      radius2.y,
+      0,
+      largeArcFlag,
+      sweepFlag === '0' ? '1' : '0',
+      start2.x,
+      start2.y,
+      'Z',
+    ].join(' ');
+
+    return svg`
+      <path fill="lightgray" d="${d}" style=${styleMap(this.getRenderStyles(backgroundStyles))}></path>
+    `;
   }
 
   renderSvgRadialBarcodeFace(radius) {
-    return '';
+    if (!this.runtimeConfig?.sparkline?.radial_barcode?.face) return svg``;
+
+    const dayNightRadius = radius * 0.62;
+    const hourMarksRadius = radius * 0.84;
+    const hourNumbersRadius = radius * 0.74;
+
+    const renderDayNight = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_day_night === true
+      ? svg`
+        <circle pathLength="1" r="${dayNightRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
+      `
+      : '');
+
+    const renderHourMarks = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_marks === true
+      ? svg`
+        <circle pathLength=${this.runtimeConfig.sparkline.radial_barcode.face.hour_marks_count} r="${hourMarksRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
+      `
+      : '');
+
+    const renderAbsoluteHourNumbers = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'absolute'
+      ? svg`
+        <g>
+          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">24</text>
+          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">12</text>
+          <text x="${this.svg.width / 2 + hourNumbersRadius}" y="${this.svg.height / 2}">6</text>
+          <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">18</text>
+        </g>
+      `
+      : '');
+
+    const renderRelativeHourNumbers = () => (this.runtimeConfig.sparkline.radial_barcode.face?.show_hour_numbers === 'relative'
+      ? svg`
+        <g>
+          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">0</text>
+          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">-12</text>
+          <text x="${this.svg.width / 2 + hourNumbersRadius}" y="${this.svg.height / 2}">-18</text>
+          <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">-6</text>
+        </g>
+      `
+      : '');
+
+    return svg`
+      ${renderDayNight()}
+      ${renderHourMarks()}
+      ${renderAbsoluteHourNumbers()}
+      ${renderRelativeHourNumbers()}
+    `;
   }
 
   renderSvgRadialBarcode(radialBarcode, index) {
-    return '';
+    if (!radialBarcode) return '';
+    const radialBarcodePaths = this.Graph.getRadialBarcodePaths();
+    const radialBarcodeBackgroundPaths = this.Graph.getRadialBarcodeBackgroundPaths();
+
+    return svg`
+      <g class='graph-clock'
+        ?tooltip=${this.tooltip.entity === index}
+        ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== index}
+        ?init=${this.length[index]}
+        anim=${this.runtimeConfig.sparkline.animate && this.runtimeConfig.sparkline.show.points !== 'hover'}
+        style="animation-delay: ${this.runtimeConfig.sparkline.animate ? `${index * 0.5 + 0.5}s` : '0s'}"
+        stroke-width=${this.svg.line_width / 2}
+      >
+        ${this.radialBarcodeChartBackground[index].map((bin, i) => this.renderSvgRadialBarcodeBackgroundBin(bin, radialBarcodeBackgroundPaths[i], i))}
+        ${radialBarcode.map((bin, i) => this.renderSvgRadialBarcodeBin(bin, radialBarcodePaths[i], i))}
+        ${this.renderSvgRadialBarcodeFace(this.svg.width / 2 - 40)}
+      </g>
+    `;
   }
 
   renderSvgBarcode(barcode, index) {
-    return '';
+    if (!barcode) return '';
+
+    return svg`
+      <g class='bars' ?anim=${this.runtimeConfig.sparkline.animate}>
+        ${barcode.map((barcodePart, i) => {
+          const color = this.computeColor(barcodePart.value, index);
+          return svg`
+            <rect
+              class='bar'
+              x=${barcodePart.x}
+              y=${barcodePart.y}
+              height=${Math.max(1, barcodePart.height)}
+              width=${Math.max(1, barcodePart.width)}
+              fill=${color}
+              stroke=${color}
+              @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
+              @mouseout=${() => this.clearTooltip()}
+            ></rect>
+          `;
+        })}
+      </g>
+    `;
   }
 
   /**
@@ -2527,6 +2863,7 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.line.map((line, i) => this.renderSvgLineBackground(line, i))}
           ${this.bar.map((bars, i) => this.renderSvgBarsMask(bars, i))}
           ${this.bar.map((bars, i) => this.renderSvgBarsBackground(bars, i))}
+          ${this.bar.map((bars, i) => this.renderSvgBars(bars, i))}
           ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerMask(equalizer, i))}
           ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerBackground(equalizer, i))}
           ${this.barcodeChart.map((barcodePart, i) => this.renderSvgBarcode(barcodePart, i))}
