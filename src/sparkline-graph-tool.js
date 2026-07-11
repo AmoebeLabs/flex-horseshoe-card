@@ -1134,9 +1134,17 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       const isActive = pointIndex >= 0 && Number(bin.dataset.pointIndex) === pointIndex;
-      bin.style.setProperty('opacity', isActive ? '1' : '0.35');
-      bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
-      bin.style.setProperty('stroke-width', isActive ? '2' : '1');
+      const isBackgroundBin = bin.classList.contains('sparkline-radial-barcode__bg-bin');
+      const baseOpacity = Number.parseFloat(bin.__fhsRadialOriginalStyle.opacity || getComputedStyle(bin).opacity);
+      if (isBackgroundBin) {
+        bin.style.setProperty('opacity', String(baseOpacity * 0.5));
+        bin.style.setProperty('filter', 'none');
+        bin.style.setProperty('stroke-width', '1');
+      } else {
+        bin.style.setProperty('opacity', String(baseOpacity * (isActive ? 1 : 0.35)));
+        bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
+        bin.style.setProperty('stroke-width', isActive ? '2' : '1');
+      }
     });
   }
 
@@ -1437,8 +1445,8 @@ export default class SparklineGraphTool extends BaseTool {
           this.scheduleRadialHoverFrame();
         });
 
-      this._radialTouchMoveHandler =
-        this._radialTouchMoveHandler ||
+      this._radialTouchStartHandler =
+        this._radialTouchStartHandler ||
         ((e) => {
           e.preventDefault();
           const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
@@ -1448,17 +1456,31 @@ export default class SparklineGraphTool extends BaseTool {
           this._radialPendingLeave = false;
           this._radialPendingPointIndex = pointIndex;
           this._radialPendingEvent = e;
-          this.scheduleRadialHoverFrame();
-        });
-
-      this._radialTouchEndHandler =
-        this._radialTouchEndHandler ||
-        (() => {
-          this.pointerEvent = undefined;
-          this.activeX = undefined;
-          this._radialPendingPointIndex = undefined;
-          this._radialPendingEvent = undefined;
-          this._radialPendingLeave = true;
+          this._radialTouchMoveHandler = this._radialTouchMoveHandler || ((moveEvent) => {
+            moveEvent.preventDefault();
+            const movePointIndex = this.getRadialBarcodePointIndexFromEvent(moveEvent);
+            if (!Number.isFinite(movePointIndex)) return;
+            this.pointerEvent = moveEvent;
+            this.activeX = undefined;
+            this._radialPendingLeave = false;
+            this._radialPendingPointIndex = movePointIndex;
+            this._radialPendingEvent = moveEvent;
+            this.scheduleRadialHoverFrame();
+          });
+          this._radialTouchEndHandler = this._radialTouchEndHandler || (() => {
+            this.pointerEvent = undefined;
+            this.activeX = undefined;
+            this._radialPendingPointIndex = undefined;
+            this._radialPendingEvent = undefined;
+            this._radialPendingLeave = true;
+            window.removeEventListener('touchmove', this._radialTouchMoveHandler, false);
+            window.removeEventListener('touchend', this._radialTouchEndHandler, false);
+            window.removeEventListener('touchcancel', this._radialTouchEndHandler, false);
+            this.scheduleRadialHoverFrame();
+          });
+          window.addEventListener('touchmove', this._radialTouchMoveHandler, { passive: false });
+          window.addEventListener('touchend', this._radialTouchEndHandler, { passive: false });
+          window.addEventListener('touchcancel', this._radialTouchEndHandler, { passive: false });
           this.scheduleRadialHoverFrame();
         });
 
@@ -1468,10 +1490,7 @@ export default class SparklineGraphTool extends BaseTool {
         bin.addEventListener('mouseleave', this._radialLeaveHandler, false);
       });
 
-      this.elements.svg.addEventListener('touchstart', this._radialTouchMoveHandler, { passive: false });
-      this.elements.svg.addEventListener('touchmove', this._radialTouchMoveHandler, { passive: false });
-      this.elements.svg.addEventListener('touchend', this._radialTouchEndHandler, { passive: false });
-      this.elements.svg.addEventListener('touchcancel', this._radialTouchEndHandler, { passive: false });
+      this.elements.svg.addEventListener('touchstart', this._radialTouchStartHandler, { passive: false });
 
       this.elements.svg.dataset.pointerReady = 'true';
       return;
