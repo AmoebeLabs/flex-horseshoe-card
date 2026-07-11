@@ -927,7 +927,12 @@ export default class SparklineGraphTool extends BaseTool {
 
   getRadialBarcodePointIndexFromEvent(e) {
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
-    const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : e?.currentTarget;
+    const point = touch ?? e;
+    const target = point?.clientX !== undefined
+      ? document
+          .elementsFromPoint(point.clientX, point.clientY)
+          .find((element) => element?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'))
+      : e?.target ?? e?.currentTarget;
     const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     return Number(bin?.dataset?.pointIndex);
   }
@@ -1121,7 +1126,8 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   updateRadialActiveBinDom(pointIndex) {
-    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    // const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin');
     if (!bins) return;
 
     bins.forEach((bin) => {
@@ -1134,17 +1140,9 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       const isActive = pointIndex >= 0 && Number(bin.dataset.pointIndex) === pointIndex;
-      const isBackgroundBin = bin.classList.contains('sparkline-radial-barcode__bg-bin');
-      const baseOpacity = Number.parseFloat(bin.__fhsRadialOriginalStyle.opacity || getComputedStyle(bin).opacity);
-      if (isBackgroundBin) {
-        bin.style.setProperty('opacity', String(baseOpacity * 0.5));
-        bin.style.setProperty('filter', 'none');
-        bin.style.setProperty('stroke-width', '1');
-      } else {
-        bin.style.setProperty('opacity', String(baseOpacity * (isActive ? 1 : 0.35)));
-        bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
-        bin.style.setProperty('stroke-width', isActive ? '2' : '1');
-      }
+      bin.style.setProperty('opacity', isActive ? '1' : '0.35');
+      bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
+      bin.style.setProperty('stroke-width', isActive ? '2' : '1');
     });
   }
 
@@ -1253,6 +1251,29 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.updateTooltipFromPointIndex(pointIndex, e);
+  }
+
+  updateRadialActivePointer(e) {
+    const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
+
+    if (!Number.isFinite(pointIndex)) {
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      return;
+    }
+
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    const svgBox = this.elements.svg.getBoundingClientRect();
+    const scaleX = svgBox.width / this.svg.width;
+    const scaleY = svgBox.height / this.svg.height;
+    this.elements.tooltipBounds = {
+      left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
+      top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+      right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+      bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+    };
+    this.updateTooltipFromRadialBarcode(pointIndex, e);
   }
 
   /**
@@ -1456,28 +1477,34 @@ export default class SparklineGraphTool extends BaseTool {
           this._radialPendingLeave = false;
           this._radialPendingPointIndex = pointIndex;
           this._radialPendingEvent = e;
-          this._radialTouchMoveHandler = this._radialTouchMoveHandler || ((moveEvent) => {
-            moveEvent.preventDefault();
-            const movePointIndex = this.getRadialBarcodePointIndexFromEvent(moveEvent);
-            if (!Number.isFinite(movePointIndex)) return;
-            this.pointerEvent = moveEvent;
-            this.activeX = undefined;
-            this._radialPendingLeave = false;
-            this._radialPendingPointIndex = movePointIndex;
-            this._radialPendingEvent = moveEvent;
-            this.scheduleRadialHoverFrame();
-          });
-          this._radialTouchEndHandler = this._radialTouchEndHandler || (() => {
-            this.pointerEvent = undefined;
-            this.activeX = undefined;
-            this._radialPendingPointIndex = undefined;
-            this._radialPendingEvent = undefined;
-            this._radialPendingLeave = true;
-            window.removeEventListener('touchmove', this._radialTouchMoveHandler, false);
-            window.removeEventListener('touchend', this._radialTouchEndHandler, false);
-            window.removeEventListener('touchcancel', this._radialTouchEndHandler, false);
-            this.scheduleRadialHoverFrame();
-          });
+          this._radialTouchMoveHandler =
+            this._radialTouchMoveHandler ||
+            ((moveEvent) => {
+              moveEvent.preventDefault();
+              const movePointIndex = this.getRadialBarcodePointIndexFromEvent(moveEvent);
+              if (!Number.isFinite(movePointIndex)) return;
+              this.pointerEvent = moveEvent;
+              this.activeX = undefined;
+              this._radialPendingLeave = false;
+              this._radialPendingPointIndex = movePointIndex;
+              this._radialPendingEvent = moveEvent;
+              this.scheduleRadialHoverFrame();
+            });
+          this._radialTouchEndHandler =
+            this._radialTouchEndHandler ||
+            ((endEvent) => {
+              endEvent.preventDefault();
+              endEvent.stopPropagation();
+              this.pointerEvent = undefined;
+              this.activeX = undefined;
+              this._radialPendingPointIndex = undefined;
+              this._radialPendingEvent = undefined;
+              this._radialPendingLeave = true;
+              window.removeEventListener('touchmove', this._radialTouchMoveHandler, false);
+              window.removeEventListener('touchend', this._radialTouchEndHandler, false);
+              window.removeEventListener('touchcancel', this._radialTouchEndHandler, false);
+              this.scheduleRadialHoverFrame();
+            });
           window.addEventListener('touchmove', this._radialTouchMoveHandler, { passive: false });
           window.addEventListener('touchend', this._radialTouchEndHandler, { passive: false });
           window.addEventListener('touchcancel', this._radialTouchEndHandler, { passive: false });
