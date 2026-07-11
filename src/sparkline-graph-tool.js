@@ -1475,16 +1475,6 @@ export default class SparklineGraphTool extends BaseTool {
       }
     }
 
-    function containerHoverMove(e) {
-      if (this.dragging || !this.hovering) return;
-
-      if (isRadialBarcode) {
-        this.updateRadialActivePointer(e);
-      } else {
-        this.updateActivePointer(e);
-      }
-    }
-
     function hoverLeave() {
       if (this.dragging) return;
 
@@ -1499,174 +1489,71 @@ export default class SparklineGraphTool extends BaseTool {
     function pointerDown(e) {
       e.preventDefault();
 
-      // Safari: keep the proven touch/mouse starter split from the slider example.
-      if (e.type === 'touchstart') {
-        window.addEventListener('touchmove', this._pointerMoveHandler, { passive: false });
-        window.addEventListener('touchend', this._pointerUpHandler, { passive: false });
-        window.addEventListener('touchcancel', this._pointerUpHandler, { passive: false });
-      } else {
-        window.addEventListener('mousemove', this._pointerMoveHandler, false);
-        window.addEventListener('mouseup', this._pointerUpHandler, false);
-      }
+      // @NTS: Keep this comment for later!!
+      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      // @NTS: Keep this comment for later!!
+      // Below lines prevent slider working on Safari...
+      //
+      // window.addEventListener('mousemove', pointerMove.bind(this), false);
+      // window.addEventListener('touchmove', pointerMove.bind(this), false);
+      // window.addEventListener('mouseup', pointerUp.bind(this), false);
+      // window.addEventListener('touchend', pointerUp.bind(this), false);
 
       this.dragging = true;
       this.pointerEvent = e;
       this.elements.containerRect = this.elements.container.getBoundingClientRect();
-      const svgBox = this.elements.svg.getBoundingClientRect();
-      const scaleX = svgBox.width / this.svg.width;
-      const scaleY = svgBox.height / this.svg.height;
-      this.elements.tooltipBounds = {
-        left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
-        top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
-        right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
-        bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
-      };
-
       if (isRadialBarcode) {
         this.updateRadialActivePointer(e);
       } else {
         this.updateActivePointer(e);
       }
-
       this.updateTooltipVisibilityDom(true);
       this.updateActiveIndicatorDom();
+      Frame2.call(this);
     }
 
     function pointerUp(e) {
       e.preventDefault();
 
-      // Safari: copied cleanup pattern from slider-pointer-example.js.
-      window.removeEventListener('pointermove', this._pointerMoveHandler, false);
-      window.removeEventListener('pointerup', this._pointerUpHandler, false);
-      window.removeEventListener('mousemove', this._pointerMoveHandler, false);
-      window.removeEventListener('mouseup', this._pointerUpHandler, false);
-      window.removeEventListener('touchmove', this._pointerMoveHandler, false);
-      window.removeEventListener('touchend', this._pointerUpHandler, false);
-      window.removeEventListener('touchcancel', this._pointerUpHandler, false);
+      // @NTS: Keep this comment for later!!
+      // Safari: Fixes unable to grab pointer
+      window.removeEventListener('pointermove', pointerMove.bind(this), false);
+      window.removeEventListener('pointerup', pointerUp.bind(this), false);
+
+      window.removeEventListener('mousemove', pointerMove.bind(this), false);
+      window.removeEventListener('touchmove', pointerMove.bind(this), false);
+      window.removeEventListener('mouseup', pointerUp.bind(this), false);
+      window.removeEventListener('touchend', pointerUp.bind(this), false);
 
       if (!this.dragging) return;
 
       this.dragging = false;
       this.activeX = undefined;
       this.pointerEvent = undefined;
-      if (this.rid) {
-        window.cancelAnimationFrame(this.rid);
-        this.rid = null;
-      }
-
+      this.rid = null;
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
       this.updateActiveIndicatorDom();
       this.elements.containerRect = undefined;
+      Frame2.call(this);
     }
 
-    this._pointerMoveHandler = this._pointerMoveHandler || pointerMove.bind(this);
-    this._pointerDownHandler = this._pointerDownHandler || pointerDown.bind(this);
-    this._pointerUpHandler = this._pointerUpHandler || pointerUp.bind(this);
-    this._hoverMoveHandler = this._hoverMoveHandler || hoverMove.bind(this);
-    this._hoverLeaveHandler = this._hoverLeaveHandler || hoverLeave.bind(this);
+    // @NTS: Keep this comment for later!!
+    // For things to work in Safari, we need separate touch and mouse down handlers...
+    // DON't ask WHY! The pointerdown method prevents listening on window events later on.
+    // ie, we can't move our finger
 
-    // Keep separate touch and mouse starters. The move/up listeners are bound on
-    // window so the pointer can leave the SVG without breaking tracking.
-    this.elements.svg.addEventListener('touchstart', this._pointerDownHandler, { passive: false });
-    this.elements.svg.addEventListener('mousedown', this._pointerDownHandler, false);
+    // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
 
-    // Desktop hover is not part of the slider drag behavior. Keep it local to
-    // the SVG so mouse users can inspect the graph without clicking.
-    this.elements.svg.addEventListener('mousemove', this._hoverMoveHandler, false);
-    this.elements.container.addEventListener('mousemove', this._hoverMoveHandler, false);
-    this.elements.container.addEventListener('mouseleave', this._hoverLeaveHandler, false);
-    this.elements.svg.dataset.pointerReady = 'true';
-  }
-
-  attachPointerHandlersV1() {
-    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
-    this.elements.container = this.card.shadowRoot.getElementById('container');
-    this.elements.activeIndicator = this.card.shadowRoot.querySelector('.sparkline-active-indicator');
-    this.elements.tooltip = this.card.shadowRoot.querySelector('.sparkline-tooltip');
-
-    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
-
-    this._pointerMoveHandler =
-      this._pointerMoveHandler ||
-      ((e) => {
-        e.preventDefault();
-
-        if (this.dragging) {
-          this.updateActivePointer(e);
-        }
-      });
-
-    this._pointerDownHandler =
-      this._pointerDownHandler ||
-      ((e) => {
-        e.preventDefault();
-
-        if (e.type === 'touchstart') {
-          this.elements.containerRect = this.elements.container?.getBoundingClientRect();
-          window.addEventListener('touchmove', this._pointerMoveHandler, { passive: false });
-          window.addEventListener('touchend', this._pointerUpHandler, { passive: false });
-          window.addEventListener('touchcancel', this._pointerUpHandler, { passive: false });
-        } else {
-          window.addEventListener('mousemove', this._pointerMoveHandler, false);
-          window.addEventListener('mouseup', this._pointerUpHandler, false);
-        }
-
-        this.dragging = true;
-        this.updateActivePointer(e);
-      });
-
-    this._pointerUpHandler =
-      this._pointerUpHandler ||
-      ((e) => {
-        e.preventDefault();
-
-        window.removeEventListener('pointermove', this._pointerMoveHandler, false);
-        window.removeEventListener('pointerup', this._pointerUpHandler, false);
-        window.removeEventListener('mousemove', this._pointerMoveHandler, false);
-        window.removeEventListener('mouseup', this._pointerUpHandler, false);
-        window.removeEventListener('touchmove', this._pointerMoveHandler, false);
-        window.removeEventListener('touchend', this._pointerUpHandler, false);
-        window.removeEventListener('touchcancel', this._pointerUpHandler, false);
-
-        if (!this.dragging) return;
-
-        this.dragging = false;
-        this.activeX = undefined;
-        this.clearTooltip();
-        this.updateTooltipVisibilityDom(false);
-        this.updateActiveIndicatorDom();
-        this.elements.containerRect = undefined;
-      });
-
-    this._hoverMoveHandler =
-      this._hoverMoveHandler ||
-      ((e) => {
-        if (this.dragging) return;
-
-        this.updateActivePointer(e);
-      });
-
-    this._hoverLeaveHandler =
-      this._hoverLeaveHandler ||
-      (() => {
-        if (this.dragging) return;
-
-        this.activeX = undefined;
-        this.clearTooltip();
-        this.updateTooltipVisibilityDom(false);
-        this.updateActiveIndicatorDom();
-      });
-
-    // Keep separate touch and mouse starters. The move/up listeners are bound on
-    // window so the pointer can leave the SVG without breaking tracking.
-    this.elements.svg.addEventListener('touchstart', this._pointerDownHandler, { passive: false });
-    this.elements.svg.addEventListener('mousedown', this._pointerDownHandler, false);
-
-    // Desktop hover is not part of the slider drag behavior. Keep it local to
-    // the SVG so mouse users can inspect the graph without clicking.
-    this.elements.svg.addEventListener('mousemove', this._hoverMoveHandler, false);
-    this.elements.svg.addEventListener('mouseleave', this._hoverLeaveHandler, false);
+    this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
+    this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
+    this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
+    this.elements.container.addEventListener('mousemove', hoverMove.bind(this), false);
+    this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
     this.elements.svg.dataset.pointerReady = 'true';
   }
 
