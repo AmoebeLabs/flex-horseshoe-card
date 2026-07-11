@@ -1430,102 +1430,15 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
 
-    if (this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode') {
-      this._radialEnterHandler =
-        this._radialEnterHandler ||
-        ((e) => {
-          const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
-          this.pointerEvent = e;
-          this.activeX = undefined;
-          this._radialPendingLeave = false;
-          this._radialPendingPointIndex = pointIndex;
-          this._radialPendingEvent = e;
-          this.scheduleRadialHoverFrame();
-        });
-
-      this._radialMoveHandler =
-        this._radialMoveHandler ||
-        ((e) => {
-          const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
-          this.pointerEvent = e;
-          this.activeX = undefined;
-          this._radialPendingLeave = false;
-          this._radialPendingPointIndex = pointIndex;
-          this._radialPendingEvent = e;
-          this.scheduleRadialHoverFrame();
-        });
-
-      this._radialLeaveHandler =
-        this._radialLeaveHandler ||
-        (() => {
-          this.pointerEvent = undefined;
-          this.activeX = undefined;
-          this._radialPendingPointIndex = undefined;
-          this._radialPendingEvent = undefined;
-          this._radialPendingLeave = true;
-          this.scheduleRadialHoverFrame();
-        });
-
-      this._radialTouchStartHandler =
-        this._radialTouchStartHandler ||
-        ((e) => {
-          e.preventDefault();
-          const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
-          if (!Number.isFinite(pointIndex)) return;
-          this.pointerEvent = e;
-          this.activeX = undefined;
-          this._radialPendingLeave = false;
-          this._radialPendingPointIndex = pointIndex;
-          this._radialPendingEvent = e;
-          this._radialTouchMoveHandler =
-            this._radialTouchMoveHandler ||
-            ((moveEvent) => {
-              moveEvent.preventDefault();
-              const movePointIndex = this.getRadialBarcodePointIndexFromEvent(moveEvent);
-              if (!Number.isFinite(movePointIndex)) return;
-              this.pointerEvent = moveEvent;
-              this.activeX = undefined;
-              this._radialPendingLeave = false;
-              this._radialPendingPointIndex = movePointIndex;
-              this._radialPendingEvent = moveEvent;
-              this.scheduleRadialHoverFrame();
-            });
-          this._radialTouchEndHandler =
-            this._radialTouchEndHandler ||
-            ((endEvent) => {
-              endEvent.preventDefault();
-              endEvent.stopPropagation();
-              this.pointerEvent = undefined;
-              this.activeX = undefined;
-              this._radialPendingPointIndex = undefined;
-              this._radialPendingEvent = undefined;
-              this._radialPendingLeave = true;
-              window.removeEventListener('touchmove', this._radialTouchMoveHandler, false);
-              window.removeEventListener('touchend', this._radialTouchEndHandler, false);
-              window.removeEventListener('touchcancel', this._radialTouchEndHandler, false);
-              this.scheduleRadialHoverFrame();
-            });
-          window.addEventListener('touchmove', this._radialTouchMoveHandler, { passive: false });
-          window.addEventListener('touchend', this._radialTouchEndHandler, { passive: false });
-          window.addEventListener('touchcancel', this._radialTouchEndHandler, { passive: false });
-          this.scheduleRadialHoverFrame();
-        });
-
-      this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
-        bin.addEventListener('mouseenter', this._radialEnterHandler, false);
-        bin.addEventListener('mousemove', this._radialMoveHandler, false);
-        bin.addEventListener('mouseleave', this._radialLeaveHandler, false);
-      });
-
-      this.elements.svg.addEventListener('touchstart', this._radialTouchStartHandler, { passive: false });
-
-      this.elements.svg.dataset.pointerReady = 'true';
-      return;
-    }
+    const isRadialBarcode = this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode';
 
     function Frame2() {
       this.rid = null;
-      this.updateActivePointer(this.pointerEvent);
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(this.pointerEvent);
+      } else {
+        this.updateActivePointer(this.pointerEvent);
+      }
     }
 
     function pointerMove(e) {
@@ -1546,7 +1459,7 @@ export default class SparklineGraphTool extends BaseTool {
         const svgBox = this.elements.svg.getBoundingClientRect();
         const scaleX = svgBox.width / this.svg.width;
         const scaleY = svgBox.height / this.svg.height;
-        const hoverPaddingX = this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
+        const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
         this.elements.tooltipBounds = {
           left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
           top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
@@ -1554,13 +1467,22 @@ export default class SparklineGraphTool extends BaseTool {
           bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
         };
       }
-      this.updateActivePointer(e);
+
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
     }
 
     function containerHoverMove(e) {
       if (this.dragging || !this.hovering) return;
 
-      this.updateActivePointer(e);
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
     }
 
     function hoverLeave() {
@@ -1577,12 +1499,15 @@ export default class SparklineGraphTool extends BaseTool {
     function pointerDown(e) {
       e.preventDefault();
 
-      // Safari: copied from slider-pointer-example.js. Use touchstart/mousedown
-      // as starters, then window pointermove/pointerup so dragging can continue
-      // outside the SVG/card.
-      window.addEventListener('pointermove', pointerMove.bind(this), false);
-      // eslint-disable-next-line no-use-before-define
-      window.addEventListener('pointerup', pointerUp.bind(this), false);
+      // Safari: keep the proven touch/mouse starter split from the slider example.
+      if (e.type === 'touchstart') {
+        window.addEventListener('touchmove', this._pointerMoveHandler, { passive: false });
+        window.addEventListener('touchend', this._pointerUpHandler, { passive: false });
+        window.addEventListener('touchcancel', this._pointerUpHandler, { passive: false });
+      } else {
+        window.addEventListener('mousemove', this._pointerMoveHandler, false);
+        window.addEventListener('mouseup', this._pointerUpHandler, false);
+      }
 
       this.dragging = true;
       this.pointerEvent = e;
@@ -1596,7 +1521,13 @@ export default class SparklineGraphTool extends BaseTool {
         right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
         bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
       };
-      this.updateActivePointer(e);
+
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+
       this.updateTooltipVisibilityDom(true);
       this.updateActiveIndicatorDom();
     }
@@ -1605,12 +1536,13 @@ export default class SparklineGraphTool extends BaseTool {
       e.preventDefault();
 
       // Safari: copied cleanup pattern from slider-pointer-example.js.
-      window.removeEventListener('pointermove', pointerMove.bind(this), false);
-      window.removeEventListener('pointerup', pointerUp.bind(this), false);
-      window.removeEventListener('mousemove', pointerMove.bind(this), false);
-      window.removeEventListener('touchmove', pointerMove.bind(this), false);
-      window.removeEventListener('mouseup', pointerUp.bind(this), false);
-      window.removeEventListener('touchend', pointerUp.bind(this), false);
+      window.removeEventListener('pointermove', this._pointerMoveHandler, false);
+      window.removeEventListener('pointerup', this._pointerUpHandler, false);
+      window.removeEventListener('mousemove', this._pointerMoveHandler, false);
+      window.removeEventListener('mouseup', this._pointerUpHandler, false);
+      window.removeEventListener('touchmove', this._pointerMoveHandler, false);
+      window.removeEventListener('touchend', this._pointerUpHandler, false);
+      window.removeEventListener('touchcancel', this._pointerUpHandler, false);
 
       if (!this.dragging) return;
 
@@ -1628,16 +1560,22 @@ export default class SparklineGraphTool extends BaseTool {
       this.elements.containerRect = undefined;
     }
 
-    // For things to work in Safari, keep separate touch and mouse down handlers.
-    // The slider showed that pointerdown prevents later window events on Safari.
-    this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
-    this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
+    this._pointerMoveHandler = this._pointerMoveHandler || pointerMove.bind(this);
+    this._pointerDownHandler = this._pointerDownHandler || pointerDown.bind(this);
+    this._pointerUpHandler = this._pointerUpHandler || pointerUp.bind(this);
+    this._hoverMoveHandler = this._hoverMoveHandler || hoverMove.bind(this);
+    this._hoverLeaveHandler = this._hoverLeaveHandler || hoverLeave.bind(this);
+
+    // Keep separate touch and mouse starters. The move/up listeners are bound on
+    // window so the pointer can leave the SVG without breaking tracking.
+    this.elements.svg.addEventListener('touchstart', this._pointerDownHandler, { passive: false });
+    this.elements.svg.addEventListener('mousedown', this._pointerDownHandler, false);
 
     // Desktop hover is not part of the slider drag behavior. Keep it local to
     // the SVG so mouse users can inspect the graph without clicking.
-    this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
-    this.elements.container.addEventListener('mousemove', containerHoverMove.bind(this), false);
-    this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
+    this.elements.svg.addEventListener('mousemove', this._hoverMoveHandler, false);
+    this.elements.container.addEventListener('mousemove', this._hoverMoveHandler, false);
+    this.elements.container.addEventListener('mouseleave', this._hoverLeaveHandler, false);
     this.elements.svg.dataset.pointerReady = 'true';
   }
 
@@ -2680,6 +2618,7 @@ export default class SparklineGraphTool extends BaseTool {
       transform: 'translate(-50%, calc(-100% - 6px))',
       'font-size': tooltipStyles['font-size'] ?? '0.5em',
       'max-width': 'calc(100% - 24px)',
+      'pointer-events': 'none',
       display: this.tooltipVisible ? 'block' : 'none',
     };
     const valueCellStyles = {
