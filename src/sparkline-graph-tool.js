@@ -925,8 +925,75 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedX;
   }
 
-  // Version from Gemini
+  // Version from Gemini. Extended with angle to allow touch go outside SVG
+
   getRadialBarcodePointIndexFromEvent(e) {
+    // 1. Extract touch or cursor data safely
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const point = touch ?? e;
+
+    // 2. COORDINATE-BASED RADARS (Handles standard mouse/touch movement)
+    if (point?.clientX !== undefined && point?.clientY !== undefined) {
+      // A. PRIMARY SHADOW-DOM RADAR: Try exact pixel hit test inside the web component
+      const shadowContainer = this.elements.svg.getRootNode();
+      const hitTestScope = shadowContainer instanceof ShadowRoot ? shadowContainer : document;
+      const elementStack = Array.from(hitTestScope.elementsFromPoint(point.clientX, point.clientY));
+
+      const matchedElement = elementStack.find((el) => el?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'));
+
+      const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+
+      // If the cursor/finger is directly touching a petal, return its index immediately
+      if (bin) {
+        return Number(bin.dataset.pointIndex);
+      }
+
+      // B. SECONDARY ANGLE RADAR: Distance & Angle calculation (When finger/cursor drifts outside)
+      // Only execute this if the user started the interaction intentionally by clicking/touching a petal first
+      if (this.isInteractionLocked) {
+        // Query a specific radial container (like the background group) to keep the center stable
+        // even if there are titles/legends inside the same SVG space.
+        const radialContainer = this.elements.svg.querySelector('.sparkline-radial-barcode__bg-bin')?.parentNode ?? this.elements.svg;
+        const svgRect = radialContainer.getBoundingClientRect();
+        const centerX = svgRect.left + svgRect.width / 2;
+        const centerY = svgRect.top + svgRect.height / 2;
+
+        // Calculate raw angle in radians (-PI to PI)
+        const radians = Math.atan2(point.clientY - centerY, point.clientX - centerX);
+
+        // Convert to degrees and apply a +90 deg offset to shift index 0 from 3 o'clock to 12 o'clock (top)
+        const degrees = (radians * (180 / Math.PI) + 360 + 90) % 360;
+
+        // Fetch the total number of bins from the DOM tree
+        const binsList = this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin');
+        const totalBins = binsList.length;
+
+        if (totalBins === 0) return NaN;
+
+        // Calculate the size of each individual wedge/slice in degrees
+        const degreesPerBin = 360 / totalBins;
+
+        // Calculate which slice the finger is pointing at while dragging far away
+        const calculatedIndex = Math.floor(degrees / degreesPerBin);
+
+        // Clamp the index safely between 0 and the max available index (loop-free)
+        return Math.min(Math.max(0, calculatedIndex), totalBins - 1);
+      }
+
+      // If the pointer is outside the layout and the interaction loop wasn't locked on start, ignore it
+      return NaN;
+    }
+
+    // 3. TRADITIONAL DESKTOP FALLBACK
+    // Executed for legacy or accessibility actions where raw screen pixels (clientX) are absent,
+    // but a valid, direct DOM event target is present (e.g., standard keyboard focus/blur triggers).
+    const target = e?.target ?? e?.currentTarget;
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    return bin ? Number(bin.dataset.pointIndex) : NaN;
+  }
+
+  // Version from Gemini. V4 works for hover and touch
+  getRadialBarcodePointIndexFromEventV4(e) {
     // 1. Extract touch data safely (supports touchmove and touchend via changedTouches)
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
     const point = touch ?? e;
@@ -1709,12 +1776,13 @@ export default class SparklineGraphTool extends BaseTool {
       this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
       this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
       this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+
       // getRadialBarcodePointIndexFromEvent
 
       // Catch hover eents to start 'hover' on desktop
       this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
       this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
-      // this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+      this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
       this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
 
       // Again: next part is for desktop using 'hover'
