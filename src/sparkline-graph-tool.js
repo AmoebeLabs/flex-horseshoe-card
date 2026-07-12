@@ -932,6 +932,63 @@ export default class SparklineGraphTool extends BaseTool {
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
     const point = touch ?? e;
 
+    // 2. COORDINATE-BASED RADARS (Handles active pointer tracking)
+    if (point?.clientX !== undefined && point?.clientY !== undefined) {
+      // A. PRIMARY SHADOW-DOM PIXEL RADAR: Try exact pixel hit test inside the web component scope
+      const shadowContainer = this.elements.svg.getRootNode();
+      const hitTestScope = shadowContainer instanceof ShadowRoot ? shadowContainer : document;
+      const elementStack = Array.from(hitTestScope.elementsFromPoint(point.clientX, point.clientY));
+
+      const matchedElement = elementStack.find((el) => el?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'));
+
+      const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+
+      // If the browser successfully tracks the exact node underneath the point, return its index immediately
+      if (bin) {
+        return Number(bin.dataset.pointIndex);
+      }
+
+      // B. SECONDARY ANGLE RADAR: Webkit/Safari Fallback (When finger drifts outside Shadow DOM limits)
+      // Query a specific radial element (like the background group) to keep the center calculation stable
+      const radialContainer = this.elements.svg.querySelector('.sparkline-radial-barcode__bg-bin')?.parentNode ?? this.elements.svg;
+      const svgRect = radialContainer.getBoundingClientRect();
+      const centerX = svgRect.left + svgRect.width / 2;
+      const centerY = svgRect.top + svgRect.height / 2;
+
+      // Calculate raw angle in radians (-PI to PI)
+      const radians = Math.atan2(point.clientY - centerY, point.clientX - centerX);
+
+      // Convert radians to degrees and apply the +90 deg offset
+      // to align index 0 precisely at 12 o'clock (top), turning clockwise
+      const degrees = (radians * (180 / Math.PI) + 360 + 90) % 360;
+
+      // Fetch the total number of petals rendered in the DOM tree. Use background bins!!!!
+      const binsList = this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bg-bin');
+      const totalBins = binsList.length;
+
+      if (totalBins === 0) return NaN;
+
+      // Convert the calculated degree slice directly into your petal index
+      const degreesPerBin = 360 / totalBins;
+      const calculatedIndex = Math.floor(degrees / degreesPerBin);
+
+      // Clamp the index safely between 0 and the maximum index to prevent array bounds errors
+      return Math.min(Math.max(0, calculatedIndex), totalBins - 1);
+    }
+
+    // 3. TRADITIONAL DESKTOP FALLBACK
+    // Executed for non-coordinate or accessibility actions where raw screen pixels (clientX) are absent,
+    // but a valid, direct DOM event target is present (e.g., standard keyboard focus/blur triggers).
+    const target = e?.target ?? e?.currentTarget;
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    return bin ? Number(bin.dataset.pointIndex) : NaN;
+  }
+
+  getRadialBarcodePointIndexFromEventV5(e) {
+    // 1. Extract touch or cursor data safely
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const point = touch ?? e;
+
     // 2. COORDINATE-BASED RADARS (Handles standard mouse/touch movement)
     if (point?.clientX !== undefined && point?.clientY !== undefined) {
       // A. PRIMARY SHADOW-DOM RADAR: Try exact pixel hit test inside the web component
@@ -1610,6 +1667,400 @@ export default class SparklineGraphTool extends BaseTool {
         const svgBox = this.elements.svg.getBoundingClientRect();
         const scaleX = svgBox.width / this.svg.width;
         const scaleY = svgBox.height / this.svg.height;
+        const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
+        this.elements.tooltipBounds = {
+          left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
+          top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+          right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
+          bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+        };
+      }
+
+      if (isRadialBarcode) {
+        console.log('[hoverMove] - isRadialBarcode -', e);
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+    }
+
+    function hoverLeave(e) {
+      if (this.dragging) return;
+      console.log('[hoverLeave]', e);
+
+      this.hovering = false;
+      this.pointerEvent = undefined;
+      this.activeX = undefined;
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+    }
+
+    function barCodeLeave(e) {
+      if (this.dragging) return;
+      console.log('[barCodeLeave]', e);
+
+      this.hovering = false;
+      this.pointerEvent = undefined;
+      this.activeX = undefined;
+      this.clearTooltip();
+      this.restoreRadialActiveBinDom();
+    }
+
+    function pointerDown(e) {
+      e.preventDefault();
+      console.log('[pointerDown]', e);
+
+      // @NTS: Keep this comment for later!!
+      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      this.dragging = true;
+      this.pointerEvent = e;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+      this.updateTooltipVisibilityDom(true);
+      this.updateActiveIndicatorDom();
+      Frame2.call(this);
+    }
+
+    function pointerUp(e) {
+      e.preventDefault();
+      console.log('[pointerUp]', e);
+
+      // @NTS: Keep this comment for later!!
+      // Safari: Fixes unable to grab pointer
+      window.removeEventListener('pointermove', pointerMove.bind(this), false);
+      window.removeEventListener('pointerup', pointerUp.bind(this), false);
+
+      if (!this.dragging) return;
+
+      this.dragging = false;
+      this.activeX = undefined;
+      this.pointerEvent = undefined;
+      this.rid = null;
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      this.elements.containerRect = undefined;
+
+      // FIXED FOR MOBILE TOUCH RELEASES:
+      // Since mobile touches now resolve through the global window pointerup loop,
+      // we must explicitly trigger the radial bin restoration here as well.
+      if (isRadialBarcode) {
+        this.restoreRadialActiveBinDom();
+      }
+      Frame2.call(this);
+    }
+
+    function touchStart(e) {
+      e.preventDefault();
+      console.log('[touchStart]', e);
+
+      // FIXED BY UNCOMMENTING SAFARI'S UNIFIED POINTER SLIDER INTERACTION:
+      // Activating the global pointer tracking loops during a mobile touch initiation
+      // forces Webkit to treat the finger trace like an un-captured desktop mouse layout,
+      // letting the coordinates expand cleanly past the web component limits.
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      this.dragging = true;
+      this.pointerEvent = e;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+      this.updateTooltipVisibilityDom(true);
+      this.updateActiveIndicatorDom();
+      Frame2.call(this);
+    }
+
+    function mouseDown(e) {
+      pointerDown.call(this, e);
+    }
+
+    // Core element registrations preserved in their exact original states
+    this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
+    this.elements.svg.addEventListener('touchstart', touchStart.bind(this), { passive: false });
+
+    this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
+    this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
+    this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
+    this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+  }
+
+  attachPointerHandlersV3() {
+    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    this.elements.container = this.card.shadowRoot.getElementById('container');
+    this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
+    this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
+    this.elements.tooltipTitle = this.elements.tooltip.querySelector('.sparkline-tooltip__title');
+    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+
+    const isRadialBarcode = this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode';
+
+    function Frame2() {
+      this.rid = null;
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(this.pointerEvent);
+      } else {
+        this.updateActivePointer(this.pointerEvent);
+      }
+    }
+
+    function pointerMove(e) {
+      e.preventDefault();
+      console.log('[pointerMove]', e);
+
+      if (this.dragging) {
+        this.pointerEvent = e;
+        if (!this.rid) this.rid = window.requestAnimationFrame(Frame2.bind(this));
+      }
+    }
+
+    function hoverEnter(e) {
+      const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+      console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
+      this.pointerEvent = e;
+      this.activeX = undefined;
+      this._radialPendingLeave = false;
+      this._radialPendingPointIndex = pointIndex;
+      this._radialPendingEvent = e;
+      this.scheduleRadialHoverFrame();
+    }
+
+    function hoverMove(e) {
+      if (this.dragging) return;
+
+      console.log('[hoverMove]', e);
+
+      if (!this.hovering) {
+        this.hovering = true;
+        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        const svgBox = this.elements.svg.getBoundingClientRect();
+        const scaleX = svgBox.width / this.svg.width;
+        const scaleY = svgBox.height / this.svg.height;
+        const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
+        this.elements.tooltipBounds = {
+          left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
+          top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+          right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
+          bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+        };
+      }
+
+      if (isRadialBarcode) {
+        console.log('[hoverMove] - isRadialBarcode -', e);
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+    }
+
+    function hoverLeave(e) {
+      if (this.dragging) return;
+      console.log('[hoverLeave]', e);
+
+      this.hovering = false;
+      this.pointerEvent = undefined;
+      this.activeX = undefined;
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+    }
+
+    function barCodeLeave(e) {
+      if (this.dragging) return;
+      console.log('[barCodeLeave]', e);
+
+      this.hovering = false;
+      this.pointerEvent = undefined;
+      this.activeX = undefined;
+      this.clearTooltip();
+      this.restoreRadialActiveBinDom();
+    }
+
+    function pointerDown(e) {
+      e.preventDefault();
+      console.log('[pointerDown]', e);
+
+      // @NTS: Keep this comment for later!!
+      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      this.dragging = true;
+      this.pointerEvent = e;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+      this.updateTooltipVisibilityDom(true);
+      this.updateActiveIndicatorDom();
+      Frame2.call(this);
+    }
+
+    function pointerUp(e) {
+      e.preventDefault();
+      console.log('[pointerUp]', e);
+
+      // @NTS: Keep this comment for later!!
+      // Safari: Fixes unable to grab pointer
+      window.removeEventListener('pointermove', pointerMove.bind(this), false);
+      window.removeEventListener('pointerup', pointerUp.bind(this), false);
+
+      window.removeEventListener('mousemove', pointerMove.bind(this), false);
+      window.removeEventListener('touchmove', pointerMove.bind(this), false);
+      window.removeEventListener('mouseup', pointerUp.bind(this), false);
+      window.removeEventListener('touchend', pointerUp.bind(this), false);
+
+      if (!this.dragging) return;
+
+      this.dragging = false;
+      this.activeX = undefined;
+      this.pointerEvent = undefined;
+      this.rid = null;
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      this.elements.containerRect = undefined;
+      Frame2.call(this);
+    }
+
+    function touchStart(e) {
+      e.preventDefault();
+      console.log('[touchStart]', e);
+
+      // FIXED FOR MOBILE SAFARI DRAWS OUTSIDE THE SVG:
+      // Mobile Safari locks touches exclusively to the element where the touch gesture started.
+      // Listening on 'window' will fail to stream events once your finger leaves the layout borders.
+      // We store the bound instances cleanly on the class structure so we can unbind them accurately.
+      this._touchMoveInstance = touchMove.bind(this);
+      this._touchEndInstance = touchEndCleanup.bind(this);
+
+      this.elements.svg.addEventListener('touchmove', this._touchMoveInstance, { passive: false });
+      this.elements.svg.addEventListener('touchend', this._touchEndInstance, false);
+
+      this.dragging = true;
+      this.pointerEvent = e;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+      // Execute your original configuration hooks with the accurate execution scope
+      hoverEnter.call(this, e);
+    }
+
+    function mouseDown(e) {
+      pointerDown.call(this, e);
+    }
+
+    function touchMove(e) {
+      // Mobile Safari Optimization: Stop the background document from scrolling
+      // while the user is actively scanning across the barcode elements.
+      if (e.type === 'touchmove') {
+        e.preventDefault();
+      }
+
+      if (isRadialBarcode) {
+        console.log('[touchMove] - isRadialBarcode -', e);
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
+    }
+
+    function touchEndCleanup(e) {
+      // Clean up the dynamic mobile touch handlers from the SVG node safely
+      this.elements.svg.removeEventListener('touchmove', this._touchMoveInstance, { passive: false });
+      this.elements.svg.removeEventListener('touchend', this._touchEndInstance, false);
+
+      // Route straight to your original barCodeLeave logic to trigger resets
+      barCodeLeave.call(this, e);
+
+      // Force dragging state down to match pointerUp workflow
+      this.dragging = false;
+      Frame2.call(this);
+    }
+
+    // @NTS: Keep this comment for later!!
+    // For things to work in Safari, we need separate touch and mouse down handler
+    this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
+    this.elements.svg.addEventListener('touchstart', touchStart.bind(this), { passive: false });
+
+    this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
+    this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
+    this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
+    this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+  }
+
+  attachPointerHandlersV2() {
+    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    this.elements.container = this.card.shadowRoot.getElementById('container');
+    this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
+    this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
+    this.elements.tooltipTitle = this.elements.tooltip.querySelector('.sparkline-tooltip__title');
+    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+
+    const isRadialBarcode = this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode';
+
+    function Frame2() {
+      this.rid = null;
+      if (isRadialBarcode) {
+        this.updateRadialActivePointer(this.pointerEvent);
+      } else {
+        this.updateActivePointer(this.pointerEvent);
+      }
+    }
+
+    function pointerMove(e) {
+      e.preventDefault();
+      console.log('[pointerMove]', e);
+
+      if (this.dragging) {
+        this.pointerEvent = e;
+        if (!this.rid) this.rid = window.requestAnimationFrame(Frame2.bind(this));
+      }
+    }
+
+    function hoverEnter(e) {
+      const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+      console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
+      this.pointerEvent = e;
+      this.activeX = undefined;
+      this._radialPendingLeave = false;
+      this._radialPendingPointIndex = pointIndex;
+      this._radialPendingEvent = e;
+      this.scheduleRadialHoverFrame();
+    }
+
+    function hoverMove(e) {
+      if (this.dragging) return;
+
+      console.log('[hoverMove]', e);
+
+      if (!this.hovering) {
+        this.hovering = true;
+        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        const svgBox = this.elements.svg.getBoundingClientRect();
+        const scaleX = svgBox.width / this.svg.width;
+        const scaleY = svgBox.height / this.svg.height;
         const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
         this.elements.tooltipBounds = {
           left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
@@ -1717,6 +2168,11 @@ export default class SparklineGraphTool extends BaseTool {
       window.addEventListener('pointermove', pointerMove.bind(this), false);
       // eslint-disable-next-line no-use-before-define
       window.addEventListener('pointerup', pointerUp.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+      // eslint-disable-next-line no-use-before-define
+      // this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+      window.addEventListener('touchend', barCodeLeave.bind(this), false);
 
       // @NTS: Keep this comment for later!!
       // Below lines prevent slider working on Safari...
@@ -1775,8 +2231,8 @@ export default class SparklineGraphTool extends BaseTool {
       // Catch touch and mousedown events to start 'hover' on mobile
       this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
       this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
-      this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
-      this.elements.svg.addEventListener('touchend', barCodeLeave.bind(this), false);
+      // this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+      // this.elements.svg.addEventListener('touchend', barCodeLeave.bind(this), false);
 
       // getRadialBarcodePointIndexFromEvent
 
