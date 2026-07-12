@@ -1626,6 +1626,203 @@ export default class SparklineGraphTool extends BaseTool {
 
     const isRadialBarcode = this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode';
 
+    this.elements.svg.dataset.pointerReady = 'true';
+
+    // 1. INLINE INSTANCE HANDLERS (Your lazy-allocation pattern)
+    this.Frame2 =
+      this.Frame2 ||
+      function Frame2() {
+        this.rid = null;
+        if (isRadialBarcode) {
+          this.updateRadialActivePointer(this.pointerEvent);
+        } else {
+          this.updateActivePointer(this.pointerEvent);
+        }
+      }.bind(this);
+
+    this.pointerMove =
+      this.pointerMove ||
+      function pointerMove(e) {
+        e.preventDefault();
+        console.log('[pointerMove]', e);
+
+        if (this.dragging) {
+          this.pointerEvent = e;
+          if (!this.rid) this.rid = window.requestAnimationFrame(this.Frame2);
+        }
+      }.bind(this);
+
+    this.hoverEnter =
+      this.hoverEnter ||
+      function hoverEnter(e) {
+        const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+        console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
+        this.pointerEvent = e;
+        this.activeX = undefined;
+        this._radialPendingLeave = false;
+        this._radialPendingPointIndex = pointIndex;
+        this._radialPendingEvent = e;
+        this.scheduleRadialHoverFrame();
+      }.bind(this);
+
+    this.hoverMove =
+      this.hoverMove ||
+      function hoverMove(e) {
+        if (this.dragging) return;
+
+        console.log('[hoverMove]', e);
+
+        if (!this.hovering) {
+          this.hovering = true;
+          this.elements.containerRect = this.elements.container.getBoundingClientRect();
+          const svgBox = this.elements.svg.getBoundingClientRect();
+          const scaleX = svgBox.width / this.svg.width;
+          const scaleY = svgBox.height / this.svg.height;
+          const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
+          this.elements.tooltipBounds = {
+            left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
+            top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
+            right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
+            bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+          };
+        }
+
+        if (isRadialBarcode) {
+          console.log('[hoverMove] - isRadialBarcode -', e);
+          this.updateRadialActivePointer(e);
+        } else {
+          this.updateActivePointer(e);
+        }
+      }.bind(this);
+
+    this.hoverLeave =
+      this.hoverLeave ||
+      function hoverLeave(e) {
+        if (this.dragging) return;
+        console.log('[hoverLeave]', e);
+
+        this.hovering = false;
+        this.pointerEvent = undefined;
+        this.activeX = undefined;
+        this.clearTooltip();
+        this.updateTooltipVisibilityDom(false);
+        this.updateActiveIndicatorDom();
+      }.bind(this);
+
+    this.barCodeLeave =
+      this.barCodeLeave ||
+      function barCodeLeave(e) {
+        if (this.dragging) return;
+        console.log('[barCodeLeave]', e);
+
+        this.hovering = false;
+        this.pointerEvent = undefined;
+        this.activeX = undefined;
+        this.clearTooltip();
+        this.restoreRadialActiveBinDom();
+      }.bind(this);
+
+    this.pointerDown =
+      this.pointerDown ||
+      function pointerDown(e) {
+        e.preventDefault();
+        console.log('[pointerDown]', e);
+
+        window.addEventListener('pointermove', this.pointerMove, false);
+        window.addEventListener('pointerup', this.pointerUp, false);
+
+        this.dragging = true;
+        this.pointerEvent = e;
+        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        if (isRadialBarcode) {
+          this.updateRadialActivePointer(e);
+        } else {
+          this.updateActivePointer(e);
+        }
+        this.updateTooltipVisibilityDom(true);
+        this.updateActiveIndicatorDom();
+        this.Frame2();
+      }.bind(this);
+
+    this.pointerUp =
+      this.pointerUp ||
+      function pointerUp(e) {
+        e.preventDefault();
+        console.log('[pointerUp]', e);
+
+        window.removeEventListener('pointermove', this.pointerMove, false);
+        window.removeEventListener('pointerup', this.pointerUp, false);
+
+        if (!this.dragging) return;
+
+        this.dragging = false;
+        this.activeX = undefined;
+        this.pointerEvent = undefined;
+        this.rid = null;
+        this.clearTooltip();
+        this.updateTooltipVisibilityDom(false);
+        this.updateActiveIndicatorDom();
+        this.elements.containerRect = undefined;
+
+        if (isRadialBarcode) {
+          this.restoreRadialActiveBinDom();
+        }
+
+        this.Frame2();
+      }.bind(this);
+
+    this.touchStart =
+      this.touchStart ||
+      function touchStart(e) {
+        e.preventDefault();
+        console.log('[touchStart]', e);
+
+        window.addEventListener('pointermove', this.pointerMove, false);
+        window.addEventListener('pointerup', this.pointerUp, false);
+
+        this.dragging = true;
+        this.pointerEvent = e;
+        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+        if (isRadialBarcode) {
+          this.updateRadialActivePointer(e);
+        } else {
+          this.updateActivePointer(e);
+        }
+        this.updateTooltipVisibilityDom(true);
+        this.updateActiveIndicatorDom();
+        this.Frame2();
+      }.bind(this);
+
+    this.mouseDown =
+      this.mouseDown ||
+      function mouseDown(e) {
+        this.pointerDown(e);
+      }.bind(this);
+
+    // 2. CORE REGISTRATIONS (Clean and highly scannable)
+    this.elements.svg.addEventListener('mousedown', this.mouseDown, false);
+    this.elements.svg.addEventListener('touchstart', this.touchStart, { passive: false });
+
+    this.elements.svg.addEventListener('mousemove', this.hoverMove, false);
+    this.elements.svg.addEventListener('mouseenter', this.hoverEnter, false);
+    this.elements.svg.addEventListener('mouseleave', this.barCodeLeave, false);
+    this.elements.svg.addEventListener('mouseleave', this.hoverLeave, false);
+  }
+
+  attachPointerHandlersV4() {
+    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    this.elements.container = this.card.shadowRoot.getElementById('container');
+    this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
+    this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
+    this.elements.tooltipTitle = this.elements.tooltip.querySelector('.sparkline-tooltip__title');
+    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+
+    const isRadialBarcode = this.runtimeConfig.sparkline.show.chart_type === 'radial_barcode';
+
     function Frame2() {
       this.rid = null;
       if (isRadialBarcode) {
