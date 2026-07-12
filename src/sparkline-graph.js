@@ -128,7 +128,7 @@ export default class SparklineGraph {
         let extraHours = this.config.period.calendar.duration.hour - 24;
         let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600 + extraHours;
         this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
-        console.log('[update]', hours, extraHours, this.offsetHours, this.hours);
+        // console.log('[update]', hours, extraHours, this.offsetHours, this.hours);
       }
     }
 
@@ -281,8 +281,8 @@ export default class SparklineGraph {
     const fontSizeY = this.config.y_axis.labels.styles['font-size'];
     const parsedFontSizeX = Number.parseFloat(fontSizeX);
     const parsedFontSizeY = Number.parseFloat(fontSizeY);
-    const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : (fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45);
-    const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : (fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85);
+    const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45;
+    const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85;
     const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
     const yAxis = this.calculateYAxisGeometry(fontHeightPixels);
 

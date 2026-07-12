@@ -363,7 +363,7 @@ export default class SparklineGraphTool extends BaseTool {
       });
     });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
-    console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
+    // console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
 
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
 
@@ -1449,7 +1449,7 @@ export default class SparklineGraphTool extends BaseTool {
   updateRadialActivePointer(e) {
     const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
 
-    console.log('[updateRadialActivePointer] - pointIndex, e ', pointIndex, e);
+    // console.log('[updateRadialActivePointer] - pointIndex, e ', pointIndex, e);
     if (!Number.isFinite(pointIndex)) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
@@ -1644,7 +1644,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.pointerMove ||
       function pointerMove(e) {
         e.preventDefault();
-        console.log('[pointerMove]', e);
+        // console.log('[pointerMove]', e);
 
         if (this.dragging) {
           this.pointerEvent = e;
@@ -1656,7 +1656,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.hoverEnter ||
       function hoverEnter(e) {
         const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
-        console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
+        // console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
         this.pointerEvent = e;
         this.activeX = undefined;
         this._radialPendingLeave = false;
@@ -1670,7 +1670,7 @@ export default class SparklineGraphTool extends BaseTool {
       function hoverMove(e) {
         if (this.dragging) return;
 
-        console.log('[hoverMove]', e);
+        // console.log('[hoverMove]', e);
 
         if (!this.hovering) {
           this.hovering = true;
@@ -1678,7 +1678,9 @@ export default class SparklineGraphTool extends BaseTool {
           const svgBox = this.elements.svg.getBoundingClientRect();
           const scaleX = svgBox.width / this.svg.width;
           const scaleY = svgBox.height / this.svg.height;
-          const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
+          // const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
+          // FIXED: Restored your exact original array coordinate lookups ([1][0] and [0][0])
+          const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
           this.elements.tooltipBounds = {
             left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
             top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
@@ -1688,7 +1690,7 @@ export default class SparklineGraphTool extends BaseTool {
         }
 
         if (isRadialBarcode) {
-          console.log('[hoverMove] - isRadialBarcode -', e);
+          // console.log('[hoverMove] - isRadialBarcode -', e);
           this.updateRadialActivePointer(e);
         } else {
           this.updateActivePointer(e);
@@ -1699,7 +1701,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.hoverLeave ||
       function hoverLeave(e) {
         if (this.dragging) return;
-        console.log('[hoverLeave]', e);
+        // console.log('[hoverLeave]', e);
 
         this.hovering = false;
         this.pointerEvent = undefined;
@@ -1713,7 +1715,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.barCodeLeave ||
       function barCodeLeave(e) {
         if (this.dragging) return;
-        console.log('[barCodeLeave]', e);
+        // console.log('[barCodeLeave]', e);
 
         this.hovering = false;
         this.pointerEvent = undefined;
@@ -1726,7 +1728,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.pointerDown ||
       function pointerDown(e) {
         e.preventDefault();
-        console.log('[pointerDown]', e);
+        // console.log('[pointerDown]', e);
 
         window.addEventListener('pointermove', this.pointerMove, false);
         window.addEventListener('pointerup', this.pointerUp, false);
@@ -1748,7 +1750,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.pointerUp ||
       function pointerUp(e) {
         e.preventDefault();
-        console.log('[pointerUp]', e);
+        // console.log('[pointerUp]', e);
 
         window.removeEventListener('pointermove', this.pointerMove, false);
         window.removeEventListener('pointerup', this.pointerUp, false);
@@ -1775,7 +1777,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.touchStart ||
       function touchStart(e) {
         e.preventDefault();
-        console.log('[touchStart]', e);
+        // console.log('[touchStart]', e);
 
         window.addEventListener('pointermove', this.pointerMove, false);
         window.addEventListener('pointerup', this.pointerUp, false);
@@ -2147,7 +2149,9 @@ export default class SparklineGraphTool extends BaseTool {
       // Mobile Safari locks touches exclusively to the element where the touch gesture started.
       // Listening on 'window' will fail to stream events once your finger leaves the layout borders.
       // We store the bound instances cleanly on the class structure so we can unbind them accurately.
+      // eslint-disable-next-line no-use-before-define
       this._touchMoveInstance = touchMove.bind(this);
+      // eslint-disable-next-line no-use-before-define
       this._touchEndInstance = touchEndCleanup.bind(this);
 
       this.elements.svg.addEventListener('touchmove', this._touchMoveInstance, { passive: false });
@@ -2173,7 +2177,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (isRadialBarcode) {
-        console.log('[touchMove] - isRadialBarcode -', e);
+        // console.log('[touchMove] - isRadialBarcode -', e);
         this.updateRadialActivePointer(e);
       } else {
         this.updateActivePointer(e);
@@ -2268,7 +2272,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (isRadialBarcode) {
-        console.log('[hoverMove] - isRadialBarcode -', e);
+        // console.log('[hoverMove] - isRadialBarcode -', e);
         this.updateRadialActivePointer(e);
       } else {
         this.updateActivePointer(e);
@@ -2399,7 +2403,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (isRadialBarcode) {
-        console.log('[touchMove] - isRadialBarcode -', e);
+        // console.log('[touchMove] - isRadialBarcode -', e);
         this.updateRadialActivePointer(e);
       } else {
         this.updateActivePointer(e);
