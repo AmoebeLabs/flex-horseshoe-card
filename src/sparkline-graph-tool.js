@@ -1776,6 +1776,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
       this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
       this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+      this.elements.svg.addEventListener('touchend', barCodeLeave.bind(this), false);
 
       // getRadialBarcodePointIndexFromEvent
 
