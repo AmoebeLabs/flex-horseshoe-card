@@ -925,8 +925,69 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedX;
   }
 
-  // Version from bae52a0
+  // Version from Gemini
   getRadialBarcodePointIndexFromEvent(e) {
+    // 1. Extract touch data safely (supports touchmove and touchend via changedTouches)
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const point = touch ?? e;
+
+    // 2. SHADOW-DOM PIERCING RADAR
+    if (point?.clientX !== undefined) {
+      // Dynamically fetch the Shadow Root containing your SVG component
+      const shadowContainer = this.elements.svg.getRootNode();
+
+      // Fall back to document if the component is running in a standard DOM tree
+      const hitTestScope = shadowContainer instanceof ShadowRoot ? shadowContainer : document;
+
+      // Execute the radar scan inside the correct Shadow DOM layer
+      const elementStack = Array.from(hitTestScope.elementsFromPoint(point.clientX, point.clientY));
+
+      // Find the exact matching DOM element that belongs to a barcode bin
+      const matchedElement = elementStack.find((el) => el?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'));
+
+      // Retrieve the actual bin element and return its index as a Number
+      const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+      return bin ? Number(bin.dataset.pointIndex) : NaN;
+    }
+
+    // 3. TRADITIONAL DESKTOP FALLBACK
+    const target = e?.target ?? e?.currentTarget;
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    return bin ? Number(bin.dataset.pointIndex) : NaN;
+  }
+
+  getRadialBarcodePointIndexFromEventV3(e) {
+    // 1. Extract touch data if available.
+    // 'changedTouches' is essential for mobile Safari during 'touchend' events.
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const point = touch ?? e;
+
+    console.log('[getRadialBarcodePointIndexFromEvent], touch, point, e ', touch, point, e);
+    // 2. UNIFIED COORDINATE RADAR (Handles both Mobile 'touchmove' and Desktop 'mousemove')
+    // This block dynamically checks exactly what is underneath the user's finger or cursor.
+    if (point?.clientX !== undefined) {
+      // Convert NodeList to an Array to fully avoid loops or generators (no regenerator-runtime)
+      const elementStack = Array.from(document.elementsFromPoint(point.clientX, point.clientY));
+
+      // Scan the stack of elements underneath the point using functional array iteration
+      const matchedElement = elementStack.find((el) => el?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'));
+
+      // Retrieve the actual bin element and return its index
+      const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+      console.log('[getRadialBarcodePointIndexFromEvent], MATCHING ', elementStack, matchedElement, bin);
+      return bin ? Number(bin.dataset.pointIndex) : NaN;
+    }
+
+    // 3. TRADITIONAL DESKTOP FALLBACK
+    // Used for standard desktop events that do not rely on screen coordinates,
+    // such as direct keyboard focus, blur, or direct component-level element events.
+    const target = e?.target ?? e?.currentTarget;
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    return bin ? Number(bin.dataset.pointIndex) : NaN;
+  }
+
+  // Version from bae52a0
+  getRadialBarcodePointIndexFromEventV2(e) {
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
     const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : e?.currentTarget;
     const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
@@ -1264,7 +1325,7 @@ export default class SparklineGraphTool extends BaseTool {
   updateRadialActivePointer(e) {
     const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
 
-    console.log('[updateRadialActivePointer] - e, pointIndex', e, pointIndex);
+    console.log('[updateRadialActivePointer] - pointIndex, e ', pointIndex, e);
     if (!Number.isFinite(pointIndex)) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
@@ -1581,11 +1642,48 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     function touchStart(e) {
-      pointerDown.call(e);
+      e.preventDefault();
+      console.log('[touchStart]', e);
+
+      // @NTS: Keep this comment for later!!
+      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
+      window.addEventListener('pointermove', pointerMove.bind(this), false);
+      // eslint-disable-next-line no-use-before-define
+      window.addEventListener('pointerup', pointerUp.bind(this), false);
+
+      // @NTS: Keep this comment for later!!
+      // Below lines prevent slider working on Safari...
+      //
+      // window.addEventListener('mousemove', pointerMove.bind(this), false);
+      // window.addEventListener('touchmove', pointerMove.bind(this), false);
+      // window.addEventListener('mouseup', pointerUp.bind(this), false);
+      // window.addEventListener('touchend', pointerUp.bind(this), false);
+
+      this.dragging = true;
+      this.pointerEvent = e;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+
+      hoverEnter.call(e);
+      // pointerDown.call(e);
     }
 
     function mouseDown(e) {
       pointerDown.call(e);
+    }
+
+    function touchMove(e) {
+      // Mobile Safari Optimization: Stop the background document from scrolling
+      // while the user is actively scanning across the barcode elements.
+      if (e.type === 'touchmove') {
+        e.preventDefault();
+      }
+
+      if (isRadialBarcode) {
+        console.log('[touchMove] - isRadialBarcode -', e);
+        this.updateRadialActivePointer(e);
+      } else {
+        this.updateActivePointer(e);
+      }
     }
     // @NTS: Keep this comment for later!!
     // For things to work in Safari, we need separate touch and mouse down handlers...
@@ -1610,19 +1708,22 @@ export default class SparklineGraphTool extends BaseTool {
       // Catch touch and mousedown events to start 'hover' on mobile
       this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
       this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
+      this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
+      // getRadialBarcodePointIndexFromEvent
 
       // Catch hover eents to start 'hover' on desktop
       this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
       this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
       // this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+      this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
 
       // Again: next part is for desktop using 'hover'
       // Connect to both the foreground and background parts. The top bin will respond to the eventlistener
-      this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
-        bin.addEventListener('mouseenter', hoverEnter.bind(this), false);
-        // bin.addEventListener('mousemove', hoverMove.bind(this), false);
-        bin.addEventListener('mouseleave', hoverLeave.bind(this), false);
-      });
+      // this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
+      //   bin.addEventListener('mouseenter', hoverEnter.bind(this), false);
+      //   // bin.addEventListener('mousemove', hoverMove.bind(this), false);
+      //   bin.addEventListener('mouseleave', hoverLeave.bind(this), false);
+      // });
     }
     this.elements.svg.dataset.pointerReady = 'true';
   }
