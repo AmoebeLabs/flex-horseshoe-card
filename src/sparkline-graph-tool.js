@@ -610,6 +610,64 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.runtimeConfig.period?.type === 'calendar' && this.runtimeConfig.period?.calendar?.period === 'day') {
       const start = new Date(now);
+      // 1. Altijd strak op het begin van vandaag zetten (00:00:00)
+      start.setHours(0, 0, 0, 0);
+
+      // 2. Exact jouw oude logica, omgerekend naar dagen:
+      const offsetDays = this.runtimeConfig.period?.calendar?.offset ?? 0;
+      const durationDaysAdjustment = (periodHours - 24) / 24;
+
+      // 3. Pas de dagen veilig toe (JavaScript handelt maanden/jaren perfect af)
+      start.setDate(start.getDate() + offsetDays - durationDaysAdjustment);
+
+      return {
+        start,
+        end: new Date(start.getTime() + periodHours * 60 * 60 * 1000),
+      };
+    }
+
+    return {
+      start: new Date(now.getTime() - periodHours * 60 * 60 * 1000),
+      end: now,
+    };
+  }
+
+  getHistoryRangeV2() {
+    const periodHours = this.runtimeConfig.period?.calendar?.duration?.hour ?? this.runtimeConfig.period?.rolling_window?.duration?.hour ?? 24;
+    const now = new Date();
+
+    if (this.runtimeConfig.period?.type === 'calendar' && this.runtimeConfig.period?.calendar?.period === 'day') {
+      const start = new Date(now);
+      // 1. Zet de tijd strak op het begin van vandaag (00:00:00)
+      start.setHours(0, 0, 0, 0);
+
+      // 2. Bereken hoeveel dagen we terug moeten op basis van de duration (bijv. 48 uur = 2 dagen terug)
+      const durationDays = periodHours / 24;
+
+      // 3. Pas de offset en de durationDays toe om de startdatum te bepalen
+      const offsetDays = this.runtimeConfig.period?.calendar?.offset ?? 0;
+      start.setDate(start.getDate() + offsetDays - durationDays);
+
+      return {
+        start,
+        // 4. De eindtijd is simpelweg de starttijd plus de periodHours (48 uur later)
+        end: new Date(start.getTime() + periodHours * 60 * 60 * 1000),
+      };
+    }
+
+    // Rolling window logica blijft ongewijzigd
+    return {
+      start: new Date(now.getTime() - periodHours * 60 * 60 * 1000),
+      end: now,
+    };
+  }
+
+  getHistoryRangeV1() {
+    const periodHours = this.runtimeConfig.period?.calendar?.duration?.hour ?? this.runtimeConfig.period?.rolling_window?.duration?.hour ?? 24;
+    const now = new Date();
+
+    if (this.runtimeConfig.period?.type === 'calendar' && this.runtimeConfig.period?.calendar?.period === 'day') {
+      const start = new Date(now);
       start.setHours(0, 0, 0);
       start.setHours(start.getHours() + (this.runtimeConfig.period?.calendar?.offset ?? 0) * 24 - (periodHours - 24));
 
@@ -661,6 +719,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     const range = this.getHistoryRange();
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
+    console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
