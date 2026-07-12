@@ -925,14 +925,22 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedX;
   }
 
+  // Version from bae52a0
   getRadialBarcodePointIndexFromEvent(e) {
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
+    const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : e?.currentTarget;
+    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    console.log('[getRadialBarcodePointIndexFromEvent], bin', bin);
+    return Number(bin?.dataset?.pointIndex);
+  }
+
+  getRadialBarcodePointIndexFromEventV1(e) {
+    const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
     const point = touch ?? e;
-    const target = point?.clientX !== undefined
-      ? document
-          .elementsFromPoint(point.clientX, point.clientY)
-          .find((element) => element?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'))
-      : e?.target ?? e?.currentTarget;
+    const target =
+      point?.clientX !== undefined
+        ? document.elementsFromPoint(point.clientX, point.clientY).find((element) => element?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'))
+        : (e?.target ?? e?.currentTarget);
     const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     return Number(bin?.dataset?.pointIndex);
   }
@@ -1256,6 +1264,7 @@ export default class SparklineGraphTool extends BaseTool {
   updateRadialActivePointer(e) {
     const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
 
+    console.log('[updateRadialActivePointer] - e, pointIndex', e, pointIndex);
     if (!Number.isFinite(pointIndex)) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
@@ -1443,6 +1452,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     function pointerMove(e) {
       e.preventDefault();
+      console.log('[pointerMove]', e);
 
       if (this.dragging) {
         this.pointerEvent = e;
@@ -1450,8 +1460,21 @@ export default class SparklineGraphTool extends BaseTool {
       }
     }
 
+    function hoverEnter(e) {
+      const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
+      console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
+      this.pointerEvent = e;
+      this.activeX = undefined;
+      this._radialPendingLeave = false;
+      this._radialPendingPointIndex = pointIndex;
+      this._radialPendingEvent = e;
+      this.scheduleRadialHoverFrame();
+    }
+
     function hoverMove(e) {
       if (this.dragging) return;
+
+      console.log('[hoverMove]', e);
 
       if (!this.hovering) {
         this.hovering = true;
@@ -1469,14 +1492,16 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (isRadialBarcode) {
+        console.log('[hoverMove] - isRadialBarcode -', e);
         this.updateRadialActivePointer(e);
       } else {
         this.updateActivePointer(e);
       }
     }
 
-    function hoverLeave() {
+    function hoverLeave(e) {
       if (this.dragging) return;
+      console.log('[hoverLeave]', e);
 
       this.hovering = false;
       this.pointerEvent = undefined;
@@ -1486,8 +1511,20 @@ export default class SparklineGraphTool extends BaseTool {
       this.updateActiveIndicatorDom();
     }
 
+    function barCodeLeave(e) {
+      if (this.dragging) return;
+      console.log('[barCodeLeave]', e);
+
+      this.hovering = false;
+      this.pointerEvent = undefined;
+      this.activeX = undefined;
+      this.clearTooltip();
+      this.restoreRadialActiveBinDom();
+    }
+
     function pointerDown(e) {
       e.preventDefault();
+      console.log('[pointerDown]', e);
 
       // @NTS: Keep this comment for later!!
       // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
@@ -1518,6 +1555,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     function pointerUp(e) {
       e.preventDefault();
+      console.log('[pointerUp]', e);
 
       // @NTS: Keep this comment for later!!
       // Safari: Fixes unable to grab pointer
@@ -1549,11 +1587,29 @@ export default class SparklineGraphTool extends BaseTool {
 
     // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
 
-    this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
-    this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
-    this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
-    this.elements.container.addEventListener('mousemove', hoverMove.bind(this), false);
-    this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
+    if (['line', 'area', 'bar', 'barcode'].includes(this.config.sparkline.show.chart_type)) {
+      this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
+      this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
+      this.elements.svg.addEventListener('mousemove', pointerMove.bind(this), false);
+
+      this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
+      this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
+      this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+
+      this.elements.container.addEventListener('mousemove', hoverMove.bind(this), false);
+      this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
+    } else if (['radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
+      this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
+      this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
+      // this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
+
+      // Connect to both the foreground and background parts. The top bin will respond to the eventlistener
+      this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
+        bin.addEventListener('mouseenter', hoverEnter.bind(this), false);
+        // bin.addEventListener('mousemove', hoverMove.bind(this), false);
+        bin.addEventListener('mouseleave', hoverLeave.bind(this), false);
+      });
+    }
     this.elements.svg.dataset.pointerReady = 'true';
   }
 
@@ -1880,11 +1936,7 @@ export default class SparklineGraphTool extends BaseTool {
   computeColor(inState, i) {
     const { colorstops, line_color, colorstops_transition } = this.runtimeConfig.sparkline;
     const state = Number(inState) || 0;
-    const thresholdColor = Colors.calculateStrokeColor(
-      state,
-      colorstops,
-      colorstops_transition === 'smooth',
-    );
+    const thresholdColor = Colors.calculateStrokeColor(state, colorstops, colorstops_transition === 'smooth');
 
     return this.card.config.entities[i].color || thresholdColor || line_color[i] || line_color[0];
   }
