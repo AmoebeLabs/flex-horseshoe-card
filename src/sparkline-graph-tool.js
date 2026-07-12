@@ -1580,6 +1580,13 @@ export default class SparklineGraphTool extends BaseTool {
       Frame2.call(this);
     }
 
+    function touchStart(e) {
+      pointerDown.call(e);
+    }
+
+    function mouseDown(e) {
+      pointerDown.call(e);
+    }
     // @NTS: Keep this comment for later!!
     // For things to work in Safari, we need separate touch and mouse down handlers...
     // DON't ask WHY! The pointerdown method prevents listening on window events later on.
@@ -1588,9 +1595,10 @@ export default class SparklineGraphTool extends BaseTool {
     // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
 
     if (['line', 'area', 'bar', 'barcode'].includes(this.config.sparkline.show.chart_type)) {
-      this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
-      this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
-      this.elements.svg.addEventListener('mousemove', pointerMove.bind(this), false);
+      // this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
+      this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
+      this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
+      // this.elements.svg.addEventListener('mousemove', pointerMove.bind(this), false);
 
       this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
       this.elements.svg.addEventListener('mousemove', hoverMove.bind(this), false);
@@ -1599,10 +1607,16 @@ export default class SparklineGraphTool extends BaseTool {
       this.elements.container.addEventListener('mousemove', hoverMove.bind(this), false);
       this.elements.container.addEventListener('mouseleave', hoverLeave.bind(this), false);
     } else if (['radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
+      // Catch touch and mousedown events to start 'hover' on mobile
+      this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
+      this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
+
+      // Catch hover eents to start 'hover' on desktop
       this.elements.svg.addEventListener('mouseenter', hoverEnter.bind(this), false);
       this.elements.svg.addEventListener('mouseleave', barCodeLeave.bind(this), false);
       // this.elements.svg.addEventListener('mouseleave', hoverLeave.bind(this), false);
 
+      // Again: next part is for desktop using 'hover'
       // Connect to both the foreground and background parts. The top bin will respond to the eventlistener
       this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin').forEach((bin) => {
         bin.addEventListener('mouseenter', hoverEnter.bind(this), false);
