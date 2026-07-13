@@ -128,21 +128,32 @@ export default class ChildCards {
   }
 
   render() {
+    const [aspectWidth, aspectHeight] = this.parentCard.aspectratio.split('/').map(Number);
+    const logicalCardWidth = aspectWidth * 100;
+    const logicalCardHeight = aspectHeight * 100;
+
     return html`
       <div class="fhs-child-card-layer">
         ${this.items
           .slice()
           .sort((firstItem, secondItem) => Number(firstItem.zpos ?? firstItem.index) - Number(secondItem.zpos ?? secondItem.index) || firstItem.index - secondItem.index)
           .map((item) => {
+            // Convert the absolute FHS coordinates once to percentages of the
+            // complete logical card. CSS handles every subsequent resize.
             const style = {
-              left: `${Number(item.xpos) - Number(item.width) / 2}%`,
-              top: `${Number(item.ypos) - Number(item.height) / 2}%`,
-              width: `${Number(item.width)}%`,
-              height: `${Number(item.height)}%`,
+              left: `${((Number(item.xpos) - Number(item.width) / 2) / logicalCardWidth) * 100}%`,
+              top: `${((Number(item.ypos) - Number(item.height) / 2) / logicalCardHeight) * 100}%`,
+              width: `${(Number(item.width) / logicalCardWidth) * 100}%`,
+              height: `${(Number(item.height) / logicalCardHeight) * 100}%`,
               'z-index': String(item.zpos ?? item.index),
             };
 
-            return html`<div class="fhs-child-card ${item.frameless ? 'fhs-child-card--frameless' : ''}" style=${styleMap(style)}>${item.card}</div>`;
+            return html`<div
+              class="fhs-child-card ${item.frameless ? 'fhs-child-card--frameless' : ''}"
+              style=${styleMap(style)}
+            >
+              ${item.card}
+            </div>`;
           })}
       </div>
     `;

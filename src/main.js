@@ -577,11 +577,29 @@ class FlexHorseshoeCard extends LitElement {
         padding: 5px 5px 5px 5px;
       }
 
+      :host([embedded]) {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
       :host([embedded]) ha-card {
         background: transparent;
         border: 0;
         box-shadow: none;
         padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      :host([embedded]) .container {
+        width: 100%;
+        height: 100%;
+      }
+
+      :host([embedded]) .container > svg {
+        width: 100%;
+        height: 100%;
       }
 
       .container {
@@ -644,7 +662,6 @@ class FlexHorseshoeCard extends LitElement {
       .fhs-child-card {
         position: absolute;
         pointer-events: auto;
-        overflow: hidden;
       }
 
       .fhs-child-card > * {
