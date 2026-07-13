@@ -310,7 +310,7 @@ export default class StateTool extends BaseTool {
    * @returns {string|number} Formatted state value.
    */
   formatStateString(inState) {
-    const stateFormat = this.entityConfig.format;
+    const stateFormat = this.config?.format || this.entityConfig?.format;
 
     if (this.entityConfig.debug) {
       console.log('StateTool.formatStateString', this.entityConfig.entity, inState, stateFormat);
@@ -439,7 +439,7 @@ export default class StateTool extends BaseTool {
 
     let stateValue = StateTool.buildState(rawValue, this.entityConfig, this.card._hass, this.entity);
 
-    if (this.entityConfig.format !== undefined) {
+    if (this.entityConfig?.format !== undefined || this.config?.format !== undefined) {
       stateValue = this.formatStateString(stateValue);
     }
 
