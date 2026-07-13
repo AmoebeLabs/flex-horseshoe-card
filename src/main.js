@@ -584,10 +584,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       :host([embedded]) ha-card {
-        background: transparent;
-        border: 0;
-        box-shadow: none;
-        padding: 0;
+        box-sizing: border-box;
         width: 100%;
         height: 100%;
       }
