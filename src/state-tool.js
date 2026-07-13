@@ -310,8 +310,11 @@ export default class StateTool extends BaseTool {
    * @returns {string|number} Formatted state value.
    */
   formatStateString(inState) {
-    const stateFormat = this.entityConfig.format;
+    const stateFormat = this.config?.format || this.entityConfig?.format;
 
+    if (this.entityConfig.debug) {
+      console.log('StateTool.formatStateString', this.entityConfig.entity, inState, stateFormat);
+    }
     // Object-style format config is used for options like raw_state_keep and decimals_min/max.
     if (typeof stateFormat !== 'string') {
       return inState;
@@ -436,11 +439,17 @@ export default class StateTool extends BaseTool {
 
     let stateValue = StateTool.buildState(rawValue, this.entityConfig, this.card._hass, this.entity);
 
-    if (this.entityConfig.format !== undefined) {
+    if (this.entityConfig?.format !== undefined || this.config?.format !== undefined) {
       stateValue = this.formatStateString(stateValue);
     }
 
-    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(this.entity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(this.entity, stateValue);
+    const formatEntity = this.entity.attributes.source_entity_id
+      ? {
+          ...this.entity,
+          entity_id: this.entity.attributes.source_entity_id,
+        }
+      : this.entity;
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(formatEntity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(formatEntity, stateValue);
     const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
     let formattedValue;
 

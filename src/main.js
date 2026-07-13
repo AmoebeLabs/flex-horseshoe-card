@@ -40,6 +40,7 @@ import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import IconTool from './icon-tool.js';
+import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
@@ -100,6 +101,7 @@ class FlexHorseshoeCard extends LitElement {
     this.areaTools = [];
     this.stateTools = [];
     this.iconTools = [];
+    this.sparklineGraphTools = [];
     this.groupManager = undefined;
     this.resolvedEntityConfigs = [];
     this.colorCache = {};
@@ -595,6 +597,50 @@ class FlexHorseshoeCard extends LitElement {
         pointer-events: none;
       }
 
+      .sparkline-tooltip-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .sparkline-tooltip {
+        position: absolute;
+        z-index: 5;
+        pointer-events: none;
+        display: inline-block;
+        width: auto;
+        max-width: calc(100% - 24px);
+        padding: 0.2em 0.3em;
+        border-radius: 0.3em;
+        background: var(--card-background-color, var(--ha-card-background, rgba(32, 32, 32, 0.94)));
+        color: var(--primary-text-color);
+        box-shadow: 0 0.35em 0.9em rgba(0, 0, 0, 0.22);
+        border: 1px solid var(--divider-color);
+        font-size: var(--sparkline-tooltip-font-size, 0.5em);
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        line-height: 1.15;
+        transform: translate(-50%, -100%);
+      }
+
+      .sparkline-tooltip__title {
+        font-weight: 600;
+        margin-bottom: 0.22em;
+        white-space: nowrap;
+      }
+
+      .sparkline-tooltip__row {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 0.6em;
+        align-items: baseline;
+        white-space: nowrap;
+      }
+
+      .sparkline-tooltip__row + .sparkline-tooltip__row {
+        margin-top: 0.08em;
+      }
+
       .fhs-child-card {
         position: absolute;
         pointer-events: auto;
@@ -828,6 +874,109 @@ class FlexHorseshoeCard extends LitElement {
     );
   }
 
+  /**
+   * Builds local runtime entity configs for sparkline min/avg/max values.
+   *
+   * The generated entities behave like normal entity_index targets for the rest
+   * of the card. The source entity config is kept so unit/icon/device metadata
+   * can still come from Home Assistant, while the state is provided by the graph.
+   *
+   * @returns {Array<object>} Local sparkline entity configs appended after HA entities.
+   */
+  _buildSparklineEntityConfigs() {
+    const configs = [];
+
+    this.sparklineGraphTools.forEach((sparklineGraphTool) => {
+      const sourceEntityIndex = sparklineGraphTool.entity_index;
+      const sourceEntityConfig = this.resolvedEntityConfigs[sourceEntityIndex];
+      const sparklineId = sparklineGraphTool.config.id;
+
+      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat) => {
+        const statEntityConfig = {
+          ...sourceEntityConfig,
+          entity: `fhs_sparkline.${sparklineId}_${stat}`,
+          local: true,
+          source_entity_index: sourceEntityIndex,
+          sparkline_id: sparklineId,
+          sparkline_stat: stat,
+        };
+
+        delete statEntityConfig.name;
+
+        if (stat === 'min_time' || stat === 'max_time') {
+          statEntityConfig.format = 'datetime-short'; // 'time';
+          statEntityConfig.unit = '';
+        }
+
+        configs.push(statEntityConfig);
+      });
+    });
+
+    return configs;
+  }
+
+  /**
+   * Copies the source HA entity into local sparkline entities and replaces only
+   * the values that are derived from the graph statistics.
+   */
+  _updateSparklineEntities() {
+    const baseIndex = this.config.entities?.length ?? 0;
+
+    this.sparklineGraphTools.forEach((sparklineGraphTool, sparklineIndex) => {
+      const sourceEntity = this.entities[sparklineGraphTool.entity_index];
+      const sparklineId = sparklineGraphTool.config.id;
+
+      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat, statIndex) => {
+        const entityIndex = baseIndex + sparklineIndex * 5 + statIndex;
+        const state = sparklineGraphTool.stats[stat];
+        const labelMap = {
+          min: 'min',
+          avg: 'mean',
+          max: 'max',
+          min_time: 'min',
+          max_time: 'max',
+        };
+        const label = labelMap[stat];
+        const sourceEntityConfig = this.resolvedEntityConfigs[sparklineGraphTool.entity_index];
+        const sourceDecimals = sourceEntityConfig.decimals !== undefined ? Number(sourceEntityConfig.decimals) : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
+        const roundedState = stat === 'avg' && Number.isFinite(Number(state)) ? Number(state).toFixed(sourceDecimals) : String(state);
+        const entity = Merge.mergeDeep(sourceEntity, {
+          entity_id: `fhs_sparkline.${sparklineId}_${stat}`,
+          state: roundedState,
+          label,
+          attributes: {
+            ...sourceEntity.attributes,
+            source_entity_id: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.entity_id,
+            unit_of_measurement: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.attributes.unit_of_measurement,
+            sparkline_id: sparklineId,
+            sparkline_stat: stat,
+          },
+        });
+
+        this.entities[entityIndex] = entity;
+      });
+    });
+  }
+
+  /**
+   * Refeeds all normal entity-bound tools after async sparkline history refresh.
+   *
+   * Sparkline history arrives outside the normal Home Assistant setHass pass. The
+   * local fhs_sparkline entities are updated there, so the existing tools that
+   * point at those entity_index values must receive their entity state again.
+   */
+  _updateToolsUsingSparklineEntities() {
+    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
+    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
+    this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
+    this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
+    this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
+    this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+  }
+
   _setToolEntityState(tool) {
     const entityIndex = tool.entity_index;
 
@@ -921,6 +1070,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = hass.states[entityConfig.entity];
@@ -958,6 +1108,10 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
+
+    this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
+    this._updateSparklineEntities();
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
 
@@ -1078,7 +1232,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'horseshoes', 'horseshoes_v2'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines', 'horseshoes', 'horseshoes_v2'];
 
     layoutSections.forEach((section) => {
       const items = config?.layout?.[section];
@@ -1185,7 +1339,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
     const defShapeSections = ['rectangles', 'circles', 'arcs'];
 
     layoutSections.forEach((section) => {
@@ -1207,6 +1361,45 @@ class FlexHorseshoeCard extends LitElement {
 
           definition[section] = this._assignIdItems(items);
         });
+      });
+    });
+  }
+
+  /**
+   * Resolves item-level entity ids to entity_index values.
+   *
+   * This keeps user YAML readable (`entity: sensor.x` or
+   * `entity: fhs_sparkline.<sparkline_id>_avg`) while every tool still receives
+   * the same internal entity_index it already understands.
+   *
+   * @param {object} config - Card config after ids and static values are resolved.
+   * @param {Array<object>} resolvedEntitiesConfig - Normal HA entity configs.
+   */
+  _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
+    const entityIndexes = {};
+    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
+    const stats = ['min', 'avg', 'max', 'min_time', 'max_time'];
+    const sparklineBaseIndex = resolvedEntitiesConfig.length;
+
+    resolvedEntitiesConfig.forEach((entityConfig, index) => {
+      entityIndexes[entityConfig.entity] = index;
+    });
+
+    config.layout.sparklines?.forEach((sparkline, sparklineIndex) => {
+      stats.forEach((stat, statIndex) => {
+        entityIndexes[`fhs_sparkline.${sparkline.id}_${stat}`] = sparklineBaseIndex + sparklineIndex * stats.length + statIndex;
+      });
+    });
+
+    layoutSections.forEach((section) => {
+      const items = config.layout?.[section];
+
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (item.entity === undefined) return;
+
+        item.entity_index = entityIndexes[item.entity];
       });
     });
   }
@@ -1410,6 +1603,8 @@ class FlexHorseshoeCard extends LitElement {
         }
       });
 
+      this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
+
       const newConfig = {
         texts: [],
         card_filter: 'card--filter-none',
@@ -1463,6 +1658,7 @@ class FlexHorseshoeCard extends LitElement {
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
+      this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
       this.childCards.setConfig(this.config.cards ?? []);
 
       Templates.setContext({
@@ -1547,8 +1743,6 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render({ config } = this) {
-    // console.log('render', this.cardId);
-
     const item = {
       entity_index: 0,
     };
@@ -1558,10 +1752,7 @@ class FlexHorseshoeCard extends LitElement {
 
     return html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
-        <div class="container" id="container">
-          ${this._renderSvg()}
-          ${this.childCards.render()}
-        </div>
+        <div class="container" id="container">${this._renderSvg()} ${this._renderSparklineTooltips()} ${this.childCards.render()}</div>
       </ha-card>
     `;
   }
@@ -1665,6 +1856,7 @@ class FlexHorseshoeCard extends LitElement {
       ...(this.areaTools ?? []),
       ...(this.nameTools ?? []),
       ...(this.stateTools ?? []),
+      ...(this.sparklineGraphTools ?? []),
     ];
   }
 
@@ -1709,6 +1901,10 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
+  _renderSparklineTooltips() {
+    return html` <div class="sparkline-tooltip-layer">${this.sparklineGraphTools?.map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
+  }
+
   /** *****************************************************************************
    * _getGroupScaleTransform()
    *
@@ -1729,10 +1925,17 @@ class FlexHorseshoeCard extends LitElement {
    *
    * @param {Map} changedProperties - Lit changed properties map.
    */
+  firstUpdated(changedProperties) {
+    super.firstUpdated?.(changedProperties);
+
+    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+  }
+
   updated(changedProperties) {
     super.updated?.(changedProperties);
 
     this.iconTools?.[0]?.injectSvgUrlIcons();
+    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }
   /** *****************************************************************************
    * _handleClick()
