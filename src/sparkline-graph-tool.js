@@ -496,7 +496,15 @@ export default class SparklineGraphTool extends BaseTool {
     this.runtimeConfig.svg = this.svg;
     this.graphConfig = this.buildGraphConfig(this.runtimeConfig);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
-    if (this.historySeries) {
+    const realTime = this.runtimeConfig.period.type === 'real_time';
+
+    // Real-time mode owns one current sample and never enters the history
+    // lifecycle. Clear an existing boundary timer when runtime config changes
+    // from a history period to real-time.
+    if (realTime) {
+      window.clearTimeout(this.binBoundaryTimer);
+      this.series = this.buildRealtimeSeries(entity);
+    } else if (this.historySeries) {
       this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
     } else {
@@ -509,13 +517,15 @@ export default class SparklineGraphTool extends BaseTool {
       this.updateActivePointer(this.pointerEvent);
     }
 
+    if (realTime) return;
+
     this.fetchHistoryIfNeeded(entity);
     this.scheduleBinBoundaryRefresh();
   }
 
   /**
-   * First implementation feeds the engine with current state only. Historical
-   * fetching can replace this input without changing render logic.
+   * Builds the one-item current-state series used before history loads and used
+   * permanently by real-time mode.
    *
    * @param {object} entity - Current HA state object.
    * @returns {Array<object>} Series for SparklineGraph.update().
@@ -784,12 +794,17 @@ export default class SparklineGraphTool extends BaseTool {
    * Runs the reused graph engine and stores the generated FHS render paths.
    */
   updateGraphFromSeries() {
-    const range = this.getHistoryRange();
     const chartType = this.runtimeConfig.sparkline.show.chart_type;
     const index = 0;
     const total = 1;
 
-    this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+    // Real-time uses the graph engine's existing one-hour/one-point calculation.
+    // Only history-backed modes calculate and apply a requested history range.
+    if (this.runtimeConfig.period.type !== 'real_time') {
+      const range = this.getHistoryRange();
+      this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+    }
+
     this.Graph.update(this.series);
 
     this.area = [];
