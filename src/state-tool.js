@@ -425,7 +425,7 @@ export default class StateTool extends BaseTool {
    */
   formatEntityStateParts() {
     const isAttribute = this.entityConfig.attribute !== undefined;
-    const formatConfig = typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
+    const formatConfig = typeof this.config?.format === 'object' ? this.config.format : typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
     let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
 
     // raw_state_keep bypasses Home Assistant translation/formatting and returns the raw value directly.
@@ -456,33 +456,22 @@ export default class StateTool extends BaseTool {
     if (isNumeric) {
       const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
       const haValuePart = parts.find((part) => part.type === 'value');
-      let haDecimals;
-
-      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
-        const haValueStr = String(haValuePart.value);
-        const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
-        const decimalIndex = haValueStr.lastIndexOf(decimalSeparator);
-
-        // Only the locale decimal separator counts here; thousands separators must not create fake decimals.
-        haDecimals = decimalIndex !== -1 ? haValueStr.length - decimalIndex - 1 : 0;
-      }
-
-      const maxDigits = formatConfig.decimals_max ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 2);
-      let minDigits = formatConfig.decimals_min ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 0);
+      const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+      const decimalIndex = String(haValuePart.value).lastIndexOf(decimalSeparator);
+      const haDecimals = decimalIndex === -1 ? 0 : String(haValuePart.value).length - decimalIndex - 1;
+      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals;
+      const maxDigits = formatConfig.decimals_max ?? entityDecimals;
+      let minDigits = formatConfig.decimals_min ?? entityDecimals;
 
       if (minDigits > maxDigits) {
         minDigits = maxDigits;
       }
 
-      try {
-        formattedValue = new Intl.NumberFormat(activeLocale, {
-          useGrouping: formatConfig.separator !== false,
-          minimumFractionDigits: minDigits,
-          maximumFractionDigits: maxDigits,
-        }).format(Number(rawValue));
-      } catch (error) {
-        console.error('Error formatting numeric state inside parts:', error);
-      }
+      formattedValue = new Intl.NumberFormat(activeLocale, {
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      }).format(Number(rawValue));
     }
 
     return parts.map((part) => {

@@ -149,7 +149,6 @@ export default class SparklineGraphTool extends BaseTool {
       margin: 0,
       history: {
         period: 'rolling_window', // maakt niet uit wat hier staat? wordt niet gebruikt??
-        refresh_interval: '5min',
       },
       period: {
         type: 'calendar',
@@ -402,6 +401,10 @@ export default class SparklineGraphTool extends BaseTool {
     this.historyPromise = undefined;
     this.historyRefreshAt = 0;
     this.binBoundaryTimer = undefined;
+    this.calendarRangeTimer = undefined;
+    this.historyRangeStart = undefined;
+    this.historyRangeEnd = undefined;
+    this.historyResynchronizationRequested = false;
     this.runtimeYScale = undefined;
     this.runtimeConfig = this.config;
     this.runtimeConfig.svg = this.svg;
@@ -496,26 +499,53 @@ export default class SparklineGraphTool extends BaseTool {
     this.runtimeConfig.svg = this.svg;
     this.graphConfig = this.buildGraphConfig(this.runtimeConfig);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
-    if (this.historySeries) {
-      this.addCurrentEntityToHistory(entity);
+    const realTime = this.runtimeConfig.period.type === 'real_time';
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
+    const closedHistoricalCalendar = this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0;
+
+    // Real-time mode owns one current sample and never enters the history
+    // lifecycle. Clear an existing boundary timer when runtime config changes
+    // from a history period to real-time.
+    if (realTime) {
+      window.clearTimeout(this.binBoundaryTimer);
+      window.clearTimeout(this.calendarRangeTimer);
+      this.series = this.buildRealtimeSeries(entity);
+    } else if (this.historySeries) {
+      // Active periods append every Home Assistant state update before the
+      // complete series is reduced again into buckets. main.js reads the newly
+      // calculated statistics immediately after this tool update.
+      if (activeHistoryPeriod) this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
+    } else if (closedHistoricalCalendar) {
+      // A closed calendar period stays empty until its requested Home Assistant
+      // history arrives. Showing the current state here would display data from
+      // outside the requested historical range.
+      this.series = [];
     } else {
       this.series = this.buildRealtimeSeries(entity);
     }
 
-    this.updateGraphFromSeries();
+    // Closed calendar history has no valid graph input until Home Assistant
+    // returns the requested range. Do not calculate or expose current data in
+    // that interval while the first history request is pending.
+    if (!closedHistoricalCalendar || this.historySeries) {
+      this.updateGraphFromSeries();
 
-    if (this.tooltipVisible && this.pointerEvent) {
-      this.updateActivePointer(this.pointerEvent);
+      if (this.tooltipVisible && this.pointerEvent) {
+        this.updateActivePointer(this.pointerEvent);
+      }
     }
+
+    if (realTime) return;
 
     this.fetchHistoryIfNeeded(entity);
     this.scheduleBinBoundaryRefresh();
+    this.scheduleCalendarRangeRefresh();
   }
 
   /**
-   * First implementation feeds the engine with current state only. Historical
-   * fetching can replace this input without changing render logic.
+   * Builds the one-item current-state series used before history loads and used
+   * permanently by real-time mode.
    *
    * @param {object} entity - Current HA state object.
    * @returns {Array<object>} Series for SparklineGraph.update().
@@ -542,6 +572,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {object} entity - Current HA state object.
    */
   addCurrentEntityToHistory(entity) {
+    // Current Home Assistant state belongs only to active history periods.
+    // Closed calendar ranges must contain fetched source rows exclusively.
+    if (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0) return;
+
     const current = this.buildRealtimeSeries(entity)[0];
     const last = this.historySeries[this.historySeries.length - 1];
 
@@ -550,8 +584,49 @@ export default class SparklineGraphTool extends BaseTool {
     }
   }
 
+  /**
+   * Prunes an active history series to the bucket-aligned graph window. One
+   * preceding row is retained because its state remains active at the start of
+   * the first visible bucket. Source rows and timestamps remain unchanged.
+   *
+   * @returns {object} Start and end timestamps used for visible statistics.
+   */
+  pruneLiveHistoryToActiveWindow() {
+    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
+    const now = Date.now();
+    const periodHours = this.runtimeConfig.period.type === 'rolling_window' ? this.runtimeConfig.period.rolling_window.duration.hour : this.runtimeConfig.period.calendar.duration.hour;
+    const rangeStart =
+      this.runtimeConfig.period.type === 'rolling_window'
+        ? Math.floor(now / bucketMs) * bucketMs + bucketMs - periodHours * 60 * 60 * 1000
+        : this.getHistoryRange().start.getTime();
+    const sortedSeries = this.historySeries.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+    let precedingRow;
+    const activeRows = [];
+
+    sortedSeries.forEach((row) => {
+      if (new Date(row.last_changed).getTime() < rangeStart) {
+        precedingRow = row;
+      } else {
+        activeRows.push(row);
+      }
+    });
+
+    this.historySeries = precedingRow ? [precedingRow, ...activeRows] : activeRows;
+    this.series = this.historySeries;
+
+    return {
+      start: rangeStart,
+      end: now,
+    };
+  }
+
   scheduleBinBoundaryRefresh() {
     window.clearTimeout(this.binBoundaryTimer);
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
+
+    // Closed calendar periods have no active bucket and therefore no ordinary
+    // bin-boundary work. Their range refresh belongs to the midnight lifecycle.
+    if (!activeHistoryPeriod) return;
 
     if (!this.entity) return;
 
@@ -560,21 +635,89 @@ export default class SparklineGraphTool extends BaseTool {
     const delay = bucketMs - (now % bucketMs) + 10;
 
     this.binBoundaryTimer = window.setTimeout(() => {
-      if (this.historySeries) {
-        this.addCurrentEntityToHistory(this.entity);
-        this.series = this.historySeries;
-      } else {
-        this.series = this.buildRealtimeSeries(this.entity);
-      }
+      // Advancing time creates the new graph bucket. SparklineGraph carries the
+      // previous value visually across an empty bucket, but historySeries must
+      // remain unchanged until Home Assistant supplies a real state update.
 
       this.updateGraphFromSeries();
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
       }
-      this.fetchHistoryIfNeeded(this.entity);
+      // A bin boundary advances the in-memory graph without fetching history.
+      // Refresh local statistics and their bound tools from the recalculated series.
+      this.card._updateSparklineEntities();
+      this.card._updateToolsUsingSparklineEntities();
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
     }, delay);
+  }
+
+  /**
+   * Schedules the next calendar range check at local midnight. The callback
+   * recalculates from the current local date because suspended browsers may run
+   * it later than the originally scheduled transition.
+   */
+  scheduleCalendarRangeRefresh() {
+    window.clearTimeout(this.calendarRangeTimer);
+
+    if (this.runtimeConfig.period.type !== 'calendar') return;
+
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const delay = nextMidnight.getTime() - now.getTime() + 10;
+
+    this.calendarRangeTimer = window.setTimeout(() => {
+      const range = this.getHistoryRange();
+      const rangeChanged = range.start.getTime() !== this.historyRangeStart || range.end.getTime() !== this.historyRangeEnd;
+
+      if (rangeChanged && this.historyPromise) {
+        this.historyPromise.finally(() => this.fetchHistoryIfNeeded(this.entity));
+      } else if (rangeChanged) {
+        this.fetchHistoryIfNeeded(this.entity);
+      }
+      this.scheduleCalendarRangeRefresh();
+    }, delay);
+  }
+
+  /**
+   * Stops timers owned by this sparkline tool when its parent card disconnects.
+   */
+  disconnected() {
+    window.clearTimeout(this.binBoundaryTimer);
+    window.clearTimeout(this.calendarRangeTimer);
+  }
+
+  /**
+   * Marks existing history for resynchronization when a reused card returns to
+   * the DOM. The next normal Home Assistant state pass performs the fetch.
+   */
+  connected() {
+    if (
+      this.historySeries &&
+      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
+    ) {
+      this.historyResynchronizationRequested = true;
+    }
+  }
+
+  /** Marks existing history for resynchronization after an HA reconnect. */
+  hassConnected() {
+    if (
+      this.historySeries &&
+      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
+    ) {
+      this.historyResynchronizationRequested = true;
+    }
+  }
+
+  /**
+   * Reports whether reconnect handling requires the next setHass pass.
+   *
+   * @returns {boolean} True when existing history must be fetched again.
+   */
+  requiresHassUpdate() {
+    return this.historyResynchronizationRequested;
   }
 
   /**
@@ -707,29 +850,40 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Fetches history when the configured refresh interval has expired. The first
-   * render uses the current state, then history replaces the series once loaded.
+   * Fetches history when its normal deadline expires or when a calendar now
+   * represents a different concrete start/end range. Closed historical ranges
+   * are fetched once per represented local day.
    *
    * @param {object} entity - Current HA state object.
    */
   fetchHistoryIfNeeded(entity) {
     const now = Date.now();
-
-    if (this.historyPromise || now < this.historyRefreshAt) return;
-
     const range = this.getHistoryRange();
+    const calendarPeriod = this.runtimeConfig.period.type === 'calendar';
+    const closedHistoricalCalendar = calendarPeriod && this.runtimeConfig.period.calendar.offset < 0;
+    const representedRange = range.start.getTime() === this.historyRangeStart && range.end.getTime() === this.historyRangeEnd;
+    const calendarRangeChanged = calendarPeriod && !representedRange;
+    const periodicResynchronizationDue = this.runtimeConfig.history.refresh_interval !== undefined && now >= this.historyRefreshAt;
+
+    if (this.historyPromise) return;
+    if (closedHistoricalCalendar && representedRange) return;
+    if (this.historySeries && !calendarRangeChanged && !this.historyResynchronizationRequested && !periodicResynchronizationDue) return;
+
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
     console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
         this.historySeries = this.buildHistorySeries(history[0], entity, range.end);
+        this.historyRangeStart = range.start.getTime();
+        this.historyRangeEnd = range.end.getTime();
         this.addCurrentEntityToHistory(entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
         this.card._updateToolsUsingSparklineEntities();
-        this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
+        if (this.runtimeConfig.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
+        this.historyResynchronizationRequested = false;
         this.card.requestUpdate();
       })
       .finally(() => {
@@ -748,7 +902,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} SparklineGraph history series.
    */
   buildHistorySeries(historyRows, currentEntity, rangeEnd) {
-    const rows = historyRows.concat([currentEntity]);
+    const closedHistoricalCalendar = this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0;
+    const rows = closedHistoricalCalendar ? historyRows : historyRows.concat([currentEntity]);
 
     // // console.log('buildHistorySeries', rows, currentEntity, rangeEnd);
     // // return rows
@@ -784,12 +939,19 @@ export default class SparklineGraphTool extends BaseTool {
    * Runs the reused graph engine and stores the generated FHS render paths.
    */
   updateGraphFromSeries() {
-    const range = this.getHistoryRange();
     const chartType = this.runtimeConfig.sparkline.show.chart_type;
     const index = 0;
     const total = 1;
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
+    const statisticsRange = activeHistoryPeriod && this.historySeries ? this.pruneLiveHistoryToActiveWindow() : undefined;
 
-    this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+    // Real-time uses the graph engine's existing one-hour/one-point calculation.
+    // Only history-backed modes calculate and apply a requested history range.
+    if (this.runtimeConfig.period.type !== 'real_time') {
+      const range = this.getHistoryRange();
+      this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+    }
+
     this.Graph.update(this.series);
 
     this.area = [];
@@ -867,7 +1029,7 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    this.stats = this.calculateStatistics(this.series);
+    this.stats = this.calculateStatistics(this.series, statisticsRange);
   }
 
   /**
@@ -877,9 +1039,10 @@ export default class SparklineGraphTool extends BaseTool {
    * active for hours.
    *
    * @param {Array<object>} series - Current graph source series.
+   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
    * @returns {object} Graph statistics.
    */
-  calculateStatistics(series) {
+  calculateStatistics(series, statisticsRange) {
     const sortedSeries = series
       .filter((item) => item && Number.isFinite(Number(item.state)))
       .concat()
@@ -889,21 +1052,28 @@ export default class SparklineGraphTool extends BaseTool {
       return {};
     }
 
-    const values = sortedSeries.map((item) => Number(item.state));
+    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
+    const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
+    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
+    const values = visibleSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const minItem = sortedSeries.find((item) => Number(item.state) === min);
-    const maxItem = sortedSeries.find((item) => Number(item.state) === max);
-    const min_time = minItem.last_changed;
-    const max_time = maxItem.last_changed;
+    const minItem = visibleSeries.find((item) => Number(item.state) === min);
+    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
+    const minItemTime = new Date(minItem.last_changed).getTime();
+    const maxItemTime = new Date(maxItem.last_changed).getTime();
+    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
+    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
     let weightedValue = 0;
     let weightedDuration = 0;
 
-    sortedSeries.forEach((item, index) => {
+    visibleSeries.forEach((item, index) => {
       const value = Number(item.state);
-      const startTime = new Date(item.last_changed).getTime();
-      const endTime = index < sortedSeries.length - 1 ? new Date(sortedSeries[index + 1].last_changed).getTime() : new Date().getTime();
-      const duration = endTime - startTime;
+      const itemStart = new Date(item.last_changed).getTime();
+      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
+      const startTime = Math.max(itemStart, rangeStart);
+      const endTime = Math.min(nextItemStart, rangeEnd);
+      const duration = Math.max(0, endTime - startTime);
 
       weightedValue += value * duration;
       weightedDuration += duration;
@@ -1221,38 +1391,42 @@ export default class SparklineGraphTool extends BaseTool {
     return localized.charAt(0).toUpperCase() + localized.slice(1);
   }
 
+  /**
+   * Formats a bucket statistic with the precision and unit produced for the
+   * source entity by StateTool. Empty buckets have no statistics.
+   *
+   * @param {string} stat - min, avg or max.
+   * @param {number|undefined} rawValue - Aggregated value from bucketMeta.
+   * @returns {object} Tooltip label, formatted value and unit.
+   */
   formatTooltipStat(stat, rawValue) {
-    const sparklineId = this.config.id;
-    const entityId = `fhs_sparkline.${sparklineId}_${stat}`;
-    const entity = this.card.entities.find((item) => item?.entity_id === entityId);
-    const entityConfig = this.card.resolvedEntityConfigs.find((item) => item?.entity === entityId);
+    const label = this.getTooltipLabel(stat);
 
-    if (!entity || !entityConfig) {
-      return { label: this.getTooltipLabel(stat), value: rawValue, uom: '' };
-    }
+    if (rawValue === undefined) return { label, value: '', uom: '' };
 
-    const baseFormatter = Object.create(StateTool.prototype);
-    baseFormatter.entity = entity;
-    baseFormatter.entityConfig = entityConfig;
-    baseFormatter.card = this.card;
-    baseFormatter.state = '';
-    baseFormatter.uom = '';
-    baseFormatter.buildStateAndUom();
+    const sourceEntity = this.card.entities[this.entity_index];
+    const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
+    const sourceFormatter = Object.create(StateTool.prototype);
 
-    const activeLocale = this.card._hass.locale?.language || this.card._hass.language || 'en-US';
-    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
-    const decimalIndex = baseFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex !== -1 ? baseFormatter.state.length - decimalIndex - 1 : 0;
+    // Read precision and unit from the source entity's normal StateTool output.
+    sourceFormatter.entity = sourceEntity;
+    sourceFormatter.entityConfig = sourceEntityConfig;
+    sourceFormatter.config = sourceEntityConfig;
+    sourceFormatter.card = this.card;
+    sourceFormatter.state = '';
+    sourceFormatter.uom = '';
+    sourceFormatter.buildStateAndUom();
+
+    const activeLocale = this.card._hass.locale.language;
+    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+    const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
+    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
     const formattedValue = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
-    }).format(Number(rawValue));
+    }).format(rawValue);
 
-    return {
-      label: this.getTooltipLabel(stat),
-      value: formattedValue,
-      uom: baseFormatter.uom,
-    };
+    return { label, value: formattedValue, uom: sourceFormatter.uom };
   }
 
   updateTooltipFromPointIndex(pointIndex, event) {
@@ -3475,26 +3649,26 @@ export default class SparklineGraphTool extends BaseTool {
 
     return html`
       <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
-        <div class="sparkline-tooltip__title">${this.tooltip.title ?? ''}</div>
+        <div class="sparkline-tooltip__title"></div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.min?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.min?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.min?.uom ? ` ${this.tooltip.min.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.avg?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.avg?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.avg?.uom ? ` ${this.tooltip.avg.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.max?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.max?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
       </div>
@@ -3868,6 +4042,31 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the sparkline.
    */
   renderSvg() {
+    // A closed calendar period contains fetched source history exclusively.
+    // Render an empty tool surface until that first asynchronous request has
+    // completed, because there is intentionally no current-state placeholder.
+    if (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0 && !this.historySeries) {
+      return svg`
+        <g
+          transform="${this.getGroupScaleTransform()}"
+          style="${this.getGroupScaleStyle()}"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            id="sparkline-${this.cardId}-${this.index}"
+            x="${this.svg.x}"
+            y="${this.svg.y}"
+            width="${this.svg.width}"
+            height="${this.svg.height}"
+            viewBox="0 0 ${this.svg.width} ${this.svg.height}"
+            overflow="visible"
+            touch-action="none"
+            style="touch-action:none; pointer-events:auto; overflow:visible;"
+          ></svg>
+        </g>
+      `;
+    }
+
     const content = svg`
       <g
         transform="${this.getGroupScaleTransform()}"
