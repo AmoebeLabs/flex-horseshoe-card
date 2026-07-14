@@ -457,7 +457,8 @@ export default class StateTool extends BaseTool {
     if (isNumeric) {
       const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
       const registryEntity = this.card._hass.entities[formatEntity.entity_id];
-      const haFormatOptions = getDefaultFormatOptions(Number(rawValue), getNumberFormatOptions(formatEntity, registryEntity));
+      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
+      const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
       const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
       const maxDigits = formatConfig.decimals_max ?? entityDecimals;
       let minDigits = formatConfig.decimals_min ?? entityDecimals;
