@@ -268,6 +268,11 @@ export default class IconTool extends BaseTool {
     });
   }
 
+  /** Injects all pending external SVG URL icons once per Lit update. */
+  updated() {
+    if (this.index === 0) this.injectSvgUrlIcons();
+  }
+
   /**
    * Renders a cached injected SVG URL icon.
    */
