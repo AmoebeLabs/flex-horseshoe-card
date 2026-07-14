@@ -581,6 +581,11 @@ export default class SparklineGraphTool extends BaseTool {
 
   scheduleBinBoundaryRefresh() {
     window.clearTimeout(this.binBoundaryTimer);
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
+
+    // Closed calendar periods have no active bucket and therefore no ordinary
+    // bin-boundary work. Their range refresh belongs to the midnight lifecycle.
+    if (!activeHistoryPeriod) return;
 
     if (!this.entity) return;
 
@@ -589,18 +594,18 @@ export default class SparklineGraphTool extends BaseTool {
     const delay = bucketMs - (now % bucketMs) + 10;
 
     this.binBoundaryTimer = window.setTimeout(() => {
-      if (this.historySeries) {
-        this.addCurrentEntityToHistory(this.entity);
-        this.series = this.historySeries;
-      } else {
-        this.series = this.buildRealtimeSeries(this.entity);
-      }
+      // Advancing time creates the new graph bucket. SparklineGraph carries the
+      // previous value visually across an empty bucket, but historySeries must
+      // remain unchanged until Home Assistant supplies a real state update.
 
       this.updateGraphFromSeries();
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
       }
-      this.fetchHistoryIfNeeded(this.entity);
+      // A bin boundary advances the in-memory graph without fetching history.
+      // Refresh local statistics and their bound tools from the recalculated series.
+      this.card._updateSparklineEntities();
+      this.card._updateToolsUsingSparklineEntities();
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
     }, delay);
@@ -1256,38 +1261,40 @@ export default class SparklineGraphTool extends BaseTool {
     return localized.charAt(0).toUpperCase() + localized.slice(1);
   }
 
+  /**
+   * Formats a bucket statistic with the precision and unit produced for the
+   * source entity by StateTool. Empty buckets have no statistics.
+   *
+   * @param {string} stat - min, avg or max.
+   * @param {number|undefined} rawValue - Aggregated value from bucketMeta.
+   * @returns {object} Tooltip label, formatted value and unit.
+   */
   formatTooltipStat(stat, rawValue) {
-    const sparklineId = this.config.id;
-    const entityId = `fhs_sparkline.${sparklineId}_${stat}`;
-    const entity = this.card.entities.find((item) => item?.entity_id === entityId);
-    const entityConfig = this.card.resolvedEntityConfigs.find((item) => item?.entity === entityId);
+    const label = this.getTooltipLabel(stat);
 
-    if (!entity || !entityConfig) {
-      return { label: this.getTooltipLabel(stat), value: rawValue, uom: '' };
-    }
+    if (rawValue === undefined) return { label, value: '', uom: '' };
 
+    const sourceEntity = this.card.entities[this.entity_index];
+    const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
     const baseFormatter = Object.create(StateTool.prototype);
-    baseFormatter.entity = entity;
-    baseFormatter.entityConfig = entityConfig;
+
+    baseFormatter.entity = sourceEntity;
+    baseFormatter.entityConfig = sourceEntityConfig;
     baseFormatter.card = this.card;
     baseFormatter.state = '';
     baseFormatter.uom = '';
     baseFormatter.buildStateAndUom();
 
-    const activeLocale = this.card._hass.locale?.language || this.card._hass.language || 'en-US';
-    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
+    const activeLocale = this.card._hass.locale.language;
+    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
     const decimalIndex = baseFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex !== -1 ? baseFormatter.state.length - decimalIndex - 1 : 0;
+    const decimals = decimalIndex === -1 ? 0 : baseFormatter.state.length - decimalIndex - 1;
     const formattedValue = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
-    }).format(Number(rawValue));
+    }).format(rawValue);
 
-    return {
-      label: this.getTooltipLabel(stat),
-      value: formattedValue,
-      uom: baseFormatter.uom,
-    };
+    return { label, value: formattedValue, uom: baseFormatter.uom };
   }
 
   updateTooltipFromPointIndex(pointIndex, event) {
@@ -3510,26 +3517,26 @@ export default class SparklineGraphTool extends BaseTool {
 
     return html`
       <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
-        <div class="sparkline-tooltip__title">${this.tooltip.title ?? ''}</div>
+        <div class="sparkline-tooltip__title"></div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.min?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.min?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.min?.uom ? ` ${this.tooltip.min.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.avg?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.avg?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.avg?.uom ? ` ${this.tooltip.avg.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
         <div class="sparkline-tooltip__row">
-          <span>${this.tooltip.max?.label ?? ''}</span>
+          <span></span>
           <span style=${styleMap(valueCellStyles)}>
-            <span>${this.tooltip.max?.value ?? ''}</span>
-            <span style=${styleMap(unitStyles)}>${this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : ''}</span>
+            <span></span>
+            <span style=${styleMap(unitStyles)}></span>
           </span>
         </div>
       </div>
