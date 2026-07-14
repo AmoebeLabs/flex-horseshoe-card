@@ -584,6 +584,42 @@ export default class SparklineGraphTool extends BaseTool {
     }
   }
 
+  /**
+   * Prunes an active history series to the bucket-aligned graph window. One
+   * preceding row is retained because its state remains active at the start of
+   * the first visible bucket. Source rows and timestamps remain unchanged.
+   *
+   * @returns {object} Start and end timestamps used for visible statistics.
+   */
+  pruneLiveHistoryToActiveWindow() {
+    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
+    const now = Date.now();
+    const periodHours = this.runtimeConfig.period.type === 'rolling_window' ? this.runtimeConfig.period.rolling_window.duration.hour : this.runtimeConfig.period.calendar.duration.hour;
+    const rangeStart =
+      this.runtimeConfig.period.type === 'rolling_window'
+        ? Math.floor(now / bucketMs) * bucketMs + bucketMs - periodHours * 60 * 60 * 1000
+        : this.getHistoryRange().start.getTime();
+    const sortedSeries = this.historySeries.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+    let precedingRow;
+    const activeRows = [];
+
+    sortedSeries.forEach((row) => {
+      if (new Date(row.last_changed).getTime() < rangeStart) {
+        precedingRow = row;
+      } else {
+        activeRows.push(row);
+      }
+    });
+
+    this.historySeries = precedingRow ? [precedingRow, ...activeRows] : activeRows;
+    this.series = this.historySeries;
+
+    return {
+      start: rangeStart,
+      end: now,
+    };
+  }
+
   scheduleBinBoundaryRefresh() {
     window.clearTimeout(this.binBoundaryTimer);
     const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
@@ -872,6 +908,8 @@ export default class SparklineGraphTool extends BaseTool {
     const chartType = this.runtimeConfig.sparkline.show.chart_type;
     const index = 0;
     const total = 1;
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
+    const statisticsRange = activeHistoryPeriod && this.historySeries ? this.pruneLiveHistoryToActiveWindow() : undefined;
 
     // Real-time uses the graph engine's existing one-hour/one-point calculation.
     // Only history-backed modes calculate and apply a requested history range.
@@ -957,7 +995,7 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    this.stats = this.calculateStatistics(this.series);
+    this.stats = this.calculateStatistics(this.series, statisticsRange);
   }
 
   /**
@@ -967,9 +1005,10 @@ export default class SparklineGraphTool extends BaseTool {
    * active for hours.
    *
    * @param {Array<object>} series - Current graph source series.
+   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
    * @returns {object} Graph statistics.
    */
-  calculateStatistics(series) {
+  calculateStatistics(series, statisticsRange) {
     const sortedSeries = series
       .filter((item) => item && Number.isFinite(Number(item.state)))
       .concat()
@@ -979,21 +1018,28 @@ export default class SparklineGraphTool extends BaseTool {
       return {};
     }
 
-    const values = sortedSeries.map((item) => Number(item.state));
+    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
+    const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
+    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
+    const values = visibleSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const minItem = sortedSeries.find((item) => Number(item.state) === min);
-    const maxItem = sortedSeries.find((item) => Number(item.state) === max);
-    const min_time = minItem.last_changed;
-    const max_time = maxItem.last_changed;
+    const minItem = visibleSeries.find((item) => Number(item.state) === min);
+    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
+    const minItemTime = new Date(minItem.last_changed).getTime();
+    const maxItemTime = new Date(maxItem.last_changed).getTime();
+    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
+    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
     let weightedValue = 0;
     let weightedDuration = 0;
 
-    sortedSeries.forEach((item, index) => {
+    visibleSeries.forEach((item, index) => {
       const value = Number(item.state);
-      const startTime = new Date(item.last_changed).getTime();
-      const endTime = index < sortedSeries.length - 1 ? new Date(sortedSeries[index + 1].last_changed).getTime() : new Date().getTime();
-      const duration = endTime - startTime;
+      const itemStart = new Date(item.last_changed).getTime();
+      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
+      const startTime = Math.max(itemStart, rangeStart);
+      const endTime = Math.min(nextItemStart, rangeEnd);
+      const duration = Math.max(0, endTime - startTime);
 
       weightedValue += value * duration;
       weightedDuration += duration;
@@ -1326,18 +1372,27 @@ export default class SparklineGraphTool extends BaseTool {
 
     const sourceEntity = this.card.entities[this.entity_index];
     const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
-    const statisticFormatter = Object.create(StateTool.prototype);
+    const sourceFormatter = Object.create(StateTool.prototype);
 
-    // Format every bucket statistic through the same fixed or explicitly dynamic precision path as a state tool.
-    statisticFormatter.entity = { ...sourceEntity, state: String(rawValue) };
-    statisticFormatter.entityConfig = sourceEntityConfig;
-    statisticFormatter.config = sourceEntityConfig;
-    statisticFormatter.card = this.card;
-    statisticFormatter.state = '';
-    statisticFormatter.uom = '';
-    statisticFormatter.buildStateAndUom();
+    // Read precision and unit from the source entity's normal StateTool output.
+    sourceFormatter.entity = sourceEntity;
+    sourceFormatter.entityConfig = sourceEntityConfig;
+    sourceFormatter.config = sourceEntityConfig;
+    sourceFormatter.card = this.card;
+    sourceFormatter.state = '';
+    sourceFormatter.uom = '';
+    sourceFormatter.buildStateAndUom();
 
-    return { label, value: statisticFormatter.state, uom: statisticFormatter.uom };
+    const activeLocale = this.card._hass.locale.language;
+    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+    const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
+    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
+    const formattedValue = new Intl.NumberFormat(activeLocale, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(rawValue);
+
+    return { label, value: formattedValue, uom: sourceFormatter.uom };
   }
 
   updateTooltipFromPointIndex(pointIndex, event) {

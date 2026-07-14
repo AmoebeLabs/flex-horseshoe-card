@@ -10,7 +10,6 @@ import BaseTool from './base-tool.js';
 import Colors from './colors.js';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
-import { getDefaultFormatOptions, getNumberFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
 /**
  * Layout state tool that renders an entity state value and optional unit of measurement.
@@ -456,10 +455,11 @@ export default class StateTool extends BaseTool {
 
     if (isNumeric) {
       const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
-      const registryEntity = this.card._hass.entities[formatEntity.entity_id];
-      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
-      const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
-      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
+      const haValuePart = parts.find((part) => part.type === 'value');
+      const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+      const decimalIndex = String(haValuePart.value).lastIndexOf(decimalSeparator);
+      const haDecimals = decimalIndex === -1 ? 0 : String(haValuePart.value).length - decimalIndex - 1;
+      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals;
       const maxDigits = formatConfig.decimals_max ?? entityDecimals;
       let minDigits = formatConfig.decimals_min ?? entityDecimals;
 
@@ -467,7 +467,6 @@ export default class StateTool extends BaseTool {
         minDigits = maxDigits;
       }
 
-      // HA and entity precision are fixed; only explicit min/max formatting can make the precision dynamic.
       formattedValue = new Intl.NumberFormat(activeLocale, {
         useGrouping: formatConfig.separator !== false,
         minimumFractionDigits: minDigits,
