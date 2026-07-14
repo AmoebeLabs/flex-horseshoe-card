@@ -497,6 +497,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.graphConfig = this.buildGraphConfig(this.runtimeConfig);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
     const realTime = this.runtimeConfig.period.type === 'real_time';
+    const closedHistoricalCalendar = this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0;
 
     // Real-time mode owns one current sample and never enters the history
     // lifecycle. Clear an existing boundary timer when runtime config changes
@@ -507,14 +508,24 @@ export default class SparklineGraphTool extends BaseTool {
     } else if (this.historySeries) {
       this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
+    } else if (closedHistoricalCalendar) {
+      // A closed calendar period stays empty until its requested Home Assistant
+      // history arrives. Showing the current state here would display data from
+      // outside the requested historical range.
+      this.series = [];
     } else {
       this.series = this.buildRealtimeSeries(entity);
     }
 
-    this.updateGraphFromSeries();
+    // Closed calendar history has no valid graph input until Home Assistant
+    // returns the requested range. Do not calculate or expose current data in
+    // that interval while the first history request is pending.
+    if (!closedHistoricalCalendar || this.historySeries) {
+      this.updateGraphFromSeries();
 
-    if (this.tooltipVisible && this.pointerEvent) {
-      this.updateActivePointer(this.pointerEvent);
+      if (this.tooltipVisible && this.pointerEvent) {
+        this.updateActivePointer(this.pointerEvent);
+      }
     }
 
     if (realTime) return;
@@ -552,6 +563,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {object} entity - Current HA state object.
    */
   addCurrentEntityToHistory(entity) {
+    // Current Home Assistant state belongs only to active history periods.
+    // Closed calendar ranges must contain fetched source rows exclusively.
+    if (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0) return;
+
     const current = this.buildRealtimeSeries(entity)[0];
     const last = this.historySeries[this.historySeries.length - 1];
 
@@ -758,7 +773,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} SparklineGraph history series.
    */
   buildHistorySeries(historyRows, currentEntity, rangeEnd) {
-    const rows = historyRows.concat([currentEntity]);
+    const closedHistoricalCalendar = this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0;
+    const rows = closedHistoricalCalendar ? historyRows : historyRows.concat([currentEntity]);
 
     // // console.log('buildHistorySeries', rows, currentEntity, rangeEnd);
     // // return rows
@@ -3883,6 +3899,31 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the sparkline.
    */
   renderSvg() {
+    // A closed calendar period contains fetched source history exclusively.
+    // Render an empty tool surface until that first asynchronous request has
+    // completed, because there is intentionally no current-state placeholder.
+    if (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0 && !this.historySeries) {
+      return svg`
+        <g
+          transform="${this.getGroupScaleTransform()}"
+          style="${this.getGroupScaleStyle()}"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            id="sparkline-${this.cardId}-${this.index}"
+            x="${this.svg.x}"
+            y="${this.svg.y}"
+            width="${this.svg.width}"
+            height="${this.svg.height}"
+            viewBox="0 0 ${this.svg.width} ${this.svg.height}"
+            overflow="visible"
+            touch-action="none"
+            style="touch-action:none; pointer-events:auto; overflow:visible;"
+          ></svg>
+        </g>
+      `;
+    }
+
     const content = svg`
       <g
         transform="${this.getGroupScaleTransform()}"
