@@ -74,6 +74,10 @@ class FlexHorseshoeCard extends LitElement {
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
+    this.hassConnection = undefined;
+    this.hassConnectionReadyHandler = () => {
+      this._getRenderableTools().forEach((tool) => tool.hassConnected());
+    };
     this.entities = [];
     this.entitiesStr = [];
     this.attributesStr = [];
@@ -1053,6 +1057,12 @@ class FlexHorseshoeCard extends LitElement {
 
   setHass(hass, forceUpdate = false) {
     this._hass = hass;
+
+    if (this.hassConnection !== hass.connection) {
+      if (this.hassConnection && this.isConnected) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
+      this.hassConnection = hass.connection;
+      if (this.isConnected) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
+    }
     this.childCards.setHass(hass);
 
     Templates.setContext({
@@ -1062,7 +1072,7 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    let entityHasChanged = forceUpdate;
+    let entityHasChanged = forceUpdate || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
     let themeModeHasChanged = false;
 
     const themeName = hass.selectedTheme || hass.themes.theme || '';
@@ -1734,6 +1744,8 @@ class FlexHorseshoeCard extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
+    if (this.hassConnection) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
+    this._getRenderableTools().forEach((tool) => tool.connected());
   }
 
   /** *****************************************************************************
@@ -1743,7 +1755,8 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   disconnectedCallback() {
-    this.sparklineGraphTools.forEach((sparklineGraphTool) => sparklineGraphTool.disconnect());
+    if (this.hassConnection) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
+    this._getRenderableTools().forEach((tool) => tool.disconnected());
     super.disconnectedCallback();
   }
 
@@ -1949,7 +1962,7 @@ class FlexHorseshoeCard extends LitElement {
   updated(changedProperties) {
     super.updated?.(changedProperties);
 
-    this.iconTools?.[0]?.injectSvgUrlIcons();
+    this._getRenderableTools().forEach((tool) => tool.updated(changedProperties));
     this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }
   /** *****************************************************************************

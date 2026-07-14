@@ -149,7 +149,6 @@ export default class SparklineGraphTool extends BaseTool {
       margin: 0,
       history: {
         period: 'rolling_window', // maakt niet uit wat hier staat? wordt niet gebruikt??
-        refresh_interval: '5min',
       },
       period: {
         type: 'calendar',
@@ -405,6 +404,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.calendarRangeTimer = undefined;
     this.historyRangeStart = undefined;
     this.historyRangeEnd = undefined;
+    this.historyResynchronizationRequested = false;
     this.runtimeYScale = undefined;
     this.runtimeConfig = this.config;
     this.runtimeConfig.svg = this.svg;
@@ -683,9 +683,41 @@ export default class SparklineGraphTool extends BaseTool {
   /**
    * Stops timers owned by this sparkline tool when its parent card disconnects.
    */
-  disconnect() {
+  disconnected() {
     window.clearTimeout(this.binBoundaryTimer);
     window.clearTimeout(this.calendarRangeTimer);
+  }
+
+  /**
+   * Marks existing history for resynchronization when a reused card returns to
+   * the DOM. The next normal Home Assistant state pass performs the fetch.
+   */
+  connected() {
+    if (
+      this.historySeries &&
+      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
+    ) {
+      this.historyResynchronizationRequested = true;
+    }
+  }
+
+  /** Marks existing history for resynchronization after an HA reconnect. */
+  hassConnected() {
+    if (
+      this.historySeries &&
+      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
+    ) {
+      this.historyResynchronizationRequested = true;
+    }
+  }
+
+  /**
+   * Reports whether reconnect handling requires the next setHass pass.
+   *
+   * @returns {boolean} True when existing history must be fetched again.
+   */
+  requiresHassUpdate() {
+    return this.historyResynchronizationRequested;
   }
 
   /**
@@ -831,10 +863,11 @@ export default class SparklineGraphTool extends BaseTool {
     const closedHistoricalCalendar = calendarPeriod && this.runtimeConfig.period.calendar.offset < 0;
     const representedRange = range.start.getTime() === this.historyRangeStart && range.end.getTime() === this.historyRangeEnd;
     const calendarRangeChanged = calendarPeriod && !representedRange;
+    const periodicResynchronizationDue = this.runtimeConfig.history.refresh_interval !== undefined && now >= this.historyRefreshAt;
 
     if (this.historyPromise) return;
     if (closedHistoricalCalendar && representedRange) return;
-    if (!calendarRangeChanged && now < this.historyRefreshAt) return;
+    if (this.historySeries && !calendarRangeChanged && !this.historyResynchronizationRequested && !periodicResynchronizationDue) return;
 
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
     console.log('[fetchHistoryIfNeeded] range', range);
@@ -849,7 +882,8 @@ export default class SparklineGraphTool extends BaseTool {
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
         this.card._updateToolsUsingSparklineEntities();
-        this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
+        if (this.runtimeConfig.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
+        this.historyResynchronizationRequested = false;
         this.card.requestUpdate();
       })
       .finally(() => {

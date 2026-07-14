@@ -57,6 +57,30 @@ export default class BaseTool {
     this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
   }
 
+  /** Called when the parent card is attached to the DOM. */
+  connected() {}
+
+  /** Called when the parent card is removed from the DOM. */
+  disconnected() {}
+
+  /** Called after the parent card's first Lit update. */
+  firstUpdated() {}
+
+  /** Called after every completed Lit update of the parent card. */
+  updated() {}
+
+  /** Called after the Home Assistant websocket reconnects. */
+  hassConnected() {}
+
+  /**
+   * Reports whether this tool requires the next Home Assistant state pass.
+   *
+   * @returns {boolean} True when setHass must update this tool.
+   */
+  requiresHassUpdate() {
+    return false;
+  }
+
   /**
    * Resolves configured styles and animation styles into one style object.
    *
