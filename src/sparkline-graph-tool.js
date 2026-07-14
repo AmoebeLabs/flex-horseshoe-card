@@ -402,6 +402,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.historyPromise = undefined;
     this.historyRefreshAt = 0;
     this.binBoundaryTimer = undefined;
+    this.calendarRangeTimer = undefined;
+    this.historyRangeStart = undefined;
+    this.historyRangeEnd = undefined;
     this.runtimeYScale = undefined;
     this.runtimeConfig = this.config;
     this.runtimeConfig.svg = this.svg;
@@ -505,6 +508,7 @@ export default class SparklineGraphTool extends BaseTool {
     // from a history period to real-time.
     if (realTime) {
       window.clearTimeout(this.binBoundaryTimer);
+      window.clearTimeout(this.calendarRangeTimer);
       this.series = this.buildRealtimeSeries(entity);
     } else if (this.historySeries) {
       // Active periods append every Home Assistant state update before the
@@ -536,6 +540,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.fetchHistoryIfNeeded(entity);
     this.scheduleBinBoundaryRefresh();
+    this.scheduleCalendarRangeRefresh();
   }
 
   /**
@@ -609,6 +614,42 @@ export default class SparklineGraphTool extends BaseTool {
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
     }, delay);
+  }
+
+  /**
+   * Schedules the next calendar range check at local midnight. The callback
+   * recalculates from the current local date because suspended browsers may run
+   * it later than the originally scheduled transition.
+   */
+  scheduleCalendarRangeRefresh() {
+    window.clearTimeout(this.calendarRangeTimer);
+
+    if (this.runtimeConfig.period.type !== 'calendar') return;
+
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const delay = nextMidnight.getTime() - now.getTime() + 10;
+
+    this.calendarRangeTimer = window.setTimeout(() => {
+      const range = this.getHistoryRange();
+      const rangeChanged = range.start.getTime() !== this.historyRangeStart || range.end.getTime() !== this.historyRangeEnd;
+
+      if (rangeChanged && this.historyPromise) {
+        this.historyPromise.finally(() => this.fetchHistoryIfNeeded(this.entity));
+      } else if (rangeChanged) {
+        this.fetchHistoryIfNeeded(this.entity);
+      }
+      this.scheduleCalendarRangeRefresh();
+    }, delay);
+  }
+
+  /**
+   * Stops timers owned by this sparkline tool when its parent card disconnects.
+   */
+  disconnect() {
+    window.clearTimeout(this.binBoundaryTimer);
+    window.clearTimeout(this.calendarRangeTimer);
   }
 
   /**
@@ -741,23 +782,32 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Fetches history when the configured refresh interval has expired. The first
-   * render uses the current state, then history replaces the series once loaded.
+   * Fetches history when its normal deadline expires or when a calendar now
+   * represents a different concrete start/end range. Closed historical ranges
+   * are fetched once per represented local day.
    *
    * @param {object} entity - Current HA state object.
    */
   fetchHistoryIfNeeded(entity) {
     const now = Date.now();
-
-    if (this.historyPromise || now < this.historyRefreshAt) return;
-
     const range = this.getHistoryRange();
+    const calendarPeriod = this.runtimeConfig.period.type === 'calendar';
+    const closedHistoricalCalendar = calendarPeriod && this.runtimeConfig.period.calendar.offset < 0;
+    const representedRange = range.start.getTime() === this.historyRangeStart && range.end.getTime() === this.historyRangeEnd;
+    const calendarRangeChanged = calendarPeriod && !representedRange;
+
+    if (this.historyPromise) return;
+    if (closedHistoricalCalendar && representedRange) return;
+    if (!calendarRangeChanged && now < this.historyRefreshAt) return;
+
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
     console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
         this.historySeries = this.buildHistorySeries(history[0], entity, range.end);
+        this.historyRangeStart = range.start.getTime();
+        this.historyRangeEnd = range.end.getTime();
         this.addCurrentEntityToHistory(entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
@@ -1276,25 +1326,18 @@ export default class SparklineGraphTool extends BaseTool {
 
     const sourceEntity = this.card.entities[this.entity_index];
     const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
-    const baseFormatter = Object.create(StateTool.prototype);
+    const statisticFormatter = Object.create(StateTool.prototype);
 
-    baseFormatter.entity = sourceEntity;
-    baseFormatter.entityConfig = sourceEntityConfig;
-    baseFormatter.card = this.card;
-    baseFormatter.state = '';
-    baseFormatter.uom = '';
-    baseFormatter.buildStateAndUom();
+    // Format every bucket statistic through the same fixed or explicitly dynamic precision path as a state tool.
+    statisticFormatter.entity = { ...sourceEntity, state: String(rawValue) };
+    statisticFormatter.entityConfig = sourceEntityConfig;
+    statisticFormatter.config = sourceEntityConfig;
+    statisticFormatter.card = this.card;
+    statisticFormatter.state = '';
+    statisticFormatter.uom = '';
+    statisticFormatter.buildStateAndUom();
 
-    const activeLocale = this.card._hass.locale.language;
-    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
-    const decimalIndex = baseFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex === -1 ? 0 : baseFormatter.state.length - decimalIndex - 1;
-    const formattedValue = new Intl.NumberFormat(activeLocale, {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(rawValue);
-
-    return { label, value: formattedValue, uom: baseFormatter.uom };
+    return { label, value: statisticFormatter.state, uom: statisticFormatter.uom };
   }
 
   updateTooltipFromPointIndex(pointIndex, event) {

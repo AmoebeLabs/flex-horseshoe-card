@@ -1743,6 +1743,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   disconnectedCallback() {
+    this.sparklineGraphTools.forEach((sparklineGraphTool) => sparklineGraphTool.disconnect());
     super.disconnectedCallback();
   }
 
