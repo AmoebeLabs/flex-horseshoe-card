@@ -10,6 +10,7 @@ import BaseTool from './base-tool.js';
 import Colors from './colors.js';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
+import { getDefaultFormatOptions, getNumberFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
 /**
  * Layout state tool that renders an entity state value and optional unit of measurement.
@@ -425,7 +426,7 @@ export default class StateTool extends BaseTool {
    */
   formatEntityStateParts() {
     const isAttribute = this.entityConfig.attribute !== undefined;
-    const formatConfig = typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
+    const formatConfig = typeof this.config?.format === 'object' ? this.config.format : typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
     let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
 
     // raw_state_keep bypasses Home Assistant translation/formatting and returns the raw value directly.
@@ -455,34 +456,23 @@ export default class StateTool extends BaseTool {
 
     if (isNumeric) {
       const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
-      const haValuePart = parts.find((part) => part.type === 'value');
-      let haDecimals;
-
-      if (haValuePart && haValuePart.value !== undefined && haValuePart.value !== null) {
-        const haValueStr = String(haValuePart.value);
-        const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value;
-        const decimalIndex = haValueStr.lastIndexOf(decimalSeparator);
-
-        // Only the locale decimal separator counts here; thousands separators must not create fake decimals.
-        haDecimals = decimalIndex !== -1 ? haValueStr.length - decimalIndex - 1 : 0;
-      }
-
-      const maxDigits = formatConfig.decimals_max ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 2);
-      let minDigits = formatConfig.decimals_min ?? (this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals !== undefined ? haDecimals : 0);
+      const registryEntity = this.card._hass.entities[formatEntity.entity_id];
+      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
+      const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
+      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
+      const maxDigits = formatConfig.decimals_max ?? entityDecimals;
+      let minDigits = formatConfig.decimals_min ?? entityDecimals;
 
       if (minDigits > maxDigits) {
         minDigits = maxDigits;
       }
 
-      try {
-        formattedValue = new Intl.NumberFormat(activeLocale, {
-          useGrouping: formatConfig.separator !== false,
-          minimumFractionDigits: minDigits,
-          maximumFractionDigits: maxDigits,
-        }).format(Number(rawValue));
-      } catch (error) {
-        console.error('Error formatting numeric state inside parts:', error);
-      }
+      // HA and entity precision are fixed; only explicit min/max formatting can make the precision dynamic.
+      formattedValue = new Intl.NumberFormat(activeLocale, {
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      }).format(Number(rawValue));
     }
 
     return parts.map((part) => {
