@@ -497,6 +497,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.graphConfig = this.buildGraphConfig(this.runtimeConfig);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
     const realTime = this.runtimeConfig.period.type === 'real_time';
+    const activeHistoryPeriod = this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0);
     const closedHistoricalCalendar = this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset < 0;
 
     // Real-time mode owns one current sample and never enters the history
@@ -506,7 +507,10 @@ export default class SparklineGraphTool extends BaseTool {
       window.clearTimeout(this.binBoundaryTimer);
       this.series = this.buildRealtimeSeries(entity);
     } else if (this.historySeries) {
-      this.addCurrentEntityToHistory(entity);
+      // Active periods append every Home Assistant state update before the
+      // complete series is reduced again into buckets. main.js reads the newly
+      // calculated statistics immediately after this tool update.
+      if (activeHistoryPeriod) this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
     } else if (closedHistoricalCalendar) {
       // A closed calendar period stays empty until its requested Home Assistant
