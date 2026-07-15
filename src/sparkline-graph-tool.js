@@ -595,10 +595,7 @@ export default class SparklineGraphTool extends BaseTool {
     const bucketMs = (60 / this.Graph.points) * 60 * 1000;
     const now = Date.now();
     const periodHours = this.runtimeConfig.period.type === 'rolling_window' ? this.runtimeConfig.period.rolling_window.duration.hour : this.runtimeConfig.period.calendar.duration.hour;
-    const rangeStart =
-      this.runtimeConfig.period.type === 'rolling_window'
-        ? Math.floor(now / bucketMs) * bucketMs + bucketMs - periodHours * 60 * 60 * 1000
-        : this.getHistoryRange().start.getTime();
+    const rangeStart = this.runtimeConfig.period.type === 'rolling_window' ? Math.floor(now / bucketMs) * bucketMs + bucketMs - periodHours * 60 * 60 * 1000 : this.getHistoryRange().start.getTime();
     const sortedSeries = this.historySeries.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
     let precedingRow;
     const activeRows = [];
@@ -693,20 +690,14 @@ export default class SparklineGraphTool extends BaseTool {
    * the DOM. The next normal Home Assistant state pass performs the fetch.
    */
   connected() {
-    if (
-      this.historySeries &&
-      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
-    ) {
+    if (this.historySeries && (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))) {
       this.historyResynchronizationRequested = true;
     }
   }
 
   /** Marks existing history for resynchronization after an HA reconnect. */
   hassConnected() {
-    if (
-      this.historySeries &&
-      (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))
-    ) {
+    if (this.historySeries && (this.runtimeConfig.period.type === 'rolling_window' || (this.runtimeConfig.period.type === 'calendar' && this.runtimeConfig.period.calendar.offset === 0))) {
       this.historyResynchronizationRequested = true;
     }
   }
@@ -4014,6 +4005,10 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvgBarcode(barcode, index) {
     if (!barcode) return '';
 
+    const barcodeStyles = ConfigHelper.toStyleDict(this.runtimeConfig.sparkline.barcode?.styles);
+    delete barcodeStyles.fill;
+    delete barcodeStyles.stroke;
+
     return svg`
       <g class='bars' ?anim=${this.runtimeConfig.sparkline.animate}>
         ${barcode.map((barcodePart, i) => {
@@ -4027,6 +4022,7 @@ export default class SparklineGraphTool extends BaseTool {
               width=${Math.max(1, barcodePart.width)}
               fill=${color}
               stroke=${color}
+              style=${styleMap(this.getRenderStyles(barcodeStyles))}
               @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
               @mouseout=${() => this.clearTooltip()}
             ></rect>
