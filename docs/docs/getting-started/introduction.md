@@ -102,11 +102,11 @@ If you are new to the card, start with the installation guide and then explore t
 
 Once you understand the structure, the feature pages explain the main building blocks in more detail:
 
-- entities
-- horseshoes
-- layout sections
-- color stops
-- styling
-- templating
-- reuse
-- examples
+- [entities](../core-concepts/entity-definitions.md)
+- [horseshoes](../sections/horseshoes-section.md)
+- [layout sections](../sections/layout-overview.md)
+- [color stops](../core-concepts/color-stops.md)
+- [styling](../core-concepts/css-styling.md)
+- [templating](../core-concepts/templating.md)
+- [reuse](../reuse/reuse-introduction.md)
+- [examples](../examples/overview.md)
