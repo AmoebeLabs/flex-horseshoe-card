@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Animations
-description: Use state-based animations, CSS animations, and dynamic styling in the Flexible Horseshoe Card.
+description: Configure state-driven and CSS animations, animation triggers, and dynamic styles for Flexible Horseshoe Card elements.
 tags:
   - Animations
   - CSS

@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Entity definitions
-description: Define Home Assistant entities, attributes, icons, units, precision, names, areas, tap actions, and dynamic entity values for the Flexible Horseshoe Card.
+description: Configure Home Assistant entities, attributes, names, icons, units, precision, actions, and dynamic values for use throughout the card.
 tags:
   - Entities
   - Attributes

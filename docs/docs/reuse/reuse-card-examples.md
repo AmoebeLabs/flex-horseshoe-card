@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Combining Calc with same_as
-description: Practical card examples using same_as, calc(), constants, and ref().
+description: Study complete electricity card examples that combine `same_as`, `calc()`, constants, and `ref()` to reduce repeated YAML.
 tags:
   - Reuse Card Examples
   - YAML Calc

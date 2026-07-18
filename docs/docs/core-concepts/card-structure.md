@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: YAML Card Structure
-description: Overview of the main YAML structure used by the Flexible Horseshoe Card.
+description: Understand the Flexible Horseshoe Card YAML structure, including entities, layout sections, tools, styling, and card templates.
 tags:
   - YAML
   - Structure

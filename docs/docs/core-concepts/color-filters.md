@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Color Filters
-description: Use color filters to transform rendered colors without CSS filters.
+description: Transform configured colors with reusable color filters while preserving the card’s state-based color logic.
 tags:
   - Color Filters
   - Colors

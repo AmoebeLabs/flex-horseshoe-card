@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Color Stops
-description: Use color stops to change colors based on numeric entity states, including horseshoe color modes and gradients.
+description: Map numeric entity states to colors with color stops, scales, hard transitions, smooth transitions, and horseshoe gradients.
 tags:
   - Color Stops
   - Horseshoes

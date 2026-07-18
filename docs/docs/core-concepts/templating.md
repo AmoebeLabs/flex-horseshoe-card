@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Templates
-description: Define reusable Flexible Horseshoe Card templates and use JavaScript templates for dynamic values.
+description: Define reusable card, tool, and color-stop templates, pass template variables, and calculate dynamic values with JavaScript templates.
 tags:
   - Templating
   - Templates

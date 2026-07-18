@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Reuse Reference
-description: Compact reference for same_as, calc(), constants, and ref().
+description: Reference the processing order, supported sections, syntax, and constraints for `same_as`, `calc()`, constants, and `ref()`.
 tags:
   - Reuse
   - Reference

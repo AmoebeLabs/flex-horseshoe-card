@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Advanced Horseshoe tool
-description: The horseshoe tool ...
+description: Configure horseshoe tools, including scales, fill styles, color stops, tick marks, labels, animations, styling, and interactions.
 tags:
   - Tools
   - Tool

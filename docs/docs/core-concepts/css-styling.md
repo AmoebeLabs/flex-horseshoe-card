@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: CSS Styling
-description: Use the styles section to style the card and individual layout items with CSS.
+description: Style the card and individual layout items with CSS properties in their `styles` sections.
 tags:
   - CSS Styling
 ---

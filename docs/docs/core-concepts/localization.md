@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Localization
-description: Use Home Assistant localization for names, states, units, icons, state colors, and number formatting.
+description: Use Home Assistant localization and entity metadata for translated names, states, units, icons, state colors, and number formatting.
 tags:
   - Localization
 ---

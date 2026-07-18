@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Introduction to the Flexible Horseshoe Card
-description: Introduction to the Flexible Horseshoe Card for Home Assistant.
+description: Learn how the Flexible Horseshoe Card combines flexible layouts, entity data, styling, animations, templates, and reusable YAML in Home Assistant.
 tags:
   - Introduction
 ---

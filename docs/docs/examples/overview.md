@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Overview of the Examples
-description: Overview of some of the basic examples.
+description: Explore basic Flexible Horseshoe Card examples and learn how to extend them with entities, visual elements, actions, and animations.
 tags:
   - Examples
 ---

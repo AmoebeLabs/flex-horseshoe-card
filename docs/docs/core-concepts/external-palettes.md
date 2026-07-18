@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: External Palettes
-description: Load external JSON color palettes with light and dark mode support.
+description: Load reusable color palettes from external JSON files and provide separate colors for Home Assistant light and dark modes.
 tags:
   - Themes
   - Palettes

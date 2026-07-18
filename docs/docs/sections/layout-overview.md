@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Layout Overview
-description: Overview of the layout section and the main layout item sections in the Flexible Horseshoe Card.
+description: Understand the `layout` structure, card coordinate system, groups, and available visual and entity layout sections.
 tags:
   - Layout
   - Section

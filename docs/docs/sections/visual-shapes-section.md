@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Visual Shapes
-description: Use circles, horizontal lines, and vertical lines as visual building blocks in the Flexible Horseshoe Card.
+description: Configure circles, horizontal lines, and vertical lines as positioned and styled visual building blocks in card layouts.
 tags:
   - Circles
   - Horizontal Lines

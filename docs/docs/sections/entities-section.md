@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Home Assistant Entity Elements
-description: Configure areas, names, states, and icons for Home Assistant entities.
+description: Configure positioned areas, names, states, and icons that display Home Assistant entity data in the card layout.
 tags:
   - Entities
   - Names

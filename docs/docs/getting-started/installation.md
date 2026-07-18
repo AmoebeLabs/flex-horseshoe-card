@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Installation
-description: The preferred way to install the Flexible Horseshoe Card is through HACS from within your Home Assistant dashboard.
+description: Install the Flexible Horseshoe Card through HACS or manually, then add the card resource to Home Assistant.
 tags:
   - HACS
   - Installation

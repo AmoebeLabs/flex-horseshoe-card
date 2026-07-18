@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Positioning and Groups
-description: Position layout items with xpos and ypos, understand the card canvas, and use groups to move related items together.
+description: Position items on the card coordinate system with `xpos` and `ypos`, and use groups to move and reuse related layout elements together.
 tags:
   - Positioning
   - Groups

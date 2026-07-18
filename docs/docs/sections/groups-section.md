@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Groups Section
-description: Use groups to position related layout items together on the card.
+description: Group related layout items around a shared position and reuse grouped elements to build consistent card layouts.
 tags:
   - Groups
   - Section

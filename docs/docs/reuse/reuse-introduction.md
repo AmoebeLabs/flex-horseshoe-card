@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Less YAML with Reuse
-description: Reduce repeated YAML with same_as, calc(), constants, and ref().
+description: Reduce repeated card YAML with `same_as`, static `calc()` expressions, constants, and `ref()` while keeping layouts readable.
 tags:
   - Reuse
   - YAML
