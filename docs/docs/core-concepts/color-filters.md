@@ -23,8 +23,8 @@ Below some examples. The first two cards have a slightly different configuration
 
 Card 55 displays the original pollen colors, but has a gray filter on the scale of the horseshoe. The scale has a color stop defined to show segments, but I wanted the scale in this case to become gray to make the filled segments stand-out.
 
-![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
+![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
+![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
 
 ```yaml linenums="1" hl_lines="6-9"
 horseshoe_scale:
@@ -41,8 +41,8 @@ horseshoe_scale:
 Card 54 has a grayscale and lightness filter active at the card level.
 
 
-![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
+![](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
+![](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
 
 ```yaml linenums="1" hl_lines="2-6"
 - type: custom:flex-horseshoe-card
@@ -64,8 +64,8 @@ Card 53 is a different card, but also has a filter defined at the card level:
       min: 0.3
       max: 0.7
 ```
-![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
+![](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
+![](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
 
 
 And the last ones:
@@ -74,10 +74,10 @@ And the last ones:
 - On the right the same card but with a teal filter, except for the central arc background which keeps its own color
 
 
-![](../../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-light){width=300}
-![](../../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-dark){width=300}
-![](../../assets/screenshots/fhs-demo-card-20t-electricity--dark.webp#only-light){width=300}
-![](../../assets/screenshots/fhs-demo-card-20t-electricity--dark.webp#only-dark){width=300}
+![](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-light){width=300}
+![](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-dark){width=300}
+![](../assets/screenshots/fhs-demo-card-20t-electricity--dark.webp#only-light){width=300}
+![](../assets/screenshots/fhs-demo-card-20t-electricity--dark.webp#only-dark){width=300}
 
 ```yaml linenums="1" hl_lines="2-9 18-19"
 - type: custom:flex-horseshoe-card

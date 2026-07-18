@@ -81,13 +81,13 @@ The layout section can contain several types of items.
 
 | Section | Used for | Details |
 | :------ | :------- | :------ |
-| `states` | Displaying entity states and units | [Entity elements](home-assistant-entity-elements.md) |
-| `names` | Displaying entity names | [Entity elements](home-assistant-entity-elements.md) |
-| `areas` | Displaying Home Assistant areas | [Entity elements](home-assistant-entity-elements.md) |
-| `icons` | Displaying entity icons or standalone icons | [Entity elements](home-assistant-entity-elements.md) |
-| `circles` | Drawing circular shapes | [Visual shapes](visual-shapes.md) |
-| `hlines` | Drawing horizontal lines | [Visual shapes](visual-shapes.md) |
-| `vlines` | Drawing vertical lines | [Visual shapes](visual-shapes.md) |
+| `states` | Displaying entity states and units | [Entity elements](entities-section.md) |
+| `names` | Displaying entity names | [Entity elements](entities-section.md) |
+| `areas` | Displaying Home Assistant areas | [Entity elements](entities-section.md) |
+| `icons` | Displaying entity icons or standalone icons | [Entity elements](entities-section.md) |
+| `circles` | Drawing circular shapes | [Visual shapes](visual-shapes-section.md) |
+| `hlines` | Drawing horizontal lines | [Visual shapes](visual-shapes-section.md) |
+| `vlines` | Drawing vertical lines | [Visual shapes](visual-shapes-section.md) |
 | `groups` | Placing multiple items together | [Groups](groups-section.md) |
 
 ## :material-horseshoe: Entity elements
@@ -118,7 +118,7 @@ layout:
       ypos: 60
 ```
 
-For all fields and examples, see [Home Assistant entity elements](home-assistant-entity-elements.md).
+For all fields and examples, see [Home Assistant entity elements](entities-section.md).
 
 ## :material-horseshoe: Visual shapes
 
@@ -151,7 +151,7 @@ layout:
         - stroke: var(--primary-text-color)
 ```
 
-For all fields and examples, see [Visual shapes](visual-shapes.md).
+For all fields and examples, see [Visual shapes](visual-shapes-section.md).
 
 ## :material-horseshoe: Groups
 
@@ -179,8 +179,8 @@ Use this page as a quick overview of the layout structure.
 
 For detailed fields, examples, and behavior, use the dedicated pages:
 
-- [Home Assistant entity elements](home-assistant-entity-elements.md)
-- [Visual shapes](visual-shapes.md)
+- [Home Assistant entity elements](entities-section.md)
+- [Visual shapes](visual-shapes-section.md)
 - [Groups](groups-section.md)
 - [Reuse](../reuse/reuse-introduction.md)
 - [Color stops](../core-concepts/color-stops.md)
