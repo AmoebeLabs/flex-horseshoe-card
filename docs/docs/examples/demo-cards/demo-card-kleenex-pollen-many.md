@@ -589,6 +589,13 @@ These demo cards require:
     ```
 
 
+##:material-horseshoe: Related documentation
+
+- Configure threshold colors and gradients with [Color Stops](../../core-concepts/color-stops.md).
+- Transform palette colors for alternate card designs with [Color Filters](../../core-concepts/color-filters.md).
+- Configure state arcs and state maps with the [Horseshoe Tool](../../sections/horseshoes-section.md).
+- Reduce repeated definitions with the [Reuse Reference](../../reuse/reuse-reference.md).
+
 <!-- Image references -->
 
 <!--- Internal References... --->

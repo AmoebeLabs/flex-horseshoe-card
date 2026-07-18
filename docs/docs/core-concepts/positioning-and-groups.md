@@ -254,3 +254,5 @@ For grouped items, design around `50,50`. Put the related items slightly around 
 Use `same_as` when multiple grouped items share the same local position and styling. Change only the fields that are different, such as `entity_index` or `group`.
 
 Keep groups small and meaningful. A group should usually represent one visual block, such as one phase, one row, one label/value pair, or one repeated cluster.
+
+For complete cards that combine groups, calculated positions, and reused items, see [Reusable YAML Card Examples](../reuse/reuse-card-examples.md). For the available group fields and section syntax, see the [Groups Section](../sections/groups-section.md).

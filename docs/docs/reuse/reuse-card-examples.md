@@ -401,6 +401,13 @@ This example does not use groups. Instead, it uses simple shift-to-the-right pos
         same_as: 2
         same_as_dxpos: calc(dxPos2)
 ```
+
+## :material-horseshoe: Related documentation
+
+- Check syntax, processing order, and constraints in the [Reuse Reference](reuse-reference.md).
+- Design repeated layouts with [Positioning and Groups](../core-concepts/positioning-and-groups.md).
+- Configure the reused gradients with [Color Stops](../core-concepts/color-stops.md).
+- Configure the scales and state arcs with the [Horseshoe Tool](../sections/horseshoes-section.md).
 ```yaml title="Names definition" linenums="1"
     names:
       - entity_index: 0

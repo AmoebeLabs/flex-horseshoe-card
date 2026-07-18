@@ -214,6 +214,14 @@ This demo card requires:
     ```yaml  linenums="1" hl_lines="1"
 
     ```            
+
+##:material-horseshoe: Related documentation
+
+- Configure arcs, scales, states, and labels with the [Horseshoe Tool](../../sections/horseshoes-section.md).
+- Understand the card coordinate system in [Positioning and Groups](../../core-concepts/positioning-and-groups.md).
+- Configure threshold and gradient colors with [Color Stops](../../core-concepts/color-stops.md).
+- Study the reduced YAML for cards 30 and 32 in [Reusable YAML Card Examples](../../reuse/reuse-card-examples.md).
+
 <!-- Image references -->
 
 <!--- Internal References... --->

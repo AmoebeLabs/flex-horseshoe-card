@@ -367,7 +367,7 @@ layout:
       color_stops: ref(batteryColorStops)
 ```
 
-For more details about template syntax and reusable constants, see the JavaScript templating page.
+For more details about template syntax and reusable constants, see [Templates](templating.md).
 
 ## :material-horseshoe: Choosing a color stop style
 
@@ -394,3 +394,9 @@ Use the normal `colors` definition as the fallback when a light or dark mode ove
 Use external palettes when several cards should share the same color language.
 
 Use JavaScript templates only when the color stop definition really needs to be dynamic. Static color stops are easier to read and maintain.
+
+## :material-horseshoe: Related documentation
+
+- Use [Color Filters](color-filters.md) to transform configured colors without changing the underlying color-stop thresholds.
+- Apply color stops to scales and state arcs with the [Horseshoe Tool](../sections/horseshoes-section.md).
+- Share colors between cards and themes with [External Palettes](external-palettes.md).

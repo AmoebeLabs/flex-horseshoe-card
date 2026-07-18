@@ -313,7 +313,9 @@ Defining an entity does not automatically show every part of that entity on the 
 | State | `states` | Shows the entity state, including unit and decimals |
 | Icon | `icons` | Shows the entity icon or a standalone icon |
 
-For detailed configuration of `areas`, `names`, `states`, and `icons`, see the Home Assistant entity elements page.
+For detailed configuration of `areas`, `names`, `states`, and `icons`, see [Home Assistant Entity Elements](../sections/entities-section.md).
+
+For translated names and states, localized units, state colors, and number formatting, see [Localization](localization.md).
 
 <!--- External References... --->
 [github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/

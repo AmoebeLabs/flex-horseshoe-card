@@ -62,7 +62,7 @@ Use `{{ description }}` for both social description fields.
 
 ## High-priority findings
 
-### 4. Correct and align page titles
+### 4. Correct and align page titles (DONE!)
 
 The custom title suffix is misspelled as `Flexibile Horseshoe Card`. Google currently exposes that spelling in at least one indexed result. Change it to `Flexible Horseshoe Card`.
 
@@ -75,7 +75,7 @@ Several frontmatter titles do not match their content:
 
 Use a unique, concise title that matches the visible main heading. Keep the site-name suffix short and consistent.
 
-### 5. Give each published page one clear H1
+### 5. Give each published page one clear H1 (DONE!)
 
 Several active pages start at H2 or contain no H1, including the examples overview, both demo-card pages, and the reuse card examples. Google uses the visible main title and heading elements when generating title links. Add one descriptive H1 near the start of every published page and keep it consistent with the frontmatter title.
 
@@ -163,7 +163,7 @@ Request recrawling only for important updated pages. Google may take days or wee
 2. Move or exclude old, copied, draft, and empty pages from the published documentation source. (DONE!)
 3. Fix the `Flexibile` title typo and incorrect page titles. (DONE!)
 4. Make Open Graph and Twitter metadata page-specific and replace Swiss Army Knife assets. (DONE!)
-5. Add one H1 to every active page that lacks one.
+5. Add one H1 to every active page that lacks one. (DONE!)
 6. Add descriptive alt text to meaningful screenshots.
 7. Replace `site_description` and add useful contextual internal links.
 8. Run a clean build, validate generated HTML and structured data, deploy, and submit the sitemap in Search Console.
