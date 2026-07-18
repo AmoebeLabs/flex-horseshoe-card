@@ -3,7 +3,7 @@
 {% block htmltitle %}
 
   <!-- The full title (config.site_name) is a bit long, so use a shortened version for each page. Better for SEO -->
-  {% set htmltitle = "Flexibile Horseshoe Card" %}
+  {% set htmltitle = "Flexible Horseshoe Card" %}
   {% if page and page.meta and page.meta.title %}
     {% set htmltitle = page.meta.title ~ " - " ~ htmltitle %}
   {% elif page and page.title and not page.is_homepage %}
