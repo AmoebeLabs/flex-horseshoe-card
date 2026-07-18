@@ -10,6 +10,8 @@ tags:
   - Kleenex Pollen Card
 ---
 <!-- GT/GL -->
+# Pollen Radar Card Examples
+
 ##:material-horseshoe: Visualization
 
 ![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}

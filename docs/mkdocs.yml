@@ -183,8 +183,6 @@ nav:
       - Entity Parts: sections/entities-section.md
       - Horseshoes:
           - Main: sections/horseshoes-section.md
-          - Ticks: sections/horseshoe-ticks.md
-          - Labels: sections/horseshoe-labels.md
   - Reuse - Better/Easier/Less YAML:
       - An Introduction: reuse/reuse-introduction.md
       - Reuse Card Examples: reuse/reuse-card-examples.md

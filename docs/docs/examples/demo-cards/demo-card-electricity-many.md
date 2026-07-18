@@ -10,6 +10,8 @@ tags:
   - Kleenex Pollen Card
 ---
 <!-- GT/GL -->
+# Electricity Card Examples
+
 ##:material-horseshoe: Visualizations
 9 electricity cards showing mostly the possibilities for the horseshoes arc size, start point (CW/CCW), flipping (x, y, both), rotation and major and minor ticks and labels.
 

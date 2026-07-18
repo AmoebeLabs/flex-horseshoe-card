@@ -7,6 +7,8 @@ tags:
   - YAML Calc
 ---
 
+# Reusable YAML Card Examples
+
 ## :material-horseshoe: Real-world card examples
 
 The two cards below show practical examples of the Reuse™ features provided by `same_as`, `calc()`, and `ref()`. Both examples include the full YAML configuration, so you can see how the repeated parts are reduced in a real card.
