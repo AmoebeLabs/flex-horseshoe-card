@@ -83,6 +83,18 @@ const interpolateStops = (stops) => {
  */
 const DEFAULT_COLORS = ['var(--theme-sys-color-primary)', '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', '#2ecc71', '#1abc9c', '#34495e', '#e67e22', '#7f8c8d', '#27ae60', '#2980b9', '#8e44ad'];
 
+// Available automatic axes per chart type. Visibility settings can hide an
+// available axis, but cannot add an axis that has no meaning for that chart.
+const CHART_AXES = {
+  line: { x: true, y: true },
+  area: { x: true, y: true },
+  bar: { x: true, y: true },
+  equalizer: { x: true, y: true },
+  graded: { x: false, y: false },
+  barcode: { x: true, y: false },
+  radial_barcode: { x: false, y: false },
+};
+
 const computeThresholds = (stops, type) => {
   const valuedStops = interpolateStops(stops);
   try {
@@ -213,10 +225,22 @@ export default class SparklineGraphTool extends BaseTool {
           chart_type: 'line',
           line: true,
           area: false,
-          grid: false,
-          axis: false,
-          tickmarks: false,
-          labels: false,
+          grid: {
+            x: false,
+            y: false,
+          },
+          axis: {
+            x: false,
+            y: false,
+          },
+          tickmarks: {
+            x: false,
+            y: false,
+          },
+          labels: {
+            x: false,
+            y: false,
+          },
           xlabels_at: 'ticks_major',
           ylabels_at: 'ticks_major',
         },
@@ -348,6 +372,17 @@ export default class SparklineGraphTool extends BaseTool {
       },
     };
     const normalizedConfig = Merge.mergeDeep({}, config);
+    // Legacy booleans enabled or disabled both axes. Convert them once in the
+    // configuration layer so rendering always receives explicit x/y values.
+    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
+      const layerVisibility = normalizedConfig.sparkline?.show?.[layerName];
+      if (typeof layerVisibility === 'boolean') {
+        normalizedConfig.sparkline.show[layerName] = {
+          x: layerVisibility,
+          y: layerVisibility,
+        };
+      }
+    });
     if (normalizedConfig.line?.styles !== undefined) {
       normalizedConfig.line.styles = ConfigHelper.toStyleDict(normalizedConfig.line.styles);
     }
@@ -3335,7 +3370,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Grid layer SVG.
    */
   renderGrid() {
-    if (this.runtimeConfig.sparkline.show.grid !== true) return '';
+    const chartAxes = CHART_AXES[this.runtimeConfig.sparkline.show.chart_type];
+    const showX = this.runtimeConfig.sparkline.show.grid.x && chartAxes.x;
+    const showY = this.runtimeConfig.sparkline.show.grid.y && chartAxes.y;
+    if (!showX && !showY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.grid_major.styles));
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.grid_major.styles));
@@ -3343,7 +3381,8 @@ export default class SparklineGraphTool extends BaseTool {
     const yTicks = this.buildYAxisTicks('major');
 
     return svg`
-      <g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
+      ${showX
+        ? svg`<g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <line
@@ -3356,8 +3395,10 @@ export default class SparklineGraphTool extends BaseTool {
           ></line>
         `,
         )}
-      </g>
-      <g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
+      </g>`
+        : ''}
+      ${showY
+        ? svg`<g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <line
@@ -3370,7 +3411,8 @@ export default class SparklineGraphTool extends BaseTool {
           ></line>
         `,
         )}
-      </g>
+      </g>`
+        : ''}
     `;
   }
 
@@ -3381,29 +3423,36 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Axis layer SVG.
    */
   renderAxis() {
-    if (this.runtimeConfig.sparkline.show.axis !== true) return '';
+    const chartAxes = CHART_AXES[this.runtimeConfig.sparkline.show.chart_type];
+    const showX = this.runtimeConfig.sparkline.show.axis.x && chartAxes.x;
+    const showY = this.runtimeConfig.sparkline.show.axis.y && chartAxes.y;
+    if (!showX && !showY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.axis.styles));
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.axis.styles));
 
     return svg`
       <g class="sparkline-axis" style="pointer-events:none;">
-        <line
+        ${showX
+          ? svg`<line
           class="sparkline-axis-line sparkline-axis-line--x"
           x1="${this.Graph.drawArea.x}"
           y1="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
           x2="${this.Graph.drawArea.x + this.Graph.drawArea.width}"
           y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
           style=${styleMap(xStyles)}
-        ></line>
-        <line
+        ></line>`
+          : ''}
+        ${showY
+          ? svg`<line
           class="sparkline-axis-line sparkline-axis-line--y"
           x1="${this.Graph.drawArea.x}"
           y1="${this.Graph.drawArea.y}"
           x2="${this.Graph.drawArea.x}"
           y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
           style=${styleMap(yStyles)}
-        ></line>
+        ></line>`
+          : ''}
       </g>
     `;
   }
@@ -3414,7 +3463,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Tickmark layer SVG.
    */
   renderTickmarks() {
-    if (this.runtimeConfig.sparkline.show.tickmarks !== true) return '';
+    const chartAxes = CHART_AXES[this.runtimeConfig.sparkline.show.chart_type];
+    const showX = this.runtimeConfig.sparkline.show.tickmarks.x && chartAxes.x;
+    const showY = this.runtimeConfig.sparkline.show.tickmarks.y && chartAxes.y;
+    if (!showX && !showY) return '';
 
     const xTickConfig = this.runtimeConfig.x_axis.tickmarks_major;
     const yTickConfig = this.runtimeConfig.y_axis.tickmarks_major;
@@ -3426,7 +3478,8 @@ export default class SparklineGraphTool extends BaseTool {
     const yTickSize = Utils.calculateSvgDimension(yTickConfig.size);
 
     return svg`
-      <g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
+      ${showX
+        ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <line
@@ -3439,8 +3492,10 @@ export default class SparklineGraphTool extends BaseTool {
           ></line>
         `,
         )}
-      </g>
-      <g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
+      </g>`
+        : ''}
+      ${showY
+        ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <line
@@ -3453,7 +3508,8 @@ export default class SparklineGraphTool extends BaseTool {
           ></line>
         `,
         )}
-      </g>
+      </g>`
+        : ''}
     `;
   }
 
@@ -3464,7 +3520,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Label layer SVG.
    */
   renderAxisLabels() {
-    if (this.runtimeConfig.sparkline.show.labels !== true) return '';
+    const chartAxes = CHART_AXES[this.runtimeConfig.sparkline.show.chart_type];
+    const showX = this.runtimeConfig.sparkline.show.labels.x && chartAxes.x;
+    const showY = this.runtimeConfig.sparkline.show.labels.y && chartAxes.y;
+    if (!showX && !showY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.x_axis.labels.styles));
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.runtimeConfig.y_axis.labels.styles));
@@ -3472,7 +3531,8 @@ export default class SparklineGraphTool extends BaseTool {
     const yTicks = this.buildLabelTicks('y');
 
     return svg`
-      <g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
+      ${showX
+        ? svg`<g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <text
@@ -3483,8 +3543,10 @@ export default class SparklineGraphTool extends BaseTool {
           >${tick.label}</text>
         `,
         )}
-      </g>
-      <g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
+      </g>`
+        : ''}
+      ${showY
+        ? svg`<g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <text
@@ -3495,7 +3557,8 @@ export default class SparklineGraphTool extends BaseTool {
           >${tick.label}</text>
         `,
         )}
-      </g>
+      </g>`
+        : ''}
     `;
   }
 
