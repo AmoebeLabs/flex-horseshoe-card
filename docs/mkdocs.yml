@@ -5,7 +5,7 @@ site_name: Flexible Horseshoe Card for Home Assistant
 site_url: https://flexible-horseshoe-card-manual.amoebelabs.com/
 site_author: Marco
 site_description: >-
-  The versatile custom Flexible Horseshoe Card for Home Assistant allows you to create your horseshoe alike visualizations.
+  Documentation for the Flexible Horseshoe Card, a configurable Home Assistant dashboard card for data-driven horseshoes, layouts, styling, animations, and reusable YAML.
 
 # Repository
 repo_name: Flexible Horseshoe Card

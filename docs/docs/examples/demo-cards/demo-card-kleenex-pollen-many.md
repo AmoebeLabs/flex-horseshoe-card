@@ -1,6 +1,6 @@
 ---
 template: main.html
-title: "Functional Cards: Tomorrow Pollen Card"
+title: Pollen Radar Card Examples
 description: Explore several pollen radar cards that visualize tree, grass, and weed levels with horseshoes, icons, state maps, and reusable YAML.
 hideno:
   toc

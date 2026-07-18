@@ -16,7 +16,7 @@ Overall assessment before the critical fixes: **needs technical cleanup before a
 
 ## Critical findings
 
-### 1. Remove the global `HowTo` structured data
+### 1. Remove the global `HowTo` structured data (DONE!)
 
 `docs/overrides/main.html` injects a large `HowTo` JSON-LD object into every page. It describes Swiss Army Knife tools, images, and URLs rather than the Flexible Horseshoe Card page being viewed. Most documentation pages are not a single how-to procedure matching this object.
 
@@ -24,7 +24,7 @@ Google requires structured data to represent the visible main content of the pag
 
 The global `Organization` object is less problematic, but Google recommends placing organization markup on the home page or a single organization page rather than every page.
 
-### 2. Remove non-published Markdown from `docs/docs`
+### 2. Remove non-published Markdown from `docs/docs` (DONE!)
 
 MkDocs discovers Markdown files under `docs/docs` even when they are absent from `nav`. Old and copied pages can therefore become standalone URLs and sitemap entries. The source currently contains:
 
@@ -43,7 +43,7 @@ Move drafts and source copies outside `docs/docs`, remove them, or explicitly ex
 
 The two horseshoe pages now have descriptions but still contain no documentation. Remove them from navigation and publication until they have useful content, or complete them before deployment.
 
-### 3. Correct Open Graph and Twitter metadata
+### 3. Correct Open Graph and Twitter metadata (DONE!)
 
 Every page currently uses `config.site_description` for `og:description` and `twitter:description`, ignoring the new page-specific `page.meta.description`. Both social images still point to Swiss Army Knife assets on another documentation domain.
 
@@ -99,7 +99,7 @@ The demo and color-filter pages contain many images using empty alt text such as
 
 Avoid repeating filenames or stuffing keywords. Images used only as duplicated light/dark presentation can share a concise description or be treated as decorative when the surrounding text already provides the full meaning.
 
-### 7. Replace the site description
+### 7. Replace the site description (DONE!)
 
 The current site description contains awkward wording: “allows you to create your horseshoe alike visualizations.” Use a clear summary that identifies the product and audience.
 
@@ -159,10 +159,10 @@ Request recrawling only for important updated pages. Google may take days or wee
 
 ## Recommended implementation order
 
-1. Remove the global `HowTo` JSON-LD block.
-2. Move or exclude old, copied, draft, and empty pages from the published documentation source.
-3. Fix the `Flexibile` title typo and incorrect page titles.
-4. Make Open Graph and Twitter metadata page-specific and replace Swiss Army Knife assets.
+1. Remove the global `HowTo` JSON-LD block. (DONE!)
+2. Move or exclude old, copied, draft, and empty pages from the published documentation source. (DONE!)
+3. Fix the `Flexibile` title typo and incorrect page titles. (DONE!)
+4. Make Open Graph and Twitter metadata page-specific and replace Swiss Army Knife assets. (DONE!)
 5. Add one H1 to every active page that lacks one.
 6. Add descriptive alt text to meaningful screenshots.
 7. Replace `site_description` and add useful contextual internal links.

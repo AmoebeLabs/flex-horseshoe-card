@@ -1,6 +1,6 @@
 ---
 template: main.html
-title: "Functional Cards: Tomorrow Pollen Card"
+title: Electricity Card Examples
 description: Explore nine electricity cards that visualize total and per-phase DSMR consumption with horseshoes, ticks, labels, palettes, and reusable YAML.
 hideno:
   toc
