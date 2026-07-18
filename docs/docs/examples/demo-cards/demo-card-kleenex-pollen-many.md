@@ -37,7 +37,7 @@ tags:
 
 Card 55 shows three horseshoes that show the state of the pollen for trees, grass and weed.
 
-- The pollen levels are displayd as levels
+- The pollen levels are displayed as levels
 - Labels are displayed on the state of the horseshoes
 - The active state has bold text
 - two arc shapes are used as background for the icon (external svg) and the text
@@ -64,7 +64,7 @@ Card 53 shows a more traditional horseshoe
 
 Card 52 is another variation.
 
-- It displayes the pollen levels as a mode/single state, so only the active state is displayed
+- It displays the pollen levels as a mode/single state, so only the active state is displayed
 
 ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-light)
 ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-dark)

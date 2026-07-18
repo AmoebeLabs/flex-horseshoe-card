@@ -435,7 +435,7 @@ This example does not use groups. Instead, it uses simple shift-to-the-right pos
         ypos: 45
         radius: calc(radius0)
         rotate: -90       # Rotate horseshoe 90 degrees CCW
-        arc_degrees: .7   # A larg radius requires a small arc
+        arc_degrees: .7   # A large requires a small arc
         flip: y           # Flip around y-axis so 0 is at bottom
 
         show:

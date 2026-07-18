@@ -5,9 +5,8 @@ description: Explore nine electricity cards that visualize total and per-phase D
 hideno:
   toc
 tags:
-  - Design
   - Demo Card
-  - Kleenex Pollen Card
+  - Electricty Card
 ---
 <!-- GT/GL -->
 # Electricity Card Examples
@@ -15,7 +14,7 @@ tags:
 ##:material-horseshoe: Visualizations
 9 electricity cards showing mostly the possibilities for the horseshoes arc size, start point (CW/CCW), flipping (x, y, both), rotation and major and minor ticks and labels.
 
-Cards 20 to 26 show regular arc sizes. Cards 27, 30 and 33 show smaller arc sizes, but still recognizable as an arc, were card 32 shows a very small arc size (0.3 degrees) resulting in a straight line.
+Cards 20 to 26 show regular arc sizes. Cards 27, 30 and 33 show smaller arc sizes, but still recognizable as an arc, where card 32 shows a very small arc size (0.3 degrees) resulting in a straight line.
 
 ![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="185"}
 ![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="185"}
@@ -224,10 +223,6 @@ This demo card requires:
 
 <!-- Image references -->
 
-<!--- Internal References... --->
-[Swiss Army Knife Tutorial 02]: ../tutorials/10-step-tutorial-02-intro.md
-[Swiss Army Knife Javascript Snippets]: ../basics/templates/javascript-snippets.md
-
 <!--- External References... --->
 [ham3-d06-url]: https://material3-themes-manual.amoebelabs.com/examples/material3-example-theme-d06-tealblue/
-[github-releases]: https://github.com/amoebelabs/swiss-army-knife-card/releases/
+[github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/
