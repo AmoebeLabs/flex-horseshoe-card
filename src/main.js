@@ -1256,7 +1256,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines', 'horseshoes', 'horseshoes_v2'];
+    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
 
     layoutSections.forEach((section) => {
       const items = config?.layout?.[section];
@@ -1267,14 +1267,12 @@ class FlexHorseshoeCard extends LitElement {
         if (item.color_stops) {
           const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
 
-          item._colorStops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
+          item.colorstops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
         }
 
         // Sparkline config uses the standard external FHS color_stops key.
-        // Keep colorstops as the normalized internal adapter expected by the
-        // unchanged SAK graph engine. The old key remains valid as input.
-        if (section === 'sparklines' && (item.sparkline.color_stops || item.sparkline.colorstops)) {
-          const sparklineColorStops = item.sparkline.color_stops ?? item.sparkline.colorstops;
+        if (section === 'sparklines' && item.sparkline.color_stops) {
+          const sparklineColorStops = item.sparkline.color_stops;
           const resolvedSparklineColorStops = Templates.getJsTemplateOrValue(item.sparkline, sparklineColorStops, { resolveKeys: true });
 
           item.sparkline.colorstops = ColorStops.normalize(resolvedSparklineColorStops, this.getActiveColorStopMode());
@@ -1592,7 +1590,7 @@ class FlexHorseshoeCard extends LitElement {
           Colors.colorCache = {};
           this.palettesLoaded = true;
           this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
-          this.setHass(this._hass, true);
+          if (this._hass) this.setHass(this._hass, true);
           this.requestUpdate();
         });
       }
@@ -1668,9 +1666,9 @@ class FlexHorseshoeCard extends LitElement {
       this.config.layout.masks ??= {};
       this.groupManager = new GroupManager(this.config.layout?.groups);
       this.masksClips = new MasksClips(this.config, this.cardId, this);
-      this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
-      this._prepareItemColorStops(newConfig);
+      this._prepareItemColorStops(config);
+      this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
       this.bar_mode = newConfig.bar_mode || 'normal';
 
@@ -1734,7 +1732,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _getItemColorFromStops(item = {}) {
-    if (!item._colorStops) return undefined;
+    if (!item.colorstops) return undefined;
 
     const rawState = this._getItemStateValue(item);
     const stateNumber = Number(rawState);
@@ -1743,7 +1741,7 @@ class FlexHorseshoeCard extends LitElement {
       return undefined;
     }
 
-    return Colors.calculateStrokeColor(stateNumber, item._colorStops, item.colorstop_gradient === true);
+    return Colors.calculateStrokeColor(stateNumber, item.colorstops, item.colorstop_gradient === true);
   }
 
   /**

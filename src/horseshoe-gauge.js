@@ -356,8 +356,8 @@ export default class HorseshoeGauge extends BaseTool {
       group_config: this.runtimeConfig.group_config,
       bar_mode: this.runtimeConfig.bar_mode,
       zero_ratio: this.runtimeConfig.zero_ratio,
-      colorStops: this.runtimeConfig.colorStops,
-      colorStopsMinMax: this.runtimeConfig.colorStopsMinMax,
+      colorstops: this.runtimeConfig.colorstops,
+      colorstopsMinMax: this.runtimeConfig.colorstopsMinMax,
       horseshoe_background: this.runtimeConfig.horseshoe_background,
       horseshoe_scale: this.runtimeConfig.horseshoe_scale,
       horseshoe_state: {

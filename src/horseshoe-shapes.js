@@ -108,8 +108,8 @@ class ArcPathBuilder {
  * @returns {Array<object>} Scale arc definitions for the renderer.
  */
 function buildColorStopScaleArcs(runtimeConfig, geometry) {
-  const colorStops = asArray(runtimeConfig.colorStops?.colors);
-  const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
+  const colorStops = asArray(runtimeConfig.colorstops?.colors);
+  const gap = Number(runtimeConfig.colorstops?.gap ?? 0);
   const scaleArcs = [];
 
   if (!colorStops.length) {
@@ -231,7 +231,7 @@ export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
   }
 
   if (mode === 'colorstop') {
-    const colorStops = asArray(runtimeConfig.colorStops?.colors);
+    const colorStops = asArray(runtimeConfig.colorstops?.colors);
 
     if (!colorStops.length) {
       return [];
@@ -335,8 +335,8 @@ export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
  * @returns {Array<object>} State arc definitions for color stop segments.
  */
 function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
-  const colorStops = asArray(runtimeConfig.colorStops?.colors);
-  const gap = Number(runtimeConfig.colorStops?.gap ?? 0);
+  const colorStops = asArray(runtimeConfig.colorstops?.colors);
+  const gap = Number(runtimeConfig.colorstops?.gap ?? 0);
   const stateArcs = [];
 
   if (colorStops.length < 2) {
@@ -414,7 +414,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        color: Colors.calculateStrokeColor(value, runtimeConfig.colorStopsMinMax, true),
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstopsMinMax, true),
       },
     ];
   }
@@ -440,7 +440,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        color: Colors.calculateStrokeColor(value, runtimeConfig.colorStops, strokeStyle === 'colorstopgradient'),
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstops, strokeStyle === 'colorstopgradient'),
       },
     ];
   }
@@ -550,7 +550,7 @@ function getStringstateStateRoleStyles(labelStateEntry, relation) {
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const stateMap = runtimeConfig.state_map.map;
   const segmentGap = runtimeConfig.horseshoe_state.segment_gap;
-  const colorStopGap = Number(runtimeConfig.colorStops?.gap ?? 0);
+  const colorStopGap = Number(runtimeConfig.colorstops?.gap ?? 0);
   const count = stateMap.length;
 
   if (!count) {
@@ -560,7 +560,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
   // Segment mode shows equal visual slots. String-state modes reuse the color-stop scale segment that contains the mapped value.
   const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(value));
   const step = geometry.arcDegrees / count;
-  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  const colorStops = asArray(runtimeConfig.colorstops?.colors);
   const colorStopPoints = [
     {
       value: Number(runtimeConfig.horseshoe_scale.min),
@@ -585,7 +585,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     const itemValue = Number(item.value);
     let startAngle = geometry.startAngle + index * step + segmentGap / 2;
     let endAngle = geometry.startAngle + (index + 1) * step - segmentGap / 2;
-    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorStops, runtimeConfig.show?.horseshoe_style === 'colorstopgradient');
+    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorstops, runtimeConfig.show?.horseshoe_style === 'colorstopgradient');
     let segmentStartValue;
     let segmentEndValue;
 
@@ -759,7 +759,7 @@ function buildLabelStopItems(runtimeConfig) {
   const labelsAt = runtimeConfig.show.labels_at ?? 'none';
   const min = Number(runtimeConfig.horseshoe_scale.min);
   const max = Number(runtimeConfig.horseshoe_scale.max);
-  const colorStops = asArray(runtimeConfig.colorStops?.colors);
+  const colorStops = asArray(runtimeConfig.colorstops?.colors);
   let labelStops = [];
 
   if (labelsAt === 'minmax') {
@@ -1001,7 +1001,7 @@ export function buildHorseshoeBackgroundItems(runtimeConfig, geometry) {
   const backgroundConfig = runtimeConfig.horseshoe_background ?? {};
   const radius = geometry.radius + Number(backgroundConfig.offset ?? 0);
   const width = Number(backgroundConfig.width ?? runtimeConfig.horseshoe_scale.width ?? runtimeConfig.horseshoe_state.width ?? 6);
-  const gap = Number(backgroundConfig.gap ?? runtimeConfig.colorStops?.gap ?? 0);
+  const gap = Number(backgroundConfig.gap ?? runtimeConfig.colorstops?.gap ?? 0);
 
   return buildArcBackgroundItems(runtimeConfig, geometry, {
     mode: backgroundMode,

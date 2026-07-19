@@ -37,6 +37,19 @@ export default class RectangleTool extends BaseTool {
       ...config,
     };
 
+    // Referenced width and height use optional padding around the measured item.
+    if (typeof rectangleConfig.width === 'object') {
+      rectangleConfig.width = {
+        padding: 0,
+        ...rectangleConfig.width,
+      };
+    }
+    if (typeof rectangleConfig.height === 'object') {
+      rectangleConfig.height = {
+        padding: 0,
+        ...rectangleConfig.height,
+      };
+    }
     if (rectangleConfig.fit) {
       rectangleConfig.fit = {
         ...rectangleConfig.fit,

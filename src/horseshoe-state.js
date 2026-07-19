@@ -190,15 +190,19 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   const stateMap = config.state_map ?? horseshoeState.state_map;
 
-  // Keep both color_stops and colorstops aliases on the runtime config for compatibility.
-  const colorStopsConfig = config.color_stops ?? config.colorstops;
-  const colorStops = ColorStops.ensureMinimumStops(ColorStops.normalize(colorStopsConfig, colorStopMode), horseshoeScale.max);
-  const firstColorStop = colorStops.colors[0];
-  const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
-  const colorStopsMinMax = ColorStops.normalize({
-    [horseshoeScale.min]: firstColorStop.color,
-    [horseshoeScale.max]: lastColorStop.color,
-  }, colorStopMode);
+  const colorStops = ColorStops.ensureMinimumStops(config.colorstops, horseshoeScale.max);
+  let colorStopsMinMax = ColorStops.normalize();
+
+  // Fixed horseshoes do not require color stops. Build the automatic min/max gradient only when stops exist.
+  if (colorStops.colors.length > 0) {
+    const firstColorStop = colorStops.colors[0];
+    const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
+
+    colorStopsMinMax = ColorStops.normalize({
+      [horseshoeScale.min]: firstColorStop.color,
+      [horseshoeScale.max]: lastColorStop.color,
+    }, colorStopMode);
+  }
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
@@ -249,10 +253,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
     state_map: stateMap,
 
-    color_stops: colorStopsConfig,
-    colorstops: colorStopsConfig,
-    colorStops,
-    colorStopsMinMax,
+    colorstops: colorStops,
+    colorstopsMinMax: colorStopsMinMax,
 
     horseshoe_background: {
       ...horseshoeBackground,
@@ -365,6 +367,9 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     resolveKeys: true,
   });
 
+  // Runtime JavaScript templates are resolved first; normalize the external YAML key once afterwards.
+  resolvedConfig.colorstops = ColorStops.normalize(resolvedConfig.color_stops, colorStopMode);
+
   const runtimeConfig = normalizeRuntimeConfig(resolvedConfig, colorStopMode);
 
   let value = entity.state;
@@ -375,7 +380,7 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
 
   if (runtimeConfig.state_map?.type === 'rank_state') {
     // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
-    const sourceColorStops = runtimeConfig.colorStops;
+    const sourceColorStops = runtimeConfig.colorstops;
     const numericValue = Number(value);
     let activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
 
@@ -445,8 +450,8 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
 
     // Step 8: publish a normal runtime config; downstream shapes/renderers do not know about rank_state.
     runtimeConfig.sourceColorStops = sourceColorStops;
-    runtimeConfig.colorStops = rankedColorStops;
-    runtimeConfig.colorStopsMinMax = ColorStops.normalize({
+    runtimeConfig.colorstops = rankedColorStops;
+    runtimeConfig.colorstopsMinMax = ColorStops.normalize({
       [rankedScale.min]: firstColorStop.color,
       [rankedScale.max]: lastColorStop.color,
     });
