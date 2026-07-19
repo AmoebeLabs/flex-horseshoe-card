@@ -89,6 +89,7 @@ const CHART_AXES = {
   line: { x: true, y: true },
   area: { x: true, y: true },
   bar: { x: true, y: true },
+  dots: { x: true, y: true },
   equalizer: { x: true, y: true },
   graded: { x: false, y: false },
   barcode: { x: true, y: false },
@@ -1023,7 +1024,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.areaMinMaxPath = undefined;
       }
 
-      if (this.runtimeConfig.sparkline.show.points === true || this.runtimeConfig.sparkline?.line?.show_dots === true || this.runtimeConfig.sparkline?.area?.show_dots === true) {
+      if (chartType === 'dots' || this.runtimeConfig.sparkline.show.points === true || this.runtimeConfig.sparkline?.line?.show_dots === true || this.runtimeConfig.sparkline?.area?.show_dots === true) {
         this.points[index] = this.Graph.getPoints();
       }
 
@@ -1032,7 +1033,7 @@ export default class SparklineGraphTool extends BaseTool {
       } else if (chartType === 'equalizer') {
         this.Graph.levelCount = this.runtimeConfig.sparkline.equalizer.value_buckets;
         this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.runtimeConfig.sparkline.equalizer.value_buckets;
-        this.equalizer[index] = this.Graph.getEqualizer(index, total, 4, 4);
+        this.equalizer[index] = this.Graph.getEqualizer(index, total, this.svg.column_spacing, this.svg.row_spacing);
       } else if (chartType === 'graded') {
         this.Graph.levelCount = this.runtimeConfig.sparkline.equalizer.value_buckets;
         this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.runtimeConfig.sparkline.equalizer.value_buckets;
@@ -2675,7 +2676,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
 
-    if (['line', 'area', 'bar', 'barcode'].includes(this.config.sparkline.show.chart_type)) {
+    if (['line', 'area', 'dots', 'bar', 'barcode'].includes(this.config.sparkline.show.chart_type)) {
       // this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
       this.elements.svg.addEventListener('touchstart', touchStart.bind(this), false);
       this.elements.svg.addEventListener('mousedown', mouseDown.bind(this), false);
@@ -3670,7 +3671,12 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   renderPoints() {
-    if (this.runtimeConfig.sparkline.show.points !== true && this.runtimeConfig.sparkline.line?.show_dots !== true && this.runtimeConfig.sparkline.area?.show_dots !== true) return '';
+    if (
+      this.runtimeConfig.sparkline.show.chart_type !== 'dots'
+      && this.runtimeConfig.sparkline.show.points !== true
+      && this.runtimeConfig.sparkline.line?.show_dots !== true
+      && this.runtimeConfig.sparkline.area?.show_dots !== true
+    ) return '';
 
     const points = this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
 
@@ -3816,6 +3822,26 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.runtimeConfig.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
 
+    // Square mode uses the smallest generated dimension for both axes. When
+    // the level height shrinks, redistribute all levels over the graph area.
+    if (this.runtimeConfig.sparkline.equalizer.square === true) {
+      const size = Math.min(equalizer[0].width, equalizer[0].height);
+      const levelSpacing = size < equalizer[0].height
+        ? (this.Graph.drawArea.height - this.runtimeConfig.sparkline.equalizer.value_buckets * size)
+          / (this.runtimeConfig.sparkline.equalizer.value_buckets - 1)
+        : 0;
+
+      equalizer = equalizer.map((equalizerPart) => {
+        const squarePart = { ...equalizerPart };
+        if (size < equalizerPart.height) {
+          squarePart.y = equalizerPart.y.map((level, levelIndex) => this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (size + levelSpacing));
+        }
+        squarePart.width = size;
+        squarePart.height = size;
+        return squarePart;
+      });
+    }
+
     return svg`
       <mask id=${`equalizer-bg-${this.cardId}-${index}`}>
         ${equalizer.map((equalizerPart) => {
@@ -3860,7 +3886,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.runtimeConfig.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
 
-    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-0)` : this.computeColor(this.card.entities[index].state, index);
+    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);
     return svg`
       <rect
         class='equalizer--bg'
