@@ -1,8 +1,9 @@
 ---
 template: main.html
 title: Visual Shapes
-description: Configure circles, horizontal lines, and vertical lines as positioned and styled visual building blocks in card layouts.
+description: Configure rectangles, circles, horizontal lines, and vertical lines as positioned and styled visual building blocks in card layouts.
 tags:
+  - Rectangles
   - Circles
   - Horizontal Lines
   - Vertical Lines
@@ -10,21 +11,24 @@ tags:
 
 [line-tool support]: https://github.com/amoebelabs/swiss-army-knife-card/releases/
 
-# Visual Shapes: lines and circles
+# Visual Shapes: rectangles, lines, and circles
 
 Visual shapes are simple SVG-based building blocks that help structure a card visually. They can be used as separators, backgrounds, highlights, indicators, or decorative elements.
 
-The card supports three shape sections:
+The card supports four shape sections:
 
 | Shape | Section | Description |
 | :---- | :------ | :---------- |
+| Rectangle | `rectangles` | A fixed rectangle or a rectangle that automatically fits another layout item |
 | Circle | `circles` | A circle positioned by its center point, with either `radius` or `radius_percent` |
 | Horizontal line | `hlines` | A horizontal line positioned by its center point and length |
 | Vertical line | `vlines` | A vertical line positioned by its center point and length |
 
-All three shapes use the same 100x100 card coordinate system. This makes them easy to align with horseshoes, states, names, icons, and other layout items.
+All four shapes use the same 100x100 card coordinate system. This makes them easy to align with horseshoes, states, names, icons, and other layout items.
 
 ## :material-horseshoe: Basic usage
+
+A rectangle can use a fixed center position, width, and height. It can also use `fit` to automatically follow the position and rendered size of a state, name, or area. A fitted rectangle adjusts when the content, number formatting, font, or language changes.
 
 A circle needs a center position and a radius. The radius can be defined in pixels with `radius`, or as a percentage with `radius_percent`.
 
@@ -33,6 +37,40 @@ A horizontal or vertical line needs a center position and a length. The configur
 Shapes can also be connected to an entity by using `entity_index`. This allows color stops and animations to react to the state of that entity.
 
 ### Example definitions
+
+=== "Rectangle"
+
+    A fixed rectangle uses its own position and dimensions:
+
+    ```yaml title="Fixed rectangle" linenums="1"
+    - xpos: 50
+      ypos: 50
+      width: 40
+      height: 12
+      radius: 2
+      styles:
+        fill: var(--primary-color)
+        opacity: 0.3
+    ```
+
+    A fitted rectangle takes its position and dimensions from another layout item. The referenced item must have an `id`:
+
+    ```yaml title="Rectangle fitted to a state" linenums="1"
+    states:
+      - id: current-state
+        entity_index: 0
+        xpos: 50
+        ypos: 50
+
+    rectangles:
+      - fit:
+          section: states
+          item_id: current-state
+        radius: 2
+        styles:
+          fill: var(--primary-color)
+          opacity: 0.3
+    ```
 
 === "Circle"
 
@@ -118,7 +156,27 @@ Shapes can also be connected to an entity by using `entity_index`. This allows c
 
 ## :material-horseshoe: Configuration fields
 
-The required fields depend on the shape type. Circles use a radius, while lines use a length.
+The required fields depend on the shape type. Rectangles use fixed dimensions or `fit`, circles use a radius, and lines use a length.
+
+=== "Rectangle"
+
+    | Field | Required | Description |
+    | :---- | :------: | :---------- |
+    | `xpos` | Fixed only | X position of the rectangle center |
+    | `ypos` | Fixed only | Y position of the rectangle center |
+    | `width` | Fixed only | Rectangle width |
+    | `height` | Fixed only | Rectangle height |
+    | `fit.section` | Fit only | Section containing the referenced item: `states`, `names`, or `areas` |
+    | `fit.item_id` | Fit only | `id` of the referenced item |
+    | `fit.padding.x` | :material-close: | Horizontal padding around the measured item. Default: `1.5` |
+    | `fit.padding.y` | :material-close: | Vertical padding around the measured item. Default: `0.5` |
+    | `radius` | :material-close: | Corner radius. Default: `0` |
+    | `entity_index` | :material-close: | Index in the `entities` section |
+    | `styles` | :material-close: | CSS style definitions |
+    | `color_stops` | :material-close: | Color stops used to set the fill color based on the entity state |
+
+    !!! note
+        Use either `xpos`, `ypos`, `width`, and `height`, or use `fit`. A fitted rectangle obtains all four geometry values from the referenced item.
 
 === "Circle"
 
@@ -159,7 +217,7 @@ The required fields depend on the shape type. Circles use a radius, while lines 
 
 ### Shared fields
 
-These fields can be used with circles, horizontal lines, and vertical lines.
+These fields can be used with rectangles, circles, horizontal lines, and vertical lines.
 
 | Field | Required | Description |
 | :---- | :------: | :---------- |
@@ -176,6 +234,17 @@ Visual shapes are SVG elements, so they can be styled with CSS properties in the
 | `styles` | :material-check: | Inline SVG and CSS styles |
 
 ### Popular style properties
+
+=== "Rectangle"
+
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `fill` | Sets the fill color | `fill: red` |
+    | `stroke` | Sets the outline color | `stroke: blue` |
+    | `stroke-width` | Sets the outline width | `stroke-width: 1em` |
+    | `opacity` | Sets the opacity of the complete rectangle | `opacity: 0.7` |
+    | `fill-opacity` | Sets the opacity of the fill | `fill-opacity: 0.5` |
+    | `stroke-opacity` | Sets the opacity of the outline | `stroke-opacity: 0.5` |
 
 === "Circle"
 
