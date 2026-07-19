@@ -182,7 +182,14 @@ nav:
       - Visual Shapes: sections/visual-shapes-section.md
       - Entity Parts: sections/entities-section.md
       - Horseshoes:
-          - Main: sections/horseshoes-section.md
+          - Overview: sections/horseshoes-section.md
+          - Scale and State: sections/horseshoe-scale-and-state.md
+          - Tick Marks and Labels: sections/horseshoe-ticks-and-labels.md
+      - Sparkline Graphs:
+          - Overview: sections/sparklines-section.md
+          - History Periods and Bins: sections/sparkline-history-periods.md
+          - Cartesian Charts and Axes: sections/sparkline-cartesian-charts.md
+          - Specialized Charts: sections/sparkline-specialized-charts.md
   - Reuse - Better/Easier/Less YAML:
       - An Introduction: reuse/reuse-introduction.md
       - Reuse Card Examples: reuse/reuse-card-examples.md

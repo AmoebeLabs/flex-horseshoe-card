@@ -277,7 +277,7 @@ Entity elements can use color stops and animations when they are connected to an
 
 | Method | Support | Description |
 | :----- | :-----: | :---------- |
-| `colorstops` | :material-check: | List of state values used to set the color |
+| `color_stops` | :material-check: | List of state values used to set the color |
 | `animations` | :material-check: | State-based animations using class or style changes |
 
 !!! info "Animations require an entity"

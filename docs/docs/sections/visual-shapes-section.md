@@ -214,7 +214,7 @@ Visual shapes can use color stops and animations when they are connected to an e
 
 | Method | Support | Description |
 | :----- | :-----: | :---------- |
-| `colorstops` | :material-check: | List of state values used to set the shape color |
+| `color_stops` | :material-check: | List of state values used to set the shape color |
 | `animations` | :material-check: | State-based animations using class or style changes |
 
 !!! info
