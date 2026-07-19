@@ -985,13 +985,13 @@ class FlexHorseshoeCard extends LitElement {
    */
   _updateToolsUsingSparklineEntities() {
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
   }
 
@@ -1139,6 +1139,12 @@ class FlexHorseshoeCard extends LitElement {
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
 
+    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
+
+    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
+
+    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
+
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
 
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
@@ -1146,12 +1152,6 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
 
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-
-    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-
-    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-
-    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
 
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
@@ -1684,13 +1684,13 @@ class FlexHorseshoeCard extends LitElement {
 
       this._computeGroupDimensions(this.config);
       this._computeSvgDimensions(this.config);
+      this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
+      this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
+      this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
       this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
       this.arcTools = ArcTool.setConfig(this.config, Templates, this.cardId, this);
-      this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
-      this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
-      this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
       this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
       this.childCards.setConfig(this.config.cards ?? []);
@@ -1744,6 +1744,81 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     return Colors.calculateStrokeColor(stateNumber, item._colorStops, item.colorstop_gradient === true);
+  }
+
+  /**
+   * Returns the configured tool collection for a layout section.
+   *
+   * @param {string} section - Layout section name.
+   * @returns {Array<BaseTool>} Tools in the requested section.
+   */
+  getToolsBySection(section) {
+    const sections = {
+      rectangles: this.rectangleTools,
+      circles: this.circleTools,
+      arcs: this.arcTools,
+      horseshoes: this.horseshoeGauges,
+      lines: this.lineTools,
+      icons: this.iconTools,
+      areas: this.areaTools,
+      names: this.nameTools,
+      states: this.stateTools,
+      sparklines: this.sparklineGraphTools,
+    };
+
+    return sections[section];
+  }
+
+  /**
+   * Resolves a numeric width or the measured width of a referenced text tool.
+   *
+   * @param {number|object} itemWidthConfig - Numeric width or item reference.
+   * @returns {number} Width in FHS coordinates including configured padding.
+   */
+  getItemWidth(itemWidthConfig) {
+    if (typeof itemWidthConfig === 'number') {
+      return itemWidthConfig;
+    }
+
+    const tools = this.getToolsBySection(itemWidthConfig.section);
+    const item = tools.find((tool) => tool.id === itemWidthConfig.item_id);
+
+    return item.getWidth() + itemWidthConfig.padding * 2;
+  }
+
+  /**
+   * Resolves a numeric height or the measured height of a referenced text tool.
+   *
+   * @param {number|object} itemHeightConfig - Numeric height or item reference.
+   * @returns {number} Height in FHS coordinates including configured padding.
+   */
+  getItemHeight(itemHeightConfig) {
+    if (typeof itemHeightConfig === 'number') {
+      return itemHeightConfig;
+    }
+
+    const tools = this.getToolsBySection(itemHeightConfig.section);
+    const item = tools.find((tool) => tool.id === itemHeightConfig.item_id);
+
+    return item.getHeight() + itemHeightConfig.padding * 2;
+  }
+
+  /**
+   * Returns the complete measured geometry of a referenced text item.
+   *
+   * @param {object} fitConfig - Rectangle fit reference.
+   * @returns {object} Center and dimensions in their respective SVG/FHS coordinate systems.
+   */
+  getItemGeometry(fitConfig) {
+    const tools = this.getToolsBySection(fitConfig.section);
+    const item = tools.find((tool) => tool.id === fitConfig.item_id);
+
+    return {
+      xpos: item.getXpos(),
+      ypos: item.getYpos(),
+      width: item.getWidth(),
+      height: item.getHeight(),
+    };
   }
 
   /** *****************************************************************************

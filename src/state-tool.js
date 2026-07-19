@@ -1,12 +1,14 @@
 import { svg } from 'lit';
 import { selectUnit } from '@formatjs/intl-utils';
 import { styleMap } from 'lit/directives/style-map.js';
+import { ref } from 'lit/directives/ref.js';
 import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
 import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
 import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
 import { formatDuration } from './frontend_mods/datetimejs/duration.js';
 import ConfigHelper from './config-helper.js';
 import BaseTool from './base-tool.js';
+import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import Colors from './colors.js';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
@@ -278,6 +280,22 @@ export default class StateTool extends BaseTool {
     this.runtimeConfig = this.config;
     this.state = '';
     this.uom = '';
+    this.setTextElement = (element) => {
+      if (element) this.textElement = element;
+    };
+    this.textElementId = `${this.cardId}-state-${this.index}`;
+    this.characterWidthFactor = 0.6;
+    this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.uomFontSize = this.textFontSize * 0.6;
+    this.measurementWidthBase = 0;
+    this.estimatedWidth = 0;
+    this.estimatedHeight = this.textFontSize;
+    this.measuredWidth = 0;
+    this.measuredHeight = 0;
+    this.measuredXpos = this.runtimeConfig.svg.xpos;
+    this.measuredYpos = this.runtimeConfig.svg.ypos;
+    this.hasExactMeasurement = false;
+    this.textMeasurementSignature = '';
   }
 
   /**
@@ -291,6 +309,105 @@ export default class StateTool extends BaseTool {
 
     this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
     this.buildStateAndUom();
+
+    // Estimate the complete state/UOM layout until updated() can replace it
+    // with the bounding box of the actual rendered SVG text element.
+    const styles = this.getStyles({ 'font-size': '1em' });
+    const uomStyles = this.getUomStyles(styles);
+    const uomPosition = this.runtimeConfig.show.uom;
+    const measurementSignature = `${this.state}|${this.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
+
+    if (measurementSignature !== this.textMeasurementSignature) {
+      this.textMeasurementSignature = measurementSignature;
+      const stateWidthBase = this.state.length * this.textFontSize;
+      const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
+      const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+
+      this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+      this.estimatedWidth = this.measurementWidthBase * this.characterWidthFactor;
+      this.estimatedHeight = uomPosition === 'top' || uomPosition === 'bottom' ? this.textFontSize + this.uomFontSize : this.textFontSize;
+      this.hasExactMeasurement = false;
+    }
+  }
+
+  /**
+   * Returns the rendered width, or the learned estimate before the next SVG measurement.
+   *
+   * @returns {number} Width in FHS coordinates.
+   */
+  getWidth() {
+    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
+  }
+
+  /**
+   * Returns the rendered height, or the font-based estimate before measurement.
+   *
+   * @returns {number} Height in FHS coordinates.
+   */
+  getHeight() {
+    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
+  }
+
+  /**
+   * Returns the horizontal center of the rendered text bounding box.
+   *
+   * @returns {number} Horizontal center in SVG coordinates.
+   */
+  getXpos() {
+    return this.hasExactMeasurement ? this.measuredXpos : this.runtimeConfig.svg.xpos;
+  }
+
+  /**
+   * Returns the vertical center of the rendered text bounding box.
+   *
+   * @returns {number} Vertical center in SVG coordinates.
+   */
+  getYpos() {
+    return this.hasExactMeasurement ? this.measuredYpos : this.runtimeConfig.svg.ypos;
+  }
+
+  /**
+   * Measures the complete rendered value/UOM text and requests one geometry correction render.
+   */
+  updated() {
+    const boundingBox = this.textElement.getBBox();
+    const measuredWidth = boundingBox.width * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredHeight = boundingBox.height * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredXpos = boundingBox.x + boundingBox.width / 2;
+    const measuredYpos = boundingBox.y + boundingBox.height / 2;
+
+    // The value tspan always exists. The UOM tspan only exists for a visible UOM position.
+    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[0]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+
+    const uomPosition = this.runtimeConfig.show.uom;
+    const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
+
+    if (uomIsVisible) {
+      this.uomFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[1]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    } else {
+      this.uomFontSize = 0;
+    }
+
+    const stateWidthBase = this.state.length * this.textFontSize;
+    const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+
+    this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+
+    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+
+    if (measurementChanged) {
+      if (this.measurementWidthBase > 0) {
+        const measuredFactor = measuredWidth / this.measurementWidthBase;
+
+        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+      }
+      this.measuredWidth = measuredWidth;
+      this.measuredHeight = measuredHeight;
+      this.measuredXpos = measuredXpos;
+      this.measuredYpos = measuredYpos;
+      this.hasExactMeasurement = true;
+      this.card.requestUpdate();
+    }
   }
 
   /**
@@ -820,7 +937,7 @@ export default class StateTool extends BaseTool {
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
       >
-        <text @click=${(event) => this.handlePopup(event)}>
+        <text ${ref(this.setTextElement)} id="${this.textElementId}" @click=${(event) => this.handlePopup(event)}>
           <tspan
             class="state__value"
             x="${this.runtimeConfig.svg.xpos}"
