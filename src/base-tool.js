@@ -22,6 +22,7 @@ export default class BaseTool {
    */
   constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection, defaultEntityIndex = 0) {
     this.config = config;
+    this.id = config.id;
     this.index = index;
     this.templates = templates;
     this.cardId = cardId;

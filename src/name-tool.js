@@ -1,6 +1,8 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
+import { ref } from 'lit/directives/ref.js';
 import BaseTool from './base-tool.js';
+import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
  * Layout name tool that renders the configured entity name text.
@@ -36,6 +38,20 @@ export default class NameTool extends BaseTool {
     this.config.svg = this.calculateSvgDimensions();
     this.runtimeConfig = this.config;
     this.name = '';
+    this.setTextElement = (element) => {
+      if (element) this.textElement = element;
+    };
+    this.textElementId = `${this.cardId}-name-${this.index}`;
+    this.characterWidthFactor = 0.6;
+    this.textFontSize = 1.5 * FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.estimatedWidth = 0;
+    this.estimatedHeight = this.textFontSize;
+    this.measuredWidth = 0;
+    this.measuredHeight = 0;
+    this.measuredXpos = this.runtimeConfig.svg.xpos;
+    this.measuredYpos = this.runtimeConfig.svg.ypos;
+    this.hasExactMeasurement = false;
+    this.textMeasurementSignature = '';
   }
 
   /**
@@ -49,6 +65,84 @@ export default class NameTool extends BaseTool {
 
     this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
     this.name = this.textEllipsis(this.buildName(), this.runtimeConfig.max_characters ?? this.runtimeConfig.ellipsis);
+
+    // Keep the first render close to the final size. updated() replaces this
+    // estimate with the actual SVG bounding box after the text is painted.
+    const styles = this.getStyles({ 'font-size': '1.5em' });
+    const measurementSignature = `${this.name}|${JSON.stringify(styles)}`;
+
+    if (measurementSignature !== this.textMeasurementSignature) {
+      this.textMeasurementSignature = measurementSignature;
+      this.estimatedWidth = this.name.length * this.textFontSize * this.characterWidthFactor;
+      this.estimatedHeight = this.textFontSize;
+      this.hasExactMeasurement = false;
+    }
+  }
+
+  /**
+   * Returns the rendered width, or the learned estimate before the next SVG measurement.
+   *
+   * @returns {number} Width in FHS coordinates.
+   */
+  getWidth() {
+    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
+  }
+
+  /**
+   * Returns the rendered height, or the font-based estimate before measurement.
+   *
+   * @returns {number} Height in FHS coordinates.
+   */
+  getHeight() {
+    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
+  }
+
+  /**
+   * Returns the horizontal center of the rendered text bounding box.
+   *
+   * @returns {number} Horizontal center in SVG coordinates.
+   */
+  getXpos() {
+    return this.hasExactMeasurement ? this.measuredXpos : this.runtimeConfig.svg.xpos;
+  }
+
+  /**
+   * Returns the vertical center of the rendered text bounding box.
+   *
+   * @returns {number} Vertical center in SVG coordinates.
+   */
+  getYpos() {
+    return this.hasExactMeasurement ? this.measuredYpos : this.runtimeConfig.svg.ypos;
+  }
+
+  /**
+   * Measures the actual rendered text and requests one geometry correction render.
+   */
+  updated() {
+    const boundingBox = this.textElement.getBBox();
+    const measuredWidth = boundingBox.width * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredHeight = boundingBox.height * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredXpos = boundingBox.x + boundingBox.width / 2;
+    const measuredYpos = boundingBox.y + boundingBox.height / 2;
+
+    // The cached tspan exposes the real browser-resolved font-size for the next estimate.
+    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+
+    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+
+    if (measurementChanged) {
+      if (this.name.length > 0) {
+        const measuredFactor = measuredWidth / this.name.length / this.textFontSize;
+
+        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+      }
+      this.measuredWidth = measuredWidth;
+      this.measuredHeight = measuredHeight;
+      this.measuredXpos = measuredXpos;
+      this.measuredYpos = measuredYpos;
+      this.hasExactMeasurement = true;
+      this.card.requestUpdate();
+    }
   }
 
   /**
@@ -95,7 +189,7 @@ export default class NameTool extends BaseTool {
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
       >
-        <text @click=${(event) => this.handlePopup(event)}>
+        <text ${ref(this.setTextElement)} id="${this.textElementId}" @click=${(event) => this.handlePopup(event)}>
           <tspan
             class="entity__name"
             x="${this.runtimeConfig.svg.xpos}"

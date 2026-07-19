@@ -37,6 +37,17 @@ export default class RectangleTool extends BaseTool {
       ...config,
     };
 
+    if (rectangleConfig.fit) {
+      rectangleConfig.fit = {
+        ...rectangleConfig.fit,
+        padding: {
+          x: 1.5,
+          y: 0.5,
+          ...rectangleConfig.fit.padding,
+        },
+      };
+    }
+
     super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined);
 
     this.config.svg = this.calculateSvgDimensions();
@@ -61,16 +72,33 @@ export default class RectangleTool extends BaseTool {
    * @returns {object} SVG dimensions and path-ready corner radii.
    */
   calculateSvgDimensions(config = this.config) {
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
-    const width = Utils.calculateSvgDimension(config.width);
-    const height = Utils.calculateSvgDimension(config.height);
+    let svgDimensions;
+    let width;
+    let height;
+
+    // fit replaces all four rectangle geometry fields with the measured text geometry.
+    if (config.fit) {
+      const itemGeometry = this.card.getItemGeometry(config.fit);
+
+      svgDimensions = {
+        xpos: itemGeometry.xpos,
+        ypos: itemGeometry.ypos,
+      };
+      width = Utils.calculateSvgDimension(itemGeometry.width + config.fit.padding.x * 2);
+      height = Utils.calculateSvgDimension(itemGeometry.height + config.fit.padding.y * 2);
+    } else {
+      svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+      width = Utils.calculateSvgDimension(this.card.getItemWidth(config.width));
+      height = Utils.calculateSvgDimension(this.card.getItemHeight(config.height));
+    }
+
     const radiusConfig = typeof config.radius === 'object' ? config.radius : { all: config.radius };
     const maxRadius = Math.min(height, width) / 2;
 
     // Radius config values are still in card dimensions here. Convert once, after the fallback is chosen.
     const calculateRadius = (value) => Math.min(maxRadius, Math.max(0, Utils.calculateSvgDimension(value)));
 
-    // xpos/ypos stay center-based like the other layout tools; the path starts at the top-left edge.
+    // The path uses either the measured fit center or the configured rectangle center.
     svgDimensions.width = width;
     svgDimensions.height = height;
     svgDimensions.x = svgDimensions.xpos - width / 2;
@@ -113,6 +141,10 @@ export default class RectangleTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the rectangle.
    */
   render() {
+    // Text dimensions become exact after the preceding render. Recalculate the
+    // path here so the correction render immediately uses the measured size.
+    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+
     const rectangleStyles = {
       fill: 'var(--primary-background-color)',
       stroke: 'none',
