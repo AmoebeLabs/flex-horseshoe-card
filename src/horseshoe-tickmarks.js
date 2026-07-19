@@ -49,11 +49,11 @@ function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
   const colorMode = tickConfig?.color_mode;
 
   if (colorMode === 'colorstop') {
-    return Colors.calculateStrokeColor(value, runtimeConfig.colorStops, false);
+    return Colors.calculateStrokeColor(value, runtimeConfig.colorstops, false);
   }
 
   if (colorMode === 'colorstopgradient') {
-    return Colors.calculateStrokeColor(value, runtimeConfig.colorStops, true);
+    return Colors.calculateStrokeColor(value, runtimeConfig.colorstops, true);
   }
 
   return tickConfig?.color ?? tickStyles.fill;
@@ -136,7 +136,7 @@ function buildTickPathItemsForConfig(runtimeConfig, geometry, tickConfig, values
           layerName,
           value,
           colorMode: tickConfig.color_mode,
-          colorStops: runtimeConfig.colorStops,
+          colorstops: runtimeConfig.colorstops,
         });
       }
 

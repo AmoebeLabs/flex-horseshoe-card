@@ -41,7 +41,7 @@ function renderStateLinearGradient(runtimeConfig, geometry, statePathItems, card
     return '';
   }
 
-  const colorStops = runtimeConfig.colorStops.colors;
+  const colorStops = runtimeConfig.colorstops.colors;
   const color0 = colorStops[0].color;
   const color1 = colorStops[colorStops.length - 1].color;
   const color1Offset = statePathItems.find((pathItem) => pathItem.arc.gradientOffset)?.arc.gradientOffset ?? '0%';
