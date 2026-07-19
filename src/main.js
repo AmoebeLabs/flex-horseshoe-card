@@ -1264,11 +1264,21 @@ class FlexHorseshoeCard extends LitElement {
       if (!Array.isArray(items)) return;
 
       items.forEach((item) => {
-        if (!item.color_stops) return;
+        if (item.color_stops) {
+          const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
 
-        const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
+          item._colorStops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
+        }
 
-        item._colorStops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
+        // Sparkline config uses the standard external FHS color_stops key.
+        // Keep colorstops as the normalized internal adapter expected by the
+        // unchanged SAK graph engine. The old key remains valid as input.
+        if (section === 'sparklines' && (item.sparkline.color_stops || item.sparkline.colorstops)) {
+          const sparklineColorStops = item.sparkline.color_stops ?? item.sparkline.colorstops;
+          const resolvedSparklineColorStops = Templates.getJsTemplateOrValue(item.sparkline, sparklineColorStops, { resolveKeys: true });
+
+          item.sparkline.colorstops = ColorStops.normalize(resolvedSparklineColorStops, this.getActiveColorStopMode());
+        }
       });
     });
   }
