@@ -108,6 +108,11 @@ class FlexHorseshoeCard extends LitElement {
     this.iconTools = [];
     this.sparklineGraphTools = [];
     this.groupManager = undefined;
+    this.sourceGroupConfigs = undefined;
+    this.activeGroupConfigs = undefined;
+    this.activeGroupSignatures = {};
+    this.groupsHaveJavascript = false;
+    this.changedGroupIds = new Set();
     this.resolvedEntityConfigs = [];
     this.entityConfigsInitialized = false;
     this.evaluateJavascriptTemplates = false;
@@ -1121,6 +1126,48 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
+    // Groups are complete runtime components. Evaluate marked groups before tools,
+    // rebuild the manager only for changed results, and mark every dependent descendant.
+    this.changedGroupIds.clear();
+    if (configuredEntityStateChanged && this.groupsHaveJavascript) {
+      const nextActiveGroupConfigs = { ...this.activeGroupConfigs };
+      const directlyChangedGroupIds = new Set();
+
+      Object.entries(this.sourceGroupConfigs).forEach(([groupId, sourceGroupConfig]) => {
+        if (!Templates.hasJavascriptTemplates(sourceGroupConfig)) return;
+
+        const activeGroupConfig = Templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, {
+          resolveKeys: true,
+        });
+        const activeGroupSignature = JSON.stringify(activeGroupConfig);
+
+        nextActiveGroupConfigs[groupId] = activeGroupConfig;
+        if (activeGroupSignature !== this.activeGroupSignatures[groupId]) {
+          this.activeGroupSignatures[groupId] = activeGroupSignature;
+          directlyChangedGroupIds.add(groupId);
+        }
+      });
+
+      if (directlyChangedGroupIds.size > 0) {
+        this.activeGroupConfigs = nextActiveGroupConfigs;
+        this.groupManager = new GroupManager(this.activeGroupConfigs);
+
+        Object.keys(this.groupManager.groups).forEach((groupId) => {
+          let currentGroupId = groupId;
+
+          while (currentGroupId) {
+            if (directlyChangedGroupIds.has(currentGroupId)) {
+              this.changedGroupIds.add(groupId);
+              break;
+            }
+
+            const currentGroup = this.groupManager.groups[currentGroupId];
+            currentGroupId = currentGroupId === 'card' ? undefined : currentGroup.parent ?? 'card';
+          }
+        });
+      }
+    }
+
     if (configuredEntityStateChanged && this.cardStylesHaveJavascript) {
       this.activeCardStyles = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
     }
@@ -1237,6 +1284,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.evaluateJavascriptTemplates = false;
+    this.changedGroupIds.clear();
 
     Templates.setContext({
       hass: this._hass,
@@ -1279,16 +1327,6 @@ class FlexHorseshoeCard extends LitElement {
 
   _calculateSvgCoordinatesInGroup(item) {
     return this.groupManager.calculateSvgCoordinatesInGroup(item);
-  }
-
-  _computeGroupDimensions(config) {
-    const groups = this.groupManager.groups;
-
-    Object.keys(groups).forEach((groupName) => {
-      groups[groupName] = this.groupManager.getGroup(groupName);
-    });
-
-    config.layout.groups = groups;
   }
 
   _computeSvgDimensions(config) {
@@ -1705,11 +1743,17 @@ class FlexHorseshoeCard extends LitElement {
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
+      this.config.layout.groups ??= {};
+      this.sourceGroupConfigs = this.config.layout.groups;
+      this.activeGroupConfigs = this.sourceGroupConfigs;
+      this.activeGroupSignatures = {};
+      this.groupsHaveJavascript = Object.values(this.sourceGroupConfigs).some((group) => Templates.hasJavascriptTemplates(group));
+      this.changedGroupIds.clear();
       this.entityConfigsInitialized = false;
       this.config.layout.gradients ??= {};
       this.config.layout.clips ??= {};
       this.config.layout.masks ??= {};
-      this.groupManager = new GroupManager(this.config.layout?.groups);
+      this.groupManager = new GroupManager(this.activeGroupConfigs);
       this.masksClips = new MasksClips(this.config, this.cardId, this);
 
       this._prepareItemColorStops(config);
@@ -1725,7 +1769,6 @@ class FlexHorseshoeCard extends LitElement {
       this.viewBox.width = ar[0] * SVG_DEFAULT_DIMENSIONS;
       this.viewBox.height = ar[1] * SVG_DEFAULT_DIMENSIONS;
 
-      this._computeGroupDimensions(this.config);
       this._computeSvgDimensions(this.config);
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
