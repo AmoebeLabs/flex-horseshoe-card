@@ -1268,14 +1268,6 @@ class FlexHorseshoeCard extends LitElement {
 
           item.colorstops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
         }
-
-        // Sparkline config uses the standard external FHS color_stops key.
-        if (section === 'sparklines' && item.sparkline.color_stops) {
-          const sparklineColorStops = item.sparkline.color_stops;
-          const resolvedSparklineColorStops = Templates.getJsTemplateOrValue(item.sparkline, sparklineColorStops, { resolveKeys: true });
-
-          item.sparkline.colorstops = ColorStops.normalize(resolvedSparklineColorStops, this.getActiveColorStopMode());
-        }
       });
     });
   }
