@@ -355,32 +355,19 @@ export function getStateMapItem(stateMap, rawState, value) {
 }
 
 /**
- * Resolves templates, entity attributes, state mapping, and numeric gauge value.
+ * Resolves entity attributes, state mapping, and the numeric gauge value from
+ * one already evaluated and normalized horseshoe configuration.
  */
-export function getGaugeStateData(config, templates, entityIndex, entity, entityConfig, colorStopMode) {
-  const item = {
-    entity_index: entityIndex,
-  };
-
-  // Resolve templates before normalization because template output may affect scale, styles, or state maps.
-  const resolvedConfig = templates.getJsTemplateOrValue(item, config, {
-    resolveKeys: true,
-  });
-
-  // Runtime JavaScript templates are resolved first; normalize the external YAML key once afterwards.
-  resolvedConfig.colorstops = ColorStops.normalize(resolvedConfig.color_stops, colorStopMode);
-
-  const runtimeConfig = normalizeRuntimeConfig(resolvedConfig, colorStopMode);
-
+export function getGaugeStateData(config, entity, entityConfig) {
   let value = entity.state;
 
   if (entityConfig?.attribute && entity.attributes?.[entityConfig.attribute] !== undefined) {
     value = entity.attributes[entityConfig.attribute];
   }
 
-  if (runtimeConfig.state_map?.type === 'rank_state') {
+  if (config.state_map?.type === 'rank_state') {
     // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
-    const sourceColorStops = runtimeConfig.colorstops;
+    const sourceColorStops = config.colorstops;
     const numericValue = Number(value);
     let activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
 
@@ -414,8 +401,8 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
 
     // Step 4: convert rank->state entries into the value-space expected by existing string-state rendering.
     const rankedStateMap = {
-      ...runtimeConfig.state_map,
-      map: runtimeConfig.state_map.map.map((entry, index) => ({
+      ...config.state_map,
+      map: config.state_map.map.map((entry, index) => ({
         ...entry,
         value: index + 0.5,
         color: entry.color ?? sourceColorByRank.get(String(entry.rank)),
@@ -441,26 +428,29 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
     };
     // Step 7: switch this horseshoe runtime scale from numeric source values to ranked render values.
     const rankedScale = {
-      ...runtimeConfig.horseshoe_scale,
+      ...config.horseshoe_scale,
       min: 0,
       max: rankedStateMap.map.length,
     };
     const firstColorStop = rankedColorStops.colors[0];
     const lastColorStop = rankedColorStops.colors[rankedColorStops.colors.length - 1];
 
-    // Step 8: publish a normal runtime config; downstream shapes/renderers do not know about rank_state.
-    runtimeConfig.sourceColorStops = sourceColorStops;
-    runtimeConfig.colorstops = rankedColorStops;
-    runtimeConfig.colorstopsMinMax = ColorStops.normalize({
-      [rankedScale.min]: firstColorStop.color,
-      [rankedScale.max]: lastColorStop.color,
-    });
-    runtimeConfig.horseshoe_scale = rankedScale;
-    runtimeConfig.state_map = rankedStateMap;
-    runtimeConfig.mapped_state = mappedState;
+    // Step 8: publish a state-specific active config; the normalized source config remains unchanged.
+    const activeConfig = {
+      ...config,
+      sourceColorStops,
+      colorstops: rankedColorStops,
+      colorstopsMinMax: ColorStops.normalize({
+        [rankedScale.min]: firstColorStop.color,
+        [rankedScale.max]: lastColorStop.color,
+      }),
+      horseshoe_scale: rankedScale,
+      state_map: rankedStateMap,
+      mapped_state: mappedState,
+    };
 
     return {
-      runtimeConfig,
+      config: activeConfig,
       rawState: entity.state,
       mappedState,
       value: Number(mappedState.value),
@@ -468,15 +458,16 @@ export function getGaugeStateData(config, templates, entityIndex, entity, entity
   }
 
   // State maps may replace textual entity states before the gauge receives its numeric value.
-  const mappedState = runtimeConfig.state_map
-    ? getStateMapItem(runtimeConfig.state_map.map, entity.state, value)
+  const mappedState = config.state_map
+    ? getStateMapItem(config.state_map.map, entity.state, value)
     : undefined;
   const nextValue = Number(mappedState?.value ?? value);
 
-  runtimeConfig.mapped_state = mappedState;
-
   return {
-    runtimeConfig,
+    config: {
+      ...config,
+      mapped_state: mappedState,
+    },
     rawState: entity.state,
     mappedState,
     value: nextValue,

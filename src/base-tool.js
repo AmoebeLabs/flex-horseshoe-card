@@ -43,6 +43,7 @@ export default class BaseTool {
     this.entityConfig = undefined;
     this.runtimeConfig = this.config;
     this.configChanged = true;
+    this.activeConfigInitialized = false;
     this.activeConfigSignature = undefined;
   }
 
@@ -55,7 +56,7 @@ export default class BaseTool {
   setState(entity, entityConfig) {
     this.entity = entity;
     this.entityConfig = entityConfig;
-    this.configChanged = false;
+    this.configChanged = !this.activeConfigInitialized;
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
     if (this.hasJavascript) {
@@ -81,6 +82,7 @@ export default class BaseTool {
     // runtimeConfig remains a compatibility alias while individual tools migrate to this.config.
     this.runtimeConfig = this.config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
+    this.activeConfigInitialized = true;
   }
 
   /** Called when the parent card is attached to the DOM. */
