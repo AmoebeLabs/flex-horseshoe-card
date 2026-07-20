@@ -1,5 +1,6 @@
 import { svg } from 'lit';
 import ConfigHelper from './config-helper.js';
+import ColorStops from './color-stops.js';
 import ColorFilter from './color-filter.js';
 import Templates from './templates.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
@@ -70,6 +71,11 @@ export default class BaseTool {
         this.activeConfigSignature = evaluatedConfigSignature;
         this.configChanged = true;
       }
+    }
+
+    // JavaScript may return the public color_stops shape, so normalize it after activating the complete item.
+    if (this.configChanged && this.config.color_stops) {
+      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.getActiveColorStopMode());
     }
 
     // runtimeConfig remains a compatibility alias while individual tools migrate to this.config.

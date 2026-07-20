@@ -45,7 +45,6 @@ export default class ArcTool extends BaseTool {
     super(arcConfig, index, templates, cardId, card, 'arcs', 'arcs', undefined);
 
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
   }
 
   /**
@@ -57,7 +56,7 @@ export default class ArcTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -95,7 +94,7 @@ export default class ArcTool extends BaseTool {
    * @returns {string} SVG path data for this arc.
    */
   buildArcPath() {
-    const dimensions = this.runtimeConfig.svg;
+    const dimensions = this.config.svg;
 
     if (Math.abs(dimensions.arcDegrees) >= 360) {
       return `

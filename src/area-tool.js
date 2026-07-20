@@ -36,7 +36,6 @@ export default class AreaTool extends BaseTool {
     super(config, index, templates, cardId, card, 'areas');
 
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
     this.area = '';
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
@@ -48,8 +47,8 @@ export default class AreaTool extends BaseTool {
     this.estimatedHeight = this.textFontSize;
     this.measuredWidth = 0;
     this.measuredHeight = 0;
-    this.measuredXpos = this.runtimeConfig.svg.xpos;
-    this.measuredYpos = this.runtimeConfig.svg.ypos;
+    this.measuredXpos = this.config.svg.xpos;
+    this.measuredYpos = this.config.svg.ypos;
     this.hasExactMeasurement = false;
     this.textMeasurementSignature = '';
   }
@@ -63,8 +62,8 @@ export default class AreaTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
-    this.area = this.textEllipsis(this.buildArea(), this.runtimeConfig.max_characters ?? this.runtimeConfig.ellipsis);
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    this.area = this.textEllipsis(this.buildArea(), this.config.max_characters ?? this.config.ellipsis);
 
     // Keep the first render close to the final size. updated() replaces this
     // estimate with the actual SVG bounding box after the text is painted.
@@ -103,7 +102,7 @@ export default class AreaTool extends BaseTool {
    * @returns {number} Horizontal center in SVG coordinates.
    */
   getXpos() {
-    return this.hasExactMeasurement ? this.measuredXpos : this.runtimeConfig.svg.xpos;
+    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
   }
 
   /**
@@ -112,7 +111,7 @@ export default class AreaTool extends BaseTool {
    * @returns {number} Vertical center in SVG coordinates.
    */
   getYpos() {
-    return this.hasExactMeasurement ? this.measuredYpos : this.runtimeConfig.svg.ypos;
+    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
   }
 
   /**
@@ -209,8 +208,8 @@ export default class AreaTool extends BaseTool {
         <text ${ref(this.setTextElement)} id="${this.textElementId}" @click=${(event) => this.handlePopup(event)}>
           <tspan
             class="entity__area"
-            x="${this.runtimeConfig.svg.xpos}"
-            y="${this.runtimeConfig.svg.ypos}"
+            x="${this.config.svg.xpos}"
+            y="${this.config.svg.ypos}"
             style=${styleMap(this.getRenderStyles(styles))}>
             ${this.area}</tspan>
         </text>

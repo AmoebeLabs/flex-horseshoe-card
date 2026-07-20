@@ -73,7 +73,6 @@ export default class LineTool extends BaseTool {
 
     this.validateOrientation(this.config.orientation);
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
   }
 
   /**
@@ -85,8 +84,10 @@ export default class LineTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.validateOrientation(this.runtimeConfig.orientation);
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    if (this.configChanged) {
+      this.validateOrientation(this.config.orientation);
+      this.config.svg = this.calculateSvgDimensions(this.config);
+    }
   }
 
   /**
@@ -179,10 +180,10 @@ export default class LineTool extends BaseTool {
         <line
           @click=${(event) => this.handlePopup(event)}
           class="line-tool"
-          x1="${this.runtimeConfig.svg.x1}"
-          y1="${this.runtimeConfig.svg.y1}"
-          x2="${this.runtimeConfig.svg.x2}"
-          y2="${this.runtimeConfig.svg.y2}"
+          x1="${this.config.svg.x1}"
+          y1="${this.config.svg.y1}"
+          x2="${this.config.svg.x2}"
+          y2="${this.config.svg.y2}"
           style=${styleMap(this.getRenderStyles(styles))}
         ></line>
       </g>
