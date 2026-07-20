@@ -3,8 +3,67 @@
 export default class Templates {
   static context = {};
 
+  static javascriptTemplateFlags = new WeakMap();
+
+  static javascriptFunctionCache = new Map();
+
   static setContext(context = {}) {
     Templates.context = context;
+  }
+
+  /**
+   * Detects JavaScript templates in one finalized config component.
+   *
+   * This pass runs after ref(), calc() and same_as. Flags are stored outside the
+   * user config, so no internal metadata can become a visible YAML/config key.
+   * Arrays, object values and object keys are all included because templates may
+   * return complete config shapes and color stops support dynamic keys.
+   *
+   * @param {*} value - Finalized entity, layout item, animation, card style or group config.
+   * @returns {boolean} True when this value or one of its descendants contains JavaScript.
+   */
+  static detectJavascriptTemplates(value) {
+    if (typeof value === 'string') return Templates.isJsTemplate(value);
+
+    if (Array.isArray(value)) {
+      let hasJavascript = false;
+
+      value.forEach((entry) => {
+        if (Templates.detectJavascriptTemplates(entry)) hasJavascript = true;
+      });
+
+      Templates.javascriptTemplateFlags.set(value, hasJavascript);
+
+      return hasJavascript;
+    }
+
+    if (Templates.isPlainObject(value)) {
+      let hasJavascript = false;
+
+      Object.entries(value).forEach(([key, entryValue]) => {
+        if (Templates.isJsTemplate(key)) hasJavascript = true;
+        if (Templates.detectJavascriptTemplates(entryValue)) hasJavascript = true;
+      });
+
+      Templates.javascriptTemplateFlags.set(value, hasJavascript);
+
+      return hasJavascript;
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns JavaScript metadata recorded for a finalized config component.
+   *
+   * @param {*} value - Previously scanned config component.
+   * @returns {boolean} True when the component contains JavaScript.
+   */
+  static hasJavascriptTemplates(value) {
+    if (typeof value === 'string') return Templates.isJsTemplate(value);
+    if (value && typeof value === 'object') return Templates.javascriptTemplateFlags.get(value) === true;
+
+    return false;
   }
 
   /**
@@ -117,22 +176,27 @@ export default class Templates {
       });
     }
     try {
-      // eslint-disable-next-line no-new-func
-      const fn = new Function(
-        'hass',
-        'config',
-        'entity',
-        'entities',
-        'states',
-        'state',
-        'constants',
-        'item',
-        'user',
-        `
-          "use strict";
-          ${javascript}
-        `,
-      );
+      let fn = Templates.javascriptFunctionCache.get(javascript);
+
+      if (!fn) {
+        // eslint-disable-next-line no-new-func
+        fn = new Function(
+          'hass',
+          'config',
+          'entity',
+          'entities',
+          'states',
+          'state',
+          'constants',
+          'item',
+          'user',
+          `
+            "use strict";
+            ${javascript}
+          `,
+        );
+        Templates.javascriptFunctionCache.set(javascript, fn);
+      }
 
       return fn(hass, config, entity, entities, states, state, constants, item, user);
     } catch (error) {

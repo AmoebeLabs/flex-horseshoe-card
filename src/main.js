@@ -46,6 +46,7 @@ import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
+import { DEFINITION_SHAPE_SECTIONS, ITEM_COLOR_STOP_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -1256,9 +1257,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
-
-    layoutSections.forEach((section) => {
+    ITEM_COLOR_STOP_SECTIONS.forEach((section) => {
       const items = config?.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -1371,10 +1370,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
-    const defShapeSections = ['rectangles', 'circles', 'arcs'];
-
-    layoutSections.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -1386,7 +1382,7 @@ class FlexHorseshoeCard extends LitElement {
       if (!definitions) return;
 
       Object.values(definitions).forEach((definition) => {
-        defShapeSections.forEach((section) => {
+        DEFINITION_SHAPE_SECTIONS.forEach((section) => {
           const items = definition[section];
 
           if (!Array.isArray(items)) return;
@@ -1409,7 +1405,6 @@ class FlexHorseshoeCard extends LitElement {
    */
   _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
     const entityIndexes = {};
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
     const stats = ['min', 'avg', 'max', 'min_time', 'max_time'];
     const sparklineBaseIndex = resolvedEntitiesConfig.length;
 
@@ -1423,7 +1418,7 @@ class FlexHorseshoeCard extends LitElement {
       });
     });
 
-    layoutSections.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -1539,6 +1534,53 @@ class FlexHorseshoeCard extends LitElement {
     return value;
   }
 
+  /**
+   * Records JavaScript-template metadata for every supported runtime config unit.
+   *
+   * The scan runs after card templates, ref(), calc() and same_as have produced
+   * their final config shapes. Metadata is stored by Templates in a WeakMap,
+   * leaving the public configuration untouched. The returned card flag allows
+   * later lifecycle steps to skip all dynamic work for fully static cards.
+   *
+   * @param {object} config - Finalized card config before runtime tool construction.
+   * @returns {boolean} True when any supported runtime config unit contains JavaScript.
+   */
+  _detectJavascriptTemplates(config) {
+    let cardHasJavascript = false;
+
+    config.entities.forEach((entityConfig) => {
+      if (Templates.detectJavascriptTemplates(entityConfig)) cardHasJavascript = true;
+    });
+
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
+      const items = config.layout[section];
+
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (Templates.detectJavascriptTemplates(item)) cardHasJavascript = true;
+      });
+    });
+
+    if (config.layout.groups) {
+      Object.values(config.layout.groups).forEach((group) => {
+        if (Templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
+      });
+    }
+
+    if (config.animations) {
+      Object.values(config.animations).forEach((animationItems) => {
+        animationItems.forEach((animationItem) => {
+          if (Templates.detectJavascriptTemplates(animationItem)) cardHasJavascript = true;
+        });
+      });
+    }
+
+    if (config.styles && Templates.detectJavascriptTemplates(config.styles)) cardHasJavascript = true;
+
+    return cardHasJavascript;
+  }
+
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
@@ -1603,6 +1645,8 @@ class FlexHorseshoeCard extends LitElement {
       this._calculateStaticValues(config, calcConstants);
 
       SameAs.compile(config);
+
+      this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
 
       // this._assignSectionIds(config);
       // this._buildConstants(config);
