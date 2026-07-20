@@ -304,15 +304,21 @@ fill: |
 
 The template must return the value that should be used by the card.
 
-## :material-horseshoe: Available constants
+## :material-horseshoe: Available template variables
 
-The following constants are available inside JavaScript templates:
+The following variables are available inside JavaScript templates:
 
 | Variable | Description |
 | :------- | :---------- |
-| `state` | The state of the entity connected to the current item |
+| `state` | State or configured attribute of the entity connected to the current item |
+| `entity` | Complete Home Assistant state object connected to the current item |
+| `entities` | State objects for all entries in the card-level `entities` list |
 | `states` | All Home Assistant states from `hass.states` |
-| `constants` | Reusable values or templates defined in the card-level `constants` section |
+| `hass` | Current Home Assistant frontend object |
+| `config` | Statically compiled card configuration |
+| `constants` | Values or JavaScript source stored in the card-level `constants` section |
+| `item` | Complete configuration component currently being evaluated |
+| `user` | Current Home Assistant user |
 
 ### `state`
 
@@ -346,6 +352,37 @@ Example:
 ```yaml linenums="1"
 [[[ return constants['flashAnimation']; ]]]
 ```
+
+## :material-horseshoe: Dynamic configuration lifecycle
+
+JavaScript templates are supported consistently for complete configuration components. A template can be placed in any key inside a supported component. When an entity configured on the card changes, FHS evaluates the complete component first and then uses the resulting values for color stops, state calculation, geometry, and rendering.
+
+| Dynamic component | Scope |
+| :---------------- | :---- |
+| Entity definitions | Each complete item in `entities` |
+| Layout tools | Complete items in `horseshoes`, `horseshoes_v2`, `states`, `names`, `areas`, `circles`, `arcs`, `rectangles`, `lines`, `hlines`, `vlines`, `icons`, and `sparklines` |
+| Layout groups | Each complete group in `layout.groups`, including position, scale, and color filters |
+| Animations | Each complete state item in `animations` |
+| Card styles | The complete card-level `styles` block |
+
+Gradients, clips, and masks are static SVG definitions. Child cards use their own card lifecycle.
+
+!!! warning "Register every states dependency"
+    Every entity read through `states['entity.id']` must also be present in the card-level `entities` list. Reading an unlisted entity may return its current state, but changes to that entity do not trigger reevaluation of the card configuration.
+
+The processing order is:
+
+1. FHS templates and placeholders are expanded.
+2. Item ids, `constants`, `ref()`, and `calc()` are processed.
+3. `same_as` inheritance is applied.
+4. Components containing JavaScript are marked.
+5. On a configured entity update, each marked component is evaluated once.
+6. Public configuration shapes such as `color_stops` are normalized.
+7. State, geometry, and rendering use the active result.
+
+Internally, the compiled expression-bearing component is retained as `sourceConfig`. Its evaluated result becomes the active `config`. Render methods only use that active result and do not execute JavaScript.
+
+Constants are not evaluated independently. A constant containing JavaScript is evaluated in the context of the entity, tool, group, animation, or card style that consumes it. Returned values containing another `[[[ ... ]]]` template are evaluated recursively in that same component context.
 
 ## :material-horseshoe: Dynamic styling based on the current entity
 

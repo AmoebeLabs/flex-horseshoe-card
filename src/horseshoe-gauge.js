@@ -223,7 +223,6 @@ export default class HorseshoeGauge extends BaseTool {
     }
 
     this.config.mapped_state = mappedState;
-    this.runtimeConfig = this.config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.rawState = stateData.rawState;
     this.mappedState = mappedState;

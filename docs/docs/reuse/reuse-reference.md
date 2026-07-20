@@ -17,13 +17,14 @@ For a more practical introduction with examples, see [Better/Easier/Less YAML wi
 
 Reuse is processed once during card setup.
 
-1. `constants` are read.
-2. `ref()` values are copied from `constants`.
-3. `calc()` expressions are evaluated.
-4. `same_as` items are expanded.
-5. The renderer receives complete configuration items.
+1. FHS templates and placeholders are expanded.
+2. Item ids and `constants` are recorded.
+3. `ref()` values are copied from `constants`.
+4. `calc()` expressions are evaluated.
+5. `same_as` items are expanded.
+6. JavaScript templates are detected in the finalized components.
 
-These features are static. They are not dynamic templates and are not re-evaluated during entity updates.
+These reuse features are static. They are not re-evaluated during entity updates. Marked JavaScript components are evaluated later through the dynamic configuration lifecycle described on the [Templates](../core-concepts/templating.md#dynamic-configuration-lifecycle) page.
 
 ## :material-horseshoe: Supported sections
 
