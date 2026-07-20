@@ -5,7 +5,6 @@ import BaseTool from './base-tool.js';
 import Colors from './colors.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
-import Templates from './templates.js';
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
 import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
 import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
@@ -45,7 +44,6 @@ export default class IconTool extends BaseTool {
     super(config, index, templates, cardId, card, 'icons', 'icons', defaultEntityIndex);
 
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
     this.iconId = Math.random().toString(36).substr(2, 9);
     this.iconSvg = undefined;
     this.pendingIconPath = undefined;
@@ -60,7 +58,7 @@ export default class IconTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -79,7 +77,7 @@ export default class IconTool extends BaseTool {
    * @param {object} item - Runtime icon config after optional state_map merge.
    * @returns {string} SVG transform value.
    */
-  getGroupScaleTransform(item = this.runtimeConfig) {
+  getGroupScaleTransform(item = this.config) {
     return this.card._getGroupScaleTransform(item);
   }
 
@@ -89,7 +87,7 @@ export default class IconTool extends BaseTool {
    * @param {object} item - Runtime icon config after optional state_map merge.
    * @returns {string} SVG style value.
    */
-  getGroupScaleStyle(item = this.runtimeConfig) {
+  getGroupScaleStyle(item = this.config) {
     return this.card._getGroupScaleStyle(item);
   }
 
@@ -99,7 +97,7 @@ export default class IconTool extends BaseTool {
    * @returns {object|undefined} Matching state_map item.
    */
   getStateMapItem() {
-    const entries = this.runtimeConfig?.state_map?.map;
+    const entries = this.config?.state_map?.map;
     if (!entries) return undefined;
 
     const state = this.entity?.state;
@@ -113,7 +111,7 @@ export default class IconTool extends BaseTool {
    * @param {object} stateMapConfig - Matching state_map entry.
    * @returns {string|undefined} Icon name or css url(...).
    */
-  buildIcon(stateMapConfig, item = this.runtimeConfig) {
+  buildIcon(stateMapConfig, item = this.config) {
     const entityAnimation = this.card.animations?.iconsIcon?.[item.animation_id];
 
     if (entityAnimation) {
@@ -443,9 +441,7 @@ export default class IconTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the icon.
    */
   render() {
-    const item = this.runtimeConfig;
-
-    item.entity = item.entity ? item.entity : 0;
+    const item = this.config;
 
     const smItem = this.getStateMapItem();
     let renderItem = item;
@@ -474,8 +470,7 @@ export default class IconTool extends BaseTool {
     defaultIconColor.color = haStyle.color;
     defaultIconColor.filter = haStyle.filter;
 
-    const resolvedStyles = Templates.getJsTemplateOrValue(renderItem, renderItem.styles);
-    let configStyle = ConfigHelper.toStyleDict(resolvedStyles);
+    let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
     const stateStyle = this.card.animations?.icons?.[renderItem.animation_id] ?? {};
     const stopColor = this.card._getItemColorFromStops(renderItem);
 

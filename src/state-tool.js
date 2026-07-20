@@ -277,7 +277,6 @@ export default class StateTool extends BaseTool {
     super(config, index, templates, cardId, card, 'states');
 
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
     this.state = '';
     this.uom = '';
     this.setTextElement = (element) => {
@@ -292,8 +291,8 @@ export default class StateTool extends BaseTool {
     this.estimatedHeight = this.textFontSize;
     this.measuredWidth = 0;
     this.measuredHeight = 0;
-    this.measuredXpos = this.runtimeConfig.svg.xpos;
-    this.measuredYpos = this.runtimeConfig.svg.ypos;
+    this.measuredXpos = this.config.svg.xpos;
+    this.measuredYpos = this.config.svg.ypos;
     this.hasExactMeasurement = false;
     this.textMeasurementSignature = '';
   }
@@ -307,14 +306,14 @@ export default class StateTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
     this.buildStateAndUom();
 
     // Estimate the complete state/UOM layout until updated() can replace it
     // with the bounding box of the actual rendered SVG text element.
     const styles = this.getStyles({ 'font-size': '1em' });
     const uomStyles = this.getUomStyles(styles);
-    const uomPosition = this.runtimeConfig.show.uom;
+    const uomPosition = this.config.show.uom;
     const measurementSignature = `${this.state}|${this.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
 
     if (measurementSignature !== this.textMeasurementSignature) {
@@ -354,7 +353,7 @@ export default class StateTool extends BaseTool {
    * @returns {number} Horizontal center in SVG coordinates.
    */
   getXpos() {
-    return this.hasExactMeasurement ? this.measuredXpos : this.runtimeConfig.svg.xpos;
+    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
   }
 
   /**
@@ -363,7 +362,7 @@ export default class StateTool extends BaseTool {
    * @returns {number} Vertical center in SVG coordinates.
    */
   getYpos() {
-    return this.hasExactMeasurement ? this.measuredYpos : this.runtimeConfig.svg.ypos;
+    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
   }
 
   /**
@@ -379,7 +378,7 @@ export default class StateTool extends BaseTool {
     // The value tspan always exists. The UOM tspan only exists for a visible UOM position.
     this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[0]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
 
-    const uomPosition = this.runtimeConfig.show.uom;
+    const uomPosition = this.config.show.uom;
     const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
 
     if (uomIsVisible) {
@@ -644,7 +643,7 @@ export default class StateTool extends BaseTool {
     const uomStyles = {
       opacity: '0.7',
     };
-    const uomConfig = this.runtimeConfig.uom ?? {};
+    const uomConfig = this.config.uom ?? {};
     const itemUomStyleDict = ConfigHelper.toStyleDict(uomConfig.styles);
     const fsuomStr = stateStyles['font-size'];
     let fsuomValue = 0.5;
@@ -895,10 +894,10 @@ export default class StateTool extends BaseTool {
     this.applyColorStops(styles, 'fill');
 
     const uomStyle = this.getUomStyles(styles);
-    const dx = this.runtimeConfig.dx ? this.runtimeConfig.dx : '0';
-    const dy = this.runtimeConfig.dy ? this.runtimeConfig.dy : '0';
-    const uomConfig = this.runtimeConfig.uom ?? {};
-    const uomPosition = this.runtimeConfig.show.uom;
+    const dx = this.config.dx ? this.config.dx : '0';
+    const dy = this.config.dy ? this.config.dy : '0';
+    const uomConfig = this.config.uom ?? {};
+    const uomPosition = this.config.show.uom;
     let uomTemplate = svg``;
 
     // show.uom controls the relative position of the unit against the state value.
@@ -917,7 +916,7 @@ export default class StateTool extends BaseTool {
 
       uomTemplate = svg`<tspan
         class="state__uom"
-        x="${this.runtimeConfig.svg.xpos}"
+        x="${this.config.svg.xpos}"
         dy="${uomDy}em"
         style=${styleMap(this.getRenderStyles(uomStyle))}
       >${this.uom}</tspan>`;
@@ -926,7 +925,7 @@ export default class StateTool extends BaseTool {
 
       uomTemplate = svg`<tspan
         class="state__uom"
-        x="${this.runtimeConfig.svg.xpos}"
+        x="${this.config.svg.xpos}"
         dy="${uomDy}em"
         style=${styleMap(this.getRenderStyles(uomStyle))}
       >${this.uom}</tspan>`;
@@ -940,8 +939,8 @@ export default class StateTool extends BaseTool {
         <text ${ref(this.setTextElement)} id="${this.textElementId}" @click=${(event) => this.handlePopup(event)}>
           <tspan
             class="state__value"
-            x="${this.runtimeConfig.svg.xpos}"
-            y="${this.runtimeConfig.svg.ypos}"
+            x="${this.config.svg.xpos}"
+            y="${this.config.svg.ypos}"
             dx="${dx}em"
             dy="${dy}em"
             style=${styleMap(this.getRenderStyles(styles))}
