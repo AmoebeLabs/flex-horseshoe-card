@@ -46,7 +46,7 @@ import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
-import { DEFINITION_SHAPE_SECTIONS, ITEM_COLOR_STOP_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
+import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -216,62 +216,6 @@ class FlexHorseshoeCard extends LitElement {
           isSafariGte16: this.isSafariGte16,
         });
       }
-
-      // console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
-
-      // console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
-
-      // console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
-
-      // console.log(
-      //   'style test 4',
-      //   ConfigHelper.toStyleDict({
-      //     'font-size': '2.8em;',
-      //     'text-anchor': 'start;',
-      //     opacity: '0.7;',
-      //   }),
-      // );
-
-      // console.log(
-      //   'style test 5',
-      //   ConfigHelper.toStyleDict({
-      //     'font-size': '2.8em',
-      //     'text-anchor': 'start',
-      //     opacity: 0.7,
-      //   }),
-      // );
-
-      // console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
-
-      // console.log(
-      //   'style test 7',
-      //   ConfigHelper.toStyleDict([
-      //     `[[[
-      //     return { 'font-size': '2.8em' };
-      //   ]]]`,
-      //     'text-anchor: start;',
-      //     'opacity: 0.7;',
-      //   ]),
-      // );
-
-      // const rawStyles = [
-      //   `[[[
-      //   return { 'font-size': '2.8em' };
-      // ]]]`,
-      //   'text-anchor: start;',
-      //   'opacity: 0.7;',
-      // ];
-      // const item = {
-      //   entity_index: 0,
-      // };
-      // const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
-      // const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-      // console.log('style test 8 - resolvedStyles', resolvedStyles);
-      // console.log('style test 8 - itemStyleDict', itemStyleDict);
-      // if (this.config?.dev?.debug) {
-      //   ColorStops._testColorStopsNormalizer();
-      // }
 
       // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
       this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, false);
@@ -1188,7 +1132,6 @@ class FlexHorseshoeCard extends LitElement {
       Colors.colorCache = {};
       const mode = this.getActiveColorStopMode();
       Palette.applyAll(this, this.palettes, mode);
-      this._prepareItemColorStops(this.config);
       this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
       this._updateGradientsAfterRender();
       entityHasChanged = true;
@@ -1309,20 +1252,6 @@ class FlexHorseshoeCard extends LitElement {
       ...(item.reuse ? (this.animations[section][animationId] ?? {}) : {}),
       ...styleDict,
     };
-  }
-
-  _prepareItemColorStops(config) {
-    ITEM_COLOR_STOP_SECTIONS.forEach((section) => {
-      const items = config?.layout?.[section];
-
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (item.color_stops && !Templates.hasJavascriptTemplates(item.color_stops)) {
-          item.colorstops = ColorStops.normalize(item.color_stops, this.getActiveColorStopMode());
-        }
-      });
-    });
   }
 
   _calculateSvgCoordinatesInGroup(item) {
@@ -1756,7 +1685,6 @@ class FlexHorseshoeCard extends LitElement {
       this.groupManager = new GroupManager(this.activeGroupConfigs);
       this.masksClips = new MasksClips(this.config, this.cardId, this);
 
-      this._prepareItemColorStops(config);
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
       this.bar_mode = newConfig.bar_mode || 'normal';
