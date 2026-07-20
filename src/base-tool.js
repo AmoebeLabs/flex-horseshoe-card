@@ -59,7 +59,7 @@ export default class BaseTool {
     this.configChanged = !this.activeConfigInitialized;
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
-    if (this.hasJavascript) {
+    if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       const evaluatedConfig = Templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
         resolveKeys: true,
       });
