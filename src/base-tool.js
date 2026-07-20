@@ -1,5 +1,6 @@
 import { svg } from 'lit';
 import ConfigHelper from './config-helper.js';
+import ColorStops from './color-stops.js';
 import ColorFilter from './color-filter.js';
 import Templates from './templates.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
@@ -21,7 +22,9 @@ export default class BaseTool {
    * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
    */
   constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection, defaultEntityIndex = 0) {
-    this.config = config;
+    this.sourceConfig = config;
+    this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
+    this.config = this.sourceConfig;
     this.id = config.id;
     this.index = index;
     this.templates = templates;
@@ -38,7 +41,9 @@ export default class BaseTool {
 
     this.entity = undefined;
     this.entityConfig = undefined;
-    this.runtimeConfig = config;
+    this.configChanged = true;
+    this.activeConfigInitialized = false;
+    this.activeConfigSignature = undefined;
   }
 
   /**
@@ -50,12 +55,37 @@ export default class BaseTool {
   setState(entity, entityConfig) {
     this.entity = entity;
     this.entityConfig = entityConfig;
+    const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
+    this.configChanged = !this.activeConfigInitialized || this.card.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
 
-    // setHass() triggers runtime evaluation; each tool owns how its static config becomes runtime config.
-    this.runtimeConfig = Templates.getJsTemplateOrValue(this.config, this.config, {
-      resolveKeys: true,
-    });
-    this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
+    // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
+    if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
+      const evaluatedConfig = Templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
+        resolveKeys: true,
+      });
+      const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
+
+      // Keep the current active object when JavaScript produced the same config. Tool-specific
+      // normalization and geometry can use configChanged during their migration in later issues.
+      if (evaluatedConfigSignature !== this.activeConfigSignature) {
+        this.config = evaluatedConfig;
+        this.activeConfigSignature = evaluatedConfigSignature;
+        this.configChanged = true;
+      }
+    }
+
+    // JavaScript may return the public color_stops shape, so normalize it after activating the complete item.
+    if (this.configChanged && this.config.color_stops) {
+      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.getActiveColorStopMode());
+    }
+
+    // Sparkline graph options keep their public color_stops inside the nested sparkline block.
+    if (this.configChanged && this.config.sparkline?.color_stops) {
+      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.getActiveColorStopMode());
+    }
+
+    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
+    this.activeConfigInitialized = true;
   }
 
   /** Called when the parent card is attached to the DOM. */
@@ -89,8 +119,8 @@ export default class BaseTool {
    * @returns {object} Style dictionary ready for styleMap().
    */
   getStyles(baseStyles) {
-    const itemStyleDict = ConfigHelper.toStyleDict(this.runtimeConfig.styles);
-    const animationStyle = ConfigHelper.toStyleDict(this.card.animations?.[this.animationSection]?.[this.runtimeConfig.animation_id] ?? {});
+    const itemStyleDict = ConfigHelper.toStyleDict(this.config.styles);
+    const animationStyle = ConfigHelper.toStyleDict(this.card.animations?.[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
       ...baseStyles,
@@ -109,13 +139,13 @@ export default class BaseTool {
    */
   getColorFilterCascade(extraFilters = []) {
     const groupFilters = this.card.groupManager
-      .getGroupChainForItem(this.runtimeConfig)
+      .getGroupChainForItem(this.config)
       .map((group) => group.color_filter);
 
     return [
       this.card.config.color_filter,
       ...groupFilters,
-      this.runtimeConfig.color_filter,
+      this.config.color_filter,
       ...extraFilters,
     ];
   }
@@ -143,7 +173,7 @@ export default class BaseTool {
    * @param {string} property - Style property that receives the color stop value.
    */
   applyColorStops(styles, property) {
-    const stopColor = this.card._getItemColorFromStops(this.runtimeConfig);
+    const stopColor = this.card._getItemColorFromStops(this.config);
 
     if (stopColor) {
       styles[property] = stopColor;
@@ -171,7 +201,7 @@ export default class BaseTool {
    * @returns {string} SVG transform value.
    */
   getGroupScaleTransform() {
-    return this.card._getGroupScaleTransform(this.runtimeConfig);
+    return this.card._getGroupScaleTransform(this.config);
   }
 
   /**
@@ -180,7 +210,7 @@ export default class BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle() {
-    return this.card._getGroupScaleStyle(this.runtimeConfig);
+    return this.card._getGroupScaleStyle(this.config);
   }
 
   /**
@@ -193,7 +223,7 @@ export default class BaseTool {
    * @param {object} item - Runtime config that may contain clip/mask names.
    * @returns {TemplateResult} Wrapped or unchanged SVG content.
    */
-  renderItemLayers(content, item = this.runtimeConfig) {
+  renderItemLayers(content, item = this.config) {
     let result = content;
 
     if (item.mask) {

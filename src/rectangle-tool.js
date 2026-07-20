@@ -64,7 +64,6 @@ export default class RectangleTool extends BaseTool {
     super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined);
 
     this.config.svg = this.calculateSvgDimensions();
-    this.runtimeConfig = this.config;
   }
 
   /**
@@ -76,7 +75,7 @@ export default class RectangleTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -132,7 +131,7 @@ export default class RectangleTool extends BaseTool {
    * @returns {string} SVG path data for the rounded rectangle.
    */
   buildRoundedRectanglePath() {
-    const dimensions = this.runtimeConfig.svg;
+    const dimensions = this.config.svg;
 
     return `
       M ${dimensions.x + dimensions.radiusTopLeft} ${dimensions.y}
@@ -156,7 +155,7 @@ export default class RectangleTool extends BaseTool {
   render() {
     // Text dimensions become exact after the preceding render. Recalculate the
     // path here so the correction render immediately uses the measured size.
-    this.runtimeConfig.svg = this.calculateSvgDimensions(this.runtimeConfig);
+    this.config.svg = this.calculateSvgDimensions(this.config);
 
     const rectangleStyles = {
       fill: 'var(--primary-background-color)',

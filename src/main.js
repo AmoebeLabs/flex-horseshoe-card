@@ -46,6 +46,7 @@ import SameAs from './same-as.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
+import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
 
@@ -107,7 +108,17 @@ class FlexHorseshoeCard extends LitElement {
     this.iconTools = [];
     this.sparklineGraphTools = [];
     this.groupManager = undefined;
+    this.sourceGroupConfigs = undefined;
+    this.activeGroupConfigs = undefined;
+    this.activeGroupSignatures = {};
+    this.groupsHaveJavascript = false;
+    this.changedGroupIds = new Set();
     this.resolvedEntityConfigs = [];
+    this.entityConfigsInitialized = false;
+    this.evaluateJavascriptTemplates = false;
+    this.sourceCardStyles = undefined;
+    this.activeCardStyles = undefined;
+    this.cardStylesHaveJavascript = false;
     this.colorCache = {};
     this.isAndroid = false;
     this.isSafari = false;
@@ -206,64 +217,8 @@ class FlexHorseshoeCard extends LitElement {
         });
       }
 
-      // console.log('style test 1', ConfigHelper.toStyleDict([{ 'font-size': '2.8em;' }, { 'text-anchor': 'start;' }, { opacity: '0.7;' }]));
-
-      // console.log('style test 2', ConfigHelper.toStyleDict(['font-size: 2.8em;', 'text-anchor: start;', 'opacity: 0.7;']));
-
-      // console.log('style test 3', ConfigHelper.toStyleDict(['font-size: 2.8em', 'text-anchor: start', 'opacity: 0.7']));
-
-      // console.log(
-      //   'style test 4',
-      //   ConfigHelper.toStyleDict({
-      //     'font-size': '2.8em;',
-      //     'text-anchor': 'start;',
-      //     opacity: '0.7;',
-      //   }),
-      // );
-
-      // console.log(
-      //   'style test 5',
-      //   ConfigHelper.toStyleDict({
-      //     'font-size': '2.8em',
-      //     'text-anchor': 'start',
-      //     opacity: 0.7,
-      //   }),
-      // );
-
-      // console.log('style test 6', ConfigHelper.toStyleDict('font-size: 2.8em; text-anchor: start; opacity: 0.7;'));
-
-      // console.log(
-      //   'style test 7',
-      //   ConfigHelper.toStyleDict([
-      //     `[[[
-      //     return { 'font-size': '2.8em' };
-      //   ]]]`,
-      //     'text-anchor: start;',
-      //     'opacity: 0.7;',
-      //   ]),
-      // );
-
-      // const rawStyles = [
-      //   `[[[
-      //   return { 'font-size': '2.8em' };
-      // ]]]`,
-      //   'text-anchor: start;',
-      //   'opacity: 0.7;',
-      // ];
-      // const item = {
-      //   entity_index: 0,
-      // };
-      // const resolvedStyles = Templates.getJsTemplateOrValue(item, rawStyles);
-      // const itemStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
-      // console.log('style test 8 - resolvedStyles', resolvedStyles);
-      // console.log('style test 8 - itemStyleDict', itemStyleDict);
-      // if (this.config?.dev?.debug) {
-      //   ColorStops._testColorStopsNormalizer();
-      // }
-
       // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
-      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, false);
     }
   }
 
@@ -877,7 +832,7 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
-  _resolveEntityConfigs(config) {
+  _resolveEntityConfigs(config, evaluateJavascript) {
     if (config?.dev?.debug) {
       console.log('resolving entity config for', config?.entities);
     }
@@ -886,6 +841,8 @@ class FlexHorseshoeCard extends LitElement {
         const item = {
           entity_index: index,
         };
+
+        if (!evaluateJavascript || !Templates.hasJavascriptTemplates(entityConfig)) return entityConfig;
 
         return Templates.getJsTemplateOrValue(item, entityConfig);
       }) ?? []
@@ -984,6 +941,8 @@ class FlexHorseshoeCard extends LitElement {
    * point at those entity_index values must receive their entity state again.
    */
   _updateToolsUsingSparklineEntities() {
+    this.evaluateJavascriptTemplates = true;
+
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
@@ -993,6 +952,8 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+
+    this.evaluateJavascriptTemplates = false;
   }
 
   _setToolEntityState(tool) {
@@ -1065,6 +1026,19 @@ class FlexHorseshoeCard extends LitElement {
     }
     this.childCards.setHass(hass);
 
+    // Capture every configured Home Assistant entity before evaluating dynamic config.
+    // Object identity changes when HA publishes a new state or attribute set.
+    let configuredEntityStateChanged = !this.entityConfigsInitialized;
+    const configuredEntityCount = this.config.entities.length;
+
+    this.resolvedEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
+      const entity = hass.states[activeEntityConfig.entity];
+
+      if (!entity) return;
+      if (this.entities[index] !== entity) configuredEntityStateChanged = true;
+      this.entities[index] = entity;
+    });
+
     Templates.setContext({
       hass: this._hass,
       config: this.config,
@@ -1072,8 +1046,79 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    let entityHasChanged = forceUpdate || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
-    let themeModeHasChanged = false;
+    // Evaluate every marked entity config exactly once for this configured state update.
+    // Static entity configs retain their compiled source object.
+    if (configuredEntityStateChanged) {
+      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, true);
+      this.entityConfigsInitialized = true;
+    } else {
+      this.resolvedEntityConfigs = this.resolvedEntityConfigs.slice(0, configuredEntityCount);
+    }
+
+    // An evaluated entity config may select a different entity. Publish the final entity list
+    // before tools, animations and card styles receive their JavaScript context.
+    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+      const entity = hass.states[entityConfig.entity];
+
+      if (entity) this.entities[index] = entity;
+    });
+
+    Templates.setContext({
+      hass: this._hass,
+      config: this.config,
+      entities: this.entities,
+      horseshoes: this.horseshoes,
+    });
+
+    // Groups are complete runtime components. Evaluate marked groups before tools,
+    // rebuild the manager only for changed results, and mark every dependent descendant.
+    this.changedGroupIds.clear();
+    if (configuredEntityStateChanged && this.groupsHaveJavascript) {
+      const nextActiveGroupConfigs = { ...this.activeGroupConfigs };
+      const directlyChangedGroupIds = new Set();
+
+      Object.entries(this.sourceGroupConfigs).forEach(([groupId, sourceGroupConfig]) => {
+        if (!Templates.hasJavascriptTemplates(sourceGroupConfig)) return;
+
+        const activeGroupConfig = Templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, {
+          resolveKeys: true,
+        });
+        const activeGroupSignature = JSON.stringify(activeGroupConfig);
+
+        nextActiveGroupConfigs[groupId] = activeGroupConfig;
+        if (activeGroupSignature !== this.activeGroupSignatures[groupId]) {
+          this.activeGroupSignatures[groupId] = activeGroupSignature;
+          directlyChangedGroupIds.add(groupId);
+        }
+      });
+
+      if (directlyChangedGroupIds.size > 0) {
+        this.activeGroupConfigs = nextActiveGroupConfigs;
+        this.groupManager = new GroupManager(this.activeGroupConfigs);
+
+        Object.keys(this.groupManager.groups).forEach((groupId) => {
+          let currentGroupId = groupId;
+
+          while (currentGroupId) {
+            if (directlyChangedGroupIds.has(currentGroupId)) {
+              this.changedGroupIds.add(groupId);
+              break;
+            }
+
+            const currentGroup = this.groupManager.groups[currentGroupId];
+            currentGroupId = currentGroupId === 'card' ? undefined : currentGroup.parent ?? 'card';
+          }
+        });
+      }
+    }
+
+    if (configuredEntityStateChanged && this.cardStylesHaveJavascript) {
+      this.activeCardStyles = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+    }
+
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
+
+    let entityHasChanged = forceUpdate || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     const themeName = hass.selectedTheme || hass.themes.theme || '';
     const themeDarkMode = hass.themes.darkMode === true;
@@ -1087,21 +1132,15 @@ class FlexHorseshoeCard extends LitElement {
       Colors.colorCache = {};
       const mode = this.getActiveColorStopMode();
       Palette.applyAll(this, this.palettes, mode);
-      this._prepareItemColorStops(this.config);
       this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
       this._updateGradientsAfterRender();
       entityHasChanged = true;
     }
 
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
-
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = hass.states[entityConfig.entity];
 
-      if (!entity) {
-        return;
-      }
+      if (!entity) return;
 
       this.entities[index] = entity;
 
@@ -1127,106 +1166,68 @@ class FlexHorseshoeCard extends LitElement {
       }
     });
 
-    if (!entityHasChanged) {
-      return;
-    }
+    if (!entityHasChanged) return;
 
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
+    // Tool state and data lifecycles still run for forced, theme and history updates.
+    // BaseTool enters JavaScript evaluation only for an actual configured entity update.
+    this.evaluateJavascriptTemplates = configuredEntityStateChanged;
 
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
     this._updateSparklineEntities();
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
-
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-
     this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
-
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
-
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
-
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
-
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
-    if (this.config.animations) {
-      Object.keys(this.config.animations).map((animation) => {
+    // Evaluate a complete animation state item before matching its state and applying
+    // its already active icons and styles. No animation field has a separate evaluator.
+    if (configuredEntityStateChanged && this.config.animations) {
+      Object.keys(this.config.animations).forEach((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
 
-        this.config.animations[animation].map((item) => {
-          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) {
-            return false;
-          }
+        this.config.animations[animation].forEach((sourceAnimationItem) => {
+          const animationContext = {
+            ...sourceAnimationItem,
+            entity_index: entityIndex,
+          };
+          const item = Templates.hasJavascriptTemplates(sourceAnimationItem)
+            ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem)
+            : sourceAnimationItem;
 
-          if (item.lines) {
-            item.lines.forEach((item2) => this._updateAnimationStyles('lines', item2));
-          }
+          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-          if (item.vlines) {
-            item.vlines.forEach((item2) => this._updateAnimationStyles('vlines', item2));
-          }
-
-          if (item.hlines) {
-            item.hlines.forEach((item2) => this._updateAnimationStyles('hlines', item2));
-          }
-
-          if (item.circles) {
-            item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
-          }
-
-          if (item.arcs) {
-            item.arcs.forEach((item2) => this._updateAnimationStyles('arcs', item2));
-          }
-
-          if (item.rectangles) {
-            item.rectangles.forEach((item2) => this._updateAnimationStyles('rectangles', item2));
-          }
-
-          if (item.names) {
-            item.names.forEach((item2) => this._updateAnimationStyles('names', item2));
-          }
-
-          if (item.areas) {
-            item.areas.forEach((item2) => this._updateAnimationStyles('areas', item2));
-          }
+          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states'].forEach((section) => {
+            if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
+          });
 
           if (item.icons) {
-            item.icons.forEach((item2) => {
-              const animationId = item2.animation_id;
+            item.icons.forEach((animationItem) => {
+              const animationId = animationItem.animation_id;
 
-              if (!this.animations.icons[animationId] || !item2.reuse) {
+              if (!this.animations.icons[animationId] || !animationItem.reuse) {
                 this.animations.icons[animationId] = {};
                 this.animations.iconsIcon[animationId] = {};
               }
 
-              const resolvedStyles = Templates.getJsTemplateOrValue(item2, item2.styles);
-              const animationStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
               this.animations.icons[animationId] = {
                 ...this.animations.icons[animationId],
-                ...animationStyleDict,
+                ...ConfigHelper.toStyleDict(animationItem.styles),
               };
-
-              this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
+              this.animations.iconsIcon[animationId] = animationItem.icon;
             });
           }
-
-          if (item.states) {
-            item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
-          }
-
-          return true;
         });
-
-        return true;
       });
     }
+
+    this.evaluateJavascriptTemplates = false;
+    this.changedGroupIds.clear();
 
     Templates.setContext({
       hass: this._hass,
@@ -1235,9 +1236,8 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed
+    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
     this.theme.modeChanged = false;
-
     this.requestUpdate();
   }
 
@@ -1246,8 +1246,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (animationId === undefined || animationId === null) return;
 
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const styleDict = ConfigHelper.toStyleDict(resolvedStyles);
+    const styleDict = ConfigHelper.toStyleDict(item.styles);
 
     this.animations[section][animationId] = {
       ...(item.reuse ? (this.animations[section][animationId] ?? {}) : {}),
@@ -1255,44 +1254,8 @@ class FlexHorseshoeCard extends LitElement {
     };
   }
 
-  _prepareItemColorStops(config) {
-    const layoutSections = ['states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
-
-    layoutSections.forEach((section) => {
-      const items = config?.layout?.[section];
-
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (item.color_stops) {
-          const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
-
-          item.colorstops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
-        }
-
-        // Sparkline config uses the standard external FHS color_stops key.
-        if (section === 'sparklines' && item.sparkline.color_stops) {
-          const sparklineColorStops = item.sparkline.color_stops;
-          const resolvedSparklineColorStops = Templates.getJsTemplateOrValue(item.sparkline, sparklineColorStops, { resolveKeys: true });
-
-          item.sparkline.colorstops = ColorStops.normalize(resolvedSparklineColorStops, this.getActiveColorStopMode());
-        }
-      });
-    });
-  }
-
   _calculateSvgCoordinatesInGroup(item) {
     return this.groupManager.calculateSvgCoordinatesInGroup(item);
-  }
-
-  _computeGroupDimensions(config) {
-    const groups = this.groupManager.groups;
-
-    Object.keys(groups).forEach((groupName) => {
-      groups[groupName] = this.groupManager.getGroup(groupName);
-    });
-
-    config.layout.groups = groups;
   }
 
   _computeSvgDimensions(config) {
@@ -1371,10 +1334,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
-    const defShapeSections = ['rectangles', 'circles', 'arcs'];
-
-    layoutSections.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -1386,7 +1346,7 @@ class FlexHorseshoeCard extends LitElement {
       if (!definitions) return;
 
       Object.values(definitions).forEach((definition) => {
-        defShapeSections.forEach((section) => {
+        DEFINITION_SHAPE_SECTIONS.forEach((section) => {
           const items = definition[section];
 
           if (!Array.isArray(items)) return;
@@ -1409,7 +1369,6 @@ class FlexHorseshoeCard extends LitElement {
    */
   _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
     const entityIndexes = {};
-    const layoutSections = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons', 'sparklines'];
     const stats = ['min', 'avg', 'max', 'min_time', 'max_time'];
     const sparklineBaseIndex = resolvedEntitiesConfig.length;
 
@@ -1423,7 +1382,7 @@ class FlexHorseshoeCard extends LitElement {
       });
     });
 
-    layoutSections.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -1539,6 +1498,53 @@ class FlexHorseshoeCard extends LitElement {
     return value;
   }
 
+  /**
+   * Records JavaScript-template metadata for every supported runtime config unit.
+   *
+   * The scan runs after card templates, ref(), calc() and same_as have produced
+   * their final config shapes. Metadata is stored by Templates in a WeakMap,
+   * leaving the public configuration untouched. The returned card flag allows
+   * later lifecycle steps to skip all dynamic work for fully static cards.
+   *
+   * @param {object} config - Finalized card config before runtime tool construction.
+   * @returns {boolean} True when any supported runtime config unit contains JavaScript.
+   */
+  _detectJavascriptTemplates(config) {
+    let cardHasJavascript = false;
+
+    config.entities.forEach((entityConfig) => {
+      if (Templates.detectJavascriptTemplates(entityConfig)) cardHasJavascript = true;
+    });
+
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
+      const items = config.layout[section];
+
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (Templates.detectJavascriptTemplates(item)) cardHasJavascript = true;
+      });
+    });
+
+    if (config.layout.groups) {
+      Object.values(config.layout.groups).forEach((group) => {
+        if (Templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
+      });
+    }
+
+    if (config.animations) {
+      Object.values(config.animations).forEach((animationItems) => {
+        animationItems.forEach((animationItem) => {
+          if (Templates.detectJavascriptTemplates(animationItem)) cardHasJavascript = true;
+        });
+      });
+    }
+
+    if (config.styles && Templates.detectJavascriptTemplates(config.styles)) cardHasJavascript = true;
+
+    return cardHasJavascript;
+  }
+
   setConfig(config) {
     try {
       config = JSON.parse(JSON.stringify(config));
@@ -1604,6 +1610,8 @@ class FlexHorseshoeCard extends LitElement {
 
       SameAs.compile(config);
 
+      this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
+
       // this._assignSectionIds(config);
       // this._buildConstants(config);
       // this._replaceStaticRefs(config);
@@ -1617,7 +1625,7 @@ class FlexHorseshoeCard extends LitElement {
         horseshoes: this.horseshoes,
       });
 
-      const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
+      const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
 
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
@@ -1661,13 +1669,22 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.config = newConfig;
+      this.sourceCardStyles = this.config.styles;
+      this.activeCardStyles = this.sourceCardStyles;
+      this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
+      this.config.layout.groups ??= {};
+      this.sourceGroupConfigs = this.config.layout.groups;
+      this.activeGroupConfigs = this.sourceGroupConfigs;
+      this.activeGroupSignatures = {};
+      this.groupsHaveJavascript = Object.values(this.sourceGroupConfigs).some((group) => Templates.hasJavascriptTemplates(group));
+      this.changedGroupIds.clear();
+      this.entityConfigsInitialized = false;
       this.config.layout.gradients ??= {};
       this.config.layout.clips ??= {};
       this.config.layout.masks ??= {};
-      this.groupManager = new GroupManager(this.config.layout?.groups);
+      this.groupManager = new GroupManager(this.activeGroupConfigs);
       this.masksClips = new MasksClips(this.config, this.cardId, this);
 
-      this._prepareItemColorStops(config);
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
 
       this.bar_mode = newConfig.bar_mode || 'normal';
@@ -1680,7 +1697,6 @@ class FlexHorseshoeCard extends LitElement {
       this.viewBox.width = ar[0] * SVG_DEFAULT_DIMENSIONS;
       this.viewBox.height = ar[1] * SVG_DEFAULT_DIMENSIONS;
 
-      this._computeGroupDimensions(this.config);
       this._computeSvgDimensions(this.config);
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
@@ -1853,13 +1869,8 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  render({ config } = this) {
-    const item = {
-      entity_index: 0,
-    };
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, config?.styles);
-    const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
+  render() {
+    const cardStyle = ConfigHelper.toStyleDict(this.activeCardStyles);
 
     return html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
