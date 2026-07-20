@@ -15,7 +15,7 @@ import {
   updateStatePathElements,
 } from './horseshoe-renderer.js';
 import { buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
-import { getGaugeStateData, normalizeBaseConfig } from './horseshoe-state.js';
+import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
 import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
 import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
@@ -175,7 +175,8 @@ export default class HorseshoeGauge extends BaseTool {
     this.displayValue = undefined;
     this.mappedState = undefined;
 
-    this.runtimeConfig = undefined;
+    this.normalizedConfig = undefined;
+    this.geometryConfigSignature = undefined;
     this.scale = undefined;
     this.geometry = undefined;
 
@@ -193,19 +194,23 @@ export default class HorseshoeGauge extends BaseTool {
    * @param {object} entityConfig - Entity configuration for this gauge.
    */
   setState(entity, entityConfig) {
-    this.entity = entity;
-    this.entityConfig = entityConfig;
+    super.setState(entity, entityConfig);
 
-    // State resolution may change both the numeric value and runtime config via templates.
-    const stateData = getGaugeStateData(this.config, this.templates, this.entity_index, entity, entityConfig, this.card.getActiveColorStopMode());
+    // Normalize only when the complete evaluated item changed. The normalized source stays
+    // separate because entity-state mapping adds transient fields for the current state.
+    if (this.configChanged || !this.normalizedConfig) {
+      this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.getActiveColorStopMode());
+    }
 
+    const stateData = getGaugeStateData(this.normalizedConfig, entity, entityConfig);
     const nextValue = stateData.value;
     const previousDisplayValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
 
-    this.runtimeConfig = stateData.runtimeConfig;
-    this.runtimeConfig.state_map = this.buildStateMapDisplayLabels(this.runtimeConfig.state_map, entity);
-    // Display labels are added after state resolution; keep runtime fields from the active mapped state.
-    const displayMappedState = this.runtimeConfig.state_map?.map?.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
+    this.config = stateData.config;
+    this.config.state_map = this.buildStateMapDisplayLabels(this.config.state_map, entity);
+
+    // Display labels are added after state resolution; keep fields from the active mapped state.
+    const displayMappedState = this.config.state_map?.map?.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
     let mappedState = stateData.mappedState;
 
     if (displayMappedState) {
@@ -216,18 +221,35 @@ export default class HorseshoeGauge extends BaseTool {
       };
     }
 
-    this.runtimeConfig.mapped_state = mappedState;
-    this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
+    this.config.mapped_state = mappedState;
+    this.runtimeConfig = this.config;
+    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.rawState = stateData.rawState;
     this.mappedState = mappedState;
     this.value = nextValue;
 
-    // Recreate scale and geometry after template resolution so spline anchors and layout stay current.
-    this.scale = new GaugeScale(this.runtimeConfig.horseshoe_scale);
-    this.geometry = new GaugeGeometry(this.runtimeConfig, this.scale);
+    // Scale and geometry change only when their active inputs change, not for every entity update.
+    const geometryConfigSignature = JSON.stringify({
+      horseshoe_scale: this.config.horseshoe_scale,
+      svg: this.config.svg,
+      arc_degrees: this.config.arc_degrees,
+      start_angle: this.config.start_angle,
+      rotate: this.config.rotate,
+      flip: this.config.flip,
+      group_config: this.config.group_config,
+      bar_mode: this.config.bar_mode,
+      zero_ratio: this.config.zero_ratio,
+    });
+
+    if (geometryConfigSignature !== this.geometryConfigSignature) {
+      this.scale = new GaugeScale(this.config.horseshoe_scale);
+      this.geometry = new GaugeGeometry(this.config, this.scale);
+      this.geometryConfigSignature = geometryConfigSignature;
+    }
+
     this.refreshPathItemCacheKey();
 
-    const stringStateMode = this.runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || this.runtimeConfig.horseshoe_state.mode === 'stringstate_level';
+    const stringStateMode = this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
 
     // String states are discrete. CSS transitions animate their styles; numeric interpolation would produce unmapped intermediate states.
     if (stringStateMode) {
@@ -284,7 +306,7 @@ export default class HorseshoeGauge extends BaseTool {
         const displayLabel = [formattedState, formattedStateEntity, computedState]
           .find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
 
-        if (this.runtimeConfig?.dev?.debug_state_map || this.runtimeConfig?.debug_state_map) {
+        if (this.config?.dev?.debug_state_map || this.config?.debug_state_map) {
           console.log('[horseshoe-state-map] display label', {
             entity_id: entity.entity_id,
             activeState: entity.state,
@@ -311,7 +333,7 @@ export default class HorseshoeGauge extends BaseTool {
    * @returns {TemplateResult} SVG template for the gauge.
    */
   render() {
-    if (!Number.isFinite(this.value) || !this.runtimeConfig || !this.scale || !this.geometry) {
+    if (!Number.isFinite(this.value) || !this.config || !this.scale || !this.geometry) {
       return svg``;
     }
 
@@ -347,31 +369,31 @@ export default class HorseshoeGauge extends BaseTool {
    */
   getPathItemCacheKey() {
     return JSON.stringify({
-      show: this.runtimeConfig.show,
-      svg: this.runtimeConfig.svg,
-      arc_degrees: this.runtimeConfig.arc_degrees,
-      start_angle: this.runtimeConfig.start_angle,
-      rotate: this.runtimeConfig.rotate,
-      flip: this.runtimeConfig.flip,
-      group_config: this.runtimeConfig.group_config,
-      bar_mode: this.runtimeConfig.bar_mode,
-      zero_ratio: this.runtimeConfig.zero_ratio,
-      colorstops: this.runtimeConfig.colorstops,
-      colorstopsMinMax: this.runtimeConfig.colorstopsMinMax,
-      horseshoe_background: this.runtimeConfig.horseshoe_background,
-      horseshoe_scale: this.runtimeConfig.horseshoe_scale,
+      show: this.config.show,
+      svg: this.config.svg,
+      arc_degrees: this.config.arc_degrees,
+      start_angle: this.config.start_angle,
+      rotate: this.config.rotate,
+      flip: this.config.flip,
+      group_config: this.config.group_config,
+      bar_mode: this.config.bar_mode,
+      zero_ratio: this.config.zero_ratio,
+      colorstops: this.config.colorstops,
+      colorstopsMinMax: this.config.colorstopsMinMax,
+      horseshoe_background: this.config.horseshoe_background,
+      horseshoe_scale: this.config.horseshoe_scale,
       horseshoe_state: {
-        width: this.runtimeConfig.horseshoe_state.width,
-        linecap: this.runtimeConfig.horseshoe_state.linecap,
-        mode: this.runtimeConfig.horseshoe_state.mode,
-        segment_gap: this.runtimeConfig.horseshoe_state.segment_gap,
-        color: this.runtimeConfig.horseshoe_state.color,
-        styles: this.runtimeConfig.horseshoe_state.styles,
+        width: this.config.horseshoe_state.width,
+        linecap: this.config.horseshoe_state.linecap,
+        mode: this.config.horseshoe_state.mode,
+        segment_gap: this.config.horseshoe_state.segment_gap,
+        color: this.config.horseshoe_state.color,
+        styles: this.config.horseshoe_state.styles,
       },
-      state_map: this.runtimeConfig.state_map,
-      mapped_state: this.runtimeConfig.mapped_state,
-      horseshoe_labels: this.runtimeConfig.horseshoe_labels,
-      horseshoe_tickmarks: this.runtimeConfig.horseshoe_tickmarks,
+      state_map: this.config.state_map,
+      mapped_state: this.config.mapped_state,
+      horseshoe_labels: this.config.horseshoe_labels,
+      horseshoe_tickmarks: this.config.horseshoe_tickmarks,
     });
   }
 
@@ -421,13 +443,13 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders the optional horseshoe background below scale and state.
    */
   renderHorseshoeBackground() {
-    const backgroundItems = this.getCachedPathItems('horseshoeBackgroundItems', () => buildHorseshoeBackgroundItems(this.runtimeConfig, this.geometry));
+    const backgroundItems = this.getCachedPathItems('horseshoeBackgroundItems', () => buildHorseshoeBackgroundItems(this.config, this.geometry));
 
     return renderHorseshoeBackgroundLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       backgroundItems,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_background?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_background?.color_filter]),
     );
   }
 
@@ -435,13 +457,13 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders the static scale layer.
    */
   renderScale() {
-    const scalePathItems = this.getCachedPathItems('scalePathItems', () => buildScalePathItems(this.runtimeConfig, this.geometry));
+    const scalePathItems = this.getCachedPathItems('scalePathItems', () => buildScalePathItems(this.config, this.geometry));
 
     return renderScaleLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       scalePathItems,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_scale?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_scale?.color_filter]),
     );
   }
 
@@ -449,15 +471,15 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders the value/state layer using the animated display value.
    */
   renderState() {
-    const statePathItems = buildStatePathItems(this.runtimeConfig, this.geometry, this.displayValue ?? this.value);
+    const statePathItems = buildStatePathItems(this.config, this.geometry, this.displayValue ?? this.value);
 
     return renderStateLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       statePathItems,
       this.cardId,
       this.index,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_state?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_state?.color_filter]),
     );
   }
 
@@ -465,14 +487,14 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders major and minor tickmark paths.
    */
   renderTickmarks() {
-    const tickPathItems = this.getCachedPathItems('tickPathItems', () => buildTickPathItems(this.runtimeConfig, this.geometry));
+    const tickPathItems = this.getCachedPathItems('tickPathItems', () => buildTickPathItems(this.config, this.geometry));
     const applyTickmarkColorFilter = (styles, pathItem) => {
       const tickConfig = pathItem.className === 'horseshoe__tick-major'
-        ? this.runtimeConfig.horseshoe_tickmarks?.ticks_major
-        : this.runtimeConfig.horseshoe_tickmarks?.ticks_minor;
+        ? this.config.horseshoe_tickmarks?.ticks_major
+        : this.config.horseshoe_tickmarks?.ticks_minor;
 
       return this.getRenderStyles(styles, [
-        this.runtimeConfig.horseshoe_tickmarks?.color_filter,
+        this.config.horseshoe_tickmarks?.color_filter,
         tickConfig?.color_filter,
       ]);
     };
@@ -484,24 +506,24 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders the optional tickmark background layer.
    */
   renderTickmarkBackground() {
-    const backgroundItems = this.getCachedPathItems('tickmarkBackgroundItems', () => buildTickBackgroundItems(this.runtimeConfig, this.geometry));
+    const backgroundItems = this.getCachedPathItems('tickmarkBackgroundItems', () => buildTickBackgroundItems(this.config, this.geometry));
 
-    return renderTickmarkBackgroundLayer(this.runtimeConfig, this.geometry, backgroundItems);
+    return renderTickmarkBackgroundLayer(this.config, this.geometry, backgroundItems);
   }
 
   /**
    * Renders labels after resolving label positions.
    */
   renderLabels() {
-    const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.runtimeConfig, this.geometry));
+    const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.config, this.geometry));
 
     return renderLabelsLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       this.cardId,
       this.index,
       labelItems,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_labels?.color_filter]),
     );
   }
 
@@ -509,13 +531,13 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders the optional label background layer.
    */
   renderLabelBackground() {
-    const backgroundItems = this.getCachedPathItems('labelBackgroundItems', () => buildLabelBackgroundItems(this.runtimeConfig, this.geometry));
+    const backgroundItems = this.getCachedPathItems('labelBackgroundItems', () => buildLabelBackgroundItems(this.config, this.geometry));
 
     return renderLabelBackgroundLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       backgroundItems,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.background?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_labels?.background?.color_filter]),
     );
   }
 
@@ -523,15 +545,15 @@ export default class HorseshoeGauge extends BaseTool {
    * Renders optional label badge shapes.
    */
   renderLabelBadges() {
-    const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.runtimeConfig, this.geometry));
+    const labelItems = this.getCachedPathItems('labelItems', () => buildLabelItems(this.config, this.geometry));
 
     return renderLabelBadgesLayer(
-      this.runtimeConfig,
+      this.config,
       this.geometry,
       this.cardId,
       this.index,
       labelItems,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_labels?.badges?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_labels?.badges?.color_filter]),
     );
   }
 
@@ -539,7 +561,7 @@ export default class HorseshoeGauge extends BaseTool {
    * Returns the effective state animation configuration for this gauge.
    */
   getStateAnimationConfig() {
-    return getAnimatorConfig(this.runtimeConfig);
+    return getAnimatorConfig(this.config);
   }
 
   /**
@@ -572,21 +594,21 @@ export default class HorseshoeGauge extends BaseTool {
    * @param {object} options - Optional value override for this update.
    */
   updateStatePathDom(options = {}) {
-    if (!this.runtimeConfig || !this.geometry || !this.scale) {
+    if (!this.config || !this.geometry || !this.scale) {
       return;
     }
 
     const value = Number(options.value ?? this.displayValue ?? this.value);
 
-    const statePathItems = buildStatePathItems(this.runtimeConfig, this.geometry, value);
+    const statePathItems = buildStatePathItems(this.config, this.geometry, value);
     updateStatePathElements(
-      this.runtimeConfig,
+      this.config,
       statePathItems,
       this.statePathElements,
       this.card,
       this.cardId,
       this.index,
-      (styles) => this.getRenderStyles(styles, [this.runtimeConfig.horseshoe_state?.color_filter]),
+      (styles) => this.getRenderStyles(styles, [this.config.horseshoe_state?.color_filter]),
     );
   }
 }

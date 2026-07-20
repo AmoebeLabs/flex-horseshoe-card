@@ -26,5 +26,5 @@ export const DEFINITION_SHAPE_SECTIONS = Object.freeze(['rectangles', 'circles',
 
 /** Visible item sections normalized by the common item color-stop path. */
 export const ITEM_COLOR_STOP_SECTIONS = Object.freeze(
-  VISIBLE_LAYOUT_SECTIONS.filter((section) => section !== 'horseshoes' && section !== 'horseshoes_v2'),
+  [...VISIBLE_LAYOUT_SECTIONS],
 );
