@@ -199,6 +199,7 @@ export default class HorseshoeGauge extends BaseTool {
     // Normalize only when the complete evaluated item changed. The normalized source stays
     // separate because entity-state mapping adds transient fields for the current state.
     if (this.configChanged || !this.normalizedConfig) {
+      this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
       this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.getActiveColorStopMode());
     }
 

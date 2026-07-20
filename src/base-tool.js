@@ -56,7 +56,8 @@ export default class BaseTool {
   setState(entity, entityConfig) {
     this.entity = entity;
     this.entityConfig = entityConfig;
-    this.configChanged = !this.activeConfigInitialized;
+    const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
+    this.configChanged = !this.activeConfigInitialized || this.card.changedGroupIds.has(activeGroupId);
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
