@@ -61,7 +61,11 @@ export default class Templates {
    */
   static hasJavascriptTemplates(value) {
     if (typeof value === 'string') return Templates.isJsTemplate(value);
-    if (value && typeof value === 'object') return Templates.javascriptTemplateFlags.get(value) === true;
+    if (value && typeof value === 'object') {
+      if (!Templates.javascriptTemplateFlags.has(value)) Templates.detectJavascriptTemplates(value);
+
+      return Templates.javascriptTemplateFlags.get(value) === true;
+    }
 
     return false;
   }

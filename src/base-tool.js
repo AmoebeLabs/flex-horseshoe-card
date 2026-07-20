@@ -21,7 +21,9 @@ export default class BaseTool {
    * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
    */
   constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection, defaultEntityIndex = 0) {
-    this.config = config;
+    this.sourceConfig = config;
+    this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
+    this.config = this.sourceConfig;
     this.id = config.id;
     this.index = index;
     this.templates = templates;
@@ -38,7 +40,9 @@ export default class BaseTool {
 
     this.entity = undefined;
     this.entityConfig = undefined;
-    this.runtimeConfig = config;
+    this.runtimeConfig = this.config;
+    this.configChanged = true;
+    this.activeConfigSignature = undefined;
   }
 
   /**
@@ -50,12 +54,27 @@ export default class BaseTool {
   setState(entity, entityConfig) {
     this.entity = entity;
     this.entityConfig = entityConfig;
+    this.configChanged = false;
 
-    // setHass() triggers runtime evaluation; each tool owns how its static config becomes runtime config.
-    this.runtimeConfig = Templates.getJsTemplateOrValue(this.config, this.config, {
-      resolveKeys: true,
-    });
-    this.zpos = Number(this.runtimeConfig.zpos) + Number(this.runtimeConfig.dzpos);
+    // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
+    if (this.hasJavascript) {
+      const evaluatedConfig = Templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
+        resolveKeys: true,
+      });
+      const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
+
+      // Keep the current active object when JavaScript produced the same config. Tool-specific
+      // normalization and geometry can use configChanged during their migration in later issues.
+      if (evaluatedConfigSignature !== this.activeConfigSignature) {
+        this.config = evaluatedConfig;
+        this.activeConfigSignature = evaluatedConfigSignature;
+        this.configChanged = true;
+      }
+    }
+
+    // runtimeConfig remains a compatibility alias while individual tools migrate to this.config.
+    this.runtimeConfig = this.config;
+    this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
   }
 
   /** Called when the parent card is attached to the DOM. */
