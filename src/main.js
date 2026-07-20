@@ -109,6 +109,11 @@ class FlexHorseshoeCard extends LitElement {
     this.sparklineGraphTools = [];
     this.groupManager = undefined;
     this.resolvedEntityConfigs = [];
+    this.entityConfigsInitialized = false;
+    this.evaluateJavascriptTemplates = false;
+    this.sourceCardStyles = undefined;
+    this.activeCardStyles = undefined;
+    this.cardStylesHaveJavascript = false;
     this.colorCache = {};
     this.isAndroid = false;
     this.isSafari = false;
@@ -264,7 +269,7 @@ class FlexHorseshoeCard extends LitElement {
       // }
 
       // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
-      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
+      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, false);
     }
   }
 
@@ -878,7 +883,7 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
-  _resolveEntityConfigs(config) {
+  _resolveEntityConfigs(config, evaluateJavascript) {
     if (config?.dev?.debug) {
       console.log('resolving entity config for', config?.entities);
     }
@@ -887,6 +892,8 @@ class FlexHorseshoeCard extends LitElement {
         const item = {
           entity_index: index,
         };
+
+        if (!evaluateJavascript || !Templates.hasJavascriptTemplates(entityConfig)) return entityConfig;
 
         return Templates.getJsTemplateOrValue(item, entityConfig);
       }) ?? []
@@ -985,6 +992,8 @@ class FlexHorseshoeCard extends LitElement {
    * point at those entity_index values must receive their entity state again.
    */
   _updateToolsUsingSparklineEntities() {
+    this.evaluateJavascriptTemplates = true;
+
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
@@ -994,6 +1003,8 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+
+    this.evaluateJavascriptTemplates = false;
   }
 
   _setToolEntityState(tool) {
@@ -1066,6 +1077,19 @@ class FlexHorseshoeCard extends LitElement {
     }
     this.childCards.setHass(hass);
 
+    // Capture every configured Home Assistant entity before evaluating dynamic config.
+    // Object identity changes when HA publishes a new state or attribute set.
+    let configuredEntityStateChanged = !this.entityConfigsInitialized;
+    const configuredEntityCount = this.config.entities.length;
+
+    this.resolvedEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
+      const entity = hass.states[activeEntityConfig.entity];
+
+      if (!entity) return;
+      if (this.entities[index] !== entity) configuredEntityStateChanged = true;
+      this.entities[index] = entity;
+    });
+
     Templates.setContext({
       hass: this._hass,
       config: this.config,
@@ -1073,8 +1097,37 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    let entityHasChanged = forceUpdate || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
-    let themeModeHasChanged = false;
+    // Evaluate every marked entity config exactly once for this configured state update.
+    // Static entity configs retain their compiled source object.
+    if (configuredEntityStateChanged) {
+      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, true);
+      this.entityConfigsInitialized = true;
+    } else {
+      this.resolvedEntityConfigs = this.resolvedEntityConfigs.slice(0, configuredEntityCount);
+    }
+
+    // An evaluated entity config may select a different entity. Publish the final entity list
+    // before tools, animations and card styles receive their JavaScript context.
+    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+      const entity = hass.states[entityConfig.entity];
+
+      if (entity) this.entities[index] = entity;
+    });
+
+    Templates.setContext({
+      hass: this._hass,
+      config: this.config,
+      entities: this.entities,
+      horseshoes: this.horseshoes,
+    });
+
+    if (configuredEntityStateChanged && this.cardStylesHaveJavascript) {
+      this.activeCardStyles = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+    }
+
+    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
+
+    let entityHasChanged = forceUpdate || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     const themeName = hass.selectedTheme || hass.themes.theme || '';
     const themeDarkMode = hass.themes.darkMode === true;
@@ -1094,15 +1147,10 @@ class FlexHorseshoeCard extends LitElement {
       entityHasChanged = true;
     }
 
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
-
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = hass.states[entityConfig.entity];
 
-      if (!entity) {
-        return;
-      }
+      if (!entity) return;
 
       this.entities[index] = entity;
 
@@ -1128,106 +1176,67 @@ class FlexHorseshoeCard extends LitElement {
       }
     });
 
-    if (!entityHasChanged) {
-      return;
-    }
+    if (!entityHasChanged) return;
 
-    this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config);
-    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
+    // Tool state and data lifecycles still run for forced, theme and history updates.
+    // BaseTool enters JavaScript evaluation only for an actual configured entity update.
+    this.evaluateJavascriptTemplates = configuredEntityStateChanged;
 
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
     this._updateSparklineEntities();
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
-
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-
     this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
-
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
-
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
-
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
-
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
-    if (this.config.animations) {
-      Object.keys(this.config.animations).map((animation) => {
+    // Evaluate a complete animation state item before matching its state and applying
+    // its already active icons and styles. No animation field has a separate evaluator.
+    if (configuredEntityStateChanged && this.config.animations) {
+      Object.keys(this.config.animations).forEach((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
 
-        this.config.animations[animation].map((item) => {
-          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) {
-            return false;
-          }
+        this.config.animations[animation].forEach((sourceAnimationItem) => {
+          const animationContext = {
+            ...sourceAnimationItem,
+            entity_index: entityIndex,
+          };
+          const item = Templates.hasJavascriptTemplates(sourceAnimationItem)
+            ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem)
+            : sourceAnimationItem;
 
-          if (item.lines) {
-            item.lines.forEach((item2) => this._updateAnimationStyles('lines', item2));
-          }
+          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-          if (item.vlines) {
-            item.vlines.forEach((item2) => this._updateAnimationStyles('vlines', item2));
-          }
-
-          if (item.hlines) {
-            item.hlines.forEach((item2) => this._updateAnimationStyles('hlines', item2));
-          }
-
-          if (item.circles) {
-            item.circles.forEach((item2) => this._updateAnimationStyles('circles', item2));
-          }
-
-          if (item.arcs) {
-            item.arcs.forEach((item2) => this._updateAnimationStyles('arcs', item2));
-          }
-
-          if (item.rectangles) {
-            item.rectangles.forEach((item2) => this._updateAnimationStyles('rectangles', item2));
-          }
-
-          if (item.names) {
-            item.names.forEach((item2) => this._updateAnimationStyles('names', item2));
-          }
-
-          if (item.areas) {
-            item.areas.forEach((item2) => this._updateAnimationStyles('areas', item2));
-          }
+          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states'].forEach((section) => {
+            if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
+          });
 
           if (item.icons) {
-            item.icons.forEach((item2) => {
-              const animationId = item2.animation_id;
+            item.icons.forEach((animationItem) => {
+              const animationId = animationItem.animation_id;
 
-              if (!this.animations.icons[animationId] || !item2.reuse) {
+              if (!this.animations.icons[animationId] || !animationItem.reuse) {
                 this.animations.icons[animationId] = {};
                 this.animations.iconsIcon[animationId] = {};
               }
 
-              const resolvedStyles = Templates.getJsTemplateOrValue(item2, item2.styles);
-              const animationStyleDict = ConfigHelper.toStyleDict(resolvedStyles);
-
               this.animations.icons[animationId] = {
                 ...this.animations.icons[animationId],
-                ...animationStyleDict,
+                ...ConfigHelper.toStyleDict(animationItem.styles),
               };
-
-              this.animations.iconsIcon[animationId] = Templates.getJsTemplateOrValue(item2, item2.icon);
+              this.animations.iconsIcon[animationId] = animationItem.icon;
             });
           }
-
-          if (item.states) {
-            item.states.forEach((item2) => this._updateAnimationStyles('states', item2));
-          }
-
-          return true;
         });
-
-        return true;
       });
     }
+
+    this.evaluateJavascriptTemplates = false;
 
     Templates.setContext({
       hass: this._hass,
@@ -1236,9 +1245,8 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
-    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed
+    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
     this.theme.modeChanged = false;
-
     this.requestUpdate();
   }
 
@@ -1247,8 +1255,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (animationId === undefined || animationId === null) return;
 
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, item.styles);
-    const styleDict = ConfigHelper.toStyleDict(resolvedStyles);
+    const styleDict = ConfigHelper.toStyleDict(item.styles);
 
     this.animations[section][animationId] = {
       ...(item.reuse ? (this.animations[section][animationId] ?? {}) : {}),
@@ -1263,10 +1270,8 @@ class FlexHorseshoeCard extends LitElement {
       if (!Array.isArray(items)) return;
 
       items.forEach((item) => {
-        if (item.color_stops) {
-          const resolvedColorStops = Templates.getJsTemplateOrValue(item, item.color_stops, { resolveKeys: true });
-
-          item.colorstops = ColorStops.normalize(resolvedColorStops, this.getActiveColorStopMode());
+        if (item.color_stops && !Templates.hasJavascriptTemplates(item.color_stops)) {
+          item.colorstops = ColorStops.normalize(item.color_stops, this.getActiveColorStopMode());
         }
       });
     });
@@ -1653,7 +1658,7 @@ class FlexHorseshoeCard extends LitElement {
         horseshoes: this.horseshoes,
       });
 
-      const resolvedEntitiesConfig = this._resolveEntityConfigs(config);
+      const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
 
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
@@ -1697,6 +1702,10 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.config = newConfig;
+      this.sourceCardStyles = this.config.styles;
+      this.activeCardStyles = this.sourceCardStyles;
+      this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
+      this.entityConfigsInitialized = false;
       this.config.layout.gradients ??= {};
       this.config.layout.clips ??= {};
       this.config.layout.masks ??= {};
@@ -1889,13 +1898,8 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  render({ config } = this) {
-    const item = {
-      entity_index: 0,
-    };
-
-    const resolvedStyles = Templates.getJsTemplateOrValue(item, config?.styles);
-    const cardStyle = ConfigHelper.toStyleDict(resolvedStyles);
+  render() {
+    const cardStyle = ConfigHelper.toStyleDict(this.activeCardStyles);
 
     return html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
