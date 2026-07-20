@@ -1,7 +1,5 @@
 import Merge from './merge.js';
-
-const LAYOUT_SECTIONS = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
-const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs'];
+import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 
 /**
  * Compiles layout same_as declarations into normal layout item config.
@@ -18,7 +16,7 @@ export default class SameAs {
    * @param {object} config - Card or template config with a layout section.
    */
   static compile(config) {
-    LAYOUT_SECTIONS.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
       if (!Array.isArray(items)) return;
@@ -39,7 +37,7 @@ export default class SameAs {
     if (!definitions) return;
 
     Object.values(definitions).forEach((definition) => {
-      DEF_SHAPE_SECTIONS.forEach((section) => {
+      DEFINITION_SHAPE_SECTIONS.forEach((section) => {
         const items = definition[section];
 
         if (!Array.isArray(items)) return;

@@ -3,9 +3,7 @@ import { styleMap } from 'lit/directives/style-map.js';
 import ConfigHelper from './config-helper.js';
 import Utils from './utils.js';
 import Merge from './merge.js';
-
-const DEF_SHAPE_SECTIONS = ['rectangles', 'circles', 'arcs'];
-const LAYOUT_SECTIONS = ['horseshoes', 'horseshoes_v2', 'states', 'names', 'areas', 'circles', 'arcs', 'rectangles', 'lines', 'hlines', 'vlines', 'icons'];
+import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 
 /**
  * Renders SVG clipPath and mask definitions from layout.clips and layout.masks.
@@ -93,7 +91,7 @@ export default class MasksClips {
         arcs: definition.arcs ?? [],
       });
 
-      DEF_SHAPE_SECTIONS.forEach((section) => {
+      DEFINITION_SHAPE_SECTIONS.forEach((section) => {
         normalizedDefinitions[id][section] = normalizedDefinitions[id][section].map((shape) => {
           if (shape.dxpos === undefined && shape.dypos === undefined) return shape;
 
@@ -669,7 +667,7 @@ export default class MasksClips {
   definitionUsesRelativePosition(definition) {
     if (definition.soft_arc) return true;
 
-    return DEF_SHAPE_SECTIONS.some((section) => definition[section].some((shape) => shape.dxpos !== undefined || shape.dypos !== undefined));
+    return DEFINITION_SHAPE_SECTIONS.some((section) => definition[section].some((shape) => shape.dxpos !== undefined || shape.dypos !== undefined));
   }
 
   /**
@@ -682,7 +680,7 @@ export default class MasksClips {
   getItemsUsingDefinition(property, id) {
     const itemsUsingDefinition = [];
 
-    LAYOUT_SECTIONS.forEach((section) => {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = this.config.layout[section];
 
       if (!Array.isArray(items)) return;
