@@ -3658,21 +3658,21 @@ export default class SparklineGraphTool extends BaseTool {
    *
    * @returns {TemplateResult|string} Points SVG.
    */
-  renderSvgPointV1(point, i) {
-    const color = this.computeColor(point[V], i);
-    return svg`
-    <circle
-      class='line--point'
-      ?inactive=${this.tooltip.index !== point[3]}
-      style=${`--mcg-hover: ${color};`}
-      stroke=${color}
-      fill=${color}
-      cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
-      @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
-      @mouseout=${() => this.clearTooltip()}
-    />
-  `;
-  }
+  // renderSvgPointV1(point, i) {
+  //   const color = this.computeColor(point[V], i);
+  //   return svg`
+  //   <circle
+  //     class='line--point'
+  //     ?inactive=${this.tooltip.index !== point[3]}
+  //     style=${`--mcg-hover: ${color};`}
+  //     stroke=${color}
+  //     fill=${color}
+  //     cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
+  //     @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
+  //     @mouseout=${() => this.clearTooltip()}
+  //   />
+  // `;
+  // }
 
   renderSvgPoint(point, i, bucketStart) {
     const color = this.computeColor(point[V], i);
@@ -3688,11 +3688,12 @@ export default class SparklineGraphTool extends BaseTool {
       stroke=${color}
       fill=${color}
       cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
-      @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
-      @mouseout=${() => this.clearTooltip()}
     />
   `;
   }
+
+  // @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
+  // @mouseout=${() => this.clearTooltip()}
 
   renderSvgPoints(points, i) {
     if (!points) return;
@@ -3708,6 +3709,19 @@ export default class SparklineGraphTool extends BaseTool {
       fill=${color}
       stroke=${color}
       >
+      ${
+        this.config.sparkline.show.chart_type === 'dots'
+          ? svg`
+          <rect
+            class='dots-hit_area'
+            height=${this.Graph.height}
+            width=${this.Graph.width}
+            stroke-width="0"
+            opacity="0"
+          ></rect>
+          `
+          : svg``
+      }
       ${points.map((point, pointIndex) => this.renderSvgPoint(point, i, this.Graph.bucketMeta[pointIndex].start.toISOString()))}
     </g>`;
   }
@@ -3957,6 +3971,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
+        <rect
+          class='bars-hit_area'
+          width=${this.Graph.width}
+          height=${this.Graph.height}
+          stroke-width='0'
+          opacity='0'
+        ></rect>
         ${bars.map((bar, i) => {
           const color = this.computeColor(bar.value, index);
           return svg`
@@ -3968,14 +3989,15 @@ export default class SparklineGraphTool extends BaseTool {
               width=${Math.max(1, bar.width)}
               fill=${color}
               stroke=${color}
-              @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
-              @mouseout=${() => this.clearTooltip()}
             ></rect>
           `;
         })}
       </g>
     `;
   }
+
+  // @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
+  // @mouseout=${() => this.clearTooltip()}
 
   renderSvgRadialBarcodeBin(bin, path, index) {
     const color = this.computeColor(bin.value, this.entity_index);
@@ -4134,6 +4156,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
+        <rect
+          class='barcode-hit_area'
+          width=${this.Graph.width}
+          height=${this.Graph.height}
+          stroke-width='0'
+          opacity='0'
+        ></rect>      
         ${barcode.map((barcodePart, i) => {
           const color = this.computeColor(barcodePart.value, index);
           return svg`
@@ -4146,14 +4175,15 @@ export default class SparklineGraphTool extends BaseTool {
               fill=${color}
               stroke=${color}
               style=${styleMap(this.getRenderStyles(barcodeStyles))}
-              @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
-              @mouseout=${() => this.clearTooltip()}
             ></rect>
           `;
         })}
       </g>
     `;
   }
+
+  // @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
+  // @mouseout=${() => this.clearTooltip()}
 
   /**
    * Renders one sparkline layout item.

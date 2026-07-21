@@ -694,18 +694,7 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
           >${t.label}</text>
         `))}
       </g>`:""}
-    `}getAreaStyles(){return Sa.mergeDeep(this.getStyles({}),ft.toStyleDict(this.config.area?.styles))}getSparklineBackgroundPaint(t){return this.config.sparkline.colorstops.colors.length>0?`url(#grad-${this.cardId}-${this.index}-0)`:t.stroke||t.fill}renderArea(){return this.renderSvgAreaBackground(this.areaPath,this.entity_index)}renderLine(){return this.renderSvgLineBackground(this.linePath,this.entity_index)}renderSvgPointV1(t,e){const i=this.computeColor(t[2],e);return V`
-    <circle
-      class='line--point'
-      ?inactive=${this.tooltip.index!==t[3]}
-      style=${`--mcg-hover: ${i};`}
-      stroke=${i}
-      fill=${i}
-      cx=${t[0]} cy=${t[1]} r=${this.svg.line_width/1.5}
-      @mouseover=${e=>this.updateTooltipFromPointIndex(t[3],e)}
-      @mouseout=${()=>this.clearTooltip()}
-    />
-  `}renderSvgPoint(t,e,i){const s=this.computeColor(t[2],e);return V`
+    `}getAreaStyles(){return Sa.mergeDeep(this.getStyles({}),ft.toStyleDict(this.config.area?.styles))}getSparklineBackgroundPaint(t){return this.config.sparkline.colorstops.colors.length>0?`url(#grad-${this.cardId}-${this.index}-0)`:t.stroke||t.fill}renderArea(){return this.renderSvgAreaBackground(this.areaPath,this.entity_index)}renderLine(){return this.renderSvgLineBackground(this.linePath,this.entity_index)}renderSvgPoint(t,e,i){const s=this.computeColor(t[2],e);return V`
     <circle
       class='line--point'
       ?inactive=${this.tooltip.index!==t[3]}
@@ -717,8 +706,6 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
       stroke=${s}
       fill=${s}
       cx=${t[0]} cy=${t[1]} r=${this.svg.line_width/1.5}
-      @mouseover=${e=>this.updateTooltipFromPointIndex(t[3],e)}
-      @mouseout=${()=>this.clearTooltip()}
     />
   `}renderSvgPoints(t,e){if(!t)return;const i=this.computeColor(this.card.entities[e].state,e);return V`
     <g class='line--points'
@@ -731,6 +718,15 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
       fill=${i}
       stroke=${i}
       >
+      ${"dots"===this.config.sparkline.show.chart_type?V`
+          <rect
+            class='dots-hit_area'
+            height=${this.Graph.height}
+            width=${this.Graph.width}
+            stroke-width="0"
+            opacity="0"
+          ></rect>
+          `:V``}
       ${t.map(((t,i)=>this.renderSvgPoint(t,e,this.Graph.bucketMeta[i].start.toISOString())))}
     </g>`}renderPoints(){if("dots"!==this.config.sparkline.show.chart_type&&!0!==this.config.sparkline.show.points&&!0!==this.config.sparkline.line?.show_dots&&!0!==this.config.sparkline.area?.show_dots)return"";const t=this.Graph._calcY(this.Graph.coords).map(((t,e)=>[t[0],t[1],t[2],e]));return this.renderSvgPoints(t,0)}renderTooltip(){const t=ft.toStyleDict(this.config.sparkline.tooltip?.styles),e={left:void 0!==this.tooltip.x?`${this.tooltip.x}px`:"0px",top:void 0!==this.tooltip.y?`${this.tooltip.y}px`:"0px",transform:"translate(-50%, calc(-100% - 6px))","font-size":t["font-size"]??"0.5em","max-width":"calc(100% - 24px)","pointer-events":"none",display:this.tooltipVisible?"block":"none"},i={display:"inline-flex","align-items":"baseline","justify-content":"flex-end","text-align":"right","white-space":"nowrap"},s={"font-size":"0.72em",transform:"translateY(-0.32em)",opacity:"0.8"};return O`
       <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${mt(e)}>
@@ -850,6 +846,13 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
       ></rect>
     `}renderSvgBars(t,e){return t?V`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
+        <rect
+          class='bars-hit_area'
+          width=${this.Graph.width}
+          height=${this.Graph.height}
+          stroke-width='0'
+          opacity='0'
+        ></rect>
         ${t.map(((t,i)=>{const s=this.computeColor(t.value,e);return V`
             <rect
               class='bar'
@@ -859,8 +862,6 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
               width=${Math.max(1,t.width)}
               fill=${s}
               stroke=${s}
-              @mouseover=${()=>this.updateTooltipFromPointIndex(i,void 0)}
-              @mouseout=${()=>this.clearTooltip()}
             ></rect>
           `}))}
       </g>
@@ -921,6 +922,13 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
       </g>
     `}renderSvgBarcode(t,e){if(!t)return"";const i=ft.toStyleDict(this.config.sparkline.barcode?.styles);return delete i.fill,delete i.stroke,V`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
+        <rect
+          class='barcode-hit_area'
+          width=${this.Graph.width}
+          height=${this.Graph.height}
+          stroke-width='0'
+          opacity='0'
+        ></rect>      
         ${t.map(((t,s)=>{const a=this.computeColor(t.value,e);return V`
             <rect
               class='bar'
@@ -931,8 +939,6 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
               fill=${a}
               stroke=${a}
               style=${mt(this.getRenderStyles(i))}
-              @mouseover=${()=>this.updateTooltipFromPointIndex(s,void 0)}
-              @mouseout=${()=>this.clearTooltip()}
             ></rect>
           `}))}
       </g>
