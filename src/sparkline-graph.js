@@ -326,7 +326,7 @@ export default class SparklineGraph {
     const minMs = axisStart.getTime();
     const maxMs = axisEnd.getTime();
     const totalDuration = maxMs - minMs;
-    const approxLabelWidth = 1 * fontWidthPixels + FONT_SIZE;
+    const approxLabelWidth = (this.config.x_axis.labels.max_length / 5) * (1 * fontWidthPixels + FONT_SIZE);
     const maxLabels = Math.floor(this.drawArea.width / approxLabelWidth);
     const effectiveMaxLabels = Math.max(maxLabels, 4);
     const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
