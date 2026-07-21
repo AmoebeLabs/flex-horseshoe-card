@@ -926,7 +926,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.historySeries && !calendarRangeChanged && !this.historyResynchronizationRequested && !periodicResynchronizationDue) return;
 
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
-    console.log('[fetchHistoryIfNeeded] range', range);
+    // console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
@@ -1078,10 +1078,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (this.config.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
-      this.gradient[0] = this.Graph.computeGradient(
-        computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition),
-        this.config.sparkline.state_values.logarithmic,
-      );
+      this.gradient[0] = this.Graph.computeGradient(computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition), this.config.sparkline.state_values.logarithmic);
     } else {
       this.gradient = [];
     }
@@ -3411,8 +3408,9 @@ export default class SparklineGraphTool extends BaseTool {
     const yTicks = this.buildYAxisTicks('major');
 
     return svg`
-      ${showX
-        ? svg`<g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
+      ${
+        showX
+          ? svg`<g class="sparkline-grid sparkline-grid--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <line
@@ -3426,9 +3424,11 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
-      ${showY
-        ? svg`<g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
+          : ''
+      }
+      ${
+        showY
+          ? svg`<g class="sparkline-grid sparkline-grid--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <line
@@ -3442,7 +3442,8 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
+          : ''
+      }
     `;
   }
 
@@ -3463,8 +3464,9 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class="sparkline-axis" style="pointer-events:none;">
-        ${showX
-          ? svg`<line
+        ${
+          showX
+            ? svg`<line
           class="sparkline-axis-line sparkline-axis-line--x"
           x1="${this.Graph.drawArea.x}"
           y1="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
@@ -3472,9 +3474,11 @@ export default class SparklineGraphTool extends BaseTool {
           y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
           style=${styleMap(xStyles)}
         ></line>`
-          : ''}
-        ${showY
-          ? svg`<line
+            : ''
+        }
+        ${
+          showY
+            ? svg`<line
           class="sparkline-axis-line sparkline-axis-line--y"
           x1="${this.Graph.drawArea.x}"
           y1="${this.Graph.drawArea.y}"
@@ -3482,7 +3486,8 @@ export default class SparklineGraphTool extends BaseTool {
           y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
           style=${styleMap(yStyles)}
         ></line>`
-          : ''}
+            : ''
+        }
       </g>
     `;
   }
@@ -3508,8 +3513,9 @@ export default class SparklineGraphTool extends BaseTool {
     const yTickSize = Utils.calculateSvgDimension(yTickConfig.size);
 
     return svg`
-      ${showX
-        ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
+      ${
+        showX
+          ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <line
@@ -3523,9 +3529,11 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
-      ${showY
-        ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
+          : ''
+      }
+      ${
+        showY
+          ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <line
@@ -3539,7 +3547,8 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
+          : ''
+      }
     `;
   }
 
@@ -3561,8 +3570,9 @@ export default class SparklineGraphTool extends BaseTool {
     const yTicks = this.buildLabelTicks('y');
 
     return svg`
-      ${showX
-        ? svg`<g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
+      ${
+        showX
+          ? svg`<g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
         ${xTicks.map(
           (tick) => svg`
           <text
@@ -3574,9 +3584,11 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
-      ${showY
-        ? svg`<g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
+          : ''
+      }
+      ${
+        showY
+          ? svg`<g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
         ${yTicks.map(
           (tick) => svg`
           <text
@@ -3588,7 +3600,8 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-        : ''}
+          : ''
+      }
     `;
   }
 
@@ -3700,12 +3713,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   renderPoints() {
-    if (
-      this.config.sparkline.show.chart_type !== 'dots'
-      && this.config.sparkline.show.points !== true
-      && this.config.sparkline.line?.show_dots !== true
-      && this.config.sparkline.area?.show_dots !== true
-    ) return '';
+    if (this.config.sparkline.show.chart_type !== 'dots' && this.config.sparkline.show.points !== true && this.config.sparkline.line?.show_dots !== true && this.config.sparkline.area?.show_dots !== true) return '';
 
     const points = this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
 
@@ -3855,10 +3863,7 @@ export default class SparklineGraphTool extends BaseTool {
     // the level height shrinks, redistribute all levels over the graph area.
     if (this.config.sparkline.equalizer.square === true) {
       const size = Math.min(equalizer[0].width, equalizer[0].height);
-      const levelSpacing = size < equalizer[0].height
-        ? (this.Graph.drawArea.height - this.config.sparkline.equalizer.value_buckets * size)
-          / (this.config.sparkline.equalizer.value_buckets - 1)
-        : 0;
+      const levelSpacing = size < equalizer[0].height ? (this.Graph.drawArea.height - this.config.sparkline.equalizer.value_buckets * size) / (this.config.sparkline.equalizer.value_buckets - 1) : 0;
 
       equalizer = equalizer.map((equalizerPart) => {
         const squarePart = { ...equalizerPart };
