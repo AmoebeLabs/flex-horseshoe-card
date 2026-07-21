@@ -2144,8 +2144,9 @@ class FlexHorseshoeCard extends LitElement {
     const entityConfig = this.resolvedEntityConfigs.find((element) => element.entity === entity.entity_id);
 
     const actionConfig = entityConfig?.tap_action ?? this.config?.tap_action ?? { action: 'more-info' };
+    const actionEntityId = entity.entity_id.startsWith('fhs_') ? this.entities[entityConfig.source_entity_index].entity_id : entity.entity_id;
 
-    this._handleClick(this, this._hass, this.config, actionConfig, entity.entity_id);
+    this._handleClick(this, this._hass, this.config, actionConfig, actionEntityId);
   }
 
   /** *****************************************************************************
