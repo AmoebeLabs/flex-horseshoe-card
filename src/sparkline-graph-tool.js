@@ -516,7 +516,13 @@ export default class SparklineGraphTool extends BaseTool {
       height: this.svg.height,
       period: config.period,
       sparkline: config.sparkline,
-      x_axis: config.x_axis,
+      x_axis: {
+        ...config.x_axis,
+        labels: {
+          ...config.x_axis.labels,
+          max_length: this.xAxisLabelLength,
+        },
+      },
       y_axis: config.y_axis,
     };
   }
@@ -529,6 +535,30 @@ export default class SparklineGraphTool extends BaseTool {
    */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
+
+    // Determine the longest label produced by Home Assistant for the active
+    // locale. Short month names are not guaranteed to contain three characters,
+    // and 12-hour clocks need room for a two-digit hour plus AM or PM.
+    const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
+
+    if (this.xAxisLabelLocaleKey !== localeKey) {
+      const locale = this.card._hass.locale;
+      const hassConfig = this.card._hass.config;
+      const labelLengths = [];
+
+      for (let month = 0; month < 12; month += 1) {
+        const date = new Date(Date.UTC(2025, month, 21, 12, 21));
+        labelLengths.push(formatDateVeryShort(date, locale, hassConfig).replace(/\s/g, '').length);
+      }
+
+      for (let hour = 0; hour < 24; hour += 1) {
+        const time = new Date(Date.UTC(2025, 6, 21, hour, 21));
+        labelLengths.push(formatTime(time, locale, hassConfig).replace(/\s/g, '').length);
+      }
+
+      this.xAxisLabelLength = Math.max(...labelLengths);
+      this.xAxisLabelLocaleKey = localeKey;
+    }
 
     this.svg = this.calculateSvgDimensions(this.config);
     this.config.svg = this.svg;
