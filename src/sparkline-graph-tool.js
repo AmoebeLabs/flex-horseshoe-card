@@ -1057,6 +1057,20 @@ export default class SparklineGraphTool extends BaseTool {
     const chartType = this.config.sparkline.show.chart_type;
     const index = 0;
     const total = 1;
+
+    // Development mode replaces only the values with the deterministic example
+    // sequence. Source timestamps remain intact so normal bucketing is exercised.
+    if (this.card.dev.fakeData) {
+      let generatedState = 40;
+
+      this.series.forEach((seriesItem, seriesIndex) => {
+        if (seriesIndex < this.series.length / 2) generatedState -= 4 * seriesIndex;
+        if (seriesIndex > this.series.length / 2) generatedState += 3 * seriesIndex;
+        seriesItem.state = generatedState;
+        seriesItem.haState = generatedState;
+      });
+    }
+
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
     const statisticsRange = activeHistoryPeriod && this.historySeries ? this.pruneLiveHistoryToActiveWindow() : undefined;
 
