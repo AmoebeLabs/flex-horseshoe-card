@@ -1010,6 +1010,11 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.Graph.update(this.series);
 
+    // Use the graph engine y-scale for every vertical introduction animation.
+    // Clamp value zero to the draw area for positive-only and negative-only scales.
+    const zeroY = this.Graph._calcY([[this.Graph.drawArea.x, 0, 0]])[0][Y];
+    this.animationBaselineY = Math.min(this.Graph.drawArea.y + this.Graph.drawArea.height, Math.max(this.Graph.drawArea.y, zeroY));
+
     this.area = [];
     this.areaMinMax = [];
     this.line = [];
@@ -3688,7 +3693,27 @@ export default class SparklineGraphTool extends BaseTool {
       stroke=${color}
       fill=${color}
       cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
-    />
+    >
+      ${
+        this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries)
+          ? svg`
+        <animate
+          attributeName='cy'
+          from=${this.animationBaselineY}
+          to=${point[Y]}
+          begin='0s'
+          dur='2s'
+          fill='remove'
+          restart='whenNotActive'
+          repeatCount='1'
+          calcMode='spline'
+          keyTimes='0; 1'
+          keySplines='0.215 0.61 0.355 1'
+        ></animate>
+      `
+          : ''
+      }
+    </circle>
   `;
   }
 
@@ -3873,6 +3898,11 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
 
+    // History-backed graphs first render a temporary current-state series.
+    // Start the SVG animation only when the requested history is available.
+    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+    const animationStartY = this.animationBaselineY;
+
     // Square mode uses the smallest generated dimension for both axes. When
     // the level height shrinks, redistribute all levels over the graph area.
     if (this.config.sparkline.equalizer.square === true) {
@@ -3901,7 +3931,27 @@ export default class SparklineGraphTool extends BaseTool {
             height=${Math.max(1, equalizerPart.height)}
             width=${Math.max(1, equalizerPart.width)}
             fill='white'
-          ></rect>
+          >
+            ${
+              animate
+                ? svg`
+              <animate
+                attributeName='y'
+                from=${animationStartY}
+                to=${equalizerPart.y[j] - equalizerPart.height}
+                begin='0s'
+                dur='2s'
+                fill='remove'
+                restart='whenNotActive'
+                repeatCount='1'
+                calcMode='spline'
+                keyTimes='0; 1'
+                keySplines='0.215 0.61 0.355 1'
+              ></animate>
+            `
+                : ''
+            }
+          </rect>
         `,
           );
         })}
@@ -3913,6 +3963,9 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
     if (!bars) return '';
 
+    // Keep the mask and visible bars synchronized during their introduction.
+    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+
     return svg`
       <mask id=${`bars-bg-${this.cardId}-${index}`}>
         ${bars.map(
@@ -3923,7 +3976,40 @@ export default class SparklineGraphTool extends BaseTool {
             height=${Math.max(1, bar.height)}
             width=${Math.max(1, bar.width)}
             fill='white'
-          ></rect>
+          >
+            ${
+              animate
+                ? svg`
+              <animate
+                attributeName='y'
+                from=${bar.value > 0 ? bar.y + Math.max(1, bar.height) : bar.y}
+                to=${bar.y}
+                begin='0s'
+                dur='2s'
+                fill='remove'
+                restart='whenNotActive'
+                repeatCount='1'
+                calcMode='spline'
+                keyTimes='0; 1'
+                keySplines='0.215 0.61 0.355 1'
+              ></animate>
+              <animate
+                attributeName='height'
+                from='0'
+                to=${Math.max(1, bar.height)}
+                begin='0s'
+                dur='2s'
+                fill='remove'
+                restart='whenNotActive'
+                repeatCount='1'
+                calcMode='spline'
+                keyTimes='0; 1'
+                keySplines='0.215 0.61 0.355 1'
+              ></animate>
+            `
+                : ''
+            }
+          </rect>
         `,
         )}
       </mask>
@@ -3969,6 +4055,10 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvgBars(bars, index) {
     if (!bars) return '';
 
+    // Existing animate nodes are retained by Lit. State updates therefore do
+    // not restart the graph, while a newly inserted calendar bar animates once.
+    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+
     return svg`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
         <rect
@@ -3989,7 +4079,40 @@ export default class SparklineGraphTool extends BaseTool {
               width=${Math.max(1, bar.width)}
               fill=${color}
               stroke=${color}
-            ></rect>
+            >
+              ${
+                animate
+                  ? svg`
+                <animate
+                  attributeName='y'
+                  from=${bar.value > 0 ? bar.y + Math.max(1, bar.height) : bar.y}
+                  to=${bar.y}
+                  begin='0s'
+                  dur='2s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animate>
+                <animate
+                  attributeName='height'
+                  from='0'
+                  to=${Math.max(1, bar.height)}
+                  begin='0s'
+                  dur='2s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animate>
+              `
+                  : ''
+              }
+            </rect>
           `;
         })}
       </g>
@@ -4175,7 +4298,27 @@ export default class SparklineGraphTool extends BaseTool {
               fill=${color}
               stroke=${color}
               style=${styleMap(this.getRenderStyles(barcodeStyles))}
-            ></rect>
+            >
+              ${
+                this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries)
+                  ? svg`
+                <animate
+                  attributeName='x'
+                  from=${this.Graph.drawArea.x}
+                  to=${barcodePart.x}
+                  begin='0s'
+                  dur='3s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animate>
+              `
+                  : ''
+              }
+            </rect>
           `;
         })}
       </g>
@@ -4239,9 +4382,37 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxMask(fill, i))}
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
           </defs>
-          ${this.area.map((fill, i) => this.renderSvgAreaBackground(fill, i))}
-          ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxBackground(fill, i))}
-          ${this.line.map((line, i) => this.renderSvgLineBackground(line, i))}
+          <g transform="translate(0 ${this.animationBaselineY})">
+            <g>
+              ${
+                this.config.sparkline.animate &&
+                ['line', 'area'].includes(this.config.sparkline.show.chart_type) &&
+                (this.config.period.type === 'real_time' || this.historySeries)
+                  ? svg`
+                <animateTransform
+                  attributeName='transform'
+                  type='scale'
+                  from='1 0'
+                  to='1 1'
+                  begin='0s'
+                  dur='2s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animateTransform>
+              `
+                  : ''
+              }
+              <g transform="translate(0 ${-this.animationBaselineY})">
+                ${this.area.map((fill, i) => this.renderSvgAreaBackground(fill, i))}
+                ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxBackground(fill, i))}
+                ${this.line.map((line, i) => this.renderSvgLineBackground(line, i))}
+              </g>
+            </g>
+          </g>
           ${this.bar.map((bars, i) => this.renderSvgBarsMask(bars, i))}
           ${this.bar.map((bars, i) => this.renderSvgBarsBackground(bars, i))}
           ${this.bar.map((bars, i) => this.renderSvgBars(bars, i))}
