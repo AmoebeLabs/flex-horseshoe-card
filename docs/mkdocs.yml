@@ -149,6 +149,29 @@ nav:
       - Install with HACS: getting-started/installation.md
   - Examples:
       - Overview: examples/overview.md
+      # - Start Here:
+      #     - My First Card: examples/getting-started/my-first-card.md
+      #     - Extend Your First Card: examples/getting-started/extend-your-first-card.md
+      #     - Your First History Card: examples/getting-started/first-history-card.md
+      # - Horseshoe Cards:
+      #     - Basic Horseshoe: examples/horseshoe-cards/basic-horseshoe.md
+      #     - Horseshoe Color Stops: examples/horseshoe-cards/horseshoe-color-stops.md
+      #     - Multiple Horseshoes: examples/horseshoe-cards/multiple-horseshoes.md
+      # - Cartesian History Charts:
+      #     - Line and Area Charts: examples/history-charts/line-and-area.md
+      #     - Bar and Dots Charts: examples/history-charts/bar-and-dots.md
+      #     - Minimum and Maximum Range: examples/history-charts/minimum-maximum-range.md
+      # - Specialized History Charts:
+      #     - Equalizer and Graded Charts: examples/specialized-charts/equalizer-and-graded.md
+      #     - Barcode Charts: examples/specialized-charts/barcode.md
+      #     - Radial Barcode Charts: examples/specialized-charts/radial-barcode.md
+      # - Layouts:
+      #     - Multiple Entities and Groups: examples/layouts/multiple-entities-and-groups.md
+      #     - Fitted State Backgrounds: examples/layouts/fitted-state-backgrounds.md
+      #     - Embedded Child Cards: examples/layouts/embedded-child-cards.md
+      # - Reusable and Dynamic Cards:
+      #     - Reusable Card Template: examples/reusable-dynamic/reusable-card-template.md
+      #     - Dynamic Styling: examples/reusable-dynamic/dynamic-styling.md
       - Demo Cards:
           # - AirVisual Card: examples/demo-cards/airvisual-card.md
           # - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
