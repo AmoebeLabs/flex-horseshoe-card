@@ -145,6 +145,8 @@ class FlexHorseshoeCard extends LitElement {
     this.dev = {
       debug: false,
     };
+    this.performanceUpdateStart = undefined;
+    this.performanceRenderStart = undefined;
     // http://jsfiddle.net/jlubean/dL5cLjxt/
     // this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
     // this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -1017,6 +1019,9 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   setHass(hass, forceUpdate = false) {
+    const performanceEnabled = this.dev.performance === true;
+    const setHassPerformanceStart = performanceEnabled ? performance.now() : undefined;
+
     this._hass = hass;
 
     if (this.hassConnection !== hass.connection) {
@@ -1025,6 +1030,8 @@ class FlexHorseshoeCard extends LitElement {
       if (this.isConnected) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
     }
     this.childCards.setHass(hass);
+
+    const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
     // Capture every configured Home Assistant entity before evaluating dynamic config.
     // Object identity changes when HA publishes a new state or attribute set.
@@ -1070,8 +1077,16 @@ class FlexHorseshoeCard extends LitElement {
       horseshoes: this.horseshoes,
     });
 
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:entities`, {
+        start: entitiesPerformanceStart,
+        end: performance.now(),
+      });
+    }
+
     // Groups are complete runtime components. Evaluate marked groups before tools,
     // rebuild the manager only for changed results, and mark every dependent descendant.
+    const groupsPerformanceStart = performanceEnabled ? performance.now() : undefined;
     this.changedGroupIds.clear();
     if (configuredEntityStateChanged && this.groupsHaveJavascript) {
       const nextActiveGroupConfigs = { ...this.activeGroupConfigs };
@@ -1112,8 +1127,23 @@ class FlexHorseshoeCard extends LitElement {
       }
     }
 
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:groups`, {
+        start: groupsPerformanceStart,
+        end: performance.now(),
+      });
+    }
+
+    const cardStylesPerformanceStart = performanceEnabled ? performance.now() : undefined;
     if (configuredEntityStateChanged && this.cardStylesHaveJavascript) {
       this.activeCardStyles = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+    }
+
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:card-styles`, {
+        start: cardStylesPerformanceStart,
+        end: performance.now(),
+      });
     }
 
     this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
@@ -1166,11 +1196,22 @@ class FlexHorseshoeCard extends LitElement {
       }
     });
 
-    if (!entityHasChanged) return;
+    if (!entityHasChanged) {
+      if (performanceEnabled) {
+        performance.measure(`FHS:${this.cardId}:setHass`, {
+          start: setHassPerformanceStart,
+          end: performance.now(),
+        });
+      }
+
+      return;
+    }
 
     // Tool state and data lifecycles still run for forced, theme and history updates.
     // BaseTool enters JavaScript evaluation only for an actual configured entity update.
     this.evaluateJavascriptTemplates = configuredEntityStateChanged;
+
+    const toolsPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
     this._updateSparklineEntities();
@@ -1185,8 +1226,16 @@ class FlexHorseshoeCard extends LitElement {
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
 
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:tools`, {
+        start: toolsPerformanceStart,
+        end: performance.now(),
+      });
+    }
+
     // Evaluate a complete animation state item before matching its state and applying
     // its already active icons and styles. No animation field has a separate evaluator.
+    const animationsPerformanceStart = performanceEnabled ? performance.now() : undefined;
     if (configuredEntityStateChanged && this.config.animations) {
       Object.keys(this.config.animations).forEach((animation) => {
         const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -1226,6 +1275,13 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:animations`, {
+        start: animationsPerformanceStart,
+        end: performance.now(),
+      });
+    }
+
     this.evaluateJavascriptTemplates = false;
     this.changedGroupIds.clear();
 
@@ -1238,7 +1294,19 @@ class FlexHorseshoeCard extends LitElement {
 
     // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
     this.theme.modeChanged = false;
+
+    if (performanceEnabled && this.performanceUpdateStart === undefined) {
+      this.performanceUpdateStart = setHassPerformanceStart;
+    }
+
     this.requestUpdate();
+
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:setHass`, {
+        start: setHassPerformanceStart,
+        end: performance.now(),
+      });
+    }
   }
 
   _updateAnimationStyles(section, item) {
@@ -1546,6 +1614,9 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   setConfig(config) {
+    const performanceEnabled = config.dev?.performance === true;
+    const setConfigPerformanceStart = performanceEnabled ? performance.now() : undefined;
+
     try {
       config = JSON.parse(JSON.stringify(config));
 
@@ -1715,6 +1786,13 @@ class FlexHorseshoeCard extends LitElement {
         entities: this.entities,
         horseshoes: this.horseshoes,
       });
+
+      if (performanceEnabled) {
+        performance.measure(`FHS:${this.cardId}:setConfig`, {
+          start: setConfigPerformanceStart,
+          end: performance.now(),
+        });
+      }
     } catch (error) {
       console.error('[FHC setConfig] CONFIG ERROR', {
         error,
@@ -1870,13 +1948,27 @@ class FlexHorseshoeCard extends LitElement {
    */
 
   render() {
+    const performanceEnabled = this.dev.performance === true;
+    const renderPerformanceStart = performanceEnabled ? performance.now() : undefined;
+
+    if (performanceEnabled) this.performanceRenderStart = renderPerformanceStart;
+
     const cardStyle = ConfigHelper.toStyleDict(this.activeCardStyles);
 
-    return html`
+    const cardTemplate = html`
       <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
         <div class="container" id="container">${this._renderSvg()} ${this._renderSparklineTooltips()} ${this.childCards.render()}</div>
       </ha-card>
     `;
+
+    if (performanceEnabled) {
+      performance.measure(`FHS:${this.cardId}:render`, {
+        start: renderPerformanceStart,
+        end: performance.now(),
+      });
+    }
+
+    return cardTemplate;
   }
 
   /** *****************************************************************************
@@ -2054,10 +2146,41 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   updated(changedProperties) {
+    const performanceEnabled = this.dev.performance === true;
+    const updatedPerformanceStart = performanceEnabled ? performance.now() : undefined;
+
     super.updated?.(changedProperties);
 
     this._getRenderableTools().forEach((tool) => tool.updated(changedProperties));
     this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+
+    if (performanceEnabled) {
+      const updatedPerformanceEnd = performance.now();
+
+      performance.measure(`FHS:${this.cardId}:updated`, {
+        start: updatedPerformanceStart,
+        end: updatedPerformanceEnd,
+      });
+
+      if (this.performanceRenderStart !== undefined) {
+        performance.measure(`FHS:${this.cardId}:lit-update`, {
+          start: this.performanceRenderStart,
+          end: updatedPerformanceEnd,
+        });
+        this.performanceRenderStart = undefined;
+      }
+
+      if (this.performanceUpdateStart !== undefined) {
+        performance.measure(`FHS:${this.cardId}:update-cycle`, {
+          start: this.performanceUpdateStart,
+          end: updatedPerformanceEnd,
+        });
+        this.performanceUpdateStart = undefined;
+      }
+
+      // Text measurement can request one follow-up Lit update from a tool's updated callback.
+      if (this.isUpdatePending) this.performanceUpdateStart = updatedPerformanceEnd;
+    }
   }
   /** *****************************************************************************
    * _handleClick()
