@@ -403,6 +403,7 @@ export default class SparklineGraphTool extends BaseTool {
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
 
     this.svg = this.calculateSvgDimensions();
+    this.containedGraphMargin = this.svg.margin;
     this.config.svg = this.svg;
     this.graphConfig = this.buildGraphConfig(this.config);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
@@ -504,6 +505,63 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Calculates the minimum graph margins needed to keep enabled tickmarks and
+   * axis labels inside the configured sparkline width and height.
+   *
+   * The graph engine already treats margins as the space outside drawArea. This
+   * method adds only the space required by visible axis layers and keeps larger
+   * user-configured margins unchanged.
+   *
+   * @returns {object} Effective graph margins with t/r/b/l/x/y values.
+   */
+  calculateContainedGraphMargin() {
+    const configuredMargin = this.calculateSparklineMargin(this.config.margin);
+    const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
+    const showXTickmarks = chartAxes.x && this.config.sparkline.show.tickmarks.x;
+    const showYTickmarks = chartAxes.y && this.config.sparkline.show.tickmarks.y;
+    const showXLabels = chartAxes.x && this.config.sparkline.show.labels.x;
+    const showYLabels = chartAxes.y && this.config.sparkline.show.labels.y;
+    const xTickSize = showXTickmarks ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
+    const yTickSize = showYTickmarks ? Utils.calculateSvgDimension(this.config.y_axis.tickmarks_major.size) : 0;
+    const xLabelOffset = showXLabels ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset) : 0;
+    const yLabelOffset = showYLabels ? Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : 0;
+    const xFontSize = this.resolveAxisFontSizePixels('x', FONT_SIZE);
+    const yFontSize = this.resolveAxisFontSizePixels('y', FONT_SIZE);
+    const xFontHeight = xFontSize * 0.85;
+    const yFontHeight = yFontSize * 0.85;
+    const yLabels = this.buildYAxisTicks('major').map((tick) => tick.label);
+    const yLabelLength = yLabels.reduce((length, label) => Math.max(length, label.length), 0);
+    const yLabelWidth = yLabelLength * yFontSize * 0.7;
+    let t = configuredMargin.t;
+    let r = configuredMargin.r;
+    let b = Math.max(configuredMargin.b, xTickSize);
+    let l = Math.max(configuredMargin.l, yTickSize);
+
+    // X labels sit below the tickmarks. Their endpoint anchors are directed
+    // into the draw area, so they need no permanent horizontal margins.
+    if (showXLabels) {
+      b = Math.max(b, xTickSize + xLabelOffset + xFontHeight);
+    }
+
+    // Y labels sit left of their tickmarks. Half a line of vertical room keeps
+    // the labels on the highest and lowest ticks inside the outer viewport.
+    if (showYLabels) {
+      l = Math.max(l, yTickSize + yLabelOffset + yLabelWidth);
+      t = Math.max(t, yFontHeight / 2);
+      b = Math.max(b, yFontHeight / 2);
+    }
+
+    return {
+      t,
+      r,
+      b,
+      l,
+      x: l,
+      y: t,
+    };
+  }
+
+  /**
    * Builds the config object consumed by SparklineGraph without changing the
    * engine's expected naming.
    *
@@ -561,6 +619,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.svg = this.calculateSvgDimensions(this.config);
+    this.svg.margin = this.containedGraphMargin;
     this.config.svg = this.svg;
     this.graphConfig = this.buildGraphConfig(this.config);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
@@ -1009,6 +1068,29 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.Graph.update(this.series);
+
+    // Width and height define the complete sparkline viewport. Rebuild only
+    // when formatted labels or visible axis layers require a different draw
+    // area; normal state updates keep using the cached contained margins.
+    const containedGraphMargin = this.calculateContainedGraphMargin();
+    if (
+      containedGraphMargin.t !== this.containedGraphMargin.t ||
+      containedGraphMargin.r !== this.containedGraphMargin.r ||
+      containedGraphMargin.b !== this.containedGraphMargin.b ||
+      containedGraphMargin.l !== this.containedGraphMargin.l
+    ) {
+      this.containedGraphMargin = containedGraphMargin;
+      this.svg.margin = containedGraphMargin;
+      this.graphConfig = this.buildGraphConfig(this.config);
+      this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
+
+      if (this.config.period.type !== 'real_time') {
+        const range = this.getHistoryRange();
+        this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
+      }
+
+      this.Graph.update(this.series);
+    }
 
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
@@ -3573,18 +3655,28 @@ export default class SparklineGraphTool extends BaseTool {
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.y_axis.labels.styles));
     const xTicks = this.buildLabelTicks('x');
     const yTicks = this.buildLabelTicks('y');
+    const xTickSize = this.config.sparkline.show.tickmarks.x && chartAxes.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
+    const yTickSize = this.config.sparkline.show.tickmarks.y && chartAxes.y ? Utils.calculateSvgDimension(this.config.y_axis.tickmarks_major.size) : 0;
 
     return svg`
       ${
         showX
           ? svg`<g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
         ${xTicks.map(
-          (tick) => svg`
+          (tick, tickIndex) => svg`
           <text
             class="sparkline-label sparkline-label--x"
             x="${tick.x}"
-            y="${this.Graph.drawArea.y + this.Graph.drawArea.height + Utils.calculateSvgDimension(this.config.x_axis.labels.offset)}"
-            style=${styleMap(xStyles)}
+            y="${this.Graph.drawArea.y + this.Graph.drawArea.height + xTickSize + Utils.calculateSvgDimension(this.config.x_axis.labels.offset)}"
+            style=${styleMap({
+              ...xStyles,
+              'text-anchor':
+                tickIndex === 0
+                  ? 'start'
+                  : tickIndex === xTicks.length - 1 && tick.x >= this.Graph.drawArea.x + this.Graph.drawArea.width
+                    ? 'end'
+                    : xStyles['text-anchor'],
+            })}
           >${tick.label}</text>
         `,
         )}
@@ -3598,7 +3690,7 @@ export default class SparklineGraphTool extends BaseTool {
           (tick) => svg`
           <text
             class="sparkline-label sparkline-label--y"
-            x="${this.Graph.drawArea.x - Utils.calculateSvgDimension(this.config.y_axis.labels.offset)}"
+            x="${this.Graph.drawArea.x - yTickSize - Utils.calculateSvgDimension(this.config.y_axis.labels.offset)}"
             y="${tick.y}"
             style=${styleMap(yStyles)}
           >${tick.label}</text>
@@ -4294,7 +4386,7 @@ export default class SparklineGraphTool extends BaseTool {
               x=${barcodePart.x}
               y=${barcodePart.y}
               height=${Math.max(1, barcodePart.height)}
-              width=${Math.max(1, barcodePart.width)}
+              width=${barcodePart.width}
               fill=${color}
               stroke=${color}
               style=${styleMap(this.getRenderStyles(barcodeStyles))}
@@ -4351,9 +4443,9 @@ export default class SparklineGraphTool extends BaseTool {
             width="${this.svg.width}"
             height="${this.svg.height}"
             viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-            overflow="visible"
+            overflow="hidden"
             touch-action="none"
-            style="touch-action:none; pointer-events:auto; overflow:visible;"
+            style="touch-action:none; pointer-events:auto; overflow:hidden;"
           ></svg>
         </g>
       `;
@@ -4372,9 +4464,9 @@ export default class SparklineGraphTool extends BaseTool {
           width="${this.svg.width}"
           height="${this.svg.height}"
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-          overflow="visible"
+          overflow="hidden"
           touch-action="none"
-          style="touch-action:none; pointer-events:auto; overflow:visible;"
+          style="touch-action:none; pointer-events:auto; overflow:hidden;"
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
