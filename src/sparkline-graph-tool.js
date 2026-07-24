@@ -1688,7 +1688,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds tooltip content and a fixed segment-center position for state bands.
+   * Builds tooltip content and selects the segment center for the active indicator.
    * Existing cartesian charts continue to use their bin tooltip unchanged.
    *
    * @param {object} segment - Active state-band segment from the graph engine.
@@ -1696,10 +1696,7 @@ export default class SparklineGraphTool extends BaseTool {
   updateTooltipFromStateBandSegment(segment) {
     const locale = this.card._hass.locale;
     const config = this.card._hass.config;
-    const svgBox = this.elements.svg.getBoundingClientRect();
     const containerBox = this.elements.containerRect || this.elements.container.getBoundingClientRect();
-    const scaleX = svgBox.width / this.svg.width;
-    const scaleY = svgBox.height / this.svg.height;
     const durationMs = segment.end.getTime() - segment.start.getTime();
     let remainingSeconds = Math.floor(durationMs / 1000);
     const days = Math.floor(remainingSeconds / 86400);
@@ -1709,12 +1706,10 @@ export default class SparklineGraphTool extends BaseTool {
     const minutes = Math.floor(remainingSeconds / 60);
     const seconds = remainingSeconds - minutes * 60;
 
-    this.activeX = undefined;
+    this.activeX = segment.x + segment.width / 2;
     this.tooltip = {
       entity: this.entity_index,
       index: this.Graph.stateBandSegments.indexOf(segment),
-      x: svgBox.left - containerBox.left + (segment.x + segment.width / 2) * scaleX,
-      y: svgBox.top - containerBox.top + segment.centerY * scaleY,
       title: segment.label,
       min: {
         label: 'Start',
@@ -1910,11 +1905,10 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!tooltip || !containerBox) return;
 
-    const fixedStateBandPosition = this.config.sparkline.show.chart_type === 'state_bands';
-    if (!fixedStateBandPosition && (touch?.clientX === undefined || touch?.clientY === undefined)) return;
+    if (touch?.clientX === undefined || touch?.clientY === undefined) return;
 
-    let left = fixedStateBandPosition ? this.tooltip.x : touch.clientX - containerBox.left;
-    let top = fixedStateBandPosition ? this.tooltip.y : touch.clientY - containerBox.top;
+    let left = touch.clientX - containerBox.left;
+    let top = touch.clientY - containerBox.top;
     const isTouch = e?.touches?.length > 0 || e?.changedTouches?.length > 0;
     if (isTouch && this.config.sparkline.show.chart_type === 'radial_barcode') {
       left += 18;
@@ -4114,7 +4108,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
-    if (['radial_barcode', 'state_bands'].includes(this.config.sparkline.show.chart_type)) return '';
+    if (this.config.sparkline.show.chart_type === 'radial_barcode') return '';
 
     return svg`
       <line
