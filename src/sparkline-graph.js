@@ -62,6 +62,7 @@ export default class SparklineGraph {
     this.coords = [];
     this.bucketMeta = [];
     this.stateBandSegments = [];
+    this.stateBandTransitions = [];
     this.xAxis = {};
     this.yAxis = {};
     this.width = width;
@@ -474,6 +475,23 @@ export default class SparklineGraph {
 
       this.stateBandSegments.push(segment);
     });
+
+    // Keep transition geometry separate from the rendered state segments. A
+    // transition exists only where two known states meet at the same time.
+    this.stateBandTransitions = [];
+    for (let index = 0; index < this.stateBandSegments.length - 1; index += 1) {
+      const segment = this.stateBandSegments[index];
+      const nextSegment = this.stateBandSegments[index + 1];
+
+      if (segment.end.getTime() === nextSegment.start.getTime()) {
+        this.stateBandTransitions.push({
+          x: nextSegment.x,
+          fromY: segment.centerY,
+          toY: nextSegment.centerY,
+          height: segment.height,
+        });
+      }
+    }
 
     return this.yAxis.rows.map((row) => ({
       ...row,

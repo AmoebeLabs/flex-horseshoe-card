@@ -209,6 +209,13 @@ export default class SparklineGraphTool extends BaseTool {
         state_bands: {
           radius: 0.5,
           styles: {},
+          background: {
+            padding: 0.75,
+            connection_width: 0.375,
+            styles: {
+              opacity: 0.3,
+            },
+          },
         },
         radial_barcode: {
           size: 5,
@@ -400,6 +407,9 @@ export default class SparklineGraphTool extends BaseTool {
     }
     if (normalizedConfig.sparkline?.state_bands?.styles !== undefined) {
       normalizedConfig.sparkline.state_bands.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.styles);
+    }
+    if (normalizedConfig.sparkline?.state_bands?.background?.styles !== undefined) {
+      normalizedConfig.sparkline.state_bands.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.background.styles);
     }
     ['x_axis', 'y_axis'].forEach((axisName) => {
       ['axis', 'grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
@@ -4137,6 +4147,101 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Renders the continuous state-band background shape as a mask. Expanded
+   * segment rectangles provide the border around each foreground segment and
+   * rounded transition lines connect consecutive states behind those segments.
+   *
+   * @returns {TemplateResult|string} State-band background mask definition.
+   */
+  renderSvgStateBandsMask() {
+    if (this.config.sparkline.show.chart_type !== 'state_bands') return '';
+
+    const padding = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.padding);
+    const connectionWidth = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.connection_width);
+    const radius = Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius) + padding;
+    const rows = this.Graph.yAxis.rows.concat().sort((left, right) => left.y - right.y);
+    const gradientStartY = rows[0].y;
+    const gradientEndY = rows[rows.length - 1].y;
+
+    return svg`
+      <linearGradient
+        id=${`state-bands-bg-gradient-${this.cardId}-${this.index}`}
+        gradientUnits='userSpaceOnUse'
+        x1='0'
+        y1=${gradientStartY}
+        x2='0'
+        y2=${gradientEndY}
+      >
+        ${rows.map(
+          (row) => svg`
+            <stop
+              offset=${`${((row.y - gradientStartY) / (gradientEndY - gradientStartY)) * 100}%`}
+              stop-color=${this.computeColor(row.value, this.entity_index)}
+            ></stop>
+          `,
+        )}
+      </linearGradient>
+      <mask id=${`state-bands-bg-${this.cardId}-${this.index}`}>
+        ${this.Graph.stateBandTransitions.map(
+          (transition) => svg`
+            <line
+              x1=${transition.x}
+              y1=${transition.fromY}
+              x2=${transition.x}
+              y2=${transition.toY}
+              stroke='white'
+              stroke-width=${connectionWidth}
+              stroke-linecap='round'
+            ></line>
+          `,
+        )}
+        ${this.Graph.stateBandSegments.map((segment) => {
+          const x = segment.x - padding;
+          const width = segment.width + padding * 2;
+
+          return svg`
+            <rect
+              x=${x}
+              y=${segment.y - padding}
+              width=${width}
+              height=${segment.height + padding * 2}
+              rx=${radius}
+              ry=${radius}
+              fill='white'
+            ></rect>
+          `;
+        })}
+      </mask>
+    `;
+  }
+
+  /**
+   * Renders the vertical state-color gradient through the separate state-band
+   * background mask. Foreground state segments are rendered independently.
+   *
+   * @returns {TemplateResult|string} State-band background SVG layer.
+   */
+  renderSvgStateBandsBackground() {
+    if (this.config.sparkline.show.chart_type !== 'state_bands') return '';
+
+    const backgroundStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.sparkline.state_bands.background.styles));
+    const padding = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.padding);
+
+    return svg`
+      <rect
+        class='state-bands__background'
+        x=${this.Graph.drawArea.x - padding}
+        y=${this.Graph.drawArea.y}
+        width=${this.Graph.drawArea.width + padding * 2}
+        height=${this.Graph.drawArea.height}
+        fill=${`url(#state-bands-bg-gradient-${this.cardId}-${this.index})`}
+        mask=${`url(#state-bands-bg-${this.cardId}-${this.index})`}
+        style=${styleMap(backgroundStyles)}
+      ></rect>
+    `;
+  }
+
+  /**
    * Renders exact state periods as colored horizontal bands. The transparent
    * hit area keeps the existing whole-graph pointer flow active between bands.
    *
@@ -4741,6 +4846,7 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.area.map((fill, i) => this.renderSvgAreaMask(fill, i))}
             ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxMask(fill, i))}
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
+            ${this.renderSvgStateBandsMask()}
           </defs>
           <g transform="translate(0 ${this.animationBaselineY})">
             <g>
@@ -4781,6 +4887,7 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.barcodeChart.map((barcodePart, i) => this.renderSvgBarcode(barcodePart, i))}
           ${this.radialBarcodeChart.map((radialPart, i) => this.renderSvgRadialBarcode(radialPart, i))}
           ${this.graded.map((grade, i) => this.renderSvgGraded(grade, i))}
+          ${this.renderSvgStateBandsBackground()}
           ${this.renderSvgStateBands()}
           ${this.renderGrid()}
           ${this.renderAxis()}

@@ -31,9 +31,14 @@ sparkline:
     radius: 0.5
     styles:
       opacity: 1
+    background:
+      padding: 0.75
+      connection_width: 0.375
+      styles:
+        opacity: 0.3
 ```
 
-The chart supports `calendar` and `rolling_window`. It uses the existing `color_stops`, `colorstops_transition`, `y_axis.labels.styles`, and `sparkline.animate` configuration. `real_time` and `state_map.type: rank_state` are outside the first implementation.
+The chart supports `calendar` and `rolling_window`. It uses the existing `color_stops`, `y_axis.labels.styles`, and `sparkline.animate` configuration. State bands always select categorical color stops without smooth foreground interpolation. `real_time` and `state_map.type: rank_state` are outside the first implementation.
 
 ## History And Segment Geometry
 
@@ -55,7 +60,9 @@ The categorical Y geometry exposes horizontal grid lines at the boundaries betwe
 
 State labels use the same Home Assistant translation behavior as horseshoe state maps. An optional `label` on an individual `state_map` entry overrides the translated state text. State bands use the existing color-stop calculation and runtime style processing. For this chart, Y labels default to `text-anchor: start` and `dominant-baseline: hanging` while still accepting `y_axis.labels.styles`.
 
-Pointer handling reuses the existing central pointer handlers and animation-frame processing. No listeners are attached to individual bands, and pointer events do not trigger Lit rendering. Pointer X selects the state segment active at that time; pointer Y is not needed. The tooltip is positioned at the segment center and displays the translated state, localized start time, localized end time, and duration. Unknown and future intervals have no tooltip. This chart has no vertical indicator and no hover dimming or highlighting.
+The visual flow behind the foreground segments follows the existing mask and background-layer architecture. The graph engine exposes transition geometry only where consecutive known states meet. A separate mask combines expanded rounded segment rectangles with rounded vertical transition lines. A vertical gradient, colored at the center of every state row, is rendered through that mask as an independent background layer. The existing foreground segment rendering remains unchanged.
+
+Pointer handling reuses the existing central pointer handlers and animation-frame processing. No listeners are attached to individual bands, and pointer events do not trigger Lit rendering. Pointer X selects the state segment active at that time; pointer Y is not needed. The vertical indicator is positioned at the segment center. The tooltip remains at the standard fixed distance above the pointer and displays the translated state, localized start time, localized end time, and duration. Unknown and future intervals have no tooltip. This chart has no hover dimming or highlighting.
 
 When `sparkline.animate` is enabled, bands grow horizontally from their start position on their initial history render. Existing bands do not restart their animation on normal state updates. A newly inserted segment may animate once.
 
