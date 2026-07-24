@@ -21,13 +21,14 @@ sparkline:
     map:
       - state: very_low
         value: 0
+        label: Very low
       - state: low
         value: 1
       - state: high
         value: 2
 
   state_bands:
-    row_spacing: 1
+    radius: 0.5
     styles:
       opacity: 1
 ```
@@ -48,9 +49,11 @@ The graph engine exposes a `getStateBands(...)` method consistent with `getBars(
 
 ## Rendering And Interaction
 
-The tool determines the rendered Y-label font height and passes the required vertical dimensions to the engine. Each row reserves vertical space for the label above its band. Bands retain the complete X-axis width.
+The engine divides the graph height evenly across all mapped states. From top to bottom, every row uses 10% top margin, 25% label, 15% middle margin, 40% band, and 10% bottom margin. The label font size is automatically set to 25% of the row height, so users do not need to tune it. Bands retain the complete X-axis width and use a configurable radius with a default of 0.5.
 
-State labels use the same Home Assistant translation behavior as horseshoe state maps. State bands use the existing color-stop calculation and runtime style processing. For this chart, Y labels default to `text-anchor: start` and `dominant-baseline: hanging` while still accepting `y_axis.labels.styles`.
+The categorical Y geometry exposes horizontal grid lines at the boundaries between rows. These separators use the normal Y-grid styles and never run through a label or band.
+
+State labels use the same Home Assistant translation behavior as horseshoe state maps. An optional `label` on an individual `state_map` entry overrides the translated state text. State bands use the existing color-stop calculation and runtime style processing. For this chart, Y labels default to `text-anchor: start` and `dominant-baseline: hanging` while still accepting `y_axis.labels.styles`.
 
 Pointer handling reuses the existing central pointer handlers and animation-frame processing. No listeners are attached to individual bands, and pointer events do not trigger Lit rendering. Pointer X selects the state segment active at that time; pointer Y is not needed. The tooltip is positioned at the segment center and displays the translated state, localized start time, localized end time, and duration. Unknown and future intervals have no tooltip. This chart has no vertical indicator and no hover dimming or highlighting.
 

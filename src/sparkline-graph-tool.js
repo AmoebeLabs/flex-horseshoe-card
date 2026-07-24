@@ -207,7 +207,7 @@ export default class SparklineGraphTool extends BaseTool {
           square: false,
         },
         state_bands: {
-          row_spacing: 1,
+          radius: 0.5,
           styles: {},
         },
         radial_barcode: {
@@ -411,8 +411,9 @@ export default class SparklineGraphTool extends BaseTool {
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
 
     // State-band labels live inside each categorical row. Apply their natural
-    // left/top alignment as a chart default while retaining explicit user styles.
+    // left/top alignment and use hard color stops because each band is a discrete state.
     if (sparklineConfig.sparkline.show.chart_type === 'state_bands') {
+      sparklineConfig.sparkline.colorstops_transition = 'hard';
       if (normalizedConfig.y_axis?.labels?.styles?.['text-anchor'] === undefined) {
         sparklineConfig.y_axis.labels.styles['text-anchor'] = 'start';
       }
@@ -690,7 +691,7 @@ export default class SparklineGraphTool extends BaseTool {
 
           return {
             ...entry,
-            display_label: displayLabel ?? entry.display_label,
+            display_label: entry.label ?? displayLabel ?? entry.display_label,
           };
         }),
       };
@@ -3643,6 +3644,7 @@ export default class SparklineGraphTool extends BaseTool {
         value: tick.value,
         y: tick.y,
         labelY: tick.labelY,
+        fontSize: tick.fontSize,
         label: tick.label,
       }));
     }
@@ -3692,7 +3694,15 @@ export default class SparklineGraphTool extends BaseTool {
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.grid_major.styles));
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.y_axis.grid_major.styles));
     const xTicks = this.buildXAxisTicks('major');
-    const yTicks = this.buildYAxisTicks('major');
+    const yTicks =
+      this.config.sparkline.show.chart_type === 'state_bands'
+        ? this.Graph.yAxis.gridTicks.map((tick) => ({
+            axis: 'y',
+            level: 'major',
+            value: tick.value,
+            y: tick.y,
+          }))
+        : this.buildYAxisTicks('major');
 
     return svg`
       ${
@@ -3885,7 +3895,7 @@ export default class SparklineGraphTool extends BaseTool {
             class="sparkline-label sparkline-label--y"
             x="${stateBands ? this.Graph.drawArea.x + Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : this.Graph.drawArea.x - yTickSize - Utils.calculateSvgDimension(this.config.y_axis.labels.offset)}"
             y="${stateBands ? tick.labelY : tick.y}"
-            style=${styleMap(yStyles)}
+            style=${styleMap(stateBands ? { ...yStyles, 'font-size': `${tick.fontSize}px` } : yStyles)}
           >${tick.label}</text>
         `,
         )}
@@ -4174,6 +4184,8 @@ export default class SparklineGraphTool extends BaseTool {
                 y=${segment.y}
                 width=${segment.width}
                 height=${segment.height}
+                rx=${Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius)}
+                ry=${Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius)}
                 style=${styleMap(segmentStyles)}
               >
                 ${animate

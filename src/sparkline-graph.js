@@ -304,10 +304,7 @@ export default class SparklineGraph {
     const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45;
     const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85;
     const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
-    const yAxis =
-      this.config.sparkline.show.chart_type === 'state_bands'
-        ? this.calculateStateBandsYAxisGeometry(fontHeightPixels, Utils.calculateSvgDimension(this.config.sparkline.state_bands.row_spacing))
-        : this.calculateYAxisGeometry(fontHeightPixels);
+    const yAxis = this.config.sparkline.show.chart_type === 'state_bands' ? this.calculateStateBandsYAxisGeometry() : this.calculateYAxisGeometry(fontHeightPixels);
 
     this.min = yAxis.min;
     this.max = yAxis.max;
@@ -388,33 +385,39 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates categorical rows for state bands. Labels occupy the top of each
-   * row and bands use the remaining height. Numeric state-map order is retained
-   * while the visual row order places the lowest value at the bottom.
+   * Calculates categorical rows for state bands. Every row uses 10% top
+   * margin, 25% label, 15% middle margin, 40% band and 10% bottom margin.
+   * Numeric state-map order is retained while the visual row order places the
+   * lowest value at the bottom.
    *
-   * @param {number} fontHeightPixels - Rendered Y-label line height.
-   * @param {number} rowSpacing - Vertical spacing between state rows.
    * @returns {object} Categorical Y-axis geometry.
    */
-  calculateStateBandsYAxisGeometry(fontHeightPixels, rowSpacing) {
+  calculateStateBandsYAxisGeometry() {
     const entries = this.stateMap.map.concat().sort((a, b) => Number(a.value) - Number(b.value));
-    const rowHeight = (this.drawArea.height - (entries.length - 1) * rowSpacing) / entries.length;
+    const rowHeight = this.drawArea.height / entries.length;
     const rows = entries.map((entry, index) => {
       const visualIndex = entries.length - index - 1;
-      const rowTop = this.drawArea.y + visualIndex * (rowHeight + rowSpacing);
-      const bandY = rowTop + fontHeightPixels;
-      const bandHeight = rowHeight - fontHeightPixels;
+      const rowTop = this.drawArea.y + visualIndex * rowHeight;
+      const fontSize = rowHeight * 0.25;
+      const labelY = rowTop + rowHeight * 0.1;
+      const bandY = rowTop + rowHeight * 0.5;
+      const bandHeight = rowHeight * 0.4;
 
       return {
         state: entry.state,
         value: Number(entry.value),
         label: entry.display_label,
         y: bandY + bandHeight / 2,
-        labelY: rowTop,
+        labelY,
+        fontSize,
         bandY,
         bandHeight,
       };
     });
+    const gridTicks = entries.slice(1).map((entry, index) => ({
+      value: Number(entry.value),
+      y: this.drawArea.y + (index + 1) * rowHeight,
+    }));
 
     return {
       min: Number(entries[0].value),
@@ -422,6 +425,7 @@ export default class SparklineGraph {
       interval: null,
       minorInterval: null,
       ticks: rows,
+      gridTicks,
       rows,
     };
   }
