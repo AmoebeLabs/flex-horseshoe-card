@@ -531,16 +531,32 @@ export default class SparklineGraphTool extends BaseTool {
     const yFontHeight = yFontSize * 0.85;
     const yLabels = this.buildYAxisTicks('major').map((tick) => tick.label);
     const yLabelLength = yLabels.reduce((length, label) => Math.max(length, label.length), 0);
-    const yLabelWidth = yLabelLength * yFontSize * 0.7;
+    const yLabelWidth = yLabelLength * yFontSize * 0.5;
     let t = configuredMargin.t;
     let r = configuredMargin.r;
     let b = Math.max(configuredMargin.b, xTickSize);
     let l = Math.max(configuredMargin.l, yTickSize);
 
-    // X labels sit below the tickmarks. Their endpoint anchors are directed
-    // into the draw area, so they need no permanent horizontal margins.
+    // X labels remain uniformly anchored. Reserve horizontal room only for
+    // labels attached to an actual draw-area endpoint.
     if (showXLabels) {
+      const xTicks = this.buildXAxisTicks('major');
+      const firstLabelWidth = xTicks[0].label.length * xFontSize * 0.6;
+      const lastTick = xTicks[xTicks.length - 1];
+      const lastLabelWidth = lastTick.label.length * xFontSize * 0.6;
+      const lastTickIsAxisEnd = lastTick.value === this.Graph.xAxis.end.getTime();
+      const xTextAnchor = this.config.x_axis.labels.styles['text-anchor'];
+
       b = Math.max(b, xTickSize + xLabelOffset + xFontHeight);
+
+      if (xTextAnchor === 'start') {
+        if (lastTickIsAxisEnd) r = Math.max(r, lastLabelWidth);
+      } else if (xTextAnchor === 'end') {
+        l = Math.max(l, firstLabelWidth);
+      } else {
+        l = Math.max(l, firstLabelWidth / 2);
+        if (lastTickIsAxisEnd) r = Math.max(r, lastLabelWidth / 2);
+      }
     }
 
     // Y labels sit left of their tickmarks. Half a line of vertical room keeps
@@ -3677,20 +3693,12 @@ export default class SparklineGraphTool extends BaseTool {
         showX
           ? svg`<g class="sparkline-labels sparkline-labels--x" style="pointer-events:none;">
         ${xTicks.map(
-          (tick, tickIndex) => svg`
+          (tick) => svg`
           <text
             class="sparkline-label sparkline-label--x"
             x="${tick.x}"
             y="${this.Graph.drawArea.y + this.Graph.drawArea.height + xTickSize + Utils.calculateSvgDimension(this.config.x_axis.labels.offset)}"
-            style=${styleMap({
-              ...xStyles,
-              'text-anchor':
-                tickIndex === 0
-                  ? 'start'
-                  : tickIndex === xTicks.length - 1 && tick.x >= this.Graph.drawArea.x + this.Graph.drawArea.width
-                    ? 'end'
-                    : xStyles['text-anchor'],
-            })}
+            style=${styleMap(xStyles)}
           >${tick.label}</text>
         `,
         )}
