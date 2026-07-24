@@ -118,21 +118,13 @@ export default class SparklineGraph {
     if (!this._history) return;
     if (this._history?.length === 0) return;
 
-    // State bands do not aggregate history into buckets. Rolling X-axis
-    // geometry still consumes the same first/last time boundaries as every
-    // existing graph, while calendar continues through its unchanged branch.
+    // State bands use exact transition timestamps and never aggregate or align
+    // their visible history range to graph buckets.
     if (this.config.sparkline.show.chart_type === 'state_bands') {
       this.min = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.max = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.coords = [];
       this.bucketMeta = [];
-
-      if (this.config.period.type === 'rolling_window') {
-        const end = this._snapToBin(new Date());
-        const start = new Date(end.getTime() - this.config.period.rolling_window.duration.hour * ONE_HOUR);
-        this.bucketMeta = [{ start }, { start: end }];
-      }
-
       this.buildAxisGeometry();
       return;
     }
@@ -330,7 +322,21 @@ export default class SparklineGraph {
     let dataStart;
     let dataEnd;
 
-    if (this.config.period.type === 'calendar' && period.period === 'day') {
+    if (this.config.sparkline.show.chart_type === 'state_bands') {
+      if (this.config.period.type === 'calendar') {
+        axisStart = new Date(now);
+        axisStart.setHours(0, 0, 0, 0);
+        axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
+        axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR);
+        dataStart = new Date(axisStart);
+        dataEnd = period.offset === 0 ? new Date(now) : new Date(axisEnd);
+      } else {
+        axisEnd = new Date(now);
+        axisStart = new Date(axisEnd.getTime() - period.duration.hour * ONE_HOUR);
+        dataStart = new Date(axisStart);
+        dataEnd = new Date(axisEnd);
+      }
+    } else if (this.config.period.type === 'calendar' && period.period === 'day') {
       axisStart = new Date(now);
       axisStart.setHours(0, 0, 0, 0);
       axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));

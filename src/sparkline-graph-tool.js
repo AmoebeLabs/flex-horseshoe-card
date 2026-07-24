@@ -208,7 +208,9 @@ export default class SparklineGraphTool extends BaseTool {
         },
         state_bands: {
           radius: 0.5,
-          styles: {},
+          styles: {
+            'stroke-width': 0,
+          },
           background: {
             padding: 0.75,
             connection_width: 0.375,

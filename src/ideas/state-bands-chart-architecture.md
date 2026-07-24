@@ -30,6 +30,7 @@ sparkline:
   state_bands:
     radius: 0.5
     styles:
+      stroke-width: 0
       opacity: 1
     background:
       padding: 0.75
@@ -49,6 +50,8 @@ The Home Assistant history request already includes the state active at the requ
 Consecutive records with the same mapped state form one segment. A segment ends at the next state transition. The last state continues to the current data end for an active period or to the range end for a closed calendar period. Segment geometry is clipped to the existing X-axis range.
 
 For an active period, the current Home Assistant state is added from its real `last_changed` timestamp. Current state data is never appended to a closed calendar period with an offset. While history is loading, rows, translated labels, and axes may render without bands.
+
+If the source entity still has the same `last_changed` timestamp, no additional history row is appended. The active segment is extended by advancing its calculated data end instead. This prevents duplicate states from creating redundant transitions while keeping the visible current state up to date.
 
 The graph engine exposes a `getStateBands(...)` method consistent with `getBars()` and `getGrades()`. It returns row and segment geometry, including row label position, band position and height, segment X position and width, mapped value, raw state, start time, and end time. The engine also exposes categorical Y geometry for row labels and optional row grid lines. Existing numeric axis geometry remains untouched.
 
