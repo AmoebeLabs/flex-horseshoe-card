@@ -61,6 +61,7 @@ export default class SparklineGraph {
     this._history = undefined;
     this.coords = [];
     this.bucketMeta = [];
+    this.stateBandSegments = [];
     this.xAxis = {};
     this.yAxis = {};
     this.width = width;
@@ -115,6 +116,25 @@ export default class SparklineGraph {
     }
     if (!this._history) return;
     if (this._history?.length === 0) return;
+
+    // State bands do not aggregate history into buckets. Rolling X-axis
+    // geometry still consumes the same first/last time boundaries as every
+    // existing graph, while calendar continues through its unchanged branch.
+    if (this.config.sparkline.show.chart_type === 'state_bands') {
+      this.min = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
+      this.max = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
+      this.coords = [];
+      this.bucketMeta = [];
+
+      if (this.config.period.type === 'rolling_window') {
+        const end = this._snapToBin(new Date());
+        const start = new Date(end.getTime() - this.config.period.rolling_window.duration.hour * ONE_HOUR);
+        this.bucketMeta = [{ start }, { start: end }];
+      }
+
+      this.buildAxisGeometry();
+      return;
+    }
 
     // Update time stuff
     this._updateEndTime();
@@ -284,7 +304,10 @@ export default class SparklineGraph {
     const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45;
     const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85;
     const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
-    const yAxis = this.calculateYAxisGeometry(fontHeightPixels);
+    const yAxis =
+      this.config.sparkline.show.chart_type === 'state_bands'
+        ? this.calculateStateBandsYAxisGeometry(fontHeightPixels, Utils.calculateSvgDimension(this.config.sparkline.state_bands.row_spacing))
+        : this.calculateYAxisGeometry(fontHeightPixels);
 
     this.min = yAxis.min;
     this.max = yAxis.max;
@@ -362,6 +385,96 @@ export default class SparklineGraph {
       interval,
       ticks,
     };
+  }
+
+  /**
+   * Calculates categorical rows for state bands. Labels occupy the top of each
+   * row and bands use the remaining height. Numeric state-map order is retained
+   * while the visual row order places the lowest value at the bottom.
+   *
+   * @param {number} fontHeightPixels - Rendered Y-label line height.
+   * @param {number} rowSpacing - Vertical spacing between state rows.
+   * @returns {object} Categorical Y-axis geometry.
+   */
+  calculateStateBandsYAxisGeometry(fontHeightPixels, rowSpacing) {
+    const entries = this.stateMap.map.concat().sort((a, b) => Number(a.value) - Number(b.value));
+    const rowHeight = (this.drawArea.height - (entries.length - 1) * rowSpacing) / entries.length;
+    const rows = entries.map((entry, index) => {
+      const visualIndex = entries.length - index - 1;
+      const rowTop = this.drawArea.y + visualIndex * (rowHeight + rowSpacing);
+      const bandY = rowTop + fontHeightPixels;
+      const bandHeight = rowHeight - fontHeightPixels;
+
+      return {
+        state: entry.state,
+        value: Number(entry.value),
+        label: entry.display_label,
+        y: bandY + bandHeight / 2,
+        labelY: rowTop,
+        bandY,
+        bandHeight,
+      };
+    });
+
+    return {
+      min: Number(entries[0].value),
+      max: Number(entries[entries.length - 1].value),
+      interval: null,
+      minorInterval: null,
+      ticks: rows,
+      rows,
+    };
+  }
+
+  /**
+   * Builds exact historical state periods inside the prepared categorical rows.
+   * The first known state is clipped to the visible start and unknown time is
+   * intentionally left empty.
+   *
+   * @returns {Array<object>} State rows containing their rendered segments.
+   */
+  getStateBands() {
+    const axisStart = this.xAxis.start.getTime();
+    const axisEnd = this.xAxis.end.getTime();
+    const dataEnd = this.xAxis.dataEnd.getTime();
+    const duration = axisEnd - axisStart;
+    const history = this._history.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+    const transitions = [];
+
+    history.forEach((item) => {
+      const previous = transitions[transitions.length - 1];
+      if (!previous || Number(previous.state) !== Number(item.state)) transitions.push(item);
+    });
+
+    this.stateBandSegments = [];
+    transitions.forEach((item, index) => {
+      const start = Math.max(axisStart, new Date(item.last_changed).getTime());
+      const nextStart = index < transitions.length - 1 ? new Date(transitions[index + 1].last_changed).getTime() : dataEnd;
+      const end = Math.min(axisEnd, dataEnd, nextStart);
+
+      if (start >= end) return;
+
+      const row = this.yAxis.rows.find((stateRow) => stateRow.value === Number(item.state));
+      const segment = {
+        state: item.haState,
+        value: Number(item.state),
+        label: row.label,
+        start: new Date(start),
+        end: new Date(end),
+        x: this.drawArea.x + ((start - axisStart) / duration) * this.drawArea.width,
+        y: row.bandY,
+        width: ((end - start) / duration) * this.drawArea.width,
+        height: row.bandHeight,
+        centerY: row.bandY + row.bandHeight / 2,
+      };
+
+      this.stateBandSegments.push(segment);
+    });
+
+    return this.yAxis.rows.map((row) => ({
+      ...row,
+      segments: this.stateBandSegments.filter((segment) => segment.value === row.value),
+    }));
   }
 
   /**
