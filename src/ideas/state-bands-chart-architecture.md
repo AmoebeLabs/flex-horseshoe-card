@@ -29,6 +29,7 @@ sparkline:
 
   state_bands:
     radius: 0.5
+    update_interval: 5min
     styles:
       stroke-width: 0
       opacity: 1
@@ -52,6 +53,7 @@ Consecutive records with the same mapped state form one segment. A segment ends 
 For an active period, the current Home Assistant state is added from its real `last_changed` timestamp. Current state data is never appended to a closed calendar period with an offset. While history is loading, rows, translated labels, and axes may render without bands.
 
 If the source entity still has the same `last_changed` timestamp, no additional history row is appended. The active segment is extended by advancing its calculated data end instead. This prevents duplicate states from creating redundant transitions while keeping the visible current state up to date.
+An active state-band chart refreshes its calculated current data end every five minutes without fetching history or appending a state row. This advances the visible end of an unchanged current state while preserving the original transition timestamp.
 
 The graph engine exposes a `getStateBands(...)` method consistent with `getBars()` and `getGrades()`. It returns row and segment geometry, including row label position, band position and height, segment X position and width, mapped value, raw state, start time, and end time. The engine also exposes categorical Y geometry for row labels and optional row grid lines. Existing numeric axis geometry remains untouched.
 

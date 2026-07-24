@@ -208,6 +208,7 @@ export default class SparklineGraphTool extends BaseTool {
         },
         state_bands: {
           radius: 0.5,
+          update_interval: '5min',
           styles: {
             'stroke-width': 0,
           },
@@ -849,7 +850,10 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!this.entity) return;
 
-    const bucketMs = (60 / this.Graph.points) * 60 * 1000;
+    // State bands have no buckets. Their timer only advances the exact current
+    // data end; all other chart types retain their normal bin-boundary timing.
+    const bucketMs =
+      this.config.sparkline.show.chart_type === 'state_bands' ? this.getRefreshIntervalMs(this.config.sparkline.state_bands.update_interval) : (60 / this.Graph.points) * 60 * 1000;
     const now = Date.now();
     const delay = bucketMs - (now % bucketMs) + 10;
 
@@ -934,13 +938,12 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Parses the SAK-style refresh interval used by the history loader.
+   * Parses the SAK-style interval used by history resynchronization and state-band refreshes.
    *
+   * @param {string|number} interval - Configured SAK-style interval.
    * @returns {number} Refresh interval in milliseconds.
    */
-  getHistoryRefreshMs() {
-    const interval = this.config.history.refresh_interval;
-
+  getRefreshIntervalMs(interval) {
     if (typeof interval === 'number') return interval * 1000;
 
     const match = interval.match(/^(\d+(?:\.\d+)?)(ms|s|sec|m|min|h|hour)$/);
@@ -1096,7 +1099,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
         this.card._updateToolsUsingSparklineEntities();
-        if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getHistoryRefreshMs();
+        if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
         this.historyResynchronizationRequested = false;
         this.card.requestUpdate();
       })
