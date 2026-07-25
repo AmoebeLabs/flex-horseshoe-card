@@ -582,18 +582,24 @@ export default class SparklineGraphTool extends BaseTool {
       const firstLabelWidth = xTicks[0].label.length * xFontSize * 0.6;
       const lastTick = xTicks[xTicks.length - 1];
       const lastLabelWidth = lastTick.label.length * xFontSize * 0.6;
-      const lastTickIsAxisEnd = lastTick.value === this.Graph.xAxis.end.getTime();
       const xTextAnchor = this.config.x_axis.labels.styles['text-anchor'];
+      const xAxisStart = this.Graph.xAxis.start.getTime();
+      const xAxisDuration = this.Graph.xAxis.end.getTime() - xAxisStart;
+      const lastTickPosition = (lastTick.value - xAxisStart) / xAxisDuration;
+      const lastLabelRightExtent = xTextAnchor === 'start' ? lastLabelWidth : xTextAnchor === 'end' ? 0 : lastLabelWidth / 2;
 
       b = Math.max(b, xTickSize + xLabelOffset + xFontHeight);
 
-      if (xTextAnchor === 'start') {
-        if (lastTickIsAxisEnd) r = Math.max(r, lastLabelWidth);
-      } else if (xTextAnchor === 'end') {
+      // Reserve the exact right margin required by the final label. A snapped
+      // tick can sit just before axisEnd and still extend beyond the viewport.
+      if (lastLabelRightExtent > 0 && lastTickPosition > 0) {
+        r = Math.max(r, (lastLabelRightExtent - (1 - lastTickPosition) * (this.svg.width - this.Graph.margin.l)) / lastTickPosition);
+      }
+
+      if (xTextAnchor === 'end') {
         l = Math.max(l, firstLabelWidth);
       } else {
         l = Math.max(l, firstLabelWidth / 2);
-        if (lastTickIsAxisEnd) r = Math.max(r, lastLabelWidth / 2);
       }
     }
 

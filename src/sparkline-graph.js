@@ -366,19 +366,87 @@ export default class SparklineGraph {
       selectedIndex -= 1;
     }
 
+    // Binned graphs can only place ticks on bucket boundaries. Keep the
+    // automatically selected density, unless its interval is incompatible
+    // with bins.per_hour; then use the next compatible existing interval.
+    if (this.config.sparkline.show.chart_type !== 'state_bands') {
+      while (selectedIndex < timeIntervals.length - 1 && (timeIntervals[selectedIndex] * this.points) % ONE_HOUR !== 0) {
+        selectedIndex += 1;
+      }
+    }
+
     const interval = timeIntervals[selectedIndex];
     const ticks = [];
-    let currentTickMs = minMs;
+    const tickTimestamps = new Set();
 
-    while (currentTickMs <= maxMs) {
-      const percentage = (currentTickMs - minMs) / totalDuration;
-      ticks.push({
-        time: new Date(currentTickMs),
-        timestamp: currentTickMs,
-        x: this.drawArea.x + percentage * this.drawArea.width,
-        isMidnight: new Date(currentTickMs).getHours() === 0 && new Date(currentTickMs).getMinutes() === 0,
-      });
-      currentTickMs += interval;
+    // Generate sub-day ticks as local wall-clock slots for every visible
+    // calendar day. This anchors hours at local midnight and prevents the
+    // rolling-window start time or a DST transition from shifting the phase.
+    if (interval < 86400000) {
+      const day = new Date(axisStart);
+      day.setHours(0, 0, 0, 0);
+
+      while (day.getTime() <= maxMs) {
+        for (let slot = 0; slot < 86400000; slot += interval) {
+          const hours = Math.floor(slot / ONE_HOUR);
+          const minutes = Math.floor((slot % ONE_HOUR) / 60000);
+          const seconds = Math.floor((slot % 60000) / 1000);
+          const milliseconds = slot % 1000;
+          const tickDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes, seconds, milliseconds);
+          const currentTickMs = tickDate.getTime();
+
+          if (currentTickMs >= minMs && currentTickMs <= maxMs && !tickTimestamps.has(currentTickMs)) {
+            tickTimestamps.add(currentTickMs);
+            const percentage = (currentTickMs - minMs) / totalDuration;
+            ticks.push({
+              time: tickDate,
+              timestamp: currentTickMs,
+              x: this.drawArea.x + percentage * this.drawArea.width,
+              isMidnight: tickDate.getHours() === 0 && tickDate.getMinutes() === 0,
+            });
+          }
+        }
+
+        day.setDate(day.getDate() + 1);
+        day.setHours(0, 0, 0, 0);
+      }
+    } else if (interval === timeIntervals[timeIntervals.length - 1]) {
+      // The largest automatic interval represents a calendar month rather
+      // than a fixed millisecond duration.
+      const month = new Date(axisStart.getFullYear(), axisStart.getMonth(), 1);
+      if (month.getTime() < minMs) month.setMonth(month.getMonth() + 1);
+
+      while (month.getTime() <= maxMs) {
+        const currentTickMs = month.getTime();
+        const percentage = (currentTickMs - minMs) / totalDuration;
+        ticks.push({
+          time: new Date(month),
+          timestamp: currentTickMs,
+          x: this.drawArea.x + percentage * this.drawArea.width,
+          isMidnight: true,
+        });
+        month.setMonth(month.getMonth() + 1);
+      }
+    } else {
+      // Daily and multi-day ticks stay on local date boundaries. Calendar
+      // date increments preserve local midnight across DST changes.
+      const daysPerTick = interval / 86400000;
+      const day = new Date(axisStart);
+      day.setHours(0, 0, 0, 0);
+      if (day.getTime() < minMs) day.setDate(day.getDate() + 1);
+
+      while (day.getTime() <= maxMs) {
+        const currentTickMs = day.getTime();
+        const percentage = (currentTickMs - minMs) / totalDuration;
+        ticks.push({
+          time: new Date(day),
+          timestamp: currentTickMs,
+          x: this.drawArea.x + percentage * this.drawArea.width,
+          isMidnight: true,
+        });
+        day.setDate(day.getDate() + daysPerTick);
+        day.setHours(0, 0, 0, 0);
+      }
     }
 
     return {
