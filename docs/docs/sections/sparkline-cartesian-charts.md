@@ -156,8 +156,9 @@ area:
 
 A dots chart shows the aggregate value of every populated bin as a separate point without connecting those points with a line.
 
-!!! warning "Not yet available in the current FHS implementation"
-    The original sparkline implementation supports `chart_type: dots`, but this chart type still needs to be integrated into the current FHS graph update, rendering, axis, and pointer handling.
+| Dots chart |
+| :-:|
+| ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp){width=300} |
 
 ```yaml linenums="1"
 sparkline:
@@ -199,7 +200,9 @@ The dedicated dots styling fields will be documented together with the FHS softw
 
 A bar chart shows one centered bar for every populated bin. More bins produce narrower bars; fewer bins produce wider bars.
 
-![Flexible Horseshoe Card - Sparkline Bar Chart](../assets/screenshots/fhs-demo-card-study-temperature-bar--dark.webp)
+| Bar chart |
+| :-:|
+| ![Flexible Horseshoe Card - Sparkline Bar Chart](../assets/screenshots/fhs-demo-card-study-temperature-bar--dark.webp){width=300} |
 
 ```yaml linenums="1"
 sparkline:
@@ -237,7 +240,7 @@ Bar colors can use the configured line colors, entity color, or color stops. Use
 | Labels | X and Y. |
 | Tooltip and indicator | Yes. |
 
-## :material-horseshoe: Showing automatic axes
+## :material-horseshoe: Showing grid, axes, tickmarks and labels
 
 Use `show` to select which automatically calculated display elements are visible:
 

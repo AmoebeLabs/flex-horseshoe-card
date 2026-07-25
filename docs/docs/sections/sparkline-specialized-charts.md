@@ -38,6 +38,12 @@ See [Color Stops](../core-concepts/color-stops.md) for reusable color-stop templ
 
 An equalizer divides the visible Y range into a configured number of levels and renders the active levels for every time bin.
 
+| Equalizer chart |
+| :-:|
+| ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp){width=300} |
+
+
+
 ```yaml linenums="1"
 sparkline:
   show:
@@ -118,9 +124,10 @@ The configured color-stop ranks determine the visible grade and its color. Use c
 
 A state bands chart displays every mapped entity state on its own row. The horizontal length of a segment shows how long that state remained active. Rounded connections make transitions between rows visible without changing the foreground segments.
 
-| State band - Pollen | State band - Unknown |
-|:-:|:-:|
-| ![Flexible Horseshoe Card - Sparkline State Band Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp) |  |
+| State bands chart |
+| :-:|
+| ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp){width=300} |
+
 
 ```yaml linenums="1"
 sparkline:
