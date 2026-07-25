@@ -565,7 +565,7 @@ export default class SparklineGraphTool extends BaseTool {
     const yLabelOffset = showYLabels ? Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : 0;
     const xFontSize = this.resolveAxisFontSizePixels('x', FONT_SIZE);
     const yFontSize = this.resolveAxisFontSizePixels('y', FONT_SIZE);
-    const xFontHeight = xFontSize * 0.85;
+    const xFontHeight = xFontSize;
     const yFontHeight = yFontSize * 0.85;
     const yLabels = this.buildYAxisTicks('major').map((tick) => tick.label);
     const yLabelLength = yLabels.reduce((length, label) => Math.max(length, label.length), 0);
