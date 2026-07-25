@@ -54,6 +54,7 @@ Start with the question the graph should answer:
 | Preserve short peaks | Use more bins per hour. |
 | Show a calmer overall trend | Use fewer bins per hour with `aggregate_func: avg`. |
 | Show threshold changes instead of exact height | Use `barcode` or `radial_barcode` with color stops. |
+| Show when named states were active | Use `state_bands` with a state map. |
 
 For a current calendar period, the X-axis covers the complete period while the visible graph grows up to the current time. A rolling window moves forward continuously and always shows the latest configured duration.
 
@@ -67,6 +68,7 @@ For a current calendar period, the X-axis covers the complete period while the v
 | `bar` | Cartesian | One bar per time bin. |
 | `equalizer` | Binned levels | Stacked level display per bin. |
 | `graded` | Binned levels | Grade or traffic-light style values. |
+| `state_bands` | Categorical timeline | Duration and transitions of mapped states. |
 | `barcode` | Linear bins | Dense color history without a Y-axis. |
 | `radial_barcode` | Circular bins | Time bins arranged around a circle. |
 
@@ -80,12 +82,13 @@ For a current calendar period, the X-axis covers the complete period while the v
 | `bar` | Yes | Yes | X and Y | X and Y | Yes |
 | `equalizer` | Yes | Yes | X and Y | X and Y | No |
 | `graded` | No | No | No | No | No |
+| `state_bands` | Yes | Yes | X and Y | X times and Y states | Yes |
 | `barcode` | Yes | No | X only | X only | Yes |
 | `radial_barcode` | No | No | No | No | Yes |
 
-Points can be added to line and area charts. A standalone `dots` chart is also part of the intended chart set, but still needs to be integrated into the current FHS implementation.
+Points can be added to line and area charts. Use the standalone `dots` chart when every time bin should be displayed as a separate point without a connecting line.
 
-Line, area, bar, grid, and axis behavior are documented in [Cartesian Charts and Axes](sparkline-cartesian-charts.md). Equalizer, graded, barcode, and radial barcode charts are documented in [Specialized Charts](sparkline-specialized-charts.md).
+Line, area, bar, grid, and axis behavior are documented in [Cartesian Charts and Axes](sparkline-cartesian-charts.md). Equalizer, graded, state bands, barcode, and radial barcode charts are documented in [Specialized Charts](sparkline-specialized-charts.md).
 
 ## :material-horseshoe: Position and size
 
@@ -113,6 +116,7 @@ Margins reserve room inside the configured graph size. Cartesian labels and tick
 | `colorstops_transition` | Selects hard or smooth color transitions. |
 | `tooltip.styles` | Styles the interactive tooltip. |
 | `line` and `area` | Style line and area charts. |
+| `state_map` and `state_bands` | Map named states and style a state bands chart. |
 
 ## :material-horseshoe: Show options
 

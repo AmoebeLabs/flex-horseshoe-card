@@ -104,6 +104,12 @@ The range length and the number of bins do not change when the graph is made wid
 
 More bins preserve shorter peaks and dips but produce a denser graph. Fewer bins produce a calmer graph because more measurements contribute to each displayed value.
 
+### State bands and bins
+
+The `state_bands` chart retains exact state-change timestamps instead of aggregating states into bins. Its segments therefore start and end at the actual history transitions, regardless of the configured bin density.
+
+`state_bands.update_interval` controls how often an unchanged current state visually advances towards the current time. This refresh does not create another state transition and does not repeatedly fetch history.
+
 ## :material-horseshoe: Aggregation
 
 Configure averaging and value handling under `state_values`.

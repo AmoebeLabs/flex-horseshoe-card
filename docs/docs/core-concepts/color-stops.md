@@ -19,7 +19,7 @@ For example, a low value can be blue or green, a warning value can be yellow or 
 !!! info "Numeric states and textual state support"
     Color stops are based on numeric values.
 
-    At this moment, only the horseshoe itself supports state mapping where a textual state is translated to a numeric value which can be used by a color stop.
+    Horseshoes and state bands support state mapping where a textual state is translated to a numeric value that can be used by a color stop.
 
 ## :material-horseshoe: Basic idea
 

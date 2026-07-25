@@ -88,7 +88,7 @@ Shapes can also be connected to an entity by using `entity_index`. This allows c
       entity_index: 0           # connects to entity 0 in the entity definitions
       styles:
         stroke-width: 2         # Set stroke width using CSS attribute
-      color_stop:               # Use of color stop: color of circle depends on state
+      color_stops:               # Use of color stop: color of circle depends on state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -116,7 +116,7 @@ Shapes can also be connected to an entity by using `entity_index`. This allows c
       entity_index: 0           # connect to state of entity 0
       styles:
         stroke-width: 2         # Set stroke width using CSS attribute
-      color_stop:               # Use of color stop: color of circle depends on state
+      color_stops:               # Use of color stop: color of circle depends on state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -144,7 +144,7 @@ Shapes can also be connected to an entity by using `entity_index`. This allows c
       entity_index: 0           # connect to state of entity 0
       styles:
         stroke-width: 2         # Set stroke width using CSS attribute
-      color_stop:               # Use of color stop: color of circle depends on state
+      color_stops:               # Use of color stop: color of circle depends on state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -160,70 +160,70 @@ The required fields depend on the shape type. Rectangles use fixed dimensions or
 
 === "Rectangle"
 
-    | Field | Required | Description |
-    | :---- | :------: | :---------- |
-    | `xpos` | Fixed only | X position of the rectangle center |
-    | `ypos` | Fixed only | Y position of the rectangle center |
-    | `width` | Fixed only | Rectangle width |
-    | `height` | Fixed only | Rectangle height |
-    | `fit.section` | Fit only | Section containing the referenced item: `states`, `names`, or `areas` |
-    | `fit.item_id` | Fit only | `id` of the referenced item |
-    | `fit.padding.x` | :material-close: | Horizontal padding around the measured item. Default: `1.5` |
-    | `fit.padding.y` | :material-close: | Vertical padding around the measured item. Default: `0.5` |
-    | `radius` | :material-close: | Corner radius. Default: `0` |
-    | `entity_index` | :material-close: | Index in the `entities` section |
-    | `styles` | :material-close: | CSS style definitions |
-    | `color_stops` | :material-close: | Color stops used to set the fill color based on the entity state |
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | Fixed only | | X position of the rectangle center |
+    | `ypos` | Fixed only | | Y position of the rectangle center |
+    | `width` | Fixed only | | Rectangle width |
+    | `height` | Fixed only | | Rectangle height |
+    | `fit.section` | Fit only | | Section containing the referenced item: `states`, `names`, or `areas` |
+    | `fit.item_id` | Fit only | | `id` of the referenced item |
+    | `fit.padding.x` | :material-close: | `1.5` | Horizontal padding around the measured item |
+    | `fit.padding.y` | :material-close: | `0.5` | Vertical padding around the measured item |
+    | `radius` | :material-close: | `0` | Corner radius |
+    | `entity_index` | :material-close: | Not set | Index in the `entities` section |
+    | `styles` | :material-close: | `fill: var(--primary-background-color); stroke: none; stroke-width: 0` | CSS style definitions |
+    | `color_stops` | :material-close: | Not set | Color stops used to set the fill color based on the entity state |
 
     !!! note
         Use either `xpos`, `ypos`, `width`, and `height`, or use `fit`. A fitted rectangle obtains all four geometry values from the referenced item.
 
 === "Circle"
 
-    | Field | Required | Description |
-    | :---- | :------: | :---------- |
-    | `xpos` | :material-check: | X position on the 100x100 card canvas |
-    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
-    | `radius` | :material-check: | Circle radius in pixels |
-    | `radius_percent` | :material-check: | Circle radius as a percentage |
-    | `entity_index` | :material-close: | Index in the `entities` section |
-    | `styles` | :material-close: | CSS style definitions |
-    | `color_stop` | :material-close: | Color stop used to set the shape color based on the entity state |
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-check: | | X position on the 100x100 card canvas |
+    | `ypos` | :material-check: | | Y position on the 100x100 card canvas |
+    | `radius` | One required | `0` | Circle radius in SVG units |
+    | `radius_percent` | One required | Not set | Circle radius using the card percentage scale |
+    | `entity_index` | :material-close: | Not set | Index in the `entities` section |
+    | `styles` | :material-close: | `{}` | CSS style definitions |
+    | `color_stops` | :material-close: | Not set | Color stops used to set the shape color based on the entity state |
 
     !!! note
         Use either `radius` or `radius_percent`.
 
 === "Horizontal Line"
 
-    | Field | Required | Description |
-    | :---- | :------: | :---------- |
-    | `xpos` | :material-check: | X position on the 100x100 card canvas |
-    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
-    | `length` | :material-check: | Length of the horizontal line |
-    | `entity_index` | :material-close: | Index in the `entities` section |
-    | `styles` | :material-close: | CSS style definitions |
-    | `color_stop` | :material-close: | Color stop used to set the line color based on the entity state |
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-close: | `50` | X position on the 100x100 card canvas |
+    | `ypos` | :material-close: | `50` | Y position on the 100x100 card canvas |
+    | `length` | :material-close: | `10` | Length of the horizontal line |
+    | `entity_index` | :material-close: | Not set | Index in the `entities` section |
+    | `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS style definitions |
+    | `color_stops` | :material-close: | Not set | Color stops used to set the line color based on the entity state |
 
 === "Vertical Line"
 
-    | Field | Required | Description |
-    | :---- | :------: | :---------- |
-    | `xpos` | :material-check: | X position on the 100x100 card canvas |
-    | `ypos` | :material-check: | Y position on the 100x100 card canvas |
-    | `length` | :material-check: | Length of the vertical line |
-    | `entity_index` | :material-close: | Index in the `entities` section |
-    | `styles` | :material-close: | CSS style definitions |
-    | `color_stop` | :material-close: | Color stop used to set the line color based on the entity state |
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-close: | `50` | X position on the 100x100 card canvas |
+    | `ypos` | :material-close: | `50` | Y position on the 100x100 card canvas |
+    | `length` | :material-close: | `10` | Length of the vertical line |
+    | `entity_index` | :material-close: | Not set | Index in the `entities` section |
+    | `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS style definitions |
+    | `color_stops` | :material-close: | Not set | Color stops used to set the line color based on the entity state |
 
 ### Shared fields
 
 These fields can be used with rectangles, circles, horizontal lines, and vertical lines.
 
-| Field | Required | Description |
-| :---- | :------: | :---------- |
-| `id` | :material-close: | Optional unique id within the section, used by `same_as` |
-| `group` | :material-close: | Group this visual shape belongs to |
-| `same_as*` | :material-close: | Reuse another item from the same section. See the `same_as` documentation |
+| Field | Required | Default | Description |
+| :---- | :------: | :------ | :---------- |
+| `id` | :material-close: | Not set | Optional unique id within the section, used by `same_as` |
+| `group` | :material-close: | `card` | Group this visual shape belongs to |
+| `same_as*` | :material-close: | Not set | Reuse another item from the same section. See the `same_as` documentation |
 
 ## :material-horseshoe: Styling
 
