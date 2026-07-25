@@ -30,6 +30,7 @@ Sub-hour intervals use the same principle. They are aligned from a natural local
 ## Bin Compatibility
 
 Every rendered tick must also correspond to a valid bin boundary. The selected label interval therefore needs to be compatible with the configured bin duration.
+The bin duration is derived from `bins.per_hour`. Because bins divide a complete hour, every whole local hour is always a valid boundary. For sub-hour labels, retain the automatically selected interval when it is an exact multiple of the bin duration. Otherwise, select the next interval from the existing automatic interval list that is compatible. `state_bands` has no bins and therefore uses the automatically selected interval directly.
 
 For two-minute bins:
 
@@ -38,6 +39,19 @@ For two-minute bins:
 - Every whole hour is a valid tick.
 
 If the initially selected nice interval is not compatible with the bin duration, choose the next suitable nice interval that is compatible. Do not shift the complete tick sequence to the timestamp of the first bin.
+This compatibility adjustment is the only permitted change to interval density. The existing label-width calculation, maximum-label calculation, interval candidates, visible range and timestamp-to-X conversion remain unchanged.
+
+## Local Calendar Alignment
+
+Generate the tick phase from local calendar boundaries after the interval has been selected:
+
+- Sub-hour intervals are divided from a local whole-hour boundary.
+- Intervals from one hour through less than one day are divided from local `00:00`.
+- Daily and multi-day intervals use local date boundaries.
+- The month-sized interval uses local month boundaries.
+- The first rendered tick is the first aligned timestamp at or after the visible range start. A non-aligned range start does not receive an artificial tick.
+
+Build sub-day tick slots per local calendar day instead of repeatedly adding elapsed milliseconds from a single epoch anchor. This makes every new local day start at `00:00` and prevents a daylight-saving transition from shifting all subsequent labels by an hour. If JavaScript date normalization maps two requested wall-clock slots to the same timestamp around a daylight-saving transition, render that timestamp only once.
 
 ## Label Formatting
 
@@ -58,7 +72,7 @@ The processing order is:
 
 1. Determine the visible time range.
 2. Select the automatic interval from duration, graph width, and formatted label width.
-3. Adjust the interval when necessary so it is compatible with the bin duration.
+3. For binned chart types, adjust the interval when necessary so it is compatible with `bins.per_hour`.
 4. Anchor the tick sequence to local `00:00` or a natural local sub-hour boundary.
 5. Select the first anchored tick at or after the visible range start.
 6. Generate the remaining ticks with the selected interval.
@@ -66,6 +80,11 @@ The processing order is:
 8. Format local midnight as a date and all other ticks as times.
 
 Chart renderers consume the generated ticks. They must not independently calculate, shift, or reformat X-axis timestamps.
+`SparklineGraph.calculateXAxisGeometry()` remains the owner of the generated tick timestamps and X positions. `SparklineGraphTool.buildXAxisTicks()` only formats and forwards those engine ticks. Grid lines, tickmarks and labels therefore continue to consume one shared geometry source.
+
+## Public Configuration
+
+No new public configuration is introduced. Existing period settings, `bins.per_hour`, locale settings and automatic X-axis behavior remain the complete input.
 
 ## Verification
 
