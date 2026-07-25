@@ -10,22 +10,22 @@ tags:
 
 # Sparkline history periods and bins
 
-The period defines which time range a sparkline represents. Bins divide that range into regular intervals, and the selected aggregate function converts the states inside each bin into the value rendered by the graph.
+The period selects the time range shown by a sparkline. Bins control the level of detail by dividing that range into equal time intervals. The aggregate function determines whether each interval shows its average, minimum, maximum, or another supported value.
 
 Set `period.type` to the time range you want to show and configure its matching block.
 
 ## :material-horseshoe: Period types
 
-| Type | History behavior | Range behavior |
-| :--- | :--------------- | :------------- |
-| `real_time` | Uses one current value without loading history. | Displays a single live state. |
-| `rolling_window` | Loads recent history and appends current state updates. | Moves forward with the current time and current bin. |
-| `calendar` with `offset: 0` | Loads the active calendar range and appends current state updates. | The axis represents the complete calendar range; graph data stops at the current bin. |
-| `calendar` with a negative offset | Loads a closed historical calendar range. | Remains static until the calendar date changes or the card reconnects. |
+| Type | Use | What you see |
+| :--- | :-- | :----------- |
+| `real_time` | Show only the latest value. | A single live state without a timeline. |
+| `rolling_window` | Follow the most recent configured duration. | The complete range moves forward with the current time. |
+| `calendar` with `offset: 0` | Follow the active calendar period. | The axis shows the complete period and values continue up to the current time interval. |
+| `calendar` with a negative offset | Show a completed calendar period. | The selected historical period remains unchanged until the calendar date changes. |
 
 ## :material-horseshoe: Realtime
 
-Realtime mode displays one current value and does not build a historical time series. Use it only with chart types that can represent a single live state.
+Realtime mode shows only the latest value and has no timeline. Use it only with chart types that can represent a single live state.
 
 ```yaml linenums="1"
 period:
@@ -52,7 +52,7 @@ This example creates half-hour bins across the latest 24 hours. As time advances
 
 ## :material-horseshoe: Calendar range
 
-Calendar mode aligns the period to calendar boundaries instead of subtracting a duration directly from the current time.
+Calendar mode starts and ends at calendar boundaries, such as local midnight for a day.
 
 ```yaml linenums="1"
 period:
@@ -66,7 +66,7 @@ period:
       per_hour: 2
 ```
 
-For the current day, the X-axis covers the complete day. The graph and its data bins stop at the current half-hour bin until later bins become active.
+For the current day, the X-axis covers the complete day. Values continue up to the current half-hour interval as the day progresses.
 
 Set a negative offset to display a completed calendar period:
 
@@ -82,7 +82,7 @@ period:
       per_hour: 2
 ```
 
-Current entity states are not appended to a closed historical range. When the local date changes, the requested offset points to a different calendar day and the history is loaded again.
+A completed calendar period remains unchanged during the day. When the local date changes, the same offset selects the next corresponding calendar period.
 
 ## :material-horseshoe: Duration
 
@@ -106,9 +106,9 @@ More bins preserve shorter peaks and dips but produce a denser graph. Fewer bins
 
 ### State bands and bins
 
-The `state_bands` chart retains exact state-change timestamps instead of aggregating states into bins. Its segments therefore start and end at the actual history transitions, regardless of the configured bin density.
+The `state_bands` chart shows the actual times at which the entity changed state. Its segments are therefore not affected by the configured number of bins.
 
-`state_bands.update_interval` controls how often an unchanged current state visually advances towards the current time. This refresh does not create another state transition and does not repeatedly fetch history.
+`state_bands.update_interval` controls how often the end of an unchanged current state advances towards the current time.
 
 ## :material-horseshoe: Aggregation
 
@@ -116,9 +116,9 @@ Configure averaging and value handling under `state_values`.
 
 | Field | Default | Description |
 | :---- | :------ | :---------- |
-| `aggregate_func` | `avg` | Value calculated from the states in each bin. |
+| `aggregate_func` | `avg` | Selects the value shown for each time interval. |
 | `value_factor` | `0` | Optional value multiplier used by the graph. |
-| `smoothing` | `true` | Smooths applicable line and area paths. |
+| `smoothing` | `true` | Uses smooth connections for line and area charts. |
 | `logarithmic` | `false` | Uses a logarithmic Y scale for applicable charts. |
 
 ```yaml linenums="1"
@@ -129,25 +129,25 @@ sparkline:
     logarithmic: false
 ```
 
-The bin also retains minimum, average, and maximum statistics for the tooltip and derived FHS entities.
+The tooltip and derived FHS entities use the minimum, average, and maximum values from the selected time interval.
 
 ## :material-horseshoe: Empty and active bins
 
-When no measurement has arrived in the current bin, its tooltip values remain empty. A line can visually continue from the previous point, but that visual continuation is not counted as a measurement.
+An interval without measurements has no minimum, average, or maximum tooltip values, even when the line appears continuous.
 
-Rolling-window graphs and current calendar graphs update automatically when Home Assistant supplies a new state. The graph, tooltip, and minimum, average, and maximum values then show the updated current bin.
+Rolling-window graphs and current calendar graphs update automatically when Home Assistant supplies a new state. The graph, tooltip, and minimum, average, and maximum values then show the updated current time interval.
 
 ## :material-horseshoe: Time zones and boundaries
 
-Home Assistant stores history timestamps in UTC, but the graph displays dates and times in the local Home Assistant or browser time zone. Midnight therefore represents the local day transition.
+Dates and times follow the local Home Assistant or browser time zone. Midnight therefore represents the local day transition.
 
-Rolling-window bins follow the moving time range. Calendar bins follow the selected local day. For the current day, the X-axis already shows the complete day even though later parts do not contain data yet.
+A rolling window follows the moving time range. A calendar graph follows the selected local day. For the current day, the X-axis already shows the complete day even though later parts do not contain data yet.
 
 ## :material-horseshoe: When history updates
 
-History is loaded when the card opens. Current periods continue to update with new Home Assistant states and advance when a new bin begins.
+When the card opens, the graph shows the selected period. Current periods continue to update with new Home Assistant states and advance when a new time interval begins.
 
-A completed calendar period remains unchanged during the day. At the next local day transition, an offset such as `-1` refers to a new date and the graph loads that day. Returning to a view after it has been inactive also refreshes the graph when its requested period has changed.
+A completed calendar period remains unchanged during the day. At the next local day transition, an offset such as `-1` refers to a new date and the graph shows that day. Returning to a view after it has been inactive also refreshes the graph when its requested period has changed.
 
 ## :material-horseshoe: Related documentation
 

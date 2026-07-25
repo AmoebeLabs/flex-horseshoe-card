@@ -122,7 +122,7 @@ The configured color-stop ranks determine the visible grade and its color. Use c
 
 ### Basic usage
 
-A state bands chart displays every mapped entity state on its own row. The horizontal length of a segment shows how long that state remained active. Rounded connections make transitions between rows visible without changing the foreground segments.
+A state bands chart displays every mapped entity state on its own row. The horizontal length of a segment shows how long that state remained active. Rounded connections make the transition flow between rows easily visible.
 
 | State bands chart |
 | :-:|
@@ -172,8 +172,6 @@ sparkline:
 ```
 
 The `value` determines the vertical row and selects the matching color stop. Omit `label` to use the translated Home Assistant state label where one is available. State bands always use discrete colors; smooth color interpolation does not apply.
-
-The configured history period determines the visible X range. State changes retain their exact timestamps instead of being aggregated into display bins. The current state extends the latest segment, and repeated updates with the same state do not create duplicate segments.
 
 ### Configuration fields
 

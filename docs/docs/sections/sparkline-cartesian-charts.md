@@ -10,7 +10,7 @@ tags:
 
 # Sparkline Cartesian charts and automatic axes
 
-Line, area, and bar charts show time horizontally and sensor values vertically. Select the history period and number of bins first, and then choose how those bins should be displayed. The scale, grid, ticks, and labels are selected automatically for the configured graph size and visible values.
+Line, area, dots, and bar charts show time horizontally and sensor values vertically. Select the history period and number of bins first, and then choose how those bins should be displayed. The scale, grid, ticks, and labels are selected automatically for the configured graph size and visible values.
 
 The Y-axis follows the values that are visible in the selected chart. Increasing the number of bins can expose shorter peaks and may therefore produce a different Y range. A nearly constant series receives a finer scale, while sudden peaks or dips expand the range.
 
@@ -20,13 +20,13 @@ The X-axis follows the configured period:
 - A current calendar period covers the complete calendar range while the graph grows up to the current bin.
 - Local midnight is shown as a date; other ticks use the appropriate local time format.
 
-Move the pointer or a finger across a supported chart to inspect the nearest bin. The tooltip shows the bin date or time and the formatted minimum, average, and maximum values.
+Move the pointer or a finger across a supported chart to inspect the nearest time interval. The tooltip shows the date or time and the formatted minimum, average, and maximum values.
 
 ## :material-horseshoe: Line chart
 
 ### Basic usage
 
-A line chart connects the aggregate value of each populated bin. It is useful for displaying a compact trend while keeping individual changes visible.
+A line chart connects sensor values over time. Use it to show trends while keeping changes in direction easy to see.
 
 ```yaml linenums="1"
 sparkline:
@@ -38,7 +38,7 @@ sparkline:
     line: true
 ```
 
-Enable points when the individual bins should remain visible:
+Enable points to mark the individual values along the line:
 
 ```yaml linenums="1"
 sparkline:
@@ -53,17 +53,17 @@ sparkline:
 | Field | Required | Description |
 | :---- | :------: | :---------- |
 | `show.chart_type` | :material-check: | Use `line` to select the line chart. |
-| `show.line` | :material-close: | Shows or hides the line layer. |
-| `show.points` | :material-close: | Shows one point for each populated bin. |
-| `state_values.aggregate_func` | :material-close: | Selects the value represented by the line. |
-| `state_values.smoothing` | :material-close: | Selects smooth or straight connections between bins. |
+| `show.line` | :material-close: | Shows or hides the line. |
+| `show.points` | :material-close: | Shows a point for each displayed time interval. |
+| `state_values.aggregate_func` | :material-close: | Selects which value is shown for each time interval. |
+| `state_values.smoothing` | :material-close: | Selects smooth or straight connections between values. |
 | `line.show_dots` | :material-close: | Shows dots as part of the line configuration. |
 | `line.line_width` | :material-close: | Sets the width of the line. |
 | `line.styles` | :material-close: | Applies SVG styles to the line. |
 
 ### Styling
 
-Use `line.styles` to style the path:
+Use `line.styles` to change the line appearance:
 
 ```yaml linenums="1"
 line:
@@ -92,7 +92,7 @@ Point size and appearance can be configured with the applicable point or dot set
 
 ### Basic usage
 
-An area chart uses the same aggregate path as a line chart and fills the space between that path and the graph baseline.
+An area chart shows sensor history as a filled graph. Use it when the size and direction of changes should stand out more clearly than with a line alone.
 
 | Area Day Chart | Area Week Chart with min/max values |
 |:-:|:-:|
@@ -110,19 +110,19 @@ sparkline:
     fill: fade
 ```
 
-Line and area charts can also display the minimum and maximum range of every bin. The automatic Y-axis includes those values so that the complete visible range remains inside the graph.
+Line and area charts can also show the lowest and highest values in each time interval. The automatic Y-axis adjusts to keep the complete visible range inside the graph.
 
 ### Configuration fields
 
 | Field | Required | Description |
 | :---- | :------: | :---------- |
 | `show.chart_type` | :material-check: | Use `area` to select the area chart. |
-| `show.line` | :material-close: | Shows the aggregate line above the area. |
-| `show.area` | :material-close: | Shows the filled area layer. |
+| `show.line` | :material-close: | Shows the line above the filled area. |
+| `show.area` | :material-close: | Shows the filled area. |
 | `show.fill` | :material-close: | Selects the applicable fill behavior, including `fade`. |
-| `show.points` | :material-close: | Shows one point for each populated bin. |
-| `state_values.aggregate_func` | :material-close: | Selects the value represented by the area boundary. |
-| `state_values.smoothing` | :material-close: | Selects a smooth or straight area boundary. |
+| `show.points` | :material-close: | Shows a point for each displayed time interval. |
+| `state_values.aggregate_func` | :material-close: | Selects which value is shown for each time interval. |
+| `state_values.smoothing` | :material-close: | Selects smooth or straight connections between values. |
 | `area.show_dots` | :material-close: | Shows dots as part of the area configuration. |
 | `area.styles` | :material-close: | Applies SVG styles to the area. |
 
@@ -154,11 +154,11 @@ area:
 
 ### Basic usage
 
-A dots chart shows the aggregate value of every populated bin as a separate point without connecting those points with a line.
+A dots chart shows individual values as separate points. Use it to see changes and outliers without connecting the values with a line.
 
 | Dots chart |
 | :-:|
-| ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp){width=300} |
+| ![Flexible Horseshoe Card - Sparkline Dots Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp){width=300} |
 
 ```yaml linenums="1"
 sparkline:
@@ -175,13 +175,13 @@ Use `show.points` when points should be added to a line or area chart instead of
 | Field | Required | Description |
 | :---- | :------: | :---------- |
 | `show.chart_type` | :material-check: | Use `dots` to select the standalone dots chart. |
-| `state_values.aggregate_func` | :material-close: | Selects the value represented by every dot. |
+| `state_values.aggregate_func` | :material-close: | Selects which value is shown for each time interval. |
 | `line_color` | :material-close: | Defines the dot colors when no entity color or color stop applies. |
 | `color_stops` | :material-close: | Defines value-based dot colors. |
 
 ### Styling
 
-The dedicated dots styling fields will be documented together with the FHS software integration. Points added to line or area charts continue to use their existing point and dot settings.
+Use `line_color` to set a fixed color, or use `color_stops` to color each dot according to its value.
 
 ### Axes, grid, labels, and tooltip
 
@@ -198,7 +198,7 @@ The dedicated dots styling fields will be documented together with the FHS softw
 
 ### Basic usage
 
-A bar chart shows one centered bar for every populated bin. More bins produce narrower bars; fewer bins produce wider bars.
+A bar chart shows sensor values as separate vertical bars. More time intervals produce narrower bars; fewer intervals produce wider bars.
 
 | Bar chart |
 | :-:|
@@ -214,20 +214,20 @@ sparkline:
     column_spacing: 1
 ```
 
-The center of each bar uses the same X position as its time bin and tooltip. Bars can extend above or below zero when the visible range contains negative values.
+Bars can extend above or below zero when the selected history contains negative values.
 
 ### Configuration fields
 
 | Field | Required | Description |
 | :---- | :------: | :---------- |
 | `show.chart_type` | :material-check: | Use `bar` to select the bar chart. |
-| `state_values.aggregate_func` | :material-close: | Selects the value represented by each bar. |
+| `state_values.aggregate_func` | :material-close: | Selects which value is shown for each time interval. |
 | `bar.column_spacing` | :material-close: | Sets the space between adjacent bars. |
 | `bar.styles` | :material-close: | Applies SVG styles to the bars. |
 
 ### Styling
 
-Bar colors can use the configured line colors, entity color, or color stops. Use `bar.styles` for additional SVG presentation.
+Bar colors can use the configured line colors, entity color, or color stops. Use `bar.styles` to change the appearance of the bars.
 
 ### Axes, grid, labels, and tooltip
 
