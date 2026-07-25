@@ -565,7 +565,7 @@ export default class SparklineGraphTool extends BaseTool {
     const yLabelOffset = showYLabels ? Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : 0;
     const xFontSize = this.resolveAxisFontSizePixels('x', FONT_SIZE);
     const yFontSize = this.resolveAxisFontSizePixels('y', FONT_SIZE);
-    const xFontHeight = xFontSize * 0.85;
+    const xFontHeight = xFontSize;
     const yFontHeight = yFontSize * 0.85;
     const yLabels = this.buildYAxisTicks('major').map((tick) => tick.label);
     const yLabelLength = yLabels.reduce((length, label) => Math.max(length, label.length), 0);
@@ -697,16 +697,8 @@ export default class SparklineGraphTool extends BaseTool {
           };
           const formattedState = this.card._hass.formatEntityState?.(entity, state);
           const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
-          const computedState = computeStateDisplay(
-            this.card._hass.localize,
-            stateEntity,
-            this.card._hass.locale,
-            [],
-            this.card._hass.config,
-            this.card._hass.entities,
-          );
-          const displayLabel =
-            [formattedState, formattedStateEntity, computedState].find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
+          const computedState = computeStateDisplay(this.card._hass.localize, stateEntity, this.card._hass.locale, [], this.card._hass.config, this.card._hass.entities);
+          const displayLabel = [formattedState, formattedStateEntity, computedState].find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
 
           return {
             ...entry,
@@ -858,8 +850,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     // State bands have no buckets. Their timer only advances the exact current
     // data end; all other chart types retain their normal bin-boundary timing.
-    const bucketMs =
-      this.config.sparkline.show.chart_type === 'state_bands' ? this.getRefreshIntervalMs(this.config.sparkline.state_bands.update_interval) : (60 / this.Graph.points) * 60 * 1000;
+    const bucketMs = this.config.sparkline.show.chart_type === 'state_bands' ? this.getRefreshIntervalMs(this.config.sparkline.state_bands.update_interval) : (60 / this.Graph.points) * 60 * 1000;
     const now = Date.now();
     const delay = bucketMs - (now % bucketMs) + 10;
 
@@ -2256,7 +2247,6 @@ export default class SparklineGraphTool extends BaseTool {
           const svgBox = this.elements.svg.getBoundingClientRect();
           const scaleX = svgBox.width / this.svg.width;
           const scaleY = svgBox.height / this.svg.height;
-          // const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
           // FIXED: Restored your exact original array coordinate lookups ([1][0] and [0][0])
           const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
           this.elements.tooltipBounds = {
@@ -2444,7 +2434,7 @@ export default class SparklineGraphTool extends BaseTool {
         const svgBox = this.elements.svg.getBoundingClientRect();
         const scaleX = svgBox.width / this.svg.width;
         const scaleY = svgBox.height / this.svg.height;
-        const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords - this.Graph.coords) * scaleX) / 2 : 12;
+        const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
         this.elements.tooltipBounds = {
           left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
           top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
@@ -2945,11 +2935,9 @@ export default class SparklineGraphTool extends BaseTool {
       // @NTS: Keep this comment for later!!
       // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
       window.addEventListener('pointermove', pointerMove.bind(this), false);
-      // eslint-disable-next-line no-use-before-define
       window.addEventListener('pointerup', pointerUp.bind(this), false);
       // eslint-disable-next-line no-use-before-define
       window.addEventListener('touchmove', touchMove.bind(this), { passive: false });
-      // eslint-disable-next-line no-use-before-define
       // this.elements.svg.addEventListener('touchmove', touchMove.bind(this), { passive: false });
       window.addEventListener('touchend', barCodeLeave.bind(this), false);
 
@@ -4275,7 +4263,9 @@ export default class SparklineGraphTool extends BaseTool {
           stroke-width='0'
           opacity='0'
         ></rect>
-        ${this.stateBands.map((row) => row.segments.map((segment) => {
+        ${this.stateBands.map((row) =>
+          // eslint-disable-next-line @stylistic/implicit-arrow-linebreak
+          row.segments.map((segment) => {
             const color = this.computeColor(segment.value, this.entity_index);
             const segmentStyles = {
               ...configuredStyles,
@@ -4298,8 +4288,9 @@ export default class SparklineGraphTool extends BaseTool {
                 ry=${Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius)}
                 style=${styleMap(segmentStyles)}
               >
-                ${animate
-                  ? svg`
+                ${
+                  animate
+                    ? svg`
                     <animate
                       attributeName='width'
                       from='0'
@@ -4314,7 +4305,8 @@ export default class SparklineGraphTool extends BaseTool {
                       keySplines='0.215 0.61 0.355 1'
                     ></animate>
                   `
-                  : ''}
+                    : ''
+                }
               </rect>
             `;
           }),
@@ -4862,9 +4854,7 @@ export default class SparklineGraphTool extends BaseTool {
           <g transform="translate(0 ${this.animationBaselineY})">
             <g>
               ${
-                this.config.sparkline.animate &&
-                ['line', 'area'].includes(this.config.sparkline.show.chart_type) &&
-                (this.config.period.type === 'real_time' || this.historySeries)
+                this.config.sparkline.animate && ['line', 'area'].includes(this.config.sparkline.show.chart_type) && (this.config.period.type === 'real_time' || this.historySeries)
                   ? svg`
                 <animateTransform
                   attributeName='transform'
