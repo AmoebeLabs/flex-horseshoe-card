@@ -12,6 +12,12 @@ tags:
 
 The sparkline section shows Home Assistant state history as a compact graph inside the card layout. Choose the time period, the amount of detail, and a chart type that suits the sensor. Axes, grid lines, labels, points, colors, and an interactive tooltip can then be shown as needed.
 
+| Area | Barcode - Audio | Bars |
+| :-:| :-:| :-:|
+|  ![Flexible Horseshoe Card - Sparkline Area Chart](../assets/screenshots/fhs-demo-card-area-study-score--dark.webp) | ![Flexible Horseshoe Card - Sparkline Barcode Chart](../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp) | ![Flexible Horseshoe Card - Sparkline Bars Chart](../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp) |
+| Dots | Equalizer | State band |
+| ![Flexible Horseshoe Card - Sparkline Dots Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp) | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp) | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp) |
+
 ## :material-horseshoe: Basic usage
 
 Add graphs to `layout.sparklines` and connect each graph to an entity with `entity_index`.
