@@ -1,23 +1,24 @@
 ---
 template: main.html
-title: Reusing Section Parts
-description: Brrrrrr.
+title: Reusing Section Items
+description: Reuse earlier layout items with `same_as`, override selected fields, apply numeric deltas, and combine reuse with static `calc()` expressions.
 tags:
-  - Reuse
+- Reuse
 ---
 
+# Reusing section items
 
-##:material-horseshoe: Reusing items with `same_as`
+The `same_as` option lets an item inherit the configuration of an earlier item from the same section.
 
-The `same_as` option lets you reuse an earlier item from the same section.
+This is useful when several items share the same position, styling, dimensions, or nested configuration but differ in only a few fields. Instead of repeating the full definition, create one base item and reuse it.
 
-This is useful when multiple items share the same configuration, but only differ in a few fields. Instead of repeating the full configuration, define one base item and reuse it.
+The card resolves `same_as` while processing the configuration. Before rendering, every reused item becomes a complete item with all inherited and overridden values applied.
 
-YAML itself does not provide this kind of item reuse. The card resolves `same_as` during config setup. Internally, every reused item becomes a complete item before rendering.
+## :material-horseshoe: Basic example
 
-##:material-horseshoe: Basic example
+The example below defines one horizontal line and reuses it twice. Each reused line keeps the original position, length, and style, but replaces `ypos`.
 
-```yaml
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -35,18 +36,17 @@ hlines:
     ypos: 86
 ```
 
-This means:
+The relationship between the items is:
 
-| Item     | Description                          |
-| :------- | :----------------------------------- |
-| `first`  | Full base item                       |
-| `second` | Copies `first`, but overrides `ypos` |
-| `third`  | Copies `first`, but overrides `ypos` |
+| Item     | Description                                   |
+| :------- | :-------------------------------------------- |
+| `first`  | Defines the complete base item.               |
+| `second` | Reuses `first` and replaces `ypos` with `75`. |
+| `third`  | Reuses `first` and replaces `ypos` with `86`. |
 
+The resolved configuration is equivalent to:
 
-Internally this becomes:
-
-```yaml
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -68,13 +68,15 @@ hlines:
     length: 85
     styles:
       - stroke: var(--disabled-text-color)
-```      
+```
 
-Auto-generated ids
+The written YAML stays compact, while each resolved item still contains the complete configuration required for rendering.
 
-If no id is defined, the card assigns one automatically based on the item index.
+## :material-horseshoe: Automatic IDs
 
-```yaml
+When an item does not define an `id`, the card assigns one from its position in the list.
+
+```yaml linenums="1"
 hlines:
   - xpos: 50
     ypos: 64
@@ -85,11 +87,11 @@ hlines:
 
   - same_as: 0
     ypos: 86
-```    
+```
 
-This is resolved as if the config had these ids:
+This behaves as though the items had the following identifiers:
 
-```yaml
+```yaml linenums="1"
 hlines:
   - id: "0"
     xpos: 50
@@ -105,13 +107,15 @@ hlines:
     ypos: 86
 ```
 
-same_as: 0 and same_as: "0" both refer to the item with id "0".
+Both `same_as: 0` and `same_as: "0"` refer to the item with the generated ID `"0"`.
 
-Overriding fields
+Automatic IDs are convenient for short configurations. Named IDs are usually easier to follow in larger layouts and remain clearer when items are reordered.
 
-A reused item can override any field from the base item.
+## :material-horseshoe: Overriding inherited fields
 
-```yaml
+A reused item can replace any field inherited from its base item.
+
+```yaml linenums="1"
 circles:
   - id: base
     xpos: 50
@@ -127,32 +131,32 @@ circles:
     styles:
       - fill: none
       - stroke: blue
-```      
+```
 
-The smaller circle copies xpos and ypos from base, but changes radius and styles.
+The `smaller` circle inherits `xpos` and `ypos` from `base`, but uses its own radius and styles.
 
-Delta fields
+Fields defined on the reused item take precedence over the corresponding fields inherited from the base item.
 
-For numeric values, you can use delta fields.
+## :material-horseshoe: Delta fields
 
-Delta fields use this pattern:
+For numeric values, delta fields can express the difference from the inherited value without replacing it directly.
+
+Delta fields follow this pattern:
 
 ```yaml
 same_as_d<field>: <number>
 ```
 
-The delta is added to the inherited value.
+The card adds the delta to the inherited value of the matching field.
 
-| Delta field       | Target field | Meaning                   |
-| :---------------- | :----------- | :------------------------ |
-| `same_as_dxpos`   | `xpos`       | Add to inherited `xpos`   |
-| `same_as_dypos`   | `ypos`       | Add to inherited `ypos`   |
-| `same_as_dlength` | `length`     | Add to inherited `length` |
-| `same_as_dradius` | `radius`     | Add to inherited `radius` |
+| Delta field       | Target field | Meaning                         |
+| :---------------- | :----------- | :------------------------------ |
+| `same_as_dxpos`   | `xpos`       | Adds to the inherited `xpos`.   |
+| `same_as_dypos`   | `ypos`       | Adds to the inherited `ypos`.   |
+| `same_as_dlength` | `length`     | Adds to the inherited `length`. |
+| `same_as_dradius` | `radius`     | Adds to the inherited `radius`. |
 
-Example:
-
-```yaml
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -166,9 +170,9 @@ hlines:
   - id: third
     same_as: first
     same_as_dypos: 22
-```    
+```
 
-Result:
+The resulting positions are:
 
 | Item     | Resulting `ypos` |
 | :------- | :--------------- |
@@ -176,12 +180,15 @@ Result:
 | `second` | `75`             |
 | `third`  | `86`             |
 
-Generic delta fields
+Using delta fields makes the spacing relationship visible in the configuration.
 
-Delta fields are generic.
+## :material-horseshoe: Generic delta fields
 
-This means same_as_d<field> can be used with any numeric field that exists on the reused item.
-```yaml
+The delta pattern is generic. `same_as_d<field>` can be used with any supported numeric field present on the reused item.
+
+The example below creates a smaller circle by subtracting `5` from the inherited radius:
+
+```yaml linenums="1"
 circles:
   - id: outer
     xpos: 50
@@ -191,10 +198,11 @@ circles:
   - id: inner
     same_as: outer
     same_as_dradius: -5
-``` 
+```
 
-Result:
-```yaml
+The resolved result is equivalent to:
+
+```yaml linenums="1"
 circles:
   - id: outer
     xpos: 50
@@ -205,9 +213,11 @@ circles:
     xpos: 50
     ypos: 50
     radius: 35
-``` 
-Another example:
-```yaml
+```
+
+The same approach can adjust a line length:
+
+```yaml linenums="1"
 hlines:
   - id: base
     xpos: 50
@@ -217,9 +227,11 @@ hlines:
   - id: shorter
     same_as: base
     same_as_dlength: -10
-``` 
-Result:
-```yaml
+```
+
+This resolves to:
+
+```yaml linenums="1"
 hlines:
   - id: base
     xpos: 50
@@ -230,12 +242,13 @@ hlines:
     xpos: 50
     ypos: 64
     length: 75
-``` 
-Chained reuse
+```
 
-A reused item can itself be reused by a later item.
+## :material-horseshoe: Chained reuse
 
-```yaml
+A reused item can serve as the base for a later item.
+
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -249,15 +262,14 @@ hlines:
   - id: third
     same_as: second
     same_as_dypos: 11
-``` 
-This means:
+```
 
-``` 
+In this pattern, every item continues from the resolved result of the previous one:
+
+```text
 second = first + 11
 third  = second + 11
 ```
-
-Result:
 
 | Item     | Resulting `ypos` |
 | :------- | :--------------- |
@@ -265,12 +277,13 @@ Result:
 | `second` | `75`             |
 | `third`  | `86`             |
 
+Chaining works well when each item naturally builds on the one before it.
 
-Reusing the same base item
+## :material-horseshoe: Reusing the same base item
 
-Instead of chaining, you can also reuse the same base item multiple times.
+Instead of chaining, each reused item can refer directly to the same base item.
 
-```yaml
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -285,16 +298,21 @@ hlines:
     same_as: first
     same_as_dypos: 22
 ```
-This means:
-```
+
+This pattern means:
+
+```text
 second = first + 11
 third  = first + 22
 ```
 
-Combining same_as with calc()
+Using one shared base item is often clearer when every copy follows a fixed spacing pattern from the same origin.
 
-Delta fields can also use static calc() expressions.
-```yaml
+## :material-horseshoe: Combining `same_as` with `calc()`
+
+Delta fields can also use static `calc()` expressions.
+
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -310,39 +328,63 @@ hlines:
     same_as_dypos: calc(2 * 11)
 ```
 
+The card resolves the calculations as follows:
+
 | Item     | Calculation                | Result       |
 | :------- | :------------------------- | :----------- |
 | `first`  | `length: calc(4 * 20 + 5)` | `length: 85` |
 | `second` | `64 + calc(1 * 11)`        | `ypos: 75`   |
 | `third`  | `64 + calc(2 * 11)`        | `ypos: 86`   |
 
+`calc()` is evaluated while the configuration is processed. It is static and is not reevaluated during entity updates.
 
-##:material-horseshoe: Supported sections
+See [Combining `calc()` with `same_as`](reuse-calc-same-as.md) for more detailed examples.
 
-same_as can be used in layout item sections such as:
+## :material-horseshoe: Supported sections
 
-| Section      | Example use                       |
-| :----------- | :-------------------------------- |
-| `horseshoes` | Reuse horseshoe settings          |
-| `states`     | Reuse state text positions/styles |
-| `names`      | Reuse name label positions/styles |
-| `areas`      | Reuse area definitions            |
-| `circles`    | Reuse circle positions/styles     |
-| `hlines`     | Reuse horizontal line settings    |
-| `vlines`     | Reuse vertical line settings      |
-| `icons`      | Reuse icon positions/styles       |
+`same_as` can be used in layout item sections such as:
 
+| Section      | Typical use                                                    |
+| :----------- | :------------------------------------------------------------- |
+| `horseshoes` | Reuse horseshoe geometry, scale settings, styling, and labels. |
+| `states`     | Reuse state positions and text styles.                         |
+| `names`      | Reuse name positions and text styles.                          |
+| `areas`      | Reuse area definitions.                                        |
+| `circles`    | Reuse circle positions, dimensions, and styles.                |
+| `hlines`     | Reuse horizontal line geometry and styles.                     |
+| `vlines`     | Reuse vertical line geometry and styles.                       |
+| `icons`      | Reuse icon positions, sizing, and styles.                      |
 
-Rules
+The referenced item must always belong to the same section as the reused item.
 
-| Rule                                      | Description                                                        |
-| :---------------------------------------- | :----------------------------------------------------------------- |
-| Same section only                         | `same_as` can only refer to an item in the same section.           |
-| Earlier items only                        | `same_as` can only refer to an earlier item in the list.           |
-| Id-based lookup                           | `same_as` refers to an item `id`.                                  |
-| Auto ids                                  | If no `id` is defined, the item index is used as string id.        |
-| Overrides are allowed                     | Fields on the reused item override fields from the base item.      |
-| Delta fields are static                   | `same_as_d...` values must resolve to numbers during config setup. |
-| Templates are not allowed in delta fields | Runtime templates are not valid for `same_as_d...`.                |
+## :material-horseshoe: Important rules
 
+| Rule                                | Description                                                                      |
+| :---------------------------------- | :------------------------------------------------------------------------------- |
+| Same section only                   | `same_as` can only refer to an item in the same section.                         |
+| Earlier items only                  | The referenced item must appear earlier in the same list.                        |
+| ID-based lookup                     | `same_as` resolves an item by its `id`.                                          |
+| Automatic IDs                       | When no `id` is defined, the item index is used as a string ID.                  |
+| Overrides are allowed               | Fields on the reused item replace matching fields inherited from the base item.  |
+| Delta fields are static             | `same_as_d...` values must resolve to finite numbers during configuration setup. |
+| Runtime templates are not supported | Templates cannot be used as values for `same_as_d...` fields.                    |
 
+## :material-horseshoe: Choosing a reuse pattern
+
+Use direct overrides when only a few inherited fields need completely different values.
+
+Use delta fields when the relationship between numeric values is more important than the final absolute value.
+
+Use chained reuse when each item should continue from the previous result.
+
+Use one shared base item when every copy follows a fixed pattern from the same origin.
+
+The clearest configuration is usually the one that makes the intended visual relationship easiest to recognize.
+
+## :material-horseshoe: Related documentation
+
+* [Less YAML with Reuse](reuse-introduction.md)
+* [Combining `calc()` with `same_as`](reuse-calc-same-as.md)
+* [Reusable YAML Card Examples](reuse-card-examples.md)
+* [Reuse Reference](reuse-reference.md)
+* [Groups](../sections/groups-section.md)

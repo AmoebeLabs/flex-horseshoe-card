@@ -7,23 +7,20 @@ tags:
   - Palettes
   - Colors
 ---
-
 # External palettes
 
-External palettes let you define reusable color variables in a separate JSON file and load them into the Flexible Horseshoe Card.
+External palettes store reusable color variables in a separate JSON file that the Flexible Horseshoe Card can load.
 
-This is useful when you want a consistent color system across multiple cards, or when you want to keep large color definitions out of your card YAML. A palette can also define different colors for light and dark mode, so your card can adapt to the active Home Assistant theme.
+They are useful when several cards share the same color system or when large color definitions would make the card YAML difficult to read. A palette can also provide separate values for Home Assistant light and dark modes, allowing the card to adapt automatically to the active theme.
 
 ## :material-horseshoe: Basic usage
 
-A palette is defined in the top-level `palettes` section of the card configuration.
+Define external palettes in the top-level `palettes` section of the card configuration.
 
-Each palette has:
+Each entry contains:
 
-- a name
-- a path to a JSON palette file
-
-Example:
+- a palette name;
+- the path to its JSON file.
 
 ```yaml linenums="1"
 palettes:
@@ -34,30 +31,26 @@ In this example:
 
 | Part | Meaning |
 | :--- | :------ |
-| `rainbow` | The palette name |
-| `/local/palettes/rainbow-palette-new.json` | The location of the JSON palette file |
+| `rainbow` | The name used to identify the palette. |
+| `/local/palettes/rainbow-palette-new.json` | The location of the external JSON file. |
 
-The palette file is loaded by the browser. After it has been loaded, the variables from the palette can be used in the card configuration.
+The browser loads the palette file separately. Once available, its variables can be used throughout the card configuration.
 
 !!! info "Palette loading and browser cache"
-    External palettes are loaded separately by the browser. The first time a palette is used, or when it is not yet available in the browser cache, loading can take a short moment.
+    A palette may take a moment to load the first time it is used or after a hard refresh.
 
-    During that time, colors that depend on the palette may temporarily fall back to black or another default value. Once the palette has loaded, the configured colors are applied.
-
-    This usually only affects the first load or a hard refresh.
+    Until loading is complete, colors that depend on the palette may temporarily fall back to black or another default value. The configured colors appear as soon as the palette becomes available.
 
 ## :material-horseshoe: Palette file structure
 
-An external palette is a JSON file with two main parts:
+An external palette contains two main sections:
 
 | Section | Purpose |
 | :------ | :------ |
-| `ref` | Defines the base color references |
-| `modes` | Defines which colors are used in light and dark mode |
+| `ref` | Stores the base color references. |
+| `modes` | Maps palette variables to values for light and dark mode. |
 
-The structure follows the same idea as Home Assistant theme variables: base values are defined once, and mode-specific variables refer to those values.
-
-A simplified palette looks like this:
+This structure follows the same general idea as Home Assistant theme variables: define the base values once, then select suitable values for each display mode.
 
 ```json linenums="1"
 {
@@ -80,41 +73,38 @@ A simplified palette looks like this:
 }
 ```
 
-The `ref` section contains the actual color values. The `modes` section defines the variables that should be used by the card in light and dark mode.
-
+The `ref` section contains the actual color values. The `modes` section defines which references the card should use in light and dark mode.
 
 ## :material-horseshoe: Material Design 3 palette format
 
-The palette structure is based on the Material Design 3 tonal palette idea.
+The palette structure is based on the Material Design 3 tonal palette concept.
 
-In a Material Design 3 palette, each color is available in a range of tonal values, usually named from `0` to `100`. Lower values are darker, higher values are lighter. For example:
+Each color is represented by a range of tonal values, typically numbered from `0` to `100`. Lower values are darker, while higher values are lighter.
 
 | Token | Meaning |
 | :---- | :------ |
-| `fhs-ref-rainbow-red0` | Darkest red tone |
-| `fhs-ref-rainbow-red50` | Mid-range red tone |
-| `fhs-ref-rainbow-red90` | Very light red tone |
-| `fhs-ref-rainbow-red100` | Lightest red tone |
+| `fhs-ref-rainbow-red0` | Darkest red tone. |
+| `fhs-ref-rainbow-red50` | Mid-range red tone. |
+| `fhs-ref-rainbow-red90` | Very light red tone. |
+| `fhs-ref-rainbow-red100` | Lightest red tone. |
 
-The `ref` section stores these tonal values. The `modes` section then chooses which tone should be used for light and dark mode.
+The `ref` section stores these tonal values. The `modes` section then selects which tone should be used for each display mode.
 
-For example, a light theme may use `red50`, while a dark theme may use `red70`. Your card YAML can keep using the same variable name, while the palette decides which actual color fits the active mode.
+For example, a light theme might use `red50`, while a dark theme uses `red70`. The card YAML can continue using the same system variable, while the palette chooses the appropriate underlying color.
 
 ## :material-horseshoe: Creating your own palette
 
-You can create an external palette in different ways.
+You can create an external palette with a dedicated palette generator, a design tool, or an AI assistant.
 
-Previously, tonal palettes like this were usually created with dedicated palette generators or design tools. Those tools are still useful, especially when you want exact Material Design 3 output from a seed color.
+Palette generators are useful when you need precise Material Design 3 tonal output from one or more seed colors. An AI assistant can help produce the required JSON structure, consistent variable names, and separate mappings for light and dark mode.
 
-You can also create a palette with an AI assistant, such as ChatGPT. This can be helpful when you want a palette in the correct JSON structure, with consistent variable names and separate light and dark mode mappings.
+A useful prompt should specify:
 
-A good prompt should include:
-
-- the base colors or seed colors you want to use
-- the palette name or naming prefix
-- whether you want light and dark mode mappings
-- the expected JSON structure with `ref` and `modes`
-- the tone steps you want, such as `0`, `10`, `20`, `30`, `40`, `50`, `60`, `70`, `80`, `90`, `95`, `99`, and `100`
+- the base or seed colors;
+- the palette name or naming prefix;
+- whether light and dark mode mappings are required;
+- the expected `ref` and `modes` structure;
+- the required tone steps, such as `0`, `10`, `20`, `30`, `40`, `50`, `60`, `70`, `80`, `90`, `95`, `99`, and `100`.
 
 Example prompt:
 
@@ -136,14 +126,11 @@ Use this structure:
 ```
 
 !!! tip "Review generated palettes"
-    AI-generated palettes are a good starting point, but always review the result visually. Check that the colors have enough contrast in both light and dark mode and that the generated variable names match the names used in your card YAML.
-
+    Treat AI-generated palettes as a starting point. Review them visually, verify sufficient contrast in both modes, and confirm that every generated variable name matches the name used in the card YAML.
 
 ## :material-horseshoe: Using palette colors
 
-After the palette is loaded, its variables can be used in card configuration just like other CSS variables.
-
-For example:
+After loading the palette, use its variables like other CSS custom properties.
 
 ```yaml linenums="1"
 color_stops:
@@ -157,7 +144,7 @@ color_stops:
     5: var(--fhs-sys-rainbow-purple)
 ```
 
-You can also use palette variables in styles:
+Palette variables can also be used in styles:
 
 ```yaml linenums="1"
 styles:
@@ -165,13 +152,11 @@ styles:
   - fill: var(--fhs-sys-rainbow-green)
 ```
 
-This keeps the card YAML readable while the actual color system stays in the external palette file.
+This keeps the card YAML readable while the external file manages the underlying color system.
 
 ## :material-horseshoe: Light and dark mode
 
-The `modes` section allows a palette to define different values for light and dark mode.
-
-Example:
+The `modes` section can assign different references to the same system variable for light and dark mode.
 
 ```json linenums="1"
 {
@@ -186,21 +171,19 @@ Example:
 }
 ```
 
-In light mode, `--fhs-sys-rainbow-red` uses `--fhs-ref-rainbow-red50`.
+In light mode, `--fhs-sys-rainbow-red` resolves to `--fhs-ref-rainbow-red50`. In dark mode, it resolves to `--fhs-ref-rainbow-red70`.
 
-In dark mode, the same variable uses `--fhs-ref-rainbow-red70`.
-
-This means your YAML can keep using the same variable name:
+The card configuration can therefore keep using one variable:
 
 ```yaml linenums="1"
 stroke: var(--fhs-sys-rainbow-red)
 ```
 
-The actual color changes automatically with the active mode.
+The displayed color changes automatically with the active mode.
 
 ## :material-horseshoe: Example palette
 
-The following example shows the structure of a rainbow palette with reference colors and light/dark mode mappings.
+The following rainbow palette includes tonal reference colors and separate mappings for light and dark mode.
 
 ```json linenums="1"
 {
@@ -312,12 +295,12 @@ The following example shows the structure of a rainbow palette with reference co
 
 ## :material-horseshoe: When to use external palettes
 
-External palettes are useful when:
+External palettes are a good choice when:
 
-- multiple cards should use the same color system
-- the list of colors is too large to keep inside the card YAML
-- you want different colors for light and dark mode
-- you want to create a custom look or branding for your dashboard
-- you want to reuse color variables in several places
+- multiple cards share the same color system;
+- the color definitions are too large to keep in the card YAML;
+- light and dark mode require different values;
+- the dashboard uses a custom visual identity;
+- the same color variables are reused in several places.
 
-For small one-off cards, inline color stops may be simpler. For larger dashboards or reusable themes, external palettes keep the configuration cleaner and easier to maintain.
+For a small, one-off card, inline color stops may be simpler. For larger dashboards and reusable designs, external palettes keep the configuration cleaner and easier to maintain.

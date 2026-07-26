@@ -3,28 +3,28 @@ template: main.html
 title: Positioning and Groups
 description: Position items on the card coordinate system with `xpos` and `ypos`, and use groups to move and reuse related layout elements together.
 tags:
-  - Positioning
-  - Groups
+- Positioning
+- Groups
 ---
 
 # Positioning and groups
 
-The Flexible Horseshoe Card uses relative positioning. Most visual items are placed with `xpos` and `ypos`.
+The Flexible Horseshoe Card uses relative positioning. Most visual elements are placed with `xpos` and `ypos`.
 
-For simple cards, you can position each item directly on the card. For repeated or related items, groups are often easier: you design the items once around a local center point, and then place the whole group somewhere on the card.
+For simple cards, you can position each item directly on the card. When several elements belong together or repeat across the layout, groups are usually easier to manage. You arrange the items once around a shared local center, then position the complete group elsewhere on the card.
 
 ## :material-horseshoe: The card canvas
 
-For a square card with an aspect ratio of `1/1`, the base layout canvas is `100 x 100`.
+For a square card with an aspect ratio of `1/1`, the base layout canvas is `100 × 100`.
 
-This means:
+The coordinate system works as follows:
 
-- `xpos: 0` is the left side of the card
-- `xpos: 50` is the horizontal center
-- `xpos: 100` is the right side of the card
-- `ypos: 0` is the top of the card
-- `ypos: 50` is the vertical center
-- `ypos: 100` is the bottom of the card
+* `xpos: 0` is the left edge of the card.
+* `xpos: 50` is the horizontal center.
+* `xpos: 100` is the right edge.
+* `ypos: 0` is the top edge.
+* `ypos: 50` is the vertical center.
+* `ypos: 100` is the bottom edge.
 
 For example:
 
@@ -35,13 +35,13 @@ ypos: 50
 
 places an item in the center of a square card.
 
-Different aspect ratios change the effective canvas size. For example, an aspect ratio of `2/1` creates a wider `200 x 100` canvas. The same positioning logic still applies, but there is more horizontal space available.
+Other aspect ratios change the effective canvas dimensions. An aspect ratio of `2/1`, for example, creates a wider `200 × 100` canvas:
 
 ```yaml linenums="1"
 aspectratio: 2/1
 ```
 
-In that case, `xpos: 100` is the horizontal center of the wider card, and `xpos: 200` is the right side.
+The same positioning model still applies. In this case, `xpos: 100` is the horizontal center and `xpos: 200` is the right edge.
 
 ## :material-horseshoe: Positioning individual items
 
@@ -54,45 +54,47 @@ states:
     ypos: 55
 ```
 
-This places the state value around the center of the card.
+This places the state value near the center of the card.
 
-The exact visual alignment also depends on the type of item and its styling. Text items may use `text-anchor`, icons may use `align`, and lines or circles also use fields such as `length` or `radius`.
+Its exact visual alignment also depends on the element type and styling. Text items may use `text-anchor`, icons may use `align`, and shapes may use additional fields such as `length` or `radius`.
 
 ## :material-horseshoe: Items that can be positioned
 
 The following layout sections commonly use `xpos` and `ypos`:
 
-| Section | Positioned item |
-| :------ | :-------------- |
-| `areas` | Entity area text |
-| `names` | Entity name text |
-| `states` | Entity state text |
-| `icons` | Entity icon or standalone icon |
-| `circles` | Circle center point |
-| `hlines` | Horizontal line center point |
-| `vlines` | Vertical line center point |
-| `horseshoes` | Horseshoe center point |
-| `groups` | Group placement point |
+| Section      | Positioned item                |
+| :----------- | :----------------------------- |
+| `areas`      | Entity area text               |
+| `names`      | Entity name text               |
+| `states`     | Entity state text              |
+| `icons`      | Entity icon or standalone icon |
+| `circles`    | Circle center point            |
+| `hlines`     | Horizontal line center point   |
+| `vlines`     | Vertical line center point     |
+| `horseshoes` | Horseshoe center point         |
+| `groups`     | Group placement point          |
 
-Each item type may have extra positioning-related fields. For example, circles use `radius`, lines use `length`, and horseshoes use settings such as `radius`, `arc_degrees`, `rotate`, and `flip`.
+Each element type can also have its own geometry settings. Circles use `radius`, lines use `length`, and horseshoes use fields such as `radius`, `arc_degrees`, `rotate`, and `flip`.
 
 ## :material-horseshoe: Why use groups?
 
-Groups are useful when several items belong together.
+Groups are useful when several elements form one visual unit.
 
-For example, you may want to show a name, state, and small circle for each phase of an electricity meter. The items inside each phase look the same, but the whole phase block appears in a different place on the card.
+For example, an electricity card may show a name, state, and small circle for each phase. The internal arrangement stays the same for L1, L2, and L3, while each phase block appears in a different position.
 
-Instead of calculating every item position separately, you can:
+![](../assets/screenshots/fhs-demo-card-30a-electricity--dark.png){width=300}
 
-1. design the name, state, and circle once;
-2. place those items in a group;
-3. move the group to the desired position.
+Instead of calculating every absolute position separately, you can:
 
-This keeps the layout easier to understand and easier to adjust.
+1. arrange the name, state, and circle once;
+2. assign those items to a group;
+3. place the group at the desired card position.
+
+This keeps the layout easier to understand and makes later adjustments much simpler.
 
 ## :material-horseshoe: Defining groups
 
-Groups are defined in the `layout.groups` section.
+Groups are configured under `layout.groups`.
 
 ```yaml linenums="1"
 layout:
@@ -108,7 +110,7 @@ layout:
       ypos: 83
 ```
 
-Each group has a name and a position. Layout items can then refer to that group by name.
+Each group has a name and a position. Layout items can refer to that name through the `group` field.
 
 ```yaml linenums="1"
 names:
@@ -118,15 +120,13 @@ names:
     ypos: 50
 ```
 
-The item still has its own `xpos` and `ypos`, but those coordinates are now used inside the group.
+The item still has its own `xpos` and `ypos`, but those values now define its position within the local group layout.
 
-## :material-horseshoe: Design grouped items around `50,50`
+## :material-horseshoe: Designing grouped items around `50, 50`
 
-Groups work best when the items inside the group are designed around `xpos: 50` and `ypos: 50`.
+Grouped items are usually easiest to reuse when they are arranged around the local center at `xpos: 50` and `ypos: 50`.
 
-Think of the group as a small local layout area. If the items are arranged around the local center, the group can be moved around the card more predictably.
-
-Example:
+Think of the group as a small coordinate area inside the card. When its items are positioned around that center, the entire arrangement can be moved more predictably.
 
 ```yaml linenums="1"
 names:
@@ -155,15 +155,19 @@ circles:
     radius: 2
 ```
 
-In this example, the name is slightly left of the group center, the state is slightly right of the group center, and the circle is slightly above the center.
+In this example:
 
-The whole group can then be moved by changing only the group position.
+* the name appears slightly left of center;
+* the state appears slightly right of center;
+* the circle appears slightly above center.
+
+You can then move the complete arrangement by changing only the group position.
 
 ## :material-horseshoe: Groups and `same_as`
 
 Groups become especially useful when combined with `same_as`.
 
-You can define one item and reuse it for another group. The reused item can keep the same local `xpos` and `ypos`, because the group decides where it appears on the card.
+Define one item, then reuse it in another group. The reused item keeps the same local `xpos`, `ypos`, and styling, while its group determines the final position on the card.
 
 ```yaml linenums="1"
 names:
@@ -186,13 +190,15 @@ names:
     group: L3
 ```
 
-Here, all three name items use the same local position. They appear in different places because they belong to different groups.
+All three names use the same local position. They appear in different places because each one belongs to a different group.
 
-This avoids repeating the same positioning and styling over and over again.
+This avoids repeating the same coordinates and styles for every item.
 
 ## :material-horseshoe: Moving a group
 
-Once several items belong to a group, moving them is simple.
+Once several items belong to a group, you can move them together by changing the group position.
+
+Original position:
 
 ```yaml linenums="1"
 groups:
@@ -201,7 +207,7 @@ groups:
     ypos: 72
 ```
 
-Change the group position:
+Updated position:
 
 ```yaml linenums="1"
 groups:
@@ -210,15 +216,11 @@ groups:
     ypos: 75
 ```
 
-All items in group `L1` move together.
-
-This is often much easier than updating every individual item.
+Every item assigned to `L1` moves with the group. This is usually much easier than updating each element separately.
 
 ## :material-horseshoe: Scaling and rotating groups
 
-Groups can also be used to transform related items together, where supported.
-
-A group may include options such as scaling or rotation:
+Where supported, groups can also transform several related items together.
 
 ```yaml linenums="1"
 groups:
@@ -231,28 +233,28 @@ groups:
     rotate: 90
 ```
 
-This can be useful when a small collection of items needs to be reused in a different orientation or size.
+This is useful when the same local arrangement needs to appear at a different size or orientation.
 
 ## :material-horseshoe: When to use groups
 
 Use groups when:
 
-- several items visually belong together
-- the same group of items appears multiple times
-- you want to move related items as one block
-- you want to combine repeated items with `same_as`
-- you want to keep local item positions simple
+* several elements belong together visually;
+* the same arrangement appears more than once;
+* related items should move as one unit;
+* reused items share the same local position and styling;
+* local coordinates are easier to understand than repeated absolute positions.
 
-Do not use groups for every item. For a single unique item, direct positioning is often easier to read.
+A group is usually unnecessary for a single standalone item. In that case, direct positioning is often clearer.
 
 ## :material-horseshoe: Practical tips
 
-Start with a simple square card and place items using the `100 x 100` reference. Once the layout works, adjust the aspect ratio if the card needs to be wider or narrower.
+Start with a square card and use the `100 × 100` canvas as your reference. Once the layout works, adjust the aspect ratio when the card needs to be wider or taller.
 
-For grouped items, design around `50,50`. Put the related items slightly around that center point, then move the group itself to the correct place on the card.
+For grouped elements, design around `50, 50`. Position each item slightly around that center, then move the group itself to the correct place on the card.
 
-Use `same_as` when multiple grouped items share the same local position and styling. Change only the fields that are different, such as `entity_index` or `group`.
+Use `same_as` when repeated grouped items share the same local coordinates and styling. Override only the fields that differ, such as `entity_index` or `group`.
 
-Keep groups small and meaningful. A group should usually represent one visual block, such as one phase, one row, one label/value pair, or one repeated cluster.
+Keep groups small and meaningful. A group should usually represent one visual block, such as a phase, row, label-and-value pair, or repeated cluster.
 
-For complete cards that combine groups, calculated positions, and reused items, see [Reusable YAML Card Examples](../reuse/reuse-card-examples.md). For the available group fields and section syntax, see the [Groups Section](../sections/groups-section.md).
+For complete examples that combine groups, calculated positions, and reused items, see [Reusable YAML Card Examples](../reuse/reuse-card-examples.md). For all available group fields and syntax, see [Groups Section](../sections/groups-section.md).

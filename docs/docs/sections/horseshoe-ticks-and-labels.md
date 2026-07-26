@@ -3,18 +3,18 @@ template: main.html
 title: Horseshoe Tick Marks and Labels
 description: Add aligned major and minor tick marks, scale labels, label backgrounds, and badges to horseshoe gauges.
 tags:
-  - Section
-  - Horseshoe
-  - Labels
+- Section
+- Horseshoe
+- Labels
 ---
 
 # Horseshoe tick marks and labels
 
-Tick marks and labels follow the horseshoe scale automatically. Numeric divisions, text, and the current value therefore remain aligned for linear and spline scales.
+Tick marks and labels follow the horseshoe scale automatically. This keeps numeric divisions, text labels, and the current value aligned, whether the gauge uses a linear or spline scale.
 
 ## :material-horseshoe: Enable ticks and labels
 
-Use `show.tickmarks` to render configured ticks. Use `show.labels_at` to select the values that receive a label.
+Enable configured tick marks with `show.tickmarks`. Use `show.labels_at` to choose which scale values receive a label.
 
 ```yaml linenums="1"
 show:
@@ -34,19 +34,19 @@ horseshoe_labels:
 
 ## :material-horseshoe: Major and minor ticks
 
-Major and minor ticks are configured independently. Minor values that coincide with a major value are automatically omitted from the minor layer.
+Major and minor ticks are configured separately, so each layer can use its own spacing, size, color, and styling. When a minor tick falls on the same value as a major tick, it is automatically omitted from the minor layer.
 
-| Field | Description |
-| :---- | :---------- |
-| `ticksize` | Numeric interval between ticks. |
-| `width` | Radial width of each tick. |
-| `thickness` | Arc length of each tick. |
-| `offset` | Radial offset from `tickmarks_radius`. |
-| `shape` | Tick shape; use `circle` for circular tick points. |
-| `radius` | Circle radius when `shape` is `circle`. |
-| `color` | Fixed tick color. |
-| `color_mode` | Uses fixed, color-stop, or color-stop-gradient coloring. |
-| `styles` | SVG styles applied to the tick layer. |
+| Field        | Description                                                       |
+| :----------- | :---------------------------------------------------------------- |
+| `ticksize`   | Defines the numeric interval between consecutive ticks.           |
+| `width`      | Controls the radial width of each tick.                           |
+| `thickness`  | Controls the arc length of each tick.                             |
+| `offset`     | Moves the ticks inward or outward relative to `tickmarks_radius`. |
+| `shape`      | Chooses the tick shape; use `circle` for circular tick points.    |
+| `radius`     | Sets the circle radius when `shape` is `circle`.                  |
+| `color`      | Applies a fixed tick color.                                       |
+| `color_mode` | Chooses fixed, color-stop, or color-stop-gradient coloring.       |
+| `styles`     | Applies SVG styles to the complete tick layer.                    |
 
 ```yaml linenums="1"
 horseshoe_tickmarks:
@@ -69,18 +69,18 @@ horseshoe_tickmarks:
       - opacity: 0.5
 ```
 
-For spline scales, minor ticks automatically adjust to prevent overlap in compressed parts of the scale.
+On spline scales, minor tick spacing adjusts automatically in compressed parts of the scale to prevent overlap.
 
 ## :material-horseshoe: Tick background
 
-Enable the background with `show.tick_background`. Its radius starts from the same geometry as the ticks.
+Enable the tick background with `show.tick_background`. The background band uses the same underlying radius as the tick geometry, which keeps both layers aligned.
 
-| Field | Description |
-| :---- | :---------- |
-| `width` | Width of the background band. |
-| `offset` | Radial offset. |
-| `gap` | Gap between segmented background parts. |
-| `styles` | SVG styles applied to the background. |
+| Field    | Description                                    |
+| :------- | :--------------------------------------------- |
+| `width`  | Controls the width of the background band.     |
+| `offset` | Moves the background inward or outward.        |
+| `gap`    | Adds space between segmented background parts. |
+| `styles` | Applies SVG styles to the background layer.    |
 
 ```yaml linenums="1"
 show:
@@ -97,33 +97,33 @@ horseshoe_tickmarks:
 
 ## :material-horseshoe: Label sources
 
-`show.labels_at` selects which scale values become labels.
+Use `show.labels_at` to choose which scale values are displayed as labels.
 
-| Value | Labels shown |
-| :---- | :----------- |
-| `none` | No labels. |
-| `minmax` | Scale minimum and maximum. |
-| `minmax0` | Minimum, zero, and maximum. |
+| Value                       | Labels shown                                 |
+| :-------------------------- | :------------------------------------------- |
+| `none`                      | No labels.                                   |
+| `minmax`                    | The scale minimum and maximum.               |
+| `minmax0`                   | The minimum, zero, and maximum.              |
 | `colorstop` or `colorstops` | Scale boundaries and configured color stops. |
-| `ticks_major` | Every configured major tick value. |
-| `both` | Color-stop labels and major tick labels. |
-| `segment` or `stringstate` | Labels from the configured state map. |
+| `ticks_major`               | Every configured major tick value.           |
+| `both`                      | Color-stop labels and major tick labels.     |
+| `segment` or `stringstate`  | Labels from the configured state map.        |
 
-Duplicate values are removed before labels are positioned. `horseshoe_labels.distance_min` can suppress labels that are too close together in value space.
+Duplicate values are removed before label positions are calculated. Use `horseshoe_labels.distance_min` to hide labels that would otherwise appear too close together in value space.
 
 ## :material-horseshoe: Label configuration
 
-| Field | Default | Description |
-| :---- | :------ | :---------- |
-| `offset` | `12` | Radial distance from the horseshoe radius. |
-| `distance_min` | `0` | Minimum value distance between visible labels. |
-| `orientation` | `arc` | Text orientation relative to the horseshoe. |
-| `arc_size` | Calculated | Arc available to each label. |
-| `ellipsis` | | Controls truncation when text exceeds its available arc. |
-| `stringstate_mode` | | Role styles for mutually exclusive string states. |
-| `stringstate_level` | | Role styles for ordered string-state levels. |
-| `color_filter` | | Optional shared color filter. |
-| `styles` | | SVG text styles for all labels. |
+| Field               | Default    | Description                                                     |
+| :------------------ | :--------- | :-------------------------------------------------------------- |
+| `offset`            | `12`       | Sets the radial distance from the horseshoe radius.             |
+| `distance_min`      | `0`        | Defines the minimum value difference between visible labels.    |
+| `orientation`       | `arc`      | Chooses how the text is oriented relative to the horseshoe.     |
+| `arc_size`          | Calculated | Defines the amount of arc available to each label.              |
+| `ellipsis`          |            | Controls truncation when a label exceeds its available arc.     |
+| `stringstate_mode`  |            | Defines role-based styles for mutually exclusive string states. |
+| `stringstate_level` |            | Defines role-based styles for ordered string-state levels.      |
+| `color_filter`      |            | Applies an optional shared color filter.                        |
+| `styles`            |            | Applies SVG text styles to all labels.                          |
 
 ```yaml linenums="1"
 horseshoe_labels:
@@ -137,9 +137,9 @@ horseshoe_labels:
 
 ## :material-horseshoe: Label backgrounds and badges
 
-Label backgrounds follow the same fixed or color-stop background model as the other horseshoe layers. Enable them with `show.label_background` and configure the band under `horseshoe_labels.background`.
+Label backgrounds use the same fixed or color-stop model as other horseshoe layers. Enable them with `show.label_background`, then configure the band under `horseshoe_labels.background`.
 
-Badges are rendered behind individual labels when `show.label_badges` is enabled. Configure badge dimensions, colors, borders, and styles under `horseshoe_labels.badges`.
+Badges appear behind individual labels when `show.label_badges` is enabled. Their size, fill, border, padding, and additional styles can be configured under `horseshoe_labels.badges`.
 
 ```yaml linenums="1"
 show:
@@ -163,13 +163,15 @@ horseshoe_labels:
 
 ## :material-horseshoe: Mapped-state labels
 
-For `stringstate_mode` and `stringstate_level`, labels are derived from the state map and positioned in the corresponding state segment. Role-specific styles can distinguish previous, current, and following states without changing the state geometry.
+For `stringstate_mode` and `stringstate_level`, labels come from the configured state map and are positioned within the corresponding state segment.
 
-Keep the state map with the horseshoe state configuration and use the label configuration only for visible text and styling. This ensures the active segment and its label always refer to the same mapped state.
+Role-specific styles can distinguish the previous, current, and following states without changing the underlying segment geometry.
+
+Keep the state map with the horseshoe state configuration, and use the label settings only for visible text and styling. This keeps each label aligned with the same mapped state as its active segment.
 
 ## :material-horseshoe: Related documentation
 
-- [Horseshoe Gauges](horseshoes-section.md)
-- [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-- [Color Stops](../core-concepts/color-stops.md)
-- [CSS Styling](../core-concepts/css-styling.md)
+* [Horseshoe Gauges](horseshoes-section.md)
+* [Horseshoe Scale and State](horseshoe-scale-and-state.md)
+* [Color Stops](../core-concepts/color-stops.md)
+* [CSS Styling](../core-concepts/css-styling.md)

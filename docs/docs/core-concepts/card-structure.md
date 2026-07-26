@@ -7,18 +7,17 @@ tags:
   - Structure
   - Card
 ---
-
 # YAML card structure
 
-A Flexible Horseshoe Card is configured with YAML. The card definition starts with the card type and then adds the parts the card needs: entities, card options, styles, animations, optional templates, composed cards, and the visual layout.
+The Flexible Horseshoe Card is configured with YAML. A card definition starts with the card type and then includes only the sections needed for that card, such as entities, card options, styles, animations, templates, composed cards, and layout elements.
 
-The `layout` section contains the visual elements drawn on the card, such as horseshoes, states, names, icons, circles, and lines.
+The `layout` section contains the visual elements rendered on the card, including horseshoes, states, names, icons, circles, and lines.
 
-This page gives a high-level overview of the card structure. The individual sections are explained in more detail on their own pages.
+This page provides a high-level map of the card structure. Each section is covered in more detail on its own documentation page.
 
 ## :material-horseshoe: Basic structure
 
-A typical card has this structure:
+A typical card follows this structure:
 
 ```yaml linenums="1" hl_lines="1 3 6 8 11 14 17 20 22 25 28 31 34 37 40 43 46 49"
 - type: custom:flex-horseshoe-card
@@ -73,9 +72,11 @@ A typical card has this structure:
       - <vertical line layout items>
 ```
 
+You do not need to include every section. Add only the parts required by the card you are building.
+
 ## :material-horseshoe: Load a card from a template
 
-A card can use a named template to define its structure. The template provides the reusable card configuration, while the card instance can provide its own entities and variables.
+A card can use a named template to provide a reusable structure. The card instance can then supply its own entities and variables.
 
 ```yaml linenums="1"
 - type: custom:flex-horseshoe-card
@@ -87,13 +88,13 @@ A card can use a named template to define its structure. The template provides t
       - fhs_max: 100
 ```
 
-Use templates when multiple cards share the same layout or styling but use different entities, values, or variables.
+Templates are useful when several cards share the same layout or styling but use different entities, values, or variables.
 
 ## :material-horseshoe: Compose multiple cards
 
-You can define and place other cards inside a Flexible Horseshoe Card by using the top-level `cards` section.
+Use the top-level `cards` section to place other cards inside a Flexible Horseshoe Card.
 
-Each composed card can have its own type, template, entities, position, and size.
+Each composed card can define its own type, template, entities, position, and size.
 
 ```yaml linenums="1"
 type: custom:flex-horseshoe-card
@@ -108,37 +109,37 @@ cards:
       - entity: sensor.awair_score
 ```
 
-Composed cards are positioned on the parent card canvas. Use `xpos` and `ypos` to place the card, and `width` and `height` to control its size.
+Composed cards are positioned on the parent card canvas. Use `xpos` and `ypos` for placement, and `width` and `height` for size.
 
 ## :material-horseshoe: Top-level card options
 
-The top level of the card contains the general configuration.
+The top level contains the card’s general configuration.
 
 | Section | Purpose |
 | :------ | :------ |
-| `type` | Defines the custom card type |
-| `entities` | Defines the Home Assistant entities and attributes used by the card |
-| `aspectratio` | Defines the shape of the card |
-| `styles` | Styles the card itself, such as background color or background image |
-| `animations` | Defines reusable animations |
-| `template` | Loads a named template for the card |
-| `cards` | Defines one or more cards placed inside the current card |
-| `layout` | Contains the visual elements shown on the card |
+| `type` | Defines the custom card type. |
+| `entities` | Defines the Home Assistant entities and attributes used by the card. |
+| `aspectratio` | Defines the card shape and layout canvas. |
+| `styles` | Styles the card container, such as its background or border. |
+| `animations` | Defines reusable animations. |
+| `template` | Loads a named card template. |
+| `cards` | Defines one or more cards placed inside the current card. |
+| `layout` | Contains the visual elements rendered on the card. |
 
 ## :material-horseshoe: Entities
 
-The `entities` section defines the data the card can use.
+The `entities` section defines the data available to the card.
 
-A minimal entity definition only needs the entity ID:
+A minimal entity definition requires only the entity ID:
 
 ```yaml linenums="1"
 entities:
   - entity: sensor.dsmr_reading_electricity_currently_delivered
 ```
 
-The card will try to use Home Assistant metadata automatically, such as the entity name, area, icon, unit, precision, and localized state formatting.
+The card can use Home Assistant metadata automatically, including the entity name, area, icon, unit, precision, and localized state formatting.
 
-You can override these values when needed:
+Override these values only when the card needs a different presentation:
 
 ```yaml linenums="1"
 entities:
@@ -149,43 +150,39 @@ entities:
     area: Electricity
 ```
 
-For more details, see the entity definitions page.
+For more information, see the entity definitions page.
 
 ## :material-horseshoe: Aspect ratio
 
-The `aspectratio` option defines the shape of the card.
-
-For example:
+The `aspectratio` option defines the shape of the card and its relative layout canvas.
 
 ```yaml linenums="1"
 aspectratio: 1/1
 ```
 
-This creates a square card. In this case, the base layout canvas is `100 x 100`.
+This creates a square card with a base canvas of `100 × 100`.
 
-A wider card can use another ratio:
+A wider card can use a different ratio:
 
 ```yaml linenums="1"
 aspectratio: 2/1
 ```
 
-This creates a wider layout canvas of `200 x 100`.
+This creates a `200 × 100` layout canvas. The positioning model stays the same, but more horizontal space becomes available.
 
-The same positioning logic still applies, but the available horizontal space changes. More detailed positioning rules are explained in the positioning guide.
+For detailed coordinate rules, see the positioning guide.
 
 ## :material-horseshoe: Card styles
 
-The top-level `styles` section styles the card itself.
+The top-level `styles` section controls the card container.
 
-Use it for things like:
+Use it for properties such as:
 
-- card background color
-- background image
-- border radius
-- padding
-- other card-level CSS styling
-
-Example:
+- background color;
+- background image;
+- border radius;
+- padding;
+- other card-level CSS styling.
 
 ```yaml linenums="1"
 styles:
@@ -193,13 +190,13 @@ styles:
   border-radius: 12px
 ```
 
-Item-level styling is configured inside the individual layout items.
+Styles for individual visual elements belong inside their respective layout items.
 
 ## :material-horseshoe: Layout
 
-The `layout` section contains the visual structure of the card.
+The `layout` section defines the visual structure of the card.
 
-This is where you define what appears on the card and where it should be placed.
+It determines which elements appear and where they are placed.
 
 ```yaml linenums="1"
 layout:
@@ -210,7 +207,7 @@ layout:
       radius: 40
 ```
 
-Layout items are positioned on a relative card canvas. For a square card with an aspect ratio of `1/1`, the base canvas is `100 x 100`.
+Layout items use a relative coordinate system. On a square card with `aspectratio: 1/1`, the base canvas is `100 × 100`.
 
 ## :material-horseshoe: Constants and groups
 
@@ -228,7 +225,7 @@ layout:
       stroke-width: 2
 ```
 
-Use `groups` to place multiple related items together:
+Use `groups` to position several related items as one visual unit:
 
 ```yaml linenums="1"
 layout:
@@ -238,30 +235,28 @@ layout:
       ypos: 72
 ```
 
-Groups are especially useful when combined with `same_as`, because repeated items can share the same local position and then be placed by their group.
+Groups are especially useful with `same_as`. Reused items can keep the same local position and styling while their group determines where they appear on the card.
 
 ## :material-horseshoe: Layout sections
 
-The visual parts of the card are defined in layout sections.
+Visual elements are defined in dedicated layout sections.
 
 | Section | Used for |
 | :------ | :------- |
-| `areas` | Displaying the Home Assistant area of an entity |
-| `circles` | Drawing circles |
-| `horseshoes` | Drawing one or more horseshoes |
-| `icons` | Displaying entity icons or standalone icons |
-| `hlines` | Drawing horizontal lines |
-| `names` | Displaying entity names |
-| `states` | Displaying entity states and units |
-| `vlines` | Drawing vertical lines |
+| `areas` | Displays the Home Assistant area of an entity. |
+| `circles` | Draws circles. |
+| `horseshoes` | Draws one or more horseshoe gauges. |
+| `icons` | Displays entity icons or standalone icons. |
+| `hlines` | Draws horizontal lines. |
+| `names` | Displays entity names. |
+| `states` | Displays entity states and units. |
+| `vlines` | Draws vertical lines. |
 
-Each section contains a list of items. Most layout items use `xpos` and `ypos` to define their position on the card.
+Each section contains a list of items. Most layout items use `xpos` and `ypos` to define their position.
 
 ## :material-horseshoe: Reuse
 
-Larger card configurations can contain repeated layout items. To reduce duplicated YAML, layout items can use static reuse features such as `same_as`, `constants`, `ref()`, and `calc()`.
-
-Example:
+Larger card definitions often contain repeated layout items. Static reuse features such as `same_as`, `constants`, `ref()`, and `calc()` reduce duplication.
 
 ```yaml linenums="1"
 layout:
@@ -279,21 +274,21 @@ layout:
       same_as_dypos: calc(1 * lineStep)
 ```
 
-Reuse keeps the YAML shorter and makes repeated layouts easier to maintain.
+Reuse keeps configurations shorter and makes repeated layouts easier to update consistently.
 
 ## :material-horseshoe: Where to go next
 
-Use this page as a map of the card structure.
+Use this page as a map of the available card sections.
 
-For more detail, continue with the pages about:
+Continue with the documentation for:
 
-- entity definitions
-- layout overview
-- visual shapes
-- entity elements
-- horseshoes
-- groups and positioning
-- CSS styling
-- templating
-- composed cards
-- reuse
+- entity definitions;
+- layout overview;
+- visual shapes;
+- entity elements;
+- horseshoes;
+- groups and positioning;
+- CSS styling;
+- templating;
+- composed cards;
+- reuse.

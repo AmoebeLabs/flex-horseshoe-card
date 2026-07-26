@@ -3,21 +3,21 @@ template: main.html
 title: Layout Overview
 description: Understand the `layout` structure, card coordinate system, groups, and available visual and entity layout sections.
 tags:
-  - Layout
-  - Section
+- Layout
+- Section
 ---
 
 # Layout overview
 
-The `layout` section is where you place the visual parts of the card.
+The `layout` section controls where the visual elements of the card appear.
 
-It contains the items that are drawn on the card canvas, such as states, names, icons, areas, circles, horizontal lines, and vertical lines. Each item gets its own position and optional styling. This makes it possible to build anything from a simple value card to a more detailed dashboard element with multiple visual parts.
+It contains items such as states, names, icons, areas, circles, horizontal lines, and vertical lines. Each item can have its own position and styling, making it possible to create anything from a simple value card to a more detailed dashboard component with several coordinated elements.
 
-This page gives a short overview of the available layout sections. For detailed configuration options, see the dedicated pages for each section.
+This page introduces the available layout sections and the shared positioning model. For complete field descriptions and examples, follow the links to the dedicated pages.
 
 ## :material-horseshoe: The layout structure
 
-Most visual items are placed inside `layout`:
+Most visual elements are configured inside `layout`:
 
 ```yaml
 layout:
@@ -47,20 +47,20 @@ layout:
       length: 80
 ```
 
-The exact fields depend on the item type. A line uses `length`, a circle uses `radius` or `radius_percent`, and an icon uses fields such as `icon_size`, `align`, and optionally `icon`.
+The available fields depend on the element type. Lines use `length`, circles use `radius` or `radius_percent`, and icons use fields such as `icon_size`, `align`, and optionally `icon`.
 
 ## :material-horseshoe: Positioning on the card
 
-Layout items are positioned on a relative card canvas.
+Layout items use a relative card canvas.
 
-For a square card with an aspect ratio of `1/1`, the base canvas is `100 x 100`:
+For a square card with an aspect ratio of `1/1`, the base canvas is `100 × 100`:
 
-- `xpos: 0` is the left side of the card.
-- `xpos: 50` is the horizontal center.
-- `xpos: 100` is the right side of the card.
-- `ypos: 0` is the top of the card.
-- `ypos: 50` is the vertical center.
-- `ypos: 100` is the bottom of the card.
+* `xpos: 0` places an item at the left edge.
+* `xpos: 50` places it at the horizontal center.
+* `xpos: 100` places it at the right edge.
+* `ypos: 0` places it at the top.
+* `ypos: 50` places it at the vertical center.
+* `ypos: 100` places it at the bottom.
 
 For example:
 
@@ -71,39 +71,37 @@ ypos: 50
 
 places an item in the center of a square card.
 
-Different aspect ratios change the effective canvas size. For example, an aspect ratio of `2/1` creates a wider `200 x 100` canvas. The same positioning logic still applies, but the available horizontal space becomes larger.
+Other aspect ratios change the effective canvas dimensions. An aspect ratio of `2/1`, for example, creates a wider `200 × 100` canvas. The positioning model remains the same, but more horizontal space becomes available.
 
-More advanced positioning, including aspect ratios, groups, scaling, rotation, and reusable grouped items, is explained in the [Groups and positioning](groups-section.md) page.
+Advanced positioning, including groups, reusable local layouts, scaling, and rotation, is covered in [Groups](groups-section.md) and the related positioning documentation.
 
 ## :material-horseshoe: Available layout sections
 
-The layout section can contain several types of items.
+The `layout` section supports several element types.
 
-| Section | Used for | Details |
-| :------ | :------- | :------ |
-| `states` | Displaying entity states and units | [Entity elements](entities-section.md) |
-| `names` | Displaying entity names | [Entity elements](entities-section.md) |
-| `areas` | Displaying Home Assistant areas | [Entity elements](entities-section.md) |
-| `icons` | Displaying entity icons or standalone icons | [Entity elements](entities-section.md) |
-| `circles` | Drawing circular shapes | [Visual shapes](visual-shapes-section.md) |
-| `hlines` | Drawing horizontal lines | [Visual shapes](visual-shapes-section.md) |
-| `vlines` | Drawing vertical lines | [Visual shapes](visual-shapes-section.md) |
-| `groups` | Placing multiple items together | [Groups](groups-section.md) |
+| Section   | Used for                                    | Details                                   |
+| :-------- | :------------------------------------------ | :---------------------------------------- |
+| `states`  | Displaying entity states and units          | [Entity elements](entities-section.md)    |
+| `names`   | Displaying entity names                     | [Entity elements](entities-section.md)    |
+| `areas`   | Displaying Home Assistant areas             | [Entity elements](entities-section.md)    |
+| `icons`   | Displaying entity icons or standalone icons | [Entity elements](entities-section.md)    |
+| `circles` | Drawing circular shapes                     | [Visual shapes](visual-shapes-section.md) |
+| `hlines`  | Drawing horizontal lines                    | [Visual shapes](visual-shapes-section.md) |
+| `vlines`  | Drawing vertical lines                      | [Visual shapes](visual-shapes-section.md) |
+| `groups`  | Positioning several related items together  | [Groups](groups-section.md)               |
 
 ## :material-horseshoe: Entity elements
 
-Entity elements show information from Home Assistant entities.
+Entity elements display text or icons from Home Assistant entities.
 
-Use these sections when you want to display text or icons:
+Use these sections for entity-driven content:
 
-- `states` for entity values
-- `names` for entity names
-- `areas` for Home Assistant areas
-- `icons` for entity icons or standalone icons
+* `states` displays entity values.
+* `names` displays entity names.
+* `areas` displays Home Assistant areas.
+* `icons` displays entity icons or standalone icons.
 
-These items usually use `entity_index` to connect to an entity from the card's `entities` section.
-
-Example:
+These items usually connect to an entry in the card-level `entities` section through `entity_index`.
 
 ```yaml
 layout:
@@ -118,19 +116,17 @@ layout:
       ypos: 60
 ```
 
-For all fields and examples, see [Home Assistant entity elements](entities-section.md).
+See [Home Assistant entity elements](entities-section.md) for all supported fields and examples.
 
 ## :material-horseshoe: Visual shapes
 
-Visual shapes are simple SVG elements that help structure the card visually.
+Visual shapes are lightweight SVG elements that help organize the card.
 
-Use these sections when you want to add separators, backgrounds, markers, or other visual helpers:
+Use them as separators, backgrounds, markers, outlines, or other visual accents:
 
-- `circles`
-- `hlines`
-- `vlines`
-
-Example:
+* `circles`
+* `hlines`
+* `vlines`
 
 ```yaml
 layout:
@@ -151,37 +147,35 @@ layout:
         - stroke: var(--primary-text-color)
 ```
 
-For all fields and examples, see [Visual shapes](visual-shapes-section.md).
+See [Visual shapes](visual-shapes-section.md) for configuration details and styling examples.
 
 ## :material-horseshoe: Groups
 
-Groups let you place several items together.
+Groups let several related items share one final position.
 
-This is useful when a set of items belongs together, such as a name, state, and small separator circle. Instead of calculating the final position for each item separately, you can design the items around a shared local center and then place the whole group on the card.
+This is useful when elements form a small visual unit, such as a name, state, and separator circle. Instead of calculating an absolute position for every item, you can arrange them around a shared local center and then position the complete group on the card.
 
-Groups are especially useful together with `same_as`, because repeated items can share the same local `xpos` and `ypos`. The group then determines where each copy appears on the card.
+Groups work especially well with `same_as`. Reused items can keep the same local `xpos` and `ypos`, while the assigned group determines where each copy appears.
 
-For details and examples, see [Groups](groups-section.md).
+See [Groups](groups-section.md) for detailed examples.
 
 ## :material-horseshoe: Styling and dynamic behavior
 
-Most layout items support styling through the `styles` field. Depending on the section, items can also use color stops, animations, and JavaScript templates.
+Most layout items support inline styling through `styles`. Depending on the section, they may also support color stops, animations, and JavaScript templates.
 
-Use styling when the appearance is fixed.
+Use `styles` for fixed appearance settings such as color, opacity, font size, or stroke width.
 
-Use dynamic templates when the appearance should react to entity states.
+Use color stops, animations, or templates when the appearance should respond to entity states or other runtime values.
 
-Detailed styling options are described on the dedicated pages for entity elements, visual shapes, color stops, and templating.
+The dedicated pages for entity elements, visual shapes, color stops, animations, and templating describe the available options in more detail.
 
-## :material-horseshoe: When to use this page
+## :material-horseshoe: Related documentation
 
-Use this page as a quick overview of the layout structure.
+Use this page as a starting point, then continue with the section that matches the element you want to add:
 
-For detailed fields, examples, and behavior, use the dedicated pages:
-
-- [Home Assistant entity elements](entities-section.md)
-- [Visual shapes](visual-shapes-section.md)
-- [Groups](groups-section.md)
-- [Reuse](../reuse/reuse-introduction.md)
-- [Color stops](../core-concepts/color-stops.md)
-- [Templating](../core-concepts/templating.md)
+* [Home Assistant entity elements](entities-section.md)
+* [Visual shapes](visual-shapes-section.md)
+* [Groups](groups-section.md)
+* [Reuse](../reuse/reuse-introduction.md)
+* [Color Stops](../core-concepts/color-stops.md)
+* [Templating](../core-concepts/templating.md)

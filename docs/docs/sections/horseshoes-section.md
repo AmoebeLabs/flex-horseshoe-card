@@ -3,20 +3,20 @@ template: main.html
 title: Horseshoe Gauge Overview
 description: Build configurable Home Assistant horseshoe gauges with scales, state arcs, colors, tick marks, labels, and reusable layout definitions.
 tags:
-  - Section
-  - Horseshoe
-  - Gauge
+- Section
+- Horseshoe
+- Gauge
 ---
 
 # Horseshoe gauges
 
-The horseshoe section renders one or more circular or partial-circle gauges in the card layout. Each horseshoe combines a value scale with a state layer and can add backgrounds, color stops, tick marks, and labels around the same geometry.
+The horseshoe section adds one or more circular or partial-circle gauges to the card layout. Each gauge combines a value scale with an active state layer and can include backgrounds, color stops, tick marks, and labels that follow the same geometry.
 
-Horseshoes use the card coordinate system. A position of `50, 50` is the center of a `100 x 100` card, while wider or taller cards can use coordinates beyond `100` along their longer dimension.
+Horseshoes use the card coordinate system. On a `100 × 100` card, the position `50, 50` marks the center. Wider or taller cards can use coordinates above `100` along their longer dimension.
 
 ## :material-horseshoe: Basic usage
 
-Add horseshoes to `layout.horseshoes`. Connect each item to an entity with `entity_index` and define the numeric range under `horseshoe_scale`.
+Add gauges to `layout.horseshoes`, connect each one to an entity through `entity_index`, and define its numeric range under `horseshoe_scale`.
 
 ```yaml linenums="1"
 layout:
@@ -35,62 +35,62 @@ layout:
         width: 12
 ```
 
-The entity index refers to the corresponding item in the card-level `entities` list. See [Entity Definitions](../core-concepts/entity-definitions.md) for entity configuration.
+The entity index refers to the matching item in the card-level `entities` list. See [Entity Definitions](../core-concepts/entity-definitions.md) for details on configuring entities.
 
 ## :material-horseshoe: Horseshoe anatomy
 
-A horseshoe consists of several parts that can be shown and styled independently.
+A horseshoe consists of several layers that can be shown, hidden, and styled independently.
 
-| Layer | Configuration | Purpose |
-| :---- | :------------ | :------ |
-| Horseshoe background | `horseshoe_background` | Optional arc behind the complete gauge. |
-| Scale | `horseshoe_scale` | Defines the value range, scale geometry, width, and base appearance. |
-| State | `horseshoe_state` | Displays the current entity value or mapped state. |
-| Tick background | `horseshoe_tickmarks.background` | Optional background behind the tick layer. |
-| Tick marks | `horseshoe_tickmarks.ticks_major` and `ticks_minor` | Places numeric divisions along the scale. |
-| Label background | `horseshoe_labels.background` | Optional background behind the labels. |
-| Labels | `horseshoe_labels` | Places numeric or mapped-state text around the scale. |
+| Layer                | Configuration                                       | Purpose                                                        |
+| :------------------- | :-------------------------------------------------- | :------------------------------------------------------------- |
+| Horseshoe background | `horseshoe_background`                              | Adds an optional arc behind the full gauge.                    |
+| Scale                | `horseshoe_scale`                                   | Defines the value range, geometry, width, and base appearance. |
+| State                | `horseshoe_state`                                   | Shows the current entity value or mapped state.                |
+| Tick background      | `horseshoe_tickmarks.background`                    | Adds an optional background behind the tick layer.             |
+| Tick marks           | `horseshoe_tickmarks.ticks_major` and `ticks_minor` | Places numeric divisions along the scale.                      |
+| Label background     | `horseshoe_labels.background`                       | Adds an optional background behind the labels.                 |
+| Labels               | `horseshoe_labels`                                  | Places numeric values or mapped-state text around the scale.   |
 
-The scale and state behavior are documented in [Horseshoe Scale and State](horseshoe-scale-and-state.md). Tick marks and labels are documented together in [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md).
+Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-scale-and-state.md). For tick marks and labels, see [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md).
 
 ## :material-horseshoe: Position and geometry
 
-| Field | Default | Description |
-| :---- | :------ | :---------- |
-| `entity_index` | | Entity from the card-level `entities` list. |
-| `xpos` | `50` | Horizontal center in FHS card coordinates. |
-| `ypos` | `50` | Vertical center in FHS card coordinates. |
-| `radius` | `45` | Radius used by the scale and state layers. |
-| `tickmarks_radius` | `43` | Base radius used for tick marks. |
-| `arc_degrees` | `260` | Total visible arc in degrees. |
-| `start_angle` | Calculated from `arc_degrees` | Starting angle of the horseshoe. |
-| `bar_mode` | `normal` | Determines how the state arc grows across the scale. |
-| `zero_ratio` | Calculated from the scale | Position of zero for applicable bidirectional modes. |
-| `flip` | | Flips the rendered layout on the configured axis. |
-| `same_as` | | Reuses another horseshoe definition. |
+| Field              | Default                       | Description                                               |
+| :----------------- | :---------------------------- | :-------------------------------------------------------- |
+| `entity_index`     |                               | Selects an entity from the card-level `entities` list.    |
+| `xpos`             | `50`                          | Positions the horizontal center in FHS card coordinates.  |
+| `ypos`             | `50`                          | Positions the vertical center in FHS card coordinates.    |
+| `radius`           | `45`                          | Defines the radius used by the scale and state layers.    |
+| `tickmarks_radius` | `43`                          | Defines the base radius used for tick marks.              |
+| `arc_degrees`      | `260`                         | Controls the total visible arc in degrees.                |
+| `start_angle`      | Calculated from `arc_degrees` | Sets the angle at which the horseshoe begins.             |
+| `bar_mode`         | `normal`                      | Chooses how the state arc grows across the scale.         |
+| `zero_ratio`       | Calculated from the scale     | Sets the zero position for supported bidirectional modes. |
+| `flip`             |                               | Flips the rendered layout along the selected axis.        |
+| `same_as`          |                               | Reuses another horseshoe definition.                      |
 
-Positioning can also be inherited from a group. See [Positioning and Groups](../core-concepts/positioning-and-groups.md) and [Groups Section](groups-section.md).
+A horseshoe can also inherit its position from a group. See [Positioning and Groups](../core-concepts/positioning-and-groups.md) and [Groups Section](groups-section.md).
 
 ## :material-horseshoe: Show options
 
-Visibility and presentation choices are grouped under `show`.
+Visibility and presentation settings are grouped under `show`.
 
-| Field | Default | Description |
-| :---- | :------ | :---------- |
-| `horseshoe` | `true` | Shows or hides the complete horseshoe. |
-| `horseshoe_style` | `fixed` | Chooses fixed or color-stop state coloring. |
-| `horseshoe_background` | `none` | Selects the horseshoe background mode. |
-| `tickmarks` | | Enables the configured major and minor tick marks. |
-| `tick_background` | `none` | Selects the tick background mode. |
-| `labels_at` | `none` | Selects the values used to create labels. |
-| `label_background` | `none` | Selects the label background mode. |
-| `label_badges` | | Shows label badges when configured. |
+| Field                  | Default | Description                                       |
+| :--------------------- | :------ | :------------------------------------------------ |
+| `horseshoe`            | `true`  | Shows or hides the entire horseshoe.              |
+| `horseshoe_style`      | `fixed` | Chooses fixed or color-stop-based state coloring. |
+| `horseshoe_background` | `none`  | Chooses the horseshoe background mode.            |
+| `tickmarks`            |         | Shows the configured major and minor tick marks.  |
+| `tick_background`      | `none`  | Chooses the tick background mode.                 |
+| `labels_at`            | `none`  | Chooses which scale values receive a label.       |
+| `label_background`     | `none`  | Chooses the label background mode.                |
+| `label_badges`         |         | Shows label badges when they are configured.      |
 
-Older configurations can contain `ticks` or `scale_tickmarks`. Current configurations should use the current horseshoe fields shown on these pages.
+Older configurations may still contain `ticks` or `scale_tickmarks`. New configurations should use the current horseshoe fields documented on these pages.
 
 ## :material-horseshoe: Color stops
 
-Color stops can color the active state, scale, backgrounds, tick marks, and labels. A fixed threshold color uses `colorstop`; an interpolated transition uses `colorstopgradient`.
+Color stops can affect the active state, scale, backgrounds, tick marks, and labels. Use `colorstop` for discrete threshold colors or `colorstopgradient` for a smooth transition across the value range.
 
 ```yaml linenums="1"
 show:
@@ -104,11 +104,11 @@ color_stops:
     100: '#e74c3c'
 ```
 
-Reusable definitions, light and dark mode colors, and transition behavior are documented in [Color Stops](../core-concepts/color-stops.md).
+Reusable definitions, light and dark mode colors, and transition behavior are explained in [Color Stops](../core-concepts/color-stops.md).
 
 ## :material-horseshoe: Styling
 
-Each horseshoe part has its own `styles` collection.
+Each horseshoe layer has its own `styles` collection, allowing the scale, state, backgrounds, ticks, and labels to be styled separately.
 
 ```yaml linenums="1"
 horseshoe_scale:
@@ -125,8 +125,8 @@ Common SVG properties include `fill`, `stroke`, `stroke-width`, `opacity`, `fill
 
 ## :material-horseshoe: Related documentation
 
-- [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-- [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md)
-- [Color Stops](../core-concepts/color-stops.md)
-- [Animations](../core-concepts/animations.md)
-- [Reusable YAML Card Examples](../reuse/reuse-card-examples.md)
+* [Horseshoe Scale and State](horseshoe-scale-and-state.md)
+* [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md)
+* [Color Stops](../core-concepts/color-stops.md)
+* [Animations](../core-concepts/animations.md)
+* [Reusable YAML Card Examples](../reuse/reuse-card-examples.md)

@@ -1,19 +1,23 @@
 ---
 template: main.html
-title: Combining Calc with same_as
-description: Combine
+title: Combining `calc()` with `same_as`
+description: Reuse layout items with `same_as`, apply calculated offsets with `calc()`, and build clear repeated patterns with delta fields.
 tags:
-  - reuse with same_as
-  - YAML Calc
+- Reuse with same_as
+- YAML Calc
 ---
 
-##:material-horseshoe: Combining calc() with same_as
+# Combining `calc()` with `same_as`
 
-`same_as` can be used to reuse another item in the same section.
+`same_as` reuses an earlier item from the same section. Combine it with `calc()` when several items share the same configuration but need calculated differences in position, size, or another numeric field.
 
-This is useful when multiple items share most of their configuration, but only differ in one or two values.
+This keeps the YAML compact while making repeated layout patterns easier to recognize and maintain.
 
-```yaml
+## :material-horseshoe: Basic example
+
+The example below defines one horizontal line and reuses it twice. Each reused line keeps the original length and style, but moves farther down the card.
+
+```yaml linenums="1"
 hlines:
   - xpos: 50
     ypos: 64
@@ -28,16 +32,17 @@ hlines:
     same_as_dypos: calc(2 * 11)
 ```
 
-This means:
+The card resolves the configuration as follows:
 
 | Item | Source        | Calculation                | Result                   |
 | :--- | :------------ | :------------------------- | :----------------------- |
-| `0`  | original item | `length: calc(4 * 20 + 5)` | `length: 85`, `ypos: 64` |
+| `0`  | Original item | `length: calc(4 * 20 + 5)` | `length: 85`, `ypos: 64` |
 | `1`  | `same_as: 0`  | `ypos: 64 + calc(1 * 11)`  | `ypos: 75`               |
 | `2`  | `same_as: 0`  | `ypos: 64 + calc(2 * 11)`  | `ypos: 86`               |
 
-Internally this becomes:
-```yaml
+Internally, the resolved items are equivalent to:
+
+```yaml linenums="1"
 hlines:
   - id: "0"
     xpos: 50
@@ -61,14 +66,13 @@ hlines:
       - stroke: var(--disabled-text-color)
 ```
 
-So the external configuration stays short, while the internal configuration becomes complete.
+The external configuration stays short, while the resolved configuration still contains all required values.
 
-Reuse with chained `same_as`
+## :material-horseshoe: Chaining `same_as`
 
-You can also build on the previous item.
+A reused item can build on the item before it.
 
-
-```yaml
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -84,13 +88,12 @@ hlines:
     same_as_dypos: 11
 ```
 
-This means:
-```
+In this pattern, every item starts from the result of the previous one:
+
+```text
 second = first + 11
 third  = second + 11
 ```
-
-Result:
 
 | Item     | Resulting `ypos` |
 | :------- | :--------------- |
@@ -98,11 +101,13 @@ Result:
 | `second` | `75`             |
 | `third`  | `86`             |
 
-Reuse from the same base item
+Chaining works well when each item should continue from the previous position.
 
-Instead of chaining, you can also reuse the first item directly.
+## :material-horseshoe: Reusing the same base item
 
-```yaml
+You can also make every reused item refer directly to the first one.
+
+```yaml linenums="1"
 hlines:
   - id: first
     xpos: 50
@@ -118,34 +123,37 @@ hlines:
     same_as_dypos: calc(2 * 11)
 ```
 
-This means:
+This pattern means:
+
+```text
 second = first + 1 step
 third  = first + 2 steps
+```
 
-This can be clearer when all items follow a fixed pattern from the same base item.
+Using the same base item can make fixed repetition patterns easier to understand. Each offset remains relative to one shared definition rather than depending on the previous item.
 
-##:material-horseshoe: Delta fields
+## :material-horseshoe: Delta fields
 
-Delta fields use this pattern:
+Delta fields follow this pattern:
 
 ```yaml
 same_as_d<field>: <number>
 ```
 
-The delta is added to the inherited value.
+The card adds the delta to the inherited value of the matching field.
 
-| Delta field       | Target field | Meaning                   |
-| :---------------- | :----------- | :------------------------ |
-| `same_as_dxpos`   | `xpos`       | Add to inherited `xpos`   |
-| `same_as_dypos`   | `ypos`       | Add to inherited `ypos`   |
-| `same_as_dlength` | `length`     | Add to inherited `length` |
-| `same_as_dradius` | `radius`     | Add to inherited `radius` |
+| Delta field       | Target field | Meaning                         |
+| :---------------- | :----------- | :------------------------------ |
+| `same_as_dxpos`   | `xpos`       | Adds to the inherited `xpos`.   |
+| `same_as_dypos`   | `ypos`       | Adds to the inherited `ypos`.   |
+| `same_as_dlength` | `length`     | Adds to the inherited `length`. |
+| `same_as_dradius` | `radius`     | Adds to the inherited `radius`. |
 
-Because this pattern is generic, it can work for any numeric field on the reused item.
+The pattern is generic and can be used with any supported numeric field on the reused item.
 
-Example:
+For example, the inner circle below reuses the outer circle and reduces its radius by `5`:
 
-```yaml
+```yaml linenums="1"
 circles:
   - id: outer
     xpos: 50
@@ -156,9 +164,10 @@ circles:
     same_as: outer
     same_as_dradius: -5
 ```
-Result:
 
-```yaml
+The resolved result is equivalent to:
+
+```yaml linenums="1"
 circles:
   - id: outer
     xpos: 50
@@ -171,13 +180,13 @@ circles:
     radius: 35
 ```
 
-### Positioning around the center
+## :material-horseshoe: Positioning around the center
 
-Many card layouts are designed around the center point 50,50.
+Many card layouts are designed around the center point `50, 50`.
 
-With calc(), offsets from the center can stay visible in the configuration.
+Using `calc()` keeps the intended offset visible in the configuration:
 
-```yaml
+```yaml linenums="1"
 icons:
   - id: left
     xpos: calc(50 - 4)
@@ -187,9 +196,10 @@ icons:
     xpos: calc(50 + 4)
     ypos: 50
 ```
-This is easier to understand than:
 
-```yaml
+The same positions could be written as fixed values:
+
+```yaml linenums="1"
 icons:
   - id: left
     xpos: 46
@@ -199,17 +209,25 @@ icons:
     xpos: 54
     ypos: 50
 ```
-The calculated values are the same, but the intent is clearer.
 
-Notes
+Both versions produce the same result. The calculated version makes it clearer that the two icons are positioned symmetrically around the center.
 
-| Rule                            | Description                                                               |
-| :------------------------------ | :------------------------------------------------------------------------ |
-| YAML does not calculate values  | `calc()` is added by the card, not by YAML itself.                        |
-| Static only                     | `calc()` is evaluated once during config setup.                           |
-| Runtime templates are different | Templates like `[[[ return ... ]]]` are evaluated during runtime updates. |
-| Numeric result required         | `calc()` must return a finite number.                                     |
-| `same_as` is reuse              | It copies another item from the same section.                             |
-| `same_as_d...` is offset reuse  | It copies another item and adds a numeric delta to one field.             |
-| List order matters              | `same_as` can only refer to an earlier item in the same list.             |
+## :material-horseshoe: Important rules
 
+| Rule                            | Description                                                                  |
+| :------------------------------ | :--------------------------------------------------------------------------- |
+| YAML does not calculate values  | `calc()` is provided by the card, not by YAML itself.                        |
+| Static evaluation               | `calc()` is evaluated once while the configuration is processed.             |
+| Runtime templates are different | Templates such as `[[[ return ... ]]]` are evaluated during runtime updates. |
+| Numeric result required         | `calc()` must return a finite number.                                        |
+| `same_as` reuses an item        | It inherits another item from the same section.                              |
+| `same_as_d...` adds an offset   | It inherits another item and adds a numeric delta to one field.              |
+| List order matters              | `same_as` can only refer to an earlier item in the same list.                |
+
+## :material-horseshoe: Choosing a reuse pattern
+
+Use chained `same_as` when each item should continue from the previous one.
+
+Use the same base item when every copy follows a fixed offset pattern from one shared definition.
+
+Both approaches reduce repeated YAML. The best choice is the one that makes the intended layout easiest to understand.

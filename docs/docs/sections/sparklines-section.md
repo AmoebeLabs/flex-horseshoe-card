@@ -3,24 +3,24 @@ template: main.html
 title: Sparkline Graphs Overview
 description: Add compact Home Assistant history graphs with automatic bins, chart types, colors, axes, statistics, and interactive tooltips.
 tags:
-  - Section
-  - Sparkline
-  - History
+- Section
+- Sparkline
+- History
 ---
 
 # Sparkline graphs
 
-The sparkline section shows Home Assistant state history as a compact graph inside the card layout. Choose the time period, the amount of detail, and a chart type that suits the sensor. Axes, grid lines, labels, points, colors, and an interactive tooltip can then be shown as needed.
+The sparkline section displays Home Assistant state history as a compact graph within the card layout. Choose the time period, level of detail, and chart type that best fits the entity. You can then enable axes, grid lines, labels, points, colors, and an interactive tooltip as needed.
 
-| Area | Barcode - Audio | Bars |
-| :-:| :-:| :-:|
-|  ![Flexible Horseshoe Card - Sparkline Area Chart](../assets/screenshots/fhs-demo-card-area-study-score--dark.webp) | ![Flexible Horseshoe Card - Sparkline Barcode Chart](../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp) | ![Flexible Horseshoe Card - Sparkline Bars Chart](../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp) |
-| Dots | Equalizer | State band |
+|                                                          Area                                                         |                                                           Barcode - Audio                                                          |                                                                Bars                                                                |
+| :-------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
+|   ![Flexible Horseshoe Card - Sparkline Area Chart](../assets/screenshots/fhs-demo-card-area-study-score--dark.webp)  |    ![Flexible Horseshoe Card - Sparkline Barcode Chart](../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp)    |          ![Flexible Horseshoe Card - Sparkline Bars Chart](../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp)          |
+|                                                          Dots                                                         |                                                              Equalizer                                                             |                                                             State band                                                             |
 | ![Flexible Horseshoe Card - Sparkline Dots Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp) | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp) | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp) |
 
 ## :material-horseshoe: Basic usage
 
-Add graphs to `layout.sparklines` and connect each graph to an entity with `entity_index`.
+Add graphs to `layout.sparklines` and connect each one to an entity through `entity_index`.
 
 ```yaml linenums="1"
 layout:
@@ -46,116 +46,116 @@ layout:
           chart_type: area
 ```
 
-The entity index refers to the card-level `entities` list. The graph uses the formatting settings of that entity for statistics and tooltip values.
+The entity index refers to the card-level `entities` list. Statistics and tooltip values use the formatting settings of the connected entity.
 
 ## :material-horseshoe: Choose a setup
 
-Start with the question the graph should answer:
+Start by deciding what the graph should help you understand:
 
-| Goal | Recommended setup |
-| :--- | :---------------- |
-| Show the latest trend | `rolling_window` with a `line` or `area` chart. |
-| Show today's progress | `calendar` with `offset: 0`. |
-| Compare a completed day | `calendar` with a negative offset. |
-| Preserve short peaks | Use more bins per hour. |
-| Show a calmer overall trend | Use fewer bins per hour with `aggregate_func: avg`. |
+| Goal                                           | Recommended setup                                   |
+| :--------------------------------------------- | :-------------------------------------------------- |
+| Show the latest trend                          | Use `rolling_window` with a `line` or `area` chart. |
+| Show today's progress                          | Use `calendar` with `offset: 0`.                    |
+| Compare a completed day                        | Use `calendar` with a negative offset.              |
+| Preserve short peaks                           | Increase the number of bins per hour.               |
+| Show a calmer overall trend                    | Use fewer bins per hour with `aggregate_func: avg`. |
 | Show threshold changes instead of exact height | Use `barcode` or `radial_barcode` with color stops. |
-| Show when named states were active | Use `state_bands` with a state map. |
+| Show when named states were active             | Use `state_bands` with a state map.                 |
 
-For a current calendar period, the X-axis covers the complete period while the visible graph grows up to the current time. A rolling window moves forward continuously and always shows the latest configured duration.
+For the current calendar period, the X-axis spans the full period while the graph fills up to the current time. A rolling window moves continuously and always shows the latest configured duration.
 
 ## :material-horseshoe: Chart types
 
-| Chart type | Geometry | Typical use |
-| :--------- | :------- | :---------- |
-| `line` | Cartesian | Compact trend line. |
-| `area` | Cartesian | Trend with a filled area. |
-| `dots` | Cartesian | One separate dot per time bin. |
-| `bar` | Cartesian | One bar per time bin. |
-| `equalizer` | Binned levels | Stacked level display per bin. |
-| `graded` | Binned levels | Grade or traffic-light style values. |
-| `state_bands` | Categorical timeline | Duration and transitions of mapped states. |
-| `barcode` | Linear bins | Dense color history without a Y-axis. |
-| `radial_barcode` | Circular bins | Time bins arranged around a circle. |
+| Chart type       | Geometry             | Typical use                                             |
+| :--------------- | :------------------- | :------------------------------------------------------ |
+| `line`           | Cartesian            | A compact view of changes over time.                    |
+| `area`           | Cartesian            | A trend with a filled area for greater visual emphasis. |
+| `dots`           | Cartesian            | One separate point for each time bin.                   |
+| `bar`            | Cartesian            | One vertical bar for each time bin.                     |
+| `equalizer`      | Binned levels        | A stacked level display for every bin.                  |
+| `graded`         | Binned levels        | Grade-based or traffic-light-style values.              |
+| `state_bands`    | Categorical timeline | The duration and transitions of mapped states.          |
+| `barcode`        | Linear bins          | A dense color history without a Y-axis.                 |
+| `radial_barcode` | Circular bins        | Time bins arranged around a circle.                     |
 
 ### Display support
 
-| Chart type | X-axis | Y-axis | Grid | Axis labels | Tooltip |
-| :--------- | :----: | :----: | :--: | :---------: | :-----: |
-| `line` | Yes | Yes | X and Y | X and Y | Yes |
-| `area` | Yes | Yes | X and Y | X and Y | Yes |
-| `dots` | Yes | Yes | X and Y | X and Y | Yes |
-| `bar` | Yes | Yes | X and Y | X and Y | Yes |
-| `equalizer` | Yes | Yes | X and Y | X and Y | No |
-| `graded` | No | No | No | No | No |
-| `state_bands` | Yes | Yes | X and Y | X times and Y states | Yes |
-| `barcode` | Yes | No | X only | X only | Yes |
-| `radial_barcode` | No | No | No | No | Yes |
+| Chart type       | X-axis | Y-axis |   Grid  |      Axis labels     | Tooltip |
+| :--------------- | :----: | :----: | :-----: | :------------------: | :-----: |
+| `line`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
+| `area`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
+| `dots`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
+| `bar`            |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
+| `equalizer`      |   Yes  |   Yes  | X and Y |        X and Y       |    No   |
+| `graded`         |   No   |   No   |    No   |          No          |    No   |
+| `state_bands`    |   Yes  |   Yes  | X and Y | X times and Y states |   Yes   |
+| `barcode`        |   Yes  |   No   |  X only |        X only        |   Yes   |
+| `radial_barcode` |   No   |   No   |    No   |          No          |   Yes   |
 
-Points can be added to line and area charts. Use the standalone `dots` chart when every time bin should be displayed as a separate point without a connecting line.
+Points can be added to line and area charts. Choose the standalone `dots` chart when every time bin should appear as an individual point without a connecting line.
 
-Line, area, bar, grid, and axis behavior are documented in [Cartesian Charts and Axes](sparkline-cartesian-charts.md). Equalizer, graded, state bands, barcode, and radial barcode charts are documented in [Specialized Charts](sparkline-specialized-charts.md).
+Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and Axes](sparkline-cartesian-charts.md). Equalizer, graded, state bands, barcode, and radial barcode charts are covered in [Specialized Charts](sparkline-specialized-charts.md).
 
 ## :material-horseshoe: Position and size
 
-| Field | Default | Description |
-| :---- | :------ | :---------- |
-| `entity_index` | | Entity used by the graph. |
-| `xpos` | `50` | Horizontal center in FHS card coordinates. |
-| `ypos` | `50` | Vertical center in FHS card coordinates. |
-| `width` | `25` | Graph width in FHS card coordinates. |
-| `height` | `25` | Graph height in FHS card coordinates. |
-| `margin` | `0` | Inner graph margin; accepts one value or top, right, bottom, and left values. |
-| `same_as` | | Reuses another sparkline definition. |
+| Field          | Default | Description                                                                                               |
+| :------------- | :------ | :-------------------------------------------------------------------------------------------------------- |
+| `entity_index` |         | Selects the entity used by the graph.                                                                     |
+| `xpos`         | `50`    | Positions the horizontal center in FHS card coordinates.                                                  |
+| `ypos`         | `50`    | Positions the vertical center in FHS card coordinates.                                                    |
+| `width`        | `25`    | Defines the graph width in FHS card coordinates.                                                          |
+| `height`       | `25`    | Defines the graph height in FHS card coordinates.                                                         |
+| `margin`       | `0`     | Reserves inner space around the graph; accepts one value or separate top, right, bottom, and left values. |
+| `same_as`      |         | Reuses another sparkline definition.                                                                      |
 
-Margins reserve room inside the configured graph size. Cartesian labels and tick marks use this space; increasing the outer size does not change the requested history range or bin count.
+Margins reserve space within the configured graph area. Cartesian labels and tick marks use this space. Increasing the graph’s outer size does not change the requested history period or number of bins.
 
 ## :material-horseshoe: Common sparkline fields
 
-| Field | Description |
-| :---- | :---------- |
-| `period` | Selects realtime, rolling-window, or calendar data. |
-| `state_values` | Controls averaging, smoothing, value factors, and logarithmic display. |
-| `show` | Selects the chart type and visible graph parts. |
-| `line_color` | Defines the graph colors when no entity color or color stop applies. |
-| `color_stops` | Defines value-based graph colors. |
-| `colorstops_transition` | Selects hard or smooth color transitions. |
-| `tooltip.styles` | Styles the interactive tooltip. |
-| `line` and `area` | Style line and area charts. |
-| `state_map` and `state_bands` | Map named states and style a state bands chart. |
+| Field                         | Description                                                              |
+| :---------------------------- | :----------------------------------------------------------------------- |
+| `period`                      | Chooses realtime, rolling-window, or calendar data.                      |
+| `state_values`                | Controls aggregation, smoothing, value factors, and logarithmic display. |
+| `show`                        | Chooses the chart type and which graph elements are visible.             |
+| `line_color`                  | Defines graph colors when no entity color or color stop applies.         |
+| `color_stops`                 | Defines value-based graph colors.                                        |
+| `colorstops_transition`       | Uses hard or smooth transitions between color stops.                     |
+| `tooltip.styles`              | Adjusts the appearance of the interactive tooltip.                       |
+| `line` and `area`             | Control the styling of line and area charts.                             |
+| `state_map` and `state_bands` | Map named states and control the appearance of a state bands chart.      |
 
 ## :material-horseshoe: Show options
 
-| Field | Description |
-| :---- | :---------- |
-| `chart_type` | Selects the visible graph type. |
-| `line` | Shows the line layer where applicable. |
-| `area` | Shows the area layer where applicable. |
-| `grid.x` and `grid.y` | Show the automatic grid for each supported axis. |
-| `axis.x` and `axis.y` | Show each supported axis independently. |
-| `tickmarks.x` and `tickmarks.y` | Show tick marks for each supported axis. |
-| `labels.x` and `labels.y` | Show labels for each supported axis. |
-| `points` | Shows one point for each graph bin. |
-| `fill` | Selects the applicable fill or fade behavior. |
+| Field                           | Description                                         |
+| :------------------------------ | :-------------------------------------------------- |
+| `chart_type`                    | Chooses the visible chart type.                     |
+| `line`                          | Shows the line layer where supported.               |
+| `area`                          | Shows the area layer where supported.               |
+| `grid.x` and `grid.y`           | Display the automatic grid for each supported axis. |
+| `axis.x` and `axis.y`           | Display each supported axis independently.          |
+| `tickmarks.x` and `tickmarks.y` | Display tick marks for each supported axis.         |
+| `labels.x` and `labels.y`       | Display labels for each supported axis.             |
+| `points`                        | Adds one point for each graph bin.                  |
+| `fill`                          | Chooses the supported fill or fade behavior.        |
 
-Not every show option applies to every chart type. Radial barcode charts, for example, are circular and do not show a normal X-axis or vertical indicator.
+Not every option is available for every chart type. Radial barcode charts, for example, use a circular layout and therefore do not display a conventional X-axis or vertical indicator.
 
-For line, area, and bar charts, the X-axis and Y-axis are always determined automatically. Select each visible part with `x` and `y`; there is no need to configure tick intervals or scale boundaries.
+For line, area, and bar charts, both axes are calculated automatically. Use the individual `x` and `y` settings to choose which elements are visible; there is no need to define tick intervals or scale boundaries manually.
 
-Existing configurations that use a boolean, such as `axis: true`, continue to show both supported axes.
+Existing configurations that use a boolean value, such as `axis: true`, continue to display both supported axes.
 
 ## :material-horseshoe: Color stops and statistics
 
-Each bin retains the values required to calculate its aggregate and statistics. The tooltip can display the bin time together with minimum, average, and maximum values. These values use the connected entity's number formatting and unit.
+Each bin keeps the values needed to calculate its aggregate and statistics. The tooltip can display the bin’s date or time together with its minimum, average, and maximum values. Number formatting and units come from the connected entity.
 
-Color stops can color complete paths or individual bins depending on the chart type. Barcode and radial barcode charts calculate the color from each bin value, while line and area charts can use a gradient across the value range.
+Color stops may apply to an entire path or to individual bins, depending on the chart type. Barcode and radial barcode charts calculate a color for each bin, while line and area charts can use a gradient across the visible value range.
 
 See [Color Stops](../core-concepts/color-stops.md) for reusable color definitions and transition modes.
 
 ## :material-horseshoe: Related documentation
 
-- [Sparkline History Periods and Bins](sparkline-history-periods.md)
-- [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
-- [Sparkline Specialized Charts](sparkline-specialized-charts.md)
-- [Entity Definitions](../core-concepts/entity-definitions.md)
-- [Color Stops](../core-concepts/color-stops.md)
+* [Sparkline History Periods and Bins](sparkline-history-periods.md)
+* [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
+* [Sparkline Specialized Charts](sparkline-specialized-charts.md)
+* [Entity Definitions](../core-concepts/entity-definitions.md)
+* [Color Stops](../core-concepts/color-stops.md)

@@ -1,27 +1,28 @@
 ---
 template: main.html
 title: Color Filters
-description: Transform configured colors with reusable color filters while preserving the card’s state-based color logic.
+description: Transform resolved card colors with reusable filters while preserving state-based color selection and inheritance.
 tags:
   - Color Filters
   - Colors
   - Styling
   - Themes
 ---
-
 # Color filters
 
-Color filters let the card transform colors before they are rendered.
+Color filters transform colors before the card renders them.
 
-They are useful when you want to reuse an existing layout or palette, but adjust its visual appearance. For example, you can make a card grayscale, apply a monochrome look, reduce saturation, adjust opacity, or create a duotone effect.
+They are useful when you want to reuse an existing layout or palette but change its overall appearance. For example, you can make a card grayscale, reduce saturation, adjust opacity, create a monochrome design, or apply a duotone effect.
 
-Unlike browser CSS filters, `color_filter` does not apply a visual filter on top of the rendered card. Instead, the card resolves the actual color first and then transforms that color into a normal RGB or RGBA value before rendering.
+Unlike browser CSS filters, `color_filter` does not place a visual effect over the rendered card. The card first resolves the configured color and then transforms it into a regular RGB or RGBA value before rendering.
 
-This means `color_filter` works on real color values such as `fill`, `stroke`, `color`, `stop-color`, and `flood-color`.
+This means `color_filter` works with concrete color properties such as `fill`, `stroke`, `color`, `stop-color`, and `flood-color`.
 
-Below some examples. The first two cards have a slightly different configuration, but you can see that the second card has a grayscale filter.
+## :material-horseshoe: Examples
 
-Card 55 displays the original pollen colors, but has a gray filter on the scale of the horseshoe. The scale has a color stop defined to show segments, but I wanted the scale in this case to become gray to make the filled segments stand-out.
+The following cards demonstrate several ways to apply color filters.
+
+Card 55 keeps the original pollen colors for the active horseshoe state but applies a grayscale range to the horseshoe scale. The scale still uses color stops internally, while the filter converts the rendered scale colors to gray so the active segments stand out more clearly.
 
 ![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
 ![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
@@ -38,8 +39,7 @@ horseshoe_scale:
       max: 0.6
 ```
 
-Card 54 has a grayscale and lightness filter active at the card level.
-
+Card 54 applies grayscale and lightness filters at the card level.
 
 ![](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
 ![](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
@@ -52,10 +52,12 @@ Card 54 has a grayscale and lightness filter active at the card level.
       min: 0.2
       max: 1
 ```
-!!! info "The color filters do not alter external images and svgs"
 
+!!! info
+    Color filters do not affect external images or SVG files.
 
-Card 53 is a different card, but also has a filter defined at the card level:
+Card 53 uses a similar card-level filter with a different grayscale and lightness range:
+
 ```yaml linenums="1" hl_lines="2-6"
 - type: custom:flex-horseshoe-card
   color_filter:
@@ -64,15 +66,16 @@ Card 53 is a different card, but also has a filter defined at the card level:
       min: 0.3
       max: 0.7
 ```
+
 ![](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
 ![](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
 
+The final comparison shows:
 
-And the last ones:
+- the original card on the left;
+- the same card with a teal monochrome filter on the right.
 
-- On the left the original card
-- On the right the same card but with a teal filter, except for the central arc background which keeps its own color
-
+The central arc background keeps its original color because inheritance is disabled for that item.
 
 ![](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-light){width=300}
 ![](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp#only-dark){width=300}
@@ -102,68 +105,61 @@ And the last ones:
         styles:
           - fill: var(--disabled-text-color)
           - opacity: 0.3
-
 ```
-
-
 
 ## :material-horseshoe: Basic idea
 
-A color filter is configured with `color_filter`.
+Configure a filter with `color_filter`.
 
 ```yaml linenums="1"
 color_filter:
   grayscale: 1
 ```
 
-This turns supported colors fully grayscale.
+This converts supported colors to full grayscale.
 
-You can also use smaller values:
+Smaller values preserve more of the original color:
 
 ```yaml linenums="1"
 color_filter:
   grayscale: 0.4
 ```
 
-This mixes the original color with a grayscale version.
+This blends the source color with its grayscale equivalent.
 
 ## :material-horseshoe: Supported color properties
 
-Color filters are applied to concrete color properties used by the card.
-
-Supported properties are:
+Color filters apply only to concrete color properties resolved by the card.
 
 | Property | Common use |
 | :------- | :--------- |
-| `fill` | SVG fills, text fills, icon fills, shape fills |
-| `stroke` | Lines, outlines, strokes |
+| `fill` | SVG fills, text, icons, and solid shapes |
+| `stroke` | Lines, outlines, and strokes |
 | `color` | General CSS color values |
 | `stop-color` | Gradient color stops |
-| `flood-color` | Filter or SVG flood colors where supported |
+| `flood-color` | SVG flood colors where supported |
 
-Color values such as `none`, `currentColor`, `inherit`, and `url(...)` are skipped because they are not concrete colors.
+Values such as `none`, `currentColor`, `inherit`, and `url(...)` are skipped because they do not represent concrete colors that the card can transform directly.
 
 ## :material-horseshoe: Where color filters can be used
 
-`color_filter` follows the same general idea as styling: higher-level configuration can define a default, and lower-level configuration can override or extend it.
-
-Color filters can be configured at several levels, depending on the item:
+`color_filter` follows the same general inheritance model as styling. Higher levels can define defaults, while lower levels can extend or override them.
 
 | Level | Purpose |
 | :---- | :------ |
-| Root card `color_filter` | Applies a default filter to the card |
-| Group `color_filter` | Applies a filter to items placed in a group |
-| Item or tool `color_filter` | Applies a filter to one layout item or visual part |
-| Layer-specific `color_filter` | Applies a filter to a specific visual layer where supported |
-| State or color-stop specific `color_filter` | Applies a filter after a specific state or color stop has selected a color |
+| Root card `color_filter` | Defines the default filter for the card. |
+| Group `color_filter` | Applies a filter to items assigned to a group. |
+| Item or tool `color_filter` | Applies a filter to one layout item or visual component. |
+| Layer-specific `color_filter` | Applies a filter to a particular visual layer where supported. |
+| State- or color-stop-specific `color_filter` | Transforms a color after a state or color stop selects it. |
 
-The final filter is built from the active levels in order. Lower-level settings can refine or override higher-level settings.
+The final filter is assembled from the active levels in order. Lower-level settings can refine or replace values inherited from higher levels.
 
 ## :material-horseshoe: Inheritance
 
-By default, color filters cascade from higher levels to lower levels.
+Color filters cascade from higher levels to lower levels by default.
 
-For example, a card-level filter can affect all items unless a lower level overrides it.
+For example, a card-level filter affects all supported items unless a lower level changes or disables it.
 
 ```yaml linenums="1"
 color_filter:
@@ -176,9 +172,9 @@ layout:
       ypos: 50
 ```
 
-In this example, the state item inherits the card-level saturation filter.
+Here, the state item inherits the card-level saturation filter.
 
-To stop inheriting filters from higher levels, use `inherit: false`.
+Use `inherit: false` to stop inheriting filters from higher levels:
 
 ```yaml linenums="1"
 layout:
@@ -188,18 +184,18 @@ layout:
         inherit: false
 ```
 
-After `inherit: false`, only filters defined at that level and below remain active.
+After `inherit: false`, only filters defined at that level or below remain active.
 
-## :material-horseshoe: Global filters and property-specific filters
+## :material-horseshoe: Global and property-specific filters
 
-A color filter can apply to all supported color properties:
+A filter can apply to all supported color properties:
 
 ```yaml linenums="1"
 color_filter:
   grayscale: 1
 ```
 
-You can also target a specific property, such as only `fill` or only `stroke`.
+You can also target an individual property, such as `fill` or `stroke`:
 
 ```yaml linenums="1"
 color_filter:
@@ -210,9 +206,7 @@ color_filter:
     saturation: 0.4
 ```
 
-Global filter keys and property-specific filter keys are merged for each property. Property-specific settings win for that property.
-
-For example:
+For each property, the card combines global and property-specific settings. Property-specific values take precedence.
 
 ```yaml linenums="1"
 color_filter:
@@ -222,15 +216,11 @@ color_filter:
     saturation: 1
 ```
 
-Here, most supported color properties use `saturation: 0.5`, but `fill` uses `saturation: 1`.
+In this example, most supported color properties use `saturation: 0.5`, while `fill` uses `saturation: 1`.
 
 ## :material-horseshoe: Processing order
 
-The filter order is fixed by the card.
-
-Users do not configure the order.
-
-The card processes colors in this order:
+The processing order is fixed and cannot be rearranged in the configuration.
 
 ```text
 source color
@@ -246,23 +236,23 @@ source color
 -> RGB/RGBA for render
 ```
 
-This means a color is first resolved to a real color. Then the configured filters are applied. Finally, the transformed RGB or RGBA color is rendered.
+The card first resolves the source to a real color. It then applies the configured filters in this order and renders the final RGB or RGBA value.
 
 ## :material-horseshoe: Supported filters
 
-The following filters are currently supported:
+The following filters are supported:
 
 | Filter | Purpose |
 | :----- | :------ |
-| `grayscale` | Mixes a color toward grayscale or maps lightness to a grayscale range |
-| `monochrome` | Maps colors to one color family |
-| `duotone` | Maps colors between a dark and light endpoint color |
-| `preserve_neutral` | Keeps black, white, and neutral gray unchanged for `monochrome` and `duotone` |
-| `lightness` | Sets or maps OKLCH lightness |
-| `brightness` | Multiplies OKLCH lightness |
-| `contrast` | Moves RGB channels away from or toward middle gray |
-| `saturation` | Multiplies OKLCH chroma |
-| `opacity` | Multiplies the current alpha channel |
+| `grayscale` | Blends a color toward grayscale or maps lightness to a grayscale range. |
+| `monochrome` | Maps colors to one color family. |
+| `duotone` | Maps colors between dark and light endpoint colors. |
+| `preserve_neutral` | Preserves black, white, and neutral gray when using `monochrome` or `duotone`. |
+| `lightness` | Sets or maps OKLCH lightness. |
+| `brightness` | Multiplies OKLCH lightness. |
+| `contrast` | Moves RGB channels away from or toward middle gray. |
+| `saturation` | Multiplies OKLCH chroma. |
+| `opacity` | Multiplies the current alpha channel. |
 
 The following filters are not currently supported:
 
@@ -274,26 +264,25 @@ The following filters are not currently supported:
 - sepia
 - threshold
 
-
 ## :material-horseshoe: Grayscale
 
 `grayscale` converts colors toward grayscale.
 
-A value of `1` means full grayscale:
+A value of `1` produces full grayscale:
 
 ```yaml linenums="1"
 color_filter:
   grayscale: 1
 ```
 
-A value between `0` and `1` mixes the original color with the grayscale result:
+A value between `0` and `1` blends the original color with the grayscale result:
 
 ```yaml linenums="1"
 color_filter:
   grayscale: 0.4
 ```
 
-You can also use a mapping object with `min` and `max`.
+You can also map the source lightness to a grayscale range:
 
 ```yaml linenums="1"
 color_filter:
@@ -302,7 +291,7 @@ color_filter:
     max: 0.85
 ```
 
-This maps the source lightness into the configured range and returns a grayscale color.
+This preserves relative lightness differences while constraining the result to the configured range.
 
 ## :material-horseshoe: Lightness
 
@@ -315,7 +304,7 @@ color_filter:
   lightness: 0.7
 ```
 
-You can also map the current lightness into a range:
+A range maps the current lightness between `min` and `max`:
 
 ```yaml linenums="1"
 color_filter:
@@ -324,20 +313,20 @@ color_filter:
     max: 0.9
 ```
 
-This keeps relative differences between colors, but limits them to the configured lightness range.
+This preserves relative differences between colors while keeping them within the configured range.
 
 ## :material-horseshoe: Monochrome
 
-`monochrome` maps colors to one color family while preserving source lightness.
+`monochrome` maps colors to one color family while preserving the source lightness.
 
-The simplest form uses a color name or color value:
+The simplest form accepts a color:
 
 ```yaml linenums="1"
 color_filter:
   monochrome: teal
 ```
 
-The object form lets you control the amount.
+The object form also lets you control the strength:
 
 ```yaml linenums="1"
 color_filter:
@@ -346,13 +335,13 @@ color_filter:
     amount: 0.6
 ```
 
-`amount: 1` means full monochrome. Lower values mix the monochrome result with the original color.
+An `amount` of `1` applies the full monochrome result. Lower values blend it with the original color.
 
 ## :material-horseshoe: Duotone
 
 `duotone` maps colors between two endpoint colors.
 
-The source lightness is used as the mix position between the dark and light colors.
+The source lightness determines the mix position between the dark and light colors:
 
 ```yaml linenums="1"
 color_filter:
@@ -361,7 +350,7 @@ color_filter:
     light: '#C2E7F0'
 ```
 
-You can also add `amount`.
+You can also control the strength with `amount`:
 
 ```yaml linenums="1"
 color_filter:
@@ -371,11 +360,11 @@ color_filter:
     amount: 0.7
 ```
 
-`amount: 1` means full duotone. Lower values mix the duotone result with the original color.
+An `amount` of `1` applies the full duotone result. Lower values blend it with the original color.
 
 ## :material-horseshoe: Preserve neutral colors
 
-`preserve_neutral` keeps black, white, and neutral gray unchanged for `monochrome` and `duotone`.
+`preserve_neutral` keeps black, white, and neutral gray unchanged when using `monochrome` or `duotone`.
 
 ```yaml linenums="1"
 color_filter:
@@ -385,7 +374,7 @@ color_filter:
   preserve_neutral: true
 ```
 
-This is useful when you want to restyle a card, but keep text, dividers, and neutral backgrounds readable.
+This is useful when restyling a card while keeping text, dividers, and neutral backgrounds readable.
 
 ## :material-horseshoe: Brightness
 
@@ -396,7 +385,7 @@ color_filter:
   brightness: 1.1
 ```
 
-Values above `1` make colors brighter. Values below `1` make colors darker.
+Values above `1` make colors brighter. Values below `1` make them darker.
 
 ## :material-horseshoe: Contrast
 
@@ -407,7 +396,7 @@ color_filter:
   contrast: 1.05
 ```
 
-Values above `1` increase contrast. Values below `1` reduce contrast.
+Values above `1` increase contrast. Values below `1` reduce it.
 
 ## :material-horseshoe: Saturation
 
@@ -418,7 +407,7 @@ color_filter:
   saturation: 0.8
 ```
 
-Values below `1` reduce saturation. Values above `1` increase saturation.
+Values below `1` reduce saturation. Values above `1` increase it.
 
 ## :material-horseshoe: Opacity
 
@@ -429,15 +418,13 @@ color_filter:
   opacity: 0.7
 ```
 
-This does not replace the original alpha value. It multiplies it.
-
-For example, a color with `0.8` alpha and `opacity: 0.5` renders with `0.4` alpha.
+It does not replace the existing alpha value. For example, a color with an alpha of `0.8` combined with `opacity: 0.5` renders with an alpha of `0.4`.
 
 ## :material-horseshoe: Color filters and color stops
 
-Color filters are separate from color stops.
+Color stops and color filters perform different tasks.
 
-Color stops choose a color based on a value. Color filters can then transform the selected color before it is rendered.
+Color stops select a color from a value. A color filter can then transform the selected color before rendering.
 
 ```yaml linenums="1"
 layout:
@@ -455,11 +442,11 @@ layout:
         saturation: 0.7
 ```
 
-In this example, the color stop first chooses `green`, `yellow`, or `red`. After that, `color_filter` reduces the saturation of the selected color.
+In this example, the color stop first selects `green`, `yellow`, or `red`. The filter then reduces the saturation of that selected color.
 
-## :material-horseshoe: Theme-aware color stops and color filters
+## :material-horseshoe: Theme-aware color stops and filters
 
-Theme-aware color stops are related, but separate from `color_filter`.
+Theme-aware color stops are related to `color_filter`, but they are configured separately.
 
 Color stops can define different values for Home Assistant light and dark mode:
 
@@ -481,7 +468,7 @@ color_stops:
           color: green
 ```
 
-The active color stop mode is selected from the current Home Assistant theme mode. After that, a `color_filter` can still transform the resulting color during render.
+The card first selects the active color-stop definition from the current Home Assistant theme mode. A `color_filter` can then transform the selected result:
 
 ```yaml linenums="1"
 color_stops:
@@ -499,13 +486,13 @@ color_filter:
   brightness: 0.95
 ```
 
-Here, the color is selected from the active theme mode first. Then the brightness filter is applied.
+Here, the active theme mode selects the color first, after which the brightness filter is applied.
 
 ## :material-horseshoe: Recipes
 
-### Grayscale scale with colored state
+### Grayscale scale with a colored state
 
-Put the filter on the scale only:
+Apply the filter only to the scale:
 
 ```yaml linenums="1"
 horseshoe_scale:
@@ -515,11 +502,11 @@ horseshoe_scale:
       max: 0.85
 ```
 
-Do not put the same filter on `horseshoe_state` if the active state should keep the original color stop color.
+Do not apply the same filter to `horseshoe_state` when the active state should keep its original color-stop color.
 
 ### Monochrome card with neutral text preserved
 
-Use a card-level monochrome filter and preserve neutral colors:
+Apply a card-level monochrome filter and preserve neutral colors:
 
 ```yaml linenums="1"
 color_filter:
@@ -529,11 +516,11 @@ color_filter:
   preserve_neutral: true
 ```
 
-This gives the card a consistent color family while keeping neutral text and dividers readable.
+This gives the card one consistent color family while keeping neutral text and dividers readable.
 
 ### Fill only
 
-Use a property-specific filter when only one color property should be transformed.
+Use a property-specific filter when only one color property should change:
 
 ```yaml linenums="1"
 color_filter:
@@ -585,31 +572,31 @@ This affects only that state item.
 
 ## :material-horseshoe: Practical tips
 
-Use card-level `color_filter` for broad visual changes, such as making a whole card monochrome or less saturated.
+Use a card-level `color_filter` for broad visual changes, such as making the complete card monochrome or reducing saturation throughout the design.
 
-Use item-level `color_filter` when only one visual element should change.
+Use an item-level `color_filter` when only one visual element should change.
 
-Use property-specific filters when the fill and stroke should behave differently.
+Use property-specific filters when `fill` and `stroke` need different behavior.
 
-Use `inherit: false` when a group or item should not inherit a filter from the card or group above it.
+Add `inherit: false` when a group or item should ignore filters inherited from the card or a parent group.
 
-Keep filters simple. A small number of well-placed filters is easier to understand than many filters spread across different levels.
+Keep filter chains simple. A small number of well-placed filters is easier to understand and maintain than many overlapping definitions.
 
-Use color stops to choose colors based on values. Use color filters to transform the color after it has been chosen.
+Use color stops to select colors from values. Use color filters to transform those colors afterward.
 
 ## :material-horseshoe: Troubleshooting
 
-If a color does not change, check whether the value is a concrete color. Values such as `none`, `currentColor`, `inherit`, and `url(...)` are skipped.
+When a color does not change, first check whether it resolves to a concrete color. Values such as `none`, `currentColor`, `inherit`, and `url(...)` are skipped.
 
-If the result looks different than expected, remember that the processing order is fixed. For example, saturation is applied after brightness and contrast.
+When the result differs from what you expect, remember that the processing order is fixed. For example, saturation is applied after brightness and contrast.
 
-If too many elements are affected, check whether a card-level or group-level filter is being inherited.
+When too many elements are affected, check whether they inherit a card-level or group-level filter.
 
-If an item should ignore inherited filters, add:
+To make an item ignore inherited filters, add:
 
 ```yaml linenums="1"
 color_filter:
   inherit: false
 ```
 
-If no `color_filter` is configured, colors are not changed.
+When no `color_filter` is configured, the card renders the original colors unchanged.

@@ -1,21 +1,21 @@
 ---
 template: main.html
 title: Sparkline Specialized Charts
-description: Configure equalizer, graded, state bands, barcode, and radial barcode history charts with colors, styling, axes, and touch tooltips.
+description: Configure equalizer, graded, state bands, barcode, and radial barcode history charts, including their colors, styling, axes, and touch tooltips.
 tags:
-  - Section
-  - Sparkline
-  - Barcode
-  - State Bands
+- Section
+- Sparkline
+- Barcode
+- State Bands
 ---
 
 # Sparkline specialized charts
 
-Specialized charts present history without a conventional line or area. Equalizer and graded charts emphasize numeric levels, state bands show how named states change over time, and barcode charts emphasize value changes through color.
+Specialized charts offer different ways to display historical data without using a conventional line or area chart. Equalizer and graded charts highlight numeric levels, state bands show how named states change over time, and barcode charts use color to make changes in value easy to recognize.
 
 ## :material-horseshoe: Shared color behavior
 
-Specialized charts can calculate a color for every displayed bin or level. `colorstops_transition` controls whether the transition between configured colors is hard or smoothly interpolated.
+Specialized charts can calculate a separate color for each displayed bin or level. Use `colorstops_transition` to choose between clearly defined color thresholds and smooth transitions between the configured colors.
 
 ```yaml linenums="1"
 sparkline:
@@ -36,13 +36,11 @@ See [Color Stops](../core-concepts/color-stops.md) for reusable color-stop templ
 
 ### Basic usage
 
-An equalizer divides the visible Y range into a configured number of levels and renders the active levels for every time bin.
+An equalizer divides the visible Y range into a configurable number of levels. For each time bin, it highlights the levels that correspond to the recorded value.
 
-| Equalizer chart |
-| :-:|
+|                                                                Equalizer chart                                                                |
+| :-------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp){width=300} |
-
-
 
 ```yaml linenums="1"
 sparkline:
@@ -55,34 +53,34 @@ sparkline:
 
 ### Configuration fields
 
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `show.chart_type` | :material-check: | | Use `equalizer` to select the equalizer chart. |
-| `equalizer.value_buckets` | :material-close: | `10` | Sets the number of vertical value levels. |
-| `equalizer.square` | :material-close: | `false` | Uses square levels when enabled. |
-| `equalizer.column_spacing` | :material-close: | `1` | Sets the space between time bins. |
-| `equalizer.row_spacing` | :material-close: | `1` | Sets the space between value levels. |
+| Field                      |     Required     | Default | Description                                             |
+| :------------------------- | :--------------: | :------ | :------------------------------------------------------ |
+| `show.chart_type`          | :material-check: |         | Use `equalizer` to display an equalizer chart.          |
+| `equalizer.value_buckets`  | :material-close: | `10`    | The number of vertical value levels shown in the chart. |
+| `equalizer.square`         | :material-close: | `false` | Displays square levels when enabled.                    |
+| `equalizer.column_spacing` | :material-close: | `1`     | The amount of space between consecutive time bins.      |
+| `equalizer.row_spacing`    | :material-close: | `1`     | The amount of space between value levels.               |
 
 ### Styling
 
-Equalizer levels use the configured entity color, line colors, or color stops. Per-bin color stops allow the levels to communicate both magnitude and threshold state.
+Equalizer levels use the configured entity color, line colors, or color stops. When color stops are calculated per bin, the chart can communicate both the value and its threshold state at a glance.
 
 ### Axes, grid, labels, and tooltip
 
-| Display element | Support |
-| :-------------- | :------ |
-| X-axis | Yes, automatic. |
-| Y-axis | Yes, automatic. |
-| Grid | X and Y. |
-| Tick marks | X and Y. |
-| Labels | X and Y. |
-| Tooltip and indicator | No. |
+| Display element       | Support         |
+| :-------------------- | :-------------- |
+| X-axis                | Yes, automatic. |
+| Y-axis                | Yes, automatic. |
+| Grid                  | X and Y.        |
+| Tick marks            | X and Y.        |
+| Labels                | X and Y.        |
+| Tooltip and indicator | No.             |
 
 ## :material-horseshoe: Graded chart
 
 ### Basic usage
 
-A graded chart converts every bin value into one of the ranks defined by its color stops. It is useful when the meaning of the grade is more important than the exact numeric position.
+A graded chart assigns each bin value to one of the ranks defined by its color stops. This is useful when the category or grade matters more than the value’s exact numeric position.
 
 ```yaml linenums="1"
 sparkline:
@@ -92,42 +90,41 @@ sparkline:
     square: false
 ```
 
-Define ranks in the color-stop entries when their visual order differs from their numeric definition order.
+Add ranks to the color-stop entries when their visual order should differ from their numeric definition order.
 
 ### Configuration fields
 
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `show.chart_type` | :material-check: | | Use `graded` to select the graded chart. |
-| `graded.square` | :material-close: | `false` | Uses square grade indicators when enabled. |
-| `equalizer.value_buckets` | :material-close: | `10` | Sets the number of visible grade levels. |
-| `color_stops.colors` | :material-check: | | Supplies the values, colors, and optional ranks. |
+| Field                     |     Required     | Default | Description                                                       |
+| :------------------------ | :--------------: | :------ | :---------------------------------------------------------------- |
+| `show.chart_type`         | :material-check: |         | Use `graded` to display a graded chart.                           |
+| `graded.square`           | :material-close: | `false` | Displays square grade indicators when enabled.                    |
+| `equalizer.value_buckets` | :material-close: | `10`    | The number of grade levels visible in the chart.                  |
+| `color_stops.colors`      | :material-check: |         | Defines the values, colors, and optional ranks used by the chart. |
 
 ### Styling
 
-The configured color-stop ranks determine the visible grade and its color. Use color-stop templates when multiple cards share the same grading scale.
+The ranks in the configured color stops determine which grade is shown and which color it uses. Color-stop templates are especially useful when several cards share the same grading scale.
 
 ### Axes, grid, labels, and tooltip
 
-| Display element | Support |
-| :-------------- | :------ |
-| X-axis | No. |
-| Y-axis | No. |
-| Grid | No. |
-| Tick marks | No. |
-| Labels | No. |
-| Tooltip and indicator | No. |
+| Display element       | Support |
+| :-------------------- | :------ |
+| X-axis                | No.     |
+| Y-axis                | No.     |
+| Grid                  | No.     |
+| Tick marks            | No.     |
+| Labels                | No.     |
+| Tooltip and indicator | No.     |
 
 ## :material-horseshoe: State bands chart
 
 ### Basic usage
 
-A state bands chart displays every mapped entity state on its own row. The horizontal length of a segment shows how long that state remained active. Rounded connections make the transition flow between rows easily visible.
+A state bands chart places each mapped entity state on its own row. The width of a horizontal segment shows how long that state remained active. Rounded connections between rows make changes from one state to another easy to follow.
 
-| State bands chart |
-| :-:|
+|                                                               State bands chart                                                               |
+| :-------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp){width=300} |
-
 
 ```yaml linenums="1"
 sparkline:
@@ -171,54 +168,58 @@ sparkline:
         color: '#e74c3c'
 ```
 
-The `value` determines the vertical row and selects the matching color stop. Omit `label` to use the translated Home Assistant state label where one is available. State bands always use discrete colors; smooth color interpolation does not apply.
+The `value` determines both the vertical row and the matching color stop. When `label` is omitted, the translated Home Assistant state label is used where available.
+
+State bands always use discrete colors. Smooth interpolation between color stops does not apply to this chart type.
 
 ### Configuration fields
 
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `show.chart_type` | :material-check: | | Use `state_bands` to select the state bands chart. |
-| `state_map.type` | :material-check: | | Use `state_value` to map named states to numeric rows. |
-| `state_map.map` | :material-check: | | Defines each source state, numeric row value, and optional display label. |
-| `color_stops.colors` | :material-close: | `[]` | Assigns a color to each mapped numeric value. Without color stops, the normal graph color is used. |
-| `state_bands.radius` | :material-close: | `0.5` | Sets the corner radius of foreground segments. |
-| `state_bands.update_interval` | :material-close: | `5min` | Controls how often the current segment advances when the entity state does not change. |
-| `state_bands.styles` | :material-close: | `stroke-width: 0` | Styles the foreground state segments. |
-| `state_bands.background.padding` | :material-close: | `0.75` | Sets the visible border around foreground segments. |
-| `state_bands.background.connection_width` | :material-close: | `0.375` | Sets the width of the transition connections between rows. |
-| `state_bands.background.styles` | :material-close: | `opacity: 0.3` | Styles the connected background layer. |
+| Field                                     |     Required     | Default           | Description                                                                                               |
+| :---------------------------------------- | :--------------: | :---------------- | :-------------------------------------------------------------------------------------------------------- |
+| `show.chart_type`                         | :material-check: |                   | Use `state_bands` to display a state bands chart.                                                         |
+| `state_map.type`                          | :material-check: |                   | Use `state_value` to map named states to numeric rows.                                                    |
+| `state_map.map`                           | :material-check: |                   | Defines each source state, its numeric row value, and an optional display label.                          |
+| `color_stops.colors`                      | :material-close: | `[]`              | Assigns a color to each mapped value. When no color stops are configured, the normal graph color is used. |
+| `state_bands.radius`                      | :material-close: | `0.5`             | Controls the corner radius of the foreground segments.                                                    |
+| `state_bands.update_interval`             | :material-close: | `5min`            | Determines how often the current segment advances while the entity state remains unchanged.               |
+| `state_bands.styles`                      | :material-close: | `stroke-width: 0` | Applies styles to the foreground state segments.                                                          |
+| `state_bands.background.padding`          | :material-close: | `0.75`            | Controls the visible border around the foreground segments.                                               |
+| `state_bands.background.connection_width` | :material-close: | `0.375`           | Controls the width of the transition connections between rows.                                            |
+| `state_bands.background.styles`           | :material-close: | `opacity: 0.3`    | Applies styles to the connected background layer.                                                         |
 
 ### Styling
 
-The foreground uses the color stop assigned to each mapped value. The separate background follows the same row colors and connects consecutive segments. Use `state_bands.styles` for the foreground and `state_bands.background.styles` for the connected layer behind it.
+Each foreground segment uses the color stop assigned to its mapped value. The separate background layer follows the same row colors and connects consecutive segments.
+
+Use `state_bands.styles` to style the foreground segments and `state_bands.background.styles` to style the connected layer behind them.
 
 ### Axes, grid, labels, and tooltip
 
-| Display element | Support |
-| :-------------- | :------ |
-| X-axis | Yes, automatic time axis. |
-| Y-axis | Yes, categorical state rows. |
-| Grid | X ticks and Y row separators. |
-| Tick marks | X and Y. |
-| Labels | X times and Y state labels. |
-| Tooltip and indicator | Yes, per state segment. |
+| Display element       | Support                       |
+| :-------------------- | :---------------------------- |
+| X-axis                | Yes, automatic time axis.     |
+| Y-axis                | Yes, categorical state rows.  |
+| Grid                  | X ticks and Y row separators. |
+| Tick marks            | X and Y.                      |
+| Labels                | X times and Y state labels.   |
+| Tooltip and indicator | Yes, per state segment.       |
 
-Move the pointer or a finger across the graph to inspect a state period. The indicator snaps to the center of the active segment, while the tooltip shows its state, start, end, and duration.
+Move the pointer or a finger across the chart to inspect a state period. The indicator snaps to the center of the active segment. The tooltip then shows the state, start time, end time, and duration.
 
 ## :material-horseshoe: Barcode chart
 
 ### Basic usage
 
-A barcode renders one narrow colored segment for every time bin. Time runs from left to right, while the value is communicated by the color of each segment.
+A barcode chart draws one narrow colored segment for each time bin. Time runs from left to right, while the color of each segment represents its value.
 
-Below some of the variations. The top sparkline shows the current day with a radial barcode / audio / rice_grain visualization. The bottom 6 sparklines show the past week with their average (center) and min/max values at the bottom.
+The examples below show several available variations. The top sparkline displays the current day using radial barcode, audio, and `rice_grain` visualizations. The six sparklines below it show the previous week, with the average in the center and the minimum and maximum values at the bottom.
 
-| Barcode | Barcode - Audio variant |
-|:-:|:-:|
+|                                                               Barcode                                                               |                                                             Barcode - Audio variant                                                             |
+| :---------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Flexible Horseshoe Card - Sparkline Barcode Chart](../assets/screenshots/fhs-demo-card-study-temperature-week-barcode--dark.webp) | ![Flexible Horseshoe Card - Sparkline Barcode/Audio Chart](../assets/screenshots/fhs-demo-card-study-temperature-week-barcode-audio--dark.webp) |
 
-| Barcode - Stalactites variant | Barcode - Stalagmites variant |
-|:-:|:-:|
+|                                                                Barcode - Stalactites variant                                                                |                                                                Barcode - Stalagmites variant                                                                |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Flexible Horseshoe Card - Sparkline Barcode/Stalactites Chart](../assets/screenshots/fhs-demo-card-study-temperature-week-barcode-stalactites--dark.webp) | ![Flexible Horseshoe Card - Sparkline Barcode/Stalagmites Chart](../assets/screenshots/fhs-demo-card-study-temperature-week-barcode-stalagmites--dark.webp) |
 
 ```yaml linenums="1"
@@ -237,43 +238,43 @@ sparkline:
         color: '#e74c3c'
 ```
 
-Each segment uses its own bin value. The current entity state is not applied to the complete historical barcode.
+Each segment uses the value of its own time bin. The current entity state is therefore not applied to the entire historical barcode.
 
-Omit `chart_variant` for full-height segments. Use `audio` for centered value bars, `stalactites` for bars growing down from the top, or `stalagmites` for bars growing up from the bottom.
+Leave `chart_variant` unset to display full-height segments. Use `audio` for centered value bars, `stalactites` for bars that grow downward from the top, or `stalagmites` for bars that grow upward from the bottom.
 
 ### Configuration fields
 
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `show.chart_type` | :material-check: | | Use `barcode` to select the barcode chart. |
-| `show.chart_variant` | :material-close: | Not set | Selects `audio`, `stalactites`, or `stalagmites`; omit it for full-height segments. |
-| `color_stops.colors` | :material-close: | `[]` | Defines the value-based color of every segment. |
-| `colorstops_transition` | :material-close: | `smooth` | Selects hard or smooth transitions between colors. |
-| `barcode.styles` | :material-close: | `{}` | Applies SVG styles to the barcode segments. |
+| Field                   |     Required     | Default  | Description                                                                               |
+| :---------------------- | :--------------: | :------- | :---------------------------------------------------------------------------------------- |
+| `show.chart_type`       | :material-check: |          | Use `barcode` to display a barcode chart.                                                 |
+| `show.chart_variant`    | :material-close: | Not set  | Choose `audio`, `stalactites`, or `stalagmites`. Leave it unset for full-height segments. |
+| `color_stops.colors`    | :material-close: | `[]`     | Defines the value-based color of each segment.                                            |
+| `colorstops_transition` | :material-close: | `smooth` | Chooses between hard and smooth transitions between colors.                               |
+| `barcode.styles`        | :material-close: | `{}`     | Applies SVG styles to the barcode segments.                                               |
 
 ### Styling
 
-Use `barcode.styles` for the segment presentation. Color stops remain responsible for the data-driven color of each bin.
+Use `barcode.styles` to control the appearance of the segments. Their data-driven colors continue to come from the configured color stops.
 
 ### Axes, grid, labels, and tooltip
 
-| Display element | Support |
-| :-------------- | :------ |
-| X-axis | Yes, automatic. |
-| Y-axis | No. |
-| Grid | X only. |
-| Tick marks | X only. |
-| Labels | X only. |
-| Tooltip and indicator | Yes. |
+| Display element       | Support         |
+| :-------------------- | :-------------- |
+| X-axis                | Yes, automatic. |
+| Y-axis                | No.             |
+| Grid                  | X only.         |
+| Tick marks            | X only.         |
+| Labels                | X only.         |
+| Tooltip and indicator | Yes.            |
 
 ## :material-horseshoe: Radial barcode chart
 
 ### Basic usage
 
-A radial barcode arranges the configured time bins around a circle. The complete configured period occupies the full ring from the first bin through the last bin.
+A radial barcode arranges the configured time bins around a circle. The full configured period is distributed around the ring, starting with the first bin and ending with the last.
 
-| Radial Barcode chart - Sunburst variant - flower viz |
-| :-:|
+|                                                                 Radial Barcode chart - Sunburst variant - flower viz                                                                 |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Flexible Horseshoe Card - Sparkline Radial Barcode/Flower with Tooltip Chart](../assets//screenshots/fhs-demo-card-study-temperature-radial_barcode-tooltip--dark.webp){width=300} |
 
 ```yaml linenums="1"
@@ -297,50 +298,52 @@ sparkline:
       hour_marks_count: 24
 ```
 
-Move the pointer or a finger over the ring to inspect a segment. The active foreground segment is emphasized, the other foreground segments are dimmed relative to their configured opacity, and the tooltip shows the selected bin.
+Move the pointer or a finger over the ring to inspect an individual segment. The selected foreground segment is highlighted, while the remaining segments are dimmed relative to their configured opacity. The tooltip displays the value and time information for the selected bin.
 
-Omit `chart_viz` for regular ring segments. Use `flower`, `flower2`, or `rice_grain` to change the segment shape.
+Leave `chart_viz` unset to use regular ring segments. Choose `flower`, `flower2`, or `rice_grain` to change their shape.
 
-Omit `chart_variant` for a fixed-width ring. Use `sunburst`, `sunburst_centered`, `sunburst_outward`, or `sunburst_inward` to let each segment's radial size represent its value.
+Leave `chart_variant` unset for a fixed-width ring. Use `sunburst`, `sunburst_centered`, `sunburst_outward`, or `sunburst_inward` when each segment’s radial size should represent its value.
 
 ### Configuration fields
 
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `show.chart_type` | :material-check: | | Use `radial_barcode` to select the radial barcode chart. |
-| `show.chart_viz` | :material-close: | Not set | Selects `flower`, `flower2`, or `rice_grain`; omit it for regular ring segments. |
-| `show.chart_variant` | :material-close: | Not set | Selects a centered, outward, or inward sunburst value layout; omit it for a fixed-width ring. |
-| `radial_barcode.size` | :material-close: | `5` | Sets the radial width of the barcode ring. |
-| `radial_barcode.line_width` | :material-close: | `0` | Adds line width to the radial segments. |
-| `radial_barcode.background.styles` | :material-close: | `opacity: 0.3` | Styles the complete reference ring. |
-| `radial_barcode.foreground.styles` | :material-close: | `{}` | Styles the data-driven foreground segments. |
-| `radial_barcode.face.show_day_night` | :material-close: | `false` | Shows the day and night face. |
-| `radial_barcode.face.show_hour_marks` | :material-close: | `false` | Shows hour marks. |
-| `radial_barcode.face.show_hour_numbers` | :material-close: | `false` | Shows absolute or relative hour numbers. |
-| `radial_barcode.face.hour_marks_count` | :material-close: | `24` | Sets the number of hour marks. |
+| Field                                   |     Required     | Default        | Description                                                                                    |
+| :-------------------------------------- | :--------------: | :------------- | :--------------------------------------------------------------------------------------------- |
+| `show.chart_type`                       | :material-check: |                | Use `radial_barcode` to display a radial barcode chart.                                        |
+| `show.chart_viz`                        | :material-close: | Not set        | Choose `flower`, `flower2`, or `rice_grain`. Leave it unset for regular ring segments.         |
+| `show.chart_variant`                    | :material-close: | Not set        | Chooses a centered, outward, or inward sunburst layout. Leave it unset for a fixed-width ring. |
+| `radial_barcode.size`                   | :material-close: | `5`            | Controls the radial width of the barcode ring.                                                 |
+| `radial_barcode.line_width`             | :material-close: | `0`            | Adds line width to the radial segments.                                                        |
+| `radial_barcode.background.styles`      | :material-close: | `opacity: 0.3` | Applies styles to the complete reference ring.                                                 |
+| `radial_barcode.foreground.styles`      | :material-close: | `{}`           | Applies styles to the data-driven foreground segments.                                         |
+| `radial_barcode.face.show_day_night`    | :material-close: | `false`        | Displays the day-and-night face.                                                               |
+| `radial_barcode.face.show_hour_marks`   | :material-close: | `false`        | Displays hour marks.                                                                           |
+| `radial_barcode.face.show_hour_numbers` | :material-close: | `false`        | Displays absolute or relative hour numbers.                                                    |
+| `radial_barcode.face.hour_marks_count`  | :material-close: | `24`           | Defines the number of hour marks.                                                              |
 
 ### Styling
 
-Use `foreground.styles` for the colored data segments and `background.styles` for the reference ring behind them. Interaction changes the foreground emphasis temporarily and restores the configured styles when interaction ends.
+Use `foreground.styles` for the colored data segments and `background.styles` for the reference ring behind them.
 
-Color stops calculate the color of every foreground segment from that segment's own bin value.
+During interaction, the foreground emphasis changes temporarily to highlight the selected segment. Once the interaction ends, the configured styles are restored.
+
+Each foreground segment receives its color from the color stops, based on that segment’s own bin value.
 
 ### Axes, grid, labels, and tooltip
 
-| Display element | Support |
-| :-------------- | :------ |
-| X-axis | No. |
-| Y-axis | No. |
-| Grid | No. |
-| Tick marks | No. |
-| Labels | No. |
-| Tooltip | Yes, per radial segment. |
-| Indicator | No. |
+| Display element | Support                  |
+| :-------------- | :----------------------- |
+| X-axis          | No.                      |
+| Y-axis          | No.                      |
+| Grid            | No.                      |
+| Tick marks      | No.                      |
+| Labels          | No.                      |
+| Tooltip         | Yes, per radial segment. |
+| Indicator       | No.                      |
 
 ## :material-horseshoe: Related documentation
 
-- [Sparkline Graphs](sparklines-section.md)
-- [Sparkline History Periods and Bins](sparkline-history-periods.md)
-- [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
-- [Color Stops](../core-concepts/color-stops.md)
-- [CSS Styling](../core-concepts/css-styling.md)
+* [Sparkline Graphs](sparklines-section.md)
+* [Sparkline History Periods and Bins](sparkline-history-periods.md)
+* [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
+* [Color Stops](../core-concepts/color-stops.md)
+* [CSS Styling](../core-concepts/css-styling.md)
