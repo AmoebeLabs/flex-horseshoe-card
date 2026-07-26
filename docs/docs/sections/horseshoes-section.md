@@ -14,6 +14,20 @@ The horseshoe section adds one or more circular or partial-circle gauges to the 
 
 Horseshoes use the card coordinate system. On a `100 × 100` card, the position `50, 50` marks the center. Wider or taller cards can use coordinates above `100` along their longer dimension.
 
+| The old and mighty Horseshoe | | |
+| - | - | - |
+
+| More advanced Horseshoes | | |
+| - | - | - |
+| ![](../assets/screenshots/fhs-demo-card-20-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-22-electricity--dark.webp) |
+| ![](../assets/screenshots/fhs-demo-card-24-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-26-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-27-electricity--dark.webp) |
+| ![](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp) | ![](../assets/screenshots/fhs-demo-card-33-electricity--dark.webp) |
+
+| Wide(r) cards showing textual states | |
+| - | - |
+| ![](../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp) | ![](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp) |
+| ![](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp) | ![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp) |
+
 ## :material-horseshoe: Basic usage
 
 Add gauges to `layout.horseshoes`, connect each one to an entity through `entity_index`, and define its numeric range under `horseshoe_scale`.

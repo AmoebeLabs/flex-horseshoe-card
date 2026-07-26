@@ -12,8 +12,6 @@ tags:
 
 Line, area, dots, and bar charts display time along the horizontal axis and sensor values along the vertical axis. Start by choosing the history period and number of bins, then select how those bins should appear. The card automatically determines suitable scales, grid lines, tick marks, and labels based on the graph size and the values currently in view.
 
-The Y-axis adapts to the visible data. Increasing the number of bins may reveal shorter peaks or dips and can therefore change the displayed range. Nearly constant data receives a more detailed scale, while larger fluctuations expand the axis to keep all visible values within the graph.
-
 The X-axis follows the selected history period:
 
 * A rolling window moves forward with the available bins.
@@ -77,6 +75,12 @@ line:
 
 Point size and appearance can be adjusted with the applicable point or dot settings.
 
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
+
 ### Axes, grid, labels, and tooltip
 
 | Display element       | Support         |
@@ -139,6 +143,12 @@ area:
 
 `fill: fade` adds a vertical opacity transition. When the Y range crosses zero, the positive and negative areas are handled separately.
 
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
+
 ### Axes, grid, labels, and tooltip
 
 | Display element       | Support         |
@@ -182,6 +192,12 @@ Use `show.points` when points should be added to a line or area chart instead of
 ### Styling
 
 Use `line_color` for a fixed color, or configure `color_stops` to color each dot according to its value.
+
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
 
 ### Axes, grid, labels, and tooltip
 
@@ -229,6 +245,12 @@ When the selected history contains negative values, bars can extend both above a
 
 Bar colors can come from the configured line colors, the entity color, or color stops. Use `bar.styles` to further adjust their appearance.
 
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
+
 ### Axes, grid, labels, and tooltip
 
 | Display element       | Support         |
@@ -261,6 +283,9 @@ sparkline:
       y: true
 ```
 
+!!! warning "The chart only allows configs which are supported"
+    Some charts don't support x or y-axis, so won't show that, even when enabled
+    
 Grid divisions, tick positions, and label placement adjust automatically to the chart. Existing configurations that use a boolean value, such as `axis: true`, continue to display both supported axes.
 
 ## :material-horseshoe: Logarithmic Y-axis

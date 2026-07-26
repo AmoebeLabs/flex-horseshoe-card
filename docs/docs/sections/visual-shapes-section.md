@@ -39,210 +39,185 @@ Shapes can also be connected to an entity through `entity_index`. This allows co
 ### Example definitions
 
 === "Rectangle"
+    A fixed rectangle uses its own position and dimensions:
 
-````
-A fixed rectangle uses its own position and dimensions:
+    ```yaml title="Fixed rectangle" linenums="1"
+    - xpos: 50
+      ypos: 50
+      width: 40
+      height: 12
+      radius: 2
+      styles:
+        fill: var(--primary-color)
+        opacity: 0.3
 
-```yaml title="Fixed rectangle" linenums="1"
-- xpos: 50
-  ypos: 50
-  width: 40
-  height: 12
-  radius: 2
-  styles:
-    fill: var(--primary-color)
-    opacity: 0.3
-```
+    A fitted rectangle takes its position and dimensions from another layout item. The referenced item must have an `id`:
 
-A fitted rectangle takes its position and dimensions from another layout item. The referenced item must have an `id`:
+    ```yaml title="Rectangle fitted to a state" linenums="1"
+    states:
+      - id: current-state
+        entity_index: 0
+        xpos: 50
+        ypos: 50
 
-```yaml title="Rectangle fitted to a state" linenums="1"
-states:
-  - id: current-state
-    entity_index: 0
-    xpos: 50
-    ypos: 50
-
-rectangles:
-  - fit:
-      section: states
-      item_id: current-state
-    radius: 2
-    styles:
-      fill: var(--primary-color)
-      opacity: 0.3
-```
-````
+    rectangles:
+      - fit:
+          section: states
+          item_id: current-state
+        radius: 2
+        styles:
+          fill: var(--primary-color)
+          opacity: 0.3
+    ```
 
 === "Circle"
+    A circle can use a fixed radius in SVG units:
 
-````
-A circle can use a fixed radius in SVG units:
+    ```yaml title="Circle with fixed radius" linenums="1" hl_lines="1"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      radius: 25                # Radius in SVG units
+      styles:
+        stroke-width: 2         # Outline width
+    ```
 
-```yaml title="Circle with fixed radius" linenums="1" hl_lines="1"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  radius: 25                # Radius in SVG units
-  styles:
-    stroke-width: 2         # Outline width
-```
+    Use `radius_percent` when the circle should scale relative to the card. Connecting it to an entity also allows its color to respond to the entity state:
 
-Use `radius_percent` when the circle should scale relative to the card. Connecting it to an entity also allows its color to respond to the entity state:
-
-```yaml title="Circle with percentage radius" linenums="1" hl_lines="1"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  radius_percent: 25        # Radius as a percentage of the card scale
-  entity_index: 0           # Connects to entity 0
-  styles:
-    stroke-width: 2         # Outline width
-  color_stops:              # Changes the circle color based on the entity state
-    colors:
-      0: 'blue'
-      0.1: 'green'
-      0.4: 'yellow'
-      1: 'orange'
-      3: 'red'
-      5: 'purple'
-```
-````
+    ```yaml title="Circle with percentage radius" linenums="1" hl_lines="1"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      radius_percent: 25        # Radius as a percentage of the card scale
+      entity_index: 0           # Connects to entity 0
+      styles:
+        stroke-width: 2         # Outline width
+      color_stops:              # Changes the circle color based on the entity state
+        colors:
+          0: 'blue'
+          0.1: 'green'
+          0.4: 'yellow'
+          1: 'orange'
+          3: 'red'
+          5: 'purple'
+    ```
 
 === "Horizontal Line"
+    A horizontal line uses a center position and a length:
 
-````
-A horizontal line uses a center position and a length:
+    ```yaml title="Horizontal line" linenums="1" hl_lines="1 7"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      length: 25                # Line length
+      entity_index: 0           # Connects to entity 0
+      styles:
+        stroke-width: 2         # Line width
+    ```
 
-```yaml title="Horizontal line" linenums="1" hl_lines="1 7"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  length: 25                # Line length
-  entity_index: 0           # Connects to entity 0
-  styles:
-    stroke-width: 2         # Line width
-```
+    Add color stops when the line color should respond to the connected entity:
 
-Add color stops when the line color should respond to the connected entity:
-
-```yaml title="Horizontal line with color stops" linenums="1" hl_lines="1 7"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  length: 25                # Line length
-  entity_index: 0           # Connects to entity 0
-  styles:
-    stroke-width: 2         # Line width
-  color_stops:              # Changes the line color based on the entity state
-    colors:
-      0: 'blue'
-      0.1: 'green'
-      0.4: 'yellow'
-      1: 'orange'
-      3: 'red'
-      5: 'purple'
-```
-````
+    ```yaml title="Horizontal line with color stops" linenums="1" hl_lines="1 7"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      length: 25                # Line length
+      entity_index: 0           # Connects to entity 0
+      styles:
+        stroke-width: 2         # Line width
+      color_stops:              # Changes the line color based on the entity state
+        colors:
+          0: 'blue'
+          0.1: 'green'
+          0.4: 'yellow'
+          1: 'orange'
+          3: 'red'
+          5: 'purple'
+    ```
 
 === "Vertical Line"
+    A vertical line uses the same fields as a horizontal line:
 
-````
-A vertical line uses the same fields as a horizontal line:
+    ```yaml title="Vertical line" linenums="1" hl_lines="1 7"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      length: 25                # Line length
+      entity_index: 0           # Connects to entity 0
+      styles:
+        stroke-width: 2         # Line width
+    ```
 
-```yaml title="Vertical line" linenums="1" hl_lines="1 7"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  length: 25                # Line length
-  entity_index: 0           # Connects to entity 0
-  styles:
-    stroke-width: 2         # Line width
-```
+    Color stops work in the same way:
 
-Color stops work in the same way:
-
-```yaml title="Vertical line with color stops" linenums="1" hl_lines="1 7"
-- xpos: 50                  # Horizontal center position
-  ypos: 50                  # Vertical center position
-  length: 25                # Line length
-  entity_index: 0           # Connects to entity 0
-  styles:
-    stroke-width: 2         # Line width
-  color_stops:              # Changes the line color based on the entity state
-    colors:
-      0: 'blue'
-      0.1: 'green'
-      0.4: 'yellow'
-      1: 'orange'
-      3: 'red'
-      5: 'purple'
-```
-````
+    ```yaml title="Vertical line with color stops" linenums="1" hl_lines="1 7"
+    - xpos: 50                  # Horizontal center position
+      ypos: 50                  # Vertical center position
+      length: 25                # Line length
+      entity_index: 0           # Connects to entity 0
+      styles:
+        stroke-width: 2         # Line width
+      color_stops:              # Changes the line color based on the entity state
+        colors:
+          0: 'blue'
+          0.1: 'green'
+          0.4: 'yellow'
+          1: 'orange'
+          3: 'red'
+          5: 'purple'
+    ```
 
 ## :material-horseshoe: Configuration fields
 
 The required fields depend on the shape type. Rectangles use either fixed dimensions or `fit`, circles need a radius, and lines use a length.
 
 === "Rectangle"
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | Fixed only | | Horizontal position of the rectangle center |
+    | `ypos` | Fixed only | | Vertical position of the rectangle center |
+    | `width` | Fixed only | | Width of the rectangle |
+    | `height` | Fixed only | | Height of the rectangle |
+    | `fit.section` | Fit only | | Section that contains the referenced item: `states`, `names`, or `areas` |
+    | `fit.item_id` | Fit only | | `id` of the referenced item |
+    | `fit.padding.x` | :material-close: | `1.5` | Horizontal padding around the measured item |
+    | `fit.padding.y` | :material-close: | `0.5` | Vertical padding around the measured item |
+    | `radius` | :material-close: | `0` | Corner radius |
+    | `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
+    | `styles` | :material-close: | `fill: var(--primary-background-color); stroke: none; stroke-width: 0` | CSS and SVG style definitions |
+    | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the fill color |
 
-```
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `xpos` | Fixed only | | Horizontal position of the rectangle center |
-| `ypos` | Fixed only | | Vertical position of the rectangle center |
-| `width` | Fixed only | | Width of the rectangle |
-| `height` | Fixed only | | Height of the rectangle |
-| `fit.section` | Fit only | | Section that contains the referenced item: `states`, `names`, or `areas` |
-| `fit.item_id` | Fit only | | `id` of the referenced item |
-| `fit.padding.x` | :material-close: | `1.5` | Horizontal padding around the measured item |
-| `fit.padding.y` | :material-close: | `0.5` | Vertical padding around the measured item |
-| `radius` | :material-close: | `0` | Corner radius |
-| `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
-| `styles` | :material-close: | `fill: var(--primary-background-color); stroke: none; stroke-width: 0` | CSS and SVG style definitions |
-| `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the fill color |
-
-!!! note
-    Use either `xpos`, `ypos`, `width`, and `height`, or use `fit`. A fitted rectangle takes all four geometry values from the referenced item.
-```
+    !!! note
+        Use either `xpos`, `ypos`, `width`, and `height`, or use `fit`. A fitted rectangle takes all four geometry values from the referenced item.
 
 === "Circle"
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-check: | | Horizontal position on the 100 × 100 card canvas |
+    | `ypos` | :material-check: | | Vertical position on the 100 × 100 card canvas |
+    | `radius` | One required | `0` | Circle radius in SVG units |
+    | `radius_percent` | One required | Not set | Circle radius based on the card percentage scale |
+    | `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
+    | `styles` | :material-close: | `{}` | CSS and SVG style definitions |
+    | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the shape color |
 
-```
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `xpos` | :material-check: | | Horizontal position on the 100 × 100 card canvas |
-| `ypos` | :material-check: | | Vertical position on the 100 × 100 card canvas |
-| `radius` | One required | `0` | Circle radius in SVG units |
-| `radius_percent` | One required | Not set | Circle radius based on the card percentage scale |
-| `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
-| `styles` | :material-close: | `{}` | CSS and SVG style definitions |
-| `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the shape color |
-
-!!! note
-    Use either `radius` or `radius_percent`.
-```
+    !!! note
+        Use either `radius` or `radius_percent`.
 
 === "Horizontal Line"
-
-```
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `xpos` | :material-close: | `50` | Horizontal position on the 100 × 100 card canvas |
-| `ypos` | :material-close: | `50` | Vertical position on the 100 × 100 card canvas |
-| `length` | :material-close: | `10` | Length of the horizontal line |
-| `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
-| `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS and SVG style definitions |
-| `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the line color |
-```
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-close: | `50` | Horizontal position on the 100 × 100 card canvas |
+    | `ypos` | :material-close: | `50` | Vertical position on the 100 × 100 card canvas |
+    | `length` | :material-close: | `10` | Length of the horizontal line |
+    | `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
+    | `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS and SVG style definitions |
+    | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the line color |
 
 === "Vertical Line"
-
-```
-| Field | Required | Default | Description |
-| :---- | :------: | :------ | :---------- |
-| `xpos` | :material-close: | `50` | Horizontal position on the 100 × 100 card canvas |
-| `ypos` | :material-close: | `50` | Vertical position on the 100 × 100 card canvas |
-| `length` | :material-close: | `10` | Length of the vertical line |
-| `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
-| `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS and SVG style definitions |
-| `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the line color |
-```
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-close: | `50` | Horizontal position on the 100 × 100 card canvas |
+    | `ypos` | :material-close: | `50` | Vertical position on the 100 × 100 card canvas |
+    | `length` | :material-close: | `10` | Length of the vertical line |
+    | `entity_index` | :material-close: | Not set | Index of the connected entity in the `entities` section |
+    | `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS and SVG style definitions |
+    | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the line color |
 
 ### Shared fields
 
@@ -265,52 +240,40 @@ Visual shapes are rendered as SVG elements and can therefore be styled with CSS 
 ### Common style properties
 
 === "Rectangle"
-
-```
-| Property | What it does | Example |
-| :------- | :----------- | :------ |
-| `fill` | Defines the fill color | `fill: red` |
-| `stroke` | Defines the outline color | `stroke: blue` |
-| `stroke-width` | Controls the outline width | `stroke-width: 1em` |
-| `opacity` | Controls the opacity of the entire rectangle | `opacity: 0.7` |
-| `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
-| `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
-```
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `fill` | Defines the fill color | `fill: red` |
+    | `stroke` | Defines the outline color | `stroke: blue` |
+    | `stroke-width` | Controls the outline width | `stroke-width: 1em` |
+    | `opacity` | Controls the opacity of the entire rectangle | `opacity: 0.7` |
+    | `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
+    | `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
 
 === "Circle"
-
-```
-| Property | What it does | Example |
-| :------- | :----------- | :------ |
-| `fill` | Defines the fill color | `fill: red` |
-| `stroke` | Defines the outline color | `stroke: blue` |
-| `stroke-width` | Controls the outline width | `stroke-width: 2em` |
-| `opacity` | Controls the opacity of the entire circle | `opacity: 0.7` |
-| `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
-| `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
-```
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `fill` | Defines the fill color | `fill: red` |
+    | `stroke` | Defines the outline color | `stroke: blue` |
+    | `stroke-width` | Controls the outline width | `stroke-width: 2em` |
+    | `opacity` | Controls the opacity of the entire circle | `opacity: 0.7` |
+    | `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
+    | `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
 
 === "Horizontal Line"
-
-```
-| Property | What it does | Example |
-| :------- | :----------- | :------ |
-| `stroke` | Defines the line color | `stroke: red` |
-| `stroke-width` | Controls the line width | `stroke-width: 2em` |
-| `opacity` | Controls the line opacity | `opacity: 0.7` |
-| `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
-```
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `stroke` | Defines the line color | `stroke: red` |
+    | `stroke-width` | Controls the line width | `stroke-width: 2em` |
+    | `opacity` | Controls the line opacity | `opacity: 0.7` |
+    | `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
 
 === "Vertical Line"
-
-```
-| Property | What it does | Example |
-| :------- | :----------- | :------ |
-| `stroke` | Defines the line color | `stroke: red` |
-| `stroke-width` | Controls the line width | `stroke-width: 2em` |
-| `opacity` | Controls the line opacity | `opacity: 0.7` |
-| `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
-```
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `stroke` | Defines the line color | `stroke: red` |
+    | `stroke-width` | Controls the line width | `stroke-width: 2em` |
+    | `opacity` | Controls the line opacity | `opacity: 0.7` |
+    | `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
 
 --8<-- "docs/tools/default-haptics.md"
 

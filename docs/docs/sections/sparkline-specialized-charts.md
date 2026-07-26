@@ -65,6 +65,12 @@ sparkline:
 
 Equalizer levels use the configured entity color, line colors, or color stops. When color stops are calculated per bin, the chart can communicate both the value and its threshold state at a glance.
 
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-check: | :material-check: | :material-check: |
+
 ### Axes, grid, labels, and tooltip
 
 | Display element       | Support         |
@@ -104,6 +110,12 @@ Add ranks to the color-stop entries when their visual order should differ from t
 ### Styling
 
 The ranks in the configured color stops determine which grade is shown and which color it uses. Color-stop templates are especially useful when several cards share the same grading scale.
+
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-check: | :material-check: | :material-check: |
 
 ### Axes, grid, labels, and tooltip
 
@@ -193,6 +205,12 @@ Each foreground segment uses the color stop assigned to its mapped value. The se
 
 Use `state_bands.styles` to style the foreground segments and `state_bands.background.styles` to style the connected layer behind them.
 
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
+
 ### Axes, grid, labels, and tooltip
 
 | Display element       | Support                       |
@@ -255,6 +273,12 @@ Leave `chart_variant` unset to display full-height segments. Use `audio` for cen
 ### Styling
 
 Use `barcode.styles` to control the appearance of the segments. Their data-driven colors continue to come from the configured color stops.
+
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
 
 ### Axes, grid, labels, and tooltip
 
@@ -327,6 +351,12 @@ Use `foreground.styles` for the colored data segments and `background.styles` fo
 During interaction, the foreground emphasis changes temporarily to highlight the selected segment. Once the interaction ends, the configured styles are restored.
 
 Each foreground segment receives its color from the color stops, based on that segment’s own bin value.
+
+### Period support
+
+| `real_time` | `rolling_window` | `calendar` |
+| :-: | :-: | :-: |
+| :material-close: | :material-check: | :material-check: |
 
 ### Axes, grid, labels, and tooltip
 
