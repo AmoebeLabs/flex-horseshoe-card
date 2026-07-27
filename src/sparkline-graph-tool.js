@@ -391,6 +391,11 @@ export default class SparklineGraphTool extends BaseTool {
       },
     };
     const normalizedConfig = Merge.mergeDeep({}, config);
+
+    // Preserve the original real-time boolean while selecting its graph mode.
+    if (normalizedConfig.period?.real_time === true) {
+      normalizedConfig.period.type = 'real_time';
+    }
     // Legacy booleans enabled or disabled both axes. Convert them once in the
     // configuration layer so rendering always receives explicit x/y values.
     ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
@@ -723,7 +728,8 @@ export default class SparklineGraphTool extends BaseTool {
     if (realTime) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
-      this.series = this.buildRealtimeSeries(entity);
+      const histState = this.getEntityNumericState(entity);
+      this.series = [{ state: histState }];
     } else if (this.historySeries) {
       // Active periods append every Home Assistant state update before the
       // complete series is reduced again into buckets. main.js reads the newly
@@ -1299,7 +1305,20 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    this.stats = this.calculateStatistics(this.series, statisticsRange);
+    // Real-time has one current value and no timestamped history series. Keep
+    // the local statistics entities complete using the source entity timestamp.
+    if (this.config.period.type === 'real_time') {
+      const state = Number(this.series[0].state);
+      this.stats = {
+        min: state,
+        avg: state,
+        max: state,
+        min_time: this.entity.last_changed,
+        max_time: this.entity.last_changed,
+      };
+    } else {
+      this.stats = this.calculateStatistics(this.series, statisticsRange);
+    }
   }
 
   /**
