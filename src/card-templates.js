@@ -136,18 +136,22 @@ export default class CardTemplates {
     const lovelaceConfigs = [card.lovelace.config, card.lovelace.rawConfig];
     let template;
 
+    // Search every view catalog first, so a view-specific template always wins.
     lovelaceConfigs.forEach((lovelaceConfig) => {
-      if (template) return;
-
-      template = lovelaceConfig.fhs_templates?.templates?.[templateName];
-
       if (template) return;
 
       lovelaceConfig.views.forEach((view) => {
         if (template) return;
 
-        template = view.fhs_templates?.templates?.[templateName];
+        template = view.fhs_user_templates?.templates?.[templateName];
       });
+    });
+
+    // Fall back to the dashboard catalogs in config and rawConfig.
+    lovelaceConfigs.forEach((lovelaceConfig) => {
+      if (template) return;
+
+      template = lovelaceConfig.fhs_user_templates?.templates?.[templateName];
     });
 
     if (!template) {
