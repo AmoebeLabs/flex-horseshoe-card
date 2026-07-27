@@ -14,10 +14,10 @@ export default class GroupManager {
   /**
    * Stores the configured group tree and computes the effective group positions.
    *
-   * @param {object} groups - layout.groups from the normalized card config.
+   * @param {Array<object>} groups - layout.groups from the normalized card config.
    */
   constructor(groups) {
-    if (groups?.[CARD_GROUP_ID]) {
+    if (groups.some((group) => String(group.id) === CARD_GROUP_ID)) {
       throw new Error('[groups] card is reserved for the card root group');
     }
 
@@ -27,8 +27,11 @@ export default class GroupManager {
         xpos: GROUP_CENTER,
         ypos: GROUP_CENTER,
       },
-      ...(groups ?? {}),
     };
+
+    groups.forEach((group) => {
+      this.groups[String(group.id)] = group;
+    });
 
     this.resolvedGroups = {};
 

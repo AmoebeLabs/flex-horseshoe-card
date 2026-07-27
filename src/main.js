@@ -1089,18 +1089,18 @@ class FlexHorseshoeCard extends LitElement {
     const groupsPerformanceStart = performanceEnabled ? performance.now() : undefined;
     this.changedGroupIds.clear();
     if (configuredEntityStateChanged && this.groupsHaveJavascript) {
-      const nextActiveGroupConfigs = { ...this.activeGroupConfigs };
+      const nextActiveGroupConfigs = [...this.activeGroupConfigs];
       const directlyChangedGroupIds = new Set();
 
-      Object.entries(this.sourceGroupConfigs).forEach(([groupId, sourceGroupConfig]) => {
+      this.sourceGroupConfigs.forEach((sourceGroupConfig, groupIndex) => {
         if (!Templates.hasJavascriptTemplates(sourceGroupConfig)) return;
 
+        const groupId = String(sourceGroupConfig.id);
         const activeGroupConfig = Templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, {
           resolveKeys: true,
         });
         const activeGroupSignature = JSON.stringify(activeGroupConfig);
-
-        nextActiveGroupConfigs[groupId] = activeGroupConfig;
+        nextActiveGroupConfigs[groupIndex] = activeGroupConfig;
         if (activeGroupSignature !== this.activeGroupSignatures[groupId]) {
           this.activeGroupSignatures[groupId] = activeGroupSignature;
           directlyChangedGroupIds.add(groupId);
@@ -1402,6 +1402,9 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _assignSectionIds(config) {
+    config.layout.groups ??= [];
+    config.layout.groups = this._assignIdItems(config.layout.groups);
+
     VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
@@ -1594,11 +1597,9 @@ class FlexHorseshoeCard extends LitElement {
       });
     });
 
-    if (config.layout.groups) {
-      Object.values(config.layout.groups).forEach((group) => {
-        if (Templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
-      });
-    }
+    config.layout.groups.forEach((group) => {
+      if (Templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
+    });
 
     if (config.animations) {
       Object.values(config.animations).forEach((animationItems) => {
@@ -1743,11 +1744,11 @@ class FlexHorseshoeCard extends LitElement {
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
-      this.config.layout.groups ??= {};
+      this.config.layout.groups ??= [];
       this.sourceGroupConfigs = this.config.layout.groups;
       this.activeGroupConfigs = this.sourceGroupConfigs;
       this.activeGroupSignatures = {};
-      this.groupsHaveJavascript = Object.values(this.sourceGroupConfigs).some((group) => Templates.hasJavascriptTemplates(group));
+      this.groupsHaveJavascript = this.sourceGroupConfigs.some((group) => Templates.hasJavascriptTemplates(group));
       this.changedGroupIds.clear();
       this.entityConfigsInitialized = false;
       this.config.layout.gradients ??= {};
