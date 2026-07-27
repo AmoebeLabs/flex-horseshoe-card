@@ -71,9 +71,16 @@ export default class SparklineGraph {
     // Testing
     this._max = 0;
     this._min = 0;
-    const period = this.config.period[this.config.period.type];
-    this.points = period.bins.per_hour || 1;
-    this.hours = period.duration.hour || 24;
+    // Real-time retains the original one-value graph contract and has no
+    // duration or bins. Historical period types use their configured range.
+    if (this.config.period.type === 'real_time') {
+      this.points = 1;
+      this.hours = 1;
+    } else {
+      const period = this.config.period[this.config.period.type];
+      this.points = period.bins.per_hour || 1;
+      this.hours = period.duration.hour || 24;
+    }
     // this.points = this.config.period?.calendar?.bins?.per_hour || this.config.period?.rolling_window?.bins?.per_hour || 1;
     // this.hours = this.config.period?.calendar?.duration?.hour || this.config.period?.rolling_window?.duration?.hour || 24;
     this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
@@ -184,7 +191,9 @@ export default class SparklineGraph {
 
     // console.log('[update] histGroups BEFORE reducer', history, this.hours, this.points, this.offsetHours);
 
-    const histGroups = this._history.reduce((res, item) => this._reducer(res, item), []);
+    // The real-time series already is its single graph bucket. Only historical
+    // period types require timestamp-based reduction into buckets.
+    const histGroups = this.config.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
     // drop potential out of bound entry's except one
     if (histGroups[0] && histGroups[0].length) {
       histGroups[0] = [histGroups[0][histGroups[0].length - 1]];
