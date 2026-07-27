@@ -4176,7 +4176,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
-    if (this.config.sparkline.show.chart_type === 'radial_barcode') return '';
+    if (this.config.sparkline.show.chart_type === 'radial_barcode' || this.config.sparkline.show.chart_type === 'graded') return '';
 
     return svg`
       <line
@@ -4383,9 +4383,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} Graded rectangle SVG.
    */
   renderSvgTrafficLight(trafficLight, i) {
-    const values = trafficLight.value;
     const backgroundStyles = { ...this.config.sparkline.graded.background.styles };
     const foregroundStyles = { ...this.config.sparkline.graded.foreground.styles };
+    const backgroundColor = 'var(--theme-sys-elevation-surface-neutral4)';
 
     // Graded colors are calculated per rectangle and cannot be overridden by styles.
     delete backgroundStyles.fill;
@@ -4394,24 +4394,38 @@ export default class SparklineGraphTool extends BaseTool {
     delete foregroundStyles.stroke;
 
     return svg`
-      ${values.map((value, k) => {
+      ${this.gradeRanks.map((grade, k) => {
+        const value = trafficLight.value[k];
         const hasValue = typeof value !== 'undefined';
-        const color = hasValue ? this.computeColor(value + 0.001, 0) : 'var(--theme-sys-elevation-surface-neutral4)';
-        const styles = hasValue ? foregroundStyles : backgroundStyles;
+        const foregroundColor = hasValue ? this.computeColor(value + 0.001, 0) : 'transparent';
         const rectY = Array.isArray(trafficLight.y) ? trafficLight.y[k] : trafficLight.y;
         const rectHeight = Math.max(1, trafficLight.height - this.svg.line_width);
         const rectWidth = Math.max(1, trafficLight.width - this.svg.line_width);
+
         return svg`
           <rect
+            class='traffic-light-background'
             x=${trafficLight.x + this.svg.line_width / 2}
             y=${rectY - trafficLight.height + this.svg.line_width / 2}
             height=${rectHeight}
             width=${rectWidth}
-            fill=${color}
-            stroke=${color}
+            fill=${backgroundColor}
+            stroke=${backgroundColor}
             stroke-width=${this.svg.line_width ? this.svg.line_width : 0}
-            pathLength="10"
-            style=${styleMap(this.getRenderStyles(styles))}
+            pathLength='10'
+            style=${styleMap(this.getRenderStyles(backgroundStyles))}
+          ></rect>
+          <rect
+            class='traffic-light-foreground'
+            x=${trafficLight.x + this.svg.line_width / 2}
+            y=${rectY - trafficLight.height + this.svg.line_width / 2}
+            height=${rectHeight}
+            width=${rectWidth}
+            fill=${foregroundColor}
+            stroke=${foregroundColor}
+            stroke-width=${this.svg.line_width ? this.svg.line_width : 0}
+            pathLength='10'
+            style=${styleMap(this.getRenderStyles(foregroundStyles))}
           ></rect>
         `;
       })}
