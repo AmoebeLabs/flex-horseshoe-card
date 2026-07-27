@@ -16,6 +16,8 @@ export default class SameAs {
    * @param {object} config - Card or template config with a layout section.
    */
   static compile(config) {
+    config.layout.groups = SameAs.compileItems(config.layout.groups);
+
     VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
