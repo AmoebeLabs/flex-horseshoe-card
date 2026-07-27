@@ -205,6 +205,12 @@ export default class SparklineGraphTool extends BaseTool {
         },
         graded: {
           square: false,
+          background: {
+            styles: {},
+          },
+          foreground: {
+            styles: {},
+          },
         },
         state_bands: {
           radius: 0.5,
@@ -418,6 +424,12 @@ export default class SparklineGraphTool extends BaseTool {
     }
     if (normalizedConfig.sparkline?.state_bands?.background?.styles !== undefined) {
       normalizedConfig.sparkline.state_bands.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.background.styles);
+    }
+    if (normalizedConfig.sparkline?.graded?.background?.styles !== undefined) {
+      normalizedConfig.sparkline.graded.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.graded.background.styles);
+    }
+    if (normalizedConfig.sparkline?.graded?.foreground?.styles !== undefined) {
+      normalizedConfig.sparkline.graded.foreground.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.graded.foreground.styles);
     }
     ['x_axis', 'y_axis'].forEach((axisName) => {
       ['axis', 'grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
@@ -4362,12 +4374,30 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders the graded background and foreground rectangles with their configured styles.
+   * The computed color remains authoritative for fill and stroke.
+   *
+   * @param {object} trafficLight - Graded rectangle geometry and values.
+   * @param {number} i - Rendered series index.
+   * @returns {TemplateResult} Graded rectangle SVG.
+   */
   renderSvgTrafficLight(trafficLight, i) {
-    const values = trafficLight.value || [];
+    const values = trafficLight.value;
+    const backgroundStyles = { ...this.config.sparkline.graded.background.styles };
+    const foregroundStyles = { ...this.config.sparkline.graded.foreground.styles };
+
+    // Graded colors are calculated per rectangle and cannot be overridden by styles.
+    delete backgroundStyles.fill;
+    delete backgroundStyles.stroke;
+    delete foregroundStyles.fill;
+    delete foregroundStyles.stroke;
+
     return svg`
       ${values.map((value, k) => {
         const hasValue = typeof value !== 'undefined';
         const color = hasValue ? this.computeColor(value + 0.001, 0) : 'var(--theme-sys-elevation-surface-neutral4)';
+        const styles = hasValue ? foregroundStyles : backgroundStyles;
         const rectY = Array.isArray(trafficLight.y) ? trafficLight.y[k] : trafficLight.y;
         const rectHeight = Math.max(1, trafficLight.height - this.svg.line_width);
         const rectWidth = Math.max(1, trafficLight.width - this.svg.line_width);
@@ -4380,9 +4410,8 @@ export default class SparklineGraphTool extends BaseTool {
             fill=${color}
             stroke=${color}
             stroke-width=${this.svg.line_width ? this.svg.line_width : 0}
-            rx="0"
-            ry="0"
             pathLength="10"
+            style=${styleMap(this.getRenderStyles(styles))}
           ></rect>
         `;
       })}
