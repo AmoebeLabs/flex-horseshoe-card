@@ -447,8 +447,10 @@ export default class SparklineGraphTool extends BaseTool {
     this.containedGraphMargin = this.svg.margin;
     this.config.svg = this.svg;
     this.stateBandsStateMap = this.config.sparkline.state_map;
+    this.gradeValues = [];
+    this.gradeRanks = [];
     this.graphConfig = this.buildGraphConfig(this.config);
-    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
+    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
     this.series = [];
     this.historySeries = undefined;
     this.gradient = [];
@@ -716,8 +718,34 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg = this.calculateSvgDimensions(this.config);
     this.svg.margin = this.containedGraphMargin;
     this.config.svg = this.svg;
+
+    // Graded charts use color-stop ranks as their fixed vertical buckets. Build
+    // the same value/range arrays as the original graph tool before creating
+    // the engine so getGrades() receives complete geometry input.
+    this.gradeValues = [];
+    this.config.sparkline.colorstops.colors.map((value, index) => (this.gradeValues[index] = value.value));
+
+    this.gradeRanks = [];
+    this.config.sparkline.colorstops.colors.map((value, index) => {
+      const rankIndex = this.config.sparkline.show.chart_variant === 'rank_order' && value.rank !== undefined ? value.rank : index;
+
+      if (!this.gradeRanks[rankIndex]) {
+        this.gradeRanks[rankIndex] = {
+          value: [],
+          rangeMin: [],
+          rangeMax: [],
+        };
+      }
+
+      this.gradeRanks[rankIndex].rank = rankIndex;
+      this.gradeRanks[rankIndex].color = value.color;
+      this.gradeRanks[rankIndex].value.push(value.value);
+      this.gradeRanks[rankIndex].rangeMin.push(value.value);
+      this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value || Infinity);
+      return true;
+    });
     this.graphConfig = this.buildGraphConfig(this.config);
-    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
+    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
     const realTime = this.config.period.type === 'real_time';
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
     const closedHistoricalCalendar = this.config.period.type === 'calendar' && this.config.period.calendar.offset < 0;
@@ -1213,7 +1241,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.containedGraphMargin = containedGraphMargin;
       this.svg.margin = containedGraphMargin;
       this.graphConfig = this.buildGraphConfig(this.config);
-      this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, [], [], this.graphConfig.sparkline.state_map ?? {});
+      this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
 
       if (this.config.period.type !== 'real_time') {
         const range = this.getHistoryRange();
