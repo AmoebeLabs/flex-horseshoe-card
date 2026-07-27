@@ -4866,9 +4866,9 @@ export default class SparklineGraphTool extends BaseTool {
             width="${this.svg.width}"
             height="${this.svg.height}"
             viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-            overflow="hidden"
+            overflow="visible"
             touch-action="none"
-            style="touch-action:none; pointer-events:auto; overflow:hidden;"
+            style="touch-action:none; pointer-events:auto; overflow:visible;"
           ></svg>
         </g>
       `;
@@ -4887,9 +4887,9 @@ export default class SparklineGraphTool extends BaseTool {
           width="${this.svg.width}"
           height="${this.svg.height}"
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-          overflow="hidden"
+          overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:auto; overflow:hidden;"
+          style="touch-action:none; pointer-events:auto; overflow:visible;"
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}

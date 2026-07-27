@@ -1156,9 +1156,9 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
             width="${this.svg.width}"
             height="${this.svg.height}"
             viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-            overflow="hidden"
+            overflow="visible"
             touch-action="none"
-            style="touch-action:none; pointer-events:auto; overflow:hidden;"
+            style="touch-action:none; pointer-events:auto; overflow:visible;"
           ></svg>
         </g>
       `;const t=H`
@@ -1174,9 +1174,9 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
           width="${this.svg.width}"
           height="${this.svg.height}"
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
-          overflow="hidden"
+          overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:auto; overflow:hidden;"
+          style="touch-action:none; pointer-events:auto; overflow:visible;"
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
