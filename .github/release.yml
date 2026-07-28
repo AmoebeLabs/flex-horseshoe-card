@@ -12,6 +12,7 @@ changelog:
       labels:
         - bug
         - fix
+        - regression
 
     - title: 🚀 New features
       labels:
