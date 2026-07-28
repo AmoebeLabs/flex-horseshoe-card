@@ -4,6 +4,10 @@ changelog:
       labels:
         - breaking
 
+    - title: 💥 Breaking changes (DEV!)
+      labels:
+        - breaking-dev
+
     - title: 🐛 Bug fixes
       labels:
         - bug
@@ -14,6 +18,10 @@ changelog:
         - enhancement
         - feature
 
+    - title: ♻️ Refactoring
+      labels:
+        - refactor
+      
     - title: 🧰 Maintenance
       labels:
         - chore
