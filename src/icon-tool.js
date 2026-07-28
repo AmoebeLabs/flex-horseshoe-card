@@ -49,14 +49,9 @@ export default class IconTool extends BaseTool {
     this.pendingIconPath = undefined;
   }
 
-  /**
-   * Updates runtime entity context for this icon.
-   *
-   * @param {object} entity - Home Assistant entity state object for this icon.
-   * @param {object} entityConfig - Entity configuration for this icon.
-   */
-  setState(entity, entityConfig) {
-    super.setState(entity, entityConfig);
+  /** Updates icon configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
 
     if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }

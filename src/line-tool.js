@@ -75,14 +75,9 @@ export default class LineTool extends BaseTool {
     this.config.svg = this.calculateSvgDimensions();
   }
 
-  /**
-   * Updates runtime entity context for this line.
-   *
-   * @param {object} entity - Home Assistant entity state object for this line.
-   * @param {object} entityConfig - Entity configuration for this line.
-   */
-  setState(entity, entityConfig) {
-    super.setState(entity, entityConfig);
+  /** Updates line configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
 
     if (this.configChanged) {
       this.validateOrientation(this.config.orientation);

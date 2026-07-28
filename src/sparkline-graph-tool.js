@@ -672,18 +672,11 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
-  /**
-   * Updates runtime entity context and recalculates graph paths from current data.
-   *
-   * @param {object} entity - Home Assistant entity state object for this tool.
-   * @param {object} entityConfig - Entity configuration for this tool.
-   */
-  setState(entity, entityConfig) {
-    super.setState(entity, entityConfig);
+  /** Updates graph configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
 
-    // Determine the longest label produced by Home Assistant for the active
-    // locale. Short month names are not guaranteed to contain three characters,
-    // and 12-hour clocks need room for a two-digit hour plus AM or PM.
+    // Determine the longest label produced by Home Assistant for the active locale.
     const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
 
     if (this.xAxisLabelLocaleKey !== localeKey) {
@@ -706,6 +699,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (this.config.sparkline.show.chart_type === 'state_bands') {
+      const entity = this.card.entities[this.entity_index];
       this.stateBandsStateMap = {
         ...this.config.sparkline.state_map,
         map: this.config.sparkline.state_map.map.map((entry) => {
@@ -731,9 +725,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg.margin = this.containedGraphMargin;
     this.config.svg = this.svg;
 
-    // Graded charts use color-stop ranks as their fixed vertical buckets. Build
-    // the same value/range arrays as the original graph tool before creating
-    // the engine so getGrades() receives complete geometry input.
+    // Graded charts use color-stop ranks as their fixed vertical buckets.
     this.gradeValues = [];
     this.config.sparkline.colorstops.colors.map((value, index) => (this.gradeValues[index] = value.value));
 
@@ -758,6 +750,17 @@ export default class SparklineGraphTool extends BaseTool {
     });
     this.graphConfig = this.buildGraphConfig(this.config);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
+  }
+
+  /**
+   * Updates runtime entity context and recalculates graph paths from current data.
+   *
+   * @param {object} entity - Home Assistant entity state object for this tool.
+   * @param {object} entityConfig - Entity configuration for this tool.
+   */
+  setState(entity, entityConfig) {
+    super.setState(entity, entityConfig);
+
     const realTime = this.config.period.type === 'real_time';
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
     const closedHistoricalCalendar = this.config.period.type === 'calendar' && this.config.period.calendar.offset < 0;
@@ -912,7 +915,7 @@ export default class SparklineGraphTool extends BaseTool {
       // A bin boundary advances the in-memory graph without fetching history.
       // Refresh local statistics and their bound tools from the recalculated series.
       this.card._updateSparklineEntities();
-      this.card._updateToolsUsingSparklineEntities();
+      this.card._updateToolsAfterSparklineStatistics();
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
     }, delay);
@@ -1141,7 +1144,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.series = this.historySeries;
         this.updateGraphFromSeries();
         this.card._updateSparklineEntities();
-        this.card._updateToolsUsingSparklineEntities();
+        this.card._updateToolsAfterSparklineStatistics();
         if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
         this.historyResynchronizationRequested = false;
         this.card.requestUpdate();

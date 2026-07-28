@@ -187,6 +187,16 @@ export default class HorseshoeGauge extends BaseTool {
     this.pathItemCacheKey = undefined;
   }
 
+  /** Updates normalized horseshoe configuration before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged || !this.normalizedConfig) {
+      this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
+      this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.getActiveColorStopMode());
+    }
+  }
+
   /**
    * Resolves entity state into runtime config, scale, geometry, and animation target.
    *
@@ -195,13 +205,6 @@ export default class HorseshoeGauge extends BaseTool {
    */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
-
-    // Normalize only when the complete evaluated item changed. The normalized source stays
-    // separate because entity-state mapping adds transient fields for the current state.
-    if (this.configChanged || !this.normalizedConfig) {
-      this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
-      this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.getActiveColorStopMode());
-    }
 
     const stateData = getGaugeStateData(this.normalizedConfig, entity, entityConfig);
     const nextValue = stateData.value;

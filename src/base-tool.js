@@ -47,14 +47,10 @@ export default class BaseTool {
   }
 
   /**
-   * Updates the runtime entity context for this tool.
-   *
-   * @param {object} entity - Home Assistant entity state object for this tool.
-   * @param {object} entityConfig - Entity configuration for this tool.
+   * Updates the runtime configuration after main has published the current
+   * Home Assistant template context and before entity data is assigned.
    */
-  setState(entity, entityConfig) {
-    this.entity = entity;
-    this.entityConfig = entityConfig;
+  updateRuntimeConfig() {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configChanged = !this.activeConfigInitialized || this.card.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
 
@@ -66,7 +62,7 @@ export default class BaseTool {
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
 
       // Keep the current active object when JavaScript produced the same config. Tool-specific
-      // normalization and geometry can use configChanged during their migration in later issues.
+      // normalization and geometry use configChanged during the remaining runtime-config phase.
       if (evaluatedConfigSignature !== this.activeConfigSignature) {
         this.config = evaluatedConfig;
         this.activeConfigSignature = evaluatedConfigSignature;
@@ -87,6 +83,21 @@ export default class BaseTool {
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.activeConfigInitialized = true;
   }
+
+  /**
+   * Stores the runtime entity data for this tool after its active configuration
+   * has been prepared by updateRuntimeConfig().
+   *
+   * @param {object} entity - Home Assistant entity state object for this tool.
+   * @param {object} entityConfig - Entity configuration for this tool.
+   */
+  setState(entity, entityConfig) {
+    this.entity = entity;
+    this.entityConfig = entityConfig;
+  }
+
+  /** Called once when Home Assistant context first becomes available to this tool. */
+  hassAvailable() {}
 
   /** Called when the parent card is attached to the DOM. */
   connected() {}

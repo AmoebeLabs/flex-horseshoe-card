@@ -53,6 +53,13 @@ export default class AreaTool extends BaseTool {
     this.textMeasurementSignature = '';
   }
 
+  /** Updates area configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+  }
+
   /**
    * Updates runtime entity context and displayed area text.
    *
@@ -62,7 +69,6 @@ export default class AreaTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
     this.area = this.textEllipsis(this.buildArea(), this.config.max_characters ?? this.config.ellipsis);
 
     // Keep the first render close to the final size. updated() replaces this

@@ -53,6 +53,13 @@ export default class NameTool extends BaseTool {
     this.textMeasurementSignature = '';
   }
 
+  /** Updates name configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+  }
+
   /**
    * Updates runtime entity context and displayed name text.
    *
@@ -62,7 +69,6 @@ export default class NameTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
     this.name = this.textEllipsis(this.buildName(), this.config.max_characters ?? this.config.ellipsis);
 
     // Keep the first render close to the final size. updated() replaces this
