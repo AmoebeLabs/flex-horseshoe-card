@@ -206,7 +206,9 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
-  const arcDegrees = config.arc_degrees ?? 260;
+  // One SVG arc cannot draw a full circle because its start and end points coincide.
+  // Keep those points distinct while retaining a visually complete horseshoe.
+  const arcDegrees = config.arc_degrees === 360 ? 359.999 : config.arc_degrees ?? 260;
   const barMode = config.bar_mode ?? 'normal';
   const symmetricalBidirectional = barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical';
   const groupConfig = config.group_config;
