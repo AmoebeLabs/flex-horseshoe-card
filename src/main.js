@@ -942,8 +942,19 @@ class FlexHorseshoeCard extends LitElement {
    * local fhs_sparkline entities are updated there, so the existing tools that
    * point at those entity_index values must receive their entity state again.
    */
-  _updateToolsUsingSparklineEntities() {
+  _updateToolsAfterSparklineStatistics() {
     this.evaluateJavascriptTemplates = true;
+
+    // Async sparkline statistics update runtime config before entity data.
+    this.horseshoeGauges.forEach((horseshoe) => horseshoe.updateRuntimeConfig());
+    this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
+    this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
+    this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
+    this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
+    this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
+    this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
+    this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
+    this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -958,6 +969,7 @@ class FlexHorseshoeCard extends LitElement {
     this.evaluateJavascriptTemplates = false;
   }
 
+  /** Assigns only the selected entity data after the separate runtime-config phase. */
   _setToolEntityState(tool) {
     const entityIndex = tool.entity_index;
 
@@ -1021,6 +1033,7 @@ class FlexHorseshoeCard extends LitElement {
   setHass(hass, forceUpdate = false) {
     const performanceEnabled = this.dev.performance === true;
     const setHassPerformanceStart = performanceEnabled ? performance.now() : undefined;
+    const hassBecameAvailable = this._hass === undefined;
 
     this._hass = hass;
 
@@ -1207,14 +1220,31 @@ class FlexHorseshoeCard extends LitElement {
       return;
     }
 
-    // Tool state and data lifecycles still run for forced, theme and history updates.
-    // BaseTool enters JavaScript evaluation only for an actual configured entity update.
+    // Home Assistant availability is a distinct one-time lifecycle phase.
+    if (hassBecameAvailable) this._getRenderableTools().forEach((tool) => tool.hassAvailable());
+
+    // Runtime configuration and entity data still run for forced, theme and history updates.
+    // JavaScript evaluation still occurs only for an actual configured entity update.
     this.evaluateJavascriptTemplates = configuredEntityStateChanged;
 
     const toolsPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
+    // Runtime configuration is updated once before sparkline entity data.
+    this.sparklineGraphTools.forEach((sparklineGraphTool) => sparklineGraphTool.updateRuntimeConfig());
+
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
     this._updateSparklineEntities();
+
+    // Remaining runtime configurations can now use the current local sparkline entities.
+    this.horseshoeGauges.forEach((horseshoe) => horseshoe.updateRuntimeConfig());
+    this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
+    this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
+    this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
+    this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
+    this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
+    this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
+    this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
+    this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -1787,6 +1817,7 @@ class FlexHorseshoeCard extends LitElement {
         entities: this.entities,
         horseshoes: this.horseshoes,
       });
+      if (this._hass !== undefined) this._getRenderableTools().forEach((tool) => tool.hassAvailable());
 
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setConfig`, {
@@ -2136,12 +2167,14 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Injects external SVG URL icon placeholders after Lit updates the DOM.
+   * Runs every tool first-update lifecycle after Lit creates the initial DOM.
    *
    * @param {Map} changedProperties - Lit changed properties map.
    */
   firstUpdated(changedProperties) {
     super.firstUpdated?.(changedProperties);
+
+    this._getRenderableTools().forEach((tool) => tool.firstUpdated(changedProperties));
 
     this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
   }

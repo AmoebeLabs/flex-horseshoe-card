@@ -297,6 +297,13 @@ export default class StateTool extends BaseTool {
     this.textMeasurementSignature = '';
   }
 
+  /** Updates state configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+  }
+
   /**
    * Updates runtime entity context and displayed state/UOM text.
    *
@@ -306,7 +313,6 @@ export default class StateTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
     this.buildStateAndUom();
 
     // Estimate the complete state/UOM layout until updated() can replace it

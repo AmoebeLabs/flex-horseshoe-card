@@ -66,14 +66,9 @@ export default class RectangleTool extends BaseTool {
     this.config.svg = this.calculateSvgDimensions();
   }
 
-  /**
-   * Updates runtime entity context for this rectangle.
-   *
-   * @param {object} entity - Home Assistant entity state object for this rectangle.
-   * @param {object} entityConfig - Entity configuration for this rectangle.
-   */
-  setState(entity, entityConfig) {
-    super.setState(entity, entityConfig);
+  /** Updates rectangle configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
 
     if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }

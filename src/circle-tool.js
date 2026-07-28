@@ -42,14 +42,9 @@ export default class CircleTool extends BaseTool {
     this.config.svg = this.calculateSvgDimensions();
   }
 
-  /**
-   * Updates runtime entity context for this circle.
-   *
-   * @param {object} entity - Home Assistant entity state object for this circle.
-   * @param {object} entityConfig - Entity configuration for this circle.
-   */
-  setState(entity, entityConfig) {
-    super.setState(entity, entityConfig);
+  /** Updates circle configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
 
     if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }
