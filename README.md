@@ -163,13 +163,13 @@ Ready to go further? Continue with [Card Structure][card-structure], [Entity Def
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="380">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="380">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>
