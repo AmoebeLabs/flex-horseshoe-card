@@ -325,6 +325,103 @@ export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
   return [];
 }
 
+const COLORSTOP_GRADIENT_MAX_ARC_LENGTH = 6;
+
+/**
+ * Builds the cached full-scale micro-arcs used by colorstopgradient.
+ *
+ * Color-stop values are fixed anchors. Intervals are subdivided by
+ * visible arc length after valueToAngle(), so spline-compressed ranges remain
+ * efficient while expanded ranges still receive a smooth gradient.
+ *
+ * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
+ * @param {GaugeGeometry} geometry - Geometry helper for value-to-angle mapping.
+ * @returns {Array<object>} Static full-scale gradient path items.
+ */
+export function buildColorStopGradientPathItems(runtimeConfig, geometry) {
+  const min = Number(runtimeConfig.horseshoe_scale.min);
+  const max = Number(runtimeConfig.horseshoe_scale.max);
+  const colorStops = asArray(runtimeConfig.colorstops.colors);
+  const anchorValues = [
+    min,
+    max,
+    ...colorStops.map((stop) => Number(stop.value)),
+  ];
+  const sortedAnchors = [...new Set(anchorValues)]
+    .filter((anchorValue) => anchorValue >= min && anchorValue <= max)
+    .sort((valueA, valueB) => valueA - valueB);
+  const gradientArcs = [];
+
+  // Color-stop intervals split only when their visible arc length requires a closer curve approximation.
+  for (let anchorIndex = 0; anchorIndex < sortedAnchors.length - 1; anchorIndex += 1) {
+    const intervals = [{
+      startValue: sortedAnchors[anchorIndex],
+      endValue: sortedAnchors[anchorIndex + 1],
+    }];
+
+    while (intervals.length) {
+      const interval = intervals.pop();
+      const startAngle = geometry.valueToAngle(interval.startValue);
+      const endAngle = geometry.valueToAngle(interval.endValue);
+      const arcLength = geometry.radius * Math.abs(endAngle - startAngle) * Math.PI / 180;
+
+      if (arcLength > COLORSTOP_GRADIENT_MAX_ARC_LENGTH) {
+        const midValue = (interval.startValue + interval.endValue) / 2;
+
+        // Push right before left so stack processing preserves ascending scale order.
+        intervals.push({ startValue: midValue, endValue: interval.endValue });
+        intervals.push({ startValue: interval.startValue, endValue: midValue });
+      } else {
+        gradientArcs.push({
+          startValue: interval.startValue,
+          endValue: interval.endValue,
+          startAngle,
+          endAngle,
+        });
+      }
+    }
+  }
+
+  return gradientArcs.map((gradientArc, index) => {
+    const isLast = index === gradientArcs.length - 1;
+    const direction = gradientArc.endAngle >= gradientArc.startAngle ? 1 : -1;
+    const segmentDegrees = Math.abs(gradientArc.endAngle - gradientArc.startAngle);
+    const overlapDegrees = segmentDegrees * 0.5;
+    const gradientStart = geometry.pointAt(gradientArc.startAngle, geometry.radius);
+    const gradientEnd = geometry.pointAt(gradientArc.endAngle, geometry.radius);
+    const arc = {
+      key: `colorstopgradient-${index}`,
+      startAngle: gradientArc.startAngle,
+      endAngle: isLast ? gradientArc.endAngle : gradientArc.endAngle + direction * overlapDegrees,
+      startCap: index === 0 ? runtimeConfig.horseshoe_state.linecap.start : 'butt',
+      endCap: isLast ? runtimeConfig.horseshoe_state.linecap.end : 'butt',
+      startValue: gradientArc.startValue,
+      endValue: gradientArc.endValue,
+      gradient: {
+        x1: gradientStart.x,
+        y1: gradientStart.y,
+        x2: gradientEnd.x,
+        y2: gradientEnd.y,
+        startColor: Colors.calculateStrokeColor(gradientArc.startValue, runtimeConfig.colorstops, true),
+        endColor: Colors.calculateStrokeColor(gradientArc.endValue, runtimeConfig.colorstops, true),
+      },
+    };
+
+    return {
+      key: arc.key,
+      arc,
+      path: ArcPathBuilder.buildBandPath({
+        geometry,
+        arc,
+        band: {
+          radius: geometry.radius,
+          width: runtimeConfig.horseshoe_state.width,
+        },
+      }),
+    };
+  });
+}
+
 /**
  * Builds state arc segments clipped to the active value range and color stops.
  *
@@ -420,6 +517,63 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
   }
 
   if (strokeStyle === 'lineargradient') {
+    const colorStops = runtimeConfig.colorstops.colors;
+    let startColor = colorStops[0].color;
+    let endColor = colorStops[colorStops.length - 1].color;
+    const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+
+    if (bidirectional) {
+      const zeroColor = Colors.calculateStrokeColor(0, runtimeConfig.colorstops, true);
+
+      if (Number(value) < 0) {
+        endColor = zeroColor;
+      } else {
+        startColor = zeroColor;
+      }
+    }
+    const direction = toAngle >= fromAngle ? 1 : -1;
+    const activeDegrees = Math.abs(toAngle - fromAngle);
+    const activeArcLength = geometry.radius * activeDegrees * Math.PI / 180;
+    const activeSegmentCount = Math.ceil(activeArcLength / COLORSTOP_GRADIENT_MAX_ARC_LENGTH);
+    const maximumArcLength = geometry.radius * Math.abs(geometry.arcDegrees) * Math.PI / 180;
+    const maximumSegmentCount = Math.ceil(maximumArcLength / COLORSTOP_GRADIENT_MAX_ARC_LENGTH);
+    const stateArcs = [];
+
+    // Keep a stable maximum path pool for direct animation updates, but draw only the adaptive active segment count.
+    for (let index = 0; index < maximumSegmentCount; index += 1) {
+      const visible = index < activeSegmentCount;
+      const startRatio = visible ? index / activeSegmentCount : 0;
+      const endRatio = visible ? (index + 1) / activeSegmentCount : 0;
+      const segmentStartAngle = fromAngle + direction * activeDegrees * startRatio;
+      const segmentEndAngle = fromAngle + direction * activeDegrees * endRatio;
+      const gradientStart = geometry.pointAt(segmentStartAngle, geometry.radius);
+      const gradientEnd = geometry.pointAt(segmentEndAngle, geometry.radius);
+      const isLast = index === activeSegmentCount - 1;
+      const segmentDegrees = Math.abs(segmentEndAngle - segmentStartAngle);
+      const overlapDegrees = segmentDegrees * 0.5;
+
+      stateArcs.push({
+        key: `lineargradient-${index}`,
+        startAngle: segmentStartAngle,
+        endAngle: visible && !isLast ? segmentEndAngle + direction * overlapDegrees : segmentEndAngle,
+        startCap: index === 0 ? runtimeConfig.horseshoe_state.linecap.start : 'butt',
+        endCap: isLast ? runtimeConfig.horseshoe_state.linecap.end : 'butt',
+        visible,
+        gradient: {
+          x1: gradientStart.x,
+          y1: gradientStart.y,
+          x2: gradientEnd.x,
+          y2: gradientEnd.y,
+          startColor: startRatio === 0 ? startColor : Colors.getGradientValue(startColor, endColor, startRatio),
+          endColor: endRatio === 0 ? startColor : endRatio === 1 ? endColor : Colors.getGradientValue(startColor, endColor, endRatio),
+        },
+      });
+    }
+
+    return stateArcs;
+  }
+
+  if (strokeStyle === 'colorstop') {
     return [
       {
         key: 'state-value',
@@ -427,20 +581,19 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        gradientOffset: '0%',
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstops, false),
       },
     ];
   }
 
-  if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopgradient') {
+  if (strokeStyle === 'colorstopgradient') {
     return [
       {
-        key: 'state-value',
+        key: 'colorstopgradient-clip',
         startAngle: fromAngle,
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstops, strokeStyle === 'colorstopgradient'),
       },
     ];
   }

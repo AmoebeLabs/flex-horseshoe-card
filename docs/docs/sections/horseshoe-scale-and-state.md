@@ -131,17 +131,46 @@ horseshoe_background:
     - opacity: 0.2
 ```
 
-## :material-horseshoe: Fixed and color-stop rendering
+## :material-horseshoe: State colors
 
-Use `show.horseshoe_style` to choose how the active state receives its color.
+Use `show.horseshoe_style` to control how the horseshoe is colored.
 
-| Style               | Behavior                                                  |
-| :------------------ | :-------------------------------------------------------- |
-| `fixed`             | Uses the configured state color or fill style.            |
-| `colorstop`         | Uses the threshold color that matches the current value.  |
-| `colorstopgradient` | Creates a smooth color transition across the value range. |
+| Style               | What it does                                                      |
+| :------------------ | :---------------------------------------------------------------- |
+| `fixed`             | Uses a single fixed color.                                        |
+| `autominmax`        | Changes the horseshoe color as the value moves through the scale. |
+| `colorstop`         | Uses the color that matches the current value range.              |
+| `colorstopsegments` | Displays each color range as a separate solid segment.            |
+| `colorstopgradient` | Creates a smooth gradient from all configured color stops.        |
+| `lineargradient`    | Creates a gradient from the first and last color stops.           |
 
-The same color-stop definition can also be reused by backgrounds and tick marks. See [Color Stops](../core-concepts/color-stops.md) for the complete syntax and available transition modes.
+`colorstopgradient` uses every configured color stop. For example, with blue at `0`, yellow at `50`, and red at `100`, the gradient runs from blue through yellow to red. The horseshoe reveals that gradient up to the current value.
+
+For a normal bar, `lineargradient` uses only the first and last color stops. The gradient starts with the first color and ends with the last, while any intermediate color stops are ignored.
+
+For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. The negative side runs from the first color stop to the color at zero. The positive side runs from the color at zero to the last color stop. Add a color stop at `0` to control the center color, or let FHS calculate it from the surrounding stops.
+
+```yaml linenums="1"
+bar_mode: bidirectional
+
+show:
+  horseshoe_style: lineargradient
+
+horseshoe_scale:
+  min: -5
+  max: 5
+
+color_stops:
+  colors:
+    -5: red
+    0: gray
+    5: green
+```
+
+In this example, negative values use a gray-to-red gradient, while positive values use a gray-to-green gradient. When the scale extends below or above zero, define at least one color stop on each side that should display a gradient.
+
+
+The same color stops can also be reused by backgrounds and tick marks. See [Color Stops](../core-concepts/color-stops.md) for the complete syntax.
 
 ## :material-horseshoe: Animation
 
