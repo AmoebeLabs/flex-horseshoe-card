@@ -14,7 +14,7 @@ import {
   renderTickmarksLayer,
   updateStatePathElements,
 } from './horseshoe-renderer.js';
-import { buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
+import { buildColorStopGradientPathItems, buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
 import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
 import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
 import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
@@ -475,11 +475,21 @@ export default class HorseshoeGauge extends BaseTool {
    */
   renderState() {
     const statePathItems = buildStatePathItems(this.config, this.geometry, this.displayValue ?? this.value);
+    let gradientPathItems;
+
+    // The full color scale is static; state changes only alter the active clip in the renderer.
+    if (this.config.show?.horseshoe_style === 'colorstopgradient') {
+      gradientPathItems = this.getCachedPathItems(
+        'colorStopGradientPathItems',
+        () => buildColorStopGradientPathItems(this.config, this.geometry),
+      );
+    }
 
     return renderStateLayer(
       this.config,
       this.geometry,
       statePathItems,
+      gradientPathItems,
       this.cardId,
       this.index,
       (styles) => this.getRenderStyles(styles, [this.config.horseshoe_state?.color_filter]),

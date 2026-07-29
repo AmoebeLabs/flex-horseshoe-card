@@ -104,7 +104,7 @@ Older configurations may still contain `ticks` or `scale_tickmarks`. New configu
 
 ## :material-horseshoe: Color stops
 
-Color stops can affect the active state, scale, backgrounds, tick marks, and labels. Use `colorstop` for discrete threshold colors or `colorstopgradient` for a smooth transition across the value range.
+Color stops can affect the horseshoe, backgrounds, tick marks, and labels. Use `colorstop` to display one color at a time, `colorstopgradient` to move through the configured colors as the value increases, or `lineargradient` to show the full transition from the first color to the last.
 
 ```yaml linenums="1"
 show:

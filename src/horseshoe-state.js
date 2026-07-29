@@ -210,6 +210,16 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
   // Keep those points distinct while retaining a visually complete horseshoe.
   const arcDegrees = config.arc_degrees === 360 ? 359.999 : config.arc_degrees ?? 260;
   const barMode = config.bar_mode ?? 'normal';
+  const bidirectionalGradient = show.horseshoe_style === 'lineargradient' && (barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical' || barMode === 'bidirectional_linear');
+
+  if (bidirectionalGradient && horseshoeScale.min < 0 && !colorStops.colors.some((colorStop) => Number(colorStop.value) < 0)) {
+    throw new Error(`[V2] lineargradient with ${barMode} requires a color_stop below 0`);
+  }
+
+  if (bidirectionalGradient && horseshoeScale.max > 0 && !colorStops.colors.some((colorStop) => Number(colorStop.value) > 0)) {
+    throw new Error(`[V2] lineargradient with ${barMode} requires a color_stop above 0`);
+  }
+
   const symmetricalBidirectional = barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical';
   const groupConfig = config.group_config;
   const groupCenterOffset = 50;

@@ -190,13 +190,16 @@ show:
 
 Common styles include:
 
-| Style | Description |
-| :---- | :---------- |
-| `colorstop` | Uses the color that matches the current state. |
-| `colorstopgradient` | Uses the color stops as a gradient along the horseshoe. |
-| `fixed` | Uses a fixed horseshoe color instead of value-based colors. |
-| `lineargradient` | Uses the first and last color stops to create a linear gradient. |
-| `autominmax` | Uses the minimum and maximum values from the scale. |
+| Style | What you see |
+| :---- | :----------- |
+| `colorstop` | The horseshoe uses the color for the current value range. |
+| `colorstopsegments` | Each color range is shown as a separate solid section. |
+| `colorstopgradient` | Creates a smooth gradient using all color stops. |
+| `lineargradient` | Creates a gradient using the first and last color stops. |
+| `autominmax` | The horseshoe changes color as the value rises or falls. |
+| `fixed` | The horseshoe has one fixed color. |
+
+For examples, see [Horseshoe Scale and State](../sections/horseshoe-scale-and-state.md#state-colors).
 
 ## :material-horseshoe: Color stops and scale values
 
@@ -370,8 +373,9 @@ For more information about template syntax and reusable constants, see [Template
 | Need | Recommended option |
 | :--- | :----------------- |
 | One color based on the current value | `horseshoe_style: colorstop` |
-| Smooth gradient along the horseshoe | `horseshoe_style: colorstopgradient` |
-| Linear gradient where supported | `horseshoe_style: lineargradient` |
+| Separate colored ranges | `horseshoe_style: colorstopsegments` |
+| See the colors change as the value passes each color stop | `horseshoe_style: colorstopgradient` |
+| Always show the full change from the first color to the last | `horseshoe_style: lineargradient` |
 | Fixed horseshoe color | `horseshoe_style: fixed` with a configured color |
 | Shared colors across multiple cards | External palettes, theme variables, or reusable `color_stops` |
 | Different colors for light and dark mode | `color_stops.modes.light` and `color_stops.modes.dark` |
