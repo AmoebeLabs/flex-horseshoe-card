@@ -194,7 +194,8 @@ export default class NameTool extends BaseTool {
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
       >
-        <text ${ref(this.setTextElement)} id="${this.textElementId}" @click=${(event) => this.handlePopup(event)}>
+        <text ${ref(this.setTextElement)} id="${this.textElementId}" ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}>
           <tspan
             class="entity__name"
             x="${this.config.svg.xpos}"

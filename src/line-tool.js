@@ -173,7 +173,8 @@ export default class LineTool extends BaseTool {
         style="${this.getGroupScaleStyle()}"
       >
         <line
-          @click=${(event) => this.handlePopup(event)}
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
           class="line-tool"
           x1="${this.config.svg.x1}"
           y1="${this.config.svg.y1}"

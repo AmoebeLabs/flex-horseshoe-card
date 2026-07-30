@@ -498,6 +498,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.calendarRangeTimer = undefined;
     this.historyRangeStart = undefined;
     this.historyRangeEnd = undefined;
+    this.historyPeriodSignature = JSON.stringify(this.config.period);
     this.historyResynchronizationRequested = false;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
@@ -675,6 +676,31 @@ export default class SparklineGraphTool extends BaseTool {
   /** Updates graph configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+
+    // A dynamic period changes the represented history range. Reuse the active
+    // graph immediately, but request a complete history series for the new range.
+    if (this.configChanged) {
+      const activeHistoryPeriodSignature = JSON.stringify(this.config.period);
+      const historyPeriodChanged = activeHistoryPeriodSignature !== this.historyPeriodSignature;
+
+      if (historyPeriodChanged && (this.historySeries || this.historyPromise)) {
+        this.historyResynchronizationRequested = true;
+      }
+      this.historyPeriodSignature = activeHistoryPeriodSignature;
+    }
+
+    if (this.card.dev.debug && this.configChanged) {
+      console.log('[FHS sparkline runtime period]', {
+        cardId: this.cardId,
+        sparklineId: this.config.id,
+        periodType: this.config.period.type,
+        durationHours:
+          this.config.period.type === 'rolling_window'
+            ? this.config.period.rolling_window.duration.hour
+            : this.config.period.calendar.duration.hour,
+        historyResynchronizationRequested: this.historyResynchronizationRequested,
+      });
+    }
 
     // Determine the longest label produced by Home Assistant for the active locale.
     const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
@@ -1010,7 +1036,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Start and end Date objects.
    */
   getHistoryRange() {
-    const periodHours = this.config.period?.calendar?.duration?.hour ?? this.config.period?.rolling_window?.duration?.hour ?? 24;
+    const periodHours =
+      this.config.period.type === 'rolling_window'
+        ? this.config.period.rolling_window.duration.hour
+        : this.config.period.calendar.duration.hour;
     const now = new Date();
 
     if (this.config.period?.type === 'calendar' && this.config.period?.calendar?.period === 'day') {
@@ -1127,16 +1156,51 @@ export default class SparklineGraphTool extends BaseTool {
     const calendarRangeChanged = calendarPeriod && !representedRange;
     const periodicResynchronizationDue = this.config.history.refresh_interval !== undefined && now >= this.historyRefreshAt;
 
+    if (this.card.dev.debug) {
+      console.log('[FHS sparkline history decision]', {
+        cardId: this.cardId,
+        sparklineId: this.config.id,
+        durationHours:
+          this.config.period.type === 'rolling_window'
+            ? this.config.period.rolling_window.duration.hour
+            : this.config.period.calendar.duration.hour,
+        historyPromiseActive: this.historyPromise !== undefined,
+        historySeriesRows: this.historySeries?.length,
+        historyResynchronizationRequested: this.historyResynchronizationRequested,
+        representedRange,
+        rangeStart: range.start.toISOString(),
+        rangeEnd: range.end.toISOString(),
+      });
+    }
+
     if (this.historyPromise) return;
     if (closedHistoricalCalendar && representedRange) return;
     if (this.historySeries && !calendarRangeChanged && !this.historyResynchronizationRequested && !periodicResynchronizationDue) return;
 
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
+    const requestedHistoryPeriodSignature = this.historyPeriodSignature;
     // console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
         const historyRows = history.length === 0 ? [] : history[0];
+        const requestMatchesActivePeriod = requestedHistoryPeriodSignature === this.historyPeriodSignature;
+
+        if (this.card.dev.debug) {
+          console.log('[FHS sparkline history response]', {
+            cardId: this.cardId,
+            sparklineId: this.config.id,
+            requestedRangeStart: range.start.toISOString(),
+            requestedRangeEnd: range.end.toISOString(),
+            historyRows: historyRows.length,
+            requestMatchesActivePeriod,
+          });
+        }
+
+        // A local or global FHS input can change the requested period while this request is in flight.
+        // Ignore that obsolete response; finally starts synchronization for the current period.
+        if (!requestMatchesActivePeriod) return;
+
         this.historySeries = this.buildHistorySeries(historyRows, entity, range.end);
         this.historyRangeStart = range.start.getTime();
         this.historyRangeEnd = range.end.getTime();
@@ -1151,6 +1215,10 @@ export default class SparklineGraphTool extends BaseTool {
       })
       .finally(() => {
         this.historyPromise = undefined;
+
+        // A period may change while an earlier request is still in flight. Fetch
+        // the latest represented range after that older request has completed.
+        if (this.historyResynchronizationRequested) this.fetchHistoryIfNeeded(this.entity);
       });
   }
 
@@ -4915,6 +4983,8 @@ export default class SparklineGraphTool extends BaseTool {
             overflow="visible"
             touch-action="none"
             style="touch-action:none; pointer-events:auto; overflow:visible;"
+            @pointerdown=${(event) => event.stopPropagation()}
+            @click=${(event) => event.stopPropagation()}
           ></svg>
         </g>
       `;
@@ -4936,6 +5006,8 @@ export default class SparklineGraphTool extends BaseTool {
           overflow="visible"
           touch-action="none"
           style="touch-action:none; pointer-events:auto; overflow:visible;"
+          @pointerdown=${(event) => event.stopPropagation()}
+          @click=${(event) => event.stopPropagation()}
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}

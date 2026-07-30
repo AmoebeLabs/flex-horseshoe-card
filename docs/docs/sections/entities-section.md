@@ -287,7 +287,7 @@ All entity element sections support inline CSS and SVG styling through `styles`.
     | `fill` | Sets the icon color. | `fill: red` |
     | `opacity` | Controls the icon opacity. | `opacity: 0.7` |
 
---8<-- "docs/tools/default-haptics.md"
+--8<-- "docs/sections/default-haptics.md"
 
 ## :material-horseshoe: Color stops and animations
 

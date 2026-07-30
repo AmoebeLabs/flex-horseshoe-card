@@ -212,9 +212,10 @@ For example, the `name` can depend on the state of another entity:
       name: 'hall'
       icon: mdi:lightbulb
       tap_action:
-        action: call-service
-        service: light.toggle
-        service_data: { "entity_id" : "light.livingroom_light_duo_left_light" }
+        action: perform-action
+        perform_action: light.toggle
+        target:
+          entity_id: light.livingroom_light_duo_left_light
 ```
 
 Here, the first entity changes its displayed name according to whether the second entity is `on`.
@@ -246,7 +247,7 @@ For details about JavaScript templates, available variables, and reusable templa
 
 | Name | Type | Required | Description |
 | :--- | :---: | :------: | :---------- |
-| `entity` | string | :material-check: | Home Assistant entity ID |
+| `entity` | string | :material-check: | Home Assistant entity ID or an `fhs_input_number` ID |
 | `attribute` | string | :material-close: | Attribute to display instead of the main entity state |
 | `unit` | string | :material-close: | Unit displayed for the entity or attribute; can use a JavaScript template where supported |
 | `decimals` | number | :material-close: | Number of decimals used to format the value |
@@ -255,6 +256,10 @@ For details about JavaScript templates, available variables, and reusable templa
 | `icon` | string | :material-close: | Custom icon, image, SVG, or JavaScript template |
 | `format` | object | :material-close: | Custom formatting options for the entity state |
 | `tap_action` | object | :material-close: | Action performed when the entity is clicked or tapped |
+| `hold_action` | object | :material-close: | Action performed when the entity is held |
+| `double_tap_action` | object | :material-close: | Action performed when the entity is double tapped |
+| `initial` | number | :material-check: for `fhs_input_number` | Initial value of a local FHS number input |
+| `scope` | string | :material-close: | Shares an `fhs_input_number` with one card or all FHS cards in the current browser tab; default: `card` |
 
 ## :material-horseshoe: Available entity format options
 
@@ -282,29 +287,11 @@ You can override it with an MDI icon, external image, external SVG, or JavaScrip
 | External SVG | `icon: url(/local/icons/icon-svg.svg)` | Uses an SVG file as the icon |
 | JavaScript template | `icon: \|` with `[[[ ... ]]]` | Returns the icon dynamically |
 
-## :material-horseshoe: Tap actions
+## :material-horseshoe: Actions and local controls
 
-Use `tap_action` to define what happens when the entity is clicked or tapped.
+Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. FHS also supports ordered action lists, Companion-app haptic feedback, and browser-local `fhs_input_number` controls.
 
-| Name | Type | Default | Options | Description |
-| :--- | :--: | :------ | :------ | :---------- |
-| `action` | string | `more-info` | `more-info`, `navigate`, `call-service`, `none` | Action to perform |
-| `service` | string | none | Any Home Assistant service | Service called when `action` is `call-service` |
-| `service_data` | object | none | Any service data | Data included with the service call |
-| `navigation_path` | string | none | Any path | Destination used when `action` is `navigate` |
-
-Example: toggle a light when the entity is tapped.
-
-```yaml title="Light switch tap action" linenums="1"
-entities:
-  - entity: light.1st_floor_hall_light
-    name: 'hall'
-    icon: mdi:lightbulb
-    tap_action:
-      action: call-service
-      service: light.toggle
-      service_data: { 'entity_id': 'light.1st_floor_hall_light' }
-```
+See [Actions and Local Controls](actions-and-local-controls.md) for the available actions and complete examples.
 
 ## :material-horseshoe: Entity layout elements
 
