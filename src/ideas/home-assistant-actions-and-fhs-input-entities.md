@@ -23,10 +23,12 @@ entities:
   - entity: fhs_input_number.history_days
     initial: 1
     scope: global
+    persist: true
 ```
 
 `scope: card` keeps the value in one card. `scope: global` shares it between
-FHS cards in the current browser tab. Global values reset after a full page
+FHS cards in the loaded frontend, including while navigating between
+dashboards. `persist: true` restores that global value after a full page
 reload.
 
 Actions use the current Home Assistant dashboard action format:
@@ -96,36 +98,25 @@ Global values live in a static map on the card class. A namespaced window event
 notifies mounted cards containing the same global entity. Cards subscribe in
 `connectedCallback()` and unsubscribe in `disconnectedCallback()`.
 
-## Follow-up: generic local entity storage
+## Persistent global inputs
 
-Move FHS input ownership out of `main.js` into a cohesive
-`FhsLocalEntityStore`. The store should own HA-shaped local entity records,
-scope handling, value changes, and notifications. The card remains responsible
-for actions, templates, and the normal entity/tool update pipeline.
+A global FHS input may use `persist: true`. Its HA-shaped state record is then
+stored in namespaced `localStorage` under its entity id. The static map remains
+the active source while the frontend is loaded; storage is read only when the
+map does not contain that entity after a full page reload.
 
-The store starts with `fhs_input_number`, but its state and notification model
-must not depend on number-specific behavior. This leaves room for future local
-input types without adding another static map and event route to the card.
+Scope and persistence remain separate:
 
-Proposed scopes:
+- `scope: card` keeps independent state in one card instance;
+- `scope: global` shares one state through the loaded FHS class;
+- `persist: true` retains that global state across a full page reload.
 
-- `card`: private to one card; `initial` remains required;
-- `global`: shared by FHS cards in the current loaded page and retained across
-  Lovelace view switches;
-- `browser`: shared like `global`, but persisted in namespaced `localStorage`.
-
-For shared entities, one owner card may provide `initial`; consumer cards only
-reference the entity and scope. The first available initial value seeds a new
-entity and publishes the same update used by `set_value`. It must not overwrite
-an existing global or stored value. If neither persisted state nor `initial`
-exists, the local entity remains `unknown` until a card sets it.
-
-Browser persistence is local to one Home Assistant origin and browser profile.
-Desktop browsers and Companion App WebViews therefore retain their own values
-but do not synchronize with each other. Cross-device state continues to require
-a real Home Assistant helper. The normal custom window event handles cards in
-the current page; the browser `storage` event can synchronize other tabs using
-the same origin.
+Persistence is restricted to global inputs. Card templates commonly create
+multiple card-scoped entities with identical names, and those instances have no
+stable identity after a reload. Persisting them by entity id would merge values
+that are deliberately independent. Browser persistence is local to one Home
+Assistant origin and browser profile; cross-device state continues to require a
+real Home Assistant helper.
 
 ## Action behavior
 

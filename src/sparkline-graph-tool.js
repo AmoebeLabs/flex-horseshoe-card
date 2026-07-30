@@ -3165,30 +3165,30 @@ export default class SparklineGraphTool extends BaseTool {
     const yZero = this.Graph.min >= 0 ? 0 : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
 
     return svg`
-      <linearGradient id=${`fill-grad-pos-${this.cardId}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+      <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-pos-${this.cardId}-${i}`}>
-        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${i})`}
+      <mask id=${`fill-grad-mask-pos-${this.cardId}-${this.index}-${i}`}>
+        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${this.index}-${i})`}
          />
       </mask>
-      <linearGradient id=${`fill-grad-neg-${this.cardId}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
+      <linearGradient id=${`fill-grad-neg-${this.cardId}-${this.index}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-neg-${this.cardId}-${i}`}>
-        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${i})`}
+      <mask id=${`fill-grad-mask-neg-${this.cardId}-${this.index}-${i}`}>
+        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${this.index}-${i})`}
          />
       </mask>
 
-    <mask id=${`fill-${this.cardId}-${i}`}>
+    <mask id=${`fill-${this.cardId}-${this.index}-${i}`}>
       <path class='fill'
         type=${this.config.sparkline.show.fill}
         .id=${i} anim=${this.config.sparkline.animate} ?init=${init}
         style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : '0s'}"
         fill='white'
-        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${i})` : ''}
+        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${this.index}-${i})` : ''}
         d=${fill}
       />
       ${
@@ -3198,7 +3198,7 @@ export default class SparklineGraphTool extends BaseTool {
             .id=${i} anim=${this.config.sparkline.animate} ?init=${init}
             style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : '0s'}"
             fill='white'
-            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${i})` : ''}
+            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${this.index}-${i})` : ''}
             d=${fill}
           />`
           : ''
@@ -3230,7 +3230,7 @@ export default class SparklineGraphTool extends BaseTool {
         width="${this.svg.width}"
         height="${this.svg.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#fill-${this.cardId}-${i})"
+        mask="url(#fill-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
   }
@@ -3247,7 +3247,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (!fill) return '';
 
     return svg`
-      <mask id=${`fillMinMax-${this.cardId}-${i}`}>
+      <mask id=${`fillMinMax-${this.cardId}-${this.index}-${i}`}>
         <path
           class='fill'
           type=${this.config.sparkline.show.fill}
@@ -3284,7 +3284,7 @@ export default class SparklineGraphTool extends BaseTool {
         width="${this.svg.width}"
         height="${this.svg.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#fillMinMax-${this.cardId}-${i})"
+        mask="url(#fillMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
   }
@@ -3302,7 +3302,7 @@ export default class SparklineGraphTool extends BaseTool {
     const lineStyles = this.getLineStyles();
 
     return svg`
-      <mask id="sparkline-line-${this.cardId}-${i}">
+      <mask id="sparkline-line-${this.cardId}-${this.index}-${i}">
         <path
           class="sparkline-line-mask"
           fill="none"
@@ -3343,7 +3343,7 @@ export default class SparklineGraphTool extends BaseTool {
         width="${this.svg.width}"
         height="${this.svg.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#sparkline-line-${this.cardId}-${i})"
+        mask="url(#sparkline-line-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
   }
@@ -3362,7 +3362,7 @@ export default class SparklineGraphTool extends BaseTool {
     const lineStyles = this.getLineStyles();
 
     return svg`
-      <mask id="sparkline-lineMinMax-${this.cardId}-${i}">
+      <mask id="sparkline-lineMinMax-${this.cardId}-${this.index}-${i}">
         <path
           class="sparkline-line-mask"
           fill="none"
@@ -3404,7 +3404,7 @@ export default class SparklineGraphTool extends BaseTool {
         width="${this.svg.width}"
         height="${this.svg.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
-        mask="url(#sparkline-lineMinMax-${this.cardId}-${i})"
+        mask="url(#sparkline-lineMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
   }

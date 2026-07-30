@@ -141,12 +141,14 @@ entities:
   - entity: fhs_input_number.history_days
     initial: 1
     scope: global
+    persist: true
 ```
 
 | Option | Default | Description |
 | :----- | :------ | :---------- |
 | `initial` | Required | Number used when the input is first created |
 | `scope` | `card` | `card` keeps the value in one card; `global` shares it with FHS cards in the current browser tab |
+| `persist` | `false` | Restores a global input after a page reload when set to `true` |
 
 Set the value with the familiar `perform-action` format:
 
@@ -160,7 +162,9 @@ tap_action:
     value: 7
 ```
 
-Every FHS card that should use a global input includes the same `fhs_input_number` in its own `entities` list. Those cards then update together. A full page reload resets the value; use a Home Assistant helper when the value must persist or synchronize between browsers and devices.
+Every FHS card that should use a global input includes the same `fhs_input_number` in its own `entities` list. Those cards then update together, including while navigating between dashboards. Add `persist: true` to restore the latest value after a full page reload.
+
+Persistence is available only with `scope: global`. Card-scoped inputs can use the same entity name in several card instances, so storing them under that shared name would cause conflicts. The stored value remains local to the current browser profile. Synchronization between browsers or devices requires a Home Assistant helper.
 
 ## :material-horseshoe: Using a local input in a template
 

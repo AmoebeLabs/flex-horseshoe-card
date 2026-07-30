@@ -71,6 +71,8 @@ class FlexHorseshoeCard extends LitElement {
 
   static fhsInputEvent = 'flex-horseshoe-card:fhs-input-number-changed';
 
+  static fhsInputStoragePrefix = 'flex-horseshoe-card:fhs-input-number';
+
   constructor() {
     super();
 
@@ -874,6 +876,13 @@ class FlexHorseshoeCard extends LitElement {
 
       entityConfig.local = true;
       entityConfig.scope ??= 'card';
+      entityConfig.persist ??= false;
+      if (typeof entityConfig.persist !== 'boolean') {
+        throw Error(`FHS input number '${entityConfig.entity}' persist must be a boolean`);
+      }
+      if (entityConfig.persist && entityConfig.scope !== 'global') {
+        throw Error(`FHS input number '${entityConfig.entity}' can only persist with scope 'global'`);
+      }
       entityConfig.name ??= entityConfig.entity.split('.', 2)[1];
       entityConfig.unit ??= '';
       entityConfig.decimals ??= 0;
@@ -900,6 +909,11 @@ class FlexHorseshoeCard extends LitElement {
 
       if (entityConfig.scope === 'global') {
         if (!FlexHorseshoeCard.fhsInputNumbers.has(entityConfig.entity)) {
+          if (entityConfig.persist) {
+            const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityConfig.entity}`;
+            const storedStateRecord = localStorage.getItem(storageKey);
+            if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
+          }
           FlexHorseshoeCard.fhsInputNumbers.set(entityConfig.entity, stateRecord);
         }
         stateRecord = FlexHorseshoeCard.fhsInputNumbers.get(entityConfig.entity);
@@ -961,6 +975,10 @@ class FlexHorseshoeCard extends LitElement {
 
     if (entityConfig.scope === 'global') {
       FlexHorseshoeCard.fhsInputNumbers.set(entityId, stateRecord);
+      if (entityConfig.persist) {
+        const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityId}`;
+        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
+      }
       fireEvent(window, FlexHorseshoeCard.fhsInputEvent, stateRecord);
       return;
     }
