@@ -275,7 +275,7 @@ Visual shapes are rendered as SVG elements and can therefore be styled with CSS 
     | `opacity` | Controls the line opacity | `opacity: 0.7` |
     | `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
 
---8<-- "docs/tools/default-haptics.md"
+--8<-- "docs/sections/default-haptics.md"
 
 ## :material-horseshoe: Color stops and animations
 

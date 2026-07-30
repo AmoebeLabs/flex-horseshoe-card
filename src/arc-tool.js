@@ -128,7 +128,8 @@ export default class ArcTool extends BaseTool {
         style="${this.getGroupScaleStyle()}"
       >
         <path
-          @click=${(event) => this.handlePopup(event)}
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
           class="arc-tool"
           d="${this.buildArcPath()}"
           style=${styleMap(this.getRenderStyles(styles))}

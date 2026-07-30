@@ -83,7 +83,8 @@ export default class CircleTool extends BaseTool {
         style="${this.getGroupScaleStyle()}"
       >
         <circle
-          @click=${(event) => this.handlePopup(event)}
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
           class="circle-tool"
           cx="${this.config.svg.xpos}"
           cy="${this.config.svg.ypos}"

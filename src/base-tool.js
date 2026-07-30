@@ -3,6 +3,7 @@ import ConfigHelper from './config-helper.js';
 import ColorStops from './color-stops.js';
 import ColorFilter from './color-filter.js';
 import Templates from './templates.js';
+import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
@@ -256,17 +257,17 @@ export default class BaseTool {
     return result;
   }
 
+  /** Returns the shared gesture directive configured for this layout item. */
+  actionHandler() {
+    return actionHandler(this.card.getActionHandlerOptions(this.config, this.entity_index));
+  }
+
   /**
-   * Opens the configured entity popup using the card action handler.
+   * Routes a normalized gesture together with this exact item and entity index.
    *
-   * @param {Event} event - Click event.
+   * @param {CustomEvent} event - Gesture event from the shared action handler.
    */
-  handlePopup(event) {
-    if (this.entity_index === undefined || this.entity_index === null) return;
-
-    const entity = this.card.entities[this.entity_index];
-    if (!entity) return;
-
-    this.card.handlePopup(event, entity);
+  handleAction(event) {
+    this.card.handleAction(event, this.config, this.entity_index);
   }
 }

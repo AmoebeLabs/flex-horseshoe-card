@@ -49,6 +49,7 @@ import MasksClips from './masks-clips.js';
 import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
+import { fireEvent } from './frontend_mods/common/dom/fire_event.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -66,6 +67,12 @@ const DEFAULT_SHOW = {
 // ++ Class ++++++++++
 
 class FlexHorseshoeCard extends LitElement {
+  static fhsInputNumbers = new Map();
+
+  static fhsInputEvent = 'flex-horseshoe-card:fhs-input-number-changed';
+
+  static fhsInputStoragePrefix = 'flex-horseshoe-card:fhs-input-number';
+
   constructor() {
     super();
 
@@ -78,6 +85,23 @@ class FlexHorseshoeCard extends LitElement {
     this.hassConnection = undefined;
     this.hassConnectionReadyHandler = () => {
       this._getRenderableTools().forEach((tool) => tool.hassConnected());
+    };
+    this.fhsInputStateChanged = false;
+    this.fhsInputEventHandler = (event) => {
+      const matchingConfig = this.config.entities.find(
+        (entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global',
+      );
+
+      if (this.dev.debug) {
+        console.log('[FHS global input event]', {
+          cardId: this.cardId,
+          entityId: event.detail.entity_id,
+          state: event.detail.state,
+          matched: matchingConfig !== undefined,
+        });
+      }
+
+      if (matchingConfig) this._replaceFhsInputNumberState(event.detail.entity_id, event.detail);
     };
     this.entities = [];
     this.entitiesStr = [];
@@ -834,6 +858,134 @@ class FlexHorseshoeCard extends LitElement {
     `;
   }
 
+  /**
+   * Validates and completes local FHS number input definitions in the config layer.
+   *
+   * @param {object} config - Compiled card configuration.
+   */
+  _normalizeFhsInputNumberConfigs(config) {
+    config.entities.forEach((entityConfig) => {
+      if (!entityConfig.entity.startsWith('fhs_input_number.')) return;
+
+      if (!Number.isFinite(Number(entityConfig.initial))) {
+        throw Error(`FHS input number '${entityConfig.entity}' requires a numeric initial value`);
+      }
+      if (entityConfig.scope !== undefined && !['card', 'global'].includes(entityConfig.scope)) {
+        throw Error(`FHS input number '${entityConfig.entity}' scope must be 'card' or 'global'`);
+      }
+
+      entityConfig.local = true;
+      entityConfig.scope ??= 'card';
+      entityConfig.persist ??= false;
+      if (typeof entityConfig.persist !== 'boolean') {
+        throw Error(`FHS input number '${entityConfig.entity}' persist must be a boolean`);
+      }
+      if (entityConfig.persist && entityConfig.scope !== 'global') {
+        throw Error(`FHS input number '${entityConfig.entity}' can only persist with scope 'global'`);
+      }
+      entityConfig.name ??= entityConfig.entity.split('.', 2)[1];
+      entityConfig.unit ??= '';
+      entityConfig.decimals ??= 0;
+      entityConfig.tap_action ??= { action: 'none' };
+    });
+  }
+
+  /**
+   * Creates configured FHS number entities before the first Home Assistant pass.
+   *
+   * @param {Array<object>} entityConfigs - Resolved configured entities.
+   */
+  _initializeFhsInputNumberEntities(entityConfigs) {
+    entityConfigs.forEach((entityConfig, index) => {
+      if (!entityConfig.entity.startsWith('fhs_input_number.')) return;
+
+      const timestamp = new Date().toISOString();
+      let stateRecord = {
+        entity_id: entityConfig.entity,
+        state: String(Number(entityConfig.initial)),
+        last_changed: timestamp,
+        last_updated: timestamp,
+      };
+
+      if (entityConfig.scope === 'global') {
+        if (!FlexHorseshoeCard.fhsInputNumbers.has(entityConfig.entity)) {
+          if (entityConfig.persist) {
+            const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityConfig.entity}`;
+            const storedStateRecord = localStorage.getItem(storageKey);
+            if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
+          }
+          FlexHorseshoeCard.fhsInputNumbers.set(entityConfig.entity, stateRecord);
+        }
+        stateRecord = FlexHorseshoeCard.fhsInputNumbers.get(entityConfig.entity);
+      }
+
+      this.entities[index] = {
+        ...stateRecord,
+        attributes: {
+          friendly_name: entityConfig.name,
+          icon: entityConfig.icon,
+          unit_of_measurement: entityConfig.unit,
+        },
+        context: {
+          id: null,
+          parent_id: null,
+          user_id: null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Replaces one local entity state and enters the normal entity update pipeline.
+   *
+   * @param {string} entityId - Local FHS entity id.
+   * @param {object} stateRecord - Shared state and timestamps.
+   */
+  _replaceFhsInputNumberState(entityId, stateRecord) {
+    this.config.entities.forEach((entityConfig, index) => {
+      if (entityConfig.entity !== entityId) return;
+
+      this.entities[index] = {
+        ...this.entities[index],
+        state: stateRecord.state,
+        last_changed: stateRecord.last_changed,
+        last_updated: stateRecord.last_updated,
+      };
+    });
+
+    this.fhsInputStateChanged = true;
+    this.setHass(this._hass);
+  }
+
+  /**
+   * Applies the local equivalent of input_number.set_value.
+   *
+   * @param {string} entityId - Target FHS input number.
+   * @param {number|string} value - New numeric state.
+   */
+  _setFhsInputNumberValue(entityId, value) {
+    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
+    const timestamp = new Date().toISOString();
+    const stateRecord = {
+      entity_id: entityId,
+      state: String(Number(value)),
+      last_changed: timestamp,
+      last_updated: timestamp,
+    };
+
+    if (entityConfig.scope === 'global') {
+      FlexHorseshoeCard.fhsInputNumbers.set(entityId, stateRecord);
+      if (entityConfig.persist) {
+        const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityId}`;
+        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
+      }
+      fireEvent(window, FlexHorseshoeCard.fhsInputEvent, stateRecord);
+      return;
+    }
+
+    this._replaceFhsInputNumberState(entityId, stateRecord);
+  }
+
   _resolveEntityConfigs(config, evaluateJavascript) {
     if (config?.dev?.debug) {
       console.log('resolving entity config for', config?.entities);
@@ -1048,11 +1200,11 @@ class FlexHorseshoeCard extends LitElement {
 
     // Capture every configured Home Assistant entity before evaluating dynamic config.
     // Object identity changes when HA publishes a new state or attribute set.
-    let configuredEntityStateChanged = !this.entityConfigsInitialized;
+    let configuredEntityStateChanged = this.fhsInputStateChanged || !this.entityConfigsInitialized;
     const configuredEntityCount = this.config.entities.length;
 
     this.resolvedEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
-      const entity = hass.states[activeEntityConfig.entity];
+      const entity = activeEntityConfig.local ? this.entities[index] : hass.states[activeEntityConfig.entity];
 
       if (!entity) return;
       if (this.entities[index] !== entity) configuredEntityStateChanged = true;
@@ -1078,7 +1230,7 @@ class FlexHorseshoeCard extends LitElement {
     // An evaluated entity config may select a different entity. Publish the final entity list
     // before tools, animations and card styles receive their JavaScript context.
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
-      const entity = hass.states[entityConfig.entity];
+      const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
 
       if (entity) this.entities[index] = entity;
     });
@@ -1181,7 +1333,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
-      const entity = hass.states[entityConfig.entity];
+      const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
 
       if (!entity) return;
 
@@ -1313,6 +1465,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.evaluateJavascriptTemplates = false;
+    this.fhsInputStateChanged = false;
     this.changedGroupIds.clear();
 
     Templates.setContext({
@@ -1711,6 +1864,7 @@ class FlexHorseshoeCard extends LitElement {
       this._calculateStaticValues(config, calcConstants);
 
       SameAs.compile(config);
+      this._normalizeFhsInputNumberConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
 
@@ -1728,22 +1882,17 @@ class FlexHorseshoeCard extends LitElement {
       });
 
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
+      this._initializeFhsInputNumberEntities(resolvedEntitiesConfig);
 
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
-        if (newdomain !== 'sensor') {
+        if (newdomain !== 'sensor' && newdomain !== 'fhs_input_number') {
           if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
             throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
           }
         }
       }
-
-      resolvedEntitiesConfig.forEach((entityValue) => {
-        if (!entityValue.tap_action) {
-          entityValue.tap_action = { ...DEFAULT_TAP_ACTION };
-        }
-      });
 
       this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
 
@@ -1953,6 +2102,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
+    window.addEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
     if (this.hassConnection) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.connected());
   }
@@ -1964,6 +2114,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   disconnectedCallback() {
+    window.removeEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
     if (this.hassConnection) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.disconnected());
     super.disconnectedCallback();
@@ -2216,94 +2367,137 @@ class FlexHorseshoeCard extends LitElement {
       if (this.isUpdatePending) this.performanceUpdateStart = updatedPerformanceEnd;
     }
   }
-  /** *****************************************************************************
-   * _handleClick()
-   *
-   * Summary.
-   * Processes the mouse click of the user and dispatches the event to the
-   * configure handler.
-   * At this moment, only 'more-info' is used!
-   *
-   * Credits:
-   *  All credits to the mini-graph-card for this function.
-   *
-   */
 
-  _handleClick(node, hass, config, actionConfig, entityId) {
-    let e;
-    // eslint-disable-next-line default-case
+  /**
+   * Selects one gesture configuration using item, entity, card, and tap-default precedence.
+   *
+   * @param {object|undefined} itemConfig - Exact clicked runtime item config.
+   * @param {number|undefined} entityIndex - Exact clicked entity index.
+   * @param {string} actionProperty - tap_action, hold_action, or double_tap_action.
+   * @returns {object|undefined} Selected gesture configuration.
+   */
+  _getGestureConfig(itemConfig, entityIndex, actionProperty) {
+    const entityConfig = this.resolvedEntityConfigs[entityIndex];
+
+    return itemConfig?.[actionProperty]
+      ?? entityConfig?.[actionProperty]
+      ?? this.config?.[actionProperty]
+      ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+  }
+
+  /** Returns enabled gestures for the shared action-handler directive. */
+  getActionHandlerOptions(itemConfig, entityIndex) {
+    return {
+      hasTap: this._getGestureConfig(itemConfig, entityIndex, 'tap_action') !== undefined,
+      hasHold: this._getGestureConfig(itemConfig, entityIndex, 'hold_action') !== undefined,
+      hasDoubleClick: this._getGestureConfig(itemConfig, entityIndex, 'double_tap_action') !== undefined,
+    };
+  }
+
+  /** Resolves the HA entity target while preserving local sparkline source routing. */
+  _getActionEntityId(entityIndex, actionConfig) {
+    if (actionConfig.entity) return actionConfig.entity;
+
+    const entityConfig = this.resolvedEntityConfigs[entityIndex];
+    const targetIndex = entityConfig.source_entity_index ?? entityIndex;
+
+    return this.entities[targetIndex].entity_id;
+  }
+
+  /**
+   * Executes one current Home Assistant action object or compatible FHS extension.
+   *
+   * @param {object} actionConfig - One normalized action object.
+   * @param {string} entityId - Default entity selected by entity_index.
+   */
+  async _executeAction(actionConfig, entityId) {
     switch (actionConfig.action) {
       case 'more-info': {
-        e = new Event('hass-more-info', { composed: true });
-        e.detail = { entityId };
-        node.dispatchEvent(e);
+        fireEvent(this, 'hass-more-info', { entityId: actionConfig.entity ?? entityId });
+        break;
+      }
+      case 'toggle': {
+        await this._hass.callService('homeassistant', 'toggle', {}, { entity_id: actionConfig.entity ?? entityId });
+        break;
+      }
+      case 'perform-action': {
+        const [domain, service] = actionConfig.perform_action.split('.', 2);
+
+        if (domain === 'fhs_input_number' && service === 'set_value') {
+          this._setFhsInputNumberValue(actionConfig.target.entity_id, actionConfig.data.value);
+        } else {
+          await this._hass.callService(domain, service, actionConfig.data, actionConfig.target);
+        }
         break;
       }
       case 'navigate': {
-        if (!actionConfig.navigation_path) return;
-        window.history.pushState(null, '', actionConfig.navigation_path);
-        e = new Event('location-changed', { composed: true });
-        e.detail = { replace: false };
-        window.dispatchEvent(e);
+        window.history[actionConfig.navigation_replace ? 'replaceState' : 'pushState'](null, '', actionConfig.navigation_path);
+        fireEvent(window, 'location-changed', { replace: actionConfig.navigation_replace === true });
+        break;
+      }
+      case 'url': {
+        window.open(actionConfig.url_path, '_blank');
+        break;
+      }
+      case 'assist': {
+        fireEvent(this, 'hass-start-voice-assistant', {
+          pipeline_id: actionConfig.pipeline_id,
+          start_listening: actionConfig.start_listening,
+        });
         break;
       }
       case 'call-service': {
-        if (!actionConfig.service) return;
         const [domain, service] = actionConfig.service.split('.', 2);
-        const serviceData = { ...actionConfig.service_data };
-        hass.callService(domain, service, serviceData);
+        await this._hass.callService(domain, service, actionConfig.service_data, actionConfig.target);
         break;
       }
-      // Support for browser_mod pop ups.
       case 'fire-dom-event': {
-        e = new Event('ll-custom', { composed: true, bubbles: true });
-        e.detail = actionConfig;
-        node.dispatchEvent(e);
+        fireEvent(this, 'll-custom', actionConfig);
         break;
       }
+      case 'none':
+      default:
+        break;
     }
   }
 
   /**
-   * Handles clicks on the parent FHS card shell.
+   * Executes the selected tap, hold, or double-tap config for one exact item.
    *
-   * Child cards own their own click handling, so clicks inside a child wrapper
-   * must not open the parent popup. A cards-only parent also has no entity 0.
-   *
-   * @param {Event} e - Click event from the parent ha-card.
+   * @param {CustomEvent} event - Normalized gesture event.
+   * @param {object|undefined} itemConfig - Clicked runtime item config.
+   * @param {number|undefined} entityIndex - Clicked entity index.
    */
-  handleCardClick(e) {
-    const clickedChildCard = e.composedPath().some((node) => node.classList?.contains('fhs-child-card'));
+  async handleAction(event, itemConfig, entityIndex) {
+    event.stopPropagation();
+
+    const actionProperty = event.detail.action === 'double_tap' ? 'double_tap_action' : `${event.detail.action}_action`;
+    const gestureConfig = this._getGestureConfig(itemConfig, entityIndex, actionProperty);
+    const entityId = this._getActionEntityId(entityIndex, gestureConfig);
+    const actions = gestureConfig.actions ?? [gestureConfig];
+
+    if (gestureConfig.haptic) fireEvent(this, 'haptic', gestureConfig.haptic);
+
+    await actions.reduce(
+      (previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)),
+      Promise.resolve(),
+    );
+  }
+
+  /** Handles the legacy card-shell click as a normal tap on entity zero. */
+  handleCardClick(event) {
+    const clickedChildCard = event.composedPath().some((node) => node.classList?.contains('fhs-child-card'));
 
     if (clickedChildCard || !this.entities[0]) return;
 
-    this.handlePopup(e, this.entities[0]);
-  }
-
-  /** *****************************************************************************
-   * handlePopup()
-   *
-   * Summary.
-   * Handles the first part of mouse click processing.
-   * It stops propagation to the parent and processes the event.
-   *
-   * The action can be configured per entity. Look-up the entity, and handle the click
-   * event for further processing.
-   *
-   * Credits:
-   *  Almost all credits to the mini-graph-card for this function.
-   *
-   */
-
-  handlePopup(e, entity) {
-    e.stopPropagation();
-
-    const entityConfig = this.resolvedEntityConfigs.find((element) => element.entity === entity.entity_id);
-
-    const actionConfig = entityConfig?.tap_action ?? this.config?.tap_action ?? { action: 'more-info' };
-    const actionEntityId = entity.entity_id.startsWith('fhs_') ? this.entities[entityConfig.source_entity_index].entity_id : entity.entity_id;
-
-    this._handleClick(this, this._hass, this.config, actionConfig, actionEntityId);
+    this.handleAction(
+      {
+        detail: { action: 'tap' },
+        stopPropagation: () => event.stopPropagation(),
+      },
+      undefined,
+      0,
+    );
   }
 
   /** *****************************************************************************

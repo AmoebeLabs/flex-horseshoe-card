@@ -352,6 +352,8 @@ export default class HorseshoeGauge extends BaseTool {
         id="horseshoe-${this.index}"
         class="horseshoe"
         transform="${groupTransform}"
+        ${this.actionHandler()}
+        @action=${(event) => this.handleAction(event)}
       >
         ${this.renderHorseshoeBackground()}
         ${this.renderScale()}

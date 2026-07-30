@@ -288,7 +288,8 @@ export default class IconTool extends BaseTool {
         <g
           class="icon-position"
           transform="translate(${iconCx} ${iconCy})"
-          @click=${(event) => this.handlePopup(event)}
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
         >
           <rect
             x="${-iconPixels / 2}"
@@ -389,7 +390,8 @@ export default class IconTool extends BaseTool {
         <g
           class="icon-position"
           transform="translate(${iconCx} ${iconCy})"
-          @click=${(event) => this.handlePopup(event)}
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
         >
           <rect
             x="${-iconPixels / 2}"
@@ -563,7 +565,8 @@ export default class IconTool extends BaseTool {
             id="icon-rendered-${this.iconId}"
             class="icon-position"
             transform="translate(${iconCx} ${iconCy})"
-            @click=${(event) => this.handlePopup(event)}
+            ${this.actionHandler()}
+            @action=${(event) => this.handleAction(event)}
           >
             <rect
               x="${-iconPixels / 2}"
