@@ -62,10 +62,13 @@ export default class TextTool extends BaseTool {
       ...config,
     };
 
-    if (outerConfig.text_overflow?.mode === 'wrap' && outerConfig.text_overflow.dy === undefined) {
+    if (outerConfig.text_overflow?.mode === 'wrap' && outerConfig.text_overflow.wrap.dy === undefined) {
       outerConfig.text_overflow = {
-        dy: 1.2,
         ...outerConfig.text_overflow,
+        wrap: {
+          dy: 1.2,
+          ...outerConfig.text_overflow.wrap,
+        },
       };
     }
 
@@ -82,6 +85,7 @@ export default class TextTool extends BaseTool {
       if (element) this.textElement = element;
     };
     this.textElementId = `${this.cardId}-text-${this.index}`;
+    this.textFitScale = 1;
     this.characterWidthFactor = 0.6;
     this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
     this.estimatedWidth = 0;
@@ -228,6 +232,7 @@ export default class TextTool extends BaseTool {
     // supplied every fragment. The first line remains at the configured ypos;
     // only automatically generated continuation lines receive a relative dy.
     const textOverflow = this.config.text_overflow;
+    const wrapConfig = textOverflow?.wrap;
     let overflowParts = activeParts;
 
     if (textOverflow?.mode === 'wrap') {
@@ -245,7 +250,7 @@ export default class TextTool extends BaseTool {
         if (part.new_line) {
           pendingSpaces = [];
 
-          if (textOverflow.max_lines && lineNumber >= textOverflow.max_lines) {
+          if (wrapConfig.max_lines && lineNumber >= wrapConfig.max_lines) {
             // Feed text from an unavailable line into the current line so
             // the final-line truncation below can show that content remains.
             suppressConfiguredNewLine = true;
@@ -270,8 +275,8 @@ export default class TextTool extends BaseTool {
           const pendingCharacters = pendingSpaces.reduce((total, spacePart) => total + spacePart.value.length, 0);
           const lineWouldOverflow = lineCharacters > 0
             && pendingCharacters > 0
-            && lineCharacters + pendingCharacters + fragment.length > textOverflow.characters;
-          const canStartAnotherLine = !textOverflow.max_lines || lineNumber < textOverflow.max_lines;
+            && lineCharacters + pendingCharacters + fragment.length > wrapConfig.characters;
+          const canStartAnotherLine = !wrapConfig.max_lines || lineNumber < wrapConfig.max_lines;
           const startsAutomaticLine = lineWouldOverflow && canStartAnotherLine;
           const overflowsLastLine = (lineWouldOverflow && !canStartAnotherLine) || suppressConfiguredNewLine;
           const fragmentPart = {
@@ -284,7 +289,7 @@ export default class TextTool extends BaseTool {
             lineNumber += 1;
             lineCharacters = 0;
             fragmentPart.new_line = true;
-            fragmentPart.dy = textOverflow.dy;
+            fragmentPart.dy = wrapConfig.dy;
             delete fragmentPart.dx;
           } else {
             if (lineCharacters === 0) pendingSpaces = [];
@@ -321,7 +326,7 @@ export default class TextTool extends BaseTool {
         });
 
         const finalLineParts = wrappedParts.splice(finalLineStart);
-        let remainingVisibleCharacters = textOverflow.characters - 3;
+        let remainingVisibleCharacters = wrapConfig.characters - 3;
         let ellipsisAdded = false;
 
         finalLineParts.forEach((finalLinePart) => {
@@ -348,9 +353,9 @@ export default class TextTool extends BaseTool {
     // Wrapping with max_lines has already shortened its final line above. The
     // crossing part keeps its complete presentation in either mode.
     const lineEllipsis = textOverflow?.mode === 'ellipsis'
-      ? textOverflow.characters
-      : textOverflow?.mode === 'wrap' && textOverflow.max_lines
-        ? textOverflow.characters
+      ? textOverflow.ellipsis.characters
+      : textOverflow?.mode === 'wrap' && wrapConfig.max_lines
+        ? wrapConfig.characters
         : this.config.ellipsis;
     let remainingCharacters = lineEllipsis;
     let lineIsFull = false;
@@ -387,12 +392,12 @@ export default class TextTool extends BaseTool {
       lineLengths[lineLengths.length - 1] += part.value.length;
     });
     const outerStyles = this.getStyles({ 'font-size': '1em' });
-    const measurementSignature = `${JSON.stringify(this.textParts)}|${JSON.stringify(outerStyles)}`;
+    const measurementSignature = `${JSON.stringify(this.textParts)}|${JSON.stringify(outerStyles)}|${JSON.stringify(textOverflow)}`;
 
     if (measurementSignature !== this.textMeasurementSignature) {
       this.textMeasurementSignature = measurementSignature;
       this.estimatedWidth = Math.max(...lineLengths) * this.textFontSize * this.characterWidthFactor;
-      const lineSpacing = textOverflow?.mode === 'wrap' ? textOverflow.dy : 1.2;
+      const lineSpacing = textOverflow?.mode === 'wrap' ? wrapConfig.dy : 1.2;
       this.estimatedHeight = this.textFontSize + ((lineLengths.length - 1) * this.textFontSize * lineSpacing);
       this.hasExactMeasurement = false;
     }
@@ -418,26 +423,61 @@ export default class TextTool extends BaseTool {
     return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
   }
 
-  /** Measures the complete inline or multiline SVG text result. */
+  /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
+    // Measure without the fit transform. Restoring it synchronously keeps the
+    // DOM unchanged while preventing the previous fit from affecting the next.
+    const fitTransform = this.textElement.getAttribute('transform');
+
+    this.textElement.removeAttribute('transform');
     const boundingBox = this.textElement.getBBox();
-    const measuredWidth = boundingBox.width * (100 / SVG_DEFAULT_DIMENSIONS);
-    const measuredHeight = boundingBox.height * (100 / SVG_DEFAULT_DIMENSIONS);
-    const measuredXpos = boundingBox.x + boundingBox.width / 2;
-    const measuredYpos = boundingBox.y + boundingBox.height / 2;
+    this.textElement.setAttribute('transform', fitTransform);
 
-    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+    const unscaledWidth = boundingBox.width * dimensionFactor;
+    const unscaledHeight = boundingBox.height * dimensionFactor;
+    const unscaledXpos = boundingBox.x + boundingBox.width / 2;
+    const unscaledYpos = boundingBox.y + boundingBox.height / 2;
+    const textOverflow = this.config.text_overflow;
+    const fitConfig = textOverflow?.fit;
+    const computedTextFontSize = Number.parseFloat(window.getComputedStyle(this.textElement).fontSize);
+    let nextTextFitScale = 1;
 
-    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * dimensionFactor;
 
-    if (measurementChanged) {
+    if (textOverflow?.mode === 'fit' && unscaledWidth > fitConfig.max_width) {
+      nextTextFitScale = fitConfig.max_width / unscaledWidth;
+
+      if (fitConfig.min_font_size !== undefined) {
+        const parentFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.parentElement).fontSize);
+        const minimumFontSize = Number.parseFloat(fitConfig.min_font_size) * parentFontSize;
+        const minimumTextFitScale = minimumFontSize / computedTextFontSize;
+
+        nextTextFitScale = Math.min(1, Math.max(nextTextFitScale, minimumTextFitScale));
+      }
+    }
+
+    const measuredWidth = unscaledWidth * nextTextFitScale;
+    const measuredHeight = unscaledHeight * nextTextFitScale;
+    const measuredXpos = this.config.svg.xpos + ((unscaledXpos - this.config.svg.xpos) * nextTextFitScale);
+    const measuredYpos = this.config.svg.ypos + ((unscaledYpos - this.config.svg.ypos) * nextTextFitScale);
+    const measurementTolerance = 0.0001;
+    const fitScaleChanged = Math.abs(nextTextFitScale - this.textFitScale) > measurementTolerance;
+    const measurementChanged = !this.hasExactMeasurement
+      || Math.abs(measuredWidth - this.measuredWidth) > measurementTolerance
+      || Math.abs(measuredHeight - this.measuredHeight) > measurementTolerance
+      || Math.abs(measuredXpos - this.measuredXpos) > measurementTolerance
+      || Math.abs(measuredYpos - this.measuredYpos) > measurementTolerance;
+
+    if (fitScaleChanged || measurementChanged) {
       const characterCount = this.textParts.reduce((count, part) => count + part.value.length, 0);
 
       if (characterCount > 0) {
-        const measuredFactor = measuredWidth / characterCount / this.textFontSize;
+        const measuredFactor = unscaledWidth / characterCount / this.textFontSize;
 
         this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
       }
+      this.textFitScale = nextTextFitScale;
       this.measuredWidth = measuredWidth;
       this.measuredHeight = measuredHeight;
       this.measuredXpos = measuredXpos;
@@ -476,6 +516,10 @@ export default class TextTool extends BaseTool {
 
     this.applyColorStops(textStyles, 'fill');
 
+    const fitTransform = this.config.text_overflow?.mode === 'fit'
+      ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
+      : '';
+
     return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
@@ -484,6 +528,7 @@ export default class TextTool extends BaseTool {
         <text
           ${ref(this.setTextElement)}
           id="${this.textElementId}"
+          transform="${fitTransform}"
           x="${this.config.svg.xpos}"
           y="${this.config.svg.ypos}"
           dominant-baseline="${textStyles['dominant-baseline']}"

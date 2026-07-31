@@ -109,9 +109,10 @@ TextTool also accepts a structured overflow configuration:
 ```yaml
 text_overflow:
   mode: wrap
-  characters: 40
-  max_lines: 3
-  dy: 1.4
+  wrap:
+    characters: 40
+    max_lines: 3
+    dy: 1.4
 ```
 
 Wrapping is deliberately limited to TextTool because its multipart renderer
@@ -128,7 +129,31 @@ When `max_lines` is configured, the final available line reserves three
 characters for `...` when content remains. Without `max_lines`, all text
 is shown over as many lines as needed. `mode: ellipsis` provides the structured
 equivalent of the existing numeric `ellipsis` setting, which remains supported
-for existing configurations.
+for existing configurations. Each mode owns its settings in a matching
+`wrap`, `ellipsis`, or `fit` dictionary, allowing every dictionary to remain
+configured while a JavaScript template changes only `mode`.
+
+Fit mode is the third exclusive overflow strategy:
+
+```yaml
+text_overflow:
+  mode: fit
+  fit:
+    max_width: 40
+    min_font_size: 0.7em
+```
+
+After rendering, TextTool measures its unscaled bounding box and calculates one
+uniform reduction from the widest line. The transform uses the first-line xpos
+and ypos as its origin, preserving that anchor while scaling every line, part,
+relative font size, and line offset together. Fit never enlarges, wraps, or
+truncates text. An optional `min_font_size` in em limits the reduction; if the
+minimum is reached, the rendered text may remain wider than `max_width`.
+
+The calculated fit is retained between updates. A content, style, or width
+change requests one correction render only when the required fit changes. The
+published TextTool geometry includes the fit transform, allowing rectangle
+`fit` to follow the final width, height, and center on that correction render.
 
 ## Interaction
 

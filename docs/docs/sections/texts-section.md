@@ -199,9 +199,10 @@ texts:
     ypos: 20
     text_overflow:
       mode: wrap
-      characters: 40
-      max_lines: 3
-      dy: 1.4
+      wrap:
+        characters: 40
+        max_lines: 3
+        dy: 1.4
     text: A longer weather summary that may use up to three lines
 ```
 
@@ -216,8 +217,27 @@ The existing `ellipsis` shorthand remains supported. Its equivalent
 ```yaml
 text_overflow:
   mode: ellipsis
-  characters: 40
+  ellipsis:
+    characters: 40
 ```
+
+Use `fit` to reduce the complete TextTool when its widest line exceeds a
+configured width:
+
+```yaml
+text_overflow:
+  mode: fit
+  fit:
+    max_width: 40
+    min_font_size: 0.7em
+```
+
+Fit mode works with single-line and manually configured multiline text. Every
+line and styled part is reduced by the same amount, so their relative font
+sizes and spacing remain intact. Text is never enlarged, wrapped, or shortened.
+Omit `min_font_size` to keep reducing until the widest line fits. When a
+minimum is configured, text may remain wider than `max_width` after reaching
+that font size.
 
 ## :material-horseshoe: Configuration fields
 
@@ -243,10 +263,13 @@ text_overflow:
 
 | Field | Required | Default | Description |
 | :---- | :------: | :------ | :---------- |
-| `mode` | :material-check: | | Uses `wrap` or `ellipsis`. |
-| `characters` | :material-check: | | Maximum number of characters per visual line. |
-| `max_lines` | :material-close: | Unlimited | Maximum number of wrapped lines. Remaining text ends with `...`. |
-| `dy` | :material-close: | `1.2` | Distance between automatically wrapped lines in em. |
+| `mode` | :material-check: | | Selects `wrap`, `ellipsis`, or `fit`. |
+| `wrap.characters` | For wrap | | Maximum number of characters per visual line. |
+| `wrap.max_lines` | :material-close: | Unlimited | Maximum number of wrapped lines. Remaining text ends with `...`. |
+| `wrap.dy` | :material-close: | `1.2` | Distance between automatically wrapped lines in em. |
+| `ellipsis.characters` | For ellipsis | | Maximum number of characters per visual line. |
+| `fit.max_width` | For fit | | Maximum width of the complete TextTool in card dimensions. |
+| `fit.min_font_size` | :material-close: | None | Smallest base font size in em used by fit mode. |
 
 ### Text part
 
