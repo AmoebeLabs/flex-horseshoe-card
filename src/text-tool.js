@@ -62,6 +62,16 @@ export default class TextTool extends BaseTool {
       ...config,
     };
 
+    if (outerConfig.text_overflow?.mode === 'wrap' || outerConfig.text_overflow?.mode === 'ellipsis') {
+      const overflowModeConfig = outerConfig.text_overflow[outerConfig.text_overflow.mode];
+      const hasCharacters = overflowModeConfig.characters !== undefined;
+      const hasMaximumWidth = overflowModeConfig.max_width !== undefined;
+
+      if (hasCharacters === hasMaximumWidth) {
+        throw new Error(`[texts] text_overflow.${outerConfig.text_overflow.mode} requires exactly one of characters or max_width`);
+      }
+    }
+
     if (outerConfig.text_overflow?.mode === 'wrap' && outerConfig.text_overflow.wrap.dy === undefined) {
       outerConfig.text_overflow = {
         ...outerConfig.text_overflow,
@@ -86,6 +96,13 @@ export default class TextTool extends BaseTool {
     };
     this.textElementId = `${this.cardId}-text-${this.index}`;
     this.textFitScale = 1;
+    this.widthMeasurementParts = [];
+    this.widthMeasurementElements = [];
+    this.widthEllipsisElements = [];
+    this.widthOverflowParts = [];
+    this.widthOverflowSourceSignature = undefined;
+    this.widthOverflowMeasurementSignature = undefined;
+    this.widthOverflowPending = false;
     this.characterWidthFactor = 0.6;
     this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
     this.estimatedWidth = 0;
@@ -228,135 +245,180 @@ export default class TextTool extends BaseTool {
       return [activePart];
     });
 
-    // Wrap complete words while retaining the configuration of the part that
-    // supplied every fragment. The first line remains at the configured ypos;
-    // only automatically generated continuation lines receive a relative dy.
+    // Character-based overflow is calculated immediately. Width-based overflow
+    // first exposes styled word and whitespace tokens to the SVG measurement pass.
     const textOverflow = this.config.text_overflow;
     const wrapConfig = textOverflow?.wrap;
+    const ellipsisConfig = textOverflow?.ellipsis;
+    const selectedOverflowConfig = textOverflow?.mode === 'wrap' ? wrapConfig : ellipsisConfig;
+    const usesMeasuredWidth = (textOverflow?.mode === 'wrap' || textOverflow?.mode === 'ellipsis')
+      && selectedOverflowConfig.max_width !== undefined;
     let overflowParts = activeParts;
+    let lineEllipsis;
 
-    if (textOverflow?.mode === 'wrap') {
-      const wrappedParts = [];
-      let lineCharacters = 0;
-      let lineNumber = 1;
-      let pendingSpaces = [];
-      let maximumLinesReached = false;
+    if (usesMeasuredWidth) {
+      const widthMeasurementParts = [];
 
       activeParts.forEach((part) => {
-        if (maximumLinesReached) return;
+        let firstFragment = true;
 
-        let suppressConfiguredNewLine = false;
-
-        if (part.new_line) {
-          pendingSpaces = [];
-
-          if (wrapConfig.max_lines && lineNumber >= wrapConfig.max_lines) {
-            // Feed text from an unavailable line into the current line so
-            // the final-line truncation below can show that content remains.
-            suppressConfiguredNewLine = true;
-            pendingSpaces.push({ ...part, value: ' ' });
-          } else {
-            lineNumber += 1;
-            lineCharacters = 0;
-          }
-        }
-
-        let partPositionPending = true;
-        const fragments = String(part.value).match(/\s+|\S+/g);
-
-        fragments.forEach((fragment) => {
-          if (maximumLinesReached) return;
-
-          if (/^\s+$/.test(fragment)) {
-            if (lineCharacters > 0) pendingSpaces.push({ ...part, value: fragment });
-            return;
-          }
-
-          const pendingCharacters = pendingSpaces.reduce((total, spacePart) => total + spacePart.value.length, 0);
-          const lineWouldOverflow = lineCharacters > 0
-            && pendingCharacters > 0
-            && lineCharacters + pendingCharacters + fragment.length > wrapConfig.characters;
-          const canStartAnotherLine = !wrapConfig.max_lines || lineNumber < wrapConfig.max_lines;
-          const startsAutomaticLine = lineWouldOverflow && canStartAnotherLine;
-          const overflowsLastLine = (lineWouldOverflow && !canStartAnotherLine) || suppressConfiguredNewLine;
+        String(part.value).match(/\s+|\S+/g).forEach((fragment) => {
           const fragmentPart = {
             ...part,
             value: fragment,
           };
 
-          if (startsAutomaticLine) {
-            pendingSpaces = [];
-            lineNumber += 1;
-            lineCharacters = 0;
-            fragmentPart.new_line = true;
-            fragmentPart.dy = wrapConfig.dy;
+          if (!firstFragment) {
+            delete fragmentPart.new_line;
             delete fragmentPart.dx;
-          } else {
-            if (lineCharacters === 0) pendingSpaces = [];
-
-            pendingSpaces.forEach((spacePart) => {
-              delete spacePart.new_line;
-              delete spacePart.dx;
-              delete spacePart.dy;
-              wrappedParts.push(spacePart);
-              lineCharacters += spacePart.value.length;
-            });
-            pendingSpaces = [];
-
-            if (!partPositionPending || suppressConfiguredNewLine) {
-              delete fragmentPart.new_line;
-              delete fragmentPart.dx;
-              delete fragmentPart.dy;
-            }
+            delete fragmentPart.dy;
           }
 
-          wrappedParts.push(fragmentPart);
-          lineCharacters += fragment.length;
-          partPositionPending = false;
-
-          if (overflowsLastLine) maximumLinesReached = true;
+          widthMeasurementParts.push(fragmentPart);
+          firstFragment = false;
         });
       });
 
-      if (maximumLinesReached) {
-        let finalLineStart = 0;
+      const widthOverflowSourceSignature = `${JSON.stringify(widthMeasurementParts)}|${JSON.stringify(textOverflow)}`;
 
-        wrappedParts.forEach((wrappedPart, wrappedPartIndex) => {
-          if (wrappedPart.new_line) finalLineStart = wrappedPartIndex;
-        });
-
-        const finalLineParts = wrappedParts.splice(finalLineStart);
-        let remainingVisibleCharacters = wrapConfig.characters - 3;
-        let ellipsisAdded = false;
-
-        finalLineParts.forEach((finalLinePart) => {
-          if (ellipsisAdded) return;
-
-          if (finalLinePart.value.length <= remainingVisibleCharacters) {
-            wrappedParts.push(finalLinePart);
-            remainingVisibleCharacters -= finalLinePart.value.length;
-            return;
-          }
-
-          wrappedParts.push({
-            ...finalLinePart,
-            value: `${finalLinePart.value.slice(0, remainingVisibleCharacters)}...`,
-          });
-          ellipsisAdded = true;
-        });
+      if (widthOverflowSourceSignature !== this.widthOverflowSourceSignature) {
+        this.widthMeasurementParts = widthMeasurementParts;
+        this.widthOverflowSourceSignature = widthOverflowSourceSignature;
+        this.widthOverflowMeasurementSignature = undefined;
+        this.widthOverflowPending = true;
       }
 
-      overflowParts = wrappedParts;
+      overflowParts = this.widthOverflowParts;
+    } else {
+      this.widthMeasurementParts = [];
+      this.widthOverflowParts = [];
+      this.widthOverflowSourceSignature = undefined;
+      this.widthOverflowMeasurementSignature = undefined;
+      this.widthOverflowPending = false;
+
+      if (textOverflow?.mode === 'wrap') {
+        const wrappedParts = [];
+        let lineCharacters = 0;
+        let lineNumber = 1;
+        let pendingSpaces = [];
+        let maximumLinesReached = false;
+
+        activeParts.forEach((part) => {
+          if (maximumLinesReached) return;
+
+          let suppressConfiguredNewLine = false;
+
+          if (part.new_line) {
+            pendingSpaces = [];
+
+            if (wrapConfig.max_lines && lineNumber >= wrapConfig.max_lines) {
+              // Feed text from an unavailable line into the current line so
+              // the final-line truncation below can show that content remains.
+              suppressConfiguredNewLine = true;
+              pendingSpaces.push({ ...part, value: ' ' });
+            } else {
+              lineNumber += 1;
+              lineCharacters = 0;
+            }
+          }
+
+          let partPositionPending = true;
+          const fragments = String(part.value).match(/\s+|\S+/g);
+
+          fragments.forEach((fragment) => {
+            if (maximumLinesReached) return;
+
+            if (/^\s+$/.test(fragment)) {
+              if (lineCharacters > 0) pendingSpaces.push({ ...part, value: fragment });
+              return;
+            }
+
+            const pendingCharacters = pendingSpaces.reduce((total, spacePart) => total + spacePart.value.length, 0);
+            const lineWouldOverflow = lineCharacters > 0
+              && pendingCharacters > 0
+              && lineCharacters + pendingCharacters + fragment.length > wrapConfig.characters;
+            const canStartAnotherLine = !wrapConfig.max_lines || lineNumber < wrapConfig.max_lines;
+            const startsAutomaticLine = lineWouldOverflow && canStartAnotherLine;
+            const overflowsLastLine = (lineWouldOverflow && !canStartAnotherLine) || suppressConfiguredNewLine;
+            const fragmentPart = {
+              ...part,
+              value: fragment,
+            };
+
+            if (startsAutomaticLine) {
+              pendingSpaces = [];
+              lineNumber += 1;
+              lineCharacters = 0;
+              fragmentPart.new_line = true;
+              fragmentPart.dy = wrapConfig.dy;
+              delete fragmentPart.dx;
+            } else {
+              if (lineCharacters === 0) pendingSpaces = [];
+
+              pendingSpaces.forEach((spacePart) => {
+                delete spacePart.new_line;
+                delete spacePart.dx;
+                delete spacePart.dy;
+                wrappedParts.push(spacePart);
+                lineCharacters += spacePart.value.length;
+              });
+              pendingSpaces = [];
+
+              if (!partPositionPending || suppressConfiguredNewLine) {
+                delete fragmentPart.new_line;
+                delete fragmentPart.dx;
+                delete fragmentPart.dy;
+              }
+            }
+
+            wrappedParts.push(fragmentPart);
+            lineCharacters += fragment.length;
+            partPositionPending = false;
+
+            if (overflowsLastLine) maximumLinesReached = true;
+          });
+        });
+
+        if (maximumLinesReached) {
+          let finalLineStart = 0;
+
+          wrappedParts.forEach((wrappedPart, wrappedPartIndex) => {
+            if (wrappedPart.new_line) finalLineStart = wrappedPartIndex;
+          });
+
+          const finalLineParts = wrappedParts.splice(finalLineStart);
+          let remainingVisibleCharacters = wrapConfig.characters - 3;
+          let ellipsisAdded = false;
+
+          finalLineParts.forEach((finalLinePart) => {
+            if (ellipsisAdded) return;
+
+            if (finalLinePart.value.length <= remainingVisibleCharacters) {
+              wrappedParts.push(finalLinePart);
+              remainingVisibleCharacters -= finalLinePart.value.length;
+              return;
+            }
+
+            wrappedParts.push({
+              ...finalLinePart,
+              value: `${finalLinePart.value.slice(0, remainingVisibleCharacters)}...`,
+            });
+            ellipsisAdded = true;
+          });
+        }
+
+        overflowParts = wrappedParts;
+      }
+
+      lineEllipsis = textOverflow?.mode === 'ellipsis'
+        ? ellipsisConfig.characters
+        : textOverflow?.mode === 'wrap' && wrapConfig.max_lines
+          ? wrapConfig.characters
+          : this.config.ellipsis;
     }
 
-    // The outer ellipsis limit applies independently to every visual line.
-    // Wrapping with max_lines has already shortened its final line above. The
-    // crossing part keeps its complete presentation in either mode.
-    const lineEllipsis = textOverflow?.mode === 'ellipsis'
-      ? textOverflow.ellipsis.characters
-      : textOverflow?.mode === 'wrap' && wrapConfig.max_lines
-        ? wrapConfig.characters
-        : this.config.ellipsis;
+    // Character ellipsis applies independently to every explicit or generated
+    // line. Width mode has already produced its final parts in updated().
     let remainingCharacters = lineEllipsis;
     let lineIsFull = false;
     const textParts = [];
@@ -423,8 +485,234 @@ export default class TextTool extends BaseTool {
     return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
   }
 
+  /**
+   * Builds width-based ellipsis or wrap output from one shared SVG measurement.
+   *
+   * @param {Array<number>} measuredWidths - Width of every source token in card dimensions.
+   * @param {Array<number>} ellipsisWidths - Width of three dots in every token's own style.
+   * @returns {Array<object>} Final visible text parts.
+   */
+  calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths) {
+    const textOverflow = this.config.text_overflow;
+    const selectedConfig = textOverflow.mode === 'wrap' ? textOverflow.wrap : textOverflow.ellipsis;
+    const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+    const records = this.widthMeasurementParts.map((part, index) => ({
+      part,
+      index,
+      width: measuredWidths[index],
+      ellipsisWidth: ellipsisWidths[index],
+      characters: [...String(part.value)],
+      element: this.widthMeasurementElements[index],
+    }));
+
+    // The same exact substring calculation serves direct ellipsis and the
+    // final line produced when width-based wrapping reaches max_lines.
+    const shortenLineToWidth = (lineRecords, forceEllipsis) => {
+      const completeWidth = lineRecords.reduce((total, record) => total + record.width, 0);
+
+      if (!forceEllipsis && completeWidth <= selectedConfig.max_width) {
+        return lineRecords.map((record) => record.part);
+      }
+
+      const totalCharacters = lineRecords.reduce((total, record) => total + record.characters.length, 0);
+      let lowerBound = 0;
+      let upperBound = totalCharacters;
+      let visibleCharacters = 0;
+
+      while (lowerBound <= upperBound) {
+        const characterCount = Math.floor((lowerBound + upperBound) / 2);
+        let remainingCharacters = characterCount;
+        let candidateWidth = 0;
+        let ellipsisRecord = lineRecords[0];
+
+        lineRecords.some((record) => {
+          ellipsisRecord = record;
+
+          if (remainingCharacters >= record.characters.length) {
+            candidateWidth += record.width;
+            remainingCharacters -= record.characters.length;
+            return false;
+          }
+
+          candidateWidth += record.element.getSubStringLength(0, remainingCharacters) * dimensionFactor;
+          remainingCharacters = 0;
+          return true;
+        });
+
+        candidateWidth += ellipsisRecord.ellipsisWidth;
+
+        if (candidateWidth <= selectedConfig.max_width) {
+          visibleCharacters = characterCount;
+          lowerBound = characterCount + 1;
+        } else {
+          upperBound = characterCount - 1;
+        }
+      }
+
+      const shortenedParts = [];
+      let remainingCharacters = visibleCharacters;
+      let ellipsisAdded = false;
+
+      lineRecords.forEach((record) => {
+        if (ellipsisAdded) return;
+
+        if (remainingCharacters >= record.characters.length) {
+          shortenedParts.push(record.part);
+          remainingCharacters -= record.characters.length;
+          return;
+        }
+
+        shortenedParts.push({
+          ...record.part,
+          value: record.characters.slice(0, remainingCharacters).join('').concat('...'),
+        });
+        ellipsisAdded = true;
+      });
+
+      if (!ellipsisAdded) {
+        const finalPart = shortenedParts.pop();
+
+        shortenedParts.push({
+          ...finalPart,
+          value: String(finalPart.value).concat('...'),
+        });
+      }
+
+      return shortenedParts;
+    };
+
+    if (textOverflow.mode === 'ellipsis') {
+      const ellipsisParts = [];
+      let lineRecords = [];
+
+      records.forEach((record) => {
+        if (record.part.new_line && lineRecords.length > 0) {
+          ellipsisParts.push(...shortenLineToWidth(lineRecords, false));
+          lineRecords = [];
+        }
+
+        lineRecords.push(record);
+      });
+
+      ellipsisParts.push(...shortenLineToWidth(lineRecords, false));
+      return ellipsisParts;
+    }
+
+    const wrappedRecords = [];
+    let lineWidth = 0;
+    let lineNumber = 1;
+    let pendingSpaces = [];
+    let maximumLinesReached = false;
+
+    for (let recordIndex = 0; recordIndex < records.length; recordIndex += 1) {
+      const record = records[recordIndex];
+
+      if (record.part.new_line) {
+        pendingSpaces = [];
+
+        if (selectedConfig.max_lines && lineNumber >= selectedConfig.max_lines) {
+          maximumLinesReached = true;
+          break;
+        }
+
+        lineNumber += 1;
+        lineWidth = 0;
+      }
+
+      if (/^\s+$/.test(record.part.value)) {
+        if (lineWidth > 0) pendingSpaces.push(record);
+      } else {
+        const pendingWidth = pendingSpaces.reduce((total, spaceRecord) => total + spaceRecord.width, 0);
+        const lineWouldOverflow = lineWidth > 0
+          && lineWidth + pendingWidth + record.width > selectedConfig.max_width;
+
+        if (lineWouldOverflow) {
+          if (selectedConfig.max_lines && lineNumber >= selectedConfig.max_lines) {
+            maximumLinesReached = true;
+            break;
+          }
+
+          const wrappedPart = {
+            ...record.part,
+            new_line: true,
+            dy: selectedConfig.dy,
+          };
+
+          delete wrappedPart.dx;
+          wrappedRecords.push({ ...record, part: wrappedPart });
+          pendingSpaces = [];
+          lineNumber += 1;
+          lineWidth = record.width;
+        } else {
+          pendingSpaces.forEach((spaceRecord) => {
+            const spacePart = { ...spaceRecord.part };
+
+            delete spacePart.new_line;
+            delete spacePart.dx;
+            delete spacePart.dy;
+            wrappedRecords.push({ ...spaceRecord, part: spacePart });
+            lineWidth += spaceRecord.width;
+          });
+          pendingSpaces = [];
+          wrappedRecords.push(record);
+          lineWidth += record.width;
+        }
+      }
+    }
+
+    if (maximumLinesReached) {
+      let finalLineStart = 0;
+
+      wrappedRecords.forEach((record, recordIndex) => {
+        if (record.part.new_line) finalLineStart = recordIndex;
+      });
+
+      const finalLineRecords = wrappedRecords.splice(finalLineStart);
+      const finalLineParts = shortenLineToWidth(finalLineRecords, true);
+
+      return [...wrappedRecords.map((record) => record.part), ...finalLineParts];
+    }
+
+    return wrappedRecords.map((record) => record.part);
+  }
+
   /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
+    if (this.widthMeasurementParts.length > 0) {
+      const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+      const measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+      const ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+      const widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+
+      if (this.widthOverflowPending || widthOverflowMeasurementSignature !== this.widthOverflowMeasurementSignature) {
+        this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+        this.textParts = this.widthOverflowParts;
+
+        if (this.card.dev.debug) {
+          const textOverflow = this.config.text_overflow;
+          const modeConfig = textOverflow[textOverflow.mode];
+
+          console.log('[FHS TextTool width measurement]', {
+            id: this.id,
+            mode: textOverflow.mode,
+            maxWidth: modeConfig.max_width,
+            measuredWidths,
+            sourceParts: this.widthMeasurementParts.map((part) => part.value),
+            resultParts: this.widthOverflowParts.map((part) => ({
+              value: part.value,
+              newLine: part.new_line,
+            })),
+          });
+        }
+
+        this.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
+        this.widthOverflowPending = false;
+        this.hasExactMeasurement = false;
+        this.card.requestUpdate();
+        return;
+      }
+    }
+
     // Measure without the fit transform. Restoring it synchronously keeps the
     // DOM unchanged while preventing the previous fit from affecting the next.
     const fitTransform = this.textElement.getAttribute('transform');
@@ -519,6 +807,47 @@ export default class TextTool extends BaseTool {
     const fitTransform = this.config.text_overflow?.mode === 'fit'
       ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
       : '';
+    const buildRenderedPart = (part) => {
+      let renderPart = part;
+
+      // Source animations are resolved during render, after the animation
+      // pipeline has activated the styles for this exact state update.
+      if (part.source_reference) {
+        const sourceTool = this.getReferencedTextTool(part.source_reference);
+        const currentSourcePart = sourceTool
+          .getTextParts(part.source_reference.options)[part.source_reference.part_index];
+
+        renderPart = {
+          ...part,
+          styles: currentSourcePart.styles,
+        };
+      }
+
+      const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
+      const stopColor = this.card._getItemColorFromStops(renderPart);
+      const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
+
+      if (stopColor) partStyles.fill = stopColor;
+
+      return {
+        ...renderPart,
+        renderStyles: this.getRenderStyles({
+          ...partStyles,
+          ...animationStyles,
+        }),
+      };
+    };
+    const visibleRenderParts = this.textParts.map((part) => buildRenderedPart(part));
+    const measurementRenderParts = this.widthMeasurementParts.map((part) => buildRenderedPart(part));
+    const measurementTextStyles = {
+      ...textStyles,
+      opacity: '0',
+      'pointer-events': 'none',
+      'white-space': 'pre',
+    };
+
+    this.widthMeasurementElements = new Array(measurementRenderParts.length);
+    this.widthEllipsisElements = new Array(measurementRenderParts.length);
 
     return this.renderItemLayers(svg`
       <g
@@ -535,32 +864,8 @@ export default class TextTool extends BaseTool {
           style=${styleMap(this.getRenderStyles(textStyles))}
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
-        >${this.textParts.map((part) => {
-          let renderPart = part;
-
-          // Source animations are resolved during render, after the animation
-          // pipeline has activated the styles for this exact state update.
-          if (part.source_reference) {
-            const sourceTool = this.getReferencedTextTool(part.source_reference);
-            const currentSourcePart = sourceTool
-              .getTextParts(part.source_reference.options)[part.source_reference.part_index];
-
-            renderPart = {
-              ...part,
-              styles: currentSourcePart.styles,
-            };
-          }
-
-          const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
-          const stopColor = this.card._getItemColorFromStops(renderPart);
-          const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
-
-          if (stopColor) partStyles.fill = stopColor;
-
-          const styles = {
-            ...partStyles,
-            ...animationStyles,
-          };
+          visibility="${this.widthOverflowPending && this.widthOverflowParts.length === 0 ? 'hidden' : 'visible'}"
+        >${visibleRenderParts.map((renderPart) => {
           const dx = renderPart.dx ?? 0;
           const dy = renderPart.dy ?? 0;
 
@@ -571,16 +876,35 @@ export default class TextTool extends BaseTool {
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
-                style=${styleMap(this.getRenderStyles(styles))}
+                style=${styleMap(renderPart.renderStyles)}
               >${renderPart.value}</tspan>`
             : svg`<tspan
                 class="text-tool__part"
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
-                style=${styleMap(this.getRenderStyles(styles))}
+                style=${styleMap(renderPart.renderStyles)}
               >${renderPart.value}</tspan>`;
         })}</text>
+        ${measurementRenderParts.length > 0 ? svg`
+          <text
+            class="text-tool__measurement"
+            x="${this.config.svg.xpos}"
+            y="${this.config.svg.ypos}"
+            pointer-events="none"
+            aria-hidden="true"
+            style=${styleMap(this.getRenderStyles(measurementTextStyles))}
+          >${measurementRenderParts.map((renderPart, partIndex) => svg`
+            <tspan
+              ${ref((element) => { if (element) this.widthMeasurementElements[partIndex] = element; })}
+              style=${styleMap(renderPart.renderStyles)}
+            >${renderPart.value}</tspan>
+            <tspan
+              ${ref((element) => { if (element) this.widthEllipsisElements[partIndex] = element; })}
+              style=${styleMap(renderPart.renderStyles)}
+            >...</tspan>
+          `)}</text>
+        ` : ''}
       </g>
     `);
   }

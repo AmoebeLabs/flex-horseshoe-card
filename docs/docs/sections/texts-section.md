@@ -200,26 +200,33 @@ texts:
     text_overflow:
       mode: wrap
       wrap:
-        characters: 40
+        max_width: 40
         max_lines: 3
         dy: 1.4
     text: A longer weather summary that may use up to three lines
 ```
 
-`characters` controls the approximate line length and `dy` controls the line
-spacing in em. Wrapping only occurs at spaces, so words are never split. When
-`max_lines` is set, the final line reserves three characters for `...` when
-text remains. Without `max_lines`, TextTool creates as many lines as needed.
+`max_width` uses the actual displayed width in card dimensions. Use
+`characters` instead when an approximate character limit is preferred. Set
+one of these two fields, not both. `dy` controls the line spacing in em.
 
-The existing `ellipsis` shorthand remains supported. Its equivalent
-`text_overflow` form is:
+Wrapping only occurs at spaces, so words are never split. When `max_lines` is
+set, remaining text on the final line ends with `...` and still fits within
+`max_width`. Without `max_lines`, TextTool creates as many lines as needed.
+
+Use ellipsis with `max_width` to shorten every visual line to its displayed
+width:
 
 ```yaml
 text_overflow:
   mode: ellipsis
   ellipsis:
-    characters: 40
+    max_width: 40
 ```
+
+Use `ellipsis.characters` instead for a character limit. Set either
+`characters` or `max_width`, not both. The existing `ellipsis: 40`
+shorthand remains supported for character-based ellipsis.
 
 Use `fit` to reduce the complete TextTool when its widest line exceeds a
 configured width:
@@ -251,7 +258,7 @@ that font size.
 | `ypos` | :material-check: | | Vertical position on the card canvas. |
 | `entity_index` | :material-close: | None | Entity used by the item and inherited by parts without their own entity. |
 | `ellipsis` | :material-close: | None | Maximum number of characters on each visual line. |
-| `text_overflow` | :material-close: | None | Wraps text or applies ellipsis using the configured character limit. TextTool only. |
+| `text_overflow` | :material-close: | None | Wraps, shortens, or fits text using the selected mode. TextTool only. |
 | `styles` | :material-close: | | Styles inherited by all parts, including alignment and font settings. |
 | `tap_action` | :material-close: | `none` | Action for the complete text item. |
 | `hold_action` | :material-close: | None | Hold action for the complete text item. |
@@ -264,10 +271,12 @@ that font size.
 | Field | Required | Default | Description |
 | :---- | :------: | :------ | :---------- |
 | `mode` | :material-check: | | Selects `wrap`, `ellipsis`, or `fit`. |
-| `wrap.characters` | For wrap | | Maximum number of characters per visual line. |
+| `wrap.characters` | Alternative | | Approximate maximum number of characters per visual line. Do not combine with `wrap.max_width`. |
+| `wrap.max_width` | Alternative | | Maximum displayed width of every wrapped line in card dimensions. Do not combine with `wrap.characters`. |
 | `wrap.max_lines` | :material-close: | Unlimited | Maximum number of wrapped lines. Remaining text ends with `...`. |
 | `wrap.dy` | :material-close: | `1.2` | Distance between automatically wrapped lines in em. |
-| `ellipsis.characters` | For ellipsis | | Maximum number of characters per visual line. |
+| `ellipsis.characters` | Alternative | | Maximum number of characters per visual line. Do not combine with `ellipsis.max_width`. |
+| `ellipsis.max_width` | Alternative | | Maximum displayed width of every visual line in card dimensions. Do not combine with `ellipsis.characters`. |
 | `fit.max_width` | For fit | | Maximum width of the complete TextTool in card dimensions. |
 | `fit.min_font_size` | :material-close: | None | Smallest base font size in em used by fit mode. |
 

@@ -34,6 +34,9 @@ export default class AreaTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
+    config.xpos = config.xpos ?? 0;
+    config.ypos = config.ypos ?? 0;
+
     super(config, index, templates, cardId, card, 'areas');
 
     this.config.svg = this.calculateSvgDimensions();

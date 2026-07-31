@@ -155,6 +155,55 @@ change requests one correction render only when the required fit changes. The
 published TextTool geometry includes the fit transform, allowing rectangle
 `fit` to follow the final width, height, and center on that correction render.
 
+### Shared width measurement
+
+Both `wrap` and `ellipsis` may use `max_width` instead of `characters`:
+
+```yaml
+text_overflow:
+  mode: wrap
+  wrap:
+    max_width: 40
+    max_lines: 3
+    dy: 1.4
+```
+
+```yaml
+text_overflow:
+  mode: ellipsis
+  ellipsis:
+    max_width: 40
+```
+
+Exactly one of `characters` and `max_width` is configured for the selected
+mode. Character mode performs its layout before rendering. Width mode renders
+one invisible measurement copy containing the same word, whitespace, source,
+style, color, and animation parts as the visible text. SVG text APIs provide
+the actual width of every fragment and of `...` in the style of each part.
+
+One shared measurement signature contains the source parts, active overflow
+configuration, and measured fragment widths. A changed signature calculates
+one new result and requests one correction render. An unchanged signature does
+not request another render. This prevents the measured output from becoming
+input to its own next calculation and avoids the fit-style render loop.
+
+Width-based wrap adds complete measured words to a line until the next word no
+longer fits. Explicit `new_line` remains a hard boundary, words are never split,
+and the first automatically generated line starts below the unchanged first
+line by `dy`. If `max_lines` is reached, the shared width ellipsis calculation
+finishes the final line.
+
+Width-based ellipsis processes every explicit visual line independently. It
+keeps complete parts while they fit, uses SVG substring measurement inside the
+crossing part, reserves the measured width of `...` in that part's own style,
+and omits all later content on the line. Generated fragments retain their
+source references, styles, color stops, and animation ids.
+
+The invisible measurement copy remains available after the correction render.
+A dynamic text, font, source style, or animation change therefore invalidates
+the measured signature and recalculates the visible result. Rectangle `fit`
+continues to consume only the final visible TextTool geometry.
+
 ## Interaction
 
 Standalone text defaults to action `none` and `pointer-events: none`. It does
