@@ -103,6 +103,7 @@ export default class TextTool extends BaseTool {
     this.widthOverflowSourceSignature = undefined;
     this.widthOverflowMeasurementSignature = undefined;
     this.widthOverflowPending = false;
+    this.widthMeasurementScheduled = false;
     this.characterWidthFactor = 0.6;
     this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
     this.estimatedWidth = 0;
@@ -678,35 +679,62 @@ export default class TextTool extends BaseTool {
 
   /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
+    if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
+      if (!this.widthMeasurementScheduled) {
+        this.widthMeasurementScheduled = true;
+        const scheduledSourceSignature = this.widthOverflowSourceSignature;
+
+        document.fonts.ready.then(async () => {
+          const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+          let measuredWidths;
+          let ellipsisWidths;
+          let previousFrameSignature;
+
+          // SVG layout may trail Lit's updated callback. Wait for at most five
+          // frames and stop as soon as two usable measurements are identical.
+          for (let frameAttempt = 0; frameAttempt < 5; frameAttempt += 1) {
+            // eslint-disable-next-line no-await-in-loop -- SVG layout must settle frame by frame.
+            await new Promise(requestAnimationFrame);
+
+            if (scheduledSourceSignature !== this.widthOverflowSourceSignature) break;
+
+            measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            const currentFrameSignature = `${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+            const hasMeasuredText = measuredWidths.some((width) => width > 0);
+
+            if (hasMeasuredText && currentFrameSignature === previousFrameSignature) break;
+
+            previousFrameSignature = currentFrameSignature;
+          }
+
+          this.widthMeasurementScheduled = false;
+
+          if (scheduledSourceSignature === this.widthOverflowSourceSignature) {
+            this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+            this.textParts = this.widthOverflowParts;
+            this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+            this.widthOverflowPending = false;
+            this.hasExactMeasurement = false;
+          }
+
+          this.card.requestUpdate();
+        });
+      }
+
+      return;
+    }
+
     if (this.widthMeasurementParts.length > 0) {
       const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
       const measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
       const ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
       const widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
 
-      if (this.widthOverflowPending || widthOverflowMeasurementSignature !== this.widthOverflowMeasurementSignature) {
+      if (widthOverflowMeasurementSignature !== this.widthOverflowMeasurementSignature) {
         this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
         this.textParts = this.widthOverflowParts;
-
-        if (this.card.dev.debug) {
-          const textOverflow = this.config.text_overflow;
-          const modeConfig = textOverflow[textOverflow.mode];
-
-          console.log('[FHS TextTool width measurement]', {
-            id: this.id,
-            mode: textOverflow.mode,
-            maxWidth: modeConfig.max_width,
-            measuredWidths,
-            sourceParts: this.widthMeasurementParts.map((part) => part.value),
-            resultParts: this.widthOverflowParts.map((part) => ({
-              value: part.value,
-              newLine: part.new_line,
-            })),
-          });
-        }
-
         this.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
-        this.widthOverflowPending = false;
         this.hasExactMeasurement = false;
         this.card.requestUpdate();
         return;

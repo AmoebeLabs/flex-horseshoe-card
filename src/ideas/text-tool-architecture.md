@@ -182,10 +182,15 @@ style, color, and animation parts as the visible text. SVG text APIs provide
 the actual width of every fragment and of `...` in the style of each part.
 
 One shared measurement signature contains the source parts, active overflow
-configuration, and measured fragment widths. A changed signature calculates
-one new result and requests one correction render. An unchanged signature does
-not request another render. This prevents the measured output from becoming
-input to its own next calculation and avoids the fit-style render loop.
+configuration, and measured fragment widths. Before accepting the first
+measurement, TextTool waits for `document.fonts.ready` and then for at most
+five animation frames until two consecutive non-zero SVG measurements match.
+This avoids processing the initial zero layout and provisional font metrics.
+
+A changed signature calculates one new result and requests one correction
+render. An unchanged signature does not request another render. This prevents
+the measured output from becoming input to its own next calculation and avoids
+the fit-style render loop.
 
 Width-based wrap adds complete measured words to a line until the next word no
 longer fits. Explicit `new_line` remains a hard boundary, words are never split,
