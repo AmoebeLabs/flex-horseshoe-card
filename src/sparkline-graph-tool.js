@@ -183,7 +183,8 @@ export default class SparklineGraphTool extends BaseTool {
           // er zitten ergens testen die hierdoor fout gaan. want die kijken of één van de twee bestaat. zonder het type te controleren
           // ik vermoed dat het daarom misgaat dus... Gevolgen??
           bins: {
-            per_hour: 4, // 6, wel heel toevallig. kijken met 12 dan eens... grafiek nog steeds fout. lijkt erop alsof deze bij rolling_window wordt overschreven?
+            per_hour: 'auto',
+            density: 'medium',
           },
         },
       },
@@ -440,6 +441,16 @@ export default class SparklineGraphTool extends BaseTool {
     });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
 
+    // Both historical period types expose the same automatic bin interface.
+    // Keep 'auto' in the tool config; only buildGraphConfig resolves it for the engine.
+    ['calendar', 'rolling_window'].forEach((periodType) => {
+      if (sparklineConfig.period[periodType] === undefined) return;
+
+      sparklineConfig.period[periodType].bins ??= {};
+      sparklineConfig.period[periodType].bins.per_hour ??= 'auto';
+      sparklineConfig.period[periodType].bins.density ??= 'medium';
+    });
+
     // State-band labels live inside each categorical row. Apply their natural
     // left/top alignment and use hard color stops because each band is a discrete state.
     if (sparklineConfig.sparkline.show.chart_type === 'state_bands') {
@@ -642,6 +653,52 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Selects a logical numeric bin interval for the graph engine.
+   *
+   * Configured FHS width is used deliberately: automatic density describes the
+   * visual layout chosen by the user and remains independent of browser pixels,
+   * SVG conversion, axis margins, labels, and device scale.
+   *
+   * @param {object} config - Active sparkline tool configuration.
+   * @returns {number} Numeric bins per hour consumed by SparklineGraph.
+   */
+  calculateBinsPerHour(config) {
+    const periodConfig = config.period[config.period.type];
+    const binsPerHour = periodConfig.bins.per_hour;
+
+    // A manually configured value always takes precedence over density.
+    if (binsPerHour !== 'auto') return binsPerHour;
+
+    const binsPerHourOptions = [1 / 24, 1 / 12, 0.125, 1 / 6, 0.25, 0.5, 1, 2, 3, 4, 6, 12];
+    const widthUnitsPerBinByGraphType = {
+      line: 1,
+      area: 1,
+      dots: 2,
+      bar: 2,
+      barcode: 2,
+      equalizer: 2,
+      graded: 2,
+      radial_barcode: 5.6,
+    };
+    const densityFactor = {
+      low: 2,
+      medium: 1,
+      high: 0.5,
+    };
+    const graphType = config.sparkline.show.chart_type;
+    const availableWidth = graphType === 'radial_barcode' ? Math.PI * config.width : config.width;
+    const widthUnitsPerBin = widthUnitsPerBinByGraphType[graphType] * densityFactor[periodConfig.bins.density];
+    const maximumBinsPerHour = availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
+
+    // Walk from highest to lowest to avoid requiring Array.findLast support.
+    for (let index = binsPerHourOptions.length - 1; index >= 0; index -= 1) {
+      if (binsPerHourOptions[index] <= maximumBinsPerHour) return binsPerHourOptions[index];
+    }
+
+    return binsPerHourOptions[0];
+  }
+
+  /**
    * Builds the config object consumed by SparklineGraph without changing the
    * engine's expected naming.
    *
@@ -649,18 +706,26 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Engine config.
    */
   buildGraphConfig(config) {
+    const period = Merge.mergeDeep({}, config.period);
+    const graphType = config.sparkline.show.chart_type;
     const sparkline =
-      config.sparkline.show.chart_type === 'state_bands'
+      graphType === 'state_bands'
         ? {
             ...config.sparkline,
             state_map: this.stateBandsStateMap,
           }
         : config.sparkline;
 
+    // SparklineGraph only receives numeric bins. State bands use exact
+    // transitions and retain one neutral internal point interval.
+    if (period.type !== 'real_time') {
+      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : this.calculateBinsPerHour(config);
+    }
+
     return {
       width: this.svg.width,
       height: this.svg.height,
-      period: config.period,
+      period,
       sparkline,
       x_axis: {
         ...config.x_axis,
@@ -1392,7 +1457,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (chartType === 'bar') {
-        this.bar[index] = this.Graph.getBars(index, total, 4, 4);
+        this.bar[index] = this.Graph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
       } else if (chartType === 'equalizer') {
         this.Graph.levelCount = this.config.sparkline.equalizer.value_buckets;
         this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.config.sparkline.equalizer.value_buckets;
@@ -1400,14 +1465,14 @@ export default class SparklineGraphTool extends BaseTool {
       } else if (chartType === 'graded') {
         this.Graph.levelCount = this.config.sparkline.equalizer.value_buckets;
         this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.config.sparkline.equalizer.value_buckets;
-        this.graded[index] = this.Graph.getGrades(index, total, 4, 4);
+        this.graded[index] = this.Graph.getGrades(index, total, this.svg.column_spacing, this.svg.row_spacing);
       } else if (chartType === 'radial_barcode') {
         this.radialBarcodeChartBackground[index] = this.Graph.getRadialBarcodeBackground(index, total, this.svg.column_spacing, this.svg.row_spacing);
         this.radialBarcodeChart[index] = this.Graph.getRadialBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
         this.Graph.radialBarcodeBackground = this.radialBarcodeChartBackground[index];
         this.Graph.radialBarcode = this.radialBarcodeChart[index];
       } else if (chartType === 'barcode') {
-        this.barcodeChart[index] = this.Graph.getBarcode(index, total, 4, 4);
+        this.barcodeChart[index] = this.Graph.getBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
       }
     }
 

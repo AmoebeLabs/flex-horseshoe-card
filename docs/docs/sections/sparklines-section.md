@@ -37,7 +37,8 @@ layout:
           duration:
             hour: 24
           bins:
-            per_hour: 1
+            per_hour: auto
+            density: medium
 
       sparkline:
         state_values:

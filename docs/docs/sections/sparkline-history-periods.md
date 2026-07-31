@@ -45,10 +45,11 @@ period:
     duration:
       hour: 24
     bins:
-      per_hour: 2
+      per_hour: auto
+      density: medium
 ```
 
-This example creates half-hour bins across the latest 24 hours. As time moves forward, older bins leave the range and a new current bin is added.
+This example automatically chooses a suitable interval for the latest 24 hours. As time moves forward, older bins leave the range and a new current bin is added.
 
 ## :material-horseshoe: Calendar range
 
@@ -63,10 +64,11 @@ period:
     duration:
       hour: 24
     bins:
-      per_hour: 2
+      per_hour: auto
+      density: medium
 ```
 
-For the current day, the X-axis spans the full 24-hour period. Values continue to appear up to the current half-hour interval as the day progresses.
+For the current day, the X-axis spans the full 24-hour period. Values continue to appear up to the current interval as the day progresses.
 
 Use a negative offset to display a completed calendar period:
 
@@ -88,21 +90,45 @@ A completed calendar period remains unchanged throughout the day. When the local
 
 Duration determines how much time the graph covers. Hours work well for compact daily and multi-day history graphs.
 
-Changing the graph’s width or height does not affect the selected range or number of bins. The card size controls how much display space is available, while the period and bins determine which data appears.
+Changing the graph’s width or height does not affect the selected time range. In automatic mode, the configured width helps FHS choose how many bins fit comfortably. A manually configured `bins.per_hour` remains unchanged when the graph size changes.
 
 ## :material-horseshoe: Bins per hour
 
-`bins.per_hour` determines the length of each time interval.
+By default, FHS chooses `bins.per_hour` automatically from the duration, configured graph width, chart type, and selected density:
+
+```yaml linenums="1"
+bins:
+  per_hour: auto
+  density: medium
+```
+
+Use `low` for a calmer graph with fewer bins, `medium` for the normal balance, or `high` to retain more detail. Line and area charts can display more detail than charts that draw every bin as a separate shape. Radial barcodes use the available circumference of the graph.
+
+Automatic mode selects one of these intervals:
 
 | `per_hour` | Bin duration |
 | :--------- | :----------- |
+| `0.0416667` | 24 hours     |
+| `0.0833333` | 12 hours     |
+| `0.125`     | 8 hours      |
+| `0.1666667` | 6 hours      |
+| `0.25`     | 4 hours      |
+| `0.5`      | 2 hours      |
 | `1`        | 60 minutes   |
 | `2`        | 30 minutes   |
+| `3`        | 20 minutes   |
 | `4`        | 15 minutes   |
+| `6`        | 10 minutes   |
 | `12`       | 5 minutes    |
-| `30`       | 2 minutes    |
 
-Using more bins preserves shorter peaks and dips, but also creates a denser graph. Using fewer bins produces a calmer view because more measurements are combined into each displayed value.
+Set `per_hour` to a number when you need an exact interval:
+
+```yaml linenums="1"
+bins:
+  per_hour: 30
+```
+
+A numeric value always takes precedence over `density`, so this example keeps two-minute bins at every duration and width. Using more bins preserves shorter peaks and dips, but also creates a denser graph. Using fewer bins produces a calmer view because more measurements are combined into each displayed value.
 
 ### State bands and bins
 
