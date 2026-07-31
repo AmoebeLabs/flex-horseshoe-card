@@ -462,7 +462,9 @@ export default class TextTool extends BaseTool {
       this.estimatedWidth = Math.max(...lineLengths) * this.textFontSize * this.characterWidthFactor;
       const lineSpacing = textOverflow?.mode === 'wrap' ? wrapConfig.dy : 1.2;
       this.estimatedHeight = this.textFontSize + ((lineLengths.length - 1) * this.textFontSize * lineSpacing);
-      this.hasExactMeasurement = false;
+
+      // Rectangle fit keeps the previous measured geometry until updated()
+      // publishes the new exact text bounds. Initial rendering still uses the estimate.
     }
   }
 
@@ -715,7 +717,6 @@ export default class TextTool extends BaseTool {
             this.textParts = this.widthOverflowParts;
             this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
             this.widthOverflowPending = false;
-            this.hasExactMeasurement = false;
           }
 
           this.card.requestUpdate();
@@ -735,7 +736,6 @@ export default class TextTool extends BaseTool {
         this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
         this.textParts = this.widthOverflowParts;
         this.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
-        this.hasExactMeasurement = false;
         this.card.requestUpdate();
         return;
       }
