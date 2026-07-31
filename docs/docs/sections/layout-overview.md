@@ -11,7 +11,7 @@ tags:
 
 The `layout` section controls where the visual elements of the card appear.
 
-It contains items such as states, names, icons, areas, circles, horizontal lines, and vertical lines. Each item can have its own position and styling, making it possible to create anything from a simple value card to a more detailed dashboard component with several coordinated elements.
+It contains items such as states, names, standalone text, icons, areas, circles, horizontal lines, and vertical lines. Each item can have its own position and styling, making it possible to create anything from a simple value card to a more detailed dashboard component with several coordinated elements.
 
 This page introduces the available layout sections and the shared positioning model. For complete field descriptions and examples, follow the links to the dedicated pages.
 
@@ -30,6 +30,11 @@ layout:
     - entity_index: 0
       xpos: 50
       ypos: 60
+
+  texts:
+    - text: History
+      xpos: 50
+      ypos: 15
 
   icons:
     - entity_index: 0
@@ -82,6 +87,7 @@ The `layout` section supports several element types.
 | Section   | Used for                                    | Details                                   |
 | :-------- | :------------------------------------------ | :---------------------------------------- |
 | `states`  | Displaying entity states and units          | [Entity elements](entities-section.md)    |
+| `texts`   | Displaying standalone or multipart text     | [Text](texts-section.md)                  |
 | `names`   | Displaying entity names                     | [Entity elements](entities-section.md)    |
 | `areas`   | Displaying Home Assistant areas             | [Entity elements](entities-section.md)    |
 | `icons`   | Displaying entity icons or standalone icons | [Entity elements](entities-section.md)    |
@@ -117,6 +123,9 @@ layout:
 ```
 
 See [Home Assistant entity elements](entities-section.md) for all supported fields and examples.
+
+Use [Text](texts-section.md) for headings, captions, button labels, and other
+text that does not have to come directly from a Home Assistant entity.
 
 ## :material-horseshoe: Visual shapes
 
@@ -174,6 +183,7 @@ The dedicated pages for entity elements, visual shapes, color stops, animations,
 Use this page as a starting point, then continue with the section that matches the element you want to add:
 
 * [Home Assistant entity elements](entities-section.md)
+* [Text](texts-section.md)
 * [Visual shapes](visual-shapes-section.md)
 * [Groups](groups-section.md)
 * [Reuse](../reuse/reuse-introduction.md)

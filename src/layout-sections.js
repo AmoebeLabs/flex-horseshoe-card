@@ -9,6 +9,7 @@ export const VISIBLE_LAYOUT_SECTIONS = Object.freeze([
   'horseshoes',
   'horseshoes_v2',
   'states',
+  'texts',
   'names',
   'areas',
   'circles',
