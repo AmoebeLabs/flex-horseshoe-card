@@ -2,6 +2,7 @@ import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { ref } from 'lit/directives/ref.js';
 import BaseTool from './base-tool.js';
+import ConfigHelper from './config-helper.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
@@ -191,20 +192,46 @@ export default class AreaTool extends BaseTool {
   }
 
   /**
+   * Returns the current area as a standard text part for standalone rendering
+   * or composition by TextTool.
+   *
+   * @param {object} options - Source-style selection and final part overrides.
+   * @returns {Array<object>} One area text part.
+   */
+  getTextParts(options) {
+    let styles = {};
+
+    if (options.includeStyles) {
+      styles = this.getStyles({
+        'font-size': '1em',
+        color: 'var(--primary-text-color)',
+        opacity: '1.0',
+        'text-anchor': 'middle',
+      });
+      this.applyColorStops(styles, 'stroke');
+    }
+
+    return [{
+      type: 'area',
+      value: this.area,
+      entity_index: this.entity_index,
+      styles: {
+        ...styles,
+        ...ConfigHelper.toStyleDict(options.styles),
+      },
+    }];
+  }
+
+  /**
    * Renders one area layout item.
    *
    * @returns {TemplateResult} SVG template for the area.
    */
   render() {
-    const areaStyles = {
-      'font-size': '1em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-    const styles = this.getStyles(areaStyles);
-
-    this.applyColorStops(styles, 'stroke');
+    const [areaPart] = this.getTextParts({
+      includeStyles: true,
+      styles: {},
+    });
 
     return this.renderItemLayers(svg`
       <g
@@ -217,8 +244,8 @@ export default class AreaTool extends BaseTool {
             class="entity__area"
             x="${this.config.svg.xpos}"
             y="${this.config.svg.ypos}"
-            style=${styleMap(this.getRenderStyles(styles))}>
-            ${this.area}</tspan>
+            style=${styleMap(this.getRenderStyles(areaPart.styles))}>
+            ${areaPart.value}</tspan>
         </text>
       </g>
     `);

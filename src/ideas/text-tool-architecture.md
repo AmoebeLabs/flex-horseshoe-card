@@ -6,9 +6,9 @@ The `layout.texts` section adds standalone headings, button labels and composed
 SVG text. A text item does not require an entity and can contain multiple
 independently styled parts on one or more lines.
 
-Version 1 renders literal or JavaScript-generated text parts. The part model is
-already prepared for future references to existing `names`, `areas` and
-`states` items.
+TextTool renders literal or JavaScript-generated parts and can compose the
+standard text parts delivered by existing `names`, `areas`, and `states`
+items.
 
 ## Configuration shape
 
@@ -102,6 +102,34 @@ rendering:
 The part that receives `...` keeps its own styles, colors and animation.
 Geometry measurement uses the final shortened text.
 
+## Text overflow and wrapping
+
+TextTool also accepts a structured overflow configuration:
+
+```yaml
+text_overflow:
+  mode: wrap
+  characters: 40
+  max_lines: 3
+  dy: 1.4
+```
+
+Wrapping is deliberately limited to TextTool because its multipart renderer
+already produces independent SVG tspans. NameTool, AreaTool, StateTool and
+horseshoe labels retain their existing single-line behavior.
+
+Wrapping uses spaces as break points and never divides a word. Each generated
+fragment remains a normal text part and therefore retains its styles, color
+stops, source reference and animation id. The first line keeps the configured
+`ypos`; every automatic continuation resets to the text xpos and moves down by
+`dy`. The complete block is not vertically re-centered when lines are added.
+
+When `max_lines` is configured, the final available line reserves three
+characters for `...` when content remains. Without `max_lines`, all text
+is shown over as many lines as needed. `mode: ellipsis` provides the structured
+equivalent of the existing numeric `ellipsis` setting, which remains supported
+for existing configurations.
+
 ## Interaction
 
 Standalone text defaults to action `none` and `pointer-events: none`. It does
@@ -109,9 +137,9 @@ not block a rectangle button underneath it. A non-`none` item-level tap, hold
 or double-tap action enables pointer interaction for the complete text item.
 Actions are not assigned to individual parts.
 
-## Future referenced parts
+## Referenced parts
 
-Future compound parts identify both the source type and the source item id:
+Compound parts identify both the source type and the source item id:
 
 ```yaml
 text:
@@ -123,10 +151,26 @@ text:
 ```
 
 The `id` refers to an item inside `layout.names`, `layout.areas` or
-`layout.states`. Before enabling these types, their content and UOM formatting
-must move into shared entity-text resolvers used by both the existing tools and
-TextTool. Source coordinates, actions and outer alignment are not copied into
-the composed text.
+`layout.states`. NameTool and AreaTool each deliver one standard part.
+StateTool delivers a value part and, when enabled, a UOM part. Their standalone
+renderers and TextTool therefore use the same formatted content and style
+construction.
+
+Referenced parts use source styles, color stops, and active animations by
+default. `source_styles: false` keeps the source content and UOM structure but
+uses TextTool presentation. Explicit part styles override source presentation;
+explicit `uom.styles` override the derived UOM styles.
+
+Source coordinates, groups, actions, visibility, clips, masks, and outer
+alignment are not copied into the composed text. A hidden source remains fully
+usable. A disabled source has no tool instance and is rejected as an unknown
+reference during TextTool construction.
+
+All entity text tools complete runtime configuration and state formatting
+before Lit rendering. TextTool can therefore consume current source parts
+independently of final `zpos`. Source parts are read again during render so an
+animation activated in the current update cycle is included without delaying
+the displayed text by one frame.
 
 A source item that should not appear separately can use `visibility: hidden`.
 It remains fully active for state updates, formatting, colors and measurement,

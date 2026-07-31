@@ -8,6 +8,12 @@ import Merge from './merge.js';
 import Templates from './templates.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
+const TEXT_SOURCE_SECTIONS = {
+  name: 'names',
+  area: 'areas',
+  state: 'states',
+};
+
 /**
  * Standalone multipart SVG text tool.
  *
@@ -56,6 +62,13 @@ export default class TextTool extends BaseTool {
       ...config,
     };
 
+    if (outerConfig.text_overflow?.mode === 'wrap' && outerConfig.text_overflow.dy === undefined) {
+      outerConfig.text_overflow = {
+        dy: 1.2,
+        ...outerConfig.text_overflow,
+      };
+    }
+
     delete outerConfig.text;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined);
 
@@ -79,6 +92,30 @@ export default class TextTool extends BaseTool {
     this.measuredYpos = this.config.svg.ypos;
     this.hasExactMeasurement = false;
     this.textMeasurementSignature = '';
+
+    // Static references are validated during construction. A hidden source is
+    // still present here; a disabled or misspelled source is not.
+    this.sourceTextParts.forEach((part) => {
+      if (TEXT_SOURCE_SECTIONS[part.type]) this.getReferencedTextTool(part);
+    });
+  }
+
+  /**
+   * Finds the NameTool, AreaTool or StateTool selected by one referenced part.
+   *
+   * @param {object} part - Text part with source type and source item id.
+   * @returns {BaseTool} Referenced source tool.
+   */
+  getReferencedTextTool(part) {
+    const section = TEXT_SOURCE_SECTIONS[part.type];
+    const sourceTool = this.card.getToolsBySection(section)
+      .find((tool) => String(tool.id) === String(part.id));
+
+    if (!sourceTool) {
+      throw new Error(`[texts] ${part.type} source '${part.id}' not found for text '${this.id}'`);
+    }
+
+    return sourceTool;
   }
 
   /**
@@ -91,9 +128,14 @@ export default class TextTool extends BaseTool {
 
     if (this.activeTextPartsSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
       const activeTextParts = this.sourceTextParts.map((sourcePart) => {
+        const sourceTool = TEXT_SOURCE_SECTIONS[sourcePart.type]
+          ? this.getReferencedTextTool(sourcePart)
+          : undefined;
         const partContext = {
           ...sourcePart,
-          entity_index: sourcePart.entity_index ?? this.config.entity_index,
+          entity_index: sourceTool
+            ? sourceTool.entity_index
+            : sourcePart.entity_index ?? this.config.entity_index,
         };
         const activePart = Templates.hasJavascriptTemplates(sourcePart)
           ? Templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
@@ -116,7 +158,7 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Activates state-map overrides and applies part and line ellipsis before rendering.
+   * Activates state-map overrides and applies wrapping and ellipsis before rendering.
    *
    * @param {object} entity - Optional entity selected by the outer text item.
    * @param {object} entityConfig - Optional outer entity configuration.
@@ -124,8 +166,12 @@ export default class TextTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    const activeParts = this.activeTextParts.map((part) => {
-      const partEntity = this.card.entities[part.entity_index];
+    const activeParts = this.activeTextParts.flatMap((part) => {
+      const sourceTool = TEXT_SOURCE_SECTIONS[part.type]
+        ? this.getReferencedTextTool(part)
+        : undefined;
+      const entityIndex = sourceTool ? sourceTool.entity_index : part.entity_index;
+      const partEntity = this.card.entities[entityIndex];
       const stateMapEntries = part.state_map?.map;
       const stateMapPart = stateMapEntries
         ? stateMapEntries.find((entry) => String(entry.state) === String(partEntity.state)) ?? stateMapEntries.find((entry) => entry.state === 'default')
@@ -136,20 +182,183 @@ export default class TextTool extends BaseTool {
         activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
       }
 
+      if (sourceTool) {
+        const sourceOptions = {
+          includeStyles: activePart.source_styles !== false,
+          styles: activePart.styles,
+          uom: activePart.uom,
+          show: activePart.show,
+        };
+
+        return sourceTool.getTextParts(sourceOptions).map((sourcePart, sourcePartIndex) => {
+          const referencedPart = {
+            ...sourcePart,
+            entity_index: sourceTool.entity_index,
+            animation_id: activePart.animation_id,
+            colorstops: activePart.colorstops,
+            ellipsis: activePart.ellipsis,
+            source_reference: {
+              type: activePart.type,
+              id: activePart.id,
+              part_index: sourcePartIndex,
+              options: sourceOptions,
+            },
+          };
+
+          // Positioning on the reference applies to its first generated part.
+          // StateTool owns the relative positioning of a following UOM part.
+          if (sourcePartIndex === 0) {
+            if (activePart.new_line !== undefined) referencedPart.new_line = activePart.new_line;
+            if (activePart.dx !== undefined) referencedPart.dx = activePart.dx;
+            if (activePart.dy !== undefined) referencedPart.dy = activePart.dy;
+          }
+
+          referencedPart.value = this.textEllipsis(String(referencedPart.value), referencedPart.ellipsis);
+
+          return referencedPart;
+        });
+      }
+
       activePart.value = this.textEllipsis(String(activePart.value), activePart.ellipsis);
 
-      return activePart;
+      return [activePart];
     });
 
-    // The outer ellipsis limit applies independently to every visual line. The
-    // part crossing the limit keeps its own style, color and animation config.
-    let remainingCharacters = this.config.ellipsis;
+    // Wrap complete words while retaining the configuration of the part that
+    // supplied every fragment. The first line remains at the configured ypos;
+    // only automatically generated continuation lines receive a relative dy.
+    const textOverflow = this.config.text_overflow;
+    let overflowParts = activeParts;
+
+    if (textOverflow?.mode === 'wrap') {
+      const wrappedParts = [];
+      let lineCharacters = 0;
+      let lineNumber = 1;
+      let pendingSpaces = [];
+      let maximumLinesReached = false;
+
+      activeParts.forEach((part) => {
+        if (maximumLinesReached) return;
+
+        let suppressConfiguredNewLine = false;
+
+        if (part.new_line) {
+          pendingSpaces = [];
+
+          if (textOverflow.max_lines && lineNumber >= textOverflow.max_lines) {
+            // Feed text from an unavailable line into the current line so
+            // the final-line truncation below can show that content remains.
+            suppressConfiguredNewLine = true;
+            pendingSpaces.push({ ...part, value: ' ' });
+          } else {
+            lineNumber += 1;
+            lineCharacters = 0;
+          }
+        }
+
+        let partPositionPending = true;
+        const fragments = String(part.value).match(/\s+|\S+/g);
+
+        fragments.forEach((fragment) => {
+          if (maximumLinesReached) return;
+
+          if (/^\s+$/.test(fragment)) {
+            if (lineCharacters > 0) pendingSpaces.push({ ...part, value: fragment });
+            return;
+          }
+
+          const pendingCharacters = pendingSpaces.reduce((total, spacePart) => total + spacePart.value.length, 0);
+          const lineWouldOverflow = lineCharacters > 0
+            && pendingCharacters > 0
+            && lineCharacters + pendingCharacters + fragment.length > textOverflow.characters;
+          const canStartAnotherLine = !textOverflow.max_lines || lineNumber < textOverflow.max_lines;
+          const startsAutomaticLine = lineWouldOverflow && canStartAnotherLine;
+          const overflowsLastLine = (lineWouldOverflow && !canStartAnotherLine) || suppressConfiguredNewLine;
+          const fragmentPart = {
+            ...part,
+            value: fragment,
+          };
+
+          if (startsAutomaticLine) {
+            pendingSpaces = [];
+            lineNumber += 1;
+            lineCharacters = 0;
+            fragmentPart.new_line = true;
+            fragmentPart.dy = textOverflow.dy;
+            delete fragmentPart.dx;
+          } else {
+            if (lineCharacters === 0) pendingSpaces = [];
+
+            pendingSpaces.forEach((spacePart) => {
+              delete spacePart.new_line;
+              delete spacePart.dx;
+              delete spacePart.dy;
+              wrappedParts.push(spacePart);
+              lineCharacters += spacePart.value.length;
+            });
+            pendingSpaces = [];
+
+            if (!partPositionPending || suppressConfiguredNewLine) {
+              delete fragmentPart.new_line;
+              delete fragmentPart.dx;
+              delete fragmentPart.dy;
+            }
+          }
+
+          wrappedParts.push(fragmentPart);
+          lineCharacters += fragment.length;
+          partPositionPending = false;
+
+          if (overflowsLastLine) maximumLinesReached = true;
+        });
+      });
+
+      if (maximumLinesReached) {
+        let finalLineStart = 0;
+
+        wrappedParts.forEach((wrappedPart, wrappedPartIndex) => {
+          if (wrappedPart.new_line) finalLineStart = wrappedPartIndex;
+        });
+
+        const finalLineParts = wrappedParts.splice(finalLineStart);
+        let remainingVisibleCharacters = textOverflow.characters - 3;
+        let ellipsisAdded = false;
+
+        finalLineParts.forEach((finalLinePart) => {
+          if (ellipsisAdded) return;
+
+          if (finalLinePart.value.length <= remainingVisibleCharacters) {
+            wrappedParts.push(finalLinePart);
+            remainingVisibleCharacters -= finalLinePart.value.length;
+            return;
+          }
+
+          wrappedParts.push({
+            ...finalLinePart,
+            value: `${finalLinePart.value.slice(0, remainingVisibleCharacters)}...`,
+          });
+          ellipsisAdded = true;
+        });
+      }
+
+      overflowParts = wrappedParts;
+    }
+
+    // The outer ellipsis limit applies independently to every visual line.
+    // Wrapping with max_lines has already shortened its final line above. The
+    // crossing part keeps its complete presentation in either mode.
+    const lineEllipsis = textOverflow?.mode === 'ellipsis'
+      ? textOverflow.characters
+      : textOverflow?.mode === 'wrap' && textOverflow.max_lines
+        ? textOverflow.characters
+        : this.config.ellipsis;
+    let remainingCharacters = lineEllipsis;
     let lineIsFull = false;
     const textParts = [];
 
-    activeParts.forEach((part) => {
+    overflowParts.forEach((part) => {
       if (part.new_line) {
-        remainingCharacters = this.config.ellipsis;
+        remainingCharacters = lineEllipsis;
         lineIsFull = false;
       }
 
@@ -167,7 +376,7 @@ export default class TextTool extends BaseTool {
 
       textParts.push(part);
       if (remainingCharacters) remainingCharacters -= part.value.length;
-      if (remainingCharacters === 0 && this.config.ellipsis) lineIsFull = true;
+      if (remainingCharacters === 0 && lineEllipsis) lineIsFull = true;
     });
 
     this.textParts = textParts;
@@ -183,7 +392,8 @@ export default class TextTool extends BaseTool {
     if (measurementSignature !== this.textMeasurementSignature) {
       this.textMeasurementSignature = measurementSignature;
       this.estimatedWidth = Math.max(...lineLengths) * this.textFontSize * this.characterWidthFactor;
-      this.estimatedHeight = lineLengths.length * this.textFontSize * 1.2;
+      const lineSpacing = textOverflow?.mode === 'wrap' ? textOverflow.dy : 1.2;
+      this.estimatedHeight = this.textFontSize + ((lineLengths.length - 1) * this.textFontSize * lineSpacing);
       this.hasExactMeasurement = false;
     }
   }
@@ -281,9 +491,24 @@ export default class TextTool extends BaseTool {
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
         >${this.textParts.map((part) => {
-          const partStyles = ConfigHelper.toStyleDict(part.styles);
-          const stopColor = this.card._getItemColorFromStops(part);
-          const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[part.animation_id] ?? {});
+          let renderPart = part;
+
+          // Source animations are resolved during render, after the animation
+          // pipeline has activated the styles for this exact state update.
+          if (part.source_reference) {
+            const sourceTool = this.getReferencedTextTool(part.source_reference);
+            const currentSourcePart = sourceTool
+              .getTextParts(part.source_reference.options)[part.source_reference.part_index];
+
+            renderPart = {
+              ...part,
+              styles: currentSourcePart.styles,
+            };
+          }
+
+          const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
+          const stopColor = this.card._getItemColorFromStops(renderPart);
+          const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
 
           if (stopColor) partStyles.fill = stopColor;
 
@@ -291,10 +516,10 @@ export default class TextTool extends BaseTool {
             ...partStyles,
             ...animationStyles,
           };
-          const dx = part.dx ?? 0;
-          const dy = part.dy ?? 0;
+          const dx = renderPart.dx ?? 0;
+          const dy = renderPart.dy ?? 0;
 
-          return part.new_line
+          return renderPart.new_line
             ? svg`<tspan
                 class="text-tool__part"
                 x="${this.config.svg.xpos}"
@@ -302,14 +527,14 @@ export default class TextTool extends BaseTool {
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
                 style=${styleMap(this.getRenderStyles(styles))}
-              >${part.value}</tspan>`
+              >${renderPart.value}</tspan>`
             : svg`<tspan
                 class="text-tool__part"
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
                 style=${styleMap(this.getRenderStyles(styles))}
-              >${part.value}</tspan>`;
+              >${renderPart.value}</tspan>`;
         })}</text>
       </g>
     `);
