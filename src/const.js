@@ -21,6 +21,7 @@ const DEFAULT_ZPOS = {
   areas: 700,
   names: 800,
   states: 900,
+  texts: 1000,
 };
 
 const DEFAULT_RENDER_INDEX = {
@@ -37,6 +38,7 @@ const DEFAULT_RENDER_INDEX = {
   areas: 700000,
   names: 800000,
   states: 900000,
+  texts: 1000000,
 };
 
 // Round to nearest value

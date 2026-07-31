@@ -45,7 +45,7 @@ layout:
 
 The item action takes priority over the action on its entity. If neither is present, FHS uses the card action and then the default tap action. This also works when the same Home Assistant entity appears more than once in the `entities` list: the clicked item's exact `entity_index` is used.
 
-Actions are available on horseshoes, entity parts, icons, lines, circles, arcs, and rectangles. Sparklines keep their pointer interaction for graph tooltips.
+Actions are available on horseshoes, entity parts, text items, icons, lines, circles, arcs, and rectangles. Standalone text defaults to `none`, while sparklines keep their pointer interaction for graph tooltips.
 
 ## :material-horseshoe: Tap, hold, and double tap
 

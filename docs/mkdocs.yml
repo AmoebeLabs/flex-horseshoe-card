@@ -203,6 +203,7 @@ nav:
   - Card Layout Sections:
       - Overview: sections/layout-overview.md
       - Groups: sections/groups-section.md
+      - Text: sections/texts-section.md
       - Visual Shapes: sections/visual-shapes-section.md
       - Entity Parts: sections/entities-section.md
       - Horseshoes:

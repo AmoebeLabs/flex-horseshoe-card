@@ -348,6 +348,7 @@ See [Combining `calc()` with `same_as`](reuse-calc-same-as.md) for more detailed
 | :----------- | :------------------------------------------------------------- |
 | `horseshoes` | Reuse horseshoe geometry, scale settings, styling, and labels. |
 | `states`     | Reuse state positions and text styles.                         |
+| `texts`      | Reuse standalone or multipart labels and their styles.         |
 | `names`      | Reuse name positions and text styles.                          |
 | `areas`      | Reuse area definitions.                                        |
 | `circles`    | Reuse circle positions, dimensions, and styles.                |

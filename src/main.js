@@ -39,6 +39,7 @@ import ArcTool from './arc-tool.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
+import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
@@ -122,6 +123,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.names = {};
     this.animations.areas = {};
     this.animations.states = {};
+    this.animations.texts = {};
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
@@ -129,6 +131,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools = [];
     this.areaTools = [];
     this.stateTools = [];
+    this.textTools = [];
     this.iconTools = [];
     this.sparklineGraphTools = [];
     this.groupManager = undefined;
@@ -1102,6 +1105,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
     this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
     this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
+    this.textTools.forEach((textTool) => textTool.updateRuntimeConfig());
     this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
     this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
@@ -1112,6 +1116,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
     this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
+    this.textTools = (this.textTools ?? []).map((textTool) => this._setToolEntityState(textTool));
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
@@ -1392,6 +1397,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
     this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
     this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
+    this.textTools.forEach((textTool) => textTool.updateRuntimeConfig());
     this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
     this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
@@ -1402,6 +1408,7 @@ class FlexHorseshoeCard extends LitElement {
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
     this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
     this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
+    this.textTools = (this.textTools ?? []).map((textTool) => this._setToolEntityState(textTool));
     this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
     this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
@@ -1433,7 +1440,7 @@ class FlexHorseshoeCard extends LitElement {
 
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states'].forEach((section) => {
+          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts'].forEach((section) => {
             if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
           });
 
@@ -1952,6 +1959,7 @@ class FlexHorseshoeCard extends LitElement {
       this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
       this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
       this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
+      this.textTools = TextTool.setConfig(this.config, Templates, this.cardId, this);
       this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
       this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
@@ -2036,6 +2044,7 @@ class FlexHorseshoeCard extends LitElement {
       areas: this.areaTools,
       names: this.nameTools,
       states: this.stateTools,
+      texts: this.textTools,
       sparklines: this.sparklineGraphTools,
     };
 
@@ -2253,6 +2262,7 @@ class FlexHorseshoeCard extends LitElement {
       ...(this.areaTools ?? []),
       ...(this.nameTools ?? []),
       ...(this.stateTools ?? []),
+      ...(this.textTools ?? []),
       ...(this.sparklineGraphTools ?? []),
     ];
   }

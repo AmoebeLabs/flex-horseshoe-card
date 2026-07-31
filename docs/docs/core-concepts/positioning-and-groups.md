@@ -67,6 +67,7 @@ The following layout sections commonly use `xpos` and `ypos`:
 | `areas`      | Entity area text               |
 | `names`      | Entity name text               |
 | `states`     | Entity state text              |
+| `texts`      | Standalone or multipart text   |
 | `icons`      | Entity icon or standalone icon |
 | `circles`    | Circle center point            |
 | `hlines`     | Horizontal line center point   |
