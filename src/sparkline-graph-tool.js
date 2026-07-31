@@ -515,6 +515,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.historyRangeEnd = undefined;
     this.historyPeriodSignature = JSON.stringify(this.config.period);
     this.historyResynchronizationRequested = false;
+    this.historyLoading = false;
+    this.preserveGraphWhileHistoryLoads = false;
+    this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
   }
@@ -746,14 +749,31 @@ export default class SparklineGraphTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
+    // Historical tools remain inactive until a dynamic duration provides a
+    // finite positive range. Real-time tools have no history duration.
+    const historyDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
+    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
+
     // A dynamic period changes the represented history range. Reuse the active
-    // graph immediately, but request a complete history series for the new range.
+    // graph while a larger range is fetched. A smaller range is already covered
+    // by the accepted history and can therefore be rendered immediately.
     if (this.configChanged) {
       const activeHistoryPeriodSignature = JSON.stringify(this.config.period);
       const historyPeriodChanged = activeHistoryPeriodSignature !== this.historyPeriodSignature;
 
       if (historyPeriodChanged && (this.historySeries || this.historyPromise)) {
         this.historyResynchronizationRequested = true;
+
+        if (this.historyDurationReady && !this.acceptedHistoryContainsRange(this.getHistoryRange())) {
+          this.historyLoading = true;
+          this.preserveGraphWhileHistoryLoads = this.historySeries !== undefined;
+          window.clearTimeout(this.binBoundaryTimer);
+          window.clearTimeout(this.calendarRangeTimer);
+          this.clearTooltip();
+        } else {
+          this.historyLoading = false;
+          this.preserveGraphWhileHistoryLoads = false;
+        }
       }
       this.historyPeriodSignature = activeHistoryPeriodSignature;
     }
@@ -770,6 +790,11 @@ export default class SparklineGraphTool extends BaseTool {
         historyResynchronizationRequested: this.historyResynchronizationRequested,
       });
     }
+
+    // Keep the accepted graph geometry and paths unchanged until the requested
+    // larger history range has arrived. Rebuilding here would stretch the old
+    // samples over the new period before that data exists.
+    if (this.preserveGraphWhileHistoryLoads) return;
 
     // Determine the longest label produced by Home Assistant for the active locale.
     const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
@@ -820,14 +845,11 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg.margin = this.containedGraphMargin;
     this.config.svg = this.svg;
 
-    // Historical tools remain inactive until a dynamic duration provides a
-    // finite positive range. Real-time tools have no history duration.
-    const historyDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
-
     if (!this.historyDurationReady) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
+      this.historyLoading = false;
+      this.preserveGraphWhileHistoryLoads = false;
       this.graphConfig = undefined;
       this.Graph = undefined;
       this.series = [];
@@ -892,7 +914,7 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    if (this.historySeries) {
+    if (this.historySeries && !this.preserveGraphWhileHistoryLoads) {
       // Active periods append every Home Assistant state update before the
       // complete series is reduced again into buckets. main.js reads the newly
       // calculated statistics immediately after this tool update.
@@ -910,8 +932,10 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.fetchHistoryIfNeeded(entity);
-    this.scheduleBinBoundaryRefresh();
-    this.scheduleCalendarRangeRefresh();
+    if (!this.preserveGraphWhileHistoryLoads) {
+      this.scheduleBinBoundaryRefresh();
+      this.scheduleCalendarRangeRefresh();
+    }
   }
 
   /**
@@ -1145,6 +1169,28 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
+  /**
+   * Checks whether accepted history already covers a newly requested range.
+   * Active ranges receive current states separately, so only their older edge
+   * has to be present. Closed calendar ranges require both fixed edges.
+   *
+   * @param {object} range - Requested history start and end dates.
+   * @returns {boolean} True when no missing history is needed for rendering.
+   */
+  acceptedHistoryContainsRange(range) {
+    if (this.historySeries === undefined) return false;
+
+    const activeHistoryPeriod =
+      this.config.period.type === 'rolling_window'
+      || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
+
+    if (activeHistoryPeriod) {
+      return this.historyRangeStart <= range.start.getTime();
+    }
+
+    return this.historyRangeStart <= range.start.getTime() && this.historyRangeEnd >= range.end.getTime();
+  }
+
   getHistoryRangeV2() {
     const periodHours = this.config.period?.calendar?.duration?.hour ?? this.config.period?.rolling_window?.duration?.hour ?? 24;
     const now = new Date();
@@ -1233,7 +1279,7 @@ export default class SparklineGraphTool extends BaseTool {
     const range = this.getHistoryRange();
     const calendarPeriod = this.config.period.type === 'calendar';
     const closedHistoricalCalendar = calendarPeriod && this.config.period.calendar.offset < 0;
-    const representedRange = range.start.getTime() === this.historyRangeStart && range.end.getTime() === this.historyRangeEnd;
+    const representedRange = this.acceptedHistoryContainsRange(range);
     const calendarRangeChanged = calendarPeriod && !representedRange;
     const periodicResynchronizationDue = this.config.history.refresh_interval !== undefined && now >= this.historyRefreshAt;
 
@@ -1257,6 +1303,14 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.historyPromise) return;
     if (closedHistoricalCalendar && representedRange) return;
     if (this.historySeries && !calendarRangeChanged && !this.historyResynchronizationRequested && !periodicResynchronizationDue) return;
+
+    // Only missing ranges show a loading indicator. Periodic refreshes and
+    // reductions already have complete visible data and remain undimmed.
+    if (!representedRange) {
+      this.historyLoading = true;
+      this.clearTooltip();
+      this.card.requestUpdate();
+    }
 
     const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
     const requestedHistoryPeriodSignature = this.historyPeriodSignature;
@@ -1285,6 +1339,15 @@ export default class SparklineGraphTool extends BaseTool {
         this.historySeries = this.buildHistorySeries(historyRows, entity, range.end);
         this.historyRangeStart = range.start.getTime();
         this.historyRangeEnd = range.end.getTime();
+        this.historyLoading = false;
+
+        // The previous graph was deliberately kept intact during an expansion.
+        // Rebuild its geometry only after matching history has been accepted.
+        if (this.preserveGraphWhileHistoryLoads) {
+          this.preserveGraphWhileHistoryLoads = false;
+          this.updateRuntimeConfig();
+        }
+
         this.addCurrentEntityToHistory(entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
@@ -1293,6 +1356,13 @@ export default class SparklineGraphTool extends BaseTool {
         if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
         this.historyResynchronizationRequested = false;
         this.card.requestUpdate();
+      })
+      .catch((error) => {
+        if (!this.historyResynchronizationRequested) {
+          this.historyLoading = false;
+          this.card.requestUpdate();
+        }
+        throw error;
       })
       .finally(() => {
         this.historyPromise = undefined;
@@ -5039,6 +5109,76 @@ export default class SparklineGraphTool extends BaseTool {
   // @mouseout=${() => this.clearTooltip()}
 
   /**
+   * Renders the native SVG history loading indicator in the center of the
+   * graph's actual draw area. The arc rotates and changes length unless the
+   * browser requests reduced motion.
+   *
+   * @returns {TemplateResult} SVG loading indicator or an empty template.
+   */
+  renderHistoryLoadingSpinner() {
+    if (!this.historyLoading) return svg``;
+
+    const centerX = this.Graph.drawArea.x + this.Graph.drawArea.width / 2;
+    const centerY = this.Graph.drawArea.y + this.Graph.drawArea.height / 2;
+    const radius = Math.min(this.Graph.drawArea.width, this.Graph.drawArea.height) * 0.08;
+    const strokeWidth = radius * 0.2;
+    const circumference = 2 * Math.PI * radius;
+    const shortArc = circumference * 0.15;
+    const longArc = circumference * 0.65;
+
+    return svg`
+      <g class="sparkline-history-spinner" pointer-events="none">
+        <circle
+          cx=${centerX}
+          cy=${centerY}
+          r=${radius}
+          fill="none"
+          stroke="var(--primary-color)"
+          stroke-width=${strokeWidth}
+          opacity="0.2"
+        ></circle>
+        <circle
+          cx=${centerX}
+          cy=${centerY}
+          r=${radius}
+          fill="none"
+          stroke="var(--primary-color)"
+          stroke-width=${strokeWidth}
+          stroke-linecap="round"
+          stroke-dasharray="${shortArc} ${circumference - shortArc}"
+        >
+          ${
+            this.prefersReducedMotion
+              ? svg``
+              : svg`
+                <animate
+                  attributeName="stroke-dasharray"
+                  values="${shortArc} ${circumference - shortArc}; ${longArc} ${circumference - longArc}; ${shortArc} ${circumference - shortArc}"
+                  dur="1.4s"
+                  repeatCount="indefinite"
+                ></animate>
+                <animate
+                  attributeName="stroke-dashoffset"
+                  values="0; ${-circumference * 0.25}; ${-circumference}"
+                  dur="1.4s"
+                  repeatCount="indefinite"
+                ></animate>
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="0 ${centerX} ${centerY}"
+                  to="360 ${centerX} ${centerY}"
+                  dur="1.4s"
+                  repeatCount="indefinite"
+                ></animateTransform>
+              `
+          }
+        </circle>
+      </g>
+    `;
+  }
+
+  /**
    * Renders one sparkline layout item.
    *
    * @returns {TemplateResult} SVG template for the sparkline.
@@ -5065,7 +5205,9 @@ export default class SparklineGraphTool extends BaseTool {
             style="touch-action:none; pointer-events:none; overflow:visible;"
             @pointerdown=${(event) => event.stopPropagation()}
             @click=${(event) => event.stopPropagation()}
-          ></svg>
+          >
+            ${this.historyDurationReady ? this.renderHistoryLoadingSpinner() : svg``}
+          </svg>
         </g>
       `;
     }
@@ -5085,7 +5227,7 @@ export default class SparklineGraphTool extends BaseTool {
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
           overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:auto; overflow:visible;"
+          style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
           @pointerdown=${(event) => event.stopPropagation()}
           @click=${(event) => event.stopPropagation()}
         >
@@ -5096,6 +5238,10 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
             ${this.renderSvgStateBandsMask()}
           </defs>
+          <g
+            opacity=${this.historyLoading ? 0.2 : 1}
+            style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
+          >
           <g transform="translate(0 ${this.animationBaselineY})">
             <g>
               ${
@@ -5141,6 +5287,8 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
           ${this.renderAxisLabels()}
+          </g>
+          ${this.renderHistoryLoadingSpinner()}
         </svg>
       </g>
     `;
