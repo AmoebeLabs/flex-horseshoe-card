@@ -155,3 +155,58 @@ Typical examples include:
 * the same layout repeated in multiple places on the card
 
 A group is usually unnecessary for a single standalone item. In that case, positioning the item directly with `xpos` and `ypos` is often clearer.
+
+## :material-horseshoe: Showing and hiding complete groups
+
+Groups support `visibility: visible` and `visibility: hidden`. Every item in a
+hidden group remains active, but the complete group is invisible and cannot be
+clicked. A hidden parent group also hides all nested groups.
+
+Groups do not support `disabled`. Use `disabled: true` on the individual layout
+items when they should not be created at all.
+
+Because visibility accepts JavaScript templates, groups can act as dashboard
+tabs. A local FHS input or a Home Assistant helper selects the visible group:
+
+```yaml
+entities:
+  - entity: fhs_input_number.active_tab
+    initial: 1
+
+layout:
+  groups:
+    - id: tab-overview
+      xpos: 50
+      ypos: 50
+      visibility: |
+        [[[
+          return Number(entities[0].state) === 1
+            ? 'visible'
+            : 'hidden';
+        ]]]
+
+    - id: tab-history
+      xpos: 50
+      ypos: 50
+      visibility: |
+        [[[
+          return Number(entities[0].state) === 2
+            ? 'visible'
+            : 'hidden';
+        ]]]
+
+    - id: tab-details
+      xpos: 50
+      ypos: 50
+      visibility: |
+        [[[
+          return Number(entities[0].state) === 3
+            ? 'visible'
+            : 'hidden';
+        ]]]
+```
+
+Assign the content of each tab to its matching group. Rectangles with text
+labels can update `fhs_input_number.active_tab` through their `tap_action`.
+The same pattern works with a Home Assistant `input_select` or `input_number`
+when several dashboards or devices should share the selected tab.

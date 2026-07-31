@@ -128,8 +128,12 @@ must move into shared entity-text resolvers used by both the existing tools and
 TextTool. Source coordinates, actions and outer alignment are not copied into
 the composed text.
 
+A source item that should not appear separately can use `visibility: hidden`.
+It remains fully active for state updates, formatting, colors and measurement,
+while only the composed TextTool output is visible. `disabled: true` cannot be
+used for a source because a disabled item has no runtime tool instance.
+
 FHS icons remain separate layout items. SVG `<tspan>` cannot contain an FHS
 icon path, image, injected SVG or `ha-icon`; mixed icon/text content would need
 a separate layout and measurement engine. Icons and text can already be placed
 together through a shared group.
-
