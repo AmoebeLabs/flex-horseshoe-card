@@ -71,6 +71,23 @@ export default class GroupManager {
   }
 
   /**
+   * Returns whether an item and every group in its parent chain are visible.
+   *
+   * Group visibility is a strict parent cascade: a visible child cannot expose
+   * itself through a hidden ancestor. The item runtime visibility is applied
+   * last so an item can hide itself inside an otherwise visible group.
+   *
+   * @param {object} item - Active runtime layout item config.
+   * @returns {boolean} True when the complete item chain is visible.
+   */
+  isItemVisible(item) {
+    const groupsAreVisible = this.getGroupChainForItem(item)
+      .every((group) => group.visibility !== 'hidden');
+
+    return groupsAreVisible && item.visibility !== 'hidden';
+  }
+
+  /**
    * Returns one group after applying the full parent chain.
    *
    * @param {string} groupId - Group id from layout.groups or the implicit card root.

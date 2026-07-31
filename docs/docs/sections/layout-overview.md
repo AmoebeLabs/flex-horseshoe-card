@@ -178,6 +178,41 @@ Use color stops, animations, or templates when the appearance should respond to 
 
 The dedicated pages for entity elements, visual shapes, color stops, animations, and templating describe the available options in more detail.
 
+## :material-horseshoe: Visibility and disabled items
+
+Every layout item supports `visibility` and `disabled`, but they serve different
+purposes.
+
+| Configuration | Result |
+| :------------ | :----- |
+| `visibility: visible` | Displays the item. This is the default. |
+| `visibility: hidden` | Hides the item while it continues to process entities, templates, animations, measurements, and history. |
+| `disabled: true` | Removes the item while the card configuration is built. It receives no updates and creates no SVG. |
+
+`visibility` may use a JavaScript template, which makes it suitable for
+conditional content and dashboard controls:
+
+```yaml
+states:
+  - entity_index: 1
+    xpos: 50
+    ypos: 50
+    visibility: |
+      [[[
+        return entities[0].state === 'on' ? 'visible' : 'hidden';
+      ]]]
+```
+
+`disabled` is a static boolean intended for card and view templates. It cannot
+be changed by a state update. Use it when a template variant does not need a
+layout item at all.
+
+When `same_as` uses a disabled base item, set `disabled: false` on the reused
+item to include that copy in the card.
+
+Groups support runtime `visibility`, but not `disabled`. Disable the individual
+layout items when grouped content should not be created.
+
 ## :material-horseshoe: Related documentation
 
 Use this page as a starting point, then continue with the section that matches the element you want to add:

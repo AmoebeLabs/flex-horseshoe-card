@@ -254,6 +254,21 @@ export default class BaseTool {
       result = svg`<g clip-path="url(#${this.card.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
     }
 
+    // Hidden tools remain in the SVG and in every normal lifecycle phase. This
+    // preserves text measurement, fit references, history and runtime state,
+    // while the outer layer guarantees no visible or pointer-active descendant.
+    if (!this.card.groupManager.isItemVisible(item)) {
+      result = svg`
+        <g
+          class="fhs-layout-item--hidden"
+          visibility="hidden"
+          opacity="0"
+          pointer-events="none"
+          aria-hidden="true"
+        >${result}</g>
+      `;
+    }
+
     return result;
   }
 

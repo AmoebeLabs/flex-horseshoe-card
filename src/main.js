@@ -1619,6 +1619,25 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Removes statically disabled layout items after reuse has been compiled.
+   *
+   * A disabled base item remains available while same_as is expanded. Filtering
+   * here then prevents every remaining disabled item from entering JavaScript
+   * detection, entity resolution, tool construction or any runtime lifecycle.
+   *
+   * @param {object} config - Card config after ref, calc and same_as processing.
+   */
+  _removeDisabledLayoutItems(config) {
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
+      const items = config.layout[section];
+
+      if (!Array.isArray(items)) return;
+
+      config.layout[section] = items.filter((item) => item.disabled !== true);
+    });
+  }
+
+  /**
    * Resolves item-level entity ids to entity_index values.
    *
    * This keeps user YAML readable (`entity: sensor.x` or
@@ -1871,6 +1890,7 @@ class FlexHorseshoeCard extends LitElement {
       this._calculateStaticValues(config, calcConstants);
 
       SameAs.compile(config);
+      this._removeDisabledLayoutItems(config);
       this._normalizeFhsInputNumberConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
