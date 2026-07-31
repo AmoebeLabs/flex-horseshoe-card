@@ -472,8 +472,12 @@ export default class SparklineGraphTool extends BaseTool {
     this.stateBandsStateMap = this.config.sparkline.state_map;
     this.gradeValues = [];
     this.gradeRanks = [];
-    this.graphConfig = this.buildGraphConfig(this.config);
-    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
+    const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
+    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
+    this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config) : undefined;
+    this.Graph = this.historyDurationReady
+      ? new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {})
+      : undefined;
     this.series = [];
     this.historySeries = undefined;
     this.gradient = [];
@@ -816,6 +820,22 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg.margin = this.containedGraphMargin;
     this.config.svg = this.svg;
 
+    // Historical tools remain inactive until a dynamic duration provides a
+    // finite positive range. Real-time tools have no history duration.
+    const historyDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
+    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
+
+    if (!this.historyDurationReady) {
+      window.clearTimeout(this.binBoundaryTimer);
+      window.clearTimeout(this.calendarRangeTimer);
+      this.graphConfig = undefined;
+      this.Graph = undefined;
+      this.series = [];
+      this.stats = {};
+      this.clearTooltip();
+      return;
+    }
+
     // Graded charts use color-stop ranks as their fixed vertical buckets.
     this.gradeValues = [];
     this.config.sparkline.colorstops.colors.map((value, index) => (this.gradeValues[index] = value.value));
@@ -854,7 +874,6 @@ export default class SparklineGraphTool extends BaseTool {
 
     const realTime = this.config.period.type === 'real_time';
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
-    const closedHistoricalCalendar = this.config.period.type === 'calendar' && this.config.period.calendar.offset < 0;
 
     // Real-time mode owns one current sample and never enters the history
     // lifecycle. Clear an existing boundary timer when runtime config changes
@@ -864,33 +883,31 @@ export default class SparklineGraphTool extends BaseTool {
       window.clearTimeout(this.calendarRangeTimer);
       const histState = this.getEntityNumericState(entity);
       this.series = [{ state: histState }];
-    } else if (this.historySeries) {
+      this.updateGraphFromSeries();
+      return;
+    }
+
+    if (!this.historyDurationReady) {
+      this.series = [];
+      return;
+    }
+
+    if (this.historySeries) {
       // Active periods append every Home Assistant state update before the
       // complete series is reduced again into buckets. main.js reads the newly
       // calculated statistics immediately after this tool update.
       if (activeHistoryPeriod) this.addCurrentEntityToHistory(entity);
       this.series = this.historySeries;
-    } else if (closedHistoricalCalendar) {
-      // A closed calendar period stays empty until its requested Home Assistant
-      // history arrives. Showing the current state here would display data from
-      // outside the requested historical range.
-      this.series = [];
-    } else {
-      this.series = this.buildRealtimeSeries(entity);
-    }
-
-    // Closed calendar history has no valid graph input until Home Assistant
-    // returns the requested range. Do not calculate or expose current data in
-    // that interval while the first history request is pending.
-    if (!closedHistoricalCalendar || this.historySeries) {
       this.updateGraphFromSeries();
 
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
       }
+    } else {
+      // Historical graph types never treat the current entity value as a
+      // temporary history series while the first request is pending.
+      this.series = [];
     }
-
-    if (realTime) return;
 
     this.fetchHistoryIfNeeded(entity);
     this.scheduleBinBoundaryRefresh();
@@ -898,27 +915,24 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds the one-item current-state series used before history loads and used
-   * permanently by real-time mode.
+   * Builds the current Home Assistant row appended to accepted active history.
    *
    * @param {object} entity - Current HA state object.
-   * @returns {Array<object>} Series for SparklineGraph.update().
+   * @returns {object} Current row in SparklineGraph history format.
    */
-  buildRealtimeSeries(entity) {
+  buildCurrentHistoryRow(entity) {
     const stateBands = this.config.sparkline.show.chart_type === 'state_bands';
     const mappedState = stateBands ? this.stateBandsStateMap.map.find((entry) => String(entry.state) === String(entity.state)) : undefined;
     const value = stateBands ? Number(mappedState.value) : this.getEntityNumericState(entity);
     const now = stateBands ? entity.last_changed : new Date().toISOString();
 
-    return [
-      {
-        ...entity,
-        state: value,
-        haState: entity.state,
-        last_changed: now,
-        last_updated: now,
-      },
-    ];
+    return {
+      ...entity,
+      state: value,
+      haState: entity.state,
+      last_changed: now,
+      last_updated: now,
+    };
   }
 
   /**
@@ -932,7 +946,7 @@ export default class SparklineGraphTool extends BaseTool {
     // Closed calendar ranges must contain fetched source rows exclusively.
     if (this.config.period.type === 'calendar' && this.config.period.calendar.offset < 0) return;
 
-    const current = this.buildRealtimeSeries(entity)[0];
+    const current = this.buildCurrentHistoryRow(entity);
     const last = this.historySeries[this.historySeries.length - 1];
 
     if (last.last_changed !== current.last_changed) {
@@ -1213,6 +1227,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {object} entity - Current HA state object.
    */
   fetchHistoryIfNeeded(entity) {
+    if (!this.historyDurationReady) return;
+
     const now = Date.now();
     const range = this.getHistoryRange();
     const calendarPeriod = this.config.period.type === 'calendar';
@@ -5028,10 +5044,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the sparkline.
    */
   renderSvg() {
-    // A closed calendar period contains fetched source history exclusively.
-    // Render an empty tool surface until that first asynchronous request has
-    // completed, because there is intentionally no current-state placeholder.
-    if (this.config.period.type === 'calendar' && this.config.period.calendar.offset < 0 && !this.historySeries) {
+    // Every historical mode remains empty until its first Home Assistant
+    // history response is accepted. Current entity state is never a placeholder.
+    if (this.config.period.type !== 'real_time' && (!this.historyDurationReady || !this.historySeries)) {
       return svg`
         <g
           transform="${this.getGroupScaleTransform()}"
@@ -5047,7 +5062,7 @@ export default class SparklineGraphTool extends BaseTool {
             viewBox="0 0 ${this.svg.width} ${this.svg.height}"
             overflow="visible"
             touch-action="none"
-            style="touch-action:none; pointer-events:auto; overflow:visible;"
+            style="touch-action:none; pointer-events:none; overflow:visible;"
             @pointerdown=${(event) => event.stopPropagation()}
             @click=${(event) => event.stopPropagation()}
           ></svg>
