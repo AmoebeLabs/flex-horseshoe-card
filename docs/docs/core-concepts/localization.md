@@ -132,51 +132,42 @@ The `format` option lets you override the default Home Assistant formatting beha
 
 === "Remove separator"
 
-````
-```yaml title="Remove separator and limit decimals" linenums="1" hl_lines="7-10"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-      name: "Total"
-      icon: mdi:fire
-      area: house
-      format:
-        separator: false    # Remove thousands separator
-        decimals_min: 0     # Minimum number of decimals
-        decimals_max: 2     # Maximum number of decimals
-```
-````
+    ```yaml title="Remove separator and limit decimals" linenums="1" hl_lines="7-10"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            separator: false    # Remove thousands separator
+            decimals_min: 0     # Minimum number of decimals
+            decimals_max: 2     # Maximum number of decimals
+    ```
 
 === "Display raw state"
-
-````
-```yaml title="Display raw entity state as received from integration" linenums="1" hl_lines="7-9"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-      name: "Total"
-      icon: mdi:fire
-      area: house
-      format:
-        raw_state_keep: true  # Keep the raw state without normal formatting
-        raw_state_clean: true # Remove underscores from the raw state
-```
-````
-
+    ```yaml title="Display raw entity state as received from integration" linenums="1" hl_lines="7-9"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            raw_state_keep: true  # Keep the raw state without normal formatting
+            raw_state_clean: true # Remove underscores from the raw state
+    ```
 === "Use a specific locale"
-
-````
-```yaml title="Specify locale for translations and formatting" linenums="1" hl_lines="7-10"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-      name: "Total"
-      icon: mdi:fire
-      area: house
-      format:
-        locale: 'nl-NL' # Force Dutch translations and formatting
-```
-````
+    ```yaml title="Specify locale for translations and formatting" linenums="1" hl_lines="7-10"
+    - type: custom:flex-horseshoe-card
+      entities:
+        - entity: sensor.dsmr_reading_electricity_currently_delivered
+          name: "Total"
+          icon: mdi:fire
+          area: house
+          format:
+            locale: 'nl-NL' # Force Dutch translations and formatting
+    ```
 
 ## :material-horseshoe: Recommended approach
 

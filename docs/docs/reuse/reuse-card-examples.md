@@ -84,10 +84,9 @@ The three groups define the final card positions of the repeated phase layouts.
 !!! info
 Groups do not currently support `same_as`.
 
-````
 Groups can also scale or rotate their items:
 
-```yaml
+```yaml title="Groups" linenums="1"
 groups:
   L1:
     xpos: 125
@@ -97,7 +96,6 @@ groups:
       y: 1
     rotate: 90
 ```
-````
 
 ```yaml title="Groups definition" linenums="1"
   layout:

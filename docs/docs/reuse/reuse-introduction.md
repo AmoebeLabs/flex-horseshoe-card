@@ -29,31 +29,29 @@ Without reuse, every line needs its own complete definition:
 
 === "Standard YAML"
 
-````
-```yaml linenums="1" hl_lines="2 9 16"
-hlines:
-  - xpos: 50
-    ypos: 64
-    length: 85
-    styles:
-      stroke: var(--disabled-text-color)
-      stroke-width: 2
+    ```yaml linenums="1" hl_lines="2 9 16"
+    hlines:
+      - xpos: 50
+        ypos: 64
+        length: 85
+        styles:
+          stroke: var(--disabled-text-color)
+          stroke-width: 2
 
-  - xpos: 50
-    ypos: 75 # 11 lower than the previous line
-    length: 85
-    styles:
-      stroke: var(--disabled-text-color)
-      stroke-width: 2
+      - xpos: 50
+        ypos: 75 # 11 lower than the previous line
+        length: 85
+        styles:
+          stroke: var(--disabled-text-color)
+          stroke-width: 2
 
-  - xpos: 50
-    ypos: 86 # 11 lower than the previous line
-    length: 85
-    styles:
-      stroke: var(--disabled-text-color)
-      stroke-width: 2
-```
-````
+      - xpos: 50
+        ypos: 86 # 11 lower than the previous line
+        length: 85
+        styles:
+          stroke: var(--disabled-text-color)
+          stroke-width: 2
+    ```
 
 This works, but repeated values make the layout slower to adjust. Changing the line length, style, starting position, or spacing requires editing multiple items.
 
@@ -61,24 +59,22 @@ YAML anchors can remove some duplication:
 
 === "YAML anchors"
 
-````
-```yaml linenums="1" hl_lines="2 10 13"
-hlines:
-  - &hline_base
-    xpos: 50
-    ypos: 64
-    length: 85
-    styles:
-      stroke: var(--disabled-text-color)
-      stroke-width: 2
+    ```yaml linenums="1" hl_lines="2 10 13"
+    hlines:
+      - &hline_base
+        xpos: 50
+        ypos: 64
+        length: 85
+        styles:
+          stroke: var(--disabled-text-color)
+          stroke-width: 2
 
-  - <<: *hline_base
-    ypos: 75
+      - <<: *hline_base
+        ypos: 75
 
-  - <<: *hline_base
-    ypos: 86
-```
-````
+      - <<: *hline_base
+        ypos: 86
+    ```
 
 However, anchors have several limitations:
 
@@ -103,31 +99,28 @@ For these reasons, the card includes its own reuse system.
 The same layout can be written as one base line and two reused lines:
 
 === "With Reuse™"
+  ```yaml linenums="1" hl_lines="1 8 14 18"
+  constants:
+    lineStep: 11
+    defaultLineStyle:
+      stroke: var(--disabled-text-color)
+      stroke-width: 2
 
-````
-```yaml linenums="1" hl_lines="1 8 14 18"
-constants:
-  lineStep: 11
-  defaultLineStyle:
-    stroke: var(--disabled-text-color)
-    stroke-width: 2
+  hlines:
+    - id: first
+      xpos: 50
+      ypos: 64
+      length: 85
+      styles: ref(defaultLineStyle)
 
-hlines:
-  - id: first
-    xpos: 50
-    ypos: 64
-    length: 85
-    styles: ref(defaultLineStyle)
+    - id: second
+      same_as: first
+      same_as_dypos: calc(1 * lineStep)
 
-  - id: second
-    same_as: first
-    same_as_dypos: calc(1 * lineStep)
-
-  - id: third
-    same_as: first
-    same_as_dypos: calc(2 * lineStep)
-```
-````
+    - id: third
+      same_as: first
+      same_as_dypos: calc(2 * lineStep)
+  ```
 
 The repetition pattern remains easy to recognize:
 
@@ -318,37 +311,32 @@ The example below positions two icons symmetrically around the center.
 
 === "Using fixed offsets"
 
-````
-```yaml linenums="1" hl_lines="3 8"
-icons:
-  - id: left
-    xpos: calc(50 - 4)
-    ypos: 50
+    ```yaml linenums="1" hl_lines="3 8"
+    icons:
+      - id: left
+        xpos: calc(50 - 4)
+        ypos: 50
 
-  - id: right
-    xpos: calc(50 + 4)
-    ypos: 50
-```
-````
+      - id: right
+        xpos: calc(50 + 4)
+        ypos: 50
+    ```
 
 === "Using an offset constant"
+    ```yaml linenums="1" hl_lines="2 7 12"
+    constants:
+      iconOffset: 4
 
-````
-```yaml linenums="1" hl_lines="2 7 12"
-constants:
-  iconOffset: 4
+    layout:
+      icons:
+        - id: left
+          xpos: calc(50 - iconOffset)
+          ypos: 50
 
-layout:
-  icons:
-    - id: left
-      xpos: calc(50 - iconOffset)
-      ypos: 50
-
-    - id: right
-      xpos: calc(50 + iconOffset)
-      ypos: 50
-```
-````
+        - id: right
+          xpos: calc(50 + iconOffset)
+          ypos: 50
+    ```
 
 Both versions resolve to the same positions:
 
@@ -399,72 +387,65 @@ Shared values now have one source. Changing the center position, icon spacing, o
 There are two common ways to build a repeated sequence.
 
 === "One base item"
+    Refer every item back to the same base when each copy follows a fixed pattern:
 
-````
-Refer every item back to the same base when each copy follows a fixed pattern:
+    ```yaml linenums="1" hl_lines="11 15"
+    constants:
+      centerX: 50
+      lineStep: 11
 
-```yaml linenums="1" hl_lines="11 15"
-constants:
-  centerX: 50
-  lineStep: 11
+    layout:
+      hlines:
+        - id: first
+          xpos: calc(centerX)
+          ypos: 64
+          length: calc(4 * 20 + 5)
 
-layout:
-  hlines:
-    - id: first
-      xpos: calc(centerX)
-      ypos: 64
-      length: calc(4 * 20 + 5)
+        - id: second
+          same_as: first
+          same_as_dypos: calc(1 * lineStep)
 
-    - id: second
-      same_as: first
-      same_as_dypos: calc(1 * lineStep)
+        - id: third
+          same_as: first
+          same_as_dypos: calc(2 * lineStep)
+    ```
 
-    - id: third
-      same_as: first
-      same_as_dypos: calc(2 * lineStep)
-```
+    The positions are calculated from one shared source:
 
-The positions are calculated from one shared source:
-
-```text
-second = first + 1 step
-third  = first + 2 steps
-```
-````
-
+    ```text
+    second = first + 1 step
+    third  = first + 2 steps
+    ```
 === "Chained reuse"
+    Refer to the previous item when each new item should continue from the last result:
 
-````
-Refer to the previous item when each new item should continue from the last result:
+    ```yaml linenums="1" hl_lines="11 15"
+    constants:
+      centerX: 50
+      lineStep: 11
 
-```yaml linenums="1" hl_lines="11 15"
-constants:
-  centerX: 50
-  lineStep: 11
+    layout:
+      hlines:
+        - id: first
+          xpos: calc(centerX)
+          ypos: 64
+          length: calc(4 * 20 + 5)
 
-layout:
-  hlines:
-    - id: first
-      xpos: calc(centerX)
-      ypos: 64
-      length: calc(4 * 20 + 5)
+        - id: second
+          same_as: first
+          same_as_dypos: calc(lineStep)
 
-    - id: second
-      same_as: first
-      same_as_dypos: calc(lineStep)
+        - id: third
+          same_as: second
+          same_as_dypos: calc(lineStep)
+    ```
 
-    - id: third
-      same_as: second
-      same_as_dypos: calc(lineStep)
-```
+    In this version, each position builds on the previous one:
 
-In this version, each position builds on the previous one:
-
-```text
-second = first + 11
-third  = second + 11
-```
-````
+    ```text
+    second = first + 11
+    third  = second + 11
+    ```
 
 Using one base item is often clearer for fixed grids and regular spacing. Chained reuse works well for progressive sequences where each item naturally depends on the one before it.
 
