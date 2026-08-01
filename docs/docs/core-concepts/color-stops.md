@@ -243,8 +243,51 @@ Color stops are not limited to horseshoes. They can also color states, areas, na
 
 For these elements, the numeric state of the connected entity determines which color stop is used.
 
-!!! info "Layout items use discrete color stops"
-    Layout items use the matching color stop for the current value. Color-stop gradients are not currently supported for these elements.
+Choose how the color changes with `show.item_style`:
+
+| Style | What you see |
+| :---- | :----------- |
+| `colorstop` | Uses the color of the matching value range. |
+| `colorstopgradient` | Blends between the two nearest color stops. |
+
+For normal layout items, `colorstopgradient` gives the complete item one blended color. It does not draw a gradient across the item itself.
+
+By default, text, icons, rectangles, and arcs use the selected color as their fill. Circles and lines use it as their stroke. Use the matching style block when you want to change that:
+
+```yaml linenums="1"
+show:
+  item_style: colorstopgradient
+
+colorstopgradient:
+  fill: true
+  stroke: true
+
+color_stops:
+  colors:
+    0: green
+    50: orange
+    100: red
+```
+
+`fill` and `stroke` are independent. Set both to `true` to color both the inside and outline. Set the unwanted property to `false` when overriding the default. Templates may define both `colorstop` and `colorstopgradient`; a JavaScript template can then switch only `show.item_style`.
+
+```yaml linenums="1"
+show:
+  item_style: |
+    [[[
+      return Number(state) >= 50
+        ? "colorstopgradient"
+        : "colorstop";
+    ]]]
+
+colorstop:
+  fill: true
+  stroke: false
+
+colorstopgradient:
+  fill: true
+  stroke: false
+```
 
 Example with a state and an area:
 
@@ -285,6 +328,34 @@ Example with a state and an area:
 ```
 
 Both items use the same color-stop definition and are connected to `entity_index: 0`, so they respond to the numeric state of the first entity.
+
+### Reuse color stops from an entity
+
+Put `color_stops` on an entity when several layout items should share the same thresholds and colors. Each item opts in with `show.item_style`:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.memory_use_percent
+    color_stops:
+      colors:
+        0: green
+        70: orange
+        90: red
+
+layout:
+  states:
+    - entity_index: 0
+      show:
+        item_style: colorstop
+
+  circles:
+    - entity_index: 0
+      radius: 20
+      show:
+        item_style: colorstopgradient
+```
+
+Entity-level color stops do not recolor items automatically. An item must select `colorstop` or `colorstopgradient`. Add `color_stops` directly to an item when that item needs different thresholds or colors; the item definition then takes precedence.
 
 ## :material-horseshoe: Theme and palette variables
 

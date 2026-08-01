@@ -83,7 +83,7 @@ export default class TextTool extends BaseTool {
     }
 
     delete outerConfig.text;
-    super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined);
+    super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
     this.sourceTextParts = sourceTextParts;
     this.textPartsHaveJavascript = this.sourceTextParts.some((part) => Templates.hasJavascriptTemplates(part));
@@ -166,6 +166,10 @@ export default class TextTool extends BaseTool {
         if (activePart.color_stops) {
           activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
         }
+        if (activePart.color_stops || activePart.colorstop_gradient !== undefined
+          || ['colorstop', 'colorstopgradient'].includes(activePart.show?.item_style)) {
+          this.normalizeLayoutItemColorStopMode(activePart);
+        }
 
         return activePart;
       });
@@ -203,6 +207,10 @@ export default class TextTool extends BaseTool {
       if (activePart.color_stops) {
         activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
       }
+      if (activePart.color_stops || activePart.colorstop_gradient !== undefined
+        || ['colorstop', 'colorstopgradient'].includes(activePart.show?.item_style)) {
+        this.normalizeLayoutItemColorStopMode(activePart);
+      }
 
       if (sourceTool) {
         const sourceOptions = {
@@ -218,6 +226,9 @@ export default class TextTool extends BaseTool {
             entity_index: sourceTool.entity_index,
             animation_id: activePart.animation_id,
             colorstops: activePart.colorstops,
+            show: activePart.show,
+            colorstop: activePart.colorstop,
+            colorstopgradient: activePart.colorstopgradient,
             ellipsis: activePart.ellipsis,
             source_reference: {
               type: activePart.type,
@@ -830,7 +841,7 @@ export default class TextTool extends BaseTool {
       'pointer-events': hasActiveAction ? 'auto' : 'none',
     });
 
-    this.applyColorStops(textStyles, 'fill');
+    this.applyColorStops(textStyles);
 
     const fitTransform = this.config.text_overflow?.mode === 'fit'
       ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
@@ -852,10 +863,9 @@ export default class TextTool extends BaseTool {
       }
 
       const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
-      const stopColor = this.card._getItemColorFromStops(renderPart);
       const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
 
-      if (stopColor) partStyles.fill = stopColor;
+      this.applyColorStops(partStyles, renderPart);
 
       return {
         ...renderPart,

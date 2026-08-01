@@ -76,8 +76,12 @@ default is `1.2` em. `dx` and `dy` can also move individual parts.
 ## :material-horseshoe: Dynamic parts
 
 Each part can use its own entity, JavaScript template, state map, color stops,
-styles, and animation. When `entity_index` is omitted from a part, it uses the
-entity from the complete text item when one is configured.
+styles, and animation. Text uses `fill` by default. Select
+`show.item_style: colorstop` for hard value ranges or
+`show.item_style: colorstopgradient` to blend between adjacent stops. The complete
+TextTool and each individual part can use their own mode. When `entity_index`
+is omitted from a part, it uses the entity from the complete text item when one
+is configured.
 
 ```yaml
 texts:
@@ -260,6 +264,10 @@ that font size.
 | `ellipsis` | :material-close: | None | Maximum number of characters on each visual line. |
 | `text_overflow` | :material-close: | None | Wraps, shortens, or fits text using the selected mode. TextTool only. |
 | `styles` | :material-close: | | Styles inherited by all parts, including alignment and font settings. |
+| `color_stops` | :material-close: | None | Colors the complete text item from its entity value. |
+| `show.item_style` | :material-close: | `colorstop` | Selects a hard or blended color-stop color. |
+| `colorstop.fill` / `.stroke` | :material-close: | `true` / `false` | Selects which text properties receive the hard color. |
+| `colorstopgradient.fill` / `.stroke` | :material-close: | `true` / `false` | Selects which text properties receive the blended color. |
 | `tap_action` | :material-close: | `none` | Action for the complete text item. |
 | `hold_action` | :material-close: | None | Hold action for the complete text item. |
 | `double_tap_action` | :material-close: | None | Double-tap action for the complete text item. |
@@ -296,6 +304,9 @@ that font size.
 | `styles` | :material-close: | | Overrides inherited styles for this part. |
 | `state_map` | :material-close: | None | Changes the part for matching entity states. |
 | `color_stops` | :material-close: | None | Colors the part from its entity value. |
+| `show.item_style` | :material-close: | `colorstop` | Selects a hard or blended color-stop color for this part. |
+| `colorstop.fill` / `.stroke` | :material-close: | `true` / `false` | Selects which text properties receive the hard color. |
+| `colorstopgradient.fill` / `.stroke` | :material-close: | `true` / `false` | Selects which text properties receive the blended color. |
 | `animation_id` | :material-close: | None | Connects this part to a text animation. |
 | `show.uom` | :material-close: | Source setting | Overrides the UOM position for a referenced state. |
 | `uom` | :material-close: | Source setting | Overrides UOM offsets and styles for a referenced state. |

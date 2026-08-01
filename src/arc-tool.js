@@ -42,7 +42,7 @@ export default class ArcTool extends BaseTool {
       ...config,
     };
 
-    super(arcConfig, index, templates, cardId, card, 'arcs', 'arcs', undefined);
+    super(arcConfig, index, templates, cardId, card, 'arcs', 'arcs', undefined, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
   }
@@ -120,7 +120,7 @@ export default class ArcTool extends BaseTool {
     };
     const styles = this.getStyles(arcStyles);
 
-    this.applyColorStops(styles, 'fill');
+    this.applyColorStops(styles);
 
     return this.renderItemLayers(svg`
       <g

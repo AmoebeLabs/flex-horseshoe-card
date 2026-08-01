@@ -138,6 +138,23 @@ Common reasons to override values include:
 - placing an entity under a different area label;
 - giving an attribute its own name and unit.
 
+## :material-horseshoe: Shared color stops
+
+Define `color_stops` on an entity when several layout items should use the same thresholds and colors:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature
+    color_stops:
+      colors:
+        0: blue
+        18: green
+        25: orange
+        30: red
+```
+
+A layout item uses these colors after selecting `show.item_style: colorstop` or `show.item_style: colorstopgradient`. Entity-level color stops remain inactive for items that do not select either mode. A `color_stops` definition on the layout item overrides the entity definition for that item.
+
 ## :material-horseshoe: Overriding entity formatting
 
 [:octicons-tag-24: v5.4.7-dev.7][github-releases]
