@@ -269,6 +269,8 @@ export default class StateTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
+    config.xpos = config.xpos ?? 0;
+    config.ypos = config.ypos ?? 0;
     config.show = {
       uom: 'end',
       ...(config.show ?? {}),
@@ -318,7 +320,7 @@ export default class StateTool extends BaseTool {
     // Estimate the complete state/UOM layout until updated() can replace it
     // with the bounding box of the actual rendered SVG text element.
     const styles = this.getStyles({ 'font-size': '1em' });
-    const uomStyles = this.getUomStyles(styles);
+    const uomStyles = this.getUomStyles(styles, this.config.uom ?? {});
     const uomPosition = this.config.show.uom;
     const measurementSignature = `${this.state}|${this.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
 
@@ -645,11 +647,10 @@ export default class StateTool extends BaseTool {
    * @param {object} stateStyles - Final state value styles.
    * @returns {object} Final UOM styles.
    */
-  getUomStyles(stateStyles) {
+  getUomStyles(stateStyles, uomConfig) {
     const uomStyles = {
       opacity: '0.7',
     };
-    const uomConfig = this.config.uom ?? {};
     const itemUomStyleDict = ConfigHelper.toStyleDict(uomConfig.styles);
     const fsuomStr = stateStyles['font-size'];
     let fsuomValue = 0.5;
@@ -673,6 +674,78 @@ export default class StateTool extends BaseTool {
       'font-size': `${fsuomValue}${fsuomType}`,
       ...itemUomStyleDict,
     };
+  }
+
+  /**
+   * Returns the formatted state and optional UOM as standard text parts.
+   * TextTool can replace the visual styles without rebuilding Home Assistant
+   * formatting or the relative UOM layout.
+   *
+   * @param {object} options - Source-style selection, state overrides and UOM overrides.
+   * @returns {Array<object>} State value and optional unit text parts.
+   */
+  getTextParts(options) {
+    let stateStyles = {};
+
+    if (options.includeStyles) {
+      stateStyles = this.getStyles({
+        'font-size': '1em',
+        color: 'var(--primary-text-color)',
+        opacity: '1.0',
+        'text-anchor': 'middle',
+      });
+      this.applyColorStops(stateStyles, 'fill');
+    }
+
+    stateStyles = {
+      ...stateStyles,
+      ...ConfigHelper.toStyleDict(options.styles),
+    };
+
+    const sourceUomConfig = this.config.uom ?? {};
+    const overrideUomConfig = options.uom ?? {};
+    const uomConfig = {
+      ...sourceUomConfig,
+      ...overrideUomConfig,
+      styles: {
+        ...(options.includeStyles ? ConfigHelper.toStyleDict(sourceUomConfig.styles) : {}),
+        ...ConfigHelper.toStyleDict(overrideUomConfig.styles),
+      },
+    };
+    const uomPosition = options.show?.uom ?? this.config.show.uom;
+    const statePart = {
+      type: 'value',
+      value: this.state,
+      entity_index: this.entity_index,
+      styles: stateStyles,
+    };
+    const parts = [statePart];
+
+    if (!['end', 'top', 'bottom'].includes(uomPosition)) return parts;
+
+    const stateStylesForUom = {
+      'font-size': '1em',
+      ...stateStyles,
+    };
+    const unitPart = {
+      type: 'unit',
+      value: this.uom,
+      entity_index: this.entity_index,
+      styles: this.getUomStyles(stateStylesForUom, uomConfig),
+      uom_position: uomPosition,
+    };
+
+    if (uomPosition === 'end') {
+      unitPart.dx = uomConfig.dx ?? '0.1';
+      unitPart.dy = uomConfig.dy ?? '-0.45';
+    } else {
+      unitPart.new_line = true;
+      unitPart.dy = uomConfig.dy ?? (uomPosition === 'bottom' ? '1.5' : '-1.5');
+    }
+
+    parts.push(unitPart);
+
+    return parts;
   }
 
   /**
@@ -889,52 +962,40 @@ export default class StateTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the state.
    */
   render() {
-    const stateStyles = {
-      'font-size': '1em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-    const styles = this.getStyles(stateStyles);
-
-    this.applyColorStops(styles, 'fill');
-
-    const uomStyle = this.getUomStyles(styles);
+    const parts = this.getTextParts({
+      includeStyles: true,
+      styles: {},
+      uom: {},
+      show: this.config.show,
+    });
+    const statePart = parts[0];
+    const unitPart = parts[1];
     const dx = this.config.dx ? this.config.dx : '0';
     const dy = this.config.dy ? this.config.dy : '0';
-    const uomConfig = this.config.uom ?? {};
-    const uomPosition = this.config.show.uom;
     let uomTemplate = svg``;
 
     // show.uom controls the relative position of the unit against the state value.
-    if (uomPosition === 'end') {
-      const uomDx = uomConfig.dx ?? '0.1';
-      const uomDy = uomConfig.dy ?? '-0.45';
-
+    if (unitPart?.uom_position === 'end') {
       uomTemplate = svg`<tspan
         class="state__uom"
-        dx="${uomDx}em"
-        dy="${uomDy}em"
-        style=${styleMap(this.getRenderStyles(uomStyle))}
-      >${this.uom}</tspan>`;
-    } else if (uomPosition === 'bottom') {
-      const uomDy = uomConfig.dy ?? '1.5';
-
+        dx="${unitPart.dx}em"
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
+    } else if (unitPart?.uom_position === 'bottom') {
       uomTemplate = svg`<tspan
         class="state__uom"
         x="${this.config.svg.xpos}"
-        dy="${uomDy}em"
-        style=${styleMap(this.getRenderStyles(uomStyle))}
-      >${this.uom}</tspan>`;
-    } else if (uomPosition === 'top') {
-      const uomDy = uomConfig.dy ?? '-1.5';
-
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
+    } else if (unitPart?.uom_position === 'top') {
       uomTemplate = svg`<tspan
         class="state__uom"
         x="${this.config.svg.xpos}"
-        dy="${uomDy}em"
-        style=${styleMap(this.getRenderStyles(uomStyle))}
-      >${this.uom}</tspan>`;
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
     }
 
     return this.renderItemLayers(svg`
@@ -950,8 +1011,8 @@ export default class StateTool extends BaseTool {
             y="${this.config.svg.ypos}"
             dx="${dx}em"
             dy="${dy}em"
-            style=${styleMap(this.getRenderStyles(styles))}
-          >${this.state}</tspan>${uomTemplate}
+            style=${styleMap(this.getRenderStyles(statePart.styles))}
+          >${statePart.value}</tspan>${uomTemplate}
         </text>
       </g>
     `);

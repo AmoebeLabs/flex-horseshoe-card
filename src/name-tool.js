@@ -2,6 +2,7 @@ import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { ref } from 'lit/directives/ref.js';
 import BaseTool from './base-tool.js';
+import ConfigHelper from './config-helper.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
@@ -33,6 +34,9 @@ export default class NameTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
+    config.xpos = config.xpos ?? 0;
+    config.ypos = config.ypos ?? 0;
+
     super(config, index, templates, cardId, card, 'names');
 
     this.config.svg = this.calculateSvgDimensions();
@@ -174,20 +178,46 @@ export default class NameTool extends BaseTool {
   }
 
   /**
+   * Returns the current name as a standard text part for standalone rendering
+   * or composition by TextTool.
+   *
+   * @param {object} options - Source-style selection and final part overrides.
+   * @returns {Array<object>} One name text part.
+   */
+  getTextParts(options) {
+    let styles = {};
+
+    if (options.includeStyles) {
+      styles = this.getStyles({
+        'font-size': '1.5em',
+        color: 'var(--primary-text-color)',
+        opacity: '1.0',
+        'text-anchor': 'middle',
+      });
+      this.applyColorStops(styles, 'stroke');
+    }
+
+    return [{
+      type: 'name',
+      value: this.name,
+      entity_index: this.entity_index,
+      styles: {
+        ...styles,
+        ...ConfigHelper.toStyleDict(options.styles),
+      },
+    }];
+  }
+
+  /**
    * Renders one name layout item.
    *
    * @returns {TemplateResult} SVG template for the name.
    */
   render() {
-    const nameStyles = {
-      'font-size': '1.5em',
-      color: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-    };
-    const styles = this.getStyles(nameStyles);
-
-    this.applyColorStops(styles, 'stroke');
+    const [namePart] = this.getTextParts({
+      includeStyles: true,
+      styles: {},
+    });
 
     return this.renderItemLayers(svg`
       <g
@@ -200,8 +230,8 @@ export default class NameTool extends BaseTool {
             class="entity__name"
             x="${this.config.svg.xpos}"
             y="${this.config.svg.ypos}"
-            style=${styleMap(this.getRenderStyles(styles))}>
-            ${this.name}</tspan>
+            style=${styleMap(this.getRenderStyles(namePart.styles))}>
+            ${namePart.value}</tspan>
         </text>
       </g>
     `);

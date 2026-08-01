@@ -8,6 +8,12 @@ import Merge from './merge.js';
 import Templates from './templates.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
+const TEXT_SOURCE_SECTIONS = {
+  name: 'names',
+  area: 'areas',
+  state: 'states',
+};
+
 /**
  * Standalone multipart SVG text tool.
  *
@@ -56,6 +62,26 @@ export default class TextTool extends BaseTool {
       ...config,
     };
 
+    if (outerConfig.text_overflow?.mode === 'wrap' || outerConfig.text_overflow?.mode === 'ellipsis') {
+      const overflowModeConfig = outerConfig.text_overflow[outerConfig.text_overflow.mode];
+      const hasCharacters = overflowModeConfig.characters !== undefined;
+      const hasMaximumWidth = overflowModeConfig.max_width !== undefined;
+
+      if (hasCharacters === hasMaximumWidth) {
+        throw new Error(`[texts] text_overflow.${outerConfig.text_overflow.mode} requires exactly one of characters or max_width`);
+      }
+    }
+
+    if (outerConfig.text_overflow?.mode === 'wrap' && outerConfig.text_overflow.wrap.dy === undefined) {
+      outerConfig.text_overflow = {
+        ...outerConfig.text_overflow,
+        wrap: {
+          dy: 1.2,
+          ...outerConfig.text_overflow.wrap,
+        },
+      };
+    }
+
     delete outerConfig.text;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined);
 
@@ -69,6 +95,15 @@ export default class TextTool extends BaseTool {
       if (element) this.textElement = element;
     };
     this.textElementId = `${this.cardId}-text-${this.index}`;
+    this.textFitScale = 1;
+    this.widthMeasurementParts = [];
+    this.widthMeasurementElements = [];
+    this.widthEllipsisElements = [];
+    this.widthOverflowParts = [];
+    this.widthOverflowSourceSignature = undefined;
+    this.widthOverflowMeasurementSignature = undefined;
+    this.widthOverflowPending = false;
+    this.widthMeasurementScheduled = false;
     this.characterWidthFactor = 0.6;
     this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
     this.estimatedWidth = 0;
@@ -79,6 +114,30 @@ export default class TextTool extends BaseTool {
     this.measuredYpos = this.config.svg.ypos;
     this.hasExactMeasurement = false;
     this.textMeasurementSignature = '';
+
+    // Static references are validated during construction. A hidden source is
+    // still present here; a disabled or misspelled source is not.
+    this.sourceTextParts.forEach((part) => {
+      if (TEXT_SOURCE_SECTIONS[part.type]) this.getReferencedTextTool(part);
+    });
+  }
+
+  /**
+   * Finds the NameTool, AreaTool or StateTool selected by one referenced part.
+   *
+   * @param {object} part - Text part with source type and source item id.
+   * @returns {BaseTool} Referenced source tool.
+   */
+  getReferencedTextTool(part) {
+    const section = TEXT_SOURCE_SECTIONS[part.type];
+    const sourceTool = this.card.getToolsBySection(section)
+      .find((tool) => String(tool.id) === String(part.id));
+
+    if (!sourceTool) {
+      throw new Error(`[texts] ${part.type} source '${part.id}' not found for text '${this.id}'`);
+    }
+
+    return sourceTool;
   }
 
   /**
@@ -91,9 +150,14 @@ export default class TextTool extends BaseTool {
 
     if (this.activeTextPartsSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
       const activeTextParts = this.sourceTextParts.map((sourcePart) => {
+        const sourceTool = TEXT_SOURCE_SECTIONS[sourcePart.type]
+          ? this.getReferencedTextTool(sourcePart)
+          : undefined;
         const partContext = {
           ...sourcePart,
-          entity_index: sourcePart.entity_index ?? this.config.entity_index,
+          entity_index: sourceTool
+            ? sourceTool.entity_index
+            : sourcePart.entity_index ?? this.config.entity_index,
         };
         const activePart = Templates.hasJavascriptTemplates(sourcePart)
           ? Templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
@@ -116,7 +180,7 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Activates state-map overrides and applies part and line ellipsis before rendering.
+   * Activates state-map overrides and applies wrapping and ellipsis before rendering.
    *
    * @param {object} entity - Optional entity selected by the outer text item.
    * @param {object} entityConfig - Optional outer entity configuration.
@@ -124,8 +188,12 @@ export default class TextTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    const activeParts = this.activeTextParts.map((part) => {
-      const partEntity = this.card.entities[part.entity_index];
+    const activeParts = this.activeTextParts.flatMap((part) => {
+      const sourceTool = TEXT_SOURCE_SECTIONS[part.type]
+        ? this.getReferencedTextTool(part)
+        : undefined;
+      const entityIndex = sourceTool ? sourceTool.entity_index : part.entity_index;
+      const partEntity = this.card.entities[entityIndex];
       const stateMapEntries = part.state_map?.map;
       const stateMapPart = stateMapEntries
         ? stateMapEntries.find((entry) => String(entry.state) === String(partEntity.state)) ?? stateMapEntries.find((entry) => entry.state === 'default')
@@ -136,20 +204,229 @@ export default class TextTool extends BaseTool {
         activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
       }
 
+      if (sourceTool) {
+        const sourceOptions = {
+          includeStyles: activePart.source_styles !== false,
+          styles: activePart.styles,
+          uom: activePart.uom,
+          show: activePart.show,
+        };
+
+        return sourceTool.getTextParts(sourceOptions).map((sourcePart, sourcePartIndex) => {
+          const referencedPart = {
+            ...sourcePart,
+            entity_index: sourceTool.entity_index,
+            animation_id: activePart.animation_id,
+            colorstops: activePart.colorstops,
+            ellipsis: activePart.ellipsis,
+            source_reference: {
+              type: activePart.type,
+              id: activePart.id,
+              part_index: sourcePartIndex,
+              options: sourceOptions,
+            },
+          };
+
+          // Positioning on the reference applies to its first generated part.
+          // StateTool owns the relative positioning of a following UOM part.
+          if (sourcePartIndex === 0) {
+            if (activePart.new_line !== undefined) referencedPart.new_line = activePart.new_line;
+            if (activePart.dx !== undefined) referencedPart.dx = activePart.dx;
+            if (activePart.dy !== undefined) referencedPart.dy = activePart.dy;
+          }
+
+          referencedPart.value = this.textEllipsis(String(referencedPart.value), referencedPart.ellipsis);
+
+          return referencedPart;
+        });
+      }
+
       activePart.value = this.textEllipsis(String(activePart.value), activePart.ellipsis);
 
-      return activePart;
+      return [activePart];
     });
 
-    // The outer ellipsis limit applies independently to every visual line. The
-    // part crossing the limit keeps its own style, color and animation config.
-    let remainingCharacters = this.config.ellipsis;
+    // Character-based overflow is calculated immediately. Width-based overflow
+    // first exposes styled word and whitespace tokens to the SVG measurement pass.
+    const textOverflow = this.config.text_overflow;
+    const wrapConfig = textOverflow?.wrap;
+    const ellipsisConfig = textOverflow?.ellipsis;
+    const selectedOverflowConfig = textOverflow?.mode === 'wrap' ? wrapConfig : ellipsisConfig;
+    const usesMeasuredWidth = (textOverflow?.mode === 'wrap' || textOverflow?.mode === 'ellipsis')
+      && selectedOverflowConfig.max_width !== undefined;
+    let overflowParts = activeParts;
+    let lineEllipsis;
+
+    if (usesMeasuredWidth) {
+      const widthMeasurementParts = [];
+
+      activeParts.forEach((part) => {
+        let firstFragment = true;
+
+        Array.from(String(part.value).matchAll(/\s+|\S+/g), (match) => match[0]).forEach((fragment) => {
+          const fragmentPart = {
+            ...part,
+            value: fragment,
+          };
+
+          if (!firstFragment) {
+            delete fragmentPart.new_line;
+            delete fragmentPart.dx;
+            delete fragmentPart.dy;
+          }
+
+          widthMeasurementParts.push(fragmentPart);
+          firstFragment = false;
+        });
+      });
+
+      const widthOverflowSourceSignature = `${JSON.stringify(widthMeasurementParts)}|${JSON.stringify(textOverflow)}`;
+
+      if (widthOverflowSourceSignature !== this.widthOverflowSourceSignature) {
+        this.widthMeasurementParts = widthMeasurementParts;
+        this.widthOverflowSourceSignature = widthOverflowSourceSignature;
+        this.widthOverflowMeasurementSignature = undefined;
+        this.widthOverflowPending = true;
+      }
+
+      overflowParts = this.widthOverflowParts;
+    } else {
+      this.widthMeasurementParts = [];
+      this.widthOverflowParts = [];
+      this.widthOverflowSourceSignature = undefined;
+      this.widthOverflowMeasurementSignature = undefined;
+      this.widthOverflowPending = false;
+
+      if (textOverflow?.mode === 'wrap') {
+        const wrappedParts = [];
+        let lineCharacters = 0;
+        let lineNumber = 1;
+        let pendingSpaces = [];
+        let maximumLinesReached = false;
+
+        activeParts.forEach((part) => {
+          if (maximumLinesReached) return;
+
+          let suppressConfiguredNewLine = false;
+
+          if (part.new_line) {
+            pendingSpaces = [];
+
+            if (wrapConfig.max_lines && lineNumber >= wrapConfig.max_lines) {
+              // Feed text from an unavailable line into the current line so
+              // the final-line truncation below can show that content remains.
+              suppressConfiguredNewLine = true;
+              pendingSpaces.push({ ...part, value: ' ' });
+            } else {
+              lineNumber += 1;
+              lineCharacters = 0;
+            }
+          }
+
+          let partPositionPending = true;
+          const fragments = Array.from(String(part.value).matchAll(/\s+|\S+/g), (match) => match[0]);
+
+          fragments.forEach((fragment) => {
+            if (maximumLinesReached) return;
+
+            if (/^\s+$/.test(fragment)) {
+              if (lineCharacters > 0) pendingSpaces.push({ ...part, value: fragment });
+              return;
+            }
+
+            const pendingCharacters = pendingSpaces.reduce((total, spacePart) => total + spacePart.value.length, 0);
+            const lineWouldOverflow = lineCharacters > 0
+              && pendingCharacters > 0
+              && lineCharacters + pendingCharacters + fragment.length > wrapConfig.characters;
+            const canStartAnotherLine = !wrapConfig.max_lines || lineNumber < wrapConfig.max_lines;
+            const startsAutomaticLine = lineWouldOverflow && canStartAnotherLine;
+            const overflowsLastLine = (lineWouldOverflow && !canStartAnotherLine) || suppressConfiguredNewLine;
+            const fragmentPart = {
+              ...part,
+              value: fragment,
+            };
+
+            if (startsAutomaticLine) {
+              pendingSpaces = [];
+              lineNumber += 1;
+              lineCharacters = 0;
+              fragmentPart.new_line = true;
+              fragmentPart.dy = wrapConfig.dy;
+              delete fragmentPart.dx;
+            } else {
+              if (lineCharacters === 0) pendingSpaces = [];
+
+              pendingSpaces.forEach((spacePart) => {
+                delete spacePart.new_line;
+                delete spacePart.dx;
+                delete spacePart.dy;
+                wrappedParts.push(spacePart);
+                lineCharacters += spacePart.value.length;
+              });
+              pendingSpaces = [];
+
+              if (!partPositionPending || suppressConfiguredNewLine) {
+                delete fragmentPart.new_line;
+                delete fragmentPart.dx;
+                delete fragmentPart.dy;
+              }
+            }
+
+            wrappedParts.push(fragmentPart);
+            lineCharacters += fragment.length;
+            partPositionPending = false;
+
+            if (overflowsLastLine) maximumLinesReached = true;
+          });
+        });
+
+        if (maximumLinesReached) {
+          let finalLineStart = 0;
+
+          wrappedParts.forEach((wrappedPart, wrappedPartIndex) => {
+            if (wrappedPart.new_line) finalLineStart = wrappedPartIndex;
+          });
+
+          const finalLineParts = wrappedParts.splice(finalLineStart);
+          let remainingVisibleCharacters = wrapConfig.characters - 3;
+          let ellipsisAdded = false;
+
+          finalLineParts.forEach((finalLinePart) => {
+            if (ellipsisAdded) return;
+
+            if (finalLinePart.value.length <= remainingVisibleCharacters) {
+              wrappedParts.push(finalLinePart);
+              remainingVisibleCharacters -= finalLinePart.value.length;
+              return;
+            }
+
+            wrappedParts.push({
+              ...finalLinePart,
+              value: `${finalLinePart.value.slice(0, remainingVisibleCharacters)}...`,
+            });
+            ellipsisAdded = true;
+          });
+        }
+
+        overflowParts = wrappedParts;
+      }
+
+      lineEllipsis = textOverflow?.mode === 'ellipsis'
+        ? ellipsisConfig.characters
+        : textOverflow?.mode === 'wrap' && wrapConfig.max_lines
+          ? wrapConfig.characters
+          : this.config.ellipsis;
+    }
+
+    // Character ellipsis applies independently to every explicit or generated
+    // line. Width mode has already produced its final parts in updated().
+    let remainingCharacters = lineEllipsis;
     let lineIsFull = false;
     const textParts = [];
 
-    activeParts.forEach((part) => {
+    overflowParts.forEach((part) => {
       if (part.new_line) {
-        remainingCharacters = this.config.ellipsis;
+        remainingCharacters = lineEllipsis;
         lineIsFull = false;
       }
 
@@ -167,7 +444,7 @@ export default class TextTool extends BaseTool {
 
       textParts.push(part);
       if (remainingCharacters) remainingCharacters -= part.value.length;
-      if (remainingCharacters === 0 && this.config.ellipsis) lineIsFull = true;
+      if (remainingCharacters === 0 && lineEllipsis) lineIsFull = true;
     });
 
     this.textParts = textParts;
@@ -178,13 +455,16 @@ export default class TextTool extends BaseTool {
       lineLengths[lineLengths.length - 1] += part.value.length;
     });
     const outerStyles = this.getStyles({ 'font-size': '1em' });
-    const measurementSignature = `${JSON.stringify(this.textParts)}|${JSON.stringify(outerStyles)}`;
+    const measurementSignature = `${JSON.stringify(this.textParts)}|${JSON.stringify(outerStyles)}|${JSON.stringify(textOverflow)}`;
 
     if (measurementSignature !== this.textMeasurementSignature) {
       this.textMeasurementSignature = measurementSignature;
       this.estimatedWidth = Math.max(...lineLengths) * this.textFontSize * this.characterWidthFactor;
-      this.estimatedHeight = lineLengths.length * this.textFontSize * 1.2;
-      this.hasExactMeasurement = false;
+      const lineSpacing = textOverflow?.mode === 'wrap' ? wrapConfig.dy : 1.2;
+      this.estimatedHeight = this.textFontSize + ((lineLengths.length - 1) * this.textFontSize * lineSpacing);
+
+      // Rectangle fit keeps the previous measured geometry until updated()
+      // publishes the new exact text bounds. Initial rendering still uses the estimate.
     }
   }
 
@@ -208,26 +488,312 @@ export default class TextTool extends BaseTool {
     return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
   }
 
-  /** Measures the complete inline or multiline SVG text result. */
+  /**
+   * Builds width-based ellipsis or wrap output from one shared SVG measurement.
+   *
+   * @param {Array<number>} measuredWidths - Width of every source token in card dimensions.
+   * @param {Array<number>} ellipsisWidths - Width of three dots in every token's own style.
+   * @returns {Array<object>} Final visible text parts.
+   */
+  calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths) {
+    const textOverflow = this.config.text_overflow;
+    const selectedConfig = textOverflow.mode === 'wrap' ? textOverflow.wrap : textOverflow.ellipsis;
+    const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+    const records = this.widthMeasurementParts.map((part, index) => ({
+      part,
+      index,
+      width: measuredWidths[index],
+      ellipsisWidth: ellipsisWidths[index],
+      characters: [...String(part.value)],
+      element: this.widthMeasurementElements[index],
+    }));
+
+    // The same exact substring calculation serves direct ellipsis and the
+    // final line produced when width-based wrapping reaches max_lines.
+    const shortenLineToWidth = (lineRecords, forceEllipsis) => {
+      const completeWidth = lineRecords.reduce((total, record) => total + record.width, 0);
+
+      if (!forceEllipsis && completeWidth <= selectedConfig.max_width) {
+        return lineRecords.map((record) => record.part);
+      }
+
+      const totalCharacters = lineRecords.reduce((total, record) => total + record.characters.length, 0);
+      let lowerBound = 0;
+      let upperBound = totalCharacters;
+      let visibleCharacters = 0;
+
+      while (lowerBound <= upperBound) {
+        const characterCount = Math.floor((lowerBound + upperBound) / 2);
+        let remainingCharacters = characterCount;
+        let candidateWidth = 0;
+        let ellipsisRecord = lineRecords[0];
+
+        lineRecords.some((record) => {
+          ellipsisRecord = record;
+
+          if (remainingCharacters >= record.characters.length) {
+            candidateWidth += record.width;
+            remainingCharacters -= record.characters.length;
+            return false;
+          }
+
+          candidateWidth += record.element.getSubStringLength(0, remainingCharacters) * dimensionFactor;
+          remainingCharacters = 0;
+          return true;
+        });
+
+        candidateWidth += ellipsisRecord.ellipsisWidth;
+
+        if (candidateWidth <= selectedConfig.max_width) {
+          visibleCharacters = characterCount;
+          lowerBound = characterCount + 1;
+        } else {
+          upperBound = characterCount - 1;
+        }
+      }
+
+      const shortenedParts = [];
+      let remainingCharacters = visibleCharacters;
+      let ellipsisAdded = false;
+
+      lineRecords.forEach((record) => {
+        if (ellipsisAdded) return;
+
+        if (remainingCharacters >= record.characters.length) {
+          shortenedParts.push(record.part);
+          remainingCharacters -= record.characters.length;
+          return;
+        }
+
+        shortenedParts.push({
+          ...record.part,
+          value: record.characters.slice(0, remainingCharacters).join('').concat('...'),
+        });
+        ellipsisAdded = true;
+      });
+
+      if (!ellipsisAdded) {
+        const finalPart = shortenedParts.pop();
+
+        shortenedParts.push({
+          ...finalPart,
+          value: String(finalPart.value).concat('...'),
+        });
+      }
+
+      return shortenedParts;
+    };
+
+    if (textOverflow.mode === 'ellipsis') {
+      const ellipsisParts = [];
+      let lineRecords = [];
+
+      records.forEach((record) => {
+        if (record.part.new_line && lineRecords.length > 0) {
+          ellipsisParts.push(...shortenLineToWidth(lineRecords, false));
+          lineRecords = [];
+        }
+
+        lineRecords.push(record);
+      });
+
+      ellipsisParts.push(...shortenLineToWidth(lineRecords, false));
+      return ellipsisParts;
+    }
+
+    const wrappedRecords = [];
+    let lineWidth = 0;
+    let lineNumber = 1;
+    let pendingSpaces = [];
+    let maximumLinesReached = false;
+
+    for (let recordIndex = 0; recordIndex < records.length; recordIndex += 1) {
+      const record = records[recordIndex];
+
+      if (record.part.new_line) {
+        pendingSpaces = [];
+
+        if (selectedConfig.max_lines && lineNumber >= selectedConfig.max_lines) {
+          maximumLinesReached = true;
+          break;
+        }
+
+        lineNumber += 1;
+        lineWidth = 0;
+      }
+
+      if (/^\s+$/.test(record.part.value)) {
+        if (lineWidth > 0) pendingSpaces.push(record);
+      } else {
+        const pendingWidth = pendingSpaces.reduce((total, spaceRecord) => total + spaceRecord.width, 0);
+        const lineWouldOverflow = lineWidth > 0
+          && lineWidth + pendingWidth + record.width > selectedConfig.max_width;
+
+        if (lineWouldOverflow) {
+          if (selectedConfig.max_lines && lineNumber >= selectedConfig.max_lines) {
+            maximumLinesReached = true;
+            break;
+          }
+
+          const wrappedPart = {
+            ...record.part,
+            new_line: true,
+            dy: selectedConfig.dy,
+          };
+
+          delete wrappedPart.dx;
+          wrappedRecords.push({ ...record, part: wrappedPart });
+          pendingSpaces = [];
+          lineNumber += 1;
+          lineWidth = record.width;
+        } else {
+          pendingSpaces.forEach((spaceRecord) => {
+            const spacePart = { ...spaceRecord.part };
+
+            delete spacePart.new_line;
+            delete spacePart.dx;
+            delete spacePart.dy;
+            wrappedRecords.push({ ...spaceRecord, part: spacePart });
+            lineWidth += spaceRecord.width;
+          });
+          pendingSpaces = [];
+          wrappedRecords.push(record);
+          lineWidth += record.width;
+        }
+      }
+    }
+
+    if (maximumLinesReached) {
+      let finalLineStart = 0;
+
+      wrappedRecords.forEach((record, recordIndex) => {
+        if (record.part.new_line) finalLineStart = recordIndex;
+      });
+
+      const finalLineRecords = wrappedRecords.splice(finalLineStart);
+      const finalLineParts = shortenLineToWidth(finalLineRecords, true);
+
+      return [...wrappedRecords.map((record) => record.part), ...finalLineParts];
+    }
+
+    return wrappedRecords.map((record) => record.part);
+  }
+
+  /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
+    if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
+      if (!this.widthMeasurementScheduled) {
+        this.widthMeasurementScheduled = true;
+        const scheduledSourceSignature = this.widthOverflowSourceSignature;
+
+        document.fonts.ready.then(async () => {
+          const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+          let measuredWidths;
+          let ellipsisWidths;
+          let previousFrameSignature;
+
+          // SVG layout may trail Lit's updated callback. Wait for at most five
+          // frames and stop as soon as two usable measurements are identical.
+          for (let frameAttempt = 0; frameAttempt < 5; frameAttempt += 1) {
+            // eslint-disable-next-line no-await-in-loop -- SVG layout must settle frame by frame.
+            await new Promise(requestAnimationFrame);
+
+            if (scheduledSourceSignature !== this.widthOverflowSourceSignature) break;
+
+            measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            const currentFrameSignature = `${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+            const hasMeasuredText = measuredWidths.some((width) => width > 0);
+
+            if (hasMeasuredText && currentFrameSignature === previousFrameSignature) break;
+
+            previousFrameSignature = currentFrameSignature;
+          }
+
+          this.widthMeasurementScheduled = false;
+
+          if (scheduledSourceSignature === this.widthOverflowSourceSignature) {
+            this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+            this.textParts = this.widthOverflowParts;
+            this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+            this.widthOverflowPending = false;
+          }
+
+          this.card.requestUpdate();
+        });
+      }
+
+      return;
+    }
+
+    if (this.widthMeasurementParts.length > 0) {
+      const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+      const measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+      const ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+      const widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+
+      if (widthOverflowMeasurementSignature !== this.widthOverflowMeasurementSignature) {
+        this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+        this.textParts = this.widthOverflowParts;
+        this.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
+        this.card.requestUpdate();
+        return;
+      }
+    }
+
+    // Measure without the fit transform. Restoring it synchronously keeps the
+    // DOM unchanged while preventing the previous fit from affecting the next.
+    const fitTransform = this.textElement.getAttribute('transform');
+
+    this.textElement.removeAttribute('transform');
     const boundingBox = this.textElement.getBBox();
-    const measuredWidth = boundingBox.width * (100 / SVG_DEFAULT_DIMENSIONS);
-    const measuredHeight = boundingBox.height * (100 / SVG_DEFAULT_DIMENSIONS);
-    const measuredXpos = boundingBox.x + boundingBox.width / 2;
-    const measuredYpos = boundingBox.y + boundingBox.height / 2;
+    this.textElement.setAttribute('transform', fitTransform);
 
-    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
+    const unscaledWidth = boundingBox.width * dimensionFactor;
+    const unscaledHeight = boundingBox.height * dimensionFactor;
+    const unscaledXpos = boundingBox.x + boundingBox.width / 2;
+    const unscaledYpos = boundingBox.y + boundingBox.height / 2;
+    const textOverflow = this.config.text_overflow;
+    const fitConfig = textOverflow?.fit;
+    const computedTextFontSize = Number.parseFloat(window.getComputedStyle(this.textElement).fontSize);
+    let nextTextFitScale = 1;
 
-    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * dimensionFactor;
 
-    if (measurementChanged) {
+    if (textOverflow?.mode === 'fit' && unscaledWidth > fitConfig.max_width) {
+      nextTextFitScale = fitConfig.max_width / unscaledWidth;
+
+      if (fitConfig.min_font_size !== undefined) {
+        const parentFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.parentElement).fontSize);
+        const minimumFontSize = Number.parseFloat(fitConfig.min_font_size) * parentFontSize;
+        const minimumTextFitScale = minimumFontSize / computedTextFontSize;
+
+        nextTextFitScale = Math.min(1, Math.max(nextTextFitScale, minimumTextFitScale));
+      }
+    }
+
+    const measuredWidth = unscaledWidth * nextTextFitScale;
+    const measuredHeight = unscaledHeight * nextTextFitScale;
+    const measuredXpos = this.config.svg.xpos + ((unscaledXpos - this.config.svg.xpos) * nextTextFitScale);
+    const measuredYpos = this.config.svg.ypos + ((unscaledYpos - this.config.svg.ypos) * nextTextFitScale);
+    const measurementTolerance = 0.0001;
+    const fitScaleChanged = Math.abs(nextTextFitScale - this.textFitScale) > measurementTolerance;
+    const measurementChanged = !this.hasExactMeasurement
+      || Math.abs(measuredWidth - this.measuredWidth) > measurementTolerance
+      || Math.abs(measuredHeight - this.measuredHeight) > measurementTolerance
+      || Math.abs(measuredXpos - this.measuredXpos) > measurementTolerance
+      || Math.abs(measuredYpos - this.measuredYpos) > measurementTolerance;
+
+    if (fitScaleChanged || measurementChanged) {
       const characterCount = this.textParts.reduce((count, part) => count + part.value.length, 0);
 
       if (characterCount > 0) {
-        const measuredFactor = measuredWidth / characterCount / this.textFontSize;
+        const measuredFactor = unscaledWidth / characterCount / this.textFontSize;
 
         this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
       }
+      this.textFitScale = nextTextFitScale;
       this.measuredWidth = measuredWidth;
       this.measuredHeight = measuredHeight;
       this.measuredXpos = measuredXpos;
@@ -266,6 +832,51 @@ export default class TextTool extends BaseTool {
 
     this.applyColorStops(textStyles, 'fill');
 
+    const fitTransform = this.config.text_overflow?.mode === 'fit'
+      ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
+      : '';
+    const buildRenderedPart = (part) => {
+      let renderPart = part;
+
+      // Source animations are resolved during render, after the animation
+      // pipeline has activated the styles for this exact state update.
+      if (part.source_reference) {
+        const sourceTool = this.getReferencedTextTool(part.source_reference);
+        const currentSourcePart = sourceTool
+          .getTextParts(part.source_reference.options)[part.source_reference.part_index];
+
+        renderPart = {
+          ...part,
+          styles: currentSourcePart.styles,
+        };
+      }
+
+      const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
+      const stopColor = this.card._getItemColorFromStops(renderPart);
+      const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
+
+      if (stopColor) partStyles.fill = stopColor;
+
+      return {
+        ...renderPart,
+        renderStyles: this.getRenderStyles({
+          ...partStyles,
+          ...animationStyles,
+        }),
+      };
+    };
+    const visibleRenderParts = this.textParts.map((part) => buildRenderedPart(part));
+    const measurementRenderParts = this.widthMeasurementParts.map((part) => buildRenderedPart(part));
+    const measurementTextStyles = {
+      ...textStyles,
+      opacity: '0',
+      'pointer-events': 'none',
+      'white-space': 'pre',
+    };
+
+    this.widthMeasurementElements = new Array(measurementRenderParts.length);
+    this.widthEllipsisElements = new Array(measurementRenderParts.length);
+
     return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
@@ -274,43 +885,54 @@ export default class TextTool extends BaseTool {
         <text
           ${ref(this.setTextElement)}
           id="${this.textElementId}"
+          transform="${fitTransform}"
           x="${this.config.svg.xpos}"
           y="${this.config.svg.ypos}"
           dominant-baseline="${textStyles['dominant-baseline']}"
           style=${styleMap(this.getRenderStyles(textStyles))}
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
-        >${this.textParts.map((part) => {
-          const partStyles = ConfigHelper.toStyleDict(part.styles);
-          const stopColor = this.card._getItemColorFromStops(part);
-          const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[part.animation_id] ?? {});
+          visibility="${this.widthOverflowPending && this.widthOverflowParts.length === 0 ? 'hidden' : 'visible'}"
+        >${visibleRenderParts.map((renderPart) => {
+          const dx = renderPart.dx ?? 0;
+          const dy = renderPart.dy ?? 0;
 
-          if (stopColor) partStyles.fill = stopColor;
-
-          const styles = {
-            ...partStyles,
-            ...animationStyles,
-          };
-          const dx = part.dx ?? 0;
-          const dy = part.dy ?? 0;
-
-          return part.new_line
+          return renderPart.new_line
             ? svg`<tspan
                 class="text-tool__part"
                 x="${this.config.svg.xpos}"
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
-                style=${styleMap(this.getRenderStyles(styles))}
-              >${part.value}</tspan>`
+                style=${styleMap(renderPart.renderStyles)}
+              >${renderPart.value}</tspan>`
             : svg`<tspan
                 class="text-tool__part"
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
-                style=${styleMap(this.getRenderStyles(styles))}
-              >${part.value}</tspan>`;
+                style=${styleMap(renderPart.renderStyles)}
+              >${renderPart.value}</tspan>`;
         })}</text>
+        ${measurementRenderParts.length > 0 ? svg`
+          <text
+            class="text-tool__measurement"
+            x="${this.config.svg.xpos}"
+            y="${this.config.svg.ypos}"
+            pointer-events="none"
+            aria-hidden="true"
+            style=${styleMap(this.getRenderStyles(measurementTextStyles))}
+          >${measurementRenderParts.map((renderPart, partIndex) => svg`
+            <tspan
+              ${ref((element) => { if (element) this.widthMeasurementElements[partIndex] = element; })}
+              style=${styleMap(renderPart.renderStyles)}
+            >${renderPart.value}</tspan>
+            <tspan
+              ${ref((element) => { if (element) this.widthEllipsisElements[partIndex] = element; })}
+              style=${styleMap(renderPart.renderStyles)}
+            >...</tspan>
+          `)}</text>
+        ` : ''}
       </g>
     `);
   }
