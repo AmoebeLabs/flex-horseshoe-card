@@ -21,8 +21,19 @@ export default class BaseTool {
    * @param {string} animationSection - Animation bucket name for this tool type.
    * @param {string} zposSection - Layer bucket name for zpos defaults.
    * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
+   * @param {object|undefined} colorStopPaintDefaults - Tool-specific fill and stroke defaults.
    */
-  constructor(config, index, templates, cardId, card, animationSection, zposSection = animationSection, defaultEntityIndex = 0) {
+  constructor(
+    config,
+    index,
+    templates,
+    cardId,
+    card,
+    animationSection,
+    zposSection = animationSection,
+    defaultEntityIndex = 0,
+    colorStopPaintDefaults = undefined,
+  ) {
     this.sourceConfig = config;
     this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
     this.config = this.sourceConfig;
@@ -39,6 +50,7 @@ export default class BaseTool {
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? defaultEntityIndex;
+    this.colorStopPaintDefaults = colorStopPaintDefaults;
 
     this.entity = undefined;
     this.entityConfig = undefined;
@@ -76,6 +88,13 @@ export default class BaseTool {
       this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.getActiveColorStopMode());
     }
 
+    // Entity-level color stops remain passive until the layout item selects a color-stop mode.
+    if (this.configChanged && this.colorStopPaintDefaults
+      && (this.config.color_stops || this.config.colorstop_gradient !== undefined
+        || ['colorstop', 'colorstopgradient'].includes(this.config.show?.item_style))) {
+      this.normalizeLayoutItemColorStopMode(this.config);
+    }
+
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
     if (this.configChanged && this.config.sparkline?.color_stops) {
       this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.getActiveColorStopMode());
@@ -83,6 +102,37 @@ export default class BaseTool {
 
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.activeConfigInitialized = true;
+  }
+
+  /**
+   * Normalizes the public layout-item color-stop selector at the runtime-config boundary.
+   *
+   * Explicit show.item_style configuration wins over the stable colorstop_gradient alias.
+   * Both paint dictionaries are completed here so renderers only consume final config.
+   *
+   * @param {object} item - Layout item or multipart text item with normalized color stops.
+   * @param {object} paintDefaults - Semantic fill and stroke defaults for this tool.
+   */
+  normalizeLayoutItemColorStopMode(item, paintDefaults = this.colorStopPaintDefaults) {
+    item.show ??= {};
+    item.show.item_style ??= item.colorstop_gradient === true ? 'colorstopgradient' : 'colorstop';
+
+    if (item.show.item_style !== 'colorstop' && item.show.item_style !== 'colorstopgradient') return;
+
+    item.colorstop = {
+      ...paintDefaults,
+      ...item.colorstop,
+    };
+    item.colorstopgradient = {
+      ...paintDefaults,
+      ...item.colorstopgradient,
+    };
+
+    ['colorstop', 'colorstopgradient'].forEach((mode) => {
+      if (typeof item[mode].fill !== 'boolean' || typeof item[mode].stroke !== 'boolean') {
+        throw new Error(`[${this.animationSection}] ${mode}.fill and ${mode}.stroke must be boolean`);
+      }
+    });
   }
 
   /**
@@ -179,16 +229,27 @@ export default class BaseTool {
   }
 
   /**
-   * Applies a color stop result to the requested style property.
+   * Applies the selected color-stop result to the configured SVG paint properties.
    *
    * @param {object} styles - Mutable style dictionary.
-   * @param {string} property - Style property that receives the color stop value.
+   * @param {object} item - Runtime item containing the normalized mode dictionaries.
+   * @param {Array<string>} fillProperties - Renderer properties representing logical fill.
    */
-  applyColorStops(styles, property) {
-    const stopColor = this.card._getItemColorFromStops(this.config);
+  applyColorStops(styles, item = this.config, fillProperties = ['fill']) {
+    if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopgradient') return;
+
+    const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
+    const stopColor = this.card._getItemColorFromStops(item, colorStops);
 
     if (stopColor) {
-      styles[property] = stopColor;
+      const paintMode = item[item.show.item_style];
+
+      if (paintMode.fill) {
+        fillProperties.forEach((property) => {
+          styles[property] = stopColor;
+        });
+      }
+      if (paintMode.stroke) styles.stroke = stopColor;
     }
   }
 

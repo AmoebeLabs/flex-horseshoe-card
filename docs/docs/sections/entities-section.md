@@ -27,6 +27,8 @@ All four element types use the same positioning system. `xpos` and `ypos` place 
 
 Icons can also be used without an entity by defining the icon directly in the layout item.
 
+When `color_stops` is configured, entity text and icons use `fill` by default. Use `show.item_style: colorstop` for hard value ranges or `show.item_style: colorstopgradient` to blend between adjacent stops. The matching `colorstop` or `colorstopgradient` block can enable `fill`, `stroke`, or both.
+
 ## :material-horseshoe: Basic usage
 
 ### Example definitions
@@ -54,7 +56,7 @@ Icons can also be used without an entity by defining the icon directly in the la
       styles:
         font-size: 1.4em
         text-transform: none
-      color_stop:               # Changes the text color based on the entity state
+      color_stops:               # Changes the text color based on the entity state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -87,7 +89,7 @@ Icons can also be used without an entity by defining the icon directly in the la
       styles:
         font-size: 1.4em
         text-transform: none
-      color_stop:               # Changes the text color based on the entity state
+      color_stops:               # Changes the text color based on the entity state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -118,7 +120,7 @@ Icons can also be used without an entity by defining the icon directly in the la
       styles:
         font-size: 1.4em
         text-anchor: middle
-      color_stop:               # Changes the text color based on the entity state
+      color_stops:               # Changes the text color based on the entity state
         colors:
           0: 'blue'
           0.1: 'green'
@@ -195,7 +197,7 @@ The available fields vary slightly by element type.
     | `entity_index` | :material-check: | Index of the connected entity in the `entities` section. |
     | `ellipsis` | :material-close: | Maximum text length before an ellipsis is added. |
     | `styles` | :material-close: | Applies CSS and SVG styles to the text. |
-    | `color_stop` | :material-close: | Uses the entity state to determine the text color. |
+    | `color_stops` | :material-close: | Uses the entity state to determine the text color. |
 
 === "Name"
     | Field | Required | Description |
@@ -205,7 +207,7 @@ The available fields vary slightly by element type.
     | `entity_index` | :material-check: | Index of the connected entity in the `entities` section. |
     | `ellipsis` | :material-close: | Maximum text length before an ellipsis is added. |
     | `styles` | :material-close: | Applies CSS and SVG styles to the text. |
-    | `color_stop` | :material-close: | Uses the entity state to determine the text color. |
+    | `color_stops` | :material-close: | Uses the entity state to determine the text color. |
 
 === "State"
     | Field | Required | Description |
@@ -214,7 +216,7 @@ The available fields vary slightly by element type.
     | `ypos` | :material-check: | Vertical position on the `100 × 100` card canvas. |
     | `entity_index` | :material-check: | Index of the connected entity in the `entities` section. |
     | `styles` | :material-close: | Applies CSS and SVG styles to the state text. |
-    | `color_stop` | :material-close: | Uses the entity state to determine the text color. |
+    | `color_stops` | :material-close: | Uses the entity state to determine the text color. |
     | `state_map` | :material-close: | Maps named states to decimal values for color stops. **Not yet implemented.** |
 
 === "Icon"
@@ -227,7 +229,7 @@ The available fields vary slightly by element type.
     | `entity_index` | :material-close: | Index of the connected entity in the `entities` section. |
     | `icon` | :material-close: | Defines an MDI icon, external image, or external SVG. |
     | `styles` | :material-close: | Applies CSS and SVG styles to the icon. |
-    | `color_stop` | :material-close: | Uses the entity state to determine the icon color. |
+    | `color_stops` | :material-close: | Uses the entity state to determine the icon color. |
     | `state_map` | :material-close: | Chooses an icon based on the current entity state. |
 
 ### Shared fields
@@ -239,6 +241,9 @@ These fields are available across the entity element sections.
 | `id`       | :material-close: | Optional identifier that must be unique within the section and can be referenced by `same_as`. |
 | `group`    | :material-close: | Assigns the layout item to a group.                                                            |
 | `same_as*` | :material-close: | Reuses another item from the same section. See the `same_as` documentation.                    |
+| `show.item_style` | :material-close: | Selects `colorstop` or `colorstopgradient` when `color_stops` is configured. |
+| `colorstop.fill` / `.stroke` | :material-close: | Selects which properties receive a hard color-stop color. |
+| `colorstopgradient.fill` / `.stroke` | :material-close: | Selects which properties receive a blended color-stop color. |
 
 ## :material-horseshoe: Styling
 

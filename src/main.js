@@ -999,9 +999,16 @@ class FlexHorseshoeCard extends LitElement {
           entity_index: index,
         };
 
-        if (!evaluateJavascript || !Templates.hasJavascriptTemplates(entityConfig)) return entityConfig;
+        const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig)
+          ? Templates.getJsTemplateOrValue(item, entityConfig)
+          : entityConfig;
 
-        return Templates.getJsTemplateOrValue(item, entityConfig);
+        // Normalize reusable entity-level color stops once for every opted-in layout item.
+        if (resolvedEntityConfig.color_stops) {
+          resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.getActiveColorStopMode());
+        }
+
+        return resolvedEntityConfig;
       }) ?? []
     );
   }
@@ -1234,7 +1241,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
-    if (configuredEntityStateChanged) {
+    if (configuredEntityStateChanged || this.theme.modeChanged) {
       this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
     } else {
@@ -2043,8 +2050,8 @@ class FlexHorseshoeCard extends LitElement {
     return entity.state;
   }
 
-  _getItemColorFromStops(item = {}) {
-    if (!item.colorstops) return undefined;
+  _getItemColorFromStops(item, colorStops) {
+    if (!colorStops) return undefined;
 
     const rawState = this._getItemStateValue(item);
     const stateNumber = Number(rawState);
@@ -2053,7 +2060,7 @@ class FlexHorseshoeCard extends LitElement {
       return undefined;
     }
 
-    return Colors.calculateStrokeColor(stateNumber, item.colorstops, item.colorstop_gradient === true);
+    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopgradient');
   }
 
   /**

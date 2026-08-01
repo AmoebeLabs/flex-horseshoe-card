@@ -280,7 +280,7 @@ Proposed values:
 show:
   item_style: none               # do not apply automatic item color
   item_style: colorstop          # use the runtime color from color_stops
-  item_style: colorstop_gradient # future: use color stop gradient output
+  item_style: colorstopgradient  # blend between adjacent color stops
   item_style: fixed              # future/optional: explicitly use configured/default styles only
   item_style: inherit            # future/optional: use entity/card default behavior
 ```

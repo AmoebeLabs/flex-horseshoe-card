@@ -37,7 +37,7 @@ export default class AreaTool extends BaseTool {
     config.xpos = config.xpos ?? 0;
     config.ypos = config.ypos ?? 0;
 
-    super(config, index, templates, cardId, card, 'areas');
+    super(config, index, templates, cardId, card, 'areas', 'areas', 0, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
     this.area = '';
@@ -211,7 +211,7 @@ export default class AreaTool extends BaseTool {
         opacity: '1.0',
         'text-anchor': 'middle',
       });
-      this.applyColorStops(styles, 'stroke');
+      this.applyColorStops(styles);
     }
 
     return [{

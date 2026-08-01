@@ -276,7 +276,7 @@ export default class StateTool extends BaseTool {
       ...(config.show ?? {}),
     };
 
-    super(config, index, templates, cardId, card, 'states');
+    super(config, index, templates, cardId, card, 'states', 'states', 0, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
     this.state = '';
@@ -694,7 +694,7 @@ export default class StateTool extends BaseTool {
         opacity: '1.0',
         'text-anchor': 'middle',
       });
-      this.applyColorStops(stateStyles, 'fill');
+      this.applyColorStops(stateStyles);
     }
 
     stateStyles = {

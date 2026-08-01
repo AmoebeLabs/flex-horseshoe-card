@@ -69,7 +69,17 @@ export default class LineTool extends BaseTool {
       ...config,
     };
 
-    super(lineConfig, index, templates, cardId, card, lineConfig.animation_section, lineConfig.animation_section, undefined);
+    super(
+      lineConfig,
+      index,
+      templates,
+      cardId,
+      card,
+      lineConfig.animation_section,
+      lineConfig.animation_section,
+      undefined,
+      { fill: false, stroke: true },
+    );
 
     this.validateOrientation(this.config.orientation);
     this.config.svg = this.calculateSvgDimensions();
@@ -165,7 +175,7 @@ export default class LineTool extends BaseTool {
     };
     const styles = this.getStyles(lineStyles);
 
-    this.applyColorStops(styles, 'stroke');
+    this.applyColorStops(styles);
 
     return this.renderItemLayers(svg`
       <g

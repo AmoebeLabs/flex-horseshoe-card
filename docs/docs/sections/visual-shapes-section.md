@@ -36,10 +36,34 @@ Horizontal and vertical lines both use a center position and a length. Their con
 
 Shapes can also be connected to an entity through `entity_index`. This allows color stops and animations to respond to the state of that entity.
 
+Color stops use `fill` for rectangles and arcs, and `stroke` for circles and lines by default. Select `show.item_style: colorstop` for hard value ranges or `show.item_style: colorstopgradient` for a blended color. Add the matching mode block to color the fill, stroke, or both.
+
 ### Example definitions
 
 === "Rectangle"
     A fixed rectangle uses its own position and dimensions:
+
+    A rectangle uses the selected color for its fill by default. Enable both properties when its inside and outline should use that color:
+
+    ```yaml title="Rectangle fill and outline" linenums="1"
+    - xpos: 50
+      ypos: 50
+      width: 40
+      height: 12
+      entity_index: 0
+      show:
+        item_style: colorstop
+      colorstop:
+        fill: true
+        stroke: true
+      styles:
+        stroke-width: 1
+      color_stops:
+        colors:
+          0: green
+          50: orange
+          100: red
+    ```
 
     ```yaml title="Fixed rectangle" linenums="1"
     - xpos: 50
@@ -50,6 +74,7 @@ Shapes can also be connected to an entity through `entity_index`. This allows co
       styles:
         fill: var(--primary-color)
         opacity: 0.3
+    ```
 
     A fitted rectangle takes its position and dimensions from another layout item. The referenced item must have an `id`:
 
@@ -72,6 +97,25 @@ Shapes can also be connected to an entity through `entity_index`. This allows co
 
 === "Circle"
     A circle can use a fixed radius in SVG units:
+
+    A circle uses the selected color for its outline by default. This example colors the inside instead:
+
+    ```yaml title="Filled circle with blended color" linenums="1"
+    - xpos: 50
+      ypos: 50
+      radius: 20
+      entity_index: 0
+      show:
+        item_style: colorstopgradient
+      colorstopgradient:
+        fill: true
+        stroke: false
+      color_stops:
+        colors:
+          0: green
+          50: orange
+          100: red
+    ```
 
     ```yaml title="Circle with fixed radius" linenums="1" hl_lines="1"
     - xpos: 50                  # Horizontal center position
@@ -228,6 +272,9 @@ The following fields are available for rectangles, circles, horizontal lines, an
 | `id`       | :material-close: | Not set | Optional identifier that must be unique within the section and can be referenced by `same_as` |
 | `group`    | :material-close: | `card`  | Assigns the visual shape to a group                                                           |
 | `same_as*` | :material-close: | Not set | Reuses another item from the same section. See the `same_as` documentation.                   |
+| `show.item_style` | :material-close: | `colorstop` | Selects `colorstop` or `colorstopgradient` when `color_stops` is configured. |
+| `colorstop.fill` / `.stroke` | :material-close: | Shape default | Selects which properties receive a hard color-stop color. |
+| `colorstopgradient.fill` / `.stroke` | :material-close: | Shape default | Selects which properties receive a blended color-stop color. |
 
 ## :material-horseshoe: Styling
 

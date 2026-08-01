@@ -37,7 +37,7 @@ export default class NameTool extends BaseTool {
     config.xpos = config.xpos ?? 0;
     config.ypos = config.ypos ?? 0;
 
-    super(config, index, templates, cardId, card, 'names');
+    super(config, index, templates, cardId, card, 'names', 'names', 0, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
     this.name = '';
@@ -194,7 +194,7 @@ export default class NameTool extends BaseTool {
         opacity: '1.0',
         'text-anchor': 'middle',
       });
-      this.applyColorStops(styles, 'stroke');
+      this.applyColorStops(styles);
     }
 
     return [{

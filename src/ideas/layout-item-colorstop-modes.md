@@ -29,13 +29,13 @@ through `v5.4.7`. It must therefore remain supported.
 
 ## User Model
 
-Follow the SAK model. `show.style` selects the color mode, while a root
+Follow the SAK model. `show.item_style` selects the color mode, while a root
 dictionary with the same name defines which SVG paint properties receive the
 calculated runtime color:
 
 ```yaml
 show:
-  style: colorstopgradient
+  item_style: colorstopgradient
 
 colorstop:
   fill: true
@@ -63,7 +63,7 @@ Supported modes:
 item. It does not draw a spatial gradient over the item itself.
 
 `fill` and `stroke` are independent. Both may be enabled. A reusable template
-can define both mode dictionaries up front and switch only `show.style`,
+can define both mode dictionaries up front and switch only `show.item_style`,
 including through a JavaScript template.
 
 ## Compatibility And Defaults
@@ -71,9 +71,9 @@ including through a JavaScript template.
 Normalize all legacy and implicit forms in the configuration or constructor
 layer before runtime rendering:
 
-- `colorstop_gradient: false` maps to `show.style: colorstop`;
-- `colorstop_gradient: true` maps to `show.style: colorstopgradient`;
-- an explicit `show.style` takes precedence over `colorstop_gradient`;
+- `colorstop_gradient: false` maps to `show.item_style: colorstop`;
+- `colorstop_gradient: true` maps to `show.item_style: colorstopgradient`;
+- an explicit `show.item_style` takes precedence over `colorstop_gradient`;
 - an item with `color_stops` but without either field uses `colorstop`;
 - new documentation only presents the mode-based configuration;
 - the stable `colorstop_gradient` alias remains accepted without a warning.
@@ -100,7 +100,9 @@ accidental `stroke` behavior to normal text `fill`.
   mode-driven application to `fill`, `stroke`, or both.
 - Apply the same model to outer TextTool configuration and individual multipart
   text parts.
-- Evaluate JavaScript-generated `show.style` and mode dictionaries through the
+- Normalize optional entity-level `color_stops` once and let opted-in items inherit them.
+- Keep item-level `color_stops` as the higher-priority override.
+- Evaluate JavaScript-generated `show.item_style` and mode dictionaries through the
   existing source/active runtime-config lifecycle.
 - Leave horseshoe-specific `show.horseshoe_style` and sparkline
   `colorstops_transition` behavior unchanged.
@@ -115,7 +117,7 @@ TextTool with:
 - the two layout-item modes;
 - independent `fill` and `stroke` examples;
 - a filled circle and a rectangle using both paint properties;
-- a template that defines both mode dictionaries and switches `show.style`;
+- a template that defines both mode dictionaries and switches `show.item_style`;
 - a clear distinction between an interpolated runtime color and an actual SVG
   gradient across an item.
 

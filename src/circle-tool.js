@@ -37,7 +37,7 @@ export default class CircleTool extends BaseTool {
       ...config,
     };
 
-    super(circleConfig, index, templates, cardId, card, 'circles', 'circles', undefined);
+    super(circleConfig, index, templates, cardId, card, 'circles', 'circles', undefined, { fill: false, stroke: true });
 
     this.config.svg = this.calculateSvgDimensions();
   }
@@ -75,7 +75,7 @@ export default class CircleTool extends BaseTool {
     const circleStyles = {};
     const styles = this.getStyles(circleStyles);
 
-    this.applyColorStops(styles, 'stroke');
+    this.applyColorStops(styles);
 
     return this.renderItemLayers(svg`
       <g

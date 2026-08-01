@@ -61,7 +61,7 @@ export default class RectangleTool extends BaseTool {
       };
     }
 
-    super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined);
+    super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
   }
@@ -159,7 +159,7 @@ export default class RectangleTool extends BaseTool {
     };
     const styles = this.getStyles(rectangleStyles);
 
-    this.applyColorStops(styles, 'fill');
+    this.applyColorStops(styles);
 
     return this.renderItemLayers(svg`
       <g

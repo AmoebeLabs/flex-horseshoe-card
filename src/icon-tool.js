@@ -41,7 +41,7 @@ export default class IconTool extends BaseTool {
     const hasStandaloneIconSource = config.icon !== undefined || config.state_map !== undefined;
     const defaultEntityIndex = hasStandaloneIconSource ? undefined : 0;
 
-    super(config, index, templates, cardId, card, 'icons', 'icons', defaultEntityIndex);
+    super(config, index, templates, cardId, card, 'icons', 'icons', defaultEntityIndex, { fill: true, stroke: false });
 
     this.config.svg = this.calculateSvgDimensions();
     this.iconId = Math.random().toString(36).substr(2, 9);
@@ -469,12 +469,7 @@ export default class IconTool extends BaseTool {
 
     let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
     const stateStyle = this.card.animations?.icons?.[renderItem.animation_id] ?? {};
-    const stopColor = this.card._getItemColorFromStops(renderItem);
-
-    if (stopColor) {
-      configStyle.fill = stopColor;
-      configStyle.color = stopColor;
-    }
+    this.applyColorStops(configStyle, renderItem, ['fill', 'color']);
 
     configStyle = this.getRenderStyles({
       ...defaultIconColor,
