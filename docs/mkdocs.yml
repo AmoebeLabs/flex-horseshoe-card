@@ -179,6 +179,7 @@ nav:
           # - Environment Card: examples/demo-cards/environment-card.md
           - Kleenex Pollen Cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
           - Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
+          - Awair Cards: examples/demo-cards/demo-card-awair-many.md
           # - Light Card: examples/demo-cards/light-card.md
           # - Person Card: examples/demo-cards/person-card.md
           # - Power Outlet Card: examples/demo-cards/power-outlet-card.md
