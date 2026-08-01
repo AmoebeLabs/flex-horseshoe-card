@@ -136,10 +136,12 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     throw new Error('[V2] Missing horseshoe_scale');
   }
 
-  // Scale defaults are merged before validation so downstream geometry always has core fields.
+  // The active color-stop template supplies the default value range. Explicit
+  // horseshoe scale values are merged afterward and therefore keep priority.
+  const defaultColorStopScale = config.colorstops.scales.default ?? {};
   const horseshoeScale = {
-    min: 0,
-    max: 100,
+    min: defaultColorStopScale.min ?? 0,
+    max: defaultColorStopScale.max ?? 100,
     width: 6,
     color: 'var(--primary-background-color)',
     linecap: 'round',
