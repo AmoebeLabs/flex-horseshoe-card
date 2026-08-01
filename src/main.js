@@ -44,6 +44,7 @@ import IconTool from './icon-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
+import Compounds from './compounds.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
@@ -1611,6 +1612,20 @@ class FlexHorseshoeCard extends LitElement {
     config.layout.groups ??= [];
     config.layout.groups = this._assignIdItems(config.layout.groups);
 
+    if (Array.isArray(config.layout.compounds)) {
+      config.layout.compounds = this._assignIdItems(config.layout.compounds);
+
+      config.layout.compounds.forEach((compound) => {
+        VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
+          const children = compound[section];
+
+          if (!Array.isArray(children)) return;
+
+          compound[section] = this._assignIdItems(children);
+        });
+      });
+    }
+
     VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
       const items = config.layout?.[section];
 
@@ -1904,8 +1919,9 @@ class FlexHorseshoeCard extends LitElement {
 
       this._replaceStaticRefs(config, config.constants);
       this._calculateStaticValues(config, calcConstants);
-
+      Compounds.compile(config);
       SameAs.compile(config);
+
       this._removeDisabledLayoutItems(config);
       this._normalizeFhsInputNumberConfigs(config);
 
