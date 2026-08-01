@@ -18,8 +18,8 @@ Use `horseshoe_scale` to define the value range and appearance of the base arc.
 
 | Field          | Default                           | Description                                                    |
 | :------------- | :-------------------------------- | :------------------------------------------------------------- |
-| `min`          | `0`                               | Defines the lowest value on the scale.                         |
-| `max`          | `100`                             | Defines the highest value on the scale.                        |
+| `min`          | Color-stop scale or `0`           | Defines the lowest value on the scale.                         |
+| `max`          | Color-stop scale or `100`         | Defines the highest value on the scale.                        |
 | `type`         | `linear`                          | Chooses how values are mapped to angles.                       |
 | `spline`       |                                   | Provides the spline definition required by spline scale types. |
 | `width`        | `6`                               | Controls the width of the scale arc.                           |
@@ -39,6 +39,8 @@ horseshoe_scale:
     - fill: var(--divider-color)
     - opacity: 0.5
 ```
+
+When `color_stops.scales.default` defines a minimum and maximum, the horseshoe uses that range automatically. Explicit `horseshoe_scale.min` or `horseshoe_scale.max` values override the corresponding color-stop values. If neither is configured, the range falls back to `0` through `100`.
 
 A linear scale is the best choice for most gauges. Use a spline scale only when the spacing needs to follow a verified spline definition. Tick marks, labels, and the state arc all use the same mapping, so they remain aligned.
 
