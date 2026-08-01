@@ -514,6 +514,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.historyRangeStart = undefined;
     this.historyRangeEnd = undefined;
     this.historyPeriodSignature = JSON.stringify(this.config.period);
+    this.historyEntityId = undefined;
     this.historyResynchronizationRequested = false;
     this.historyLoading = false;
     this.preserveGraphWhileHistoryLoads = false;
@@ -896,6 +897,26 @@ export default class SparklineGraphTool extends BaseTool {
 
     const realTime = this.config.period.type === 'real_time';
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
+    const historyEntityChanged = this.historyEntityId !== undefined && this.historyEntityId !== entity.entity_id;
+
+    this.historyEntityId = entity.entity_id;
+
+    if (historyEntityChanged) {
+      // A stable entity_index can point at another runtime entity. History,
+      // statistics and timers belong to the previous entity and cannot be reused.
+      window.clearTimeout(this.binBoundaryTimer);
+      window.clearTimeout(this.calendarRangeTimer);
+      this.historySeries = undefined;
+      this.series = [];
+      this.stats = {};
+      this.historyRangeStart = undefined;
+      this.historyRangeEnd = undefined;
+      this.historyRefreshAt = 0;
+      this.historyResynchronizationRequested = !realTime;
+      this.historyLoading = !realTime && this.historyDurationReady;
+      this.preserveGraphWhileHistoryLoads = false;
+      this.clearTooltip();
+    }
 
     // Real-time mode owns one current sample and never enters the history
     // lifecycle. Clear an existing boundary timer when runtime config changes
@@ -1312,7 +1333,8 @@ export default class SparklineGraphTool extends BaseTool {
       this.card.requestUpdate();
     }
 
-    const path = this.buildHistoryPath(this.entityConfig.entity, range.start, range.end);
+    const requestedHistoryEntityId = entity.entity_id;
+    const path = this.buildHistoryPath(requestedHistoryEntityId, range.start, range.end);
     const requestedHistoryPeriodSignature = this.historyPeriodSignature;
     // console.log('[fetchHistoryIfNeeded] range', range);
     this.historyPromise = this.card._hass
@@ -1320,6 +1342,7 @@ export default class SparklineGraphTool extends BaseTool {
       .then((history) => {
         const historyRows = history.length === 0 ? [] : history[0];
         const requestMatchesActivePeriod = requestedHistoryPeriodSignature === this.historyPeriodSignature;
+        const requestMatchesActiveEntity = requestedHistoryEntityId === this.historyEntityId;
 
         if (this.card.dev.debug) {
           console.log('[FHS sparkline history response]', {
@@ -1328,13 +1351,16 @@ export default class SparklineGraphTool extends BaseTool {
             requestedRangeStart: range.start.toISOString(),
             requestedRangeEnd: range.end.toISOString(),
             historyRows: historyRows.length,
+            requestedEntityId: requestedHistoryEntityId,
             requestMatchesActivePeriod,
+            requestMatchesActiveEntity,
           });
         }
 
-        // A local or global FHS input can change the requested period while this request is in flight.
-        // Ignore that obsolete response; finally starts synchronization for the current period.
-        if (!requestMatchesActivePeriod) return;
+        // A local or global FHS input can change the period or source entity while
+        // this request is in flight. Ignore obsolete data; finally synchronizes
+        // the currently active entity and represented period.
+        if (!requestMatchesActivePeriod || !requestMatchesActiveEntity) return;
 
         this.historySeries = this.buildHistorySeries(historyRows, entity, range.end);
         this.historyRangeStart = range.start.getTime();
@@ -1367,8 +1393,8 @@ export default class SparklineGraphTool extends BaseTool {
       .finally(() => {
         this.historyPromise = undefined;
 
-        // A period may change while an earlier request is still in flight. Fetch
-        // the latest represented range after that older request has completed.
+        // A period or source entity may change while an earlier request is in
+        // flight. Fetch the active combination after that request has completed.
         if (this.historyResynchronizationRequested) this.fetchHistoryIfNeeded(this.entity);
       });
   }

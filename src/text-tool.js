@@ -263,7 +263,7 @@ export default class TextTool extends BaseTool {
       activeParts.forEach((part) => {
         let firstFragment = true;
 
-        String(part.value).match(/\s+|\S+/g).forEach((fragment) => {
+        Array.from(String(part.value).matchAll(/\s+|\S+/g), (match) => match[0]).forEach((fragment) => {
           const fragmentPart = {
             ...part,
             value: fragment,
@@ -324,7 +324,7 @@ export default class TextTool extends BaseTool {
           }
 
           let partPositionPending = true;
-          const fragments = String(part.value).match(/\s+|\S+/g);
+          const fragments = Array.from(String(part.value).matchAll(/\s+|\S+/g), (match) => match[0]);
 
           fragments.forEach((fragment) => {
             if (maximumLinesReached) return;

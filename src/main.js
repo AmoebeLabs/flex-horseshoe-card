@@ -1098,6 +1098,15 @@ class FlexHorseshoeCard extends LitElement {
    * point at those entity_index values must receive their entity state again.
    */
   _updateToolsAfterSparklineStatistics() {
+    // History resolves asynchronously and another card may have published its
+    // template context meanwhile. Restore this card before evaluating its tools.
+    Templates.setContext({
+      hass: this._hass,
+      config: this.config,
+      entities: this.entities,
+      horseshoes: this.horseshoes,
+    });
+
     this.evaluateJavascriptTemplates = true;
 
     // Async sparkline statistics update runtime config before entity data.
