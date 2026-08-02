@@ -54,6 +54,9 @@ export default class TextTool extends BaseTool {
       return {
         type: 'text',
         ...(partConfig.new_line ? { dy: 1.2 } : {}),
+        ...(config.localize_tag !== undefined && !Array.isArray(config.text)
+          ? { localize_tag: config.localize_tag }
+          : {}),
         ...partConfig,
       };
     });
@@ -83,6 +86,7 @@ export default class TextTool extends BaseTool {
     }
 
     delete outerConfig.text;
+    delete outerConfig.localize_tag;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
     this.sourceTextParts = sourceTextParts;
@@ -203,6 +207,12 @@ export default class TextTool extends BaseTool {
         ? stateMapEntries.find((entry) => String(entry.state) === String(partEntity.state)) ?? stateMapEntries.find((entry) => entry.state === 'default')
         : undefined;
       const activePart = stateMapPart ? Merge.mergeDeep(part, stateMapPart) : { ...part };
+
+      // A Home Assistant localization key becomes ordinary text before the
+      // existing ellipsis, wrapping, fitting and SVG measurement pipeline.
+      if (activePart.localize_tag !== undefined) {
+        activePart.value = this.card._hass.localize(activePart.localize_tag);
+      }
 
       if (activePart.color_stops) {
         activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
