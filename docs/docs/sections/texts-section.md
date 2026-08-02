@@ -34,6 +34,22 @@ layout:
         text-anchor: middle
 ```
 
+Use `localize_tag` instead of `text` to display a label from Home Assistant in
+the user's selected language:
+
+```yaml
+layout:
+  texts:
+    - id: duration-title
+      localize_tag: ui.dialogs.helper_settings.timer.duration
+      xpos: 50
+      ypos: 15
+```
+
+The tag must be an existing Home Assistant translation key. For example,
+`ui.dialogs.helper_settings.counter.step` displays the translated label for
+"Step size". FHS does not provide its own translation or fallback for a tag.
+
 ## :material-horseshoe: Multipart text
 
 Set `text` to a list when parts need different styles or should appear on
@@ -64,11 +80,15 @@ part values where needed:
 
 ```yaml
 text:
-  - value: 'Selected: '
+  - localize_tag: ui.dialogs.helper_settings.timer.duration
+  - value: ': '
   - value: 7 days
     styles:
       font-weight: bold
 ```
+
+Each part has its own `localize_tag`, so translated labels and dynamic values
+can be combined and styled independently.
 
 `new_line: true` starts a new line. Use `dy` to change the line spacing; its
 default is `1.2` em. `dx` and `dy` can also move individual parts.
@@ -257,7 +277,8 @@ that font size.
 | Field | Required | Default | Description |
 | :---- | :------: | :------ | :---------- |
 | `id` | :material-close: | Generated | Identifies the item for `same_as`, animations, and references. |
-| `text` | :material-check: | | A string or list of text parts. |
+| `text` | Alternative | | A string or list of text parts. Not required when `localize_tag` supplies a simple label. |
+| `localize_tag` | Alternative | | Home Assistant translation key for a simple label. |
 | `xpos` | :material-check: | | Horizontal position on the card canvas. |
 | `ypos` | :material-check: | | Vertical position on the card canvas. |
 | `entity_index` | :material-close: | None | Entity used by the item and inherited by parts without their own entity. |
@@ -293,6 +314,7 @@ that font size.
 | Field | Required | Default | Description |
 | :---- | :------: | :------ | :---------- |
 | `value` | For `text` | | Text or a JavaScript template that returns text. |
+| `localize_tag` | Alternative | | Home Assistant translation key used as this part's value. |
 | `type` | :material-close: | `text` | Uses literal `text`, or references a `name`, `area`, or `state`. |
 | `id` | For a reference | | Item id in the corresponding names, areas, or states section. |
 | `source_styles` | :material-close: | `true` | Set to `false` to reuse content without source styles, color stops, or animations. |

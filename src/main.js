@@ -246,9 +246,6 @@ class FlexHorseshoeCard extends LitElement {
           isSafariGte16: this.isSafariGte16,
         });
       }
-
-      // Resolve entities. Note that entities can be defined as a string, and can contain templates, so we resolve them here once and for all, and store the result in this.entities. This is used by the rest of the code to get the entities to work with.
-      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, false);
     }
   }
 
@@ -994,65 +991,77 @@ class FlexHorseshoeCard extends LitElement {
     if (config?.dev?.debug) {
       console.log('resolving entity config for', config?.entities);
     }
-    return (
-      config?.entities?.map((entityConfig, index) => {
-        const item = {
-          entity_index: index,
-        };
+    const resolvedEntityConfigs = config.entities.map((entityConfig, index) => {
+      const item = {
+        entity_index: index,
+      };
 
-        const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig)
-          ? Templates.getJsTemplateOrValue(item, entityConfig)
-          : entityConfig;
+      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig)
+        ? Templates.getJsTemplateOrValue(item, entityConfig)
+        : entityConfig;
 
-        // Normalize reusable entity-level color stops once for every opted-in layout item.
-        if (resolvedEntityConfig.color_stops) {
-          resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.getActiveColorStopMode());
-        }
+      // Normalize reusable entity-level color stops once for every opted-in layout item.
+      if (resolvedEntityConfig.color_stops) {
+        resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.getActiveColorStopMode());
+      }
 
-        return resolvedEntityConfig;
-      }) ?? []
-    );
-  }
-
-  /**
-   * Builds local runtime entity configs for sparkline min/avg/max values.
-   *
-   * The generated entities behave like normal entity_index targets for the rest
-   * of the card. The source entity config is kept so unit/icon/device metadata
-   * can still come from Home Assistant, while the state is provided by the graph.
-   *
-   * @returns {Array<object>} Local sparkline entity configs appended after HA entities.
-   */
-  _buildSparklineEntityConfigs() {
-    const configs = [];
-
-    this.sparklineGraphTools.forEach((sparklineGraphTool) => {
-      const sourceEntityIndex = sparklineGraphTool.entity_index;
-      const sourceEntityConfig = this.resolvedEntityConfigs[sourceEntityIndex];
-      const sparklineId = sparklineGraphTool.config.id;
-
-      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat) => {
-        const statEntityConfig = {
-          ...sourceEntityConfig,
-          entity: `fhs_sparkline.${sparklineId}_${stat}`,
-          local: true,
-          source_entity_index: sourceEntityIndex,
-          sparkline_id: sparklineId,
-          sparkline_stat: stat,
-        };
-
-        delete statEntityConfig.name;
-
-        if (stat === 'min_time' || stat === 'max_time') {
-          statEntityConfig.format = 'datetime-short'; // 'time';
-          statEntityConfig.unit = '';
-        }
-
-        configs.push(statEntityConfig);
-      });
+      return resolvedEntityConfig;
     });
+    const sparklineEntityTypes = ['min_time', 'max_time', 'bin_duration', 'aggregate_func', 'duration', 'min', 'avg', 'max'];
+    const sparklineConfigs = config.layout.sparklines ?? [];
 
-    return configs;
+    // Resolve every explicitly configured fhs_sparkline entity against the
+    // matching graph. This keeps its public index in entities while retaining
+    // the real Home Assistant source for metadata and action routing.
+    return resolvedEntityConfigs.map((entityConfig) => {
+      if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
+
+      let matchedSparkline;
+      let matchedType;
+
+      sparklineConfigs.forEach((sparklineConfig) => {
+        sparklineEntityTypes.forEach((entityType) => {
+          if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${entityType}`) {
+            matchedSparkline = sparklineConfig;
+            matchedType = entityType;
+          }
+        });
+      });
+
+      if (!matchedSparkline) {
+        throw new Error(`[entities] Unknown sparkline entity: ${entityConfig.entity}`);
+      }
+
+      const sourceEntityConfig = resolvedEntityConfigs[matchedSparkline.entity_index];
+      const localEntityConfig = {
+        ...sourceEntityConfig,
+        ...entityConfig,
+        local: true,
+        source_entity_index: matchedSparkline.entity_index,
+        sparkline_id: matchedSparkline.id,
+        sparkline_entity_type: matchedType,
+      };
+
+      // A derived state is already final and must never read the source
+      // attribute again. Source names are also replaced by the graph label.
+      delete localEntityConfig.attribute;
+      if (entityConfig.name === undefined) delete localEntityConfig.name;
+
+      if (matchedType === 'min_time' || matchedType === 'max_time') {
+        localEntityConfig.format = entityConfig.format ?? 'datetime-short';
+        localEntityConfig.unit = entityConfig.unit ?? '';
+      }
+
+      if (matchedType === 'duration' || matchedType === 'bin_duration') {
+        if (entityConfig.unit === undefined) delete localEntityConfig.unit;
+      }
+
+      if (matchedType === 'aggregate_func') {
+        localEntityConfig.unit = entityConfig.unit ?? '';
+      }
+
+      return localEntityConfig;
+    });
   }
 
   /**
@@ -1060,41 +1069,117 @@ class FlexHorseshoeCard extends LitElement {
    * the values that are derived from the graph statistics.
    */
   _updateSparklineEntities() {
-    const baseIndex = this.config.entities?.length ?? 0;
+    this.resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
+      if (!entityConfig.sparkline_entity_type) return;
 
-    this.sparklineGraphTools.forEach((sparklineGraphTool, sparklineIndex) => {
-      const sourceEntity = this.entities[sparklineGraphTool.entity_index];
-      const sparklineId = sparklineGraphTool.config.id;
+      const sparklineGraphTool = this.sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
+      const sourceEntity = this.entities[entityConfig.source_entity_index];
+      const sourceEntityConfig = this.resolvedEntityConfigs[entityConfig.source_entity_index];
+      const entityType = entityConfig.sparkline_entity_type;
+      const labelMap = {
+        min: 'min',
+        avg: 'mean',
+        max: 'max',
+        min_time: 'min',
+        max_time: 'max',
+        duration: 'Duration',
+        bin_duration: 'Bin duration',
+        aggregate_func: 'Aggregate function',
+      };
+      let state;
+      let unitOfMeasurement = sourceEntity.attributes.unit_of_measurement;
+      let deviceClass = sourceEntity.attributes.device_class;
 
-      ['min', 'avg', 'max', 'min_time', 'max_time'].forEach((stat, statIndex) => {
-        const entityIndex = baseIndex + sparklineIndex * 5 + statIndex;
-        const state = sparklineGraphTool.stats[stat];
-        const labelMap = {
-          min: 'min',
-          avg: 'mean',
-          max: 'max',
-          min_time: 'min',
-          max_time: 'max',
-        };
-        const label = labelMap[stat];
-        const sourceEntityConfig = this.resolvedEntityConfigs[sparklineGraphTool.entity_index];
-        const sourceDecimals = sourceEntityConfig.decimals !== undefined ? Number(sourceEntityConfig.decimals) : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
-        const roundedState = stat === 'avg' && Number.isFinite(Number(state)) ? Number(state).toFixed(sourceDecimals) : String(state);
-        const entity = Merge.mergeDeep(sourceEntity, {
-          entity_id: `fhs_sparkline.${sparklineId}_${stat}`,
-          state: roundedState,
-          label,
-          attributes: {
-            ...sourceEntity.attributes,
-            source_entity_id: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.entity_id,
-            unit_of_measurement: stat === 'min_time' || stat === 'max_time' ? undefined : sourceEntity.attributes.unit_of_measurement,
-            sparkline_id: sparklineId,
-            sparkline_stat: stat,
-          },
-        });
+      if (['min', 'avg', 'max', 'min_time', 'max_time'].includes(entityType)) {
+        state = Object.hasOwn(sparklineGraphTool.stats, entityType) ? sparklineGraphTool.stats[entityType] : 'unavailable';
 
-        this.entities[entityIndex] = entity;
+        if (entityType === 'avg' && Number.isFinite(Number(state))) {
+          const sourceDecimals = sourceEntityConfig.decimals !== undefined ? Number(sourceEntityConfig.decimals) : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
+          state = Number(state).toFixed(sourceDecimals);
+        }
+
+        if (entityType === 'min_time' || entityType === 'max_time') {
+          unitOfMeasurement = undefined;
+          deviceClass = undefined;
+        }
+      }
+
+      if (entityType === 'duration') {
+        const historical = sparklineGraphTool.config.period.type !== 'real_time';
+
+        if (historical && sparklineGraphTool.historyDurationReady) {
+          const durationHours = sparklineGraphTool.config.period[sparklineGraphTool.config.period.type].duration.hour;
+          state = String(durationHours);
+          unitOfMeasurement = 'h';
+
+          if (durationHours < 1) {
+            state = String(durationHours * 60);
+            unitOfMeasurement = 'min';
+          }
+
+          if (durationHours >= 24) {
+            state = String(durationHours / 24);
+            unitOfMeasurement = 'd';
+          }
+        } else {
+          state = 'unavailable';
+          unitOfMeasurement = 'h';
+        }
+
+        deviceClass = 'duration';
+      }
+
+      if (entityType === 'bin_duration') {
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
+          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+
+        if (binnedHistory && sparklineGraphTool.historyDurationReady) {
+          const binDurationHours = 1 / sparklineGraphTool.calculateBinsPerHour(sparklineGraphTool.config);
+          state = String(binDurationHours);
+          unitOfMeasurement = 'h';
+
+          if (binDurationHours < 1) {
+            state = String(binDurationHours * 60);
+            unitOfMeasurement = 'min';
+          }
+
+          if (binDurationHours >= 24) {
+            state = String(binDurationHours / 24);
+            unitOfMeasurement = 'd';
+          }
+        } else {
+          state = 'unavailable';
+          unitOfMeasurement = 'h';
+        }
+
+        deviceClass = 'duration';
+      }
+
+      if (entityType === 'aggregate_func') {
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
+          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+        state = binnedHistory && sparklineGraphTool.historyDurationReady
+          ? sparklineGraphTool.config.sparkline.state_values.aggregate_func
+          : 'unavailable';
+        unitOfMeasurement = undefined;
+        deviceClass = undefined;
+      }
+
+      const entity = Merge.mergeDeep(sourceEntity, {
+        entity_id: entityConfig.entity,
+        state: String(state),
+        label: entityConfig.name === undefined ? labelMap[entityType] : undefined,
+        attributes: {
+          ...sourceEntity.attributes,
+          source_entity_id: ['min', 'avg', 'max'].includes(entityType) ? sourceEntity.entity_id : undefined,
+          unit_of_measurement: unitOfMeasurement,
+          device_class: deviceClass,
+          sparkline_id: entityConfig.sparkline_id,
+          sparkline_entity_type: entityType,
+        },
       });
+
+      this.entities[entityIndex] = entity;
     });
   }
 
@@ -1332,8 +1417,6 @@ class FlexHorseshoeCard extends LitElement {
         end: performance.now(),
       });
     }
-
-    this.resolvedEntityConfigs = [...this.resolvedEntityConfigs, ...this._buildSparklineEntityConfigs()];
 
     let entityHasChanged = forceUpdate || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
@@ -1669,41 +1752,64 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Resolves item-level entity ids to entity_index values.
+   * Resolves item-level entity ids and animation triggers against the explicit entities list.
    *
-   * This keeps user YAML readable (`entity: sensor.x` or
-   * `entity: fhs_sparkline.<sparkline_id>_avg`) while every tool still receives
-   * the same internal entity_index it already understands.
+   * Tools continue to consume entity_index internally while user YAML may use
+   * the matching entity id directly. Unknown ids fail during configuration so
+   * they can never silently fall back to the first entity.
    *
    * @param {object} config - Card config after ids and static values are resolved.
-   * @param {Array<object>} resolvedEntitiesConfig - Normal HA entity configs.
+   * @param {Array<object>} resolvedEntitiesConfig - Explicit resolved entity configs.
    */
   _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
     const entityIndexes = {};
-    const stats = ['min', 'avg', 'max', 'min_time', 'max_time'];
-    const sparklineBaseIndex = resolvedEntitiesConfig.length;
 
     resolvedEntitiesConfig.forEach((entityConfig, index) => {
-      entityIndexes[entityConfig.entity] = index;
-    });
-
-    config.layout.sparklines?.forEach((sparkline, sparklineIndex) => {
-      stats.forEach((stat, statIndex) => {
-        entityIndexes[`fhs_sparkline.${sparkline.id}_${stat}`] = sparklineBaseIndex + sparklineIndex * stats.length + statIndex;
-      });
+      entityIndexes[entityConfig.entity] = entityIndexes[entityConfig.entity] === undefined ? index : null;
     });
 
     VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout?.[section];
+      const items = config.layout[section];
 
       if (!Array.isArray(items)) return;
 
       items.forEach((item) => {
         if (item.entity === undefined) return;
+        if (entityIndexes[item.entity] === undefined) throw new Error(`[${section}] Unknown entity: ${item.entity}`);
+        if (entityIndexes[item.entity] === null) throw new Error(`[${section}] Entity '${item.entity}' occurs more than once; use entity_index`);
 
         item.entity_index = entityIndexes[item.entity];
       });
     });
+
+    if (config.animations !== undefined) {
+      const resolvedAnimations = {};
+
+      Object.entries(config.animations).forEach(([animationKey, animationItems]) => {
+        const entityReference = animationKey.substring('entity.'.length);
+        let entityIndex;
+
+        if (/^\d+$/.test(entityReference)) {
+          entityIndex = Number(entityReference);
+          if (resolvedEntitiesConfig[entityIndex] === undefined) {
+            throw new Error(`[animations] Unknown entity index: ${entityIndex}`);
+          }
+        } else {
+          entityIndex = entityIndexes[entityReference];
+          if (entityIndex === undefined) throw new Error(`[animations] Unknown entity: ${entityReference}`);
+          if (entityIndex === null) throw new Error(`[animations] Entity '${entityReference}' occurs more than once; use entity.<index>`);
+        }
+
+        const resolvedAnimationKey = `entity.${entityIndex}`;
+        if (resolvedAnimations[resolvedAnimationKey] !== undefined) {
+          throw new Error(`[animations] Duplicate entity target: ${resolvedAnimationKey}`);
+        }
+
+        resolvedAnimations[resolvedAnimationKey] = animationItems;
+      });
+
+      config.animations = resolvedAnimations;
+    }
   }
 
   _isStaticRef(value) {

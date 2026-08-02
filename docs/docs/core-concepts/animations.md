@@ -67,6 +67,8 @@ animations:
 
 In this example, `entity.1` refers to the second entity in the `entities` list. When that entity is `on`, the card applies the styles to the circle with `animation_id: 10`.
 
+An animation can also use a fixed entity ID, for example `entity.fhs_sparkline.temperature_history_avg`. This is useful for a local entity supplied through a card template because its final list position does not matter.
+
 !!! info "Animation targets use animation_id"
     The `animations` section does not target layout items by `id`.
 
@@ -77,6 +79,7 @@ In this example, `entity.1` refers to the second entity in the `entities` list. 
 | Name | Type | Required | Description |
 | :--- | :--: | :------: | :---------- |
 | `entity.<index>` | string | :material-check: | Entity index that triggers the animation. For example, `entity.1` refers to the second entity in the `entities` list. |
+| `entity.<entity_id>` | string | :material-close: | Fixed entity ID that triggers the animation, such as `entity.fhs_sparkline.temperature_history_avg`. |
 | `state` | string | :material-check: | Entity state that activates the animation block, such as `on` or `off`. |
 | `circles` | list | :material-close: | Circle animation targets. |
 | `hlines` | list | :material-close: | Horizontal line animation targets. |

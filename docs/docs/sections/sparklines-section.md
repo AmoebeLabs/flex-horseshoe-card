@@ -149,6 +149,8 @@ Existing configurations that use a boolean value, such as `axis: true`, continue
 
 Each bin keeps the values needed to calculate its aggregate and statistics. The tooltip can display the bin’s date or time together with its minimum, average, and maximum values. Number formatting and units come from the connected entity.
 
+Statistics and active graph settings can also be added to the card's `entities` list. This makes values such as the displayed minimum, selected history duration, automatically calculated bin size, and aggregation function available to ordinary states and texts. See [Sparkline values as entities](../core-concepts/entity-definitions.md#sparkline-values-as-entities) for the available names and a complete example.
+
 Color stops may apply to an entire path or to individual bins, depending on the chart type. Barcode and radial barcode charts calculate a color for each bin, while line and area charts can use a gradient across the visible value range.
 
 See [Color Stops](../core-concepts/color-stops.md) for reusable color definitions and transition modes.

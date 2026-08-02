@@ -185,6 +185,14 @@ template:
     - max: 100
 ```
 
+### Template-owned default entities
+
+A card template may define `card.default_entities` for local support entities that belong to its reusable layout. After variable and nested-template compilation, each explicit card entity is merged over the matching default with the same `entity` id. Explicit entities retain their original list position and override individual fields. Defaults without a matching explicit entity are appended in template order, after which `default_entities` is removed. Duplicate ids inside `default_entities` are configuration errors.
+
+This is intentionally different from normal array replacement. It preserves the positional `entity_index` contract for externally supplied Home Assistant entities while allowing fixed local entities such as `fhs_sparkline.*` to be owned by the template. Layout items refer to those fixed entities by `entity:`. The config pipeline converts that id once to the final `entity_index` before constructing tools. Duplicate explicit entity ids remain valid, but an id-based layout reference to such an ambiguous entity must fail and require `entity_index`.
+
+Animation trigger keys follow the same rule. Existing `entity.<index>` keys remain valid; `entity.<entity_id>` is resolved once against the final list and rewritten to `entity.<index>` before runtime animation processing.
+
 Reusable sub-config uses its own type and matching body key:
 
 ```yaml

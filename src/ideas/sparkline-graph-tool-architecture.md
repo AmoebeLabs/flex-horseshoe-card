@@ -266,56 +266,70 @@ they are available as runtime values, existing `state`, `name`, `icon`, style,
 color, and template logic should be able to consume them just like normal
 entities.
 
-Access must be consistent with Home Assistant entity ids and existing FHS tool
-config. The graph statistics are exposed as local entity-like objects with the
-`fhs_sparkline` domain. There is no extra reference key and no extra dot hierarchy.
+Access is consistent with the normal FHS entity pipeline. A graph value exists
+as a local entity only when the user adds it explicitly to `entities`. It then
+has a normal, visible list index. A layout item can use that index or a fixed `entity:` reference, which configuration converts to
+`entity_index`. No entities are appended implicitly by the sparkline runtime.
 
-Every sparkline has an `id`. The generated graph entities use that id and the
-statistic name in the object id:
+A reusable card template may declare these aliases in `card.default_entities`. Explicit card entities retain their indices and override matching defaults field by field; missing aliases are appended during template compilation. This remains a configuration-layer operation rather than implicit graph behavior.
+
+Every sparkline has an `id`. Its local entities use that id and the requested
+value in the object id:
 
 ```text
 fhs_sparkline.<sparkline_id>_min
 fhs_sparkline.<sparkline_id>_avg
 fhs_sparkline.<sparkline_id>_max
+fhs_sparkline.<sparkline_id>_min_time
+fhs_sparkline.<sparkline_id>_max_time
+fhs_sparkline.<sparkline_id>_duration
+fhs_sparkline.<sparkline_id>_bin_duration
+fhs_sparkline.<sparkline_id>_aggregate_func
 ```
 
 Example:
 
 ```yaml
-sparklines:
-  - id: temperature_history
-    entity_index: 0
-
-states:
+entities:
+  - entity: sensor.temperature
   - entity: fhs_sparkline.temperature_history_min
-    xpos: 25
-    ypos: 82
   - entity: fhs_sparkline.temperature_history_avg
-    xpos: 50
-    ypos: 82
   - entity: fhs_sparkline.temperature_history_max
-    xpos: 75
-    ypos: 82
+
+layout:
+  sparklines:
+    - id: temperature_history
+      entity_index: 0
+
+  states:
+    - id: minimum
+      entity: fhs_sparkline.temperature_history_min
+    - id: average
+      entity: fhs_sparkline.temperature_history_avg
+    - id: maximum
+      entity: fhs_sparkline.temperature_history_max
 ```
 
-This keeps rendering generic. Existing state/name/icon tools can keep using the
-normal `entity` key. Entity resolving only needs to understand that `fhs_sparkline.*` is
-a local FHS entity domain backed by graph statistics, not a Home Assistant
-entity from `hass.states`.
+Animation triggers may use `entity.fhs_sparkline.<sparkline_id>_<type>`. Configuration resolves this once to the final `entity.<index>` key, so runtime animation matching remains index based.
 
-The generated graph entities are runtime aliases, not static copied state
-objects. The alias relation is known from config, but the final HA-like state
-object must be rebuilt whenever FHS processes new `hass` data or refreshed graph
-history.
+This keeps rendering generic. Existing state, name, icon, text, style, and
+action code receives the same `entity_index` contract used by Home Assistant
+entities and FHS inputs.
+
+The configured graph entities are runtime aliases, not static copied state
+objects. Configuration resolves the exact entity id against a sparkline id and
+known suffix, then derives `source_entity_index` from that sparkline. The final
+HA-like state object is rebuilt whenever FHS processes new `hass` data,
+refreshed history, or changed runtime graph settings.
 
 Config-time alias metadata:
 
 ```js
-localEntityAliases['fhs_sparkline.temperature_history_avg'] = {
+resolvedEntityConfig = {
+  entity: 'fhs_sparkline.temperature_history_avg',
   source_entity_index: 0,
-  graph_id: 'temperature_history',
-  statistic: 'avg',
-  label: 'mean',
+  sparkline_id: 'temperature_history',
+  sparkline_entity_type: 'avg',
 };
 ```
 
@@ -326,11 +340,10 @@ source_entity_index
 -> config.entities[source_entity_index].entity
 -> hass.states[source_entity_id]
 -> copy current HA source state object
--> override entity_id with fhs_sparkline.<id>_<stat>
--> override state with current graph statistic value
--> optionally override friendly_name for min/avg/max
--> store in localStates[fhs_sparkline.<id>_<stat>]
--> expose through the normal internal entity_index pipeline
+-> override entity_id with the configured fhs_sparkline entity id
+-> override state with the statistic or active graph setting
+-> store at the explicit configured entity_index
+-> expose through the normal entity pipeline
 ```
 
 The copied source state object keeps the normal HA metadata alive:
@@ -342,9 +355,11 @@ The copied source state object keeps the normal HA metadata alive:
 - attributes used by formatting
 - future derived-state and color-stop behavior
 
-Only the local entity id, statistic state value, and optional display name (labels!!) are
-overridden. This is why graph statistics can use existing render code without
-changes in the state/name/icon tools.
+Minimum, average, and maximum retain source value metadata. Time entities use
+date/time formatting. Duration and bin duration use the Home Assistant duration
+device class with raw hours, and aggregate function exposes the active function
+name. Non-applicable settings use Home Assistant's `unavailable` state so a
+dynamic graph-type change never invalidates the card configuration.
 
 ### Localizations
 
@@ -360,7 +375,9 @@ localEntity.name = this.hass.localize(`ui.components.statistics_charts.statistic
 
 This must be done after set hass() is set. Probably in the renderer, as it must follow the current localization setting in Home Assistant. That setting can be changed runtime.
 
-By using the source entity for the state, the state and unit are automatically retrieved from Home Assistant registry. The label translates to the (internal) name override. So the `names`, `states` and `icons` sections can be used without any change apart from the fact that an `entity` is initially used, and that the `entity_index` is automatically added to the item.
+The source relation remains internal and supplies formatting metadata and action
+routing. Layout items only use the explicit index from `entities`; no item-level
+`entity` shorthand or automatically assigned index remains.
 
 ## Axes And Grid
 

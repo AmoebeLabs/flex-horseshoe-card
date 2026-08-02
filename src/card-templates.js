@@ -43,6 +43,40 @@ export default class CardTemplates {
 
     const compiledTemplateParts = CardTemplates.compileTemplateParts(config, card);
 
+    // A card template may own local entities without changing the positional
+    // contract of entities supplied by the card instance. Matching explicit
+    // entities keep their index and override individual default fields;
+    // defaults that are not configured explicitly are appended afterwards.
+    if (compiledTemplateParts.default_entities !== undefined) {
+      const defaultEntitiesById = {};
+
+      compiledTemplateParts.default_entities.forEach((entityConfig) => {
+        if (defaultEntitiesById[entityConfig.entity] !== undefined) {
+          throw new Error(`[templates] Duplicate default entity: ${entityConfig.entity}`);
+        }
+
+        defaultEntitiesById[entityConfig.entity] = entityConfig;
+      });
+
+      compiledTemplateParts.entities ??= [];
+      const configuredEntityIds = new Set();
+      compiledTemplateParts.entities = compiledTemplateParts.entities.map((entityConfig) => {
+        configuredEntityIds.add(entityConfig.entity);
+
+        return defaultEntitiesById[entityConfig.entity] === undefined
+          ? entityConfig
+          : CardTemplates.mergeTemplateConfig(defaultEntitiesById[entityConfig.entity], entityConfig);
+      });
+
+      compiledTemplateParts.default_entities.forEach((entityConfig) => {
+        if (!configuredEntityIds.has(entityConfig.entity)) {
+          compiledTemplateParts.entities.push(Merge.mergeDeep({}, entityConfig));
+        }
+      });
+
+      delete compiledTemplateParts.default_entities;
+    }
+
     Object.keys(config).forEach((key) => delete config[key]);
     Object.entries(compiledTemplateParts).forEach(([key, value]) => {
       config[key] = value;

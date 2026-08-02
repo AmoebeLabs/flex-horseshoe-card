@@ -106,6 +106,7 @@ When `color_stops` is configured, entity text and icons use `fill` by default. U
     - xpos: 50                  # Horizontal center position
       ypos: 50                  # Vertical center position
       entity_index: 0           # Connects to entity 0
+      ellipsis: 12
       styles:
         font-size: 1.4em
         text-anchor: middle
@@ -215,6 +216,7 @@ The available fields vary slightly by element type.
     | `xpos` | :material-check: | Horizontal position on the `100 × 100` card canvas. |
     | `ypos` | :material-check: | Vertical position on the `100 × 100` card canvas. |
     | `entity_index` | :material-check: | Index of the connected entity in the `entities` section. |
+    | `ellipsis` | :material-close: | Maximum state length before an ellipsis is added. The unit remains visible. |
     | `styles` | :material-close: | Applies CSS and SVG styles to the state text. |
     | `color_stops` | :material-close: | Uses the entity state to determine the text color. |
     | `state_map` | :material-close: | Maps named states to decimal values for color stops. **Not yet implemented.** |
