@@ -166,6 +166,8 @@ export default class HorseshoeGauge extends BaseTool {
   constructor(config, index, templates, cardId, card) {
     super(config, index, templates, cardId, card, 'horseshoes_v2', 'horseshoes_v2', 0);
 
+    this.activeItemConfig = this.config;
+
     this.show = config.show;
 
     this.entity = undefined;
@@ -189,7 +191,12 @@ export default class HorseshoeGauge extends BaseTool {
 
   /** Updates normalized horseshoe configuration before entity data is assigned. */
   updateRuntimeConfig() {
+    // setState() publishes a state-specific render config on this.config. Restore
+    // the evaluated item config before BaseTool and group normalization run again,
+    // otherwise a group offset is applied repeatedly on theme and group updates.
+    this.config = this.activeItemConfig;
     super.updateRuntimeConfig();
+    this.activeItemConfig = this.config;
 
     if (this.configChanged || !this.normalizedConfig) {
       this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
