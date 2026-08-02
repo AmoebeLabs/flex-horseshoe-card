@@ -12,6 +12,7 @@ import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import Colors from './colors.js';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
+import { getDefaultFormatOptions, getNumberFormatOptions } from './frontend_mods/common/number/format_number.ts';
 
 /**
  * Layout state tool that renders an entity state value and optional unit of measurement.
@@ -574,16 +575,20 @@ export default class StateTool extends BaseTool {
         }
       : this.entity;
     const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(formatEntity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(formatEntity, stateValue);
-    const isNumeric = !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+    const hasNumberFormatOverride = this.entityConfig.decimals !== undefined
+      || formatConfig.decimals_min !== undefined
+      || formatConfig.decimals_max !== undefined
+      || formatConfig.locale !== undefined
+      || formatConfig.separator !== undefined;
+    const isNumeric = hasNumberFormatOverride && !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
     let formattedValue;
 
     if (isNumeric) {
       const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
-      const haValuePart = parts.find((part) => part.type === 'value');
-      const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
-      const decimalIndex = String(haValuePart.value).lastIndexOf(decimalSeparator);
-      const haDecimals = decimalIndex === -1 ? 0 : String(haValuePart.value).length - decimalIndex - 1;
-      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haDecimals;
+      const registryEntity = this.card._hass.entities[formatEntity.entity_id];
+      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
+      const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
+      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
       const maxDigits = formatConfig.decimals_max ?? entityDecimals;
       let minDigits = formatConfig.decimals_min ?? entityDecimals;
 
@@ -591,6 +596,7 @@ export default class StateTool extends BaseTool {
         minDigits = maxDigits;
       }
 
+      // HA and entity precision are fixed; only explicit min/max formatting can make the precision dynamic.
       formattedValue = new Intl.NumberFormat(activeLocale, {
         useGrouping: formatConfig.separator !== false,
         minimumFractionDigits: minDigits,
@@ -627,7 +633,7 @@ export default class StateTool extends BaseTool {
       }
     });
 
-    this.state = state.trim();
+    this.state = this.textEllipsis(state.trim(), this.config.max_characters ?? this.config.ellipsis);
     this.uom = this.buildUom(unit.trim());
   }
 

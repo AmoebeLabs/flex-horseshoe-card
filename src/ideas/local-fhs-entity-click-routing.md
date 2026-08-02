@@ -11,7 +11,7 @@ another entity-targeted action.
 
 ## Local Sparkline Entities
 
-Sparkline tools create local entities for these calculated statistics:
+Users can add explicit local sparkline entities for these calculated statistics:
 
 - `min`
 - `avg`
@@ -19,14 +19,20 @@ Sparkline tools create local entities for these calculated statistics:
 - `min_time`
 - `max_time`
 
+The same explicit entity mechanism exposes active graph settings:
+
+- `duration`
+- `bin_duration`
+- `aggregate_func`
+
 Their runtime entity configs contain `source_entity_index`, which points to the
 configured Home Assistant entity from which the graph and statistics were
 derived.
 
 The runtime state attributes of `min`, `avg`, and `max` also contain
 `source_entity_id` for state formatting. That attribute is intentionally absent
-from `min_time` and `max_time`, so it cannot be the general source for click
-routing.
+from time and graph-setting entities, so it cannot be the general source for
+click routing.
 
 ## Central Action Routing
 
@@ -63,6 +69,7 @@ Build the project with `npm run build` and verify:
 
 - clicking `min`, `avg`, or `max` opens more-info for the source sensor
 - clicking `min_time` or `max_time` opens the same source sensor
+- clicking duration, bin duration, or aggregate function opens the same source sensor
 - state, name, and icon tools use identical routing
 - ordinary Home Assistant entities still open their own more-info dialog
 - a local entity retains its explicitly configured `tap_action`

@@ -49,6 +49,62 @@ You can also define multiple entities. Layout sections such as `states`, `names`
 
 The first entry has index `0`, the second has index `1`, and so on.
 
+## :material-horseshoe: Sparkline values as entities
+
+A sparkline can make its statistics and active history settings available as regular card entities. Add only the values you want to use to `entities`, then refer to them by `entity:` or by their normal `entity_index` from states, names, icons, texts, or other layout items.
+
+The entity ID starts with `fhs_sparkline`, followed by the sparkline `id` and the requested value:
+
+```yaml title="Sparkline entities" linenums="1"
+entities:
+  - entity: sensor.temperature
+  - entity: fhs_sparkline.temperature_history_min
+  - entity: fhs_sparkline.temperature_history_avg
+  - entity: fhs_sparkline.temperature_history_max
+  - entity: fhs_sparkline.temperature_history_duration
+  - entity: fhs_sparkline.temperature_history_bin_duration
+  - entity: fhs_sparkline.temperature_history_aggregate_func
+
+layout:
+  sparklines:
+    - id: temperature_history
+      entity_index: 0
+      # Remaining sparkline configuration
+
+  states:
+    - id: minimum
+      entity: fhs_sparkline.temperature_history_min
+      xpos: 20
+      ypos: 85
+    - id: average
+      entity: fhs_sparkline.temperature_history_avg
+      xpos: 50
+      ypos: 85
+    - id: maximum
+      entity: fhs_sparkline.temperature_history_max
+      xpos: 80
+      ypos: 85
+```
+
+The available values are:
+
+| Suffix | Value |
+| :-- | :-- |
+| `min` | Minimum value in the displayed period |
+| `avg` | Average value in the displayed period |
+| `max` | Maximum value in the displayed period |
+| `min_time` | Time at which the minimum occurred |
+| `max_time` | Time at which the maximum occurred |
+| `duration` | Active history duration, shown in minutes, hours, or days |
+| `bin_duration` | Actual duration of each bin, shown in minutes, hours, or days |
+| `aggregate_func` | Function used for each bin, such as `avg`, `min`, `max`, or `median` |
+
+A direct `entity:` reference is independent of list order. Card templates can place these entries in `default_entities` so every template instance receives the local values without changing the indices of entities supplied by the card.
+
+FHS automatically connects these values to the source entity used by the matching sparkline. Units, number formatting, and More info actions therefore continue to use that source sensor. You do not configure a separate source index.
+
+Duration and bin size use Home Assistant duration formatting. For example, a bin duration of `0.5` hours is displayed as a localized duration with zero hours and thirty minutes. A setting that does not apply to the active graph type is shown using Home Assistant's translated **Unavailable** state.
+
 ## :material-horseshoe: Entity metadata from Home Assistant
 
 The card uses Home Assistant metadata wherever possible. This keeps the YAML concise and helps the card remain consistent with the rest of your dashboard.

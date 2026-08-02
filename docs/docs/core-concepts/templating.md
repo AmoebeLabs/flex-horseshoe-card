@@ -137,6 +137,37 @@ This creates a reusable card template named `awair_test`. It requires an `entity
 
 Templates can also refer to other templates. In this example, both the `states` and `names` items use the shared `fhs_colorstops_awair_score` color-stop template.
 
+## :material-horseshoe: Default entities in a card template
+
+Use `default_entities` when a card template needs its own supporting entities in addition to the entities supplied by each card. This is useful for local sparkline values because their names are fixed by the sparkline `id`.
+
+```yaml linenums="1"
+card:
+  default_entities:
+    - entity: fhs_sparkline.temperature_history_min
+      name: Minimum
+    - entity: fhs_sparkline.temperature_history_avg
+      name: Average
+    - entity: fhs_sparkline.temperature_history_max
+      name: Maximum
+
+  layout:
+    states:
+      - entity: fhs_sparkline.temperature_history_min
+        xpos: 20
+        ypos: 85
+      - entity: fhs_sparkline.temperature_history_avg
+        xpos: 50
+        ypos: 85
+      - entity: fhs_sparkline.temperature_history_max
+        xpos: 80
+        ypos: 85
+```
+
+Entities supplied by the card keep their existing order. Missing default entities are added after them. When the card supplies an entity with the same ID, its options override the template defaults while unspecified options remain available.
+
+Use `entity:` for these fixed local entities so the layout does not depend on where they appear in the final entities list. Continue to use `entity_index` for variable Home Assistant entities supplied to a reusable template.
+
 ## :material-horseshoe: Loading a card template
 
 Load a named card template with the card-level `template` option.
