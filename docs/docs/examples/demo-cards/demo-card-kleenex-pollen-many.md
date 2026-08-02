@@ -18,8 +18,8 @@ tags:
 
 These examples show several ways to display tree, grass, and weed pollen levels with horseshoes, mapped states, external SVG icons, and reusable YAML.
 
-![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
-![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
+![Flexible Horseshoe Card - Card 34 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-light){width="300"}
+![Flexible Horseshoe Card - Card 34 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp#only-dark){width="300"}
 
 | Description                                                            | Aspect ratio |
 | :--------------------------------------------------------------------- | :----------- |
@@ -50,8 +50,8 @@ Card 55 uses three horseshoes to display the current pollen level for trees, gra
 * The active state uses bold text.
 * Two arc shapes create a background for each external SVG icon and label.
 
-![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
+![Flexible Horseshoe Card - Card 55 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-light)
+![Flexible Horseshoe Card - Card 55 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp#only-dark)
 
 ### Card 54
 
@@ -60,8 +60,8 @@ Card 54 is a variation of card 55. It applies a grayscale color filter to reduce
 !!! info
 Color filters do not affect external images or SVG files.
 
-![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
+![Flexible Horseshoe Card - Card 54 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
+![Flexible Horseshoe Card - Card 54 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
 
 ### Card 53
 
@@ -70,15 +70,15 @@ Card 53 uses a more traditional horseshoe layout.
 * Labels appear separately around the horseshoe.
 * A grayscale color filter softens the displayed colors.
 
-![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
+![Flexible Horseshoe Card - Card 53 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-light)
+![Flexible Horseshoe Card - Card 53 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp#only-dark)
 
 ### Card 52
 
 Card 52 displays the pollen level as a single mutually exclusive state. Only the currently active state is shown.
 
-![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-light)
-![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-dark)
+![Flexible Horseshoe Card - Card 52 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-light)
+![Flexible Horseshoe Card - Card 52 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp#only-dark)
 
 ## :material-horseshoe: Required integration and files
 
@@ -118,7 +118,7 @@ The images and colors used by these cards are adapted from Isabella Alström’s
 
 ### Card 34
 
-![](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp){width="300"}
+![Flexible Horseshoe Card - Card 34 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp){width="300"}
 
 This configuration was created for version [:octicons-tag-24: 5.4.7][github-releases].
 
@@ -348,7 +348,7 @@ This configuration was created for version [:octicons-tag-24: 5.4.7][github-rele
 
 ### Card 55
 
-![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
+![Flexible Horseshoe Card - Card 55 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
 
 This configuration was created for version [:octicons-tag-24: 5.4.7-dev.12][github-releases].
 
