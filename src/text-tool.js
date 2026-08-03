@@ -170,8 +170,8 @@ export default class TextTool extends BaseTool {
         if (activePart.color_stops) {
           activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
         }
-        if (activePart.color_stops || activePart.colorstop_gradient !== undefined
-          || ['colorstop', 'colorstopgradient'].includes(activePart.show?.item_style)) {
+        if (activePart.color_stops
+          || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
           this.normalizeLayoutItemColorStopMode(activePart);
         }
 
@@ -217,8 +217,8 @@ export default class TextTool extends BaseTool {
       if (activePart.color_stops) {
         activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
       }
-      if (activePart.color_stops || activePart.colorstop_gradient !== undefined
-        || ['colorstop', 'colorstopgradient'].includes(activePart.show?.item_style)) {
+      if (activePart.color_stops
+        || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
         this.normalizeLayoutItemColorStopMode(activePart);
       }
 
@@ -238,7 +238,7 @@ export default class TextTool extends BaseTool {
             colorstops: activePart.colorstops,
             show: activePart.show,
             colorstop: activePart.colorstop,
-            colorstopgradient: activePart.colorstopgradient,
+            colorstopinterpolated: activePart.colorstopinterpolated,
             ellipsis: activePart.ellipsis,
             source_reference: {
               type: activePart.type,

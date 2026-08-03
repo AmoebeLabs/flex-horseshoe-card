@@ -206,7 +206,7 @@ export default class SparklineGraphTool extends BaseTool {
               item_style: 'none',
             },
             color: 'var(--divider-color)',
-            colorstop: {
+            colorstopsegments: {
               fill: true,
               stroke: false,
             },
@@ -230,7 +230,7 @@ export default class SparklineGraphTool extends BaseTool {
               item_style: 'none',
             },
             color: 'var(--divider-color)',
-            colorstop: {
+            colorstopsegments: {
               fill: true,
               stroke: false,
             },
@@ -806,10 +806,10 @@ export default class SparklineGraphTool extends BaseTool {
         const itemStyle = background.show.item_style;
 
         background.styles = ConfigHelper.toStyleDict(background.styles);
-        if (!['none', 'fixed', 'colorstop', 'colorstopgradient'].includes(itemStyle)) {
-          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstop or colorstopgradient`);
+        if (!['none', 'fixed', 'colorstopsegments', 'colorstopgradient'].includes(itemStyle)) {
+          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments or colorstopgradient`);
         }
-        if (itemStyle === 'colorstop' || itemStyle === 'colorstopgradient') {
+        if (itemStyle === 'colorstopsegments' || itemStyle === 'colorstopgradient') {
           if (typeof background[itemStyle].fill !== 'boolean' || typeof background[itemStyle].stroke !== 'boolean') {
             throw new Error(`[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`);
           }
@@ -4884,6 +4884,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgBarsMask(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    if (this.config.period.type === 'real_time') return '';
     if (!bars) return '';
 
     // Keep the mask and visible bars synchronized during their introduction.
@@ -5046,6 +5047,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgBarsBackground(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    if (this.config.period.type === 'real_time') return '';
     if (!bars) return '';
 
     const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);

@@ -71,9 +71,9 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, gradie
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
-  if (runtimeConfig.show?.horseshoe_style === 'lineargradient') {
+  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient') {
     return svg`
-      <g class="horseshoe__state-layer horseshoe__state-layer--lineargradient">
+      <g class="horseshoe__state-layer horseshoe__state-layer--minmaxgradient">
         <defs>
           ${statePathItems.map((pathItem) => {
             const pathElementId = getStatePathElementId(cardId, horseshoeIndex, pathItem.key);
@@ -98,7 +98,7 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, gradie
             `;
           })}
         </defs>
-        <g id="horseshoe-state-${cardId}-${horseshoeIndex}-lineargradient-group" class="horseshoe__state-gradient" style=${styleMap(applyColorFilter(stateStyle))}>
+        <g id="horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group" class="horseshoe__state-gradient" style=${styleMap(applyColorFilter(stateStyle))}>
           ${statePathItems.map((pathItem) => {
             const pathElementId = getStatePathElementId(cardId, horseshoeIndex, pathItem.key);
             const pathGradientId = `${pathElementId}-gradient`;
@@ -494,10 +494,10 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
-  if (runtimeConfig.show?.horseshoe_style === 'lineargradient') {
+  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient') {
     const root = card.renderRoot ?? card.shadowRoot;
-    const gradientGroup = root.getElementById?.(`horseshoe-state-${cardId}-${horseshoeIndex}-lineargradient-group`)
-      ?? root.querySelector?.(`#horseshoe-state-${cardId}-${horseshoeIndex}-lineargradient-group`);
+    const gradientGroup = root.getElementById?.(`horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group`)
+      ?? root.querySelector?.(`#horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group`);
 
     if (!gradientGroup) {
       return;

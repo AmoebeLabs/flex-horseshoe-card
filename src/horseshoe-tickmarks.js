@@ -52,7 +52,7 @@ function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
     return Colors.calculateStrokeColor(value, runtimeConfig.colorstops, false);
   }
 
-  if (colorMode === 'colorstopgradient') {
+  if (colorMode === 'colorstopinterpolated') {
     return Colors.calculateStrokeColor(value, runtimeConfig.colorstops, true);
   }
 

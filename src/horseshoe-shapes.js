@@ -192,7 +192,7 @@ export function buildScaleArcs(runtimeConfig, geometry) {
     return [];
   }
 
-  if (scaleMode === 'colorstop') {
+  if (scaleMode === 'colorstopsegments') {
     return buildColorStopScaleArcs(runtimeConfig, geometry);
   }
 
@@ -230,7 +230,7 @@ export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
     return [];
   }
 
-  if (mode === 'colorstop') {
+  if (mode === 'colorstopsegments') {
     const colorStops = asArray(runtimeConfig.colorstops?.colors);
 
     if (!colorStops.length) {
@@ -516,7 +516,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     ];
   }
 
-  if (strokeStyle === 'lineargradient') {
+  if (strokeStyle === 'minmaxgradient') {
     const colorStops = runtimeConfig.colorstops.colors;
     let startColor = colorStops[0].color;
     let endColor = colorStops[colorStops.length - 1].color;
@@ -553,7 +553,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
       const overlapDegrees = segmentDegrees * 0.5;
 
       stateArcs.push({
-        key: `lineargradient-${index}`,
+        key: `minmaxgradient-${index}`,
         startAngle: segmentStartAngle,
         endAngle: visible && !isLast ? segmentEndAngle + direction * overlapDegrees : segmentEndAngle,
         startCap: index === 0 ? runtimeConfig.horseshoe_state.linecap.start : 'butt',
@@ -738,7 +738,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     const itemValue = Number(item.value);
     let startAngle = geometry.startAngle + index * step + segmentGap / 2;
     let endAngle = geometry.startAngle + (index + 1) * step - segmentGap / 2;
-    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorstops, runtimeConfig.show?.horseshoe_style === 'colorstopgradient');
+    let segmentColor = item.color ?? Colors.calculateStrokeColor(item.value, runtimeConfig.colorstops, runtimeConfig.show?.horseshoe_style === 'colorstopinterpolated');
     let segmentStartValue;
     let segmentEndValue;
 

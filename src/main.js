@@ -2182,7 +2182,7 @@ class FlexHorseshoeCard extends LitElement {
       return undefined;
     }
 
-    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopgradient');
+    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
   }
 
   /**
