@@ -461,6 +461,8 @@ export default class HorseshoeGauge extends BaseTool {
       this.config,
       this.geometry,
       backgroundItems,
+      this.cardId,
+      this.index,
       (styles) => this.getRenderStyles(styles, [this.config.horseshoe_background?.color_filter]),
     );
   }
@@ -475,6 +477,8 @@ export default class HorseshoeGauge extends BaseTool {
       this.config,
       this.geometry,
       scalePathItems,
+      this.cardId,
+      this.index,
       (styles) => this.getRenderStyles(styles, [this.config.horseshoe_scale?.color_filter]),
     );
   }
@@ -530,7 +534,7 @@ export default class HorseshoeGauge extends BaseTool {
   renderTickmarkBackground() {
     const backgroundItems = this.getCachedPathItems('tickmarkBackgroundItems', () => buildTickBackgroundItems(this.config, this.geometry));
 
-    return renderTickmarkBackgroundLayer(this.config, this.geometry, backgroundItems);
+    return renderTickmarkBackgroundLayer(this.config, this.geometry, backgroundItems, this.cardId, this.index);
   }
 
   /**
@@ -559,6 +563,8 @@ export default class HorseshoeGauge extends BaseTool {
       this.config,
       this.geometry,
       backgroundItems,
+      this.cardId,
+      this.index,
       (styles) => this.getRenderStyles(styles, [this.config.horseshoe_labels?.background?.color_filter]),
     );
   }

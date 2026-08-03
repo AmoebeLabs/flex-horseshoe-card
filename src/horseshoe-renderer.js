@@ -23,16 +23,34 @@ export function getStatePathElementId(cardId, horseshoeIndex, pathKey) {
  * @param {Array<object>} scalePathItems - Renderable scale path items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderScaleLayer(runtimeConfig, geometry, scalePathItems, applyColorFilter = (styles) => styles) {
+export function renderScaleLayer(runtimeConfig, geometry, scalePathItems, cardId, horseshoeIndex, applyColorFilter = (styles) => styles) {
   const scaleStyle = {
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
   return svg`
     <g class="horseshoe__scale-layer" style=${styleMap(applyColorFilter(scaleStyle))}>
+      <defs>
+        ${scalePathItems.map((pathItem) => {
+          if (!pathItem.arc.gradient) return svg``;
+          const gradientId = `horseshoe-scale-${cardId}-${horseshoeIndex}-${pathItem.key}`;
+          const startStyle = applyColorFilter({ fill: pathItem.arc.gradient.startColor }, pathItem);
+          const endStyle = applyColorFilter({ fill: pathItem.arc.gradient.endColor }, pathItem);
+
+          return svg`
+            <linearGradient id=${gradientId} gradientUnits="userSpaceOnUse" x1=${pathItem.arc.gradient.x1} y1=${pathItem.arc.gradient.y1} x2=${pathItem.arc.gradient.x2} y2=${pathItem.arc.gradient.y2}>
+              <stop offset="0%" stop-color=${startStyle.fill}></stop>
+              <stop offset="100%" stop-color=${endStyle.fill}></stop>
+            </linearGradient>
+          `;
+        })}
+      </defs>
       ${scalePathItems.map((pathItem) => {
         // Arc-specific colors win over the layer style so color-stop segments keep their colors.
-        const fill = pathItem.arc.color ?? runtimeConfig.horseshoe_scale.color ?? scaleStyle.fill ?? 'none';
+        const gradientId = `horseshoe-scale-${cardId}-${horseshoeIndex}-${pathItem.key}`;
+        const fill = pathItem.arc.gradient
+          ? `url('#${gradientId}')`
+          : pathItem.arc.color ?? runtimeConfig.horseshoe_scale.color ?? scaleStyle.fill ?? 'none';
 
         const renderStyle = {
           fill,
@@ -71,9 +89,11 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, gradie
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
-  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient') {
+  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient' || runtimeConfig.show?.horseshoe_style === 'lineargradient') {
+    const gradientStyle = runtimeConfig.show.horseshoe_style;
+
     return svg`
-      <g class="horseshoe__state-layer horseshoe__state-layer--minmaxgradient">
+      <g class="horseshoe__state-layer horseshoe__state-layer--${gradientStyle}">
         <defs>
           ${statePathItems.map((pathItem) => {
             const pathElementId = getStatePathElementId(cardId, horseshoeIndex, pathItem.key);
@@ -98,7 +118,7 @@ export function renderStateLayer(runtimeConfig, geometry, statePathItems, gradie
             `;
           })}
         </defs>
-        <g id="horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group" class="horseshoe__state-gradient" style=${styleMap(applyColorFilter(stateStyle))}>
+        <g id="horseshoe-state-${cardId}-${horseshoeIndex}-${gradientStyle}-group" class="horseshoe__state-gradient" style=${styleMap(applyColorFilter(stateStyle))}>
           ${statePathItems.map((pathItem) => {
             const pathElementId = getStatePathElementId(cardId, horseshoeIndex, pathItem.key);
             const pathGradientId = `${pathElementId}-gradient`;
@@ -276,6 +296,7 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
     itemClass,
     styles = {},
     applyColorFilter = (style) => style,
+    gradientPrefix,
   } = options;
 
   const { filter, ...pathStyles } = styles;
@@ -283,11 +304,36 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
 
   return svg`
     <g class=${layerClass} style=${styleMap(groupStyle)}>
+      <defs>
+        ${backgroundItems.map((backgroundItem) => {
+          if (!backgroundItem.arc.gradient) return svg``;
+          const gradientId = `${gradientPrefix}-${backgroundItem.key}`;
+          const startStyle = applyColorFilter({ fill: backgroundItem.arc.gradient.startColor }, backgroundItem);
+          const endStyle = applyColorFilter({ fill: backgroundItem.arc.gradient.endColor }, backgroundItem);
+
+          return svg`
+            <linearGradient
+              id=${gradientId}
+              gradientUnits="userSpaceOnUse"
+              x1=${backgroundItem.arc.gradient.x1}
+              y1=${backgroundItem.arc.gradient.y1}
+              x2=${backgroundItem.arc.gradient.x2}
+              y2=${backgroundItem.arc.gradient.y2}
+            >
+              <stop offset="0%" stop-color=${startStyle.fill}></stop>
+              <stop offset="100%" stop-color=${endStyle.fill}></stop>
+            </linearGradient>
+          `;
+        })}
+      </defs>
       ${backgroundItems.map((backgroundItem) => {
+        const gradientId = `${gradientPrefix}-${backgroundItem.key}`;
         const renderStyle = {
           'stroke-width': 0,
           ...pathStyles,
-          fill: backgroundItem.color ?? pathStyles.fill ?? pathStyles.stroke ?? 'currentColor',
+          fill: backgroundItem.arc.gradient
+            ? `url('#${gradientId}')`
+            : backgroundItem.color ?? pathStyles.fill ?? pathStyles.stroke ?? 'currentColor',
         };
 
         return backgroundItem.path
@@ -312,12 +358,13 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
  * @param {Array<object>} backgroundItems - Horseshoe background arc items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgroundItems, applyColorFilter) {
+export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgroundItems, cardId, horseshoeIndex, applyColorFilter) {
   return renderArcBackgroundLayer(geometry, backgroundItems, {
     layerClass: 'horseshoe__background-layer',
     itemClass: 'horseshoe__background',
     styles: runtimeConfig.horseshoe_background.styles,
     applyColorFilter,
+    gradientPrefix: `horseshoe-background-${cardId}-${horseshoeIndex}`,
   });
 }
 
@@ -329,12 +376,13 @@ export function renderHorseshoeBackgroundLayer(runtimeConfig, geometry, backgrou
  * @param {Array<object>} backgroundItems - Label background arc items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundItems, applyColorFilter) {
+export function renderLabelBackgroundLayer(runtimeConfig, geometry, backgroundItems, cardId, horseshoeIndex, applyColorFilter) {
   return renderArcBackgroundLayer(geometry, backgroundItems, {
     layerClass: 'horseshoe__label-background-layer',
     itemClass: 'horseshoe__label-background',
     styles: runtimeConfig.horseshoe_labels.background.styles,
     applyColorFilter,
+    gradientPrefix: `horseshoe-label-background-${cardId}-${horseshoeIndex}`,
   });
 }
 
@@ -383,11 +431,12 @@ export function renderLabelBadgesLayer(runtimeConfig, geometry, cardId, horsesho
  * @param {Array<object>} backgroundItems - Tickmark background items.
  * @returns {TemplateResult} SVG layer template.
  */
-export function renderTickmarkBackgroundLayer(runtimeConfig, geometry, backgroundItems) {
+export function renderTickmarkBackgroundLayer(runtimeConfig, geometry, backgroundItems, cardId, horseshoeIndex) {
   return renderArcBackgroundLayer(geometry, backgroundItems, {
     layerClass: 'horseshoe__tick-background-layer',
     itemClass: 'horseshoe__tick-background',
     styles: runtimeConfig.horseshoe_tickmarks.background.styles,
+    gradientPrefix: `horseshoe-tick-background-${cardId}-${horseshoeIndex}`,
   });
 }
 
@@ -494,10 +543,11 @@ export function updateStatePathElements(runtimeConfig, statePathItems, statePath
     ...runtimeConfig.horseshoe_scale.styles,
   };
 
-  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient') {
+  if (runtimeConfig.show?.horseshoe_style === 'minmaxgradient' || runtimeConfig.show?.horseshoe_style === 'lineargradient') {
+    const gradientStyle = runtimeConfig.show.horseshoe_style;
     const root = card.renderRoot ?? card.shadowRoot;
-    const gradientGroup = root.getElementById?.(`horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group`)
-      ?? root.querySelector?.(`#horseshoe-state-${cardId}-${horseshoeIndex}-minmaxgradient-group`);
+    const gradientGroup = root.getElementById?.(`horseshoe-state-${cardId}-${horseshoeIndex}-${gradientStyle}-group`)
+      ?? root.querySelector?.(`#horseshoe-state-${cardId}-${horseshoeIndex}-${gradientStyle}-group`);
 
     if (!gradientGroup) {
       return;

@@ -210,6 +210,10 @@ export default class SparklineGraphTool extends BaseTool {
               fill: true,
               stroke: false,
             },
+            lineargradient: {
+              fill: true,
+              stroke: false,
+            },
             colorstopgradient: {
               fill: true,
               stroke: false,
@@ -231,6 +235,10 @@ export default class SparklineGraphTool extends BaseTool {
             },
             color: 'var(--divider-color)',
             colorstopsegments: {
+              fill: true,
+              stroke: false,
+            },
+            lineargradient: {
               fill: true,
               stroke: false,
             },
@@ -806,10 +814,10 @@ export default class SparklineGraphTool extends BaseTool {
         const itemStyle = background.show.item_style;
 
         background.styles = ConfigHelper.toStyleDict(background.styles);
-        if (!['none', 'fixed', 'colorstopsegments', 'colorstopgradient'].includes(itemStyle)) {
-          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments or colorstopgradient`);
+        if (!['none', 'fixed', 'colorstopsegments', 'lineargradient', 'colorstopgradient'].includes(itemStyle)) {
+          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments, lineargradient or colorstopgradient`);
         }
-        if (itemStyle === 'colorstopsegments' || itemStyle === 'colorstopgradient') {
+        if (itemStyle === 'colorstopsegments' || itemStyle === 'lineargradient' || itemStyle === 'colorstopgradient') {
           if (typeof background[itemStyle].fill !== 'boolean' || typeof background[itemStyle].stroke !== 'boolean') {
             throw new Error(`[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`);
           }
@@ -4945,6 +4953,12 @@ export default class SparklineGraphTool extends BaseTool {
     const background = this.config.sparkline.equalizer.background;
     const itemStyle = background.show.item_style;
     if (itemStyle === 'none') return '';
+    const linearGradientColorStops = {
+      colors: this.config.sparkline.colorstops.colors.map((colorStop, index) => ({
+        value: index / (this.config.sparkline.colorstops.colors.length - 1),
+        color: colorStop.color,
+      })),
+    };
     return svg`
       <g class='equalizer-track'>
         ${equalizer.map((equalizerPart) => {
@@ -4963,7 +4977,9 @@ export default class SparklineGraphTool extends BaseTool {
             if (itemStyle === 'fixed') {
               backgroundStyles = { fill: background.color, ...backgroundStyles };
             } else {
-              const color = Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
+              const color = itemStyle === 'lineargradient'
+                ? Colors.calculateStrokeColor(levelIndex / (this.config.sparkline.equalizer.value_buckets - 1), linearGradientColorStops, true)
+                : Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
               if (background[itemStyle].fill) backgroundStyles.fill = color;
               if (background[itemStyle].stroke) backgroundStyles.stroke = color;
             }
@@ -4994,8 +5010,16 @@ export default class SparklineGraphTool extends BaseTool {
     if (itemStyle === 'fixed') {
       backgroundStyles = { fill: background.color, ...backgroundStyles };
     } else {
-      const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopgradient' ? 'smooth' : 'hard');
-      const gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+      let gradient;
+      if (itemStyle === 'lineargradient') {
+        gradient = [...this.config.sparkline.colorstops.colors].reverse().map((colorStop, colorIndex, colorStops) => ({
+          color: colorStop.color,
+          offset: colorIndex / (colorStops.length - 1) * 100,
+        }));
+      } else {
+        const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopsegments' ? 'hard' : 'smooth');
+        gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+      }
       const gradientId = `bar-track-gradient-${this.cardId}-${this.index}-${index}`;
       const gradientReference = `url(#${gradientId})`;
       if (background[itemStyle].fill) backgroundStyles.fill = gradientReference;

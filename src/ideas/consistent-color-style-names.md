@@ -155,6 +155,32 @@ Step 2 starts only after step 1 has been verified.
 - Keep `SparklineGraph` unchanged. The graph tool continues to supply concrete
   colors, threshold lists, and gradient offsets.
 
+### Step 2 implementation
+
+The active `minmaxgradient` and `lineargradient` styles share the existing
+adaptive horseshoe path pool. Every short arc receives a local SVG linear
+gradient in the direction of that arc. Adjacent arcs overlap by 50% to prevent
+anti-aliasing gaps without introducing flat midpoint-color bands.
+
+Their color sources remain deliberately different:
+
+- `minmaxgradient` interpolates between the effective minimum, zero, and maximum
+  colors;
+- `lineargradient` distributes all applicable colors over normalized `0..1`
+  positions on the active arc and ignores numeric stop values;
+- `colorstopgradient` retains numeric stop values, scale mapping, and spline
+  mapping, and reveals the cached full gradient through the state clip.
+
+A spline therefore still changes the active endpoint of `lineargradient`, but
+not its internal color distribution. The same spline changes both geometry and
+color positions for `colorstopgradient`.
+
+Full horseshoe scale and background bands use the same static path and local
+gradient builder. Bar tracks generate concrete, evenly spaced SVG stops for
+`lineargradient`; equalizer tracks sample the same normalized color sequence by
+bucket index. Numeric and logarithmic graph mapping remains exclusive to
+`colorstopgradient`. No color-style knowledge is added to `SparklineGraph`.
+
 ## Sparkline hard and smooth transitions
 
 `sparkline.colorstops_transition` remains a transition policy because one
