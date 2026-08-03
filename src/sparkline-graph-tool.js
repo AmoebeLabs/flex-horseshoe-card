@@ -780,6 +780,16 @@ export default class SparklineGraphTool extends BaseTool {
             state_map: this.stateBandsStateMap,
           }
         : config.sparkline;
+    const yAxis = Merge.mergeDeep({}, config.y_axis);
+
+    // Real-time bar and equalizer graphs represent one value against the scale
+    // owned by their color stops. Pass those concrete bounds to the graph
+    // engine before it calculates coordinates, ticks, and labels.
+    const defaultColorStopScale = config.sparkline.colorstops?.scales?.default;
+    if (period.type === 'real_time' && ['bar', 'equalizer'].includes(graphType) && defaultColorStopScale !== undefined) {
+      yAxis.lower_bound = Number(defaultColorStopScale.min);
+      yAxis.upper_bound = Number(defaultColorStopScale.max);
+    }
 
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
@@ -799,7 +809,7 @@ export default class SparklineGraphTool extends BaseTool {
           max_length: this.xAxisLabelLength,
         },
       },
-      y_axis: config.y_axis,
+      y_axis: yAxis,
     };
   }
 
@@ -824,6 +834,23 @@ export default class SparklineGraphTool extends BaseTool {
         }
       });
       this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
+    }
+
+    // Fixed graph bounds form one explicit range. Validate them here so the
+    // graph engine can use concrete numbers without runtime fallback logic.
+    if (this.configChanged) {
+      const hasLowerBound = this.config.y_axis.lower_bound !== undefined;
+      const hasUpperBound = this.config.y_axis.upper_bound !== undefined;
+
+      if (hasLowerBound !== hasUpperBound) {
+        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be configured together');
+      }
+      if (hasLowerBound && (!Number.isFinite(Number(this.config.y_axis.lower_bound)) || !Number.isFinite(Number(this.config.y_axis.upper_bound)))) {
+        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be numeric');
+      }
+      if (hasLowerBound && Number(this.config.y_axis.lower_bound) >= Number(this.config.y_axis.upper_bound)) {
+        throw new Error('[sparklines] y_axis.lower_bound must be smaller than y_axis.upper_bound');
+      }
     }
 
     // A single real-time value cannot produce a meaningful automatic range.
@@ -1598,14 +1625,6 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.Graph.update(this.series);
     }
-    // Historical graphs retain their automatic data range. A real-time bar or
-    // equalizer instead represents one current value against the fixed range
-    // belonging to its color stops.
-    if (this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(chartType)) {
-      this.Graph.min = this.config.sparkline.colorstops.scales.default.min;
-      this.Graph.max = this.config.sparkline.colorstops.scales.default.max;
-    }
-
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
     if (chartType === 'state_bands') {

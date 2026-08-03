@@ -181,6 +181,12 @@ gradient builder. Bar tracks generate concrete, evenly spaced SVG stops for
 bucket index. Numeric and logarithmic graph mapping remains exclusive to
 `colorstopgradient`. No color-style knowledge is added to `SparklineGraph`.
 
+Real-time bar and equalizer graphs pass the default color-stop scale to the
+engine as generic `y_axis.lower_bound` and `y_axis.upper_bound` values. Bounds
+are applied before axis geometry is built, so foreground geometry, tracks,
+grid, ticks, and labels share one fixed range. Other numerical graphs can use
+the same paired bounds; omitting both retains the automatic data range.
+
 ## Sparkline hard and smooth transitions
 
 `sparkline.colorstops_transition` remains a transition policy because one
