@@ -200,9 +200,48 @@ export default class SparklineGraphTool extends BaseTool {
           colors: [],
         },
         colorstops_transition: 'smooth',
+        bar: {
+          background: {
+            show: {
+              item_style: 'none',
+            },
+            color: 'var(--divider-color)',
+            colorstop: {
+              fill: true,
+              stroke: false,
+            },
+            colorstopgradient: {
+              fill: true,
+              stroke: false,
+            },
+            styles: {
+              opacity: 0.2,
+            },
+          },
+          foreground: {
+            styles: {},
+          },
+        },
         equalizer: {
           value_buckets: 10,
           square: false,
+          background: {
+            show: {
+              item_style: 'none',
+            },
+            color: 'var(--divider-color)',
+            colorstop: {
+              fill: true,
+              stroke: false,
+            },
+            colorstopgradient: {
+              fill: true,
+              stroke: false,
+            },
+            styles: {
+              opacity: 0.2,
+            },
+          },
         },
         graded: {
           square: false,
@@ -402,6 +441,16 @@ export default class SparklineGraphTool extends BaseTool {
     // Preserve the original real-time boolean while selecting its graph mode.
     if (normalizedConfig.period?.real_time === true) {
       normalizedConfig.period.type = 'real_time';
+    }
+    // Normalize supplied background style maps. Visibility and paint always
+    // remain controlled by the explicit runtime show.item_style selector.
+    ['bar', 'equalizer'].forEach((chartType) => {
+      if (normalizedConfig.sparkline?.[chartType]?.background?.styles !== undefined) {
+        normalizedConfig.sparkline[chartType].background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline[chartType].background.styles);
+      }
+    });
+    if (normalizedConfig.sparkline?.bar?.foreground?.styles !== undefined) {
+      normalizedConfig.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.bar.foreground.styles);
     }
     // Legacy booleans enabled or disabled both axes. Convert them once in the
     // configuration layer so rendering always receives explicit x/y values.
@@ -749,6 +798,37 @@ export default class SparklineGraphTool extends BaseTool {
   /** Updates graph configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+    // Bar and equalizer backgrounds use the same explicit item-style selector
+    // and color-stop paint dictionaries as the other FHS layout items.
+    if (this.configChanged) {
+      ['bar', 'equalizer'].forEach((chartType) => {
+        const background = this.config.sparkline[chartType].background;
+        const itemStyle = background.show.item_style;
+
+        background.styles = ConfigHelper.toStyleDict(background.styles);
+        if (!['none', 'fixed', 'colorstop', 'colorstopgradient'].includes(itemStyle)) {
+          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstop or colorstopgradient`);
+        }
+        if (itemStyle === 'colorstop' || itemStyle === 'colorstopgradient') {
+          if (typeof background[itemStyle].fill !== 'boolean' || typeof background[itemStyle].stroke !== 'boolean') {
+            throw new Error(`[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`);
+          }
+        }
+      });
+      this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
+    }
+
+    // A single real-time value cannot produce a meaningful automatic range.
+    // Bar and equalizer therefore require the active color-stop template to
+    // publish the numeric scale used to render their current-value height.
+    if (this.configChanged && this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(this.config.sparkline.show.chart_type)) {
+      if (this.config.sparkline.colorstops.scales?.default === undefined) {
+        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default`);
+      }
+      if (this.config.sparkline.colorstops.scales.default.min === undefined || this.config.sparkline.colorstops.scales.default.max === undefined) {
+        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default.min and max`);
+      }
+    }
 
     // Historical tools remain inactive until a dynamic duration provides a
     // finite positive range. Real-time tools have no history duration.
@@ -1510,6 +1590,13 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.Graph.update(this.series);
     }
+    // Historical graphs retain their automatic data range. A real-time bar or
+    // equalizer instead represents one current value against the fixed range
+    // belonging to its color stops.
+    if (this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(chartType)) {
+      this.Graph.min = this.config.sparkline.colorstops.scales.default.min;
+      this.Graph.max = this.config.sparkline.colorstops.scales.default.max;
+    }
 
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
@@ -1570,6 +1657,11 @@ export default class SparklineGraphTool extends BaseTool {
 
       if (chartType === 'bar') {
         this.bar[index] = this.Graph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        if (this.config.period.type === 'real_time') {
+          // The engine places a one-point bar around its left-edge coordinate.
+          // Center that single bar inside the complete real-time draw area.
+          this.bar[index][0].x = this.Graph.drawArea.x + (this.Graph.drawArea.width - this.bar[index][0].width) / 2;
+        }
       } else if (chartType === 'equalizer') {
         this.Graph.levelCount = this.config.sparkline.equalizer.value_buckets;
         this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.config.sparkline.equalizer.value_buckets;
@@ -4709,6 +4801,27 @@ export default class SparklineGraphTool extends BaseTool {
     const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
     const animationStartY = this.animationBaselineY;
 
+    // Real-time keeps every bucket in the mask so state updates only change
+    // opacity. Stable SVG nodes can fade in and out; historical equalizers
+    // retain their existing value-sized masks and introduction animation.
+    if (this.config.period.type === 'real_time') {
+      equalizer = equalizer.map((equalizerPart) => {
+        const realTimePart = {
+          ...equalizerPart,
+          activeLevelCount: equalizerPart.value.length,
+          value: [],
+          y: [],
+        };
+
+        for (let levelIndex = 0; levelIndex < this.config.sparkline.equalizer.value_buckets; levelIndex += 1) {
+          realTimePart.value[levelIndex] = this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
+          realTimePart.y[levelIndex] = this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (equalizerPart.height + this.svg.row_spacing);
+        }
+
+        return realTimePart;
+      });
+    }
+
     // Square mode uses the smallest generated dimension for both axes. When
     // the level height shrinks, redistribute all levels over the graph area.
     if (this.config.sparkline.equalizer.square === true) {
@@ -4737,6 +4850,10 @@ export default class SparklineGraphTool extends BaseTool {
             height=${Math.max(1, equalizerPart.height)}
             width=${Math.max(1, equalizerPart.width)}
             fill='white'
+            style=${styleMap({
+              opacity: this.config.period.type === 'real_time' ? (j < equalizerPart.activeLevelCount ? 1 : 0) : undefined,
+              transition: this.config.period.type === 'real_time' && this.config.sparkline.animate ? 'opacity 0.5s ease' : undefined,
+            })}
           >
             ${
               animate
@@ -4770,7 +4887,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (!bars) return '';
 
     // Keep the mask and visible bars synchronized during their introduction.
-    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+    const animate = this.config.sparkline.animate && this.historySeries;
 
     return svg`
       <mask id=${`bars-bg-${this.cardId}-${index}`}>
@@ -4822,6 +4939,93 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /** Renders the complete equalizer scale as an optional static background track. */
+  renderSvgEqualizerTrack(equalizer) {
+    const background = this.config.sparkline.equalizer.background;
+    const itemStyle = background.show.item_style;
+    if (itemStyle === 'none') return '';
+    return svg`
+      <g class='equalizer-track'>
+        ${equalizer.map((equalizerPart) => {
+          let width = equalizerPart.width;
+          let height = equalizerPart.height;
+          let levelSpacing = this.svg.row_spacing;
+          if (this.config.sparkline.equalizer.square === true) {
+            const size = Math.min(width, height);
+            levelSpacing = size < height ? (this.Graph.drawArea.height - this.config.sparkline.equalizer.value_buckets * size) / (this.config.sparkline.equalizer.value_buckets - 1) : levelSpacing;
+            width = size;
+            height = size;
+          }
+          return Array.from({ length: this.config.sparkline.equalizer.value_buckets }, (unused, levelIndex) => {
+            const value = this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
+            let backgroundStyles = { ...background.styles };
+            if (itemStyle === 'fixed') {
+              backgroundStyles = { fill: background.color, ...backgroundStyles };
+            } else {
+              const color = Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
+              if (background[itemStyle].fill) backgroundStyles.fill = color;
+              if (background[itemStyle].stroke) backgroundStyles.stroke = color;
+            }
+            const y = this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (height + levelSpacing) - height;
+            return svg`
+              <rect
+                class='equalizer-track__bucket'
+                x=${equalizerPart.x}
+                y=${y}
+                width=${Math.max(1, width)}
+                height=${Math.max(1, height)}
+                style=${styleMap(this.getRenderStyles(backgroundStyles))}
+              ></rect>
+            `;
+          });
+        })}
+      </g>
+    `;
+  }
+
+  /** Renders the complete bar scale as an optional static background track. */
+  renderSvgBarTrack(index) {
+    const background = this.config.sparkline.bar.background;
+    const itemStyle = background.show.item_style;
+    if (itemStyle === 'none') return '';
+    let backgroundStyles = { ...background.styles };
+    let gradientDefinition = '';
+    if (itemStyle === 'fixed') {
+      backgroundStyles = { fill: background.color, ...backgroundStyles };
+    } else {
+      const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopgradient' ? 'smooth' : 'hard');
+      const gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+      const gradientId = `bar-track-gradient-${this.cardId}-${this.index}-${index}`;
+      const gradientReference = `url(#${gradientId})`;
+      if (background[itemStyle].fill) backgroundStyles.fill = gradientReference;
+      if (background[itemStyle].stroke) backgroundStyles.stroke = gradientReference;
+      gradientDefinition = svg`
+        <defs>
+          <linearGradient id=${gradientId} gradientTransform='rotate(90)'>
+            ${gradient.map((stop) => svg`
+              <stop stop-color=${stop.color} offset=${`${stop.offset}%`}></stop>
+            `)}
+          </linearGradient>
+        </defs>
+      `;
+    }
+    const width = Math.max(1, this.Graph.drawArea.width - this.svg.column_spacing);
+    const x = this.Graph.drawArea.x + (this.Graph.drawArea.width - width) / 2;
+    return svg`
+      ${gradientDefinition}
+      <rect
+        class='bar-track'
+        x=${x}
+        y=${this.Graph.drawArea.y}
+        width=${width}
+        height=${this.Graph.drawArea.height}
+        rx=${background.styles.rx}
+        ry=${background.styles.ry}
+        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+      ></rect>
+    `;
+  }
+
   renderSvgEqualizerBackground(equalizer, index) {
     if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
@@ -4844,7 +5048,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
     if (!bars) return '';
 
-    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-0)` : this.computeColor(this.card.entities[index].state, index);
+    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);
     return svg`
       <rect
         class='bars--bg'
@@ -4864,6 +5068,16 @@ export default class SparklineGraphTool extends BaseTool {
     // Existing animate nodes are retained by Lit. State updates therefore do
     // not restart the graph, while a newly inserted calendar bar animates once.
     const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+    const realTimeBarTransition =
+      this.config.sparkline.animate && this.config.period.type === 'real_time'
+        ? 'y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)'
+        : undefined;
+    const foregroundStyles = { ...this.config.sparkline.bar.foreground.styles };
+
+    // The graph color remains authoritative; foreground styles control shape,
+    // transforms, opacity and other presentation properties.
+    delete foregroundStyles.fill;
+    delete foregroundStyles.stroke;
 
     return svg`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
@@ -4883,8 +5097,16 @@ export default class SparklineGraphTool extends BaseTool {
               y=${bar.y}
               height=${Math.max(1, bar.height)}
               width=${Math.max(1, bar.width)}
+              rx=${foregroundStyles.rx}
+              ry=${foregroundStyles.ry}
               fill=${color}
               stroke=${color}
+              style=${styleMap(this.getRenderStyles({
+                y: realTimeBarTransition ? `${bar.y}px` : undefined,
+                height: realTimeBarTransition ? `${Math.max(1, bar.height)}px` : undefined,
+                transition: realTimeBarTransition,
+                ...foregroundStyles,
+              }))}
             >
               ${
                 animate
@@ -5298,9 +5520,11 @@ export default class SparklineGraphTool extends BaseTool {
             </g>
           </g>
           ${this.bar.map((bars, i) => this.renderSvgBarsMask(bars, i))}
+          ${this.bar.map((bars, i) => this.renderSvgBarTrack(i))}
           ${this.bar.map((bars, i) => this.renderSvgBarsBackground(bars, i))}
           ${this.bar.map((bars, i) => this.renderSvgBars(bars, i))}
           ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerMask(equalizer, i))}
+          ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerTrack(equalizer, i))}
           ${this.equalizer.map((equalizer, i) => this.renderSvgEqualizerBackground(equalizer, i))}
           ${this.barcodeChart.map((barcodePart, i) => this.renderSvgBarcode(barcodePart, i))}
           ${this.radialBarcodeChart.map((radialPart, i) => this.renderSvgRadialBarcode(radialPart, i))}
