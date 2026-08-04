@@ -290,6 +290,11 @@ export default class SparklineGraph {
       this.max = Math.max(...this.coordsMax.map((item) => Number(item[V])));
     }
 
+    // Optional graph bounds override only their configured side. Automatic
+    // ranges remain unchanged when neither bound is present.
+    if (this.config.y_axis.lower_bound !== undefined) this.min = Number(this.config.y_axis.lower_bound);
+    if (this.config.y_axis.upper_bound !== undefined) this.max = Number(this.config.y_axis.upper_bound);
+
     this.buildAxisGeometry();
   }
 
@@ -591,12 +596,14 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateYAxisGeometry(fontHeightPixels) {
-    let dataMin = this.min;
-    let dataMax = this.max;
+    const fixedLowerBound = this.config.y_axis.lower_bound !== undefined;
+    const fixedUpperBound = this.config.y_axis.upper_bound !== undefined;
+    let dataMin = fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
+    let dataMax = fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
 
     if (dataMin === dataMax) {
-      dataMin -= 1;
-      dataMax += 1;
+      if (!fixedLowerBound) dataMin -= 1;
+      if (!fixedUpperBound) dataMax += 1;
     }
 
     const minSpacePerLabel = fontHeightPixels * 1.5;
@@ -641,8 +648,10 @@ export default class SparklineGraph {
 
     const interval = chosenStep * powerOfTen;
     const minorInterval = interval / 2;
-    const min = Math.floor(dataMin / minorInterval) * minorInterval;
-    const max = Math.ceil(dataMax / minorInterval) * minorInterval;
+    // A configured bound is exact. Only automatic sides expand to a clean
+    // interval boundary for readable ticks and labels.
+    const min = fixedLowerBound ? dataMin : Math.floor(dataMin / minorInterval) * minorInterval;
+    const max = fixedUpperBound ? dataMax : Math.ceil(dataMax / minorInterval) * minorInterval;
     const ticks = [];
     const majorStart = Math.ceil(min / interval) * interval;
 

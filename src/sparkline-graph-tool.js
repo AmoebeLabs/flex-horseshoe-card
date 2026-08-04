@@ -206,7 +206,11 @@ export default class SparklineGraphTool extends BaseTool {
               item_style: 'none',
             },
             color: 'var(--divider-color)',
-            colorstop: {
+            colorstopsegments: {
+              fill: true,
+              stroke: false,
+            },
+            lineargradient: {
               fill: true,
               stroke: false,
             },
@@ -230,7 +234,11 @@ export default class SparklineGraphTool extends BaseTool {
               item_style: 'none',
             },
             color: 'var(--divider-color)',
-            colorstop: {
+            colorstopsegments: {
+              fill: true,
+              stroke: false,
+            },
+            lineargradient: {
               fill: true,
               stroke: false,
             },
@@ -772,6 +780,16 @@ export default class SparklineGraphTool extends BaseTool {
             state_map: this.stateBandsStateMap,
           }
         : config.sparkline;
+    const yAxis = Merge.mergeDeep({}, config.y_axis);
+
+    // Real-time bar and equalizer graphs represent one value against the scale
+    // owned by their color stops. Pass those concrete bounds to the graph
+    // engine before it calculates coordinates, ticks, and labels.
+    const defaultColorStopScale = config.sparkline.colorstops?.scales?.default;
+    if (period.type === 'real_time' && ['bar', 'equalizer'].includes(graphType) && defaultColorStopScale !== undefined) {
+      yAxis.lower_bound = Number(defaultColorStopScale.min);
+      yAxis.upper_bound = Number(defaultColorStopScale.max);
+    }
 
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
@@ -791,7 +809,7 @@ export default class SparklineGraphTool extends BaseTool {
           max_length: this.xAxisLabelLength,
         },
       },
-      y_axis: config.y_axis,
+      y_axis: yAxis,
     };
   }
 
@@ -806,16 +824,33 @@ export default class SparklineGraphTool extends BaseTool {
         const itemStyle = background.show.item_style;
 
         background.styles = ConfigHelper.toStyleDict(background.styles);
-        if (!['none', 'fixed', 'colorstop', 'colorstopgradient'].includes(itemStyle)) {
-          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstop or colorstopgradient`);
+        if (!['none', 'fixed', 'colorstopsegments', 'lineargradient', 'colorstopgradient'].includes(itemStyle)) {
+          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments, lineargradient or colorstopgradient`);
         }
-        if (itemStyle === 'colorstop' || itemStyle === 'colorstopgradient') {
+        if (itemStyle === 'colorstopsegments' || itemStyle === 'lineargradient' || itemStyle === 'colorstopgradient') {
           if (typeof background[itemStyle].fill !== 'boolean' || typeof background[itemStyle].stroke !== 'boolean') {
             throw new Error(`[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`);
           }
         }
       });
       this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
+    }
+
+    // Fixed graph bounds form one explicit range. Validate them here so the
+    // graph engine can use concrete numbers without runtime fallback logic.
+    if (this.configChanged) {
+      const hasLowerBound = this.config.y_axis.lower_bound !== undefined;
+      const hasUpperBound = this.config.y_axis.upper_bound !== undefined;
+
+      if (hasLowerBound !== hasUpperBound) {
+        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be configured together');
+      }
+      if (hasLowerBound && (!Number.isFinite(Number(this.config.y_axis.lower_bound)) || !Number.isFinite(Number(this.config.y_axis.upper_bound)))) {
+        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be numeric');
+      }
+      if (hasLowerBound && Number(this.config.y_axis.lower_bound) >= Number(this.config.y_axis.upper_bound)) {
+        throw new Error('[sparklines] y_axis.lower_bound must be smaller than y_axis.upper_bound');
+      }
     }
 
     // A single real-time value cannot produce a meaningful automatic range.
@@ -1590,14 +1625,6 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.Graph.update(this.series);
     }
-    // Historical graphs retain their automatic data range. A real-time bar or
-    // equalizer instead represents one current value against the fixed range
-    // belonging to its color stops.
-    if (this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(chartType)) {
-      this.Graph.min = this.config.sparkline.colorstops.scales.default.min;
-      this.Graph.max = this.config.sparkline.colorstops.scales.default.max;
-    }
-
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
     if (chartType === 'state_bands') {
@@ -4884,6 +4911,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgBarsMask(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    if (this.config.period.type === 'real_time') return '';
     if (!bars) return '';
 
     // Keep the mask and visible bars synchronized during their introduction.
@@ -4944,6 +4972,12 @@ export default class SparklineGraphTool extends BaseTool {
     const background = this.config.sparkline.equalizer.background;
     const itemStyle = background.show.item_style;
     if (itemStyle === 'none') return '';
+    const linearGradientColorStops = {
+      colors: this.config.sparkline.colorstops.colors.map((colorStop, index) => ({
+        value: index / (this.config.sparkline.colorstops.colors.length - 1),
+        color: colorStop.color,
+      })),
+    };
     return svg`
       <g class='equalizer-track'>
         ${equalizer.map((equalizerPart) => {
@@ -4962,7 +4996,9 @@ export default class SparklineGraphTool extends BaseTool {
             if (itemStyle === 'fixed') {
               backgroundStyles = { fill: background.color, ...backgroundStyles };
             } else {
-              const color = Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
+              const color = itemStyle === 'lineargradient'
+                ? Colors.calculateStrokeColor(levelIndex / (this.config.sparkline.equalizer.value_buckets - 1), linearGradientColorStops, true)
+                : Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
               if (background[itemStyle].fill) backgroundStyles.fill = color;
               if (background[itemStyle].stroke) backgroundStyles.stroke = color;
             }
@@ -4993,8 +5029,16 @@ export default class SparklineGraphTool extends BaseTool {
     if (itemStyle === 'fixed') {
       backgroundStyles = { fill: background.color, ...backgroundStyles };
     } else {
-      const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopgradient' ? 'smooth' : 'hard');
-      const gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+      let gradient;
+      if (itemStyle === 'lineargradient') {
+        gradient = [...this.config.sparkline.colorstops.colors].reverse().map((colorStop, colorIndex, colorStops) => ({
+          color: colorStop.color,
+          offset: colorIndex / (colorStops.length - 1) * 100,
+        }));
+      } else {
+        const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopsegments' ? 'hard' : 'smooth');
+        gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+      }
       const gradientId = `bar-track-gradient-${this.cardId}-${this.index}-${index}`;
       const gradientReference = `url(#${gradientId})`;
       if (background[itemStyle].fill) backgroundStyles.fill = gradientReference;
@@ -5046,6 +5090,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgBarsBackground(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    if (this.config.period.type === 'real_time') return '';
     if (!bars) return '';
 
     const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);

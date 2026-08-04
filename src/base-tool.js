@@ -90,8 +90,8 @@ export default class BaseTool {
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
     if (this.configChanged && this.colorStopPaintDefaults
-      && (this.config.color_stops || this.config.colorstop_gradient !== undefined
-        || ['colorstop', 'colorstopgradient'].includes(this.config.show?.item_style))) {
+      && (this.config.color_stops
+        || ['colorstop', 'colorstopinterpolated'].includes(this.config.show?.item_style))) {
       this.normalizeLayoutItemColorStopMode(this.config);
     }
 
@@ -107,28 +107,27 @@ export default class BaseTool {
   /**
    * Normalizes the public layout-item color-stop selector at the runtime-config boundary.
    *
-   * Explicit show.item_style configuration wins over the stable colorstop_gradient alias.
-   * Both paint dictionaries are completed here so renderers only consume final config.
+   * Both single-color paint dictionaries are completed here so renderers only consume final config.
    *
    * @param {object} item - Layout item or multipart text item with normalized color stops.
    * @param {object} paintDefaults - Semantic fill and stroke defaults for this tool.
    */
   normalizeLayoutItemColorStopMode(item, paintDefaults = this.colorStopPaintDefaults) {
     item.show ??= {};
-    item.show.item_style ??= item.colorstop_gradient === true ? 'colorstopgradient' : 'colorstop';
+    item.show.item_style ??= 'colorstop';
 
-    if (item.show.item_style !== 'colorstop' && item.show.item_style !== 'colorstopgradient') return;
+    if (item.show.item_style !== 'colorstop' && item.show.item_style !== 'colorstopinterpolated') return;
 
     item.colorstop = {
       ...paintDefaults,
       ...item.colorstop,
     };
-    item.colorstopgradient = {
+    item.colorstopinterpolated = {
       ...paintDefaults,
-      ...item.colorstopgradient,
+      ...item.colorstopinterpolated,
     };
 
-    ['colorstop', 'colorstopgradient'].forEach((mode) => {
+    ['colorstop', 'colorstopinterpolated'].forEach((mode) => {
       if (typeof item[mode].fill !== 'boolean' || typeof item[mode].stroke !== 'boolean') {
         throw new Error(`[${this.animationSection}] ${mode}.fill and ${mode}.stroke must be boolean`);
       }
@@ -236,7 +235,7 @@ export default class BaseTool {
    * @param {Array<string>} fillProperties - Renderer properties representing logical fill.
    */
   applyColorStops(styles, item = this.config, fillProperties = ['fill']) {
-    if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopgradient') return;
+    if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopinterpolated') return;
 
     const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
     const stopColor = this.card._getItemColorFromStops(item, colorStops);
