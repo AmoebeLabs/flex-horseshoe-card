@@ -255,6 +255,17 @@ export default class Compounds {
           const generatedChild = Merge.mergeDeep(sharedDefaults, child);
           preserveStaticRefMarkers(sharedDefaults, generatedChild);
           preserveStaticRefMarkers(child, generatedChild);
+
+          // A same_as child must inherit fields from its referenced sibling.
+          // Remove only the compound-level entity_index when the child did not
+          // explicitly define one; otherwise it would override the base index
+          // before same_as_dentity_index can apply its delta.
+          if (child.same_as !== undefined
+            && child.entity_index === undefined
+            && sharedDefaults.entity_index !== undefined) {
+            delete generatedChild.entity_index;
+          }
+
           generatedChild.id = generatedChildId;
 
           // same_as is local when it names a sibling in the same target
