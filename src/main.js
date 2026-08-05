@@ -1752,7 +1752,11 @@ class FlexHorseshoeCard extends LitElement {
 
       if (!Array.isArray(items)) return;
 
-      config.layout[section] = items.filter((item) => item.disabled !== true);
+      config.layout[section] = items.filter((item) => {
+        if (item.disabled === undefined) return true;
+
+        return !this._resolveDisabledConfigValue(item, item.disabled, section);
+      });
     });
   }
 
@@ -1944,6 +1948,21 @@ class FlexHorseshoeCard extends LitElement {
    *
    * @param {object} config - Card configuration after template and static-value processing.
    */
+  _resolveDisabledConfigValue(item, disabled, section) {
+    const resolvedDisabled = Templates.hasJavascriptTemplates(disabled)
+      ? Templates.getJsTemplateOrValue(item, disabled)
+      : disabled;
+
+    if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(resolvedDisabled)) {
+      throw new Error(`[${section}] disabled must resolve to true, false, 0 or 1`);
+    }
+
+    return resolvedDisabled === true
+      || resolvedDisabled === 1
+      || resolvedDisabled === 'true'
+      || resolvedDisabled === '1';
+  }
+
   _removeDisabledEntityConfigs(config) {
     config.entities = config.entities
       .map((entityConfig, index) => {
@@ -1953,17 +1972,11 @@ class FlexHorseshoeCard extends LitElement {
           ...entityConfig,
           entity_index: index,
         };
-        const disabled = Templates.hasJavascriptTemplates(entityConfig.disabled)
-          ? Templates.getJsTemplateOrValue(item, entityConfig.disabled)
-          : entityConfig.disabled;
-
-        if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(disabled)) {
-          throw new Error(`[entities] disabled must resolve to true, false, 0 or 1 for entity ${entityConfig.entity}`);
-        }
+        const disabled = this._resolveDisabledConfigValue(item, entityConfig.disabled, 'entities');
 
         return {
           ...entityConfig,
-          disabled: disabled === true || disabled === 1 || disabled === 'true' || disabled === '1',
+          disabled,
         };
       })
       .filter((entityConfig) => entityConfig.disabled !== true);
