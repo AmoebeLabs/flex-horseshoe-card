@@ -63,9 +63,18 @@ export default class CardTemplates {
       compiledTemplateParts.entities = compiledTemplateParts.entities.map((entityConfig) => {
         configuredEntityIds.add(entityConfig.entity);
 
-        return defaultEntitiesById[entityConfig.entity] === undefined
-          ? entityConfig
-          : CardTemplates.mergeTemplateConfig(defaultEntitiesById[entityConfig.entity], entityConfig);
+        if (defaultEntitiesById[entityConfig.entity] === undefined) return entityConfig;
+
+        const defaultEntity = defaultEntitiesById[entityConfig.entity];
+        if (defaultEntity.slot !== undefined
+          && entityConfig.slot !== undefined
+          && defaultEntity.slot !== entityConfig.slot) {
+          throw new Error(`[templates] Entity ${entityConfig.entity} cannot change its default slot`);
+        }
+
+        const mergedEntity = CardTemplates.mergeTemplateConfig(defaultEntity, entityConfig);
+        if (defaultEntity.slot !== undefined) mergedEntity.slot = defaultEntity.slot;
+        return mergedEntity;
       });
 
       compiledTemplateParts.default_entities.forEach((entityConfig) => {

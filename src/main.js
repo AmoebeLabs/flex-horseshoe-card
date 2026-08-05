@@ -142,6 +142,7 @@ class FlexHorseshoeCard extends LitElement {
     this.groupsHaveJavascript = false;
     this.changedGroupIds = new Set();
     this.resolvedEntityConfigs = [];
+    this.entitySlots = { flat: [], default: [] };
     this.entityConfigsInitialized = false;
     this.evaluateJavascriptTemplates = false;
     this.sourceCardStyles = undefined;
@@ -1198,6 +1199,7 @@ class FlexHorseshoeCard extends LitElement {
       config: this.config,
       entities: this.entities,
       horseshoes: this.horseshoes,
+      entity_slots: this.entitySlots,
     });
 
     this.evaluateJavascriptTemplates = true;
@@ -1323,6 +1325,7 @@ class FlexHorseshoeCard extends LitElement {
       config: this.config,
       entities: this.entities,
       horseshoes: this.horseshoes,
+      entity_slots: this.entitySlots,
     });
 
     // Evaluate every marked entity config exactly once for this configured state update.
@@ -1347,6 +1350,7 @@ class FlexHorseshoeCard extends LitElement {
       config: this.config,
       entities: this.entities,
       horseshoes: this.horseshoes,
+      entity_slots: this.entitySlots,
     });
 
     if (performanceEnabled) {
@@ -1580,6 +1584,7 @@ class FlexHorseshoeCard extends LitElement {
       config: this.config,
       entities: this.entities,
       horseshoes: this.horseshoes,
+      entity_slots: this.entitySlots,
     });
 
     // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
@@ -1795,9 +1800,24 @@ class FlexHorseshoeCard extends LitElement {
             throw new Error(`[animations] Unknown entity index: ${entityIndex}`);
           }
         } else {
-          entityIndex = entityIndexes[entityReference];
-          if (entityIndex === undefined) throw new Error(`[animations] Unknown entity: ${entityReference}`);
-          if (entityIndex === null) throw new Error(`[animations] Entity '${entityReference}' occurs more than once; use entity.<index>`);
+          const slotMatch = entityReference.match(/^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/);
+
+          if (slotMatch) {
+            const slotName = slotMatch[1];
+            const slotIndex = Number(slotMatch[2]);
+            const slot = this.entitySlots[slotName];
+
+            if (slot === undefined) throw new Error(`[animations] Unknown entity slot: ${slotName}`);
+            if (slot[slotIndex] === undefined) {
+              throw new Error(`[animations] Entity slot ${slotName} has no index ${slotIndex}`);
+            }
+
+            entityIndex = slot[slotIndex];
+          } else {
+            entityIndex = entityIndexes[entityReference];
+            if (entityIndex === undefined) throw new Error(`[animations] Unknown entity: ${entityReference}`);
+            if (entityIndex === null) throw new Error(`[animations] Entity '${entityReference}' occurs more than once; use entity.<index>`);
+          }
         }
 
         const resolvedAnimationKey = `entity.${entityIndex}`;
@@ -1916,6 +1936,120 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Builds the final slot map for the flat configured entity list.
+   *
+   * Slots are sticky: an entity with a slot changes the active slot for the
+   * following entities. Every entity is also recorded in the internal flat
+   * slot, so numeric indices and named slot references share one address model.
+   *
+   * @param {Array<object>} entityConfigs - Final entity configs after template merge.
+   * @returns {object} Slot names mapped to flat entity indices.
+   */
+  _buildEntitySlots(entityConfigs) {
+    const entitySlots = {
+      flat: [],
+      default: [],
+    };
+    let activeSlot = 'default';
+
+    entityConfigs.forEach((entityConfig, index) => {
+      if (entityConfig.slot !== undefined) {
+        if (typeof entityConfig.slot !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(entityConfig.slot)) {
+          throw new Error(`[entities] Invalid slot ${entityConfig.slot} at index ${index}`);
+        }
+        if (entityConfig.slot === 'flat') {
+          throw new Error('[entities] Slot name flat is reserved');
+        }
+        activeSlot = entityConfig.slot;
+      }
+
+      entityConfig.slot = activeSlot;
+      entitySlots[activeSlot] ??= [];
+      entitySlots[activeSlot].push(index);
+      entitySlots.flat.push(index);
+    });
+
+    return entitySlots;
+  }
+
+  /**
+   * Converts user-facing entity_index values into symbolic addresses before
+   * compounds and SameAs inherit and modify them.
+   *
+   * @param {object} config - Card configuration after static values are resolved.
+   */
+  _normalizeEntityIndexAddresses(config) {
+    const normalizeValue = (value) => {
+      if (typeof value === 'number') {
+        return { type: 'entity_address', slot: 'flat', index: value };
+      }
+
+      if (typeof value === 'string') {
+        const slotMatch = value.match(/^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/);
+        if (slotMatch) {
+          return {
+            type: 'entity_address',
+            slot: slotMatch[1],
+            index: Number(slotMatch[2]),
+          };
+        }
+      }
+
+      throw new Error(`[layout] Invalid entity_index ${value}. Use a number or slot[index]`);
+    };
+
+    const visit = (value) => {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => visit(entry));
+        return;
+      }
+
+      if (!value || typeof value !== 'object') return;
+
+      Object.entries(value).forEach(([key, entryValue]) => {
+        if (key === 'entity_index' && entryValue !== undefined) {
+          value[key] = normalizeValue(entryValue);
+          return;
+        }
+        visit(entryValue);
+      });
+    };
+
+    visit(config.layout);
+  }
+
+  /**
+   * Flattens symbolic entity slot addresses into the numeric indices consumed by tools.
+   *
+   * @param {object} config - Card configuration after SameAs and entity-id resolution.
+   */
+  _flattenEntitySlotIndexes(config) {
+    const visit = (value) => {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => visit(entry));
+        return;
+      }
+
+      if (!value || typeof value !== 'object') return;
+
+      Object.entries(value).forEach(([key, entryValue]) => {
+        if (key === 'entity_index' && entryValue?.type === 'entity_address') {
+          const slot = this.entitySlots[entryValue.slot];
+          if (slot === undefined) throw new Error(`[layout] Unknown entity slot ${entryValue.slot}`);
+          if (entryValue.index >= slot.length) {
+            throw new Error(`[layout] Entity slot ${entryValue.slot} has no index ${entryValue.index}`);
+          }
+          value[key] = slot[entryValue.index];
+          return;
+        }
+        visit(entryValue);
+      });
+    };
+
+    visit(config.layout);
+  }
+
+  /**
    * Records JavaScript-template metadata for every supported runtime config unit.
    *
    * The scan runs after card templates, ref(), calc() and same_as have produced
@@ -2025,6 +2159,8 @@ class FlexHorseshoeCard extends LitElement {
 
       this._replaceStaticRefs(config, config.constants);
       this._calculateStaticValues(config, calcConstants);
+      this.entitySlots = this._buildEntitySlots(config.entities);
+      this._normalizeEntityIndexAddresses(config);
       Compounds.compile(config);
       SameAs.compile(config);
 
@@ -2044,6 +2180,7 @@ class FlexHorseshoeCard extends LitElement {
         config,
         entities: this.entities,
         horseshoes: this.horseshoes,
+        entity_slots: this.entitySlots,
       });
 
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
@@ -2060,6 +2197,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
+      this._flattenEntitySlotIndexes(config);
 
       const newConfig = {
         texts: [],
@@ -2131,6 +2269,7 @@ class FlexHorseshoeCard extends LitElement {
         config: this.config,
         entities: this.entities,
         horseshoes: this.horseshoes,
+        entity_slots: this.entitySlots,
       });
       if (this._hass !== undefined) this._getRenderableTools().forEach((tool) => tool.hassAvailable());
 
@@ -2147,6 +2286,7 @@ class FlexHorseshoeCard extends LitElement {
         stack: error?.stack,
         rawConfig: config,
         horseshoes: this.horseshoes,
+        entity_slots: this.entitySlots,
       });
 
       throw error;
