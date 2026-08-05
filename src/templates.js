@@ -158,7 +158,7 @@ export default class Templates {
    * @returns {*} Template return value, or undefined when evaluation fails.
    */
   static evaluateJsTemplate(item, javascript) {
-    const { hass, config, entities = [] } = Templates.context;
+    const { hass, config, entities = [], entity_slots } = Templates.context;
 
     const entityIndex = Templates._getItemEntityIndex(item);
     const state = Templates._getTemplateState(item);
@@ -175,6 +175,7 @@ export default class Templates {
         states,
         state,
         constants,
+        entity_slots,
         item,
         user,
       });
@@ -192,6 +193,7 @@ export default class Templates {
           'states',
           'state',
           'constants',
+          'entity_slots',
           'item',
           'user',
           `
@@ -202,7 +204,7 @@ export default class Templates {
         Templates.javascriptFunctionCache.set(javascript, fn);
       }
 
-      return fn(hass, config, entity, entities, states, state, constants, item, user);
+      return fn(hass, config, entity, entities, states, state, constants, entity_slots, item, user);
     } catch (error) {
       if (config?.dev?.debug) {
         console.error('[templates] JavaScript template error:', {

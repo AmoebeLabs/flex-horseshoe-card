@@ -126,27 +126,43 @@ export default class SameAs {
    */
   static applyDeltas(item, compiledItem, index) {
     Object.entries(item).forEach(([key, value]) => {
+      // Only same_as_d... fields participate in delta processing.
       if (!key.startsWith('same_as_d')) return;
 
+      // The suffix identifies the inherited field to modify, for example
+      // same_as_dentity_index targets entity_index.
       const targetKey = key.substring('same_as_d'.length);
 
       if (!targetKey) {
         throw new Error(`Invalid same_as delta field '${key}' for item ${index}`);
       }
 
+      // The inherited item must provide the field before a delta can be applied.
       if (compiledItem[targetKey] === undefined) {
         throw new Error(`same_as delta '${key}' requires '${targetKey}' for item ${index}`);
       }
 
-      if (!SameAs.isStaticNumber(compiledItem[targetKey])) {
+      // Most deltas operate on numbers. Entity indices are also allowed because
+      // a slot address is incremented locally before it is flattened later.
+      if (!SameAs.isStaticNumber(compiledItem[targetKey]) && !SameAs.isEntityAddress(compiledItem[targetKey])) {
         throw new Error(`same_as delta '${key}' requires numeric '${targetKey}' for item ${index}`);
       }
 
+      // The delta itself is always a numeric offset.
       if (!SameAs.isStaticNumber(value)) {
         throw new Error(`same_as delta '${key}' must be numeric for item ${index}`);
       }
 
-      compiledItem[targetKey] += value;
+      // Slot-aware entity addresses keep their slot and move only their local index.
+      if (SameAs.isEntityAddress(compiledItem[targetKey])) {
+        compiledItem[targetKey] = {
+          ...compiledItem[targetKey],
+          index: compiledItem[targetKey].index + value,
+        };
+      } else {
+        // Legacy numeric fields retain their original flat-index behavior.
+        compiledItem[targetKey] += value;
+      }
     });
 
     return compiledItem;
@@ -214,6 +230,10 @@ export default class SameAs {
    * @param {*} value - Value to test.
    * @returns {boolean} True when the value is a finite number.
    */
+  static isEntityAddress(value) {
+    return value?.type === 'entity_address' && typeof value.slot === 'string' && Number.isInteger(value.index);
+  }
+
   static isStaticNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
   }
