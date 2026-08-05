@@ -298,6 +298,7 @@ export default class IconTool extends BaseTool {
             width="${iconPixels}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
+            pointer-events="${item.tap_action?.action === 'none' ? 'none' : 'auto'}"
           ></rect>
 
           <g class="icon-style-animation" style="${styleMap(configStyle)}">
@@ -400,6 +401,7 @@ export default class IconTool extends BaseTool {
             width="${iconPixels}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
+            pointer-events="${item.tap_action?.action === 'none' ? 'none' : 'auto'}"
           ></rect>
 
           <g class="icon-style-animation" style="${styleMap(configStyle)}">
@@ -570,6 +572,7 @@ export default class IconTool extends BaseTool {
               width="${iconPixels}px"
               stroke-width="0px"
               fill="rgba(0,0,0,0)"
+              pointer-events="${renderItem.tap_action?.action === 'none' ? 'none' : 'auto'}"
             ></rect>
 
             <g class="icon-style-animation" style="${styleMap(configStyle)}">

@@ -471,6 +471,7 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
             width="${s}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
+            pointer-events="${"none"===t.tap_action?.action?"none":"auto"}"
           ></rect>
 
           <g class="icon-style-animation" style="${mt(i)}">
@@ -534,6 +535,7 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
             width="${s}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
+            pointer-events="${"none"===t.tap_action?.action?"none":"auto"}"
           ></rect>
 
           <g class="icon-style-animation" style="${mt(i)}">
@@ -571,6 +573,7 @@ const lt=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let ut=class{constr
               width="${s}px"
               stroke-width="0px"
               fill="rgba(0,0,0,0)"
+              pointer-events="${"none"===i.tap_action?.action?"none":"auto"}"
             ></rect>
 
             <g class="icon-style-animation" style="${mt(p)}">
