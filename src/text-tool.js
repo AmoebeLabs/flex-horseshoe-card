@@ -159,6 +159,8 @@ export default class TextTool extends BaseTool {
           : undefined;
         const partContext = {
           ...sourcePart,
+          // Text templates address the containing text item unless a part has its own id.
+          id: sourcePart.id ?? this.config.id,
           entity_index: sourceTool
             ? sourceTool.entity_index
             : sourcePart.entity_index ?? this.config.entity_index,
