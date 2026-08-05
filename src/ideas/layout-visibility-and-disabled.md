@@ -80,18 +80,42 @@ switching between sparkline presentations and compact or expanded layouts.
 ## Disabled items
 
 `disabled` is a configuration-time boolean. It is intended for card and view
-templates and does not support runtime JavaScript.
+templates and does not change during runtime updates.
 
-Configuration processing must resolve IDs, `same_as`, static refs and `calc()`
-before filtering disabled items. This permits a disabled base definition to be
-reused when the copy explicitly sets `disabled: false`.
+For layout items, configuration processing must resolve IDs, `same_as`, static
+refs and `calc()` before filtering disabled items. For entities, template and
+constant values are resolved first, then disabled entities are removed before
+slots and flat entity indices are built.
 
-Filtering happens before JavaScript detection, entity resolution and tool
-construction. A disabled item therefore has no tool instance, lifecycle,
-history fetch, animations, SVG output or runtime references.
+A disabled layout item or entity is completely absent from the active card
+configuration. It receives no lifecycle updates, history fetches, animations,
+SVG output or runtime references. Entity slots are compacted after disabled
+entities are removed.
 
-`disabled` applies to visible layout item sections, not groups, entities or the
-complete card. References to an item that remains disabled are invalid.
+Entity disabled templates may use finalized constants and must resolve to a
+boolean or numeric/string 0/1. This makes template-controlled entity lists possible without turning
+entity structure into a runtime state change:
+
+~~~yaml
+constants:
+  rooms:
+    - livingroom
+    - study
+  bedroom_disabled: |
+    [[[ return constants.rooms.length < 3; ]]]
+
+entities:
+  - entity: sensor.livingroom_temperature
+    slot: room_sensors
+  - entity: sensor.study_temperature
+  - entity: sensor.bedroom_temperature
+    disabled: ref(bedroom_disabled)
+~~~
+
+`disabled: false` keeps the item or entity active. A disabled base definition
+can therefore still be reused when a copy explicitly sets `disabled: false`.
+`disabled` applies to layout items and entities, not groups or the complete
+card. References to an item or entity that remains disabled are invalid.
 
 ## TextTool sources
 

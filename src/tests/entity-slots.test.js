@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Compounds from '../compounds.js';
 import SameAs from '../same-as.js';
+import Templates from '../templates.js';
 
 const entityAddress = (slot, index) => ({
   type: 'entity_address',
@@ -79,4 +80,39 @@ test('compound children retain slot addresses through compilation', () => {
 
   assert.deepEqual(config.layout.lines[0].entity_index, entityAddress('sensors', 0));
   assert.deepEqual(config.layout.lines[1].entity_index, entityAddress('sensors', 1));
+});
+
+/**
+ * Verifies the config-time expression used by entity disabled filtering.
+ */
+test('config-time disabled templates resolve from constants', () => {
+  Templates.setContext({
+    config: {
+      constants: {
+        rooms: ['livingroom', 'study'],
+      },
+    },
+    entities: [],
+  });
+
+  const disabled = Templates.getJsTemplateOrValue(
+    { entity_index: 2 },
+    '[[[ return constants.rooms.length < 3; ]]]',
+  );
+
+  assert.equal(disabled, true);
+
+  const numericDisabled = Templates.getJsTemplateOrValue(
+    { entity_index: 2 },
+    '[[[ return constants.rooms.length < 3 ? 1 : 0; ]]]',
+  );
+
+  assert.equal(numericDisabled, 1);
+
+  const stringDisabled = Templates.getJsTemplateOrValue(
+    { entity_index: 2 },
+    '[[[ return "1"; ]]]',
+  );
+
+  assert.equal(stringDisabled, '1');
 });

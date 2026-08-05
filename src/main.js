@@ -1936,6 +1936,40 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Evaluates config-time entity disabled flags and removes disabled entities.
+   *
+   * Entity structure is finalized before slots and flat indices are built. A
+   * disabled entity therefore cannot leave an empty slot or shift runtime
+   * tools after the card has been configured.
+   *
+   * @param {object} config - Card configuration after template and static-value processing.
+   */
+  _removeDisabledEntityConfigs(config) {
+    config.entities = config.entities
+      .map((entityConfig, index) => {
+        if (entityConfig.disabled === undefined) return entityConfig;
+
+        const item = {
+          ...entityConfig,
+          entity_index: index,
+        };
+        const disabled = Templates.hasJavascriptTemplates(entityConfig.disabled)
+          ? Templates.getJsTemplateOrValue(item, entityConfig.disabled)
+          : entityConfig.disabled;
+
+        if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(disabled)) {
+          throw new Error(`[entities] disabled must resolve to true, false, 0 or 1 for entity ${entityConfig.entity}`);
+        }
+
+        return {
+          ...entityConfig,
+          disabled: disabled === true || disabled === 1 || disabled === 'true' || disabled === '1',
+        };
+      })
+      .filter((entityConfig) => entityConfig.disabled !== true);
+  }
+
+  /**
    * Builds the final slot map for the flat configured entity list.
    *
    * Slots are sticky: an entity with a slot changes the active slot for the
@@ -2159,6 +2193,16 @@ class FlexHorseshoeCard extends LitElement {
 
       this._replaceStaticRefs(config, config.constants);
       this._calculateStaticValues(config, calcConstants);
+
+      // Entity disabled templates use finalized constants but run before entity slots exist.
+      Templates.setContext({
+        hass: this._hass,
+        config,
+        entities: this.entities,
+        horseshoes: this.horseshoes,
+      });
+      this._removeDisabledEntityConfigs(config);
+
       this.entitySlots = this._buildEntitySlots(config.entities);
       this._normalizeEntityIndexAddresses(config);
       Compounds.compile(config);
