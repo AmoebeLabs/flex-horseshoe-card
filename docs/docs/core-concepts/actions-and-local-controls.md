@@ -166,6 +166,43 @@ Every FHS card that should use a global input includes the same `fhs_input_numbe
 
 Persistence is available only with `scope: global`. Card-scoped inputs can use the same entity name in several card instances, so storing them under that shared name would cause conflicts. The stored value remains local to the current browser profile. Synchronization between browsers or devices requires a Home Assistant helper.
 
+## :material-horseshoe: Local boolean inputs
+
+An `fhs_input_boolean` stores a local on/off state without creating a Home Assistant helper. Its runtime state follows Home Assistant and is either `on` or `off`. The optional `initial` value accepts `true` or `false`; when omitted, the input starts as `off`.
+
+`scope: global` shares the state between FHS cards in the current browser tab. Add `persist: true` to restore the global state after a full page reload.
+
+```yaml linenums="1"
+entities:
+  - entity: fhs_input_boolean.show_labels
+    initial: true
+    scope: global
+    persist: true
+```
+
+Use the Home Assistant-compatible local services:
+
+```yaml linenums="1"
+tap_action:
+  action: perform-action
+  perform_action: fhs_input_boolean.toggle
+  target:
+    entity_id: fhs_input_boolean.show_labels
+```
+
+The explicit services `fhs_input_boolean.turn_on` and `fhs_input_boolean.turn_off` are also supported. A plain `action: toggle` works when the selected entity is a local FHS boolean.
+
+Templates receive the runtime state as `on` or `off`:
+
+```yaml linenums="1"
+visibility: |
+  [[[ return state === 'on' ? 'visible' : 'hidden'; ]]]
+```
+
+A local boolean can be used in the same way as a real Home Assistant `input_boolean`; choose the local `fhs_input_boolean` entity when the state should remain inside the browser, or reference the real `input_boolean` when Home Assistant should own and synchronize the state across devices.
+
+`icon`, `name`, `slot`, and `disabled` are supported. Without an explicit icon, FHS uses `mdi:toggle-switch`.
+
 ## :material-horseshoe: Using a local input in a template
 
 A graph can read the input through its position in the `entities` list. This example treats the selected value as a number of days:
