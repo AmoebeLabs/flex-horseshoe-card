@@ -6,6 +6,11 @@ export default class Palette {
       return this.cache.get(url);
     }
 
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin !== window.location.origin) {
+      throw new Error(`Palette URL must be same-origin: ${url}`);
+    }
+
     const promise = fetch(url).then(async (response) => {
       if (!response.ok) {
         throw new Error(`Could not load palette: ${url}`);
