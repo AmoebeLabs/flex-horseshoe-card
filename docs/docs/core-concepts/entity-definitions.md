@@ -320,7 +320,7 @@ For details about JavaScript templates, available variables, and reusable templa
 
 | Name | Type | Required | Description |
 | :--- | :---: | :------: | :---------- |
-| `entity` | string | :material-check: | Home Assistant entity ID or an `fhs_input_number` ID |
+| `entity` | string | :material-check: | Home Assistant entity ID, an `fhs_input_number` ID, or an `fhs_input_boolean` ID |
 | `attribute` | string | :material-close: | Attribute to display instead of the main entity state |
 | `unit` | string | :material-close: | Unit displayed for the entity or attribute; can use a JavaScript template where supported |
 | `decimals` | number | :material-close: | Number of decimals used to format the value |
@@ -331,8 +331,8 @@ For details about JavaScript templates, available variables, and reusable templa
 | `tap_action` | object | :material-close: | Action performed when the entity is clicked or tapped |
 | `hold_action` | object | :material-close: | Action performed when the entity is held |
 | `double_tap_action` | object | :material-close: | Action performed when the entity is double tapped |
-| `initial` | number | :material-check: for `fhs_input_number` | Initial value of a local FHS number input |
-| `scope` | string | :material-close: | Shares an `fhs_input_number` with one card or all FHS cards in the current browser tab; default: `card` |
+| `initial` | number/boolean | :material-close: | Initial value for a local FHS input; numbers require a value, booleans accept `true`/`false` and default to `off` when omitted |
+| `scope` | string | :material-close: | Shares an `fhs_input_number` or `fhs_input_boolean` with one card or all FHS cards in the current browser tab; default: `card` |
 
 ## :material-horseshoe: Available entity format options
 
@@ -362,7 +362,7 @@ You can override it with an MDI icon, external image, external SVG, or JavaScrip
 
 ## :material-horseshoe: Actions and local controls
 
-Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. FHS also supports ordered action lists, Companion-app haptic feedback, and browser-local `fhs_input_number` controls.
+Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. FHS also supports ordered action lists, Companion-app haptic feedback, and browser-local `fhs_input_number` and `fhs_input_boolean` controls.
 
 See [Actions and Local Controls](actions-and-local-controls.md) for the available actions and complete examples.
 
