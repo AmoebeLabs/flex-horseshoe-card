@@ -52,6 +52,7 @@ import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sec
 import { version } from '../package.json';
 import Palette from './palettes.js';
 import { fireEvent } from './frontend_mods/common/dom/fire_event.js';
+import { normalizeFhsInputNumberConfig, clampFhsInputNumberValue, calculateFhsInputNumberNextValue } from './fhs-input-number.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -879,26 +880,7 @@ class FlexHorseshoeCard extends LitElement {
     config.entities.forEach((entityConfig) => {
       if (!entityConfig.entity.startsWith('fhs_input_number.')) return;
 
-      if (!Number.isFinite(Number(entityConfig.initial))) {
-        throw Error(`FHS input number '${entityConfig.entity}' requires a numeric initial value`);
-      }
-      if (entityConfig.scope !== undefined && !['card', 'global'].includes(entityConfig.scope)) {
-        throw Error(`FHS input number '${entityConfig.entity}' scope must be 'card' or 'global'`);
-      }
-
-      entityConfig.local = true;
-      entityConfig.scope ??= 'card';
-      entityConfig.persist ??= false;
-      if (typeof entityConfig.persist !== 'boolean') {
-        throw Error(`FHS input number '${entityConfig.entity}' persist must be a boolean`);
-      }
-      if (entityConfig.persist && entityConfig.scope !== 'global') {
-        throw Error(`FHS input number '${entityConfig.entity}' can only persist with scope 'global'`);
-      }
-      entityConfig.name ??= entityConfig.entity.split('.', 2)[1];
-      entityConfig.unit ??= '';
-      entityConfig.decimals ??= 0;
-      entityConfig.tap_action ??= { action: 'none' };
+      normalizeFhsInputNumberConfig(entityConfig);
     });
   }
 
@@ -969,6 +951,9 @@ class FlexHorseshoeCard extends LitElement {
           friendly_name: entityConfig.name,
           icon: entityConfig.icon,
           unit_of_measurement: entityConfig.unit,
+          ...(entityConfig.min !== undefined ? { min: entityConfig.min } : {}),
+          ...(entityConfig.max !== undefined ? { max: entityConfig.max } : {}),
+          step: entityConfig.step,
         },
         context: {
           id: null,
@@ -1075,10 +1060,11 @@ class FlexHorseshoeCard extends LitElement {
    */
   _setFhsInputNumberValue(entityId, value) {
     const entityConfig = this.config.entities.find((config) => config.entity === entityId);
+    const numericValue = clampFhsInputNumberValue(entityConfig, value);
     const timestamp = new Date().toISOString();
     const stateRecord = {
       entity_id: entityId,
-      state: String(Number(value)),
+      state: String(numericValue),
       last_changed: timestamp,
       last_updated: timestamp,
     };
@@ -1094,6 +1080,23 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this._replaceFhsInputNumberState(entityId, stateRecord);
+  }
+
+  /**
+   * Applies the local equivalent of input_number.increment or decrement.
+   *
+   * @param {string} entityId - Target FHS input number.
+   * @param {number} direction - Positive one for increment, negative one for decrement.
+   */
+  _changeFhsInputNumberValue(entityId, direction) {
+    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
+    const entityIndex = this.config.entities.indexOf(entityConfig);
+    const currentValue = entityConfig.scope === 'global'
+      ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state)
+      : Number(this.entities[entityIndex].state);
+    const nextValue = calculateFhsInputNumberNextValue(entityConfig, currentValue, direction);
+
+    this._setFhsInputNumberValue(entityId, nextValue);
   }
 
   /**
@@ -2943,6 +2946,8 @@ class FlexHorseshoeCard extends LitElement {
 
         if (domain === 'fhs_input_number' && service === 'set_value') {
           this._setFhsInputNumberValue(actionConfig.target.entity_id, actionConfig.data.value);
+        } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
+          this._changeFhsInputNumberValue(actionConfig.target.entity_id, service === 'increment' ? 1 : -1);
         } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
           this._setFhsInputBooleanState(actionConfig.target.entity_id, service);
         } else {
@@ -2968,7 +2973,14 @@ class FlexHorseshoeCard extends LitElement {
       }
       case 'call-service': {
         const [domain, service] = actionConfig.service.split('.', 2);
-        if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
+        if (domain === 'fhs_input_number' && service === 'set_value') {
+          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
+          const value = actionConfig.service_data?.value;
+          this._setFhsInputNumberValue(targetEntityId, value);
+        } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
+          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
+          this._changeFhsInputNumberValue(targetEntityId, service === 'increment' ? 1 : -1);
+        } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
           const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
           this._setFhsInputBooleanState(targetEntityId, service);
         } else {
