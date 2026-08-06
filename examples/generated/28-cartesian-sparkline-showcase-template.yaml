@@ -1,5 +1,4 @@
 fhs_showcase_cartesian:
-
   template:
     type: card
     defaults:
@@ -13,6 +12,30 @@ fhs_showcase_cartesian:
         initial: 0
         scope: global
         unit: ''
+      - entity: fhs_input_boolean.showcase_cartesian_axis
+        slot: show_axis
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_labels
+        slot: show_labels
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_tickmarks
+        slot: show_tickmarks
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_grid
+        slot: show_grid
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_points
+        slot: show_points
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_minmax
+        slot: show_minmax
+        initial: true
+        scope: card
       - entity: '[[entity]]'
         slot: source
         name: '[[name]]'
@@ -33,6 +56,9 @@ fhs_showcase_cartesian:
         - id: controls
           xpos: 50
           ypos: 128
+        - id: options
+          xpos: 50
+          ypos: 143
       sparklines:
         - id: showcase
           group: chart
@@ -57,20 +83,27 @@ fhs_showcase_cartesian:
               chart_type: '[[[ return constants.chart_types[Number(entities[entity_slots.chart_type[0]].state)]; ]]]'
               line: true
               area: true
-              points: true
-              grid: true
-              axis: true
-              tickmarks: true
-              labels: true
+              points: |
+                [[[ return entities[entity_slots.show_points[0]].state === 'on'; ]]]
+              grid: |
+                [[[ return entities[entity_slots.show_grid[0]].state === 'on'; ]]]
+              axis: |
+                [[[ return entities[entity_slots.show_axis[0]].state === 'on'; ]]]
+              tickmarks: |
+                [[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]
+              labels: |
+                [[[ return entities[entity_slots.show_labels[0]].state === 'on'; ]]]
               xlabels_at: ticks_major
               ylabels_at: ticks_major
             line:
               line_width: 1
-              show_dots: true
+              show_minmax: |
+                [[[ return entities[entity_slots.show_minmax[0]].state === 'on'; ]]]
             dots:
-              radius: 1.5
+              radius: 1
             area:
-              show_minmax: true
+              show_minmax: |
+                [[[ return entities[entity_slots.show_minmax[0]].state === 'on'; ]]]
             color_stops:
               0: '#1565c0'
               10: '#42a5f5'
@@ -119,6 +152,47 @@ fhs_showcase_cartesian:
           same_as: type--value-2
           same_as_dxpos: 20
           text: Dots
+        - id: option-axis
+          group: options
+          entity_index: show_axis[0]
+          xpos: 8
+          ypos: 50
+          text: Axis
+          styles:
+            font-size: 0.55em
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none
+            fill: "[[[ return state === 'on' ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
+        - id: option-labels
+          same_as: option-axis
+          same_as_dxpos: 16
+          entity_index: show_labels[0]
+          text: Labels
+        - id: option-ticks
+          same_as: option-labels
+          same_as_dxpos: 16
+          entity_index: show_tickmarks[0]
+          text: Ticks
+        - id: option-grid
+          same_as: option-ticks
+          same_as_dxpos: 16
+          entity_index: show_grid[0]
+          text: Grid
+        - id: option-points
+          same_as: option-grid
+          same_as_dxpos: 16
+          entity_index: show_points[0]
+          visibility: |
+            [[[ return Number(entities[entity_slots.chart_type[0]].state) === 3 ? 'hidden' : 'visible'; ]]]
+          text: Points
+        - id: option-minmax
+          same_as: option-points
+          same_as_dxpos: 16
+          entity_index: show_minmax[0]
+          visibility: |
+            [[[ return Number(entities[entity_slots.chart_type[0]].state) <= 1 ? 'visible' : 'hidden'; ]]]
+          text: Min/Max
       rectangles:
         - id: type--value-0
           group: controls
@@ -126,7 +200,7 @@ fhs_showcase_cartesian:
           xpos: 10
           ypos: 50
           width: 18
-          height: 13
+          height: 10
           radius: 2
           tap_action:
             haptic: selection
@@ -151,11 +225,43 @@ fhs_showcase_cartesian:
         - id: type--value-3
           same_as: type--value-2
           same_as_dxpos: 20
+        - id: option-axis
+          group: options
+          entity_index: show_axis[0]
+          xpos: 8
+          ypos: 50
+          width: 14
+          height: 10
+          radius: "[[[ return state === 'on' ? 5 : 2; ]]]"
           tap_action:
             haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.set_value
-            target:
-              entity_id: fhs_input_number.showcase_cartesian_type
-            data:
-              value: ref(get_value_from_item_id)
+            action: toggle
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill-opacity: 0.7
+            fill: "[[[ return state === 'on' ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
+        - id: option-labels
+          same_as: option-axis
+          same_as_dxpos: 16
+          entity_index: show_labels[0]
+        - id: option-ticks
+          same_as: option-labels
+          same_as_dxpos: 16
+          entity_index: show_tickmarks[0]
+        - id: option-grid
+          same_as: option-ticks
+          same_as_dxpos: 16
+          entity_index: show_grid[0]
+        - id: option-points
+          same_as: option-grid
+          same_as_dxpos: 16
+          entity_index: show_points[0]
+          visibility: |
+            [[[ return Number(entities[entity_slots.chart_type[0]].state) === 3 ? 'hidden' : 'visible'; ]]]
+        - id: option-minmax
+          same_as: option-points
+          same_as_dxpos: 16
+          entity_index: show_minmax[0]
+          visibility: |
+            [[[ return Number(entities[entity_slots.chart_type[0]].state) <= 1 ? 'visible' : 'hidden'; ]]]

@@ -12,6 +12,26 @@ fhs_showcase_horseshoe:
         initial: 0
         scope: global
         unit: ''
+      - entity: fhs_input_boolean.showcase_horseshoe_tickmarks
+        slot: show_tickmarks
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_horseshoe_labels
+        slot: show_labels
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_horseshoe_label_badges
+        slot: show_label_badges
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_horseshoe_tick_background
+        slot: show_tick_background
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_horseshoe_background
+        slot: show_background
+        initial: true
+        scope: card
       - entity: '[[entity]]'
         slot: source
         name: '[[name]]'
@@ -38,6 +58,9 @@ fhs_showcase_horseshoe:
         - id: controls
           xpos: 50
           ypos: 128
+        - id: options
+          xpos: 50
+          ypos: 143
       horseshoes:
         - id: showcase
           group: chart
@@ -57,6 +80,42 @@ fhs_showcase_horseshoe:
               opacity: 0.35
           show:
             horseshoe_style: '[[[ return constants.horseshoe_styles[Number(entities[entity_slots.style[0]].state)]; ]]]'
+            tickmarks: "[[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]"
+            labels_at: "[[[ return entities[entity_slots.show_labels[0]].state === 'on' ? 'ticks_major' : 'none'; ]]]"
+            label_badges: "[[[ return entities[entity_slots.show_label_badges[0]].state === 'on'; ]]]"
+            tick_background: "[[[ return entities[entity_slots.show_tick_background[0]].state === 'on' ? 'fixed' : 'none'; ]]]"
+            horseshoe_background: "[[[ return entities[entity_slots.show_background[0]].state === 'on' ? 'fixed' : 'none'; ]]]"
+          horseshoe_background:
+            width: 16
+            styles:
+              fill: var(--divider-color)
+              opacity: 0.2
+          horseshoe_tickmarks:
+            ticks_major:
+              ticksize: 10
+              width: 4
+              thickness: 2
+              color_mode: colorstop
+            ticks_minor:
+              ticksize: 2
+              width: 2
+              thickness: 1
+              styles:
+                fill: var(--secondary-text-color)
+                opacity: 0.5
+            background:
+              width: 7
+              styles:
+                fill: var(--divider-color)
+                opacity: 0.2
+          horseshoe_labels:
+            offset: 12
+            badges:
+              styles:
+                fill: var(--card-background-color)
+                stroke: var(--divider-color)
+                stroke-width: 1
+                opacity: 0.85
           color_stops:
             scales:
               default:
@@ -122,7 +181,71 @@ fhs_showcase_horseshoe:
           same_as: style--value-4
           same_as_dxpos: 16
           text: Linear
+        - id: option-tickmarks
+          group: options
+          entity_index: show_tickmarks[0]
+          xpos: 8
+          ypos: 50
+          text: Ticks
+          styles:
+            font-size: 0.52em
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none
+            fill: "[[[ return state === 'on' ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
+        - id: option-labels
+          same_as: option-tickmarks
+          same_as_dxpos: 16
+          entity_index: show_labels[0]
+          text: Labels
+        - id: option-badges
+          same_as: option-labels
+          same_as_dxpos: 16
+          entity_index: show_label_badges[0]
+          text: Badges
+        - id: option-tick-background
+          same_as: option-badges
+          same_as_dxpos: 16
+          entity_index: show_tick_background[0]
+          text: Tick BG
+        - id: option-background
+          same_as: option-tick-background
+          same_as_dxpos: 16
+          entity_index: show_background[0]
+          text: Gauge BG
       rectangles:
+        - id: option-tickmarks
+          group: options
+          entity_index: show_tickmarks[0]
+          xpos: 8
+          ypos: 50
+          width: 14
+          height: 10
+          radius: 2
+          tap_action:
+            haptic: selection
+            action: toggle
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill-opacity: 0.7
+            fill: "[[[ return state === 'on' ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
+        - id: option-labels
+          same_as: option-tickmarks
+          same_as_dxpos: 16
+          entity_index: show_labels[0]
+        - id: option-badges
+          same_as: option-labels
+          same_as_dxpos: 16
+          entity_index: show_label_badges[0]
+        - id: option-tick-background
+          same_as: option-badges
+          same_as_dxpos: 16
+          entity_index: show_tick_background[0]
+        - id: option-background
+          same_as: option-tick-background
+          same_as_dxpos: 16
+          entity_index: show_background[0]
         - id: style--value-0
           group: controls
           entity_index: style[0]
