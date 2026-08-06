@@ -1,0 +1,521 @@
+<!--
+  Copyright (c) 2016-2021 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+{% extends "main.html" %}
+
+<!-- Render hero under tabs -->
+{% block tabs %} {{ super() }}
+
+<!-- Additional styles for landing page -->
+<style>
+  :root {
+    --fhs-section-bg: var(--md-default-bg-color);
+    --fhs-hero-bg-top: var(--md-primary-fg-color--800);
+    --fhs-hero-bg-mid: var(--md-primary-fg-color--900);
+    --fhs-hero-glow: var(--md-primary-fg-color);
+    --fhs-hero-accent: var(--md-accent-fg-color);
+  }
+  :root {
+    --fhs-section-bg: #111418;
+    --fhs-hero-bg-top: #14181d;
+    --fhs-hero-bg-mid: #171b21;
+    --fhs-hero-accent: var(--md-accent-fg-color);
+  }
+
+  .fhs-hero__content {
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .fhs-hero__content h1 {
+    margin: 0;
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    line-height: 1;
+    font-weight: 800;
+    color: white;
+  }
+
+  .fhs-hero__content p {
+    margin: 1.2rem auto 2rem;
+    max-width: 620px;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .fhs-hero__button {
+    display: inline-block;
+    padding: 0.9rem 1.5rem;
+    border-radius: 999px;
+    background: #e4572e;
+    color: white !important;
+    font-weight: 700;
+    font-size: 2rem;
+    text-decoration: none;
+  }
+
+  .fhs-hero__button {
+    background: var(--md-accent-fg-color--400);
+  }
+
+  .fhs-hero {
+    position: relative;
+    min-height: 880px;
+    margin: 0;
+    padding: 5rem 2rem 18rem;
+    overflow: hidden;
+    color: white;
+    text-align: center;
+  }
+  .fhs-hero {
+    background: linear-gradient(to bottom, var(--md-primary-fg-color--900) 0%, var(--fhs-hero-bg-mid) 48%, var(--fhs-section-bg) 100%);
+  }
+
+  .fhs-hero::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -1px;
+
+    width: max(2150px, 140vw);
+    height: max(620px, 40.4vw);
+
+    transform: translateX(-50%);
+    background: var(--fhs-section-bg);
+    clip-path: polygon(0 0, 50% 100%, 100% 0, 100% 100%, 0 100%);
+    z-index: 3;
+  }
+
+  body,
+  .md-main,
+  .fhs-features {
+    background: var(--fhs-section-bg);
+  }
+
+  .fhs-hero__stage {
+    position: absolute;
+    left: 50%;
+    bottom: 4rem;
+    width: min(900px, 90vw);
+    transform: translateX(calc(-50% + 35px));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .fhs-hero__stage {
+    position: absolute;
+    left: 50%;
+    bottom: 4rem;
+    width: clamp(700px, 70vw, 900px);
+    transform: translateX(calc(-50% + 30px));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .fhs-hero__stage {
+    position: absolute;
+    left: 50%;
+    bottom: 4rem;
+    width: 900px;
+    transform: translateX(calc(-50% + 30px));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* @media screen and (max-width: 60em) {
+    .fhs-hero__stage {
+      width: 900px;
+      bottom: 4rem;
+      transform: translateX(calc(-50% + 30px));
+    }
+  } */
+
+  .fhs-hero__board {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform: rotate(-30deg) skewX(30deg) scaleY(0.8);
+    transform-origin: center;
+    filter: drop-shadow(35px 45px 45px rgba(0, 0, 0, 0.45));
+  }
+
+  .fhs-hero__content {
+    position: relative;
+    z-index: 4;
+  }
+  .fhs-hero__stage {
+    z-index: 1;
+  }
+
+  .fhs-hero::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -1px;
+
+    width: 2150px;
+    height: 620px;
+
+    transform: translateX(-50%);
+    background: var(--fhs-section-bg);
+    clip-path: polygon(0 0, 50% 100%, 100% 0, 100% 100%, 0 100%);
+    z-index: 3;
+  }
+  .fhs-hero__stage {
+    position: absolute;
+    left: 50%;
+    bottom: 4rem;
+    width: 900px;
+    transform: translateX(calc(-50% + 30px));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .fhs-hero__stage {
+    position: absolute;
+    left: calc(50% + 30px);
+    bottom: 4rem;
+    width: 900px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .fhs-hero__board {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform: translateX(-50%) rotate(-30deg) skewX(30deg) scaleY(0.8);
+    transform-origin: center;
+    filter: drop-shadow(35px 45px 45px rgba(0, 0, 0, 0.45));
+  }
+
+  /* ================================================= Application header should be static for the landing page */
+  .md-header {
+    position: initial;
+  }
+
+  /* Remove spacing, as we cannot hide it completely */
+  .md-main__inner {
+    margin: 0;
+  }
+
+  /* Hide main content for now */
+  .md-content {
+    display: none;
+  }
+
+  /* Hide table of contents */
+  @media screen and (min-width: 60em) {
+    .md-sidebar--secondary {
+      display: none;
+    }
+  }
+
+  /* Hide navigation */
+  @media screen and (min-width: 76.25em) {
+    .md-sidebar--primary {
+      display: none;
+    }
+  }
+
+  .mdx-container {
+    position: relative;
+    overflow: hidden;
+    padding: 3rem 0 8rem;
+
+    background:
+      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--md-accent-fg-color) 26%, transparent), transparent 28rem),
+      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--md-primary-fg-color--300) 30%, transparent), transparent 24rem),
+      linear-gradient(135deg, var(--md-primary-fg-color--700), var(--md-primary-fg-color--500) 55%, var(--md-primary-fg-color--400));
+  }
+
+  .mdx-container::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 9rem;
+    background: var(--md-default-bg-color);
+
+    clip-path: polygon(0 42%, 12% 48%, 26% 39%, 42% 52%, 58% 40%, 75% 50%, 100% 34%, 100% 100%, 0 100%);
+  }
+
+  .mdx-hero {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+    gap: 3rem;
+    align-items: center;
+    margin: 0 1rem;
+    color: var(--md-primary-bg-color);
+  }
+
+  .mdx-hero__image {
+    order: 0;
+    flex-basis: auto;
+  }
+
+  .mdx-hero__image img {
+    display: block;
+    width: 100%;
+    max-width: 42rem;
+    border-radius: 1.2rem;
+    box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.28);
+    transform: rotate(-1.5deg);
+  }
+
+  .mdx-hero__content {
+    max-width: 24rem;
+    padding: 1.4rem;
+    margin: 0;
+
+    border: 1px solid rgb(255 255 255 / 0.22);
+    border-radius: 1.2rem;
+    background: rgb(255 255 255 / 0.12);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.18);
+  }
+
+  .mdx-hero h1 {
+    margin: 0 0 1rem;
+    color: currentColor;
+    font-size: clamp(2rem, 5vw, 3.6rem);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .mdx-hero__content p {
+    margin-bottom: 1.4rem;
+    color: rgb(255 255 255 / 0.82);
+    font-size: 0.9rem;
+  }
+
+  .mdx-hero .md-button {
+    border-radius: 999px;
+  }
+
+  .mdx-social {
+    display: flex;
+    gap: 0.45rem;
+    justify-content: flex-start;
+    margin-top: 1.2rem;
+    padding: 0;
+  }
+
+  .mdx-social .md-social__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.7rem;
+    height: 1.7rem;
+
+    color: rgb(255 255 255 / 0.82);
+    border: 1px solid rgb(255 255 255 / 0.18);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.1);
+  }
+
+  .mdx-social .md-social__link:hover {
+    color: white;
+    background: rgb(255 255 255 / 0.18);
+  }
+
+  .mdx-social svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  @media screen and (max-width: 60em) {
+    .mdx-container {
+      padding: 2rem 0 6rem;
+    }
+
+    .mdx-hero {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .mdx-hero__image img {
+      max-width: 100%;
+      transform: none;
+    }
+
+    .mdx-hero__content {
+      max-width: none;
+    }
+  }
+
+  .mdx-features {
+    position: relative;
+    z-index: 2;
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+
+    margin: 2.5rem 1rem 0;
+  }
+
+  .mdx-feature {
+    display: block;
+    padding: 1.1rem 1.2rem;
+
+    color: var(--md-default-fg-color);
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 1rem;
+    background: var(--md-default-bg-color);
+    box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 0.08);
+
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .mdx-feature:hover {
+    transform: translateY(-0.2rem);
+    border-color: var(--md-accent-fg-color);
+    box-shadow: 0 1.4rem 3rem rgb(0 0 0 / 0.12);
+  }
+
+  .mdx-feature strong {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: var(--md-primary-h-color);
+    font-size: 0.95rem;
+  }
+
+  .mdx-feature span {
+    display: block;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.72rem;
+    line-height: 1.55;
+  }
+
+  @media screen and (max-width: 60em) {
+    .mdx-features {
+      grid-template-columns: 1fr;
+      margin-top: 1rem;
+    }
+  }
+  .fhs-features {
+    max-width: 1100px;
+    margin: 4rem auto 6rem;
+    padding: 0 1rem;
+    text-align: center;
+  }
+
+  .fhs-kicker {
+    margin: 0 0 0.5rem;
+    color: #2b93a6;
+    color: var(--md-accent-fg-color);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .fhs-features h2 {
+    max-width: 720px;
+    margin: 0 auto 3rem;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    line-height: 1.1;
+  }
+
+  .fhs-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  .fhs-feature {
+    padding: 2rem;
+    border-radius: 1.2rem;
+    background: var(--md-default-bg-color);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08);
+  }
+
+  .fhs-feature strong {
+    display: block;
+    margin-bottom: 0.8rem;
+    color: var(--md-default-fg-color);
+    font-size: 1.1rem;
+  }
+
+  .fhs-feature span {
+    color: var(--md-default-fg-color--light);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  @media screen and (max-width: 60em) {
+    .fhs-feature-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<!-- Hero for landing page -->
+<section class="fhs-hero">
+  <div class="fhs-hero__content">
+    <h1>Flexible Horseshoe Card</h1>
+    <p>Build advanced Home Assistant dashboards with less YAML.</p>
+    <a class="fhs-hero__button" href="getting-started/">Get started</a>
+  </div>
+
+  <div class="fhs-hero__stage">
+    <img class="fhs-hero__board" src="assets/screenshots/testing.png" alt="AmoebeLabs Flexible Horseshoe custom card for Home Assistant triple example" draggable="false" />
+  </div>
+</section>
+<section class="fhs-features">
+  <p class="fhs-kicker">Features</p>
+
+  <h2>Everything you need to build advanced Home Assistant cards.</h2>
+
+  <div class="fhs-feature-grid">
+    <div class="fhs-feature">
+      <strong>Less YAML</strong>
+      <span>Reuse card sections and keep large configurations readable.</span>
+    </div>
+
+    <div class="fhs-feature">
+      <strong>Multiple horseshoes</strong>
+      <span>Place multiple gauges, labels, icons, lines and circles on one card.</span>
+    </div>
+
+    <div class="fhs-feature">
+      <strong>Color stops</strong>
+      <span>Use fixed colors, color stops and gradients for states, ticks and labels.</span>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+<!-- Content -->
+{% block content %} {{ super() }} {% endblock %}
+<!-- Application footer -->
+{% block footer %}{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block htmltitle %}
+
+  <!-- The full title (config.site_name) is a bit long, so use a shortened version for each page. Better for SEO -->
+  {% set htmltitle = "Flexible Horseshoe Card" %}
+  {% if page and page.meta and page.meta.title %}
+    {% set htmltitle = page.meta.title ~ " - " ~ htmltitle %}
+  {% elif page and page.title and not page.is_homepage %}
+    {% set htmltitle = page.title ~ " - " ~ htmltitle %}
+  {% endif %}
+
+  <title>{{ htmltitle }}</title>
+  
+{% endblock %}
+  
+<!-- Custom front matter -->
+{% block extrahead %}
+
+  <!-- Extra style sheets (can't be set in mkdocs.yml due to content hash) -->
+  <!-- <link -->
+    <!-- rel="stylesheet" -->
+    <!-- href="{{ 'overrides/assets/stylesheets/main.scss' | url }}" -->
+  <!-- /> -->
+  <!-- https://realfavicongenerator.net/favicon_result?file_id=p1ftihlel1f021dkg1imh1ak6c5e6#.YiYs4OiZNZc -->
+
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="FHS" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- {% set title = config.site_name %} -->
+  <!-- {% if page and page.meta and page.meta.title %} -->
+    <!-- {% set title = title ~ " - " ~ page.meta.title %} -->
+  <!-- {% elif page and page.title and not page.is_homepage %} -->
+    <!-- {% set title = title ~ " - " ~ page.title %} -->
+  <!-- {% endif %} -->
+
+  {% set title = config.site_name %}
+  {% if page and page.meta and page.meta.title %}
+    {% set title = page.meta.title ~ " - " ~ title %}
+  {% elif page and page.title and not page.is_homepage %}
+    {% set title = page.title ~ " - " ~ title %}
+  {% endif %}
+  
+  {% set description = config.site_description %}
+  {% if page and page.meta and page.meta.description %}
+    {% set description = page.meta.description %}
+  {% endif %}
+
+  <!-- OpenGraph / Facebook meta data -->
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{{ title }}" />
+  <meta property="og:description" content="{{ description }}" />
+  <meta property="og:url" content="{{ page.canonical_url }}" />
+  <meta property="og:image" content="https://flexible-horseshoe-card-manual.amoebelabs.com/assets/social/fhs-opengraph-1200x630.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter meta data -->
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ title }}" />
+  <meta name="twitter:site" content="@AmoebeLabs" />
+  <meta name="twitter:creator" content="@AmoebeLabs" />
+  <meta name="twitter:description" content="{{ description }}" />
+  <meta name="twitter:image" content="https://flexible-horseshoe-card-manual.amoebelabs.com/assets/social/fhs-twitter-800x420.png" />
+
+  <!-- https://webcode.tools/generators/json-ld/organization -->
+
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org/",
+    "@type": "Organization",
+    "name": "AmoebeLabs",
+    "url": "https://amoebelabs.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Eindhoven",
+      "addressCountry": "Netherlands"
+    },
+    "sameAs": ["https://instagram.com/amoebelabs", "https://twitter.com/amoebeLabs", "https://github.com/amoebelabs", "https://www.buymeacoffee.com/amoebelabs"]
+  }
+  </script>
+
+  
+{% endblock %}
+
+{% block announce %}
+  <!-- Add announcement here, including arbitrary HTML -->
+  <a style="color:white;opacity:.9;" onmouseover="this.style.color='white';this.style.fontSize=''";" onmouseout="this.style.color='white';;this.style.fontSize=''">
+    <span style="font-size:16px;">Note:</span> BETA Documentation! Still very much in flux!
+  </a>
+
+{% endblock %}
+
+<!-- Theme-related JavaScript -->
+{% block scripts %}
+  {{ super() }}
+
+  <!-- Extra JavaScript (can't be set in mkdocs.yml due to content hash) -->
+  <!-- <script src="{{ 'overrides/assets/javascripts/bundle.js' | url }}"></script> -->
+{% endblock %}
+

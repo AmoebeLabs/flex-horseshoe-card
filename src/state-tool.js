@@ -1,0 +1,1026 @@
+import { svg } from 'lit';
+import { selectUnit } from '@formatjs/intl-utils';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ref } from 'lit/directives/ref.js';
+import { formatDate, formatDateMonth, formatDateMonthYear, formatDateShort, formatDateNumeric, formatDateWeekday, formatDateWeekdayDay, formatDateWeekdayShort } from './frontend_mods/datetimejs/format_date.js';
+import { formatTime, formatTime24h, formatTimeWeekday, formatTimeWithSeconds } from './frontend_mods/datetimejs/format_time.js';
+import { formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatShortDateTime, formatShortDateTimeWithYear } from './frontend_mods/datetimejs/format_date_time.js';
+import { formatDuration } from './frontend_mods/datetimejs/duration.js';
+import ConfigHelper from './config-helper.js';
+import BaseTool from './base-tool.js';
+import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
+import Colors from './colors.js';
+import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
+import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
+import { getDefaultFormatOptions, getNumberFormatOptions } from './frontend_mods/common/number/format_number.ts';
+
+/**
+ * Layout state tool that renders an entity state value and optional unit of measurement.
+ */
+export default class StateTool extends BaseTool {
+  /**
+   * Builds state tool instances from the already normalized layout config.
+   *
+   * @param {object} config - Full card configuration after static card-level normalization.
+   * @param {object} templates - Template resolver shared with the card.
+   * @param {string} cardId - Stable card id for generated SVG ids.
+   * @param {LitElement} card - Parent card instance with shared render helpers.
+   * @returns {Array<StateTool>} Configured state tools.
+   */
+  static setConfig(config, templates, cardId, card) {
+    const states = config.layout?.states ?? [];
+
+    return states.map((stateConfig, index) => new StateTool(stateConfig, index, templates, cardId, card));
+  }
+
+  static buildState(inState, entityConfig, hass, stateObj) {
+    // Keep undefined as state. Do NOT change this one!!
+    if (typeof inState === 'undefined') return inState;
+    // inState seems to be null when light is off!
+    if (inState === null) return inState;
+
+    // New in v2.5.1: Check for built-in state converters
+    if (entityConfig.convert) {
+      // Match converter with parameter between ()
+      let splitted = entityConfig.convert.match(/(^\w+)\((\d+)\)/);
+      let converter;
+      let parameter;
+      // If no parameters found, just the converter
+      if (splitted === null) {
+        converter = entityConfig.convert;
+      } else if (splitted.length === 3) {
+        // If parameter found, process...
+        converter = splitted[1];
+        parameter = Number(splitted[2]);
+      }
+      switch (converter) {
+        case 'brightness_pct':
+          inState = inState === 'undefined' ? 'undefined' : `${Math.round((inState / 255) * 100)}`;
+          break;
+        case 'multiply':
+          inState = `${Math.round(inState * parameter)}`;
+          break;
+        case 'divide':
+          inState = `${Math.round(inState / parameter)}`;
+          break;
+        case 'rgb_csv':
+        case 'rgb_hex':
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/dialogs/more-info/components/lights/ha-favorite-color-button.ts#L39
+          // https://github.com/home-assistant/frontend/blob/1bf03f020e2b2523081d4f03580886b51e970c72/src/common/color/convert-light-color.ts
+          // private get _rgbColor(): [number, number, number] {
+          //   if (this.color) {
+          //     if ("hs_color" in this.color) {
+          //       return hs2rgb([this.color.hs_color[0], this.color.hs_color[1] / 100]);
+          //     }
+          //     if ("color_temp_kelvin" in this.color) {
+          //       return temperature2rgb(this.color.color_temp_kelvin);
+          //     }
+          //     if ("rgb_color" in this.color) {
+          //       return this.color.rgb_color;
+          //     }
+          //     if ("rgbw_color" in this.color) {
+          //       return rgbw2rgb(this.color.rgbw_color);
+          //     }
+          //     if ("rgbww_color" in this.color) {
+          //       return rgbww2rgb(
+          //         this.color.rgbww_color,
+          //         this.stateObj?.attributes.min_color_temp_kelvin,
+          //         this.stateObj?.attributes.max_color_temp_kelvin
+          //       );
+          //     }
+          //   }
+          //   return [255, 255, 255];
+          // }
+          if (entityConfig.attribute) {
+            let entity = hass.states[entityConfig.entity];
+            switch (entity.attributes.color_mode) {
+              case 'unknown':
+                break;
+              case 'onoff':
+                break;
+              case 'brightness':
+                break;
+              case 'color_temp':
+                if (entity.attributes.color_temp_kelvin) {
+                  let rgb = temperature2rgb(entity.attributes.color_temp_kelvin);
+
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
+
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else {
+                  if (converter === 'rgb_csv') {
+                    inState = `${255},${255},${255}`;
+                  } else {
+                    inState = '#ffffff00';
+                  }
+                }
+                break;
+              case 'hs':
+                {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgb':
+                {
+                  const hsvColor = rgb2hsv(stateObj?.attributes?.rgb_color ?? entity.attributes.rgb_color);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  const rgbColor = hsv2rgb(hsvColor);
+                  if (converter === 'rgb_csv') {
+                    inState = rgbColor.toString();
+                  } else {
+                    inState = rgb2hex(rgbColor);
+                  }
+                }
+                break;
+              case 'rgbw':
+                {
+                  let rgb = rgbw2rgb(entity.attributes.rgbw_color);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'rgbww':
+                {
+                  let rgb = rgbww2rgb(entity.attributes.rgbww_color, entity.attributes?.min_color_temp_kelvin, entity.attributes?.max_color_temp_kelvin);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                }
+                break;
+              case 'white':
+                break;
+              case 'xy':
+                if (entity.attributes.hs_color) {
+                  let rgb = hs2rgb([entity.attributes.hs_color[0], entity.attributes.hs_color[1] / 100]);
+                  // https://github.com/home-assistant/frontend/blob/8580d3f9bf59ffbcbe4187a0d7a58cc23d9822df/src/dialogs/more-info/components/lights/ha-more-info-light-brightness.ts#L76
+                  // background slider has opacity of 0.2. Looks nice also, yes??
+                  const hsvColor = rgb2hsv(rgb);
+                  // Modify the real rgb color for better contrast
+                  if (hsvColor[1] < 0.4) {
+                    // Special case for very light color (e.g: white)
+                    if (hsvColor[1] < 0.1) {
+                      hsvColor[2] = 225;
+                    } else {
+                      hsvColor[1] = 0.4;
+                    }
+                  }
+                  rgb = hsv2rgb(hsvColor);
+                  rgb[0] = Math.round(rgb[0]);
+                  rgb[1] = Math.round(rgb[1]);
+                  rgb[2] = Math.round(rgb[2]);
+
+                  if (converter === 'rgb_csv') {
+                    inState = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+                  } else {
+                    inState = rgb2hex(rgb);
+                  }
+                } else if (entity.attributes.color) {
+                  // We should have h and s, including brightness...
+                  let hsl = {};
+                  hsl.l = entity.attributes.brightness;
+                  hsl.h = entity.attributes.color.h || entity.attributes.color.hue;
+                  hsl.s = entity.attributes.color.s || entity.attributes.color.saturation;
+                  // Convert HSL value to RGB
+                  // HERE
+                  let { r, g, b } = Colors.hslToRgb(hsl);
+                  if (converter === 'rgb_csv') {
+                    inState = `${r},${g},${b}`;
+                  } else {
+                    const rHex = Colors.padZero(r.toString(16));
+                    const gHex = Colors.padZero(g.toString(16));
+                    const bHex = Colors.padZero(b.toString(16));
+                    inState = `#${rHex}${gHex}${bHex}`;
+                  }
+                } else if (entity.attributes.xy_color) {
+                }
+                break;
+              default:
+                break;
+            }
+          }
+          break;
+        default:
+          console.error(`Unknown converter [${converter}] specified for entity [${entityConfig.entity}]!`);
+          break;
+      }
+    }
+    if (typeof inState === 'undefined') {
+      return undefined;
+    }
+    if (Number.isNaN(inState)) {
+      return inState;
+    }
+    return inState.toString();
+  }
+
+  /**
+   * Stores static state config and precomputes SVG coordinates.
+   *
+   * @param {object} config - Static state item config.
+   * @param {number} index - State index inside layout.states.
+   * @param {object} templates - Template resolver shared with the card.
+   * @param {string} cardId - Stable card id for generated SVG ids.
+   * @param {LitElement} card - Parent card instance with shared render helpers.
+   */
+  constructor(config, index, templates, cardId, card) {
+    config.xpos = config.xpos ?? 0;
+    config.ypos = config.ypos ?? 0;
+    config.show = {
+      uom: 'end',
+      ...(config.show ?? {}),
+    };
+
+    super(config, index, templates, cardId, card, 'states', 'states', 0, { fill: true, stroke: false });
+
+    this.config.svg = this.calculateSvgDimensions();
+    this.state = '';
+    this.uom = '';
+    this.setTextElement = (element) => {
+      if (element) this.textElement = element;
+    };
+    this.textElementId = `${this.cardId}-state-${this.index}`;
+    this.characterWidthFactor = 0.6;
+    this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.uomFontSize = this.textFontSize * 0.6;
+    this.measurementWidthBase = 0;
+    this.estimatedWidth = 0;
+    this.estimatedHeight = this.textFontSize;
+    this.measuredWidth = 0;
+    this.measuredHeight = 0;
+    this.measuredXpos = this.config.svg.xpos;
+    this.measuredYpos = this.config.svg.ypos;
+    this.hasExactMeasurement = false;
+    this.textMeasurementSignature = '';
+  }
+
+  /** Updates state configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+  }
+
+  /**
+   * Updates runtime entity context and displayed state/UOM text.
+   *
+   * @param {object} entity - Home Assistant entity state object for this state.
+   * @param {object} entityConfig - Entity configuration for this state.
+   */
+  setState(entity, entityConfig) {
+    super.setState(entity, entityConfig);
+
+    this.buildStateAndUom();
+
+    // Estimate the complete state/UOM layout until updated() can replace it
+    // with the bounding box of the actual rendered SVG text element.
+    const styles = this.getStyles({ 'font-size': '1em' });
+    const uomStyles = this.getUomStyles(styles, this.config.uom ?? {});
+    const uomPosition = this.config.show.uom;
+    const measurementSignature = `${this.state}|${this.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
+
+    if (measurementSignature !== this.textMeasurementSignature) {
+      this.textMeasurementSignature = measurementSignature;
+      const stateWidthBase = this.state.length * this.textFontSize;
+      const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
+      const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+
+      this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+      this.estimatedWidth = this.measurementWidthBase * this.characterWidthFactor;
+      this.estimatedHeight = uomPosition === 'top' || uomPosition === 'bottom' ? this.textFontSize + this.uomFontSize : this.textFontSize;
+      this.hasExactMeasurement = false;
+    }
+  }
+
+  /**
+   * Returns the rendered width, or the learned estimate before the next SVG measurement.
+   *
+   * @returns {number} Width in FHS coordinates.
+   */
+  getWidth() {
+    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
+  }
+
+  /**
+   * Returns the rendered height, or the font-based estimate before measurement.
+   *
+   * @returns {number} Height in FHS coordinates.
+   */
+  getHeight() {
+    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
+  }
+
+  /**
+   * Returns the horizontal center of the rendered text bounding box.
+   *
+   * @returns {number} Horizontal center in SVG coordinates.
+   */
+  getXpos() {
+    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
+  }
+
+  /**
+   * Returns the vertical center of the rendered text bounding box.
+   *
+   * @returns {number} Vertical center in SVG coordinates.
+   */
+  getYpos() {
+    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
+  }
+
+  /**
+   * Measures the complete rendered value/UOM text and requests one geometry correction render.
+   */
+  updated() {
+    const boundingBox = this.textElement.getBBox();
+    const measuredWidth = boundingBox.width * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredHeight = boundingBox.height * (100 / SVG_DEFAULT_DIMENSIONS);
+    const measuredXpos = boundingBox.x + boundingBox.width / 2;
+    const measuredYpos = boundingBox.y + boundingBox.height / 2;
+
+    // The value tspan always exists. The UOM tspan only exists for a visible UOM position.
+    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[0]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+
+    const uomPosition = this.config.show.uom;
+    const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
+
+    if (uomIsVisible) {
+      this.uomFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[1]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    } else {
+      this.uomFontSize = 0;
+    }
+
+    const stateWidthBase = this.state.length * this.textFontSize;
+    const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+
+    this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+
+    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+
+    if (measurementChanged) {
+      if (this.measurementWidthBase > 0) {
+        const measuredFactor = measuredWidth / this.measurementWidthBase;
+
+        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+      }
+      this.measuredWidth = measuredWidth;
+      this.measuredHeight = measuredHeight;
+      this.measuredXpos = measuredXpos;
+      this.measuredYpos = measuredYpos;
+      this.hasExactMeasurement = true;
+      this.card.requestUpdate();
+    }
+  }
+
+  /**
+   * Converts state config coordinates to SVG coordinates.
+   *
+   * @param {object} config - Static or runtime state config.
+   * @returns {object} SVG coordinates.
+   */
+  calculateSvgDimensions(config = this.config) {
+    return this.card._calculateSvgCoordinatesInGroup(config);
+  }
+
+  /**
+   * Applies the explicit state format option after entity conversion but before final number formatting.
+   *
+   * @param {string|number} inState - State value after StateTool.buildState() conversion.
+   * @returns {string|number} Formatted state value.
+   */
+  formatStateString(inState) {
+    const stateFormat = this.config?.format || this.entityConfig?.format;
+
+    if (this.entityConfig.debug) {
+      console.log('StateTool.formatStateString', this.entityConfig.entity, inState, stateFormat);
+    }
+    // Object-style format config is used for options like raw_state_keep and decimals_min/max.
+    if (typeof stateFormat !== 'string') {
+      return inState;
+    }
+
+    const lang = this.card._hass.selectedLanguage || this.card._hass.language;
+    const locale = { ...this.card._hass.locale, language: lang };
+
+    if (
+      [
+        'relative',
+        'total',
+        'datetime',
+        'datetime-short',
+        'datetime-short_with-year',
+        'datetime_seconds',
+        'datetime-numeric',
+        'date',
+        'date_month',
+        'date_month_year',
+        'date-short',
+        'date-numeric',
+        'date_weekday',
+        'date_weekday_day',
+        'date_weekday-short',
+        'time',
+        'time-24h',
+        'time-24h_date-short',
+        'time_weekday',
+        'time_seconds',
+      ].includes(stateFormat)
+    ) {
+      const timestamp = new Date(inState);
+
+      if (Number.isNaN(timestamp.getTime())) {
+        return inState;
+      }
+
+      switch (stateFormat) {
+        case 'relative': {
+          const diff = selectUnit(timestamp, new Date());
+
+          return new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+        }
+        case 'total':
+        case 'precision':
+          return 'Not Yet Supported';
+        case 'datetime':
+          return formatDateTime(timestamp, locale);
+        case 'datetime-short':
+          return formatShortDateTime(timestamp, locale);
+        case 'datetime-short_with-year':
+          return formatShortDateTimeWithYear(timestamp, locale);
+        case 'datetime_seconds':
+          return formatDateTimeWithSeconds(timestamp, locale);
+        case 'datetime-numeric':
+          return formatDateTimeNumeric(timestamp, locale);
+        case 'date':
+          return formatDate(timestamp, locale);
+        case 'date_month':
+          return formatDateMonth(timestamp, locale);
+        case 'date_month_year':
+          return formatDateMonthYear(timestamp, locale);
+        case 'date-short':
+          return formatDateShort(timestamp, locale);
+        case 'date-numeric':
+          return formatDateNumeric(timestamp, locale);
+        case 'date_weekday':
+          return formatDateWeekday(timestamp, locale);
+        case 'date_weekday-short':
+          return formatDateWeekdayShort(timestamp, locale);
+        case 'date_weekday_day':
+          return formatDateWeekdayDay(timestamp, locale);
+        case 'time':
+          return formatTime(timestamp, locale);
+        case 'time-24h':
+          return formatTime24h(timestamp);
+        case 'time-24h_date-short':
+          return Date.now() - timestamp.getTime() < 86400000 ? formatTime24h(timestamp) : formatDateShort(timestamp, locale);
+        case 'time_weekday':
+          return formatTimeWeekday(timestamp, locale);
+        case 'time_seconds':
+          return formatTimeWithSeconds(timestamp, locale);
+        default:
+          return inState;
+      }
+    }
+
+    if (Number.isNaN(parseFloat(inState)) || !Number.isFinite(Number(inState))) {
+      return inState;
+    }
+
+    if (stateFormat === 'brightness' || stateFormat === 'brightness_pct') {
+      return `${Math.round((inState / 255) * 100)} %`;
+    }
+
+    if (stateFormat === 'duration') {
+      return formatDuration(inState, 's');
+    }
+
+    return inState;
+  }
+
+  /**
+   * Builds Home Assistant formatter parts for the current entity state.
+   *
+   * @returns {Array<object>} Formatter parts split into value and unit entries.
+   */
+  formatEntityStateParts() {
+    const isAttribute = this.entityConfig.attribute !== undefined;
+    const formatConfig = typeof this.config?.format === 'object' ? this.config.format : typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
+    let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
+
+    // raw_state_keep bypasses Home Assistant translation/formatting and returns the raw value directly.
+    if (formatConfig.raw_state_keep === true) {
+      if (formatConfig.raw_state_clean === true && typeof rawValue === 'string') {
+        rawValue = rawValue.replace(/_/g, ' ');
+      }
+
+      return [{ type: 'value', value: rawValue }];
+    }
+
+    let stateValue = StateTool.buildState(rawValue, this.entityConfig, this.card._hass, this.entity);
+
+    if (this.entityConfig?.format !== undefined || this.config?.format !== undefined) {
+      stateValue = this.formatStateString(stateValue);
+    }
+
+    const formatEntity = this.entity.attributes.source_entity_id
+      ? {
+          ...this.entity,
+          entity_id: this.entity.attributes.source_entity_id,
+        }
+      : this.entity;
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(formatEntity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(formatEntity, stateValue);
+    const hasNumberFormatOverride = this.entityConfig.decimals !== undefined
+      || formatConfig.decimals_min !== undefined
+      || formatConfig.decimals_max !== undefined
+      || formatConfig.locale !== undefined
+      || formatConfig.separator !== undefined;
+    const isNumeric = hasNumberFormatOverride && !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+    let formattedValue;
+
+    if (isNumeric) {
+      const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
+      const registryEntity = this.card._hass.entities[formatEntity.entity_id];
+      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
+      const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
+      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
+      const maxDigits = formatConfig.decimals_max ?? entityDecimals;
+      let minDigits = formatConfig.decimals_min ?? entityDecimals;
+
+      if (minDigits > maxDigits) {
+        minDigits = maxDigits;
+      }
+
+      // HA and entity precision are fixed; only explicit min/max formatting can make the precision dynamic.
+      formattedValue = new Intl.NumberFormat(activeLocale, {
+        useGrouping: formatConfig.separator !== false,
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      }).format(Number(rawValue));
+    }
+
+    return parts.map((part) => {
+      if (part.type === 'value' && formattedValue !== undefined) {
+        return { ...part, value: formattedValue };
+      }
+
+      if (part.type === 'unit' && this.entityConfig.unit !== undefined) {
+        return { ...part, value: this.entityConfig.unit };
+      }
+
+      return part;
+    });
+  }
+
+  /**
+   * Builds the formatted state value and unit text using the card's Home Assistant formatter path.
+   */
+  buildStateAndUom() {
+    const parts = this.formatEntityStateParts();
+    let state = '';
+    let unit = '';
+
+    parts.forEach((part) => {
+      if (part.type === 'unit') {
+        unit += part.value;
+      } else if (part.type === 'value') {
+        state += part.value;
+      }
+    });
+
+    this.state = this.textEllipsis(state.trim(), this.config.max_characters ?? this.config.ellipsis);
+    this.uom = this.buildUom(unit.trim());
+  }
+
+  /**
+   * Builds the unit of measurement text for this state tool.
+   *
+   * @param {string} unit - Unit returned by Home Assistant formatter parts.
+   * @returns {string} Unit text.
+   */
+  buildUom(unit) {
+    return this.entityConfig.unit || unit || '';
+  }
+
+  /**
+   * Builds the style object for the UOM tspan from state styles and optional uom styles.
+   *
+   * @param {object} stateStyles - Final state value styles.
+   * @returns {object} Final UOM styles.
+   */
+  getUomStyles(stateStyles, uomConfig) {
+    const uomStyles = {
+      opacity: '0.7',
+    };
+    const itemUomStyleDict = ConfigHelper.toStyleDict(uomConfig.styles);
+    const fsuomStr = stateStyles['font-size'];
+    let fsuomValue = 0.5;
+    let fsuomType = 'em';
+
+    const fsuomMatch = String(fsuomStr)
+      .trim()
+      .match(/^(\d*\.?\d+)([a-z%]+)$/i);
+
+    if (fsuomMatch) {
+      fsuomValue = Number(fsuomMatch[1]) * 0.6;
+      fsuomType = fsuomMatch[2];
+    } else {
+      console.error('Cannot determine font-size for state', fsuomStr);
+    }
+
+    return {
+      ...stateStyles,
+      ...uomStyles,
+
+      'font-size': `${fsuomValue}${fsuomType}`,
+      ...itemUomStyleDict,
+    };
+  }
+
+  /**
+   * Returns the formatted state and optional UOM as standard text parts.
+   * TextTool can replace the visual styles without rebuilding Home Assistant
+   * formatting or the relative UOM layout.
+   *
+   * @param {object} options - Source-style selection, state overrides and UOM overrides.
+   * @returns {Array<object>} State value and optional unit text parts.
+   */
+  getTextParts(options) {
+    let stateStyles = {};
+
+    if (options.includeStyles) {
+      stateStyles = this.getStyles({
+        'font-size': '1em',
+        color: 'var(--primary-text-color)',
+        opacity: '1.0',
+        'text-anchor': 'middle',
+      });
+      this.applyColorStops(stateStyles);
+    }
+
+    stateStyles = {
+      ...stateStyles,
+      ...ConfigHelper.toStyleDict(options.styles),
+    };
+
+    const sourceUomConfig = this.config.uom ?? {};
+    const overrideUomConfig = options.uom ?? {};
+    const uomConfig = {
+      ...sourceUomConfig,
+      ...overrideUomConfig,
+      styles: {
+        ...(options.includeStyles ? ConfigHelper.toStyleDict(sourceUomConfig.styles) : {}),
+        ...ConfigHelper.toStyleDict(overrideUomConfig.styles),
+      },
+    };
+    const uomPosition = options.show?.uom ?? this.config.show.uom;
+    const statePart = {
+      type: 'value',
+      value: this.state,
+      entity_index: this.entity_index,
+      styles: stateStyles,
+    };
+    const parts = [statePart];
+
+    if (!['end', 'top', 'bottom'].includes(uomPosition)) return parts;
+
+    const stateStylesForUom = {
+      'font-size': '1em',
+      ...stateStyles,
+    };
+    const unitPart = {
+      type: 'unit',
+      value: this.uom,
+      entity_index: this.entity_index,
+      styles: this.getUomStyles(stateStylesForUom, uomConfig),
+      uom_position: uomPosition,
+    };
+
+    if (uomPosition === 'end') {
+      unitPart.dx = uomConfig.dx ?? '0.1';
+      unitPart.dy = uomConfig.dy ?? '-0.45';
+    } else {
+      unitPart.new_line = true;
+      unitPart.dy = uomConfig.dy ?? (uomPosition === 'bottom' ? '1.5' : '-1.5');
+    }
+
+    parts.push(unitPart);
+
+    return parts;
+  }
+
+  /**
+   * Future state text formatting support preserved from the old main.js pipeline.
+   *
+   * Keep this block next to the active state renderer so date/time, duration,
+   * localized text, and explicit number formatting can be restored without
+   * searching through main.js again.
+   */
+  // formatStateString(inState, entityConfig) {
+  //   const lang = this._hass.selectedLanguage || this._hass.language;
+  //   let locale = {};
+  //   locale.language = lang;
+
+  //   if (
+  //     [
+  //       'relative',
+  //       'total',
+  //       'datetime',
+  //       'datetime-short',
+  //       'datetime-short_with-year',
+  //       'datetime_seconds',
+  //       'datetime-numeric',
+  //       'date',
+  //       'date_month',
+  //       'date_month_year',
+  //       'date-short',
+  //       'date-numeric',
+  //       'date_weekday',
+  //       'date_weekday_day',
+  //       'date_weekday-short',
+  //       'time',
+  //       'time-24h',
+  //       'time-24h_date-short',
+  //       'time_weekday',
+  //       'time_seconds',
+  //     ].includes(entityConfig.format)
+  //   ) {
+  //     const timestamp = new Date(inState);
+  //     if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+  //       return inState;
+  //     }
+
+  //     // if (!EntityStateTool.testTimeDate) {
+  //     //   EntityStateTool.testTimeDate = true;
+  //     //   console.log('datetime', formatDateTime(timestamp, locale));
+  //     //   console.log('datetime-numeric', formatDateTimeNumeric(timestamp, locale));
+  //     //   console.log('date', formatDate(timestamp, locale));
+  //     //   console.log('date_month', formatDateMonth(timestamp, locale));
+  //     //   console.log('date_month_year', formatDateMonthYear(timestamp, locale));
+  //     //   console.log('date-short', formatDateShort(timestamp, locale));
+  //     //   console.log('date-numeric', formatDateNumeric(timestamp, locale));
+  //     //   console.log('date_weekday', formatDateWeekday(timestamp, locale));
+  //     //   console.log('date_weekday-short', formatDateWeekdayShort(timestamp, locale));
+  //     //   console.log('date_weekday_day', formatDateWeekdayDay(timestamp, locale));
+  //     //   console.log('time', formatTime(timestamp, locale));
+  //     //   console.log('time-24h', formatTime24h(timestamp, locale));
+  //     //   console.log('time_weekday', formatTimeWeekday(timestamp, locale));
+  //     //   console.log('time_seconds', formatTimeWithSeconds(timestamp, locale));
+  //     // }
+
+  //     let retValue;
+  //     // return date/time according to formatting...
+  //     switch (entityConfig.format) {
+  //       case 'relative':
+  //         // eslint-disable-next-line no-case-declarations
+  //         const diff = selectUnit(timestamp, new Date());
+  //         retValue = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' }).format(diff.value, diff.unit);
+  //         break;
+  //       case 'total':
+  //       case 'precision':
+  //         retValue = 'Not Yet Supported';
+  //         break;
+  //       case 'datetime':
+  //         retValue = formatDateTime(timestamp, locale);
+  //         break;
+  //       case 'datetime-short':
+  //         retValue = formatShortDateTime(timestamp, locale);
+  //         break;
+  //       case 'datetime-short_with-year':
+  //         retValue = formatShortDateTimeWithYear(timestamp, locale);
+  //         break;
+  //       case 'datetime_seconds':
+  //         retValue = formatDateTimeWithSeconds(timestamp, locale);
+  //         break;
+  //       case 'datetime-numeric':
+  //         retValue = formatDateTimeNumeric(timestamp, locale);
+  //         break;
+  //       case 'date':
+  //         retValue = formatDate(timestamp, locale);
+  //         // retValue = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'numeric', day: 'numeric' }).format(timestamp);
+  //         break;
+  //       case 'date_month':
+  //         retValue = formatDateMonth(timestamp, locale);
+  //         break;
+  //       case 'date_month_year':
+  //         retValue = formatDateMonthYear(timestamp, locale);
+  //         break;
+  //       case 'date-short':
+  //         retValue = formatDateShort(timestamp, locale);
+  //         break;
+  //       case 'date-numeric':
+  //         retValue = formatDateNumeric(timestamp, locale);
+  //         break;
+  //       case 'date_weekday':
+  //         retValue = formatDateWeekday(timestamp, locale);
+  //         break;
+  //       case 'date_weekday-short':
+  //         retValue = formatDateWeekdayShort(timestamp, locale);
+  //         break;
+  //       case 'date_weekday_day':
+  //         retValue = formatDateWeekdayDay(timestamp, locale);
+  //         break;
+  //       case 'time':
+  //         retValue = formatTime(timestamp, locale);
+  //         // retValue = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(timestamp);
+  //         break;
+  //       case 'time-24h':
+  //         retValue = formatTime24h(timestamp);
+  //         break;
+  //       case 'time-24h_date-short':
+  //         // eslint-disable-next-line no-case-declarations
+  //         const diff2 = selectUnit(timestamp, new Date());
+  //         if (['second', 'minute', 'hour'].includes(diff2.unit)) {
+  //           retValue = formatTime24h(timestamp);
+  //         } else {
+  //           retValue = formatDateShort(timestamp, locale);
+  //         }
+  //         break;
+  //       case 'time_weekday':
+  //         retValue = formatTimeWeekday(timestamp, locale);
+  //         break;
+  //       case 'time_seconds':
+  //         retValue = formatTimeWithSeconds(timestamp, locale);
+  //         break;
+  //       default:
+  //     }
+  //     return retValue;
+  //   }
+
+  //   if (isNaN(parseFloat(inState)) || !isFinite(inState)) {
+  //     return inState;
+  //   }
+  //   if (entityConfig.format === 'brightness' || entityConfig.format === 'brightness_pct') {
+  //     return `${Math.round((inState / 255) * 100)} %`;
+  //   }
+  //   if (entityConfig.format === 'duration') {
+  //     return formatDuration(inState, 's');
+  //   }
+  // }
+
+  // _buildStateText(stateObj, entityConfig = {}) {
+  //   if (!stateObj) return '';
+
+  //   const entityId = stateObj.entity_id;
+  //   const entity = this._hass.entities?.[entityId];
+  //   const entity2 = this._hass.states?.[entityId];
+  //   const domain = computeDomain(entityId);
+
+  //   let inState = entityConfig.attribute ? stateObj.attributes?.[entityConfig.attribute] : stateObj.state;
+  //   inState = this._buildState(inState, entityConfig);
+  //   if (this.dev.debug) {
+  //     console.log('In _buildStateText, entityId, buildState', entityId, inState);
+  //   }
+  //   if ([undefined, 'undefined'].includes(inState)) {
+  //     return '';
+  //   }
+
+  //   if (entityConfig.format !== undefined && typeof inState !== 'undefined') {
+  //     inState = this.formatStateString(inState, entityConfig);
+  //   }
+
+  //   const localeTag = entityConfig.locale_tag ? `${entityConfig.locale_tag}${String(inState).toLowerCase()}` : undefined;
+
+  //   if (inState && isNaN(inState) && (!entityConfig.secondary_info || entityConfig.attribute)) {
+  //     inState =
+  //       (localeTag && this._hass.localize(localeTag)) ||
+  //       (entity?.translation_key && this._hass.localize(`component.${entity.platform}.entity.${domain}.${entity.translation_key}.state.${inState}`)) ||
+  //       (entity2?.attributes?.device_class && this._hass.localize(`component.${domain}.entity_component.${entity2.attributes.device_class}.state.${inState}`)) ||
+  //       this._hass.localize(`component.${domain}.entity_component._.state.${inState}`) ||
+  //       inState;
+
+  //     inState = this.textEllipsis?.(inState, this.config?.show?.ellipsis) ?? inState;
+  //   }
+
+  //   if (['undefined', 'unknown', 'unavailable', '-ua-'].includes(inState)) {
+  //     inState = this._hass.localize(`state.default.${inState}`);
+  //   }
+
+  //   if (!isNaN(inState)) {
+  //     let options = {};
+  //     options = getDefaultFormatOptions(inState, options);
+
+  //     if (entityConfig.decimals !== undefined) {
+  //       options.maximumFractionDigits = options.maximumFractionDigits === 0 ? 0 : Number(entityConfig.decimals);
+  //       // options.minimumFractionDigits = options.maximumFractionDigits;
+  //       options.minimumFractionDigits = 0;
+  //     }
+
+  //     inState = formatNumber(inState, this._hass.locale, options);
+  //     if (this.dev.debug) {
+  //       console.log('In _buildStateText, entityId, formatNumber', entityId, inState);
+  //     }
+
+  //     // inState = formatNumber(inState, this._hass.locale);
+  //   }
+
+  //   return inState;
+  // }
+
+  /**
+   * Renders one state layout item.
+   *
+   * @returns {TemplateResult} SVG template for the state.
+   */
+  render() {
+    const parts = this.getTextParts({
+      includeStyles: true,
+      styles: {},
+      uom: {},
+      show: this.config.show,
+    });
+    const statePart = parts[0];
+    const unitPart = parts[1];
+    const dx = this.config.dx ? this.config.dx : '0';
+    const dy = this.config.dy ? this.config.dy : '0';
+    let uomTemplate = svg``;
+
+    // show.uom controls the relative position of the unit against the state value.
+    if (unitPart?.uom_position === 'end') {
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        dx="${unitPart.dx}em"
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
+    } else if (unitPart?.uom_position === 'bottom') {
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        x="${this.config.svg.xpos}"
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
+    } else if (unitPart?.uom_position === 'top') {
+      uomTemplate = svg`<tspan
+        class="state__uom"
+        x="${this.config.svg.xpos}"
+        dy="${unitPart.dy}em"
+        style=${styleMap(this.getRenderStyles(unitPart.styles))}
+      >${unitPart.value}</tspan>`;
+    }
+
+    return this.renderItemLayers(svg`
+      <g
+        transform="${this.getGroupScaleTransform()}"
+        style="${this.getGroupScaleStyle()}"
+      >
+        <text ${ref(this.setTextElement)} id="${this.textElementId}" ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}>
+          <tspan
+            class="state__value"
+            x="${this.config.svg.xpos}"
+            y="${this.config.svg.ypos}"
+            dx="${dx}em"
+            dy="${dy}em"
+            style=${styleMap(this.getRenderStyles(statePart.styles))}
+          >${statePart.value}</tspan>${uomTemplate}
+        </text>
+      </g>
+    `);
+  }
+}

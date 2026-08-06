@@ -1,0 +1,237 @@
+# Example card for testing layout.clips and layout.masks.
+# Replace the entity with any existing entity in your Home Assistant instance.
+
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.awair_element_study_score
+      name: Masks / Clips
+
+  layout:
+    gradients:
+      blue-radial:
+        type: radial
+        cx: 50
+        cy: 35
+        r: 65
+        stops:
+          - offset: 0
+            color: '#e3f2fd'
+          - offset: 45
+            color: '#42a5f5'
+          - offset: 100
+            color: '#0d47a1'
+
+      red-linear:
+        type: linear
+        x1: 0
+        y1: 0
+        x2: 100
+        y2: 100
+        stops:
+          - offset: 0
+            color: '#ffcdd2'
+          - offset: 100
+            color: '#b71c1c'
+
+      notch-soft-mask:
+        type: radial
+        cx: 50
+        cy: 50
+        r: 50
+        stops:
+          - offset: 0
+            color: black
+          - offset: 55
+            color: black
+          - offset: 100
+            color: white
+            opacity: 0
+
+      image-circle-edge-fade:
+        type: radial
+        cx: 50
+        cy: 50
+        r: 50
+        stops:
+          - offset: 0
+            color: white
+            opacity: 1
+          - offset: 72
+            color: white
+            opacity: 1
+          - offset: 100
+            color: white
+            opacity: 0
+
+      image-bottom-fade:
+        type: linear
+        x1: 0
+        y1: 0
+        x2: 0
+        y2: 100
+        stops:
+          - offset: 0
+            color: white
+            opacity: 1
+          - offset: 55
+            color: white
+            opacity: 1
+          - offset: 100
+            color: white
+            opacity: 0
+    # Clip test: this hard-cuts the blue rectangle into a circle.
+    clips:
+      circle-window:
+        circles:
+          - dxpos: 0
+            dypos: 0
+            radius: 34
+
+      arc-window:
+        arcs:
+          - dxpos: 0
+            dypos: 0
+            radius: 18
+            arc_degrees: 250
+            rotate: 0
+
+      image-arc-window:
+        arcs:
+          - dxpos: 0
+            dypos: 0
+            radius: 21
+            arc_degrees: 260
+            rotate: 0
+
+    # Mask test: white is visible, black removes pixels.
+    masks:
+      top-notch:
+        styles:
+          - opacity: 1
+        rectangles:
+          - dxpos: 0
+            dypos: 0
+            width: 39
+            height: 26
+            radius: 8
+            styles:
+              - fill: white
+        circles:
+          - dxpos: 0
+            dypos: -13
+            radius: 13
+            styles:
+              - fill: gradient(notch-soft-mask)
+
+      arc-fade:
+        styles:
+          - opacity: 0.75
+        arcs:
+          - dxpos: 0
+            dypos: 0
+            radius: 19.5
+            arc_degrees: 275
+            rotate: 0
+            styles:
+              - fill: white
+
+      image-soft-fades:
+        shapes:
+          # The clip cuts the image to an arc. The mask is alpha-based: white is visible, transparent fades out.
+          - type: circle
+            dxpos: 0
+            dypos: 0
+            radius: 42
+            styles:
+              - fill: gradient(image-circle-edge-fade)
+          # This white-to-transparent rectangle controls the hard chord/bottom edge of the arc.
+          - type: rectangle
+            dxpos: 0
+            dypos: 24
+            width: 84
+            height: 34
+            radius: 0
+            styles:
+              - fill: gradient(image-bottom-fade)
+
+    rectangles:
+      # A square clipped by a circle. Should render as a circle.
+      - id: clipped_square
+        xpos: 25
+        ypos: 26
+        width: 37
+        height: 37
+        radius: 0
+        clip: circle-window
+        zpos: 100
+        styles:
+          - fill: gradient(blue-radial)
+          - stroke: white
+          - stroke-width: 2
+          - opacity: 0.9
+
+      # A rectangle with a circular notch cut from the top edge.
+      - id: notched_card
+        xpos: 25
+        ypos: 73
+        width: 39
+        height: 26
+        radius: 8
+        mask: top-notch
+        zpos: 100
+        styles:
+          - fill: '#43a047'
+          - stroke: var(--primary-text-color)
+          - stroke-width: 1
+          - opacity: 0.9
+
+      # A rectangle masked by an arc. Should only show inside the arc shape.
+      - id: arc_masked_block
+        xpos: 75
+        ypos: 73
+        width: 43
+        height: 33
+        radius: 4
+        mask: arc-fade
+        zpos: 100
+        styles:
+          - fill: gradient(red-linear)
+          - stroke: white
+          - stroke-width: 1
+
+    arcs:
+      # Visible arc using the same arc definition idea as the clip/mask source.
+      - id: clipped_arc_fill
+        xpos: 75
+        ypos: 26
+        radius: 18
+        arc_degrees: 250
+        rotate: 0
+        clip: arc-window
+        zpos: 100
+        styles:
+          - fill: '#f9a825'
+          - stroke: white
+          - stroke-width: 1
+          - opacity: 0.9
+
+    icons:
+      # Image clipped by an arc-shaped mask with a radial edge fade and bottom fade.
+      - id: map_image
+        entity_index: 0
+        xpos: 50
+        yposc: 50
+        icon_size_percent: 42
+        icon: url(/local/images/backgrounds/map-background.jpg)
+        clip: image-arc-window
+        mask: image-soft-fades
+        zpos: 100
+
+    names:
+      - entity_index: 0
+        xpos: 50
+        ypos: 95
+        styles:
+          - font-size: 0.9em
+          - text-anchor: middle
+          - fill: var(--primary-text-color)
