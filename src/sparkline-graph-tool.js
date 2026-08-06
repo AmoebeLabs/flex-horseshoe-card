@@ -200,6 +200,9 @@ export default class SparklineGraphTool extends BaseTool {
           colors: [],
         },
         colorstops_transition: 'smooth',
+        dots: {
+          radius: 2,
+        },
         bar: {
           background: {
             show: {
@@ -4405,6 +4408,9 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgPoint(point, i, bucketStart) {
     const color = this.computeColor(point[V], i);
+    const radius = this.config.sparkline.show.chart_type === 'dots'
+      ? Utils.calculateSvgDimension(this.config.sparkline.dots.radius)
+      : this.svg.line_width / 1.5;
     return svg`
     <circle
       class='line--point'
@@ -4416,7 +4422,7 @@ export default class SparklineGraphTool extends BaseTool {
       data-bucket-end=${new Date(bucketStart).getTime() + (60 / this.Graph.points) * 60 * 1000}
       stroke=${color}
       fill=${color}
-      cx=${point[X]} cy=${point[Y]} r=${this.svg.line_width / 1.5}
+      cx=${point[X]} cy=${point[Y]} r=${radius}
     >
       ${
         this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries)
