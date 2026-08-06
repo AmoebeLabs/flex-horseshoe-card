@@ -819,6 +819,18 @@ export default class SparklineGraphTool extends BaseTool {
   /** Updates graph configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+
+    // Dynamic JavaScript templates can return a boolean again after the initial
+    // config pass. Normalize it to the x/y shape consumed by the graph renderer.
+    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
+      const layerVisibility = this.config.sparkline.show[layerName];
+      if (typeof layerVisibility === 'boolean') {
+        this.config.sparkline.show[layerName] = {
+          x: layerVisibility,
+          y: layerVisibility,
+        };
+      }
+    });
     // Bar and equalizer backgrounds use the same explicit item-style selector
     // and color-stop paint dictionaries as the other FHS layout items.
     if (this.configChanged) {
@@ -1663,7 +1675,11 @@ export default class SparklineGraphTool extends BaseTool {
           this.areaPath = undefined;
         }
 
-        if (this.config.sparkline?.line?.show_minmax === true || this.config.sparkline?.area?.show_minmax === true) {
+        const showMinMax = chartType === 'line'
+          ? this.config.sparkline?.line?.show_minmax === true
+          : this.config.sparkline?.area?.show_minmax === true;
+
+        if (showMinMax) {
           this.lineMinPath = this.Graph.getPathMin();
           this.lineMaxPath = this.Graph.getPathMax();
           this.areaMinMaxPath = this.Graph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
@@ -4408,9 +4424,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgPoint(point, i, bucketStart) {
     const color = this.computeColor(point[V], i);
-    const radius = this.config.sparkline.show.chart_type === 'dots'
-      ? Utils.calculateSvgDimension(this.config.sparkline.dots.radius)
-      : this.svg.line_width / 1.5;
+    const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
     return svg`
     <circle
       class='line--point'
