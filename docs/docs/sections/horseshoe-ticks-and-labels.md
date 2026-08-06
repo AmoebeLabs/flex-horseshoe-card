@@ -32,6 +32,16 @@ horseshoe_labels:
   orientation: horizontal
 ```
 
+Set tickmarks to false to hide both layers, or use an object to control
+the configured layers independently:
+
+```yaml
+show:
+  tickmarks:
+    major: true
+    minor: false
+```
+
 ## :material-horseshoe: Major and minor ticks
 
 Major and minor ticks are configured separately, so each layer can use its own spacing, size, color, and styling. When a minor tick falls on the same value as a major tick, it is automatically omitted from the minor layer.

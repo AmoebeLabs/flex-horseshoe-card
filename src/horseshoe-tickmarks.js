@@ -39,10 +39,35 @@ function degreesToArcLength(lengthDeg, radius) {
 }
 
 /**
- * Resolves the fill color for one tick based on fixed or color-stop mode.
+ * Resolves the enabled tickmark layers from the new tickmarks setting.
+ *
+ * A boolean is the shorthand for both layers. An object allows major and
+ * minor ticks to be controlled independently. The old show.ticks value is
+ * only used when the new show.tickmarks setting is absent, preserving older
+ * configurations without making the legacy key the primary API.
  */
+function getTickmarkVisibility(runtimeConfig) {
+  const configuredTickmarks = runtimeConfig?.show?.tickmarks;
+
+  if (configuredTickmarks && typeof configuredTickmarks === 'object') {
+    return {
+      major: configuredTickmarks.major !== false,
+      minor: configuredTickmarks.minor !== false,
+    };
+  }
+
+  const enabled = configuredTickmarks ?? runtimeConfig?.show?.ticks;
+
+  return {
+    major: enabled,
+    minor: enabled,
+  };
+}
+
 function isTickmarksEnabled(runtimeConfig) {
-  return runtimeConfig?.show?.tickmarks ?? runtimeConfig?.show?.ticks;
+  const visibility = getTickmarkVisibility(runtimeConfig);
+
+  return visibility.major || visibility.minor;
 }
 
 function getTickColor(tickConfig, tickStyles, value, runtimeConfig) {
@@ -202,6 +227,7 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
   }
 
   const tickmarks = runtimeConfig.horseshoe_tickmarks;
+  const visibility = getTickmarkVisibility(runtimeConfig);
 
   if (!tickmarks?.ticks_major && !tickmarks?.ticks_minor) {
     return [];
@@ -210,8 +236,8 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
   const min = Number(runtimeConfig.horseshoe_scale.min);
   const max = Number(runtimeConfig.horseshoe_scale.max);
 
-  const majorTickConfig = tickmarks.ticks_major;
-  const minorTickConfig = tickmarks.ticks_minor;
+  const majorTickConfig = visibility.major ? tickmarks.ticks_major : undefined;
+  const minorTickConfig = visibility.minor ? tickmarks.ticks_minor : undefined;
 
   const majorTickSize = Number(majorTickConfig?.ticksize);
   const minorTickSize = Number(minorTickConfig?.ticksize);
