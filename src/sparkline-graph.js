@@ -254,8 +254,14 @@ export default class SparklineGraph {
       }
     }
 
-    // Check for line and area for minmax calculations
-    if (['line', 'area'].includes(this.config.sparkline.show.chart_type) && (this.config.sparkline.line?.show_minmax === true || this.config.sparkline.area?.show_minmax === true)) {
+    // Calculate min/max samples only for the active graph family.
+    // Line settings must not leak into area, and area settings must not leak into line.
+    const chartType = this.config.sparkline.show.chart_type;
+    const showMinMax = chartType === 'line'
+      ? this.config.sparkline.line?.show_minmax === true
+      : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
+
+    if (['line', 'area'].includes(chartType) && showMinMax) {
       // Just testing...
       // https://stackoverflow.com/questions/43576241/using-reduce-to-find-min-and-max-values
       const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);

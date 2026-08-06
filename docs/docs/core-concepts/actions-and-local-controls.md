@@ -140,6 +140,9 @@ An `fhs_input_number` stores a small dashboard control value without creating a 
 entities:
   - entity: fhs_input_number.history_days
     initial: 1
+    min: 1
+    max: 14
+    step: 1
     scope: global
     persist: true
 ```
@@ -147,6 +150,9 @@ entities:
 | Option | Default | Description |
 | :----- | :------ | :---------- |
 | `initial` | Required | Number used when the input is first created |
+| `min` | None | Lowest accepted value. Existing inputs remain unbounded when it is omitted. |
+| `max` | None | Highest accepted value. Existing inputs remain unbounded when it is omitted. |
+| `step` | `1` | Amount used by `increment` and `decrement`. |
 | `scope` | `card` | `card` keeps the value in one card; `global` shares it with FHS cards in the current browser tab |
 | `persist` | `false` | Restores a global input after a page reload when set to `true` |
 
@@ -160,6 +166,41 @@ tap_action:
     entity_id: fhs_input_number.history_days
   data:
     value: 7
+```
+
+Incrementing and decrementing use the configured step and clamp the result to the configured bounds:
+
+```yaml
+- entity: fhs_input_number.horseshoe_offset
+  initial: 0
+  min: -20
+  max: 20
+  step: 1
+
+layout:
+  rectangles:
+    - id: offset-up
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.increment
+        target:
+          entity_id: fhs_input_number.horseshoe_offset
+    - id: offset-down
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.decrement
+        target:
+          entity_id: fhs_input_number.horseshoe_offset
+```
+
+The same services can be used with the legacy action format:
+
+```yaml
+tap_action:
+  action: call-service
+  service: fhs_input_number.increment
+  service_data:
+    entity_id: fhs_input_number.horseshoe_offset
 ```
 
 Every FHS card that should use a global input includes the same `fhs_input_number` in its own `entities` list. Those cards then update together, including while navigating between dashboards. Add `persist: true` to restore the latest value after a full page reload.
