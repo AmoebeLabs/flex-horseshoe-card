@@ -1,0 +1,35 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Study
+    area: Office
+    unit: C
+layout:
+  texts:
+    - id: summary
+      xpos: 50
+      ypos: 50
+      text:
+        - type: name
+          id: 0
+          styles:
+            fill: var(--primary-text-color)
+        - text: ' / '
+          styles:
+            fill: var(--secondary-text-color)
+        - type: area
+          id: 0
+          styles:
+            fill: var(--secondary-text-color)
+        - text: ' / '
+          styles:
+            fill: var(--secondary-text-color)
+        - type: state
+          id: 0
+          styles:
+            fill: var(--primary-color)
+      styles:
+        font-size: 1.15em
+        text-anchor: middle
+        dominant-baseline: central
+

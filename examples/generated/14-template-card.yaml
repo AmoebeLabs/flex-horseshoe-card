@@ -1,0 +1,8 @@
+type: custom:flex-horseshoe-card
+template:
+  name: generated_sensor_tile
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Study temperature
+    unit: C
+

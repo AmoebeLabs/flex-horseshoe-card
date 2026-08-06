@@ -1,0 +1,33 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Temperature
+    unit: C
+layout:
+  sparklines:
+    - id: equalizer
+      entity_index: 0
+      xpos: 50
+      ypos: 55
+      width: 80
+      height: 50
+      period:
+        type: rolling_window
+        rolling_window:
+          duration:
+            hour: 12
+          bins:
+            per_hour: auto
+            density: high
+      sparkline:
+        show:
+          chart_type: equalizer
+          grid: true
+          axis: true
+          labels: true
+        equalizer:
+          value_buckets: 10
+          square: false
+          column_spacing: 1
+          row_spacing: 1
+

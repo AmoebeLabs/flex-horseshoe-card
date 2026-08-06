@@ -1,0 +1,25 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_livingroom_score
+    slot: room_scores
+  - entity: sensor.awair_element_bedroom_score
+    slot: room_scores
+    disabled: false
+  - entity: sensor.awair_element_study_score
+    slot: room_scores
+    disabled: true
+layout:
+  states:
+    - id: livingroom
+      entity_index: room_scores[0]
+      xpos: 30
+      ypos: 50
+      show:
+        uom: none
+    - id: bedroom
+      entity_index: room_scores[1]
+      xpos: 70
+      ypos: 50
+      show:
+        uom: none
+

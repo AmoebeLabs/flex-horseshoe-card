@@ -1,0 +1,245 @@
+type: custom:flex-horseshoe-card
+
+entities:
+  - entity: fhs_input_number.radial_variant
+    slot: variant
+    initial: 0
+    scope: global
+    unit: ''
+  - entity: fhs_input_number.radial_viz
+    slot: viz
+    initial: 0
+    scope: global
+    unit: ''
+  - entity: sensor.awair_element_study_temperature
+    slot: source
+    name: Study temperature
+    unit: C
+
+constants:
+  radial_variants: [fixed, sunburst, sunburst_centered, sunburst_outward, sunburst_inward]
+  radial_viz: [bar, flower, flower2, rice_grain]
+  get_value_from_item_id: |
+    [[[
+      return Number(item.id.split('--value-')[1]);
+    ]]]
+
+layout:
+  aspectratio: 1/1.5
+  groups:
+    - id: title
+      xpos: 50
+      ypos: 7
+    - id: chart
+      xpos: 50
+      ypos: 60
+    - id: variant-buttons
+      xpos: 50
+      ypos: 120
+    - id: viz-buttons
+      xpos: 50
+      ypos: 142
+
+  sparklines:
+    - id: radial-showcase
+      group: chart
+      entity_index: source[0]
+      xpos: 50
+      ypos: 50
+      width: 82
+      height: 82
+      margin: 0
+      period:
+        type: calendar
+        calendar:
+          period: day
+          offset: 0
+          duration:
+            hour: 24
+          bins:
+            per_hour: 2
+      sparkline:
+        show:
+          chart_type: radial_barcode
+          chart_variant: '[[[ return constants.radial_variants[Number(entities[entity_slots.variant[0]].state)]; ]]]'
+          chart_viz: '[[[ return constants.radial_viz[Number(entities[entity_slots.viz[0]].state)]; ]]]'
+        radial_barcode:
+          size: 15
+          line_width: 0.02
+          column_spacing: 0.2
+          background:
+            styles:
+              opacity: 0.14
+          foreground:
+            styles:
+              opacity: 1
+        colorstops_transition: smooth
+        color_stops:
+          0: '#1565c0'
+          18: '#42a5f5'
+          24: '#66bb6a'
+          28: '#f9a825'
+          35: '#d32f2f'
+
+  texts:
+    - id: title
+      group: title
+      entity_index: source[0]
+      xpos: 50
+      ypos: 50
+      text: Radial barcode showcase
+      styles:
+        font-size: 1.2em
+        font-weight: bold
+        text-anchor: middle
+        dominant-baseline: central
+    - id: variant--value-0
+      group: variant-buttons
+      entity_index: variant[0]
+      xpos: 10
+      ypos: 50
+      text: Fixed
+      styles:
+        font-size: 0.52em
+        text-anchor: middle
+        dominant-baseline: central
+        pointer-events: none
+        fill: |
+          [[[
+            const value = Number(item.id.split("--value-")[1]);
+
+            return Number(state) === value
+              ? "var(--primary-background-color)"
+              : "var(--primary-text-color)";
+          ]]]
+    - id: variant--value-1
+      same_as: variant--value-0
+      same_as_dxpos: 20
+      text: Sunburst
+    - id: variant--value-2
+      same_as: variant--value-1
+      same_as_dxpos: 20
+      text: Centered
+    - id: variant--value-3
+      same_as: variant--value-2
+      same_as_dxpos: 20
+      text: Outward
+    - id: variant--value-4
+      same_as: variant--value-3
+      same_as_dxpos: 20
+      text: Inward
+    - id: fixed-viz-label
+      group: viz-buttons
+      entity_index: viz[0]
+      xpos: 50
+      ypos: 18
+      text: "[[[ return 'chart_viz: ' + constants.radial_viz[Number(entities[entity_slots.viz[0]].state)]; ]]]"
+      styles: { font-size: 0.62em, text-anchor: middle, dominant-baseline: central, fill: var(--secondary-text-color) }
+    - id: viz--value-1
+      group: viz-buttons
+      entity_index: viz[0]
+      xpos: 14
+      ypos: 50
+      text: Flower
+      styles:
+        font-size: 0.6em
+        text-anchor: middle
+        dominant-baseline: central
+        pointer-events: none
+        fill: |
+          [[[
+            const value = Number(item.id.split("--value-")[1]);
+
+            return Number(state) === value
+              ? "var(--primary-background-color)"
+              : "var(--primary-text-color)";
+          ]]]
+    - id: viz--value-2
+      same_as: viz--value-1
+      same_as_dxpos: 24
+      text: Flower 2
+    - id: viz--value-3
+      same_as: viz--value-2
+      same_as_dxpos: 24
+      text: Rice grain
+    - id: viz--value-0
+      same_as: viz--value-3
+      same_as_dxpos: 24
+      text: Bar
+
+  rectangles:
+    - id: variant--value-0
+      group: variant-buttons
+      entity_index: variant[0]
+      xpos: 10
+      ypos: 50
+      width: 17
+      height: 13
+      radius: 2
+      tap_action:
+        haptic: selection
+        action: perform-action
+        perform_action: fhs_input_number.set_value
+        target: { entity_id: fhs_input_number.radial_variant }
+        data: { value: ref(get_value_from_item_id) }
+      styles:
+        stroke-width: 1
+        stroke: var(--divider-color)
+        fill-opacity: 0.7
+        fill: |
+          [[[
+            const value = Number(item.id.split("--value-")[1]);
+
+            return Number(state) === value
+              ? "var(--primary-color)"
+              : "var(--card-background-color)";
+          ]]]
+    - id: variant--value-1
+      same_as: variant--value-0
+      same_as_dxpos: 20
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_variant }, data: { value: ref(get_value_from_item_id) } }
+    - id: variant--value-2
+      same_as: variant--value-1
+      same_as_dxpos: 20
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_variant }, data: { value: ref(get_value_from_item_id) } }
+    - id: variant--value-3
+      same_as: variant--value-2
+      same_as_dxpos: 20
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_variant }, data: { value: ref(get_value_from_item_id) } }
+    - id: variant--value-4
+      same_as: variant--value-3
+      same_as_dxpos: 20
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_variant }, data: { value: ref(get_value_from_item_id) } }
+    - id: viz--value-1
+      group: viz-buttons
+      entity_index: viz[0]
+      xpos: 14
+      ypos: 50
+      width: 20
+      height: 13
+      radius: 2
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_viz }, data: { value: ref(get_value_from_item_id) } }
+      styles:
+        stroke-width: 1
+        stroke: var(--divider-color)
+        fill-opacity: 0.7
+        fill: |
+          [[[
+            const value = Number(item.id.split("--value-")[1]);
+
+            return Number(state) === value
+              ? "var(--primary-color)"
+              : "var(--card-background-color)";
+          ]]]
+    - id: viz--value-2
+      same_as: viz--value-1
+      same_as_dxpos: 24
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_viz }, data: { value: ref(get_value_from_item_id) } }
+    - id: viz--value-3
+      same_as: viz--value-2
+      same_as_dxpos: 24
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_viz }, data: { value: ref(get_value_from_item_id) } }
+    - id: viz--value-0
+      same_as: viz--value-3
+      same_as_dxpos: 24
+      tap_action: { haptic: selection, action: perform-action, perform_action: fhs_input_number.set_value, target: { entity_id: fhs_input_number.radial_viz }, data: { value: ref(get_value_from_item_id) } }

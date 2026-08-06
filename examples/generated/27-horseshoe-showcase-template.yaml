@@ -1,0 +1,161 @@
+fhs_showcase_horseshoe:
+  template:
+    type: card
+    defaults:
+      - entity: sensor.awair_element_study_temperature
+      - name: Horseshoe showcase
+      - unit: C
+  card:
+    default_entities:
+      - entity: fhs_input_number.showcase_horseshoe_style
+        slot: style
+        initial: 0
+        scope: global
+        unit: ''
+      - entity: '[[entity]]'
+        slot: source
+        name: '[[name]]'
+        unit: '[[unit]]'
+    constants:
+      horseshoe_styles:
+        - fixed
+        - autominmax
+        - colorstop
+        - colorstopsegments
+        - colorstopgradient
+        - lineargradient
+      get_value_from_item_id: |
+        [[[ return Number(item.id.split('--value-')[1]); ]]]
+    layout:
+      aspectratio: 1/1.5
+      groups:
+        - id: title
+          xpos: 50
+          ypos: 7
+        - id: chart
+          xpos: 50
+          ypos: 55
+        - id: controls
+          xpos: 50
+          ypos: 128
+      horseshoes:
+        - id: showcase
+          group: chart
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          radius: 32
+          arc_degrees: 300
+          horseshoe_state:
+            width: 7
+            linecap: round
+          horseshoe_scale:
+            # min: 0
+            # max: 40
+            width: 3
+            styles:
+              opacity: 0.35
+          show:
+            horseshoe_style: '[[[ return constants.horseshoe_styles[Number(entities[entity_slots.style[0]].state)]; ]]]'
+          color_stops:
+            scales:
+              default:
+                min: 0
+                max: 40
+            colors:
+              0: '#1565c0'
+              10: '#42a5f5'
+              20: '#66bb6a'
+              30: '#f9a825'
+              40: '#d32f2f'
+      states:
+        - id: value
+          group: chart
+          entity_index: source[0]
+          xpos: 50
+          ypos: 52
+          show:
+            uom: end
+          styles:
+            font-size: 2.6em
+            text-anchor: middle
+            dominant-baseline: central
+      texts:
+        - id: title
+          group: title
+          xpos: 50
+          ypos: 50
+          text: '[[name]]'
+          styles:
+            font-size: 1.2em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+        - id: style--value-0
+          group: controls
+          entity_index: style[0]
+          xpos: 10
+          ypos: 50
+          text: Fixed
+          styles:
+            font-size: 0.48em
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none
+        - id: style--value-1
+          same_as: style--value-0
+          same_as_dxpos: 16
+          text: Auto
+        - id: style--value-2
+          same_as: style--value-1
+          same_as_dxpos: 16
+          text: Stop
+        - id: style--value-3
+          same_as: style--value-2
+          same_as_dxpos: 16
+          text: Segments
+        - id: style--value-4
+          same_as: style--value-3
+          same_as_dxpos: 16
+          text: Gradient
+        - id: style--value-5
+          same_as: style--value-4
+          same_as_dxpos: 16
+          text: Linear
+      rectangles:
+        - id: style--value-0
+          group: controls
+          entity_index: style[0]
+          xpos: 10
+          ypos: 50
+          width: 13
+          height: 12
+          radius: 2
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_style
+            data:
+              value: ref(get_value_from_item_id)
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill-opacity: 0.7
+            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
+        - id: style--value-1
+          same_as: style--value-0
+          same_as_dxpos: 16
+        - id: style--value-2
+          same_as: style--value-1
+          same_as_dxpos: 16
+        - id: style--value-3
+          same_as: style--value-2
+          same_as_dxpos: 16
+        - id: style--value-4
+          same_as: style--value-3
+          same_as_dxpos: 16
+        - id: style--value-5
+          same_as: style--value-4
+          same_as_dxpos: 16

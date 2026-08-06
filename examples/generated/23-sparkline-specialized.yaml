@@ -1,0 +1,37 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_score
+    name: Score history
+    unit: '%'
+layout:
+  sparklines:
+    - id: radial
+      entity_index: 0
+      xpos: 50
+      ypos: 50
+      width: 78
+      height: 78
+      period:
+        type: calendar
+        calendar:
+          period: day
+          offset: 0
+          duration:
+            hour: 24
+          bins:
+            per_hour: 4
+      sparkline:
+        show:
+          chart_type: radial_barcode
+          chart_variant: sunburst
+          chart_viz: rice_grain
+        radial_barcode:
+          size: 10
+          line_width: 0.02
+          column_spacing: 0.2
+        colorstops_transition: smooth
+        color_stops:
+          0: '#d32f2f'
+          50: '#f9a825'
+          100: '#2e7d32'
+

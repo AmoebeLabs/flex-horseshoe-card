@@ -1,0 +1,69 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_score
+    name: Masks and clips
+layout:
+  gradients:
+    soft-edge:
+      type: radial
+      cx: 50
+      cy: 50
+      r: 50
+      stops:
+        - offset: 0
+          color: black
+        - offset: 60
+          color: white
+          opacity: 0
+  clips:
+    circle-window:
+      circles:
+        - dxpos: 0
+          dypos: 0
+          radius: 34
+  masks:
+    top-notch:
+      rectangles:
+        - dxpos: 0
+          dypos: 0
+          width: 40
+          height: 28
+          radius: 4
+          styles:
+            - fill: white
+      circles:
+        - dxpos: 0
+          dypos: -14
+          radius: 14
+          styles:
+            - fill: gradient(soft-edge)
+  rectangles:
+    - id: clipped-background
+      xpos: 25
+      ypos: 50
+      width: 38
+      height: 38
+      clip: circle-window
+      styles:
+        fill: var(--primary-color)
+        fill-opacity: 0.25
+    - id: notched-background
+      xpos: 75
+      ypos: 50
+      width: 42
+      height: 30
+      radius: 4
+      mask: top-notch
+      styles:
+        fill: var(--primary-color)
+        fill-opacity: 0.35
+  states:
+    - id: value
+      entity_index: 0
+      xpos: 75
+      ypos: 50
+      show:
+        uom: none
+      styles:
+        font-size: 2em
+        text-anchor: middle

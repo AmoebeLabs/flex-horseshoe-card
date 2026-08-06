@@ -1,0 +1,37 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: fhs_input_number.history_hours
+    initial: 24
+    scope: global
+    unit: h
+layout:
+  compounds:
+    - id: duration-button
+      entity_index: 0
+      rectangles:
+        - id: background
+          xpos: 50
+          ypos: 50
+          width: 32
+          height: 18
+          radius: 3
+          styles:
+            fill: var(--primary-color)
+            fill-opacity: 0.2
+          tap_action:
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.history_hours
+            data:
+              value: 24
+      texts:
+        - id: label
+          xpos: 50
+          ypos: 50
+          text: 1 day
+          styles:
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none
+
