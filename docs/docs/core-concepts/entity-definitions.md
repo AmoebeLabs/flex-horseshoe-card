@@ -332,6 +332,9 @@ For details about JavaScript templates, available variables, and reusable templa
 | `hold_action` | object | :material-close: | Action performed when the entity is held |
 | `double_tap_action` | object | :material-close: | Action performed when the entity is double tapped |
 | `initial` | number/boolean | :material-close: | Initial value for a local FHS input; numbers require a value, booleans accept `true`/`false` and default to `off` when omitted |
+| `min` | number | :material-close: | Lowest value accepted by a local `fhs_input_number` |
+| `max` | number | :material-close: | Highest value accepted by a local `fhs_input_number` |
+| `step` | number | :material-close: | Increment/decrement amount for a local `fhs_input_number`; default: `1` |
 | `scope` | string | :material-close: | Shares an `fhs_input_number` or `fhs_input_boolean` with one card or all FHS cards in the current browser tab; default: `card` |
 
 ## :material-horseshoe: Available entity format options
