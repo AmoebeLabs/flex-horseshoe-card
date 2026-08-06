@@ -71,9 +71,15 @@ const DEFAULT_SHOW = {
 class FlexHorseshoeCard extends LitElement {
   static fhsInputNumbers = new Map();
 
+  static fhsInputBooleans = new Map();
+
   static fhsInputEvent = 'flex-horseshoe-card:fhs-input-number-changed';
 
+  static fhsInputBooleanEvent = 'flex-horseshoe-card:fhs-input-boolean-changed';
+
   static fhsInputStoragePrefix = 'flex-horseshoe-card:fhs-input-number';
+
+  static fhsInputBooleanStoragePrefix = 'flex-horseshoe-card:fhs-input-boolean';
 
   constructor() {
     super();
@@ -103,7 +109,11 @@ class FlexHorseshoeCard extends LitElement {
         });
       }
 
-      if (matchingConfig) this._replaceFhsInputNumberState(event.detail.entity_id, event.detail);
+      if (matchingConfig?.entity.startsWith('fhs_input_boolean.')) {
+        this._replaceFhsInputBooleanState(event.detail.entity_id, event.detail);
+      } else if (matchingConfig) {
+        this._replaceFhsInputNumberState(event.detail.entity_id, event.detail);
+      }
     };
     this.entities = [];
     this.entitiesStr = [];
@@ -893,6 +903,38 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Validates and completes local FHS boolean input definitions in the config layer.
+   *
+   * @param {object} config - Compiled card configuration.
+   */
+  _normalizeFhsInputBooleanConfigs(config) {
+    config.entities.forEach((entityConfig) => {
+      if (!entityConfig.entity.startsWith('fhs_input_boolean.')) return;
+
+      if (entityConfig.initial === undefined) entityConfig.initial = false;
+      if (typeof entityConfig.initial !== 'boolean') {
+        throw Error(`FHS input boolean '${entityConfig.entity}' initial must be a boolean`);
+      }
+      if (entityConfig.scope !== undefined && !['card', 'global'].includes(entityConfig.scope)) {
+        throw Error(`FHS input boolean '${entityConfig.entity}' scope must be 'card' or 'global'`);
+      }
+
+      entityConfig.local = true;
+      entityConfig.scope ??= 'card';
+      entityConfig.persist ??= false;
+      if (typeof entityConfig.persist !== 'boolean') {
+        throw Error(`FHS input boolean '${entityConfig.entity}' persist must be a boolean`);
+      }
+      if (entityConfig.persist && entityConfig.scope !== 'global') {
+        throw Error(`FHS input boolean '${entityConfig.entity}' can only persist with scope 'global'`);
+      }
+      entityConfig.name ??= entityConfig.entity.split('.', 2)[1];
+      entityConfig.icon ??= 'mdi:toggle-switch';
+      entityConfig.tap_action ??= { action: 'none' };
+    });
+  }
+
+  /**
    * Creates configured FHS number entities before the first Home Assistant pass.
    *
    * @param {Array<object>} entityConfigs - Resolved configured entities.
@@ -938,12 +980,78 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Creates configured FHS boolean entities before the first Home Assistant pass.
+   *
+   * @param {Array<object>} entityConfigs - Resolved configured entities.
+   */
+  _initializeFhsInputBooleanEntities(entityConfigs) {
+    entityConfigs.forEach((entityConfig, index) => {
+      if (!entityConfig.entity.startsWith('fhs_input_boolean.')) return;
+
+      const timestamp = new Date().toISOString();
+      let stateRecord = {
+        entity_id: entityConfig.entity,
+        state: entityConfig.initial ? 'on' : 'off',
+        last_changed: timestamp,
+        last_updated: timestamp,
+      };
+
+      if (entityConfig.scope === 'global') {
+        if (!FlexHorseshoeCard.fhsInputBooleans.has(entityConfig.entity)) {
+          if (entityConfig.persist) {
+            const storageKey = `${FlexHorseshoeCard.fhsInputBooleanStoragePrefix}:${entityConfig.entity}`;
+            const storedStateRecord = localStorage.getItem(storageKey);
+            if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
+          }
+          FlexHorseshoeCard.fhsInputBooleans.set(entityConfig.entity, stateRecord);
+        }
+        stateRecord = FlexHorseshoeCard.fhsInputBooleans.get(entityConfig.entity);
+      }
+
+      this.entities[index] = {
+        ...stateRecord,
+        attributes: {
+          friendly_name: entityConfig.name,
+          icon: entityConfig.icon,
+        },
+        context: {
+          id: null,
+          parent_id: null,
+          user_id: null,
+        },
+      };
+    });
+  }
+
+  /**
    * Replaces one local entity state and enters the normal entity update pipeline.
    *
    * @param {string} entityId - Local FHS entity id.
    * @param {object} stateRecord - Shared state and timestamps.
    */
   _replaceFhsInputNumberState(entityId, stateRecord) {
+    this.config.entities.forEach((entityConfig, index) => {
+      if (entityConfig.entity !== entityId) return;
+
+      this.entities[index] = {
+        ...this.entities[index],
+        state: stateRecord.state,
+        last_changed: stateRecord.last_changed,
+        last_updated: stateRecord.last_updated,
+      };
+    });
+
+    this.fhsInputStateChanged = true;
+    this.setHass(this._hass);
+  }
+
+  /**
+   * Replaces one local boolean state and enters the normal entity update pipeline.
+   *
+   * @param {string} entityId - Local FHS boolean entity id.
+   * @param {object} stateRecord - Shared state and timestamps.
+   */
+  _replaceFhsInputBooleanState(entityId, stateRecord) {
     this.config.entities.forEach((entityConfig, index) => {
       if (entityConfig.entity !== entityId) return;
 
@@ -986,6 +1094,42 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this._replaceFhsInputNumberState(entityId, stateRecord);
+  }
+
+  /**
+   * Applies the local equivalent of input_boolean.turn_on, turn_off, or toggle.
+   *
+   * @param {string} entityId - Target FHS input boolean.
+   * @param {string} service - Boolean service name.
+   */
+  _setFhsInputBooleanState(entityId, service) {
+    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
+    const entityIndex = this.config.entities.indexOf(entityConfig);
+    const currentState = entityConfig.scope === 'global'
+      ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state
+      : this.entities[entityIndex].state;
+    const nextState = service === 'toggle'
+      ? currentState === 'on' ? 'off' : 'on'
+      : service === 'turn_on' ? 'on' : 'off';
+    const timestamp = new Date().toISOString();
+    const stateRecord = {
+      entity_id: entityId,
+      state: nextState,
+      last_changed: timestamp,
+      last_updated: timestamp,
+    };
+
+    if (entityConfig.scope === 'global') {
+      FlexHorseshoeCard.fhsInputBooleans.set(entityId, stateRecord);
+      if (entityConfig.persist) {
+        const storageKey = `${FlexHorseshoeCard.fhsInputBooleanStoragePrefix}:${entityId}`;
+        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
+      }
+      fireEvent(window, FlexHorseshoeCard.fhsInputBooleanEvent, stateRecord);
+      return;
+    }
+
+    this._replaceFhsInputBooleanState(entityId, stateRecord);
   }
 
   _resolveEntityConfigs(config, evaluateJavascript) {
@@ -2223,6 +2367,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this._removeDisabledLayoutItems(config);
       this._normalizeFhsInputNumberConfigs(config);
+      this._normalizeFhsInputBooleanConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
 
@@ -2242,11 +2387,12 @@ class FlexHorseshoeCard extends LitElement {
 
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
       this._initializeFhsInputNumberEntities(resolvedEntitiesConfig);
+      this._initializeFhsInputBooleanEntities(resolvedEntitiesConfig);
 
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
-        if (newdomain !== 'sensor' && newdomain !== 'fhs_input_number') {
+        if (newdomain !== 'sensor' && newdomain !== 'fhs_input_number' && newdomain !== 'fhs_input_boolean') {
           if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
             throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
           }
@@ -2467,6 +2613,7 @@ class FlexHorseshoeCard extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
+    window.addEventListener(FlexHorseshoeCard.fhsInputBooleanEvent, this.fhsInputEventHandler);
     if (this.hassConnection) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.connected());
   }
@@ -2479,6 +2626,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   disconnectedCallback() {
     window.removeEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
+    window.removeEventListener(FlexHorseshoeCard.fhsInputBooleanEvent, this.fhsInputEventHandler);
     if (this.hassConnection) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.disconnected());
     super.disconnectedCallback();
@@ -2782,7 +2930,12 @@ class FlexHorseshoeCard extends LitElement {
         break;
       }
       case 'toggle': {
-        await this._hass.callService('homeassistant', 'toggle', {}, { entity_id: actionConfig.entity ?? entityId });
+        const targetEntityId = actionConfig.entity ?? entityId;
+        if (targetEntityId.startsWith('fhs_input_boolean.')) {
+          this._setFhsInputBooleanState(targetEntityId, 'toggle');
+        } else {
+          await this._hass.callService('homeassistant', 'toggle', {}, { entity_id: targetEntityId });
+        }
         break;
       }
       case 'perform-action': {
@@ -2790,6 +2943,8 @@ class FlexHorseshoeCard extends LitElement {
 
         if (domain === 'fhs_input_number' && service === 'set_value') {
           this._setFhsInputNumberValue(actionConfig.target.entity_id, actionConfig.data.value);
+        } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
+          this._setFhsInputBooleanState(actionConfig.target.entity_id, service);
         } else {
           await this._hass.callService(domain, service, actionConfig.data, actionConfig.target);
         }
@@ -2813,7 +2968,12 @@ class FlexHorseshoeCard extends LitElement {
       }
       case 'call-service': {
         const [domain, service] = actionConfig.service.split('.', 2);
-        await this._hass.callService(domain, service, actionConfig.service_data, actionConfig.target);
+        if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
+          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
+          this._setFhsInputBooleanState(targetEntityId, service);
+        } else {
+          await this._hass.callService(domain, service, actionConfig.service_data, actionConfig.target);
+        }
         break;
       }
       case 'fire-dom-event': {
