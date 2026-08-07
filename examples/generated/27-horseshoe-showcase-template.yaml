@@ -64,14 +64,56 @@ fhs_showcase_horseshoe:
         slot: tick_background_style
         initial: 1
         min: 0
-        max: 4
+        max: 3
         step: 1
         scope: card
       - entity: fhs_input_number.showcase_horseshoe_background_style
         slot: background_style
         initial: 1
         min: 0
+        max: 3
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_width
+        slot: horseshoe_width
+        initial: 7
+        min: 1
+        max: 20
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_scale_width
+        slot: scale_width
+        initial: 3
+        min: 1
+        max: 20
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_scale_style
+        slot: scale_style
+        initial: 1
+        min: 0
         max: 4
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_major_ticks_width
+        slot: major_ticks_width
+        initial: 4
+        min: 1
+        max: 20
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_minor_ticks_width
+        slot: minor_ticks_width
+        initial: 2
+        min: 1
+        max: 20
+        step: 1
+        scope: card
+      - entity: fhs_input_number.showcase_horseshoe_minor_ticks_offset_delta
+        slot: minor_ticks_offset_delta
+        initial: 0
+        min: -30
+        max: 30
         step: 1
         scope: card
       - entity: '[[entity]]'
@@ -89,13 +131,40 @@ fhs_showcase_horseshoe:
       background_styles:
         - none
         - fixed
-        - colorstop
         - colorstopsegments
         - colorstopgradient
+      scale_styles:
+        - none
+        - fixed
+        - colorstopsegments
+        - colorstopgradient
+        - lineargradient
       get_value_from_item_id: |
         [[[ return Number(item.id.split('--value-')[1]); ]]]
+      background_style_button_xpos: 32
+      background_style_button_dxpos: 20
+      background_style_button_width: 14
+      offset_label_xpos: 25
+      offset_minus_xpos: 45
+      offset_value_xpos: 55
+      offset_plus_xpos: 65
+      offset_button_width: 8
+      scale_style_button_xpos: 25
+      scale_style_button_dxpos: 17
+      scale_style_button_width: 13
+      button_default_height: 8
+      ypos_row_1: 100
+      ypos_row_2: 112
+      ypos_row_3: 124
+      ypos_row_4: 136
+      ypos_row_5: 148
+      ypos_row_6: 160
+      ypos_row_7: 172
+      ypos_row_8: 184
+      ypos_row_9: 196
+      ypos_row_10: 208
     layout:
-      aspectratio: 1/2
+      aspectratio: 1/2.1
       groups:
         - id: title
           xpos: 50
@@ -105,28 +174,46 @@ fhs_showcase_horseshoe:
           ypos: 55
         - id: controls
           xpos: 50
-          ypos: 88
+          ypos: calc(ypos_row_1)
         - id: options
           xpos: 50
-          ypos: 103
+          ypos: calc(ypos_row_2)
         - id: tick-background-style
           xpos: 50
-          ypos: 120
+          ypos: calc(ypos_row_3)
         - id: gauge-background-style
           xpos: 50
-          ypos: 137
+          ypos: calc(ypos_row_4)
         - id: labels-offset
-          xpos: 25
-          ypos: 158
-        - id: ticks-offset
-          xpos: 75
-          ypos: 158
-        - id: tick-background-offset
-          xpos: 25
-          ypos: 184
+          xpos: 27
+          ypos: calc(ypos_row_5)
         - id: background-offset
-          xpos: 75
-          ypos: 184
+          xpos: 77
+          ypos: calc(ypos_row_5) #165
+        - id: ticks-offset
+          xpos: 27
+          ypos: calc(ypos_row_6)
+        - id: tick-background-offset
+          xpos: 77
+          ypos: calc(ypos_row_6) #195
+        - id: horseshoe-width
+          xpos: 27
+          ypos: calc(ypos_row_7)
+        - id: scale-width
+          xpos: 77
+          ypos: calc(ypos_row_7)
+        - id: scale-background-style
+          xpos: 50
+          ypos: calc(ypos_row_8)
+        - id: major-ticks-width
+          xpos: 27
+          ypos: calc(ypos_row_9)
+        - id: minor-ticks-width
+          xpos: 77
+          ypos: calc(ypos_row_9)
+        - id: minor-ticks-offset
+          xpos: 50
+          ypos: calc(ypos_row_10)
       horseshoes:
         - id: showcase
           group: chart
@@ -136,16 +223,19 @@ fhs_showcase_horseshoe:
           radius: 32
           arc_degrees: 300
           horseshoe_state:
-            width: 7
+            width: |
+              [[[ return Number(entities[entity_slots.horseshoe_width[0]].state); ]]]
             linecap: round
           horseshoe_scale:
             # min: 0
             # max: 40
-            width: 3
+            width: |
+              [[[ return Number(entities[entity_slots.scale_width[0]].state); ]]]
             styles:
               opacity: 0.35
           show:
             horseshoe_style: '[[[ return constants.horseshoe_styles[Number(entities[entity_slots.style[0]].state)]; ]]]'
+            scale_style: '[[[ return constants.scale_styles[Number(entities[entity_slots.scale_style[0]].state)]; ]]]'
             tickmarks: "[[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]"
             labels_at: "[[[ return entities[entity_slots.show_labels[0]].state === 'on' ? 'ticks_major' : 'none'; ]]]"
             label_badges: "[[[ return entities[entity_slots.show_label_badges[0]].state === 'on'; ]]]"
@@ -173,14 +263,19 @@ fhs_showcase_horseshoe:
               offset: |
                 [[[ return Number(entities[entity_slots.ticks_offset[0]].state); ]]]
               ticksize: 10
-              width: 4
+              width: |
+                [[[ return Number(entities[entity_slots.major_ticks_width[0]].state); ]]]
               thickness: 2
               color_mode: colorstop
             ticks_minor:
               offset: |
-                [[[ return Number(entities[entity_slots.ticks_offset[0]].state); ]]]
+                [[[
+                  return Number(entities[entity_slots.ticks_offset[0]].state)
+                    + Number(entities[entity_slots.minor_ticks_offset_delta[0]].state);
+                ]]]
               ticksize: 2
-              width: 2
+              width: |
+                [[[ return Number(entities[entity_slots.minor_ticks_width[0]].state); ]]]
               thickness: 1
               styles:
                 fill: var(--secondary-text-color)
@@ -202,6 +297,7 @@ fhs_showcase_horseshoe:
                 stroke-width: 1
                 opacity: 0.85
           color_stops:
+            gap: 2
             scales:
               default:
                 min: 0
@@ -227,7 +323,7 @@ fhs_showcase_horseshoe:
         - id: labels-offset-value
           group: labels-offset
           entity_index: labels_offset[0]
-          xpos: 65
+          xpos: calc(offset_value_xpos)
           ypos: 50
           show:
             uom: none
@@ -247,6 +343,40 @@ fhs_showcase_horseshoe:
           same_as: tick-background-offset-value
           group: background-offset
           entity_index: background_offset[0]
+        - id: horseshoe-width-value
+          group: horseshoe-width
+          entity_index: horseshoe_width[0]
+          xpos: calc(offset_value_xpos)
+          ypos: 50
+          show:
+            uom: none
+          styles:
+            font-size: 0.7em
+            text-anchor: middle
+            dominant-baseline: central
+        - id: scale-width-value
+          same_as: horseshoe-width-value
+          group: scale-width
+          entity_index: scale_width[0]
+        - id: major-ticks-width-value
+          group: major-ticks-width
+          entity_index: major_ticks_width[0]
+          xpos: calc(offset_value_xpos)
+          ypos: 50
+          show:
+            uom: none
+          styles:
+            font-size: 0.7em
+            text-anchor: middle
+            dominant-baseline: central
+        - id: minor-ticks-width-value
+          same_as: major-ticks-width-value
+          group: minor-ticks-width
+          entity_index: minor_ticks_width[0]
+        - id: minor-ticks-offset-value
+          same_as: major-ticks-width-value
+          group: minor-ticks-offset
+          entity_index: minor_ticks_offset_delta[0]
       texts:
         - id: title
           group: title
@@ -260,8 +390,8 @@ fhs_showcase_horseshoe:
             dominant-baseline: central
         - id: labels-offset-label
           group: labels-offset
-          xpos: 10
-          ypos: 20
+          xpos: calc(offset_label_xpos)
+          ypos: 50
           text: Labels
           styles:
             font-size: 0.52em
@@ -269,7 +399,7 @@ fhs_showcase_horseshoe:
             dominant-baseline: central
         - id: labels-offset-minus
           group: labels-offset
-          xpos: 45
+          xpos: calc(offset_minus_xpos)
           ypos: 50
           text: '-'
           styles:
@@ -279,7 +409,7 @@ fhs_showcase_horseshoe:
         - id: labels-offset-plus
           same_as: labels-offset-minus
           group: labels-offset
-          xpos: 85
+          xpos: calc(offset_plus_xpos)
           text: '+'
         - id: ticks-offset-label
           same_as: labels-offset-label
@@ -311,10 +441,140 @@ fhs_showcase_horseshoe:
         - id: background-offset-plus
           same_as: labels-offset-plus
           group: background-offset
+        - id: horseshoe-width-label
+          group: horseshoe-width
+          xpos: calc(offset_label_xpos)
+          ypos: 50
+          text: Horseshoe
+          styles:
+            font-size: 0.52em
+            text-anchor: start
+            dominant-baseline: central
+        - id: horseshoe-width-minus
+          group: horseshoe-width
+          xpos: calc(offset_minus_xpos)
+          ypos: 50
+          text: '-'
+          styles:
+            font-size: 0.8em
+            text-anchor: middle
+            dominant-baseline: central
+        - id: horseshoe-width-plus
+          same_as: horseshoe-width-minus
+          group: horseshoe-width
+          xpos: calc(offset_plus_xpos)
+          text: '+'
+        - id: scale-width-label
+          group: scale-width
+          xpos: calc(offset_label_xpos)
+          ypos: 50
+          text: Scale
+          styles:
+            font-size: 0.52em
+            text-anchor: start
+            dominant-baseline: central
+        - id: scale-width-minus
+          same_as: horseshoe-width-minus
+          group: scale-width
+          text: '-'
+        - id: scale-width-plus
+          same_as: horseshoe-width-plus
+          group: scale-width
+          text: '+'
+        - id: major-ticks-width-label
+          group: major-ticks-width
+          xpos: calc(offset_label_xpos)
+          ypos: 50
+          text: Major width
+          styles:
+            font-size: 0.52em
+            text-anchor: start
+            dominant-baseline: central
+        - id: major-ticks-width-minus
+          group: major-ticks-width
+          xpos: calc(offset_minus_xpos)
+          ypos: 50
+          text: '-'
+          styles:
+            font-size: 0.8em
+            text-anchor: middle
+            dominant-baseline: central
+        - id: major-ticks-width-plus
+          same_as: major-ticks-width-minus
+          group: major-ticks-width
+          xpos: calc(offset_plus_xpos)
+          text: '+'
+        - id: minor-ticks-width-label
+          group: minor-ticks-width
+          xpos: calc(offset_label_xpos)
+          ypos: 50
+          text: Minor width
+          styles:
+            font-size: 0.52em
+            text-anchor: start
+            dominant-baseline: central
+        - id: minor-ticks-width-minus
+          same_as: major-ticks-width-minus
+          group: minor-ticks-width
+        - id: minor-ticks-width-plus
+          same_as: major-ticks-width-plus
+          group: minor-ticks-width
+        - id: minor-ticks-offset-label
+          group: minor-ticks-offset
+          xpos: calc(offset_label_xpos)
+          ypos: 50
+          text: Minor delta
+          styles:
+            font-size: 0.52em
+            text-anchor: start
+            dominant-baseline: central
+        - id: minor-ticks-offset-minus
+          same_as: major-ticks-width-minus
+          group: minor-ticks-offset
+        - id: minor-ticks-offset-plus
+          same_as: major-ticks-width-plus
+          group: minor-ticks-offset
+        - id: scale-style--value-0
+          group: scale-background-style
+          entity_index: scale_style[0]
+          xpos: calc(scale_style_button_xpos)
+          ypos: 50
+          text: None
+          styles:
+            font-size: 0.42em
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none
+            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
+        - id: scale-style--value-1
+          same_as: scale-style--value-0
+          same_as_dxpos: calc(scale_style_button_dxpos)
+          text: Fixed
+        - id: scale-style--value-2
+          same_as: scale-style--value-1
+          same_as_dxpos: calc(scale_style_button_dxpos)
+          text: Segments
+        - id: scale-style--value-3
+          same_as: scale-style--value-2
+          same_as_dxpos: calc(scale_style_button_dxpos)
+          text: Gradient
+        - id: scale-style--value-4
+          same_as: scale-style--value-3
+          same_as_dxpos: calc(scale_style_button_dxpos)
+          text: Linear
+        - id: scale-style-label
+          group: scale-background-style
+          xpos: 2
+          ypos: 50
+          text: Scale BG
+          styles:
+            font-size: 0.48em
+            text-anchor: start
+            dominant-baseline: central
         - id: tick-background-style--value-0
           group: tick-background-style
           entity_index: tick_background_style[0]
-          xpos: 12
+          xpos: calc(background_style_button_xpos)
           ypos: 50
           text: None
           styles:
@@ -325,19 +585,15 @@ fhs_showcase_horseshoe:
             fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
         - id: tick-background-style--value-1
           same_as: tick-background-style--value-0
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
           text: Fixed
         - id: tick-background-style--value-2
           same_as: tick-background-style--value-1
-          same_as_dxpos: 20
-          text: Stop
+          same_as_dxpos: calc(background_style_button_dxpos)
+          text: Segments
         - id: tick-background-style--value-3
           same_as: tick-background-style--value-2
-          same_as_dxpos: 20
-          text: Segments
-        - id: tick-background-style--value-4
-          same_as: tick-background-style--value-3
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
           text: Gradient
         - id: gauge-background-style--value-0
           same_as: tick-background-style--value-0
@@ -346,19 +602,15 @@ fhs_showcase_horseshoe:
           text: None
         - id: gauge-background-style--value-1
           same_as: gauge-background-style--value-0
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
           text: Fixed
         - id: gauge-background-style--value-2
           same_as: gauge-background-style--value-1
-          same_as_dxpos: 20
-          text: Stop
+          same_as_dxpos: calc(background_style_button_dxpos)
+          text: Segments
         - id: gauge-background-style--value-3
           same_as: gauge-background-style--value-2
-          same_as_dxpos: 20
-          text: Segments
-        - id: gauge-background-style--value-4
-          same_as: gauge-background-style--value-3
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
           text: Gradient
         - id: tick-background-style-label
           group: tick-background-style
@@ -370,10 +622,14 @@ fhs_showcase_horseshoe:
             text-anchor: start
             dominant-baseline: central
         - id: gauge-background-style-label
-          same_as: tick-background-style-label
+          group: gauge-background-style
           xpos: 2
-          ypos: 70
+          ypos: 50
           text: Gauge BG
+          styles:
+            font-size: 0.48em
+            text-anchor: start
+            dominant-baseline: central
         - id: style--value-0
           group: controls
           entity_index: style[0]
@@ -444,7 +700,7 @@ fhs_showcase_horseshoe:
           xpos: 8
           ypos: 50
           width: 14
-          height: 10
+          height: calc(button_default_height)
           radius: 2
           tap_action:
             haptic: selection
@@ -470,13 +726,110 @@ fhs_showcase_horseshoe:
           same_as: option-tick-background
           same_as_dxpos: 16
           entity_index: show_background[0]
+        - id: major-ticks-width-minus
+          group: major-ticks-width
+          xpos: calc(offset_minus_xpos)
+          ypos: 50
+          width: calc(offset_button_width)
+          height: calc(button_default_height)
+          radius: 2
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.decrement
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_major_ticks_width
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill: var(--card-background-color)
+            fill-opacity: 0.7
+        - id: major-ticks-width-plus
+          same_as: major-ticks-width-minus
+          group: major-ticks-width
+          xpos: calc(offset_plus_xpos)
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.increment
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_major_ticks_width
+        - id: minor-ticks-width-minus
+          same_as: major-ticks-width-minus
+          group: minor-ticks-width
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.decrement
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_width
+        - id: minor-ticks-width-plus
+          same_as: major-ticks-width-plus
+          group: minor-ticks-width
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.increment
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_width
+        - id: minor-ticks-offset-minus
+          same_as: major-ticks-width-minus
+          group: minor-ticks-offset
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.decrement
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_offset_delta
+        - id: minor-ticks-offset-plus
+          same_as: major-ticks-width-plus
+          group: minor-ticks-offset
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.increment
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_offset_delta
+        - id: scale-style--value-0
+          group: scale-background-style
+          entity_index: scale_style[0]
+          xpos: calc(scale_style_button_xpos)
+          ypos: 50
+          width: calc(scale_style_button_width)
+          height: calc(button_default_height)
+          radius: 2
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_scale_style
+            data:
+              value: ref(get_value_from_item_id)
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill-opacity: 0.7
+            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
+        - id: scale-style--value-1
+          same_as: scale-style--value-0
+          same_as_dxpos: calc(scale_style_button_dxpos)
+        - id: scale-style--value-2
+          same_as: scale-style--value-1
+          same_as_dxpos: calc(scale_style_button_dxpos)
+        - id: scale-style--value-3
+          same_as: scale-style--value-2
+          same_as_dxpos: calc(scale_style_button_dxpos)
+        - id: scale-style--value-4
+          same_as: scale-style--value-3
+          same_as_dxpos: calc(scale_style_button_dxpos)
         - id: tick-background-style--value-0
           group: tick-background-style
           entity_index: tick_background_style[0]
-          xpos: 10
+          xpos: calc(background_style_button_xpos)
           ypos: 50
-          width: 17
-          height: 10
+          width: calc(background_style_button_width)
+          height: calc(button_default_height)
           radius: 2
           tap_action:
             haptic: selection
@@ -493,16 +846,13 @@ fhs_showcase_horseshoe:
             fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
         - id: tick-background-style--value-1
           same_as: tick-background-style--value-0
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: tick-background-style--value-2
           same_as: tick-background-style--value-1
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: tick-background-style--value-3
           same_as: tick-background-style--value-2
-          same_as_dxpos: 20
-        - id: tick-background-style--value-4
-          same_as: tick-background-style--value-3
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: gauge-background-style--value-0
           same_as: tick-background-style--value-0
           group: gauge-background-style
@@ -517,23 +867,20 @@ fhs_showcase_horseshoe:
               value: ref(get_value_from_item_id)
         - id: gauge-background-style--value-1
           same_as: gauge-background-style--value-0
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: gauge-background-style--value-2
           same_as: gauge-background-style--value-1
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: gauge-background-style--value-3
           same_as: gauge-background-style--value-2
-          same_as_dxpos: 20
-        - id: gauge-background-style--value-4
-          same_as: gauge-background-style--value-3
-          same_as_dxpos: 20
+          same_as_dxpos: calc(background_style_button_dxpos)
         - id: style--value-0
           group: controls
           entity_index: style[0]
           xpos: 10
           ypos: 50
           width: 13
-          height: 12
+          height: calc(button_default_height)
           radius: 2
           tap_action:
             haptic: selection
@@ -564,12 +911,58 @@ fhs_showcase_horseshoe:
           same_as: style--value-4
           same_as_dxpos: 16
 
+        - id: horseshoe-width-minus
+          group: horseshoe-width
+          xpos: calc(offset_minus_xpos)
+          ypos: 50
+          width: calc(offset_button_width)
+          height: calc(offset_button_width)
+          radius: 2
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.decrement
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_width
+          styles:
+            stroke-width: 1
+            stroke: var(--divider-color)
+            fill: var(--card-background-color)
+            fill-opacity: 0.7
+        - id: horseshoe-width-plus
+          same_as: horseshoe-width-minus
+          group: horseshoe-width
+          xpos: calc(offset_plus_xpos)
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.increment
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_width
+        - id: scale-width-minus
+          same_as: horseshoe-width-minus
+          group: scale-width
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.decrement
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_scale_width
+        - id: scale-width-plus
+          same_as: horseshoe-width-plus
+          group: scale-width
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.increment
+            target:
+              entity_id: fhs_input_number.showcase_horseshoe_scale_width
         - id: labels-offset-minus
           group: labels-offset
-          xpos: 45
+          xpos: calc(offset_minus_xpos)
           ypos: 50
-          width: 12
-          height: 10
+          width: calc(offset_button_width)
+          height: calc(offset_button_width)
           radius: 2
           tap_action:
             haptic: selection
@@ -585,7 +978,7 @@ fhs_showcase_horseshoe:
         - id: labels-offset-plus
           same_as: labels-offset-minus
           group: labels-offset
-          xpos: 85
+          xpos: calc(offset_plus_xpos)
           tap_action:
             haptic: selection
             action: perform-action
