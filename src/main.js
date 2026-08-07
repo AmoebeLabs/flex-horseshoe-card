@@ -98,9 +98,7 @@ class FlexHorseshoeCard extends LitElement {
     };
     this.fhsInputStateChanged = false;
     this.fhsInputEventHandler = (event) => {
-      const matchingConfig = this.config.entities.find(
-        (entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global',
-      );
+      const matchingConfig = this.config.entities.find((entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global');
 
       if (this.dev.debug) {
         console.log('[FHS global input event]', {
@@ -1093,9 +1091,7 @@ class FlexHorseshoeCard extends LitElement {
   _changeFhsInputNumberValue(entityId, direction) {
     const entityConfig = this.config.entities.find((config) => config.entity === entityId);
     const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentValue = entityConfig.scope === 'global'
-      ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state)
-      : Number(this.entities[entityIndex].state);
+    const currentValue = entityConfig.scope === 'global' ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state) : Number(this.entities[entityIndex].state);
     const nextValue = calculateFhsInputNumberNextValue(entityConfig, currentValue, direction);
 
     this._setFhsInputNumberValue(entityId, nextValue);
@@ -1110,12 +1106,8 @@ class FlexHorseshoeCard extends LitElement {
   _setFhsInputBooleanState(entityId, service) {
     const entityConfig = this.config.entities.find((config) => config.entity === entityId);
     const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentState = entityConfig.scope === 'global'
-      ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state
-      : this.entities[entityIndex].state;
-    const nextState = service === 'toggle'
-      ? currentState === 'on' ? 'off' : 'on'
-      : service === 'turn_on' ? 'on' : 'off';
+    const currentState = entityConfig.scope === 'global' ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state : this.entities[entityIndex].state;
+    const nextState = service === 'toggle' ? (currentState === 'on' ? 'off' : 'on') : service === 'turn_on' ? 'on' : 'off';
     const timestamp = new Date().toISOString();
     const stateRecord = {
       entity_id: entityId,
@@ -1146,9 +1138,7 @@ class FlexHorseshoeCard extends LitElement {
         entity_index: index,
       };
 
-      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig)
-        ? Templates.getJsTemplateOrValue(item, entityConfig)
-        : entityConfig;
+      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig) ? Templates.getJsTemplateOrValue(item, entityConfig) : entityConfig;
 
       // Normalize reusable entity-level color stops once for every opted-in layout item.
       if (resolvedEntityConfig.color_stops) {
@@ -1280,8 +1270,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       if (entityType === 'bin_duration') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
-          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
 
         if (binnedHistory && sparklineGraphTool.historyDurationReady) {
           const binDurationHours = 1 / sparklineGraphTool.calculateBinsPerHour(sparklineGraphTool.config);
@@ -1306,11 +1295,8 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       if (entityType === 'aggregate_func') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
-          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
-        state = binnedHistory && sparklineGraphTool.historyDurationReady
-          ? sparklineGraphTool.config.sparkline.state_values.aggregate_func
-          : 'unavailable';
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+        state = binnedHistory && sparklineGraphTool.historyDurationReady ? sparklineGraphTool.config.sparkline.state_values.aggregate_func : 'unavailable';
         unitOfMeasurement = undefined;
         deviceClass = undefined;
       }
@@ -1548,7 +1534,7 @@ class FlexHorseshoeCard extends LitElement {
             }
 
             const currentGroup = this.groupManager.groups[currentGroupId];
-            currentGroupId = currentGroupId === 'card' ? undefined : currentGroup.parent ?? 'card';
+            currentGroupId = currentGroupId === 'card' ? undefined : (currentGroup.parent ?? 'card');
           }
         });
       }
@@ -1691,9 +1677,7 @@ class FlexHorseshoeCard extends LitElement {
             ...sourceAnimationItem,
             entity_index: entityIndex,
           };
-          const item = Templates.hasJavascriptTemplates(sourceAnimationItem)
-            ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem)
-            : sourceAnimationItem;
+          const item = Templates.hasJavascriptTemplates(sourceAnimationItem) ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem) : sourceAnimationItem;
 
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
@@ -2102,18 +2086,13 @@ class FlexHorseshoeCard extends LitElement {
    * @param {object} config - Card configuration after template and static-value processing.
    */
   _resolveDisabledConfigValue(item, disabled, section) {
-    const resolvedDisabled = Templates.hasJavascriptTemplates(disabled)
-      ? Templates.getJsTemplateOrValue(item, disabled)
-      : disabled;
+    const resolvedDisabled = Templates.hasJavascriptTemplates(disabled) ? Templates.getJsTemplateOrValue(item, disabled) : disabled;
 
     if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(resolvedDisabled)) {
       throw new Error(`[${section}] disabled must resolve to true, false, 0 or 1`);
     }
 
-    return resolvedDisabled === true
-      || resolvedDisabled === 1
-      || resolvedDisabled === 'true'
-      || resolvedDisabled === '1';
+    return resolvedDisabled === true || resolvedDisabled === 1 || resolvedDisabled === 'true' || resolvedDisabled === '1';
   }
 
   _removeDisabledEntityConfigs(config) {
@@ -2905,10 +2884,7 @@ class FlexHorseshoeCard extends LitElement {
   _getGestureConfig(itemConfig, entityIndex, actionProperty) {
     const entityConfig = this.resolvedEntityConfigs[entityIndex];
 
-    return itemConfig?.[actionProperty]
-      ?? entityConfig?.[actionProperty]
-      ?? this.config?.[actionProperty]
-      ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+    return itemConfig?.[actionProperty] ?? entityConfig?.[actionProperty] ?? this.config?.[actionProperty] ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
   }
 
   /** Returns enabled gestures for the shared action-handler directive. */
@@ -3025,10 +3001,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (gestureConfig.haptic) fireEvent(this, 'haptic', gestureConfig.haptic);
 
-    await actions.reduce(
-      (previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)),
-      Promise.resolve(),
-    );
+    await actions.reduce((previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)), Promise.resolve());
   }
 
   /** Handles the legacy card-shell click as a normal tap on entity zero. */
