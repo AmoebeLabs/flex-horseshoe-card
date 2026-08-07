@@ -1,0 +1,111 @@
+fhs_button_showcase:
+  template:
+    type: card
+    defaults:
+      - fhs_button_showcase_toggle_entity: input_boolean.demo_toggle
+      - fhs_button_showcase_select_entity: input_select.demo_mode
+      - fhs_button_showcase_number_entity: input_number.demo_value
+  card:
+    entities:
+      - entity: '[[fhs_button_showcase_toggle_entity]]'
+      - entity: '[[fhs_button_showcase_select_entity]]'
+      - entity: '[[fhs_button_showcase_number_entity]]'
+    layout:
+      aspectratio: 1/1.4
+      controls:
+        - id: demo-button
+          type: button
+          mode: button
+          xpos: 50
+          ypos: 15
+          width: 70
+          height: 14
+          content:
+            mode: horizontal
+            icon: mdi:gesture-tap-button
+            text: Action
+            styles:
+              font-size: 0.8em
+              fill: var(--primary-text-color)
+          tap_action:
+            action: more-info
+
+        - id: demo-toggle
+          type: button
+          mode: toggle
+          entity_index: 0
+          xpos: 50
+          ypos: 35
+          width: 55
+          height: 12
+          label:
+            text: Enabled
+            position: start
+            offset:
+              x: -4
+          viz:
+            toggle:
+              indicator:
+                shape: circle
+                fill: var(--primary-color)
+
+        - id: demo-select
+          type: button
+          mode: select
+          entity_index: 1
+          xpos: 50
+          ypos: 65
+          width: 86
+          height: 14
+          states:
+            - value: "off"
+              icon: mdi:fan-off
+              text: "Off"
+            - value: low
+              icon: mdi:fan-speed-1
+              text: Low
+            - value: medium
+              icon: mdi:fan-speed-2
+              text: Medium
+            - value: high
+              icon: mdi:fan-speed-3
+              text: High
+          content:
+            mode: horizontal
+            text_overflow:
+              mode: fit
+              fit:
+                max_width: 18
+          viz:
+            select:
+              track:
+                fill: var(--secondary-background-color)
+              indicator:
+                radius: 2
+                fill: var(--primary-color)
+            animation:
+              duration: 250
+              easing: ease-out
+
+        - id: demo-number
+          type: button
+          mode: number
+          entity_index: 2
+          xpos: 50
+          ypos: 95
+          width: 70
+          height: 14
+          content:
+            mode: horizontal
+            padding: 2
+            minus:
+              text: '-'
+              mode: text
+            value:
+              text_overflow:
+                mode: fit
+                fit:
+                  max_width: 18
+            plus:
+              text: '+'
+              mode: text

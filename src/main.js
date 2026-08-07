@@ -41,6 +41,7 @@ import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
+import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
@@ -136,6 +137,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.areas = {};
     this.animations.states = {};
     this.animations.texts = {};
+    this.animations.controls = {};
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
@@ -1362,6 +1364,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
     this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
     this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
+    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -1373,6 +1376,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
 
     this.evaluateJavascriptTemplates = false;
   }
@@ -1654,6 +1658,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
     this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
     this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
+    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -1665,6 +1670,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:tools`, {
@@ -1691,7 +1697,7 @@ class FlexHorseshoeCard extends LitElement {
 
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts'].forEach((section) => {
+          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts', 'controls'].forEach((section) => {
             if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
           });
 
@@ -2433,6 +2439,7 @@ class FlexHorseshoeCard extends LitElement {
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.config.layout.groups ??= [];
+      this.config.layout.controls ??= [];
       this.sourceGroupConfigs = this.config.layout.groups;
       this.activeGroupConfigs = this.sourceGroupConfigs;
       this.activeGroupSignatures = {};
@@ -2467,6 +2474,7 @@ class FlexHorseshoeCard extends LitElement {
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
       this.arcTools = ArcTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
+      this.controlTools = ControlTool.setConfig(this.config, Templates, this.cardId, this);
       this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
       this.childCards.setConfig(this.config.cards ?? []);
 
@@ -2550,6 +2558,7 @@ class FlexHorseshoeCard extends LitElement {
       states: this.stateTools,
       texts: this.textTools,
       sparklines: this.sparklineGraphTools,
+      controls: this.controlTools,
     };
 
     return sections[section];
@@ -2770,6 +2779,7 @@ class FlexHorseshoeCard extends LitElement {
       ...(this.stateTools ?? []),
       ...(this.textTools ?? []),
       ...(this.sparklineGraphTools ?? []),
+      ...(this.controlTools ?? []),
     ];
   }
 

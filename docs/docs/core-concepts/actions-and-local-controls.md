@@ -47,6 +47,55 @@ The item action takes priority over the action on its entity. If neither is pres
 
 Actions are available on horseshoes, entity parts, text items, icons, lines, circles, arcs, and rectangles. Standalone text defaults to `none`, while sparklines keep their pointer interaction for graph tooltips.
 
+## :material-horseshoe: Button controls
+
+A compact interactive button can be declared as a standalone control. This
+replaces the repeated rectangle, text and icon items commonly used for
+selectors:
+
+```yaml
+layout:
+  controls:
+    - id: history-period
+      type: button
+      mode: select
+      entity_index: 0
+      xpos: 50
+      ypos: 50
+      width: 80
+      height: 14
+      states:
+        - value: 24
+          text: 1D
+        - value: 168
+          text: 1W
+      content:
+        mode: text
+        text_overflow:
+          mode: fit
+          fit:
+            max_width: 18
+      viz:
+        select:
+          indicator:
+            fill: var(--primary-color)
+        animation:
+          duration: 200
+          easing: ease
+```
+
+Button controls support `button`, `toggle`, `select` and `number`
+modes. Toggle controls use the entity's Home Assistant `on` or `off`
+state. Select controls use the matching `states[].value`; `input_select`
+uses `select_option` and an FHS number input uses `set_value`. Number
+controls render minus, value and plus content and use the entity's configured
+step, minimum and maximum.
+
+The button content can be text, an icon, or both horizontally or vertically.
+Text content uses the normal TextTool pipeline, including fit, ellipsis, wrap,
+styles and measurements. Labels support relative positions and offsets. A
+button's explicit item, entity or card action overrides its mode-default action.
+
 ## :material-horseshoe: Tap, hold, and double tap
 
 The same action format is available for all three gestures:
