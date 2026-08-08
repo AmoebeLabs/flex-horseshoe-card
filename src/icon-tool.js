@@ -63,6 +63,13 @@ export default class IconTool extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
+    if (config.local_coordinates) {
+      return {
+        xpos: config.xpos,
+        ypos: config.yposc,
+      };
+    }
+
     return this.card._calculateSvgCoordinatesInGroup(config);
   }
 

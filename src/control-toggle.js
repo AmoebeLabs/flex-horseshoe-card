@@ -4,8 +4,10 @@ import { styleMap } from 'lit/directives/style-map.js';
 import { ref } from 'lit/directives/ref.js';
 import BaseTool from './base-tool.js';
 import ConfigHelper from './config-helper.js';
+import IconTool from './icon-tool.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
+import { SVG_VIEW_BOX } from './const.js';
 
 export default class ToggleControl extends BaseTool {
   /**
@@ -44,6 +46,7 @@ export default class ToggleControl extends BaseTool {
         mode: 'content_none',
 
         content_icon: {
+          size: 65,
           icon: {
             // default icon config
           },
@@ -135,6 +138,44 @@ export default class ToggleControl extends BaseTool {
     this.validateOrientation(toggleConfig.orientation);
     this.config = this.buildConfig(toggleConfig);
     this.config.svg = this.calculateSvgDimensions();
+    this.createThumbIconTool();
+  }
+
+  /**
+   * Creates the IconTool rendered inside the moving thumb group.
+   *
+   * The complete evaluated icon config comes from this.config. Only the local
+   * thumb position, relative size and non-interactive action are added here.
+   */
+  createThumbIconTool() {
+    if (this.config.content.mode !== 'content_icon') {
+      this.iconTool = undefined;
+      return;
+    }
+
+    const viz = this.config[this.config.show.item_viz];
+    const iconSize = Math.min(viz.knobW, viz.knobH) * this.config.content.content_icon.size / 100;
+    const iconConfig = Merge.mergeDeep(
+      {
+        id: `${this.id}-icon`,
+        entity_index: this.entity_index,
+        local_coordinates: true,
+        xpos: viz.knobW / 2,
+        yposc: viz.knobH / 2,
+        icon_size_percent: iconSize / SVG_VIEW_BOX * 100,
+        tap_action: {
+          action: 'none',
+        },
+      },
+      this.config.content.content_icon.icon,
+      {
+        tap_action: {
+          action: 'none',
+        },
+      },
+    );
+
+    this.iconTool = new IconTool(iconConfig, 0, this.templates, this.cardId, this.card);
   }
 
   buildConfig(config) {
@@ -322,6 +363,7 @@ export default class ToggleControl extends BaseTool {
       this.config = this.buildConfig(this.config);
       this.validateOrientation(this.config.orientation);
       this.config.svg = this.calculateSvgDimensions(this.config);
+      this.createThumbIconTool();
     }
   }
 
@@ -331,6 +373,22 @@ export default class ToggleControl extends BaseTool {
    * @param {object} config - Static or runtime area config.
    * @returns {object} SVG coordinates.
    */
+  /** Publishes the toggle entity to the internal IconTool. */
+  setState(entity, entityConfig) {
+    super.setState(entity, entityConfig);
+
+    if (this.config.content.mode === 'content_icon') {
+      this.iconTool.setState(entity, entityConfig);
+    }
+  }
+
+  /** Runs the normal IconTool post-render lifecycle. */
+  updated() {
+    if (this.config.content.mode === 'content_icon') {
+      this.iconTool.updated();
+    }
+  }
+
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
     const viz = config[config.show.item_viz];
@@ -436,16 +494,15 @@ export default class ToggleControl extends BaseTool {
     const trackStyles = this.getStyles(Merge.mergeDeep({}, runtime.trackStyles, {
       transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
     }));
-    const knobStyles = this.getStyles(Merge.mergeDeep({}, runtime.thumbStyles, {
-      transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
-      transition: `transform ${transition}`,
-    }));
-    const iconPositionStyles = {
+    const knobStyles = this.getStyles(runtime.thumbStyles);
+    const thumbPositionStyles = {
       transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
       transition: `transform ${transition}`,
       'pointer-events': 'none',
     };
-    const iconStyles = this.getStyles(runtime.iconStyles);
+    const thumbIcon = this.config.content.mode === 'content_icon'
+      ? this.iconTool.render()
+      : svg``;
 
     return this.renderItemLayers(svg`
       <g
@@ -475,26 +532,16 @@ export default class ToggleControl extends BaseTool {
               />
               
               <!-- De Knop / Thumb (Beweegt netjes mee over de X of Y as) -->
-              <rect 
-                x="0" y="0" 
-                width="${viz.knobW}" height="${viz.knobH}" 
-                rx="${viz.knobRx}" 
-                style=${styleMap(knobStyles)} 
-              />
-
-              <!-- Het meereizende SVG Icoon (Blijft altijd perfect rechtop) -->
-              ${
-                viz.icon
-                  ? svg`
-                      <svg x="0" y="0" width="${viz.knobW}" height="${viz.knobH}" viewBox="0 0 24 24" style=${styleMap(iconPositionStyles)}>
-                        <g transform="${viz.iconTransform}">
-                          <path d="${viz.icon}" style=${styleMap(iconStyles)} />
-                        </g>
-                      </svg>
-                    `
-                  : ''
-              }
-              
+              <!-- The thumb and its real IconTool share one animated position group. -->
+              <g class="toggle-thumb-position" style=${styleMap(thumbPositionStyles)}>
+                <rect 
+                  x="0" y="0" 
+                  width="${viz.knobW}" height="${viz.knobH}" 
+                  rx="${viz.knobRx}" 
+                  style=${styleMap(knobStyles)} 
+                />
+                ${thumbIcon}
+              </g>
             </svg>
             </g>
           </g>
