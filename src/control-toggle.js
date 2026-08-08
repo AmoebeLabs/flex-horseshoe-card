@@ -21,7 +21,9 @@ export default class ToggleControl extends BaseTool {
   constructor(config, index, templates, cardId, card) {
     const DEFAULT_TOGGLE_CONFIG = {
       orientation: 'horizontal',
-
+      show: {
+        item_viz: 'ha',
+      },
       track: {
         width: 16,
         height: 7,
@@ -125,11 +127,199 @@ export default class ToggleControl extends BaseTool {
         toggleConfig = Merge.mergeDeep(DEFAULT_TOGGLE_CONFIG, VERTICAL_TOGGLE_CONFIG, config);
         break;
     }
-    if (!['horizontal', 'vertical'].includes(toggleConfig.orientation)) throw Error('SwitchTool::constructor - invalid orientation [vertical, horizontal] = ', toggleConfig.orientation);
 
     super(toggleConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
-
+    this.validateOrientation(toggleConfig.orientation);
+    this.config = this.buildConfig(toggleConfig);
     this.config.svg = this.calculateSvgDimensions();
+  }
+
+  buildConfig(config) {
+    const SWITCH_STYLES = {
+      // === 1. IOS STYLE ===
+      ios: {
+        vbH: 26,
+        vbW: 50,
+        xOn: 26,
+        xOff: 2,
+        knobY: 2,
+        knobW: 22,
+        knobH: 22,
+        knobRx: 11,
+        trackY: 0,
+        trackH: 26,
+        trackRx: 13,
+        checked: {
+          track: { styles: { fill: '#34C759', opacity: '1.0' } },
+          thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+          icon: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+        },
+        unchecked: {
+          track: { styles: { fill: '#E9E9EA', opacity: '1.0' } },
+          thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+          icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Subtiel transparant icoon bij 'uit'
+        },
+      },
+
+      // === 2. HOME ASSISTANT STYLE ===
+      ha: {
+        vbH: 26,
+        vbW: 50,
+        xOn: 30,
+        xOff: 0,
+        knobY: 3,
+        knobW: 20,
+        knobH: 20,
+        knobRx: 10,
+        trackY: 6,
+        trackH: 14,
+        trackRx: 7,
+        // eslint-disable-next-line @stylistic/quotes
+        extraHtml: `<defs><filter id="ha-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.2"/></filter></defs>`,
+        checked: {
+          track: { styles: { fill: 'var(--switch-checked-track-color, #4ad66d)' } },
+          thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)', filter: 'url(#ha-shadow)' } },
+          icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
+        },
+        unchecked: {
+          track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Track dimt bij 'uit'
+          thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)', filter: 'url(#ha-shadow)' } },
+          icon: { styles: { fill: '#757575', opacity: '0.5' } },
+        },
+      },
+
+      // === 3. INDUSTRIEEL RETRO STYLE ===
+      industrial: {
+        vbH: 26,
+        vbW: 50,
+        xOn: 26,
+        xOff: 2,
+        knobY: 2,
+        knobW: 22,
+        knobH: 22,
+        knobRx: 0,
+        trackY: 0,
+        trackH: 26,
+        trackRx: 0,
+        checked: {
+          track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // Extra stroke bij 'aan'
+          thumb: { styles: { fill: '#FFFFFF' } },
+          icon: { styles: { fill: '#D32F2F' } },
+        },
+        unchecked: {
+          track: { styles: { fill: '#212121' } },
+          thumb: { styles: { fill: '#B0BEC5' } },
+          icon: { styles: { fill: '#455A64' } },
+        },
+      },
+    };
+
+    // 1. Pak de naam van de actieve stijl (bijv. 'whatever' of 'ha')
+    const vizName = config.show.item_viz;
+
+    // 2. Als config[vizName] nog niet bestaat in de YAML (bijv. bij een standaard preset),
+    // dan maken we hem nu leeg aan zodat we er waarden in kunnen schrijven.
+    if (!config[vizName]) {
+      config[vizName] = {};
+    }
+
+    const customYaml = config[vizName];
+
+    // 3. De juiste base-bepaling:
+    // Kijk welke 'base' IN het stijl-object gedefinieerd staat (customYaml.base).
+    // Als die er niet is, is de stijlnaam zelf de basis (bijv. 'ios'). Fallback is 'ha'.
+    const baseName = customYaml.base || (SWITCH_STYLES[vizName] ? vizName : 'ha');
+    const chosenBase = SWITCH_STYLES[baseName] || SWITCH_STYLES.ha;
+
+    const isVertical = config.orientation === 'vertical';
+
+    // 4. Voer de diepe merge uit direct IN het config[vizName] object!
+    // We starten met de hardcoded basismal, mergen wat er al in customYaml stond,
+    // en tot slot eventuele losse root-overrides. Everything merges into config[vizName].
+    config[vizName] = Merge.mergeDeep(config[vizName], chosenBase, customYaml);
+
+    // config[vizName] = Merge.mergeDeep(config[vizName], chosenBase, customYaml, {
+    //   xOn: config[vizName].xOn,
+    //   xOff: config[vizName].xOff,
+    //   knobY: config[vizName].knobY,
+    //   knobW: config[vizName].knobW,
+    //   knobH: config[vizName].knobH,
+    //   knobRx: config[vizName].knobRx,
+    //   trackY: config[vizName].trackY,
+    //   trackH: config[vizName].trackH,
+    //   trackRx: config[vizName].trackRx,
+    // });
+
+    // 5. Bereken alle statische maten direct binnen config[vizName]
+    const posStatic = config[vizName].knobY;
+    const trackW = isVertical ? config[vizName].trackH : config[vizName].vbW;
+    const trackH = isVertical ? config[vizName].vbW : config[vizName].trackH;
+
+    // 6. Schrijf alle berekende layout-waarden direct weg in config[vizName]
+    config[vizName].extraHtml = config[vizName].extraHtml || '';
+    config[vizName].svgVbW = isVertical ? config[vizName].vbH : config[vizName].vbW;
+    config[vizName].svgVbH = isVertical ? config[vizName].vbW : config[vizName].vbH;
+
+    config[vizName].trackX = isVertical ? config[vizName].trackY : 0;
+    config[vizName].trackY = isVertical ? 0 : config[vizName].trackY;
+    config[vizName].trackW = trackW;
+    config[vizName].trackH = trackH;
+
+    // 7. Bouw de runtime objecten (on/off) op binnen config[vizName] voor Lit's styleMap
+    config[vizName].on = {
+      knobX: isVertical ? posStatic : config[vizName].xOn,
+      knobY: isVertical ? config[vizName].xOn : posStatic,
+      trackStyles: config[vizName].checked?.track?.styles || {},
+      thumbStyles: config[vizName].checked?.thumb?.styles || {},
+      iconStyles: config[vizName].checked?.icon?.styles || {},
+    };
+
+    config[vizName].off = {
+      knobX: isVertical ? posStatic : config[vizName].xOff,
+      knobY: isVertical ? config[vizName].xOff : posStatic,
+      trackStyles: config[vizName].unchecked?.track?.styles || {},
+      thumbStyles: config[vizName].unchecked?.thumb?.styles || {},
+      iconStyles: config[vizName].unchecked?.icon?.styles || {},
+    };
+
+    if (config[vizName].icon) {
+      // Bereken hoeveel procent van de knop het icoon mag innemen (bijv. 65%)
+      const iconCoverage = 0.65;
+
+      // 1. Bereken de dynamische schaalfactor op basis van de huidige knopgrootte
+      const iconScale = (config[vizName].knobW * iconCoverage) / 24;
+
+      // 2. Bereken de exacte verschuiving om het icoon perfect te centreren binnen deze specifieke knop
+      const iconTranslateX = (config[vizName].knobW - 24 * iconScale) / 2 / iconScale;
+      const iconTranslateY = (config[vizName].knobH - 24 * iconScale) / 2 / iconScale;
+
+      // 3. Sla de kant-en-klare transformatie-string op in de config
+      config[vizName].iconTransform = `scale(${iconScale}) translate(${iconTranslateX} ${iconTranslateY})`;
+    } else {
+      config[vizName].iconTransform = '';
+    }
+    return config;
+  }
+
+  /* Validates the configured toggle orientation at config/runtime boundaries.
+   *
+   * @param {string} orientation - Line orientation from config.
+   */
+  validateOrientation(orientation) {
+    if (!['horizontal', 'vertical'].includes(orientation)) {
+      throw Error(`ToggleTool::validateOrientation - invalid orientation '${orientation}' [horizontal, vertical]`);
+    }
+  }
+
+  /** Updates toggle configuration and geometry before entity data is assigned. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) {
+      this.config = this.buildConfig(this.config);
+      this.validateOrientation(this.config.orientation);
+      this.config.svg = this.calculateSvgDimensions(this.config);
+    }
   }
 
   /**
@@ -139,6 +329,14 @@ export default class ToggleControl extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
+    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    svgDimensions.width = Utils.calculateSvgDimension(config.width ?? 10);
+    svgDimensions.scale = svgDimensions.width / config[config.show.item_viz].vbW;
+
+    return svgDimensions;
+  }
+
+  calculateSvgDimensionsV1(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
 
     svgDimensions.track = {};
@@ -220,6 +418,74 @@ export default class ToggleControl extends BaseTool {
    */
 
   _renderToggle() {
+    const vizName = this.config.show.item_viz;
+    const itemConfig = this.config;
+    console.log('_renderToggle, ', this.config[vizName], this.config);
+    const isOn = this.stateObj ? this.stateObj.state === 'on' : false;
+    const viz = this.config[vizName];
+    const runtime = isOn ? viz.on : viz.off;
+
+    const scale = this.config.svg.scale;
+    const tracktyles = this.getStyles(runtime.trackStyles);
+    const knobStyles = this.getStyles(runtime.knobStyles);
+    const iconStyles = this.getStyles(runtime.iconStyles);
+
+    return this.renderItemLayers(svg`
+      <g
+        transform="${this.getGroupScaleTransform()}"
+        style="${this.getGroupScaleStyle()}"
+      >
+        <g class="toggle-style-animation">
+          <svg 
+            x="${itemConfig.svg.xpos}" 
+            y="${itemConfig.svg.ypos}"
+            viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" 
+            style="overflow: visible;"
+          >        
+          <g class="toggle-scale" transform="scale(${scale})">
+            <svg viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
+              
+              ${viz.extraHtml}
+              
+              <!-- De Track -->
+              <rect 
+                x="${viz.trackX}" y="${viz.trackY}" 
+                width="${viz.trackW}" height="${viz.trackH}" 
+                rx="${viz.trackRx}" 
+                style=${styleMap(runtime.trackStyles)} 
+              />
+              
+              <!-- De Knop / Thumb (Beweegt netjes mee over de X of Y as) -->
+              <rect 
+                x="${runtime.knobX}" y="${runtime.knobY}" 
+                width="${viz.knobW}" height="${viz.knobH}" 
+                rx="${viz.knobRx}" 
+                style=${styleMap(runtime.knobStyles)} 
+              />
+
+              <!-- Het meereizende SVG Icoon (Blijft altijd perfect rechtop) -->
+              ${
+                viz.icon
+                  ? svg`
+                      <svg x="${runtime.knobX}" y="${runtime.knobY}" width="${viz.knobW}" height="${viz.knobH}" viewBox="0 0 24 24" style="pointer-events: none;">
+                        <g transform="${viz.iconTransform}">
+                          <path d="${viz.icon}" style=${styleMap(runtime.iconStyles)} />
+                        </g>
+                      </svg>
+                    `
+                  : ''
+              }
+              
+            </svg>
+            </g>
+          </g>
+        </g>
+        </svg>
+      </g>
+      `);
+  }
+
+  _renderToggleV1() {
     const toggleStyles = {
       // 'stroke-linecap': 'round',
       // stroke: 'var(--primary-text-color)',
