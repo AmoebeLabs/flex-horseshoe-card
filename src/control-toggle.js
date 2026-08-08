@@ -24,6 +24,9 @@ export default class ToggleControl extends BaseTool {
       show: {
         item_viz: 'ha',
       },
+      tap_action: {
+        action: 'toggle',
+      },
       track: {
         width: 16,
         height: 7,
@@ -330,8 +333,12 @@ export default class ToggleControl extends BaseTool {
    */
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
-    svgDimensions.width = Utils.calculateSvgDimension(config.width ?? 10);
-    svgDimensions.scale = svgDimensions.width / config[config.show.item_viz].vbW;
+    const viz = config[config.show.item_viz];
+
+    svgDimensions.width = Utils.calculateSvgDimension(config.width);
+    svgDimensions.height = svgDimensions.width * viz.svgVbH / viz.svgVbW;
+    svgDimensions.x = svgDimensions.xpos - svgDimensions.width / 2;
+    svgDimensions.y = svgDimensions.ypos - svgDimensions.height / 2;
 
     return svgDimensions;
   }
@@ -421,13 +428,23 @@ export default class ToggleControl extends BaseTool {
     const vizName = this.config.show.item_viz;
     const itemConfig = this.config;
     console.log('_renderToggle, ', this.config[vizName], this.config);
-    const isOn = this.stateObj ? this.stateObj.state === 'on' : false;
+    const isOn = this.entity.state === 'on';
     const viz = this.config[vizName];
     const runtime = isOn ? viz.on : viz.off;
+    const transition = `${this.config.animation.duration}ms ${this.config.animation.easing}`;
 
-    const scale = this.config.svg.scale;
-    const tracktyles = this.getStyles(runtime.trackStyles);
-    const knobStyles = this.getStyles(runtime.knobStyles);
+    const trackStyles = this.getStyles(Merge.mergeDeep({}, runtime.trackStyles, {
+      transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
+    }));
+    const knobStyles = this.getStyles(Merge.mergeDeep({}, runtime.thumbStyles, {
+      transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
+      transition: `transform ${transition}`,
+    }));
+    const iconPositionStyles = {
+      transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
+      transition: `transform ${transition}`,
+      'pointer-events': 'none',
+    };
     const iconStyles = this.getStyles(runtime.iconStyles);
 
     return this.renderItemLayers(svg`
@@ -437,12 +454,14 @@ export default class ToggleControl extends BaseTool {
       >
         <g class="toggle-style-animation">
           <svg 
-            x="${itemConfig.svg.xpos}" 
-            y="${itemConfig.svg.ypos}"
+            x="${itemConfig.svg.x}" 
+            y="${itemConfig.svg.y}"
+            width="${itemConfig.svg.width}"
+            height="${itemConfig.svg.height}"
             viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" 
             style="overflow: visible;"
           >        
-          <g class="toggle-scale" transform="scale(${scale})">
+          <g class="toggle-scale">
             <svg viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
               
               ${viz.extraHtml}
@@ -452,24 +471,24 @@ export default class ToggleControl extends BaseTool {
                 x="${viz.trackX}" y="${viz.trackY}" 
                 width="${viz.trackW}" height="${viz.trackH}" 
                 rx="${viz.trackRx}" 
-                style=${styleMap(runtime.trackStyles)} 
+                style=${styleMap(trackStyles)} 
               />
               
               <!-- De Knop / Thumb (Beweegt netjes mee over de X of Y as) -->
               <rect 
-                x="${runtime.knobX}" y="${runtime.knobY}" 
+                x="0" y="0" 
                 width="${viz.knobW}" height="${viz.knobH}" 
                 rx="${viz.knobRx}" 
-                style=${styleMap(runtime.knobStyles)} 
+                style=${styleMap(knobStyles)} 
               />
 
               <!-- Het meereizende SVG Icoon (Blijft altijd perfect rechtop) -->
               ${
                 viz.icon
                   ? svg`
-                      <svg x="${runtime.knobX}" y="${runtime.knobY}" width="${viz.knobW}" height="${viz.knobH}" viewBox="0 0 24 24" style="pointer-events: none;">
+                      <svg x="0" y="0" width="${viz.knobW}" height="${viz.knobH}" viewBox="0 0 24 24" style=${styleMap(iconPositionStyles)}>
                         <g transform="${viz.iconTransform}">
-                          <path d="${viz.icon}" style=${styleMap(runtime.iconStyles)} />
+                          <path d="${viz.icon}" style=${styleMap(iconStyles)} />
                         </g>
                       </svg>
                     `
