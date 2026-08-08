@@ -1,9 +1,9 @@
 // control-toggle.js
 
-import BaseTool from './base-tool.js';
+import ControlBase from './control-base.js';
 import Merge from './merge.js';
 
-export default class ButtonControl extends BaseTool {
+export default class ButtonControl extends ControlBase {
   /**
    * Stores static control config and creates control subtypes
    *
@@ -90,9 +90,10 @@ export default class ButtonControl extends BaseTool {
     };
     let buttonConfig = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG, config);
 
-    super(buttonConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
+    super(buttonConfig, index, templates, cardId, card);
 
     this.config.svg = this.calculateSvgDimensions();
+    this.createControlLabelTextTool(this.config.width, this.config.height);
   }
 
   /**
@@ -101,6 +102,16 @@ export default class ButtonControl extends BaseTool {
    * @param {object} config - Static or runtime area config.
    * @returns {object} SVG coordinates.
    */
+  /** Updates button runtime config and its shared label. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) {
+      this.config.svg = this.calculateSvgDimensions(this.config);
+      this.createControlLabelTextTool(this.config.width, this.config.height);
+    }
+  }
+
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
 
@@ -108,6 +119,6 @@ export default class ButtonControl extends BaseTool {
   }
 
   render() {
-    return null;
+    return this.renderControlLabel();
   }
 }

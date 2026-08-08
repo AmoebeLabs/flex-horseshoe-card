@@ -1,9 +1,9 @@
 // control-toggle.js
 
-import BaseTool from './base-tool.js';
+import ControlBase from './control-base.js';
 import Merge from './merge.js';
 
-export default class NumberControl extends BaseTool {
+export default class NumberControl extends ControlBase {
   /**
    * Stores static control config and creates control subtypes
    *
@@ -79,9 +79,10 @@ export default class NumberControl extends BaseTool {
     };
     let numberConfig = Merge.mergeDeep(DEFAULT_NUMBER_CONFIG, config);
 
-    super(numberConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
+    super(numberConfig, index, templates, cardId, card);
 
     this.config.svg = this.calculateSvgDimensions();
+    this.createControlLabelTextTool(this.config.width, this.config.height);
   }
 
   /**
@@ -90,6 +91,16 @@ export default class NumberControl extends BaseTool {
    * @param {object} config - Static or runtime area config.
    * @returns {object} SVG coordinates.
    */
+  /** Updates number runtime config and its shared label. */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (this.configChanged) {
+      this.config.svg = this.calculateSvgDimensions(this.config);
+      this.createControlLabelTextTool(this.config.width, this.config.height);
+    }
+  }
+
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
 
@@ -97,6 +108,6 @@ export default class NumberControl extends BaseTool {
   }
 
   render() {
-    return null;
+    return this.renderControlLabel();
   }
 }

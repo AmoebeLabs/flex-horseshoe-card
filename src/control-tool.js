@@ -1,9 +1,3 @@
-import { svg } from 'lit';
-import { styleMap } from 'lit/directives/style-map.js';
-import BaseTool from './base-tool.js';
-import ConfigHelper from './config-helper.js';
-import Merge from './merge.js';
-
 import ButtonControl from './control-button.js';
 import NumberControl from './control-number.js';
 import SelectControl from './control-select.js';
@@ -19,7 +13,7 @@ import ToggleControl from './control-toggle.js';
 /**
  * Layout control tool that renders the configured control subtypes.
  */
-export default class ControlTool extends BaseTool {
+export default class ControlTool {
   /**
    * Builds control tool instances from the already normalized layout config.
    *
