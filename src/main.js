@@ -275,7 +275,7 @@ class FlexHorseshoeCard extends LitElement {
   static get styles() {
     return css`
       :host {
-        cursor: pointer;
+        cursor: default;
       }
 
       @media (print), (prefers-reduced-motion: reduce) {

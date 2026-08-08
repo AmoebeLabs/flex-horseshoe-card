@@ -25,6 +25,13 @@ export default class ControlSelect extends ControlBase {
         padding: { x: 0.5, y: 0.5 },
         styles: {},
       },
+      separator: {
+        padding: { x: 1, y: 1 },
+        styles: {
+          stroke: 'var(--divider-color)',
+          'stroke-width': 0.25,
+        },
+      },
       option_map: [],
       content: {
         mode: 'content_vertical',
@@ -41,7 +48,10 @@ export default class ControlSelect extends ControlBase {
           text: { styles: {} },
         },
       },
-      show: { item_viz: 'viz_button' },
+      show: {
+        item_viz: 'viz_button',
+        separator: true,
+      },
       viz_button: {
         background: {
           styles: { fill: 'var(--secondary-background-color)' },
@@ -424,6 +434,12 @@ export default class ControlSelect extends ControlBase {
       ConfigHelper.toStyleDict(viz.indicator.styles),
       { transition: `fill ${transition}, stroke ${transition}, opacity ${transition}` },
     ));
+    const separatorPaddingX = Utils.calculateSvgDimension(this.config.separator.padding.x);
+    const separatorPaddingY = Utils.calculateSvgDimension(this.config.separator.padding.y);
+    const separatorStyles = this.getStyles(Merge.mergeDeep(
+      ConfigHelper.toStyleDict(this.config.separator.styles),
+      { 'pointer-events': 'none' },
+    ));
     const indicatorPositionStyles = {
       transform: `translate(${indicatorTranslateX}px, ${indicatorTranslateY}px)`,
       transition: `transform ${transition}`,
@@ -485,6 +501,27 @@ export default class ControlSelect extends ControlBase {
             style=${styleMap(indicatorStyles)}
           />
         </g>
+        ${this.config.show.separator ? [...this.config.option_map.keys()].slice(1).map((optionIndex) => horizontal
+          ? svg`
+            <line
+              class="select-control__separator"
+              x1="${trackX + optionIndex * segmentWidth}"
+              y1="${trackY + separatorPaddingY}"
+              x2="${trackX + optionIndex * segmentWidth}"
+              y2="${trackY + trackHeight - separatorPaddingY}"
+              style=${styleMap(separatorStyles)}
+            />
+          `
+          : svg`
+            <line
+              class="select-control__separator"
+              x1="${trackX + separatorPaddingX}"
+              y1="${trackY + optionIndex * segmentHeight}"
+              x2="${trackX + trackWidth - separatorPaddingX}"
+              y2="${trackY + optionIndex * segmentHeight}"
+              style=${styleMap(separatorStyles)}
+            />
+          `) : svg``}
       </g>
     `);
 

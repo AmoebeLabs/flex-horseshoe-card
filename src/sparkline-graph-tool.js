@@ -5545,6 +5545,8 @@ export default class SparklineGraphTool extends BaseTool {
           overflow="visible"
           touch-action="none"
           style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
           @pointerdown=${(event) => event.stopPropagation()}
           @click=${(event) => event.stopPropagation()}
         >

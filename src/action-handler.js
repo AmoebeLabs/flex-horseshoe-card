@@ -16,6 +16,8 @@ const MOVE_TOLERANCE = 8;
  * @param {object} options - Enabled gestures for the current runtime config.
  */
 function bindActionHandler(element, options) {
+  const interactive = options.hasTap || options.hasHold || options.hasDoubleClick;
+  element.style.cursor = interactive ? 'pointer' : 'default';
   if (element.fhsActionHandler) {
     element.fhsActionHandler.options = options;
     return;
