@@ -9,7 +9,7 @@ import Merge from './merge.js';
 import Utils from './utils.js';
 import { SVG_VIEW_BOX } from './const.js';
 
-export default class ToggleControl extends ControlBase {
+export default class ControlToggle extends ControlBase {
   /**
    * Stores static control config and creates control subtypes
    *
@@ -46,7 +46,7 @@ export default class ToggleControl extends ControlBase {
         mode: 'content_none',
 
         content_icon: {
-          size: 65,
+          size: 75,
           icon: {
             // default icon config
           },
@@ -140,12 +140,8 @@ export default class ToggleControl extends ControlBase {
     this.config.svg = this.calculateSvgDimensions();
     this.createThumbIconTool();
     this.createControlLabelTextTool(
-      this.config.orientation === 'vertical'
-        ? this.config.width * this.config[this.config.show.item_viz].svgVbW / this.config[this.config.show.item_viz].svgVbH
-        : this.config.width,
-      this.config.orientation === 'vertical'
-        ? this.config.width
-        : this.config.width * this.config[this.config.show.item_viz].svgVbH / this.config[this.config.show.item_viz].svgVbW,
+      this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_viz].svgVbW) / this.config[this.config.show.item_viz].svgVbH : this.config.width,
+      this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_viz].svgVbH) / this.config[this.config.show.item_viz].svgVbW,
     );
   }
 
@@ -370,13 +366,9 @@ export default class ToggleControl extends ControlBase {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createThumbIconTool();
       this.createControlLabelTextTool(
-      this.config.orientation === 'vertical'
-        ? this.config.width * this.config[this.config.show.item_viz].svgVbW / this.config[this.config.show.item_viz].svgVbH
-        : this.config.width,
-      this.config.orientation === 'vertical'
-        ? this.config.width
-        : this.config.width * this.config[this.config.show.item_viz].svgVbH / this.config[this.config.show.item_viz].svgVbW,
-    );
+        this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_viz].svgVbW) / this.config[this.config.show.item_viz].svgVbH : this.config.width,
+        this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_viz].svgVbH) / this.config[this.config.show.item_viz].svgVbW,
+      );
     }
   }
 
@@ -408,12 +400,8 @@ export default class ToggleControl extends ControlBase {
     const viz = config[config.show.item_viz];
 
     const configuredSize = Utils.calculateSvgDimension(config.width);
-    svgDimensions.width = config.orientation === 'vertical'
-      ? configuredSize * viz.svgVbW / viz.svgVbH
-      : configuredSize;
-    svgDimensions.height = config.orientation === 'vertical'
-      ? configuredSize
-      : configuredSize * viz.svgVbH / viz.svgVbW;
+    svgDimensions.width = config.orientation === 'vertical' ? (configuredSize * viz.svgVbW) / viz.svgVbH : configuredSize;
+    svgDimensions.height = config.orientation === 'vertical' ? configuredSize : (configuredSize * viz.svgVbH) / viz.svgVbW;
     svgDimensions.x = svgDimensions.xpos - svgDimensions.width / 2;
     svgDimensions.y = svgDimensions.ypos - svgDimensions.height / 2;
 
@@ -510,18 +498,18 @@ export default class ToggleControl extends ControlBase {
     const runtime = isOn ? viz.on : viz.off;
     const transition = `${this.config.animation.duration}ms ${this.config.animation.easing}`;
 
-    const trackStyles = this.getStyles(Merge.mergeDeep({}, runtime.trackStyles, {
-      transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
-    }));
+    const trackStyles = this.getStyles(
+      Merge.mergeDeep({}, runtime.trackStyles, {
+        transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
+      }),
+    );
     const knobStyles = this.getStyles(runtime.thumbStyles);
     const thumbPositionStyles = {
       transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
       transition: `transform ${transition}`,
       'pointer-events': 'none',
     };
-    const thumbIcon = this.config.content.mode === 'content_icon'
-      ? this.iconTool.render()
-      : svg``;
+    const thumbIcon = this.config.content.mode === 'content_icon' ? this.iconTool.render() : svg``;
 
     return this.renderItemLayers(svg`
       <g

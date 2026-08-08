@@ -10,9 +10,10 @@ import TextTool from './text-tool.js';
 import Utils from './utils.js';
 
 /** Increment/decrement control with one formatted StateTool value. */
-export default class NumberControl extends ControlBase {
+export default class ControlNumber extends ControlBase {
   /** Completes number configuration and creates its three child tools. */
   constructor(config, index, templates, cardId, card) {
+    const ICON_SIZE_PERCENTAGE = 75;
     const DEFAULT_NUMBER_CONFIG = {
       orientation: 'horizontal',
       width: 30,
@@ -45,7 +46,7 @@ export default class NumberControl extends ControlBase {
               styles: {},
             },
             content_icon: {
-              size: 65,
+              size: ICON_SIZE_PERCENTAGE,
               icon: { icon: 'mdi:minus', styles: { fill: 'var(--primary-text-color)' } },
             },
           },
@@ -65,7 +66,7 @@ export default class NumberControl extends ControlBase {
               styles: {},
             },
             content_icon: {
-              size: 65,
+              size: ICON_SIZE_PERCENTAGE,
               icon: { icon: 'mdi:plus', styles: { fill: 'var(--primary-text-color)' } },
             },
           },
@@ -83,7 +84,7 @@ export default class NumberControl extends ControlBase {
               styles: {},
             },
             content_icon: {
-              size: 65,
+              size: ICON_SIZE_PERCENTAGE,
               icon: { icon: 'mdi:chevron-down', styles: { fill: 'var(--primary-text-color)' } },
             },
           },
@@ -103,7 +104,7 @@ export default class NumberControl extends ControlBase {
               styles: {},
             },
             content_icon: {
-              size: 65,
+              size: ICON_SIZE_PERCENTAGE,
               icon: { icon: 'mdi:chevron-up', styles: { fill: 'var(--primary-text-color)' } },
             },
           },
@@ -153,9 +154,7 @@ export default class NumberControl extends ControlBase {
       }
     });
 
-    const orientationConfig = normalizedConfig.orientation === 'vertical'
-      ? VERTICAL_NUMBER_CONFIG
-      : HORIZONTAL_NUMBER_CONFIG;
+    const orientationConfig = normalizedConfig.orientation === 'vertical' ? VERTICAL_NUMBER_CONFIG : HORIZONTAL_NUMBER_CONFIG;
     const numberConfig = Merge.mergeDeep(DEFAULT_NUMBER_CONFIG, orientationConfig, normalizedConfig);
 
     super(numberConfig, index, templates, cardId, card);
@@ -180,18 +179,10 @@ export default class NumberControl extends ControlBase {
     const crossSize = horizontal ? innerHeight : innerWidth;
     const buttonSize = Math.min(crossSize, (mainSize - this.config.gap * 2) / 3);
     const valueSize = (horizontal ? innerWidth : innerHeight) - buttonSize * 2 - this.config.gap * 2;
-    const minusCenterX = horizontal
-      ? this.config.xpos - valueSize / 2 - this.config.gap - buttonSize / 2
-      : this.config.xpos;
-    const minusCenterY = horizontal
-      ? this.config.ypos
-      : this.config.ypos + valueSize / 2 + this.config.gap + buttonSize / 2;
-    const plusCenterX = horizontal
-      ? this.config.xpos + valueSize / 2 + this.config.gap + buttonSize / 2
-      : this.config.xpos;
-    const plusCenterY = horizontal
-      ? this.config.ypos
-      : this.config.ypos - valueSize / 2 - this.config.gap - buttonSize / 2;
+    const minusCenterX = horizontal ? this.config.xpos - valueSize / 2 - this.config.gap - buttonSize / 2 : this.config.xpos;
+    const minusCenterY = horizontal ? this.config.ypos : this.config.ypos + valueSize / 2 + this.config.gap + buttonSize / 2;
+    const plusCenterX = horizontal ? this.config.xpos + valueSize / 2 + this.config.gap + buttonSize / 2 : this.config.xpos;
+    const plusCenterY = horizontal ? this.config.ypos : this.config.ypos - valueSize / 2 - this.config.gap - buttonSize / 2;
 
     this.numberGeometry = {
       horizontal,
@@ -219,7 +210,7 @@ export default class NumberControl extends ControlBase {
             entity_index: this.entity_index,
             xpos: button.xpos,
             yposc: button.ypos,
-            icon_size_percent: buttonSize * button.config.content_icon.size / 100,
+            icon_size_percent: (buttonSize * button.config.content_icon.size) / 100,
             tap_action: { action: 'none' },
             styles: { 'pointer-events': 'none' },
           },
@@ -302,22 +293,24 @@ export default class NumberControl extends ControlBase {
     const contentConfig = this.config.content[this.config.content.mode];
     const entityDomain = entity.entity_id.split('.')[0];
     this.minusActionConfig = Merge.mergeDeep(contentConfig.minus, {
-      tap_action: contentConfig.minus.tap_action.action === 'decrement'
-        ? {
-          action: 'perform-action',
-          perform_action: `${entityDomain}.decrement`,
-          target: { entity_id: entity.entity_id },
-        }
-        : contentConfig.minus.tap_action,
+      tap_action:
+        contentConfig.minus.tap_action.action === 'decrement'
+          ? {
+              action: 'perform-action',
+              perform_action: `${entityDomain}.decrement`,
+              target: { entity_id: entity.entity_id },
+            }
+          : contentConfig.minus.tap_action,
     });
     this.plusActionConfig = Merge.mergeDeep(contentConfig.plus, {
-      tap_action: contentConfig.plus.tap_action.action === 'increment'
-        ? {
-          action: 'perform-action',
-          perform_action: `${entityDomain}.increment`,
-          target: { entity_id: entity.entity_id },
-        }
-        : contentConfig.plus.tap_action,
+      tap_action:
+        contentConfig.plus.tap_action.action === 'increment'
+          ? {
+              action: 'perform-action',
+              perform_action: `${entityDomain}.increment`,
+              target: { entity_id: entity.entity_id },
+            }
+          : contentConfig.plus.tap_action,
     });
 
     this.minusContentTool.setState(entity, entityConfig);
@@ -352,17 +345,10 @@ export default class NumberControl extends ControlBase {
 
     // Repeated presses restart the same short visual response immediately.
     buttonGroup.getAnimations().forEach((animation) => animation.cancel());
-    buttonGroup.animate(
-      [
-        { transform: restingTransform },
-        { transform: pressedTransform },
-        { transform: restingTransform },
-      ],
-      {
-        duration: this.config.animation.press.duration,
-        easing: this.config.animation.press.easing,
-      },
-    );
+    buttonGroup.animate([{ transform: restingTransform }, { transform: pressedTransform }, { transform: restingTransform }], {
+      duration: this.config.animation.press.duration,
+      easing: this.config.animation.press.easing,
+    });
   }
 
   /** Renders fixed slots and centers the measured state/UOM bounding box. */
@@ -384,11 +370,7 @@ export default class NumberControl extends ControlBase {
     });
     const measuredValueWidth = this.valueStateTool.getWidth();
     const measuredValueHeight = this.valueStateTool.getHeight();
-    const valueScale = Math.min(
-      1,
-      geometry.valueWidth / measuredValueWidth,
-      geometry.valueHeight / measuredValueHeight,
-    );
+    const valueScale = Math.min(1, geometry.valueWidth / measuredValueWidth, geometry.valueHeight / measuredValueHeight);
     const valueCenterX = this.valueStateTool.config.svg.xpos;
     const valueCenterY = this.valueStateTool.config.svg.ypos;
     const measuredValueCenterX = this.valueStateTool.getXpos();

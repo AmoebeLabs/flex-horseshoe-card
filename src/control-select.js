@@ -9,7 +9,7 @@ import TextTool from './text-tool.js';
 import Utils from './utils.js';
 
 /** Segmented select control backed by one Home Assistant input_select entity. */
-export default class SelectControl extends ControlBase {
+export default class ControlSelect extends ControlBase {
   /** Normalizes select configuration and creates reusable option content tools. */
   constructor(config, index, templates, cardId, card) {
     const DEFAULT_SELECT_CONFIG = {
@@ -70,6 +70,11 @@ export default class SelectControl extends ControlBase {
           duration: 250,
           easing: 'ease-out',
         },
+        press: {
+          scale: 0.9,
+          duration: 140,
+          easing: 'ease-out',
+        },
       },
       viz_line: {
         background: {
@@ -97,6 +102,11 @@ export default class SelectControl extends ControlBase {
         },
         animation: {
           duration: 250,
+          easing: 'ease-out',
+        },
+        press: {
+          scale: 0.9,
+          duration: 140,
           easing: 'ease-out',
         },
       },
@@ -340,6 +350,26 @@ export default class SelectControl extends ControlBase {
     return this.card._calculateSvgCoordinatesInGroup(config);
   }
 
+  /** Runs one immediate press animation around the center of the selected segment. */
+  animateOptionPress(optionGroup, centerX, centerY) {
+    const press = this.config[this.config.show.item_viz].press;
+    const restingTransform = `translate(${centerX}px, ${centerY}px) scale(1) translate(-${centerX}px, -${centerY}px)`;
+    const pressedTransform = `translate(${centerX}px, ${centerY}px) scale(${press.scale}) translate(-${centerX}px, -${centerY}px)`;
+
+    optionGroup.getAnimations().forEach((animation) => animation.cancel());
+    optionGroup.animate(
+      [
+        { transform: restingTransform },
+        { transform: pressedTransform },
+        { transform: restingTransform },
+      ],
+      {
+        duration: press.duration,
+        easing: press.easing,
+      },
+    );
+  }
+
   /** Renders background, segments, moving indicator, content and hit areas. */
   render() {
     const viz = this.config[this.config.show.item_viz];
@@ -459,21 +489,28 @@ export default class SelectControl extends ControlBase {
     `);
 
     const optionContent = this.config.option_map.map((option, optionIndex) => svg`
-      ${this.optionIconTools[optionIndex]?.render()}
-      ${this.optionTextTools[optionIndex].render()}
-      <rect
-        class="select-control__hit-area"
-        x="${trackX + (horizontal ? optionIndex * segmentWidth : 0)}"
-        y="${trackY + (horizontal ? 0 : optionIndex * segmentHeight)}"
-        width="${segmentWidth}"
-        height="${segmentHeight}"
-        fill="transparent"
-        style="outline: none;"
-        tabindex="0"
-        role="button"
-        ${actionHandler(this.card.getActionHandlerOptions(this.optionActionConfigs[optionIndex], this.entity_index))}
-        @action=${(event) => this.card.handleAction(event, this.optionActionConfigs[optionIndex], this.entity_index)}
-      />
+      <g class="select-control__option-content">
+        ${this.optionIconTools[optionIndex]?.render()}
+        ${this.optionTextTools[optionIndex].render()}
+        <rect
+          class="select-control__hit-area"
+          x="${trackX + (horizontal ? optionIndex * segmentWidth : 0)}"
+          y="${trackY + (horizontal ? 0 : optionIndex * segmentHeight)}"
+          width="${segmentWidth}"
+          height="${segmentHeight}"
+          fill="transparent"
+          style="outline: none;"
+          tabindex="0"
+          role="button"
+          ${actionHandler(this.card.getActionHandlerOptions(this.optionActionConfigs[optionIndex], this.entity_index))}
+          @pointerdown=${(event) => this.animateOptionPress(
+            event.currentTarget.parentElement,
+            trackX + (horizontal ? optionIndex * segmentWidth : 0) + segmentWidth / 2,
+            trackY + (horizontal ? 0 : optionIndex * segmentHeight) + segmentHeight / 2,
+          )}
+          @action=${(event) => this.card.handleAction(event, this.optionActionConfigs[optionIndex], this.entity_index)}
+        />
+      </g>
     `);
 
     return svg`${this.renderControlLabel()}${select}${optionContent}`;

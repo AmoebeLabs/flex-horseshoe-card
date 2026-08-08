@@ -2239,6 +2239,68 @@ class FlexHorseshoeCard extends LitElement {
    * @param {object} config - Finalized card config before runtime tool construction.
    * @returns {boolean} True when any supported runtime config unit contains JavaScript.
    */
+  /**
+   * Validates every configured gesture before tools may consume the config.
+   *
+   * Control-specific semantic actions are accepted here and converted by their
+   * constructors. JavaScript action templates are validated after evaluation.
+   *
+   * @param {object} config - Final static card config after inheritance and disabled filtering.
+   */
+  _validateActionConfigs(config) {
+    const gestureProperties = ['tap_action', 'hold_action', 'double_tap_action'];
+    const validActions = [
+      'none',
+      'more-info',
+      'toggle',
+      'perform-action',
+      'call-service',
+      'navigate',
+      'url',
+      'assist',
+      'fire-dom-event',
+      'increment',
+      'decrement',
+      'select-option',
+    ];
+
+    const visit = (value, configPath) => {
+      if (Array.isArray(value)) {
+        value.forEach((entry, index) => visit(entry, `${configPath}[${index}]`));
+        return;
+      }
+
+      if (!value || typeof value !== 'object') return;
+
+      Object.entries(value).forEach(([property, propertyValue]) => {
+        const propertyPath = configPath ? `${configPath}.${property}` : property;
+
+        if (property === 'double_tap') {
+          throw Error(`[actions] Invalid '${propertyPath}'; use 'double_tap_action'`);
+        }
+
+        if (gestureProperties.includes(property)) {
+          const configuredActions = propertyValue.actions ?? [propertyValue];
+
+          configuredActions.forEach((actionConfig, actionIndex) => {
+            const actionPath = propertyValue.actions
+              ? `${propertyPath}.actions[${actionIndex}].action`
+              : `${propertyPath}.action`;
+
+            if (!Templates.hasJavascriptTemplates(actionConfig.action)
+              && !validActions.includes(actionConfig.action)) {
+              throw Error(`[actions] Invalid action '${actionConfig.action}' at '${actionPath}'`);
+            }
+          });
+        }
+
+        visit(propertyValue, propertyPath);
+      });
+    };
+
+    visit(config, '');
+  }
+
   _detectJavascriptTemplates(config) {
     let cardHasJavascript = false;
 
@@ -2356,6 +2418,7 @@ class FlexHorseshoeCard extends LitElement {
       this._removeDisabledLayoutItems(config);
       this._normalizeFhsInputNumberConfigs(config);
       this._normalizeFhsInputBooleanConfigs(config);
+      this._validateActionConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
 

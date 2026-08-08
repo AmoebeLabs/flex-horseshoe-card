@@ -60,6 +60,7 @@ function bindActionHandler(element, options) {
     if (state.options.hasHold) {
       state.holdTimer = window.setTimeout(() => {
         state.held = true;
+        dispatchAction('hold');
       }, HOLD_TIME);
     }
   });
@@ -86,7 +87,6 @@ function bindActionHandler(element, options) {
 
     if (state.options.hasHold && state.held) {
       state.held = false;
-      dispatchAction('hold');
       return;
     }
 

@@ -1,7 +1,7 @@
-import ButtonControl from './control-button.js';
-import NumberControl from './control-number.js';
-import SelectControl from './control-select.js';
-import ToggleControl from './control-toggle.js';
+import ControlButton from './control-button.js';
+import ControlNumber from './control-number.js';
+import ControlSelect from './control-select.js';
+import ControlToggle from './control-toggle.js';
 
 // const CONTROL_TYPES = {
 //   toggle: ToggleControl,
@@ -30,16 +30,16 @@ export default class ControlTool {
     return config.layout.controls.map((control, index) => {
       switch (control.type) {
         case 'toggle':
-          return new ToggleControl(control, index, templates, cardId, card);
+          return new ControlToggle(control, index, templates, cardId, card);
 
         case 'select':
-          return new SelectControl(control, index, templates, cardId, card);
+          return new ControlSelect(control, index, templates, cardId, card);
 
         case 'number':
-          return new NumberControl(control, index, templates, cardId, card);
+          return new ControlNumber(control, index, templates, cardId, card);
 
         case 'button':
-          return new ButtonControl(control, index, templates, cardId, card);
+          return new ControlButton(control, index, templates, cardId, card);
 
         default:
           throw new Error(`Unknown control type: ${control.type}`);
@@ -62,16 +62,16 @@ export default class ControlTool {
   //   this.controls = controls.map((control, controlIndex) => {
   //     switch (control.type) {
   //       case 'button':
-  //         return new ButtonControl(control, controlIndex, templates, cardId, card);
+  //         return new ControlButton(control, controlIndex, templates, cardId, card);
 
   //       case 'number':
-  //         return new NumberControl(control, controlIndex, templates, cardId, card);
+  //         return new ControlNumber(control, controlIndex, templates, cardId, card);
 
   //       case 'select':
-  //         return new SelectControl(control, controlIndex, templates, cardId, card);
+  //         return new ControlSelect(control, controlIndex, templates, cardId, card);
 
   //       case 'toggle':
-  //         return new ToggleControl(control, controlIndex, templates, cardId, card);
+  //         return new ControlToggle(control, controlIndex, templates, cardId, card);
 
   //       default:
   //         throw new Error(`[ControlTool] Unknown control type: ${control.type}`);
