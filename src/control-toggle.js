@@ -219,16 +219,25 @@ export default class ControlToggle extends ControlBase {
         trackY: 6,
         trackH: 14,
         trackRx: 7,
-        // eslint-disable-next-line @stylistic/quotes
-        extraHtml: `<defs><filter id="ha-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.2"/></filter></defs>`,
+        shadow: {
+          x: '-20%',
+          y: '-20%',
+          width: '140%',
+          height: '140%',
+          dx: 0,
+          dy: 1,
+          stdDeviation: 1,
+          color: '#000000',
+          opacity: 0.2,
+        },
         checked: {
           track: { styles: { fill: 'var(--switch-checked-track-color, #4ad66d)' } },
-          thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)', filter: 'url(#ha-shadow)' } },
+          thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)' } },
           icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
         },
         unchecked: {
           track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Track dimt bij 'uit'
-          thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)', filter: 'url(#ha-shadow)' } },
+          thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)' } },
           icon: { styles: { fill: '#757575', opacity: '0.5' } },
         },
       },
@@ -301,7 +310,19 @@ export default class ControlToggle extends ControlBase {
     const trackH = isVertical ? config[vizName].vbW : config[vizName].trackH;
 
     // 6. Schrijf alle berekende layout-waarden direct weg in config[vizName]
-    config[vizName].extraHtml = config[vizName].extraHtml || '';
+    if (config[vizName].shadow !== undefined) {
+      config[vizName].shadow.id = `${this.cardId}-${this.id}-toggle-shadow`;
+      const shadowFilter = { filter: `url(#${config[vizName].shadow.id})` };
+
+      config[vizName].checked.thumb.styles = Merge.mergeDeep(
+        config[vizName].checked.thumb.styles,
+        shadowFilter,
+      );
+      config[vizName].unchecked.thumb.styles = Merge.mergeDeep(
+        config[vizName].unchecked.thumb.styles,
+        shadowFilter,
+      );
+    }
     config[vizName].svgVbW = isVertical ? config[vizName].vbH : config[vizName].vbW;
     config[vizName].svgVbH = isVertical ? config[vizName].vbW : config[vizName].vbH;
 
@@ -528,7 +549,27 @@ export default class ControlToggle extends ControlBase {
           <g class="toggle-scale">
             <svg viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
 
-              ${viz.extraHtml}
+              ${viz.shadow !== undefined ? svg`
+                <defs>
+                  <filter
+                    id="${viz.shadow.id}"
+                    x="${viz.shadow.x}"
+                    y="${viz.shadow.y}"
+                    width="${viz.shadow.width}"
+                    height="${viz.shadow.height}"
+                    color-interpolation-filters="sRGB"
+                  >
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="${viz.shadow.stdDeviation}" result="shadow-blur" />
+                    <feOffset in="shadow-blur" dx="${viz.shadow.dx}" dy="${viz.shadow.dy}" result="shadow-offset" />
+                    <feFlood flood-color="${viz.shadow.color}" flood-opacity="${viz.shadow.opacity}" result="shadow-color" />
+                    <feComposite in="shadow-color" in2="shadow-offset" operator="in" result="shadow" />
+                    <feMerge>
+                      <feMergeNode in="shadow" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+              ` : svg``}
 
               <!-- De Track -->
               <rect
