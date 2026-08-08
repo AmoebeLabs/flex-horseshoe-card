@@ -223,10 +223,12 @@ export default class SparklineGraphTool extends BaseTool {
             },
             styles: {
               opacity: 0.2,
+              rx: 0,
+              ry: 0,
             },
           },
           foreground: {
-            styles: {},
+            styles: { rx: 0, ry: 0 },
           },
         },
         equalizer: {
@@ -251,6 +253,8 @@ export default class SparklineGraphTool extends BaseTool {
             },
             styles: {
               opacity: 0.2,
+              rx: 0,
+              ry: 0,
             },
           },
         },
