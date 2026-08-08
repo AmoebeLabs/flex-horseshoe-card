@@ -15,6 +15,35 @@ export default class ControlBase extends BaseTool {
    * this constructor and create the label after calculating their geometry.
    */
   constructor(config, index, templates, cardId, card) {
+    const controlHaptics = {
+      tap_action: 'selection',
+      hold_action: 'medium',
+      double_tap_action: 'heavy',
+    };
+
+    // Complete every configured control gesture, including actions nested in
+    // number buttons and select options. Explicit YAML remains the final value.
+    const addControlHaptics = (value) => {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => addControlHaptics(entry));
+        return;
+      }
+
+      if (!value || typeof value !== 'object') return;
+
+      Object.entries(value).forEach(([property, propertyValue]) => {
+        if (controlHaptics[property] !== undefined && propertyValue.action !== 'none') {
+          value[property] = Merge.mergeDeep(
+            { haptic: controlHaptics[property] },
+            propertyValue,
+          );
+        }
+
+        addControlHaptics(value[property]);
+      });
+    };
+
+    addControlHaptics(config);
     if (config.label !== undefined) {
       config.label = Merge.mergeDeep(
         {
