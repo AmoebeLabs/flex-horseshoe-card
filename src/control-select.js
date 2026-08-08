@@ -501,7 +501,7 @@ export default class ControlSelect extends ControlBase {
             style=${styleMap(indicatorStyles)}
           />
         </g>
-        ${this.config.show.separator ? [...this.config.option_map.keys()].slice(1).map((optionIndex) => horizontal
+        ${this.config.show.separator ? [...this.config.option_map.keys()].slice(1).map((optionIndex) => (horizontal
           ? svg`
             <line
               class="select-control__separator"
@@ -521,7 +521,7 @@ export default class ControlSelect extends ControlBase {
               y2="${trackY + optionIndex * segmentHeight}"
               style=${styleMap(separatorStyles)}
             />
-          `) : svg``}
+          `)) : svg``}
       </g>
     `);
 
