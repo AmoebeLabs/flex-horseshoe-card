@@ -1,0 +1,161 @@
+fhs_showcase_radial_barcode_v1:
+  template:
+    type: card
+
+  card:
+    entities:
+      - entity: fhs_input_number.radial_variant
+        slot: variant
+        initial: 0
+        min: 0
+        max: 4
+        step: 1
+        scope: global
+        unit: ''
+      - entity: fhs_input_number.radial_viz
+        slot: viz
+        initial: 0
+        min: 0
+        max: 3
+        step: 1
+        scope: global
+        unit: ''
+      - entity: sensor.awair_element_study_temperature
+        slot: source
+        name: Study temperature
+        unit: C
+
+    constants:
+      radial_variants:
+        - null
+        - sunburst
+        - sunburst_centered
+        - sunburst_outward
+        - sunburst_inward
+      radial_viz:
+        - bar
+        - flower
+        - flower2
+        - rice_grain
+
+    layout:
+      aspectratio: 1/1.5
+
+      groups:
+        - id: title
+          xpos: 50
+          ypos: 7
+        - id: chart
+          xpos: 50
+          ypos: 60
+
+      sparklines:
+        - id: radial-showcase
+          group: chart
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          width: 82
+          height: 82
+          margin: 0
+          period:
+            type: calendar
+            calendar:
+              period: day
+              offset: 0
+              duration:
+                hour: 24
+              bins:
+                per_hour: 2
+          sparkline:
+            show:
+              chart_type: radial_barcode
+              chart_variant: |
+                [[[
+                  return constants.radial_variants[
+                    Number(entities[entity_slots.variant[0]].state)
+                  ];
+                ]]]
+              chart_viz: |
+                [[[
+                  return constants.radial_viz[
+                    Number(entities[entity_slots.viz[0]].state)
+                  ];
+                ]]]
+            radial_barcode:
+              size: 15
+              line_width: 0.02
+              column_spacing: 0.2
+              background:
+                styles:
+                  opacity: 0.14
+              foreground:
+                styles:
+                  opacity: 1
+            colorstops_transition: smooth
+            color_stops:
+              0: '#1565c0'
+              18: '#42a5f5'
+              24: '#66bb6a'
+              28: '#f9a825'
+              35: '#d32f2f'
+
+      texts:
+        - id: title
+          group: title
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          text: Radial barcode showcase
+          styles:
+            font-size: 1.2em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+
+      controls:
+        - id: radial-variant
+          type: select
+          entity_index: variant[0]
+          xpos: 50
+          ypos: 120
+          width: 94
+          height: 13
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.52em
+          option_map:
+            - { value: 0, text: Fixed }
+            - { value: 1, text: Sunburst }
+            - { value: 2, text: Centered }
+            - { value: 3, text: Outward }
+            - { value: 4, text: Inward }
+
+        - id: radial-viz
+          type: select
+          entity_index: viz[0]
+          xpos: 50
+          ypos: 142
+          width: 92
+          height: 13
+          label:
+            position: top
+            gap: 2
+            text: chart_viz
+            styles:
+              font-size: 0.52em
+              fill: var(--secondary-text-color)
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.56em
+          option_map:
+            - { value: 1, text: Flower }
+            - { value: 2, text: Flower 2 }
+            - { value: 3, text: Rice grain }
+            - { value: 0, text: Bar }
