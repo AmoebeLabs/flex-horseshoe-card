@@ -309,20 +309,37 @@ export default class ControlSelect extends ControlBase {
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
 
     // The internal semantic default becomes a normal HA action only after the
-    // exact control entity and option value are available.
+    // exact control entity, domain and option value are available.
+    const entityDomain = entity.entity_id.split('.')[0];
     this.optionActionConfigs = this.config.option_map.map((option) => {
-      const tapAction = option.tap_action.action === 'select-option'
-        ? {
-          action: 'perform-action',
-          perform_action: 'input_select.select_option',
-          target: { entity_id: entity.entity_id },
-          data: { option: option.value },
+      let tapAction = option.tap_action;
+
+      if (option.tap_action.action === 'select-option') {
+        switch (entityDomain) {
+          case 'input_select':
+            tapAction = {
+              action: 'perform-action',
+              perform_action: 'input_select.select_option',
+              target: { entity_id: entity.entity_id },
+              data: { option: option.value },
+            };
+            break;
+          case 'input_number':
+          case 'fhs_input_number':
+            tapAction = {
+              action: 'perform-action',
+              perform_action: `${entityDomain}.set_value`,
+              target: { entity_id: entity.entity_id },
+              data: { value: option.value },
+            };
+            break;
+          default:
+            throw Error(`[controls] Select control does not support entity domain '${entityDomain}'`);
         }
-        : option.tap_action;
+      }
 
       return Merge.mergeDeep(option, { tap_action: tapAction });
     });
-
     this.optionTextTools.forEach((textTool, optionIndex) => {
       const optionStyle = optionIndex === this.selectedOptionIndex ? viz.selected : viz.unselected;
 
