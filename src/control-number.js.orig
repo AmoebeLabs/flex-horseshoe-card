@@ -50,7 +50,6 @@ export default class ControlNumber extends ControlBase {
             },
           },
           value: {
-            size: 75,
             show: { uom: 'end' },
             styles: {},
           },
@@ -89,7 +88,6 @@ export default class ControlNumber extends ControlBase {
             },
           },
           value: {
-            size: 75,
             show: { uom: 'end' },
             styles: {},
           },
@@ -371,12 +369,7 @@ export default class ControlNumber extends ControlBase {
     });
     const measuredValueWidth = this.valueStateTool.getWidth();
     const measuredValueHeight = this.valueStateTool.getHeight();
-    const valueHeight = geometry.valueHeight * contentConfig.value.size / 100;
-    const valueScale = Math.min(
-      1,
-      geometry.valueWidth / measuredValueWidth,
-      valueHeight / measuredValueHeight,
-    );
+    const valueScale = Math.min(1, geometry.valueWidth / measuredValueWidth, geometry.valueHeight / measuredValueHeight);
     const valueCenterX = this.valueStateTool.config.svg.xpos;
     const valueCenterY = this.valueStateTool.config.svg.ypos;
     const measuredValueCenterX = this.valueStateTool.getXpos();
