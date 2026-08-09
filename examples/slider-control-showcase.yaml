@@ -1,0 +1,107 @@
+fhs_slider_control_showcase:
+  template:
+    type: card
+    defaults:
+      - fhs_slider_control_showcase_update_interval: 100
+
+  card:
+    entities:
+      - entity: fhs_input_number.slider_value
+        initial: 45
+        min: 0
+        max: 100
+        step: 1
+        unit: ''
+      - entity: fhs_input_number.slider_lower
+        initial: 18
+        min: 5
+        max: 35
+        step: 0.5
+        unit: ''
+      - entity: fhs_input_number.slider_upper
+        initial: 24
+        min: 5
+        max: 35
+        step: 0.5
+        unit: ''
+
+    layout:
+      aspectratio: 1/1.4
+
+      controls:
+        - id: slider-ha
+          type: slider
+          entity_index: 0
+          xpos: 50
+          ypos: 25
+          width: 70
+          height: 12
+          interaction:
+            update_interval: '[[fhs_slider_control_showcase_update_interval]]'
+          value:
+            position: top
+            state:
+              styles:
+                font-size: 0.7em
+          show:
+            item_viz: ha
+
+        - id: slider-range
+          type: slider
+          mode: range
+          values:
+            - entity_index: 1
+            - entity_index: 2
+          xpos: 50
+          ypos: 55
+          width: 70
+          height: 12
+          interaction:
+            update_interval: 0
+          value:
+            position: top
+            gap: 3
+            range_spacing: 10
+            state:
+              styles:
+                font-size: 0.65em
+          show:
+            item_viz: ha
+
+        - id: slider-circular
+          type: slider
+          entity_index: 0
+          xpos: 27
+          ypos: 105
+          width: 34
+          height: 34
+          interaction:
+            update_interval: '[[fhs_slider_control_showcase_update_interval]]'
+          value:
+            position: center
+            state:
+              styles:
+                font-size: 0.8em
+          show:
+            item_viz: circular
+
+        - id: slider-circular-range
+          type: slider
+          mode: range
+          values:
+            - entity_index: 1
+            - entity_index: 2
+          xpos: 73
+          ypos: 105
+          width: 34
+          height: 34
+          interaction:
+            update_interval: 0
+          value:
+            position: center
+            range_spacing: 10
+            state:
+              styles:
+                font-size: 0.65em
+          show:
+            item_viz: circular

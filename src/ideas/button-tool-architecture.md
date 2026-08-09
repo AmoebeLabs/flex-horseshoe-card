@@ -9,7 +9,7 @@ existing layout sections.
 
 ## Modes
 
-A control uses `type: button`, `toggle`, `select` and `number`.
+A control uses `type: button`, `toggle`, `select`, `number` and `slider`.
 
 - `button` uses the existing tap default for its entity.
 - `toggle` uses Home Assistant or FHS boolean toggle behavior.
@@ -17,6 +17,9 @@ A control uses `type: button`, `toggle`, `select` and `number`.
   or `fhs_input_number.set_value`.
 - `number` renders minus, value and plus content and uses the existing
   input_number increment/decrement services.
+- `slider` renders a single-value or dual-range control with a linear or
+  circular visualization and performs `set_value` actions while dragging or
+  when the interaction finishes.
 
 FHS needs to be extended with a fhs_input_select service!
 
@@ -45,6 +48,42 @@ resolution, slots, groups, compounds, visibility, z-position sorting, runtime
 JavaScript updates, animations and the common action handler. Existing cards do
 not need to change and existing rectangle/text button configurations remain
 supported.
+
+## Styling contract and documentation
+
+The public documentation must contain a dedicated Controls reference. It must
+show the complete configuration hierarchy instead of listing isolated CSS
+properties. Every example must use the same configuration merge order as the
+runtime: control defaults, selected `item_viz`, and finally the item config.
+
+The reference needs a styling matrix for the common control layers and the
+mode-specific layers:
+
+- common: geometry, orientation, label, content, icon, text, actions, haptics,
+  animation, visibility and disabled state;
+- toggle: track, thumb, on/off state styles and the `ha`, `ios` and
+  `industrial` visualizations;
+- select: background, segments, separator, button or line indicator,
+  selected/unselected content and indicator animation;
+- number: minus button, value, plus button, horizontal/vertical orientation,
+  text/icon content and press feedback;
+- button: background, button or line visualization, active/inactive content,
+  press feedback and tap/hold/double-tap actions;
+- slider: background track, active track, thumb, value text, single/range,
+  linear/circular geometry, transition, update mode and unavailable state.
+
+The slider examples must include a Home Assistant light. Its `brightness`
+attribute drives the value and `light.turn_on` receives the changed value. The
+default active-track color must visibly follow the current HA entity color via
+`Colors.computeColor(entity)` and `--fhs-slider-active-color`. A second example
+must override `ha.active.styles.fill`, so users can see that explicit item
+styling takes precedence over the automatic light color.
+
+The examples must also include a dual HVAC range slider, a select with dynamic
+`option_map`, a number control using increment/decrement, and toggle/button
+examples with labels, icons and haptic actions. Each example must be complete
+YAML that can be copied into a card or template without reconstructing omitted
+configuration.
 
 ## YAML config.
 

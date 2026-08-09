@@ -314,14 +314,8 @@ export default class ControlToggle extends ControlBase {
       config[vizName].shadow.id = `${this.cardId}-${this.id}-toggle-shadow`;
       const shadowFilter = { filter: `url(#${config[vizName].shadow.id})` };
 
-      config[vizName].checked.thumb.styles = Merge.mergeDeep(
-        config[vizName].checked.thumb.styles,
-        shadowFilter,
-      );
-      config[vizName].unchecked.thumb.styles = Merge.mergeDeep(
-        config[vizName].unchecked.thumb.styles,
-        shadowFilter,
-      );
+      config[vizName].checked.thumb.styles = Merge.mergeDeep(config[vizName].checked.thumb.styles, shadowFilter);
+      config[vizName].unchecked.thumb.styles = Merge.mergeDeep(config[vizName].unchecked.thumb.styles, shadowFilter);
     }
     config[vizName].svgVbW = isVertical ? config[vizName].vbH : config[vizName].vbW;
     config[vizName].svgVbH = isVertical ? config[vizName].vbW : config[vizName].vbH;
@@ -513,7 +507,6 @@ export default class ControlToggle extends ControlBase {
   _renderToggle() {
     const vizName = this.config.show.item_viz;
     const itemConfig = this.config;
-    console.log('_renderToggle, ', this.config[vizName], this.config);
     const isOn = this.entity.state === 'on';
     const viz = this.config[vizName];
     const runtime = isOn ? viz.on : viz.off;
@@ -549,7 +542,9 @@ export default class ControlToggle extends ControlBase {
           <g class="toggle-scale">
             <svg viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
 
-              ${viz.shadow !== undefined ? svg`
+              ${
+                viz.shadow !== undefined
+                  ? svg`
                 <defs>
                   <filter
                     id="${viz.shadow.id}"
@@ -569,7 +564,9 @@ export default class ControlToggle extends ControlBase {
                     </feMerge>
                   </filter>
                 </defs>
-              ` : svg``}
+              `
+                  : svg``
+              }
 
               <!-- De Track -->
               <rect

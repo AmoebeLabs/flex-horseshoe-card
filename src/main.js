@@ -3048,6 +3048,55 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Inserts current slider values into one configured action and executes it.
+   *
+   * @param {object} actionConfig - Normalized slider set-value action.
+   * @param {number} entityIndex - Entity index belonging to the active thumb.
+   * @param {Array<number>} values - Current single or lower/upper values.
+   * @param {number} activeIndex - Active value index.
+   */
+  async executeSliderAction(actionConfig, entityIndex, values, activeIndex) {
+    const entityId = this._getActionEntityId(entityIndex, actionConfig);
+    let executableAction;
+
+    if (actionConfig.action === 'set-value') {
+      const entityDomain = entityId.split('.')[0];
+      executableAction = {
+        action: 'perform-action',
+        perform_action: `${entityDomain}.set_value`,
+        target: { entity_id: entityId },
+        data: { value: values[activeIndex] },
+      };
+    } else {
+      executableAction = Merge.mergeDeep({}, actionConfig);
+
+      if (executableAction.value_field !== undefined) {
+        const valuePath = executableAction.value_field.split('.');
+        let valueTarget = executableAction;
+        valuePath.slice(0, -1).forEach((property) => {
+          valueTarget = valueTarget[property];
+        });
+        valueTarget[valuePath[valuePath.length - 1]] = values[activeIndex];
+        delete executableAction.value_field;
+      }
+
+      if (executableAction.value_fields !== undefined) {
+        Object.entries(executableAction.value_fields).forEach(([valuePathString, valueName]) => {
+          const valuePath = valuePathString.split('.');
+          let valueTarget = executableAction;
+          valuePath.slice(0, -1).forEach((property) => {
+            valueTarget = valueTarget[property];
+          });
+          valueTarget[valuePath[valuePath.length - 1]] = values[valueName === 'lower' ? 0 : 1];
+        });
+        delete executableAction.value_fields;
+      }
+    }
+
+    await this._executeAction(executableAction, entityId);
+  }
+
+  /**
    * Executes the selected tap, hold, or double-tap config for one exact item.
    *
    * @param {CustomEvent} event - Normalized gesture event.

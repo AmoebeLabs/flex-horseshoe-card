@@ -1,6 +1,7 @@
 import ControlButton from './control-button.js';
 import ControlNumber from './control-number.js';
 import ControlSelect from './control-select.js';
+import ControlSlider from './control-slider.js';
 import ControlToggle from './control-toggle.js';
 
 // const CONTROL_TYPES = {
@@ -40,6 +41,9 @@ export default class ControlTool {
 
         case 'button':
           return new ControlButton(control, index, templates, cardId, card);
+
+        case 'slider':
+          return new ControlSlider(control, index, templates, cardId, card);
 
         default:
           throw new Error(`Unknown control type: ${control.type}`);
