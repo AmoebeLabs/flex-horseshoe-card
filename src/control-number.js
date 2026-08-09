@@ -1,6 +1,5 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import actionHandler from './action-handler.js';
 import ConfigHelper from './config-helper.js';
 import ControlBase from './control-base.js';
 import IconTool from './icon-tool.js';
@@ -379,7 +378,7 @@ export default class ControlNumber extends ControlBase {
     const backgroundStyles = this.getStyles(ConfigHelper.toStyleDict(this.config.background.styles));
     const minusBackgroundStyles = this.getStyles(ConfigHelper.toStyleDict(contentConfig.minus.background.styles));
     const plusBackgroundStyles = this.getStyles(ConfigHelper.toStyleDict(contentConfig.plus.background.styles));
-    const control = this.renderItemLayers(svg`
+    const control = svg`
       <g
         class="number-control"
         transform="${this.getGroupScaleTransform()}"
@@ -395,10 +394,9 @@ export default class ControlNumber extends ControlBase {
           style=${styleMap(backgroundStyles)}
         />
       </g>
-    `);
+    `;
 
-    return svg`
-      ${this.renderControlLabel()}
+    return this.renderControl(svg`
       ${control}
       <g class="number-control__minus-button">
         <rect
@@ -421,9 +419,9 @@ export default class ControlNumber extends ControlBase {
           style="outline: none;"
           tabindex="0"
           role="button"
-          ${actionHandler(this.card.getActionHandlerOptions(this.minusActionConfig, this.entity_index))}
+          ${this.controlActionHandler(this.minusActionConfig, this.entity_index)}
           @pointerdown=${(event) => this.animateButtonPress(event.currentTarget.parentElement, minusCenter)}
-          @action=${(event) => this.card.handleAction(event, this.minusActionConfig, this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.minusActionConfig, this.entity_index)}
         />
       </g>
       <g class="number-control__value" transform="${valueTransform}">
@@ -450,11 +448,11 @@ export default class ControlNumber extends ControlBase {
           style="outline: none;"
           tabindex="0"
           role="button"
-          ${actionHandler(this.card.getActionHandlerOptions(this.plusActionConfig, this.entity_index))}
+          ${this.controlActionHandler(this.plusActionConfig, this.entity_index)}
           @pointerdown=${(event) => this.animateButtonPress(event.currentTarget.parentElement, plusCenter)}
-          @action=${(event) => this.card.handleAction(event, this.plusActionConfig, this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.plusActionConfig, this.entity_index)}
         />
       </g>
-    `;
+    `);
   }
 }

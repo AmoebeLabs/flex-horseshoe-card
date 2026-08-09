@@ -1,6 +1,5 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import actionHandler from './action-handler.js';
 import ConfigHelper from './config-helper.js';
 import ControlBase from './control-base.js';
 import IconTool from './icon-tool.js';
@@ -464,7 +463,7 @@ export default class ControlSelect extends ControlBase {
       visibility: this.selectedOptionIndex === -1 ? 'hidden' : 'visible',
     };
 
-    const select = this.renderItemLayers(svg`
+    const select = svg`
       <g
         class="select-control"
         transform="${this.getGroupScaleTransform()}"
@@ -540,7 +539,7 @@ export default class ControlSelect extends ControlBase {
             />
           `)) : svg``}
       </g>
-    `);
+    `;
 
     const optionContent = this.config.option_map.map((option, optionIndex) => svg`
       <g class="select-control__option-content">
@@ -556,17 +555,17 @@ export default class ControlSelect extends ControlBase {
           style="outline: none;"
           tabindex="0"
           role="button"
-          ${actionHandler(this.card.getActionHandlerOptions(this.optionActionConfigs[optionIndex], this.entity_index))}
+          ${this.controlActionHandler(this.optionActionConfigs[optionIndex], this.entity_index)}
           @pointerdown=${(event) => this.animateOptionPress(
             event.currentTarget.parentElement,
             trackX + (horizontal ? optionIndex * segmentWidth : 0) + segmentWidth / 2,
             trackY + (horizontal ? 0 : optionIndex * segmentHeight) + segmentHeight / 2,
           )}
-          @action=${(event) => this.card.handleAction(event, this.optionActionConfigs[optionIndex], this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.optionActionConfigs[optionIndex], this.entity_index)}
         />
       </g>
     `);
 
-    return svg`${this.renderControlLabel()}${select}${optionContent}`;
+    return this.renderControl(svg`${select}${optionContent}`);
   }
 }

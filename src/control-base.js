@@ -1,4 +1,6 @@
 import { svg } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
+import actionHandler from './action-handler.js';
 import BaseTool from './base-tool.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
@@ -15,11 +17,20 @@ export default class ControlBase extends BaseTool {
    * this constructor and create the label after calculating their geometry.
    */
   constructor(config, index, templates, cardId, card) {
+    const DEFAULT_CONTROL_CONFIG = {
+      visibility: 'visible',
+      unavailable: {
+        styles: {
+          opacity: 0.35,
+        },
+      },
+    };
     const controlHaptics = {
       tap_action: 'selection',
       hold_action: 'medium',
       double_tap_action: 'heavy',
     };
+    const controlConfig = Merge.mergeDeep(DEFAULT_CONTROL_CONFIG, config);
 
     // Complete every configured control gesture, including actions nested in
     // number buttons and select options. Explicit YAML remains the final value.
@@ -43,9 +54,9 @@ export default class ControlBase extends BaseTool {
       });
     };
 
-    addControlHaptics(config);
-    if (config.label !== undefined) {
-      config.label = Merge.mergeDeep(
+    addControlHaptics(controlConfig);
+    if (controlConfig.label !== undefined) {
+      controlConfig.label = Merge.mergeDeep(
         {
           position: 'start',
           gap: 0,
@@ -53,16 +64,14 @@ export default class ControlBase extends BaseTool {
             x: 0,
             y: 0,
           },
-          entity_index: config.entity_index,
+          entity_index: controlConfig.entity_index,
           tap_action: {
             action: 'none',
           },
         },
-        config.label,
+        controlConfig.label,
       );
-    }
 
-    if (config.label !== undefined) {
       const labelAlignmentStyles = {
         start: { 'text-anchor': 'end', 'dominant-baseline': 'central' },
         end: { 'text-anchor': 'start', 'dominant-baseline': 'central' },
@@ -70,16 +79,61 @@ export default class ControlBase extends BaseTool {
         bottom: { 'text-anchor': 'middle', 'dominant-baseline': 'central' },
       };
 
-      config.label.styles = Merge.mergeDeep(
-        labelAlignmentStyles[config.label.position],
-        ConfigHelper.toStyleDict(config.label.styles),
+      controlConfig.label.styles = Merge.mergeDeep(
+        labelAlignmentStyles[controlConfig.label.position],
+        ConfigHelper.toStyleDict(controlConfig.label.styles),
       );
     }
 
-    super(config, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
+    super(controlConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
 
-    this.hasControlLabel = config.label !== undefined;
+    this.hasControlLabel = controlConfig.label !== undefined;
     this.labelTextTool = undefined;
+  }
+
+  /**
+   * Activates runtime control configuration and validates its interaction state.
+   */
+  updateRuntimeConfig() {
+    super.updateRuntimeConfig();
+
+    if (!['visible', 'hidden', 'unavailable'].includes(this.config.visibility)) {
+      throw Error(`[controls] Invalid visibility '${this.config.visibility}' [visible, hidden, unavailable]`);
+    }
+  }
+
+  /**
+   * Returns action-handler flags for an available control.
+   */
+  getControlActionHandlerOptions(itemConfig, entityIndex) {
+    if (this.config.visibility === 'unavailable') {
+      return {
+        hasTap: false,
+        hasHold: false,
+        hasDoubleClick: false,
+      };
+    }
+
+    return this.card.getActionHandlerOptions(itemConfig, entityIndex);
+  }
+
+  /**
+   * Returns the shared gesture directive while honoring unavailable state.
+   */
+  controlActionHandler(itemConfig, entityIndex) {
+    return actionHandler(this.getControlActionHandlerOptions(itemConfig, entityIndex));
+  }
+
+  /**
+   * Blocks unavailable control actions before they reach the card action router.
+   */
+  handleControlAction(event, itemConfig, entityIndex) {
+    if (this.config.visibility === 'unavailable') {
+      event.stopPropagation();
+      return;
+    }
+
+    this.card.handleAction(event, itemConfig, entityIndex);
   }
 
   /**
@@ -187,5 +241,45 @@ export default class ControlBase extends BaseTool {
   /** Returns the optional label as an ordinary TextTool template. */
   renderControlLabel() {
     return this.hasControlLabel ? this.labelTextTool.render() : svg``;
+  }
+
+  /**
+   * Wraps label and complete control content in one visibility/availability layer.
+   */
+  renderControl(content) {
+    let control = svg`${this.renderControlLabel()}${content}`;
+
+    if (this.config.visibility === 'unavailable') {
+      const grayscaleFilterId = `${this.cardId}-${this.id}-unavailable-grayscale`;
+      const unavailableStyles = Merge.mergeDeep(
+        ConfigHelper.toStyleDict(this.config.unavailable.styles),
+        { 'pointer-events': 'none' },
+      );
+
+      control = svg`
+        <defs>
+          <filter
+            id="${grayscaleFilterId}"
+            x="-100%"
+            y="-100%"
+            width="300%"
+            height="300%"
+            color-interpolation-filters="sRGB"
+          >
+            <feColorMatrix type="saturate" values="0"></feColorMatrix>
+          </filter>
+        </defs>
+        <g
+          class="fhs-control--unavailable"
+          style=${styleMap(unavailableStyles)}
+          filter="url(#${grayscaleFilterId})"
+          aria-disabled="true"
+        >
+          ${control}
+        </g>
+      `;
+    }
+
+    return this.renderItemLayers(control);
   }
 }

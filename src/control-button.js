@@ -1,6 +1,5 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import actionHandler from './action-handler.js';
 import ConfigHelper from './config-helper.js';
 import ControlBase from './control-base.js';
 import IconTool from './icon-tool.js';
@@ -459,7 +458,7 @@ export default class ControlButton extends ControlBase {
       </g>
     `;
 
-    const control = this.renderItemLayers(svg`
+    const control = svg`
       <g class="button-control__press">
         ${button}
         ${this.contentIconTool?.render()}
@@ -474,13 +473,13 @@ export default class ControlButton extends ControlBase {
           style="outline: none;"
           tabindex="0"
           role="button"
-          ${actionHandler(this.card.getActionHandlerOptions(this.config, this.entity_index))}
+          ${this.controlActionHandler(this.config, this.entity_index)}
           @pointerdown=${(event) => this.animateButtonPress(event.currentTarget.parentElement)}
-          @action=${(event) => this.card.handleAction(event, this.config, this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.config, this.entity_index)}
         />
       </g>
-    `);
+    `;
 
-    return svg`${this.renderControlLabel()}${control}`;
+    return this.renderControl(control);
   }
 }

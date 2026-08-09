@@ -135,8 +135,8 @@ export default class ControlToggle extends ControlBase {
     }
 
     super(toggleConfig, index, templates, cardId, card);
-    this.validateOrientation(toggleConfig.orientation);
-    this.config = this.buildConfig(toggleConfig);
+    this.validateOrientation(this.config.orientation);
+    this.config = this.buildConfig(this.config);
     this.config.svg = this.calculateSvgDimensions();
     this.createThumbIconTool();
     this.createControlLabelTextTool(
@@ -525,7 +525,7 @@ export default class ControlToggle extends ControlBase {
     };
     const thumbIcon = this.config.content.mode === 'content_icon' ? this.iconTool.render() : svg``;
 
-    return this.renderItemLayers(svg`
+    return svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
@@ -599,7 +599,7 @@ export default class ControlToggle extends ControlBase {
         </g>
         </svg>
       </g>
-      `);
+      `;
   }
 
   _renderToggleV1() {
@@ -631,17 +631,17 @@ export default class ControlToggle extends ControlBase {
   }
 
   render() {
-    const toggle = this.renderItemLayers(svg`
+    const toggle = svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
-          ${this.actionHandler()}
-          @action=${(event) => this.handleAction(event)}
+          ${this.controlActionHandler(this.config, this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.config, this.entity_index)}
       >
         ${this._renderToggle()}
       </g>
-    `);
+    `;
 
-    return svg`${this.renderControlLabel()}${toggle}`;
+    return this.renderControl(toggle);
   }
 }

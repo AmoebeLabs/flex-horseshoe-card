@@ -508,6 +508,8 @@ export default class ControlSlider extends ControlBase {
 
   /** Chooses a thumb, applies direct track input and starts card-wide dragging. */
   startSliderPointer(event, requestedValueIndex) {
+    if (this.config.visibility === 'unavailable') return;
+
     event.preventDefault();
     event.stopPropagation();
     window.cancelAnimationFrame(this.stateAnimationFrame);
@@ -603,6 +605,8 @@ export default class ControlSlider extends ControlBase {
 
   /** Handles standard slider keyboard input for one thumb. */
   handleSliderKeydown(event, valueIndex) {
+    if (this.config.visibility === 'unavailable') return;
+
     const increaseKeys = ['ArrowRight', 'ArrowUp'];
     const decreaseKeys = ['ArrowLeft', 'ArrowDown'];
     const handledKeys = [...increaseKeys, ...decreaseKeys, 'Home', 'End'];
@@ -875,7 +879,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders child values and the selected slider visualization. */
   render() {
-    const control = this.renderItemLayers(svg`
+    const control = svg`
       <g id="${this.cardId}-${this.id}-slider" class="slider-control"
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}">
@@ -883,13 +887,12 @@ export default class ControlSlider extends ControlBase {
           ? this.renderHaSlider()
           : this.renderCircularSlider()}
       </g>
-    `);
+    `;
 
-    return svg`
-      ${this.renderControlLabel()}
+    return this.renderControl(svg`
       ${control}
       ${this.valueStateTools.map((valueTool) => valueTool.render())}
       ${this.valueSeparatorTool ? this.valueSeparatorTool.render() : svg``}
-    `;
+    `);
   }
 }
