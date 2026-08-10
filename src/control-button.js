@@ -2,6 +2,7 @@ import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import ConfigHelper from './config-helper.js';
 import ControlBase from './control-base.js';
+import ControlContent from './control-content.js';
 import IconTool from './icon-tool.js';
 import Merge from './merge.js';
 import TextTool from './text-tool.js';
@@ -258,6 +259,7 @@ export default class ControlButton extends ControlBase {
     this.active = false;
     this.contentTextTool = undefined;
     this.contentIconTool = undefined;
+    this.contentVisual = undefined;
     this.contentTextBaseStyles = undefined;
     this.contentIconBaseStyles = undefined;
     this.createButtonContentTools();
@@ -271,6 +273,9 @@ export default class ControlButton extends ControlBase {
    * chooses one completed content dictionary and controls only its inner layout.
    */
   createButtonContentTools() {
+    // Dynamic JavaScript config may rebuild the stack; release child-owned
+    // history subscriptions and timers before replacing it.
+    this.contentVisual?.disconnected();
     const contentMode = this.config.content.mode;
     const contentConfig = this.config.content[contentMode];
     const hasIcon = ['content_horizontal', 'content_vertical', 'content_icon'].includes(contentMode);
@@ -290,6 +295,34 @@ export default class ControlButton extends ControlBase {
       contentYpos += vizLine.indicator.position === 'top' ? lineSpace / 2 : -lineSpace / 2;
     }
 
+    if (contentConfig.items !== undefined) {
+      if (!['content_horizontal', 'content_vertical'].includes(contentMode)) {
+        throw Error('[controls] Explicit button content items require content_horizontal or content_vertical');
+      }
+
+      this.contentIconTool = undefined;
+      this.contentTextTool = undefined;
+      this.contentVisual = new ControlContent(
+        contentConfig,
+        contentMode === 'content_vertical' ? 'vertical' : 'horizontal',
+        {
+          xpos: this.config.xpos,
+          ypos: contentYpos,
+          width: this.config.width,
+          height: contentHeight,
+          group: this.config.group,
+        },
+        {},
+        this.entity_index,
+        `${this.id}-content`,
+        this.templates,
+        this.cardId,
+        this.card,
+      );
+      return;
+    }
+
+    this.contentVisual = undefined;
     const iconConfigPart = contentConfig.icon;
     const textConfigPart = contentMode === 'content_text' ? contentConfig : contentConfig.text;
     const iconSize = hasIcon ? (Math.min(contentWidth, contentHeight) * iconConfigPart.size) / 100 : 0;
@@ -388,6 +421,7 @@ export default class ControlButton extends ControlBase {
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
 
+    if (this.contentVisual) this.contentVisual.updateRuntimeConfig();
     if (this.contentIconTool) this.contentIconTool.updateRuntimeConfig();
     if (this.contentTextTool) this.contentTextTool.updateRuntimeConfig();
   }
@@ -404,6 +438,8 @@ export default class ControlButton extends ControlBase {
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
 
     this.active = stateMapItem.active;
+
+    if (this.contentVisual) this.contentVisual.setState(visualState, transition);
 
     if (this.contentIconTool) {
       this.contentIconTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), this.contentIconBaseStyles, {
@@ -425,8 +461,44 @@ export default class ControlButton extends ControlBase {
    */
   updated() {
     super.updated();
+    if (this.contentVisual) this.contentVisual.updated();
     if (this.contentIconTool) this.contentIconTool.updated();
     if (this.contentTextTool) this.contentTextTool.updated();
+  }
+
+  /** Forwards first-render work to explicit visual content. */
+  firstUpdated(changedProperties) {
+    super.firstUpdated(changedProperties);
+    if (this.contentVisual) this.contentVisual.firstUpdated(changedProperties);
+  }
+
+  /** Forwards initial Home Assistant availability to explicit visual content. */
+  hassAvailable() {
+    super.hassAvailable();
+    if (this.contentVisual) this.contentVisual.hassAvailable();
+  }
+
+  /** Forwards DOM connection to explicit visual content. */
+  connected() {
+    super.connected();
+    if (this.contentVisual) this.contentVisual.connected();
+  }
+
+  /** Stops timers and listeners owned by explicit visual content. */
+  disconnected() {
+    if (this.contentVisual) this.contentVisual.disconnected();
+    super.disconnected();
+  }
+
+  /** Forwards Home Assistant reconnects to explicit visual content. */
+  hassConnected() {
+    super.hassConnected();
+    if (this.contentVisual) this.contentVisual.hassConnected();
+  }
+
+  /** Includes explicit visual children in the card's update decision. */
+  requiresHassUpdate() {
+    return super.requiresHassUpdate() || (this.contentVisual && this.contentVisual.requiresHassUpdate());
   }
 
   /**
@@ -519,6 +591,7 @@ export default class ControlButton extends ControlBase {
     const control = svg`
       <g class="button-control__press">
         ${button}
+        ${this.contentVisual?.render()}
         ${this.contentIconTool?.render()}
         ${this.contentTextTool?.render()}
         <rect

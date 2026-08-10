@@ -1,4 +1,4 @@
-fhs_card_awair_interactive_v2:
+fhs_card_awair_interactive_v3:
   template:
     type: card
     defaults:
@@ -345,48 +345,68 @@ fhs_card_awair_interactive_v2:
                   top: 1
                   bottom: 4
               gap: 0.5
-              icon:
-                size: 40
-              text:
-                styles:
-                  font-size: 0.55em
+              items:
+                - id: icon
+                  type: icon
+                  size: 40
+                - id: value
+                  type: state
+                  styles:
+                    font-size: 0.7em
+                - id: status
+                  type: line
+                  length: calc(14 * awair_line_percentage)
+                  orientation: horizontal
+                  margin:
+                    top: 2
+                  show:
+                    item_style: colorstopinterpolated
+                  colorstopinterpolated:
+                    stroke: true
+                    fill: false
           option_map:
             - value: 0
-              icon:
-                entity_index: room_sensors[0]
-              text:
-                - type: state
-                  entity_index: room_sensors[0]
+              entity_index: room_sensors[0]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_score
             - value: 1
-              icon:
-                entity_index: room_sensors[1]
-              text:
-                - type: state
-                  entity_index: room_sensors[1]
+              entity_index: room_sensors[1]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_temperature
             - value: 2
-              icon:
-                entity_index: room_sensors[2]
-              text:
-                - type: state
-                  entity_index: room_sensors[2]
+              entity_index: room_sensors[2]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_humidity
             - value: 3
-              icon:
-                entity_index: room_sensors[3]
-              text:
-                - type: state
-                  entity_index: room_sensors[3]
+              entity_index: room_sensors[3]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_co2
             - value: 4
-              icon:
-                entity_index: room_sensors[4]
-              text:
-                - type: state
-                  entity_index: room_sensors[4]
+              entity_index: room_sensors[4]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_voc
             - value: 5
-              icon:
-                entity_index: room_sensors[5]
-              text:
-                - type: state
-                  entity_index: room_sensors[5]
+              entity_index: room_sensors[5]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_pm25
 
         # Duration values remain hours; only their displayed labels are localized.
         - id: duration-selector
@@ -494,65 +514,6 @@ fhs_card_awair_interactive_v2:
           same_as: room--value-1
           same_as_dxpos: calc(button_room_column_width)
           same_as_dentity_index: 1
-
-      # Sensor indicators are permanent and render above the sensor select.
-        - id: sensor--value-0
-          group: sensor-buttons
-          xpos: 10
-          ypos: 57
-          zpos: calc(zpos.controls)
-          dzpos: 1
-          length: calc(14 * awair_line_percentage)
-          orientation: horizontal
-          entity_index: room_sensors[0]
-          show:
-            item_style: colorstopinterpolated
-          colorstopinterpolated:
-            stroke: true
-            fill: false
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_score
-
-        - id: sensor--value-1
-          same_as: sensor--value-0
-          same_as_dxpos: 16
-          same_as_dentity_index: 1
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_temperature
-
-        - id: sensor--value-2
-          same_as: sensor--value-1
-          same_as_dxpos: 16
-          same_as_dentity_index: 1
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_humidity
-
-        - id: sensor--value-3
-          same_as: sensor--value-2
-          same_as_dxpos: 16
-          same_as_dentity_index: 1
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_co2
-
-        - id: sensor--value-4
-          same_as: sensor--value-3
-          same_as_dxpos: 16
-          same_as_dentity_index: 1
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_voc
-
-        - id: sensor--value-5
-          same_as: sensor--value-4
-          same_as_dxpos: 16
-          same_as_dentity_index: 1
-          color_stops:
-            template:
-              name: fhs_colorstops_awair_pm25
 
       compounds:
         # ------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import ConfigHelper from './config-helper.js';
 import ControlBase from './control-base.js';
+import ControlContent from './control-content.js';
 import IconTool from './icon-tool.js';
 import Merge from './merge.js';
 import TextTool from './text-tool.js';
@@ -230,6 +231,8 @@ export default class ControlSelect extends ControlBase {
     selectConfig.option_map = selectConfig.option_map.map((option) => Merge.mergeDeep(
       {
         tap_action: selectConfig.tap_action,
+        entity_index: selectConfig.entity_index,
+        content: {},
         text_config: {},
         icon_config: {},
       },
@@ -242,6 +245,7 @@ export default class ControlSelect extends ControlBase {
     this.selectedOptionIndex = 0;
     this.optionTextTools = [];
     this.optionIconTools = [];
+    this.optionContentVisuals = [];
     this.optionActionConfigs = [];
     this.createOptionContentTools();
     this.createControlLabelTextTool(this.config.width, this.config.height);
@@ -249,6 +253,8 @@ export default class ControlSelect extends ControlBase {
 
   /** Creates normal TextTool and IconTool instances at each segment center. */
   createOptionContentTools() {
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.disconnected());
+    this.optionContentVisuals = [];
     this.optionTextBaseStyles = [];
     this.optionIconBaseStyles = [];
     const optionCount = this.config.option_map.length;
@@ -291,6 +297,43 @@ export default class ControlSelect extends ControlBase {
         throw Error(`[controls] Invalid select indicator position '${viz.indicator.position}' [fill, top, bottom]`);
     }
     contentOffsetY += (contentPaddingTop - contentPaddingBottom) / 2;
+
+    // Each segment owns one content parent. Selection still belongs to the
+    // select entity, while option.entity_index becomes the inherited visual
+    // entity for every child in this one segment.
+    if (contentConfig.items !== undefined) {
+      this.optionTextTools = [];
+      this.optionIconTools = [];
+      const stackHeight = contentHeight + contentPaddingTop + contentPaddingBottom;
+
+      this.optionContentVisuals = this.config.option_map.map((option, optionIndex) => {
+        const centerX = horizontalControl
+          ? trackStartX + segmentWidth * (optionIndex + 0.5)
+          : this.config.xpos;
+        const centerY = horizontalControl
+          ? this.config.ypos + contentOffsetY
+          : trackStartY + segmentHeight * (optionIndex + 0.5) + contentOffsetY;
+
+        return new ControlContent(
+          contentConfig,
+          verticalContent ? 'vertical' : 'horizontal',
+          {
+            xpos: centerX,
+            ypos: centerY,
+            width: segmentWidth,
+            height: stackHeight,
+            group: this.config.group,
+          },
+          option.content,
+          option.entity_index,
+          `${this.id}-option-${optionIndex}-content`,
+          this.templates,
+          this.cardId,
+          this.card,
+        );
+      });
+      return;
+    }
 
     const optionIconSize = Math.min(contentWidth, contentHeight) * contentConfig.icon.size / 100;
     const textMaximumWidth = verticalContent
@@ -391,6 +434,7 @@ export default class ControlSelect extends ControlBase {
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
 
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.updateRuntimeConfig());
     this.optionTextTools.forEach((textTool) => textTool.updateRuntimeConfig());
     this.optionIconTools.filter((iconTool) => iconTool !== undefined)
       .forEach((iconTool) => iconTool.updateRuntimeConfig());
@@ -437,6 +481,11 @@ export default class ControlSelect extends ControlBase {
 
       return Merge.mergeDeep(option, { tap_action: tapAction });
     });
+    this.optionContentVisuals.forEach((contentVisual, optionIndex) => {
+      const optionStyle = optionIndex === this.selectedOptionIndex ? viz.selected : viz.unselected;
+      contentVisual.setState(optionStyle, transition);
+    });
+
     this.optionTextTools.forEach((textTool, optionIndex) => {
       const optionStyle = optionIndex === this.selectedOptionIndex ? viz.selected : viz.unselected;
 
@@ -464,9 +513,46 @@ export default class ControlSelect extends ControlBase {
   /** Runs child TextTool and IconTool post-render lifecycle hooks. */
   updated() {
     super.updated();
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.updated());
     this.optionTextTools.forEach((textTool) => textTool.updated());
     this.optionIconTools.filter((iconTool) => iconTool !== undefined)
       .forEach((iconTool) => iconTool.updated());
+  }
+
+  /** Forwards first-render work to segment visual content. */
+  firstUpdated(changedProperties) {
+    super.firstUpdated(changedProperties);
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.firstUpdated(changedProperties));
+  }
+
+  /** Forwards initial Home Assistant availability to segment visual content. */
+  hassAvailable() {
+    super.hassAvailable();
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.hassAvailable());
+  }
+
+  /** Forwards DOM connection to segment visual content. */
+  connected() {
+    super.connected();
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.connected());
+  }
+
+  /** Stops timers and listeners owned by segment visual content. */
+  disconnected() {
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.disconnected());
+    super.disconnected();
+  }
+
+  /** Forwards Home Assistant reconnects to segment visual content. */
+  hassConnected() {
+    super.hassConnected();
+    this.optionContentVisuals.forEach((contentVisual) => contentVisual.hassConnected());
+  }
+
+  /** Includes segment visual children in the card's update decision. */
+  requiresHassUpdate() {
+    return super.requiresHassUpdate()
+      || this.optionContentVisuals.some((contentVisual) => contentVisual.requiresHassUpdate());
   }
 
   /** Converts the select center through the normal group pipeline. */
@@ -716,7 +802,8 @@ export default class ControlSelect extends ControlBase {
     const optionContent = this.config.option_map.map((option, optionIndex) => svg`
       <g class="select-control__option-content">
         ${this.optionIconTools[optionIndex]?.render()}
-        ${this.optionTextTools[optionIndex].render()}
+        ${this.optionContentVisuals[optionIndex]?.render()}
+        ${this.optionTextTools[optionIndex]?.render()}
         <rect
           class="select-control__hit-area"
           x="${trackX + (horizontal ? optionIndex * segmentWidth : 0)}"
