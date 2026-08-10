@@ -14,7 +14,11 @@ export default class ControlSlider extends ControlBase {
   /** Completes slider configuration and creates its numeric child tools. */
   constructor(config, index, templates, cardId, card) {
     const DEFAULT_SLIDER_CONFIG = {
-      mode: 'single',
+      show: {
+        item_variant: 'single',
+        item_viz: 'linear',
+        item_style: 'ha',
+      },
       orientation: 'horizontal',
       width: 40,
       height: 10,
@@ -42,8 +46,7 @@ export default class ControlSlider extends ControlBase {
         state: { show: { uom: 'none' }, styles: {} },
         separator_config: {},
       },
-      show: { item_viz: 'ha' },
-      ha: {
+      linear: {
         track: {
           height: 8,
           radius: 4,
@@ -101,7 +104,8 @@ export default class ControlSlider extends ControlBase {
       height: 30,
       value: { position: 'center' },
     };
-    const vizConfig = config.show?.item_viz === 'circular'
+    const selectedConfig = Merge.mergeDeep(DEFAULT_SLIDER_CONFIG, config);
+    const vizConfig = selectedConfig.show.item_viz === 'circular'
       ? CIRCULAR_SLIDER_CONFIG
       : HA_SLIDER_CONFIG;
     const sliderConfig = Merge.mergeDeep(DEFAULT_SLIDER_CONFIG, vizConfig, config);
@@ -114,11 +118,14 @@ export default class ControlSlider extends ControlBase {
         * Number(sliderConfig.circular.thumb.length.slice(0, -1)) / 100;
     }
 
-    if (!['single', 'range'].includes(sliderConfig.mode)) {
-      throw Error(`[controls] Invalid slider mode '${sliderConfig.mode}' [single, range]`);
+    if (!['single', 'range'].includes(sliderConfig.show.item_variant)) {
+      throw Error(`[controls] Invalid slider item_variant '${sliderConfig.show.item_variant}' [single, range]`);
     }
-    if (!['ha', 'circular'].includes(sliderConfig.show.item_viz)) {
-      throw Error(`[controls] Invalid slider item_viz '${sliderConfig.show.item_viz}' [ha, circular]`);
+    if (!['linear', 'circular'].includes(sliderConfig.show.item_viz)) {
+      throw Error(`[controls] Invalid slider item_viz '${sliderConfig.show.item_viz}' [linear, circular]`);
+    }
+    if (sliderConfig.show.item_style !== 'ha') {
+      throw Error(`[controls] Invalid slider item_style '${sliderConfig.show.item_style}' [ha]`);
     }
     if (!['horizontal', 'vertical'].includes(sliderConfig.orientation)) {
       throw Error(`[controls] Invalid slider orientation '${sliderConfig.orientation}' [horizontal, vertical]`);
@@ -166,7 +173,7 @@ export default class ControlSlider extends ControlBase {
         });
     }
 
-    if (sliderConfig.mode === 'single') {
+    if (sliderConfig.show.item_variant === 'single') {
       sliderConfig.values = [{ entity_index: sliderConfig.entity_index, value: {} }];
     } else {
       if (!Array.isArray(sliderConfig.values) || sliderConfig.values.length !== 2) {
@@ -182,7 +189,7 @@ export default class ControlSlider extends ControlBase {
     super(sliderConfig, index, templates, cardId, card);
 
     this.config.svg = this.calculateSvgDimensions();
-    this.sliderValues = this.config.mode === 'single' ? [0] : [0, 0];
+    this.sliderValues = this.config.show.item_variant === 'single' ? [0] : [0, 0];
     this.displaySliderValues = [...this.sliderValues];
     this.sliderAvailable = false;
     this.resolvedScale = {};
@@ -230,7 +237,7 @@ export default class ControlSlider extends ControlBase {
     yposc += valueConfig.offset.y;
 
     this.valueStateTools = this.config.values.map((sliderValueConfig, valueIndex) => {
-      const valueXpos = this.config.mode === 'range'
+      const valueXpos = this.config.show.item_variant === 'range'
         ? xpos + (valueIndex === 0 ? -valueConfig.range_spacing / 2 : valueConfig.range_spacing / 2)
         : xpos;
       const stateConfig = Merge.mergeDeep(
@@ -258,7 +265,7 @@ export default class ControlSlider extends ControlBase {
       return new StateTool(stateConfig, valueIndex, this.templates, this.cardId, this.card);
     });
 
-    if (this.config.mode === 'range') {
+    if (this.config.show.item_variant === 'range') {
       this.valueSeparatorTool = new TextTool(
         Merge.mergeDeep(
           {
@@ -351,14 +358,14 @@ export default class ControlSlider extends ControlBase {
     }
 
     if (!this.dragging) {
-      if (this.config.mode === 'range' && entitySliderValues[0] > entitySliderValues[1]) {
+      if (this.config.show.item_variant === 'range' && entitySliderValues[0] > entitySliderValues[1]) {
         throw Error('[controls] Slider lower value must not exceed its upper value');
       }
 
       const startDisplayValues = [...this.displaySliderValues];
       this.sliderValues = entitySliderValues;
 
-      if (this.config.mode === 'range'
+      if (this.config.show.item_variant === 'range'
         && sliderWasAvailable
         && this.config.animation.duration > 0
         && this.sliderValues.some(
@@ -476,7 +483,7 @@ export default class ControlSlider extends ControlBase {
     const geometry = this.getSliderGeometry();
     let ratio;
 
-    if (this.config.show.item_viz === 'ha') {
+    if (this.config.show.item_viz === 'linear') {
       ratio = this.config.orientation === 'horizontal'
         ? (point.x - geometry.startX) / geometry.length
         : (geometry.startY - point.y) / geometry.length;
@@ -517,7 +524,7 @@ export default class ControlSlider extends ControlBase {
     this.displaySliderValues = [...this.sliderValues];
     const pointerValue = this.svgPointToSliderValue(this.pointerEventToSvgPoint(event));
 
-    if (this.config.mode === 'range' && requestedValueIndex === undefined) {
+    if (this.config.show.item_variant === 'range' && requestedValueIndex === undefined) {
       const lowerDistance = Math.abs(pointerValue - this.sliderValues[0]);
       const upperDistance = Math.abs(pointerValue - this.sliderValues[1]);
       if (lowerDistance < upperDistance) this.activeValueIndex = 0;
@@ -546,7 +553,7 @@ export default class ControlSlider extends ControlBase {
   /** Applies one transient value while preventing range thumbs from crossing. */
   applySliderPointerValue(pointerValue) {
     let nextValue = pointerValue;
-    if (this.config.mode === 'range') {
+    if (this.config.show.item_variant === 'range') {
       nextValue = this.activeValueIndex === 0
         ? Math.min(nextValue, this.sliderValues[1])
         : Math.max(nextValue, this.sliderValues[0]);
@@ -672,7 +679,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders one accessible linear thumb hit-area and visible marker. */
   renderLinearThumb(valueIndex, coordinate, geometry, showMarker) {
-    const viz = this.config.ha;
+    const viz = this.config.linear;
     const horizontal = this.config.orientation === 'horizontal';
     const hitSize = Utils.calculateSvgDimension(viz.thumb.hit_size);
     const thumbWidth = Utils.calculateSvgDimension(
@@ -715,7 +722,7 @@ export default class ControlSlider extends ControlBase {
   /** Renders the broad linear Home Assistant slider. */
   renderHaSlider() {
     const geometry = this.getSliderGeometry();
-    const viz = this.config.ha;
+    const viz = this.config.linear;
     const horizontal = this.config.orientation === 'horizontal';
     const trackThickness = Utils.calculateSvgDimension(viz.track.height);
     const trackRadius = Utils.calculateSvgDimension(viz.track.radius);
@@ -726,7 +733,7 @@ export default class ControlSlider extends ControlBase {
       horizontal ? viz.thumb.height : viz.thumb.width,
     );
     const thumbMargin = Utils.calculateSvgDimension(viz.thumb.margin);
-    const startRatio = this.config.mode === 'range'
+    const startRatio = this.config.show.item_variant === 'range'
       ? this.sliderValueToRatio(this.displaySliderValues[0])
       : 0;
     const endRatio = this.sliderValueToRatio(
@@ -784,7 +791,7 @@ export default class ControlSlider extends ControlBase {
           fill="transparent" style="touch-action:none;cursor:pointer;"
           @pointerdown=${(event) => this.startSliderPointer(event, undefined)}
         />
-        ${this.config.mode === 'single' ? svg`
+        ${this.config.show.item_variant === 'single' ? svg`
           <g clip-path="url(#${clipId})">
             <g style="transform-box:fill-box;transform:${movingTransform};transition:${transition};">
               <rect x=${trackX} y=${trackY} width=${trackWidth} height=${trackHeight}
@@ -827,7 +834,7 @@ export default class ControlSlider extends ControlBase {
   renderCircularSlider() {
     const geometry = this.getSliderGeometry();
     const viz = this.config.circular;
-    const lowerRatio = this.config.mode === 'range'
+    const lowerRatio = this.config.show.item_variant === 'range'
       ? this.sliderValueToRatio(this.displaySliderValues[0])
       : 0;
     const upperRatio = this.sliderValueToRatio(
@@ -883,7 +890,7 @@ export default class ControlSlider extends ControlBase {
       <g id="${this.cardId}-${this.id}-slider" class="slider-control"
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}">
-        ${this.config.show.item_viz === 'ha'
+        ${this.config.show.item_viz === 'linear'
           ? this.renderHaSlider()
           : this.renderCircularSlider()}
       </g>

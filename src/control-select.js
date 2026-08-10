@@ -48,7 +48,9 @@ export default class ControlSelect extends ControlBase {
         },
       },
       show: {
+        item_variant: 'segmented',
         item_viz: 'viz_button',
+        item_style: 'filled_round',
         separator: true,
       },
       viz_button: {
@@ -120,7 +122,67 @@ export default class ControlSelect extends ControlBase {
         },
       },
     };
-    const selectConfig = Merge.mergeDeep(DEFAULT_SELECT_CONFIG, config);
+    const SELECT_SURFACE_PRESETS = {
+      filled: {
+        background: { styles: { fill: 'var(--secondary-background-color)', stroke: 'none' } },
+        viz_button: {
+          background: { styles: { fill: 'var(--secondary-background-color)', stroke: 'none' } },
+          indicator: { styles: { fill: 'var(--primary-color)', stroke: 'none' } },
+        },
+        viz_line: {
+          background: { styles: { fill: 'var(--secondary-background-color)', stroke: 'none' } },
+          indicator: { styles: { fill: 'var(--primary-color)', stroke: 'none' } },
+        },
+      },
+      outlined: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+        viz_button: {
+          background: { styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 } },
+          track: { styles: { fill: 'transparent' } },
+          indicator: {
+            styles: { fill: 'var(--primary-color)', stroke: 'none' },
+          },
+          selected: {
+            background: { styles: { fill: 'transparent' } },
+            icon: { styles: { fill: 'var(--primary-background-color)' } },
+            text: { styles: { fill: 'var(--primary-background-color)' } },
+          },
+        },
+        viz_line: {
+          background: { styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 } },
+          track: { styles: { fill: 'transparent' } },
+          indicator: { styles: { fill: 'var(--primary-color)', stroke: 'none' } },
+        },
+      },
+    };
+    const SELECT_SHAPE_PRESETS = {
+      round: { background: { radius: 5 } },
+      square: { background: { radius: 2 } },
+    };
+    const SELECT_STYLE_PRESETS = {
+      filled_round: Merge.mergeDeep(SELECT_SURFACE_PRESETS.filled, SELECT_SHAPE_PRESETS.round),
+      filled_square: Merge.mergeDeep(SELECT_SURFACE_PRESETS.filled, SELECT_SHAPE_PRESETS.square),
+      outlined_round: Merge.mergeDeep(SELECT_SURFACE_PRESETS.outlined, SELECT_SHAPE_PRESETS.round),
+      outlined_square: Merge.mergeDeep(SELECT_SURFACE_PRESETS.outlined, SELECT_SHAPE_PRESETS.square),
+    };
+    const selectedConfig = Merge.mergeDeep(DEFAULT_SELECT_CONFIG, config);
+    if (selectedConfig.show.item_variant !== 'segmented') {
+      throw Error(`[controls] Invalid select item_variant '${selectedConfig.show.item_variant}' [segmented]`);
+    }
+    if (!['viz_button', 'viz_line'].includes(selectedConfig.show.item_viz)) {
+      throw Error(`[controls] Invalid select item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`);
+    }
+    if (!Object.hasOwn(SELECT_STYLE_PRESETS, selectedConfig.show.item_style)) {
+      throw Error(`[controls] Invalid select item_style '${selectedConfig.show.item_style}' [${Object.keys(SELECT_STYLE_PRESETS).join(', ')}]`);
+    }
+
+    const selectConfig = Merge.mergeDeep(
+      DEFAULT_SELECT_CONFIG,
+      SELECT_STYLE_PRESETS[selectedConfig.show.item_style],
+      config,
+    );
     const selectedVizName = selectConfig.show.item_viz;
 
     // A named visualization inherits the complete button visualization before
@@ -129,7 +191,7 @@ export default class ControlSelect extends ControlBase {
       DEFAULT_SELECT_CONFIG.viz_button,
       selectConfig[selectedVizName],
     );
-    const selectedIndicatorPadding = selectConfig[selectedVizName].indicator.padding;
+    let selectedIndicatorPadding = selectConfig[selectedVizName].indicator.padding;
 
     // Normalize the previous scalar padding once at the configuration boundary.
     if (typeof selectedIndicatorPadding === 'number') {
@@ -138,6 +200,33 @@ export default class ControlSelect extends ControlBase {
         y: selectedIndicatorPadding,
       };
     }
+    selectedIndicatorPadding = selectConfig[selectedVizName].indicator.padding;
+    if (typeof selectedIndicatorPadding.y === 'number') {
+      selectedIndicatorPadding.y = {
+        top: selectedIndicatorPadding.y,
+        bottom: selectedIndicatorPadding.y,
+      };
+    }
+    // Match the visible outer inset unless YAML explicitly overrides separator x.
+    selectConfig.separator.padding = Merge.mergeDeep(
+      selectConfig.separator.padding,
+      { x: selectConfig.track.padding.x + selectedIndicatorPadding.x },
+      config.separator?.padding ?? {},
+    );
+
+    // Content accepts the existing symmetric y shorthand or independent top
+    // and bottom padding. Normalize both content modes once at construction.
+    ['content_vertical', 'content_horizontal'].forEach((contentMode) => {
+      const contentPadding = selectConfig.content[contentMode].padding;
+
+      if (typeof contentPadding.y === 'number') {
+        contentPadding.y = {
+          top: contentPadding.y,
+          bottom: contentPadding.y,
+        };
+      }
+    });
+
     selectConfig.option_map = selectConfig.option_map.map((option) => Merge.mergeDeep(
       {
         tap_action: selectConfig.tap_action,
@@ -173,6 +262,10 @@ export default class ControlSelect extends ControlBase {
     const trackStartY = this.config.ypos - trackHeight / 2;
     const contentConfig = this.config.content[this.config.content.mode];
     const viz = this.config[this.config.show.item_viz];
+    const contentPaddingTop = contentConfig.padding.y.top;
+    const contentPaddingBottom = contentConfig.padding.y.bottom;
+    const indicatorPaddingTop = viz.indicator.padding.y.top;
+    const indicatorPaddingBottom = viz.indicator.padding.y.bottom;
     let contentWidth;
     let contentHeight;
     let contentOffsetY = 0;
@@ -181,22 +274,23 @@ export default class ControlSelect extends ControlBase {
     // only its own thickness and vertical padding on that side.
     switch (viz.indicator.position) {
       case 'fill':
-        contentWidth = segmentWidth - viz.indicator.padding.x * 2 - contentConfig.padding.x * 2;
-        contentHeight = segmentHeight - viz.indicator.padding.y * 2 - contentConfig.padding.y * 2;
+        contentWidth = segmentWidth - contentConfig.padding.x * 2;
+        contentHeight = segmentHeight - contentPaddingTop - contentPaddingBottom;
         break;
       case 'top':
         contentWidth = segmentWidth - contentConfig.padding.x * 2;
-        contentHeight = segmentHeight - viz.indicator.thickness - viz.indicator.padding.y - contentConfig.padding.y * 2;
-        contentOffsetY = (viz.indicator.thickness + viz.indicator.padding.y) / 2;
+        contentHeight = segmentHeight - viz.indicator.thickness - indicatorPaddingTop - contentPaddingTop - contentPaddingBottom;
+        contentOffsetY = (viz.indicator.thickness + indicatorPaddingTop) / 2;
         break;
       case 'bottom':
         contentWidth = segmentWidth - contentConfig.padding.x * 2;
-        contentHeight = segmentHeight - viz.indicator.thickness - viz.indicator.padding.y - contentConfig.padding.y * 2;
-        contentOffsetY = -(viz.indicator.thickness + viz.indicator.padding.y) / 2;
+        contentHeight = segmentHeight - viz.indicator.thickness - indicatorPaddingBottom - contentPaddingTop - contentPaddingBottom;
+        contentOffsetY = -(viz.indicator.thickness + indicatorPaddingBottom) / 2;
         break;
       default:
         throw Error(`[controls] Invalid select indicator position '${viz.indicator.position}' [fill, top, bottom]`);
     }
+    contentOffsetY += (contentPaddingTop - contentPaddingBottom) / 2;
 
     const optionIconSize = Math.min(contentWidth, contentHeight) * contentConfig.icon.size / 100;
     const textMaximumWidth = verticalContent
@@ -248,6 +342,10 @@ export default class ControlSelect extends ControlBase {
     this.optionIconTools = this.config.option_map.map((option, optionIndex) => {
       if (option.icon === undefined) return undefined;
 
+      const optionIconConfig = typeof option.icon === 'string'
+        ? { icon: option.icon }
+        : option.icon;
+
       const centerX = horizontalControl
         ? trackStartX + segmentWidth * (optionIndex + 0.5)
         : this.config.xpos;
@@ -268,11 +366,11 @@ export default class ControlSelect extends ControlBase {
           xpos: iconXpos,
           yposc: iconYpos,
           icon_size_percent: optionIconSize,
-          icon: option.icon,
           tap_action: { action: 'none' },
           styles: { 'pointer-events': 'none' },
         },
         contentConfig.icon,
+        optionIconConfig,
         option.icon_config,
         { tap_action: { action: 'none' } },
       );
@@ -359,7 +457,7 @@ export default class ControlSelect extends ControlBase {
         ConfigHelper.toStyleDict(this.optionIconBaseStyles[optionIndex]),
         { transition: `fill ${transition}, color ${transition}, opacity ${transition}` },
       );
-      iconTool.setState(entity, entityConfig);
+      this.card._setToolEntityState(iconTool);
     });
   }
 
@@ -410,31 +508,110 @@ export default class ControlSelect extends ControlBase {
     const trackX = this.config.svg.xpos - trackWidth / 2;
     const trackY = this.config.svg.ypos - trackHeight / 2;
     const indicatorPaddingX = Utils.calculateSvgDimension(viz.indicator.padding.x);
-    const indicatorPaddingY = Utils.calculateSvgDimension(viz.indicator.padding.y);
+    const indicatorPaddingTop = Utils.calculateSvgDimension(viz.indicator.padding.y.top);
+    const indicatorPaddingBottom = Utils.calculateSvgDimension(viz.indicator.padding.y.bottom);
+    const separatorPaddingX = Utils.calculateSvgDimension(this.config.separator.padding.x);
+    const separatorStrokeWidth = Utils.calculateSvgDimension(this.config.separator.styles['stroke-width']);
+
+    // A separator is centered on the segment boundary. Add half its stroke to
+    // internal indicator sides so their visible gap equals the outer x inset.
+    const indicatorLeftPadding = horizontal && this.selectedOptionIndex > 0
+      ? separatorPaddingX + separatorStrokeWidth / 2
+      : indicatorPaddingX;
+    const indicatorRightPadding = horizontal && this.selectedOptionIndex < optionCount - 1
+      ? separatorPaddingX + separatorStrokeWidth / 2
+      : indicatorPaddingX;
 
     const indicatorThickness = Utils.calculateSvgDimension(viz.indicator.thickness);
-    const indicatorX = trackX + indicatorPaddingX;
+    const indicatorX = trackX + indicatorLeftPadding;
     let indicatorY;
-    const indicatorWidth = segmentWidth - indicatorPaddingX * 2;
+    const indicatorWidth = segmentWidth - indicatorLeftPadding - indicatorRightPadding;
     let indicatorHeight;
 
     // Indicator geometry is entirely selected by the active visualization preset.
     switch (viz.indicator.position) {
       case 'fill':
-        indicatorY = trackY + indicatorPaddingY;
-        indicatorHeight = segmentHeight - indicatorPaddingY * 2;
+        indicatorY = trackY + indicatorPaddingTop;
+        indicatorHeight = segmentHeight - indicatorPaddingTop - indicatorPaddingBottom;
         break;
       case 'top':
-        indicatorY = trackY + indicatorPaddingY;
+        indicatorY = trackY + indicatorPaddingTop;
         indicatorHeight = indicatorThickness;
         break;
       case 'bottom':
-        indicatorY = trackY + segmentHeight - indicatorPaddingY - indicatorThickness;
+        indicatorY = trackY + segmentHeight - indicatorPaddingBottom - indicatorThickness;
         indicatorHeight = indicatorThickness;
         break;
       default:
         throw Error(`[controls] Invalid select indicator position '${viz.indicator.position}' [fill, top, bottom]`);
     }
+
+    // The first and last button corners run concentrically with the outer
+    // background. Separate x/y radii account for the indicator inset.
+    const backgroundX = this.config.svg.xpos - backgroundWidth / 2;
+    const backgroundY = this.config.svg.ypos - backgroundHeight / 2;
+    const indicatorRadius = Utils.calculateSvgDimension(viz.indicator.radius);
+    const backgroundRadius = Math.min(
+      Utils.calculateSvgDimension(this.config.background.radius),
+      backgroundWidth / 2,
+      backgroundHeight / 2,
+    );
+    const edgeRadius = Math.min(
+      backgroundRadius - Math.max(trackX + indicatorPaddingX - backgroundX, indicatorY - backgroundY),
+      indicatorWidth / 2,
+      indicatorHeight / 2,
+    );
+    let topLeftRadiusX = indicatorRadius;
+    let topLeftRadiusY = indicatorRadius;
+    let topRightRadiusX = indicatorRadius;
+    let topRightRadiusY = indicatorRadius;
+    let bottomRightRadiusX = indicatorRadius;
+    let bottomRightRadiusY = indicatorRadius;
+    let bottomLeftRadiusX = indicatorRadius;
+    let bottomLeftRadiusY = indicatorRadius;
+
+    if (this.config.show.item_viz === 'viz_button') {
+      if (horizontal) {
+        if (this.selectedOptionIndex === 0) {
+          topLeftRadiusX = edgeRadius;
+          topLeftRadiusY = edgeRadius;
+          bottomLeftRadiusX = edgeRadius;
+          bottomLeftRadiusY = edgeRadius;
+        }
+        if (this.selectedOptionIndex === optionCount - 1) {
+          topRightRadiusX = edgeRadius;
+          topRightRadiusY = edgeRadius;
+          bottomRightRadiusX = edgeRadius;
+          bottomRightRadiusY = edgeRadius;
+        }
+      } else {
+        if (this.selectedOptionIndex === 0) {
+          topLeftRadiusX = edgeRadius;
+          topLeftRadiusY = edgeRadius;
+          topRightRadiusX = edgeRadius;
+          topRightRadiusY = edgeRadius;
+        }
+        if (this.selectedOptionIndex === optionCount - 1) {
+          bottomLeftRadiusX = edgeRadius;
+          bottomLeftRadiusY = edgeRadius;
+          bottomRightRadiusX = edgeRadius;
+          bottomRightRadiusY = edgeRadius;
+        }
+      }
+    }
+
+    const indicatorPath = `
+      M ${indicatorX + topLeftRadiusX} ${indicatorY}
+      H ${indicatorX + indicatorWidth - topRightRadiusX}
+      A ${topRightRadiusX} ${topRightRadiusY} 0 0 1 ${indicatorX + indicatorWidth} ${indicatorY + topRightRadiusY}
+      V ${indicatorY + indicatorHeight - bottomRightRadiusY}
+      A ${bottomRightRadiusX} ${bottomRightRadiusY} 0 0 1 ${indicatorX + indicatorWidth - bottomRightRadiusX} ${indicatorY + indicatorHeight}
+      H ${indicatorX + bottomLeftRadiusX}
+      A ${bottomLeftRadiusX} ${bottomLeftRadiusY} 0 0 1 ${indicatorX} ${indicatorY + indicatorHeight - bottomLeftRadiusY}
+      V ${indicatorY + topLeftRadiusY}
+      A ${topLeftRadiusX} ${topLeftRadiusY} 0 0 1 ${indicatorX + topLeftRadiusX} ${indicatorY}
+      Z
+    `;
     const indicatorTranslateX = horizontal && this.selectedOptionIndex >= 0 ? this.selectedOptionIndex * segmentWidth : 0;
     const indicatorTranslateY = !horizontal && this.selectedOptionIndex >= 0 ? this.selectedOptionIndex * segmentHeight : 0;
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
@@ -450,7 +627,6 @@ export default class ControlSelect extends ControlBase {
       ConfigHelper.toStyleDict(viz.indicator.styles),
       { transition: `fill ${transition}, stroke ${transition}, opacity ${transition}` },
     ));
-    const separatorPaddingX = Utils.calculateSvgDimension(this.config.separator.padding.x);
     const separatorPaddingY = Utils.calculateSvgDimension(this.config.separator.padding.y);
     const separatorStyles = this.getStyles(Merge.mergeDeep(
       ConfigHelper.toStyleDict(this.config.separator.styles),
@@ -471,8 +647,8 @@ export default class ControlSelect extends ControlBase {
       >
         <rect
           class="select-control__background"
-          x="${this.config.svg.xpos - backgroundWidth / 2}"
-          y="${this.config.svg.ypos - backgroundHeight / 2}"
+          x="${backgroundX}"
+          y="${backgroundY}"
           width="${backgroundWidth}"
           height="${backgroundHeight}"
           rx="${Utils.calculateSvgDimension(this.config.background.radius)}"
@@ -507,13 +683,9 @@ export default class ControlSelect extends ControlBase {
           class="select-control__indicator-position"
           style=${styleMap(indicatorPositionStyles)}
         >
-          <rect
+          <path
             class="select-control__indicator"
-            x="${indicatorX}"
-            y="${indicatorY}"
-            width="${indicatorWidth}"
-            height="${indicatorHeight}"
-            rx="${Utils.calculateSvgDimension(viz.indicator.radius)}"
+            d="${indicatorPath}"
             style=${styleMap(indicatorStyles)}
           />
         </g>

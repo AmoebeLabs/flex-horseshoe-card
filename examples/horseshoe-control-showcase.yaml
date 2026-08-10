@@ -1,4 +1,4 @@
-fhs_showcase_horseshoe:
+fhs_showcase_horseshoe_v2:
   template:
     type: card
     defaults:
@@ -405,6 +405,8 @@ fhs_showcase_horseshoe:
           ypos: calc(ypos_row_3)
           width: 72
           height: 9
+          show:
+            item_style: outlined_round
           label:
             position: start
             gap: 3
@@ -455,6 +457,8 @@ fhs_showcase_horseshoe:
           ypos: calc(ypos_row_5)
           width: 24
           height: 8
+          show:
+            item_style: outlined_round
           label:
             position: start
             gap: 3

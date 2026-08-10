@@ -24,8 +24,13 @@ export default class ControlToggle extends ControlBase {
     const DEFAULT_TOGGLE_CONFIG = {
       orientation: 'horizontal',
       show: {
-        item_viz: 'ha',
+        item_variant: 'switch',
+        item_viz: 'default',
+        item_style: 'ha',
       },
+      ha: {},
+      ios: {},
+      industrial: {},
       tap_action: {
         action: 'toggle',
       },
@@ -140,8 +145,8 @@ export default class ControlToggle extends ControlBase {
     this.config.svg = this.calculateSvgDimensions();
     this.createThumbIconTool();
     this.createControlLabelTextTool(
-      this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_viz].svgVbW) / this.config[this.config.show.item_viz].svgVbH : this.config.width,
-      this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_viz].svgVbH) / this.config[this.config.show.item_viz].svgVbW,
+      this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
+      this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_style].svgVbH) / this.config[this.config.show.item_style].svgVbW,
     );
   }
 
@@ -268,95 +273,74 @@ export default class ControlToggle extends ControlBase {
       },
     };
 
-    // 1. Pak de naam van de actieve stijl (bijv. 'whatever' of 'ha')
-    const vizName = config.show.item_viz;
-
-    // 2. Als config[vizName] nog niet bestaat in de YAML (bijv. bij een standaard preset),
-    // dan maken we hem nu leeg aan zodat we er waarden in kunnen schrijven.
-    if (!config[vizName]) {
-      config[vizName] = {};
+    if (config.show.item_variant !== 'switch') {
+      throw Error(`[controls] Invalid toggle item_variant '${config.show.item_variant}' [switch]`);
+    }
+    if (config.show.item_viz !== 'default') {
+      throw Error(`[controls] Invalid toggle item_viz '${config.show.item_viz}' [default]`);
+    }
+    if (!Object.hasOwn(SWITCH_STYLES, config.show.item_style)) {
+      throw Error(`[controls] Invalid toggle item_style '${config.show.item_style}' [${Object.keys(SWITCH_STYLES).join(', ')}]`);
     }
 
-    const customYaml = config[vizName];
-
-    // 3. De juiste base-bepaling:
-    // Kijk welke 'base' IN het stijl-object gedefinieerd staat (customYaml.base).
-    // Als die er niet is, is de stijlnaam zelf de basis (bijv. 'ios'). Fallback is 'ha'.
-    const baseName = customYaml.base || (SWITCH_STYLES[vizName] ? vizName : 'ha');
-    const chosenBase = SWITCH_STYLES[baseName] || SWITCH_STYLES.ha;
-
+    const styleName = config.show.item_style;
     const isVertical = config.orientation === 'vertical';
 
-    // 4. Voer de diepe merge uit direct IN het config[vizName] object!
-    // We starten met de hardcoded basismal, mergen wat er al in customYaml stond,
-    // en tot slot eventuele losse root-overrides. Everything merges into config[vizName].
-    config[vizName] = Merge.mergeDeep(config[vizName], chosenBase, customYaml);
+    // The selected internal style is completed first; explicit YAML remains final.
+    config[styleName] = Merge.mergeDeep(SWITCH_STYLES[styleName], config[styleName]);
 
-    // config[vizName] = Merge.mergeDeep(config[vizName], chosenBase, customYaml, {
-    //   xOn: config[vizName].xOn,
-    //   xOff: config[vizName].xOff,
-    //   knobY: config[vizName].knobY,
-    //   knobW: config[vizName].knobW,
-    //   knobH: config[vizName].knobH,
-    //   knobRx: config[vizName].knobRx,
-    //   trackY: config[vizName].trackY,
-    //   trackH: config[vizName].trackH,
-    //   trackRx: config[vizName].trackRx,
-    // });
+    // Calculate the selected style geometry once before rendering.
+    const posStatic = config[styleName].knobY;
+    const trackW = isVertical ? config[styleName].trackH : config[styleName].vbW;
+    const trackH = isVertical ? config[styleName].vbW : config[styleName].trackH;
 
-    // 5. Bereken alle statische maten direct binnen config[vizName]
-    const posStatic = config[vizName].knobY;
-    const trackW = isVertical ? config[vizName].trackH : config[vizName].vbW;
-    const trackH = isVertical ? config[vizName].vbW : config[vizName].trackH;
+    // Store completed geometry and state styles in the active style config.
+    if (config[styleName].shadow !== undefined) {
+      config[styleName].shadow.id = `${this.cardId}-${this.id}-toggle-shadow`;
+      const shadowFilter = { filter: `url(#${config[styleName].shadow.id})` };
 
-    // 6. Schrijf alle berekende layout-waarden direct weg in config[vizName]
-    if (config[vizName].shadow !== undefined) {
-      config[vizName].shadow.id = `${this.cardId}-${this.id}-toggle-shadow`;
-      const shadowFilter = { filter: `url(#${config[vizName].shadow.id})` };
-
-      config[vizName].checked.thumb.styles = Merge.mergeDeep(config[vizName].checked.thumb.styles, shadowFilter);
-      config[vizName].unchecked.thumb.styles = Merge.mergeDeep(config[vizName].unchecked.thumb.styles, shadowFilter);
+      config[styleName].checked.thumb.styles = Merge.mergeDeep(config[styleName].checked.thumb.styles, shadowFilter);
+      config[styleName].unchecked.thumb.styles = Merge.mergeDeep(config[styleName].unchecked.thumb.styles, shadowFilter);
     }
-    config[vizName].svgVbW = isVertical ? config[vizName].vbH : config[vizName].vbW;
-    config[vizName].svgVbH = isVertical ? config[vizName].vbW : config[vizName].vbH;
+    config[styleName].svgVbW = isVertical ? config[styleName].vbH : config[styleName].vbW;
+    config[styleName].svgVbH = isVertical ? config[styleName].vbW : config[styleName].vbH;
 
-    config[vizName].renderTrackX = isVertical ? config[vizName].trackY : 0;
-    config[vizName].renderTrackY = isVertical ? 0 : config[vizName].trackY;
-    config[vizName].renderTrackWidth = trackW;
-    config[vizName].renderTrackHeight = trackH;
+    config[styleName].renderTrackX = isVertical ? config[styleName].trackY : 0;
+    config[styleName].renderTrackY = isVertical ? 0 : config[styleName].trackY;
+    config[styleName].renderTrackWidth = trackW;
+    config[styleName].renderTrackHeight = trackH;
 
-    // 7. Bouw de runtime objecten (on/off) op binnen config[vizName] voor Lit's styleMap
-    config[vizName].on = {
-      knobX: isVertical ? posStatic : config[vizName].xOn,
-      knobY: isVertical ? config[vizName].xOn : posStatic,
-      trackStyles: config[vizName].checked?.track?.styles || {},
-      thumbStyles: config[vizName].checked?.thumb?.styles || {},
-      iconStyles: config[vizName].checked?.icon?.styles || {},
+    config[styleName].on = {
+      knobX: isVertical ? posStatic : config[styleName].xOn,
+      knobY: isVertical ? config[styleName].xOn : posStatic,
+      trackStyles: config[styleName].checked.track.styles,
+      thumbStyles: config[styleName].checked.thumb.styles,
+      iconStyles: config[styleName].checked.icon.styles,
     };
 
-    config[vizName].off = {
-      knobX: isVertical ? posStatic : config[vizName].xOff,
-      knobY: isVertical ? config[vizName].xOff : posStatic,
-      trackStyles: config[vizName].unchecked?.track?.styles || {},
-      thumbStyles: config[vizName].unchecked?.thumb?.styles || {},
-      iconStyles: config[vizName].unchecked?.icon?.styles || {},
+    config[styleName].off = {
+      knobX: isVertical ? posStatic : config[styleName].xOff,
+      knobY: isVertical ? config[styleName].xOff : posStatic,
+      trackStyles: config[styleName].unchecked.track.styles,
+      thumbStyles: config[styleName].unchecked.thumb.styles,
+      iconStyles: config[styleName].unchecked.icon.styles,
     };
 
-    if (config[vizName].icon) {
+    if (config[styleName].icon) {
       // Bereken hoeveel procent van de knop het icoon mag innemen (bijv. 65%)
       const iconCoverage = 0.65;
 
       // 1. Bereken de dynamische schaalfactor op basis van de huidige knopgrootte
-      const iconScale = (config[vizName].knobW * iconCoverage) / 24;
+      const iconScale = (config[styleName].knobW * iconCoverage) / 24;
 
       // 2. Bereken de exacte verschuiving om het icoon perfect te centreren binnen deze specifieke knop
-      const iconTranslateX = (config[vizName].knobW - 24 * iconScale) / 2 / iconScale;
-      const iconTranslateY = (config[vizName].knobH - 24 * iconScale) / 2 / iconScale;
+      const iconTranslateX = (config[styleName].knobW - 24 * iconScale) / 2 / iconScale;
+      const iconTranslateY = (config[styleName].knobH - 24 * iconScale) / 2 / iconScale;
 
       // 3. Sla de kant-en-klare transformatie-string op in de config
-      config[vizName].iconTransform = `scale(${iconScale}) translate(${iconTranslateX} ${iconTranslateY})`;
+      config[styleName].iconTransform = `scale(${iconScale}) translate(${iconTranslateX} ${iconTranslateY})`;
     } else {
-      config[vizName].iconTransform = '';
+      config[styleName].iconTransform = '';
     }
     return config;
   }
@@ -381,8 +365,8 @@ export default class ControlToggle extends ControlBase {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createThumbIconTool();
       this.createControlLabelTextTool(
-        this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_viz].svgVbW) / this.config[this.config.show.item_viz].svgVbH : this.config.width,
-        this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_viz].svgVbH) / this.config[this.config.show.item_viz].svgVbW,
+        this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
+        this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_style].svgVbH) / this.config[this.config.show.item_style].svgVbW,
       );
     }
   }
@@ -412,7 +396,7 @@ export default class ControlToggle extends ControlBase {
 
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
-    const viz = config[config.show.item_viz];
+    const viz = config[config.show.item_style];
 
     const configuredSize = Utils.calculateSvgDimension(config.width);
     svgDimensions.width = config.orientation === 'vertical' ? (configuredSize * viz.svgVbW) / viz.svgVbH : configuredSize;
@@ -505,10 +489,10 @@ export default class ControlToggle extends ControlBase {
    */
 
   _renderToggle() {
-    const vizName = this.config.show.item_viz;
+    const styleName = this.config.show.item_style;
     const itemConfig = this.config;
     const isOn = this.entity.state === 'on';
-    const viz = this.config[vizName];
+    const viz = this.config[styleName];
     const runtime = isOn ? viz.on : viz.off;
     const transition = `${this.config.animation.duration}ms ${this.config.animation.easing}`;
 

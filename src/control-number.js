@@ -14,6 +14,11 @@ export default class ControlNumber extends ControlBase {
   constructor(config, index, templates, cardId, card) {
     const ICON_SIZE_PERCENTAGE = 75;
     const DEFAULT_NUMBER_CONFIG = {
+      show: {
+        item_variant: 'stepper',
+        item_viz: 'buttons',
+        item_style: 'filled_square',
+      },
       orientation: 'horizontal',
       width: 30,
       height: 10,
@@ -136,6 +141,64 @@ export default class ControlNumber extends ControlBase {
         },
       },
     };
+    const NUMBER_SURFACE_PRESETS = {
+      filled: {
+        background: { styles: { fill: 'var(--secondary-background-color)', stroke: 'none' } },
+        content: {
+          content_horizontal: {
+            minus: { background: { styles: { fill: 'var(--card-background-color)', stroke: 'none' } } },
+            plus: { background: { styles: { fill: 'var(--card-background-color)', stroke: 'none' } } },
+          },
+          content_vertical: {
+            minus: { background: { styles: { fill: 'var(--card-background-color)', stroke: 'none' } } },
+            plus: { background: { styles: { fill: 'var(--card-background-color)', stroke: 'none' } } },
+          },
+        },
+      },
+      outlined: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+        content: {
+          content_horizontal: {
+            minus: {
+              background: { styles: { fill: 'transparent', stroke: 'none' } },
+              content_text: { styles: { fill: 'var(--primary-text-color)' } },
+              content_icon: { icon: { styles: { fill: 'var(--primary-text-color)' } } },
+            },
+            value: { styles: { fill: 'var(--primary-text-color)' } },
+            plus: {
+              background: { styles: { fill: 'transparent', stroke: 'none' } },
+              content_text: { styles: { fill: 'var(--primary-text-color)' } },
+              content_icon: { icon: { styles: { fill: 'var(--primary-text-color)' } } },
+            },
+          },
+          content_vertical: {
+            minus: {
+              background: { styles: { fill: 'transparent', stroke: 'none' } },
+              content_text: { styles: { fill: 'var(--primary-text-color)' } },
+              content_icon: { icon: { styles: { fill: 'var(--primary-text-color)' } } },
+            },
+            value: { styles: { fill: 'var(--primary-text-color)' } },
+            plus: {
+              background: { styles: { fill: 'transparent', stroke: 'none' } },
+              content_text: { styles: { fill: 'var(--primary-text-color)' } },
+              content_icon: { icon: { styles: { fill: 'var(--primary-text-color)' } } },
+            },
+          },
+        },
+      },
+    };
+    const NUMBER_SHAPE_PRESETS = {
+      round: { background: { radius: 5 } },
+      square: { background: { radius: 2 } },
+    };
+    const NUMBER_STYLE_PRESETS = {
+      filled_round: Merge.mergeDeep(NUMBER_SURFACE_PRESETS.filled, NUMBER_SHAPE_PRESETS.round),
+      filled_square: Merge.mergeDeep(NUMBER_SURFACE_PRESETS.filled, NUMBER_SHAPE_PRESETS.square),
+      outlined_round: Merge.mergeDeep(NUMBER_SURFACE_PRESETS.outlined, NUMBER_SHAPE_PRESETS.round),
+      outlined_square: Merge.mergeDeep(NUMBER_SURFACE_PRESETS.outlined, NUMBER_SHAPE_PRESETS.square),
+    };
 
     const normalizedConfig = Merge.mergeDeep({}, config);
 
@@ -155,8 +218,24 @@ export default class ControlNumber extends ControlBase {
       }
     });
 
-    const orientationConfig = normalizedConfig.orientation === 'vertical' ? VERTICAL_NUMBER_CONFIG : HORIZONTAL_NUMBER_CONFIG;
-    const numberConfig = Merge.mergeDeep(DEFAULT_NUMBER_CONFIG, orientationConfig, normalizedConfig);
+    const selectedConfig = Merge.mergeDeep(DEFAULT_NUMBER_CONFIG, normalizedConfig);
+    if (selectedConfig.show.item_variant !== 'stepper') {
+      throw Error(`[controls] Invalid number item_variant '${selectedConfig.show.item_variant}' [stepper]`);
+    }
+    if (selectedConfig.show.item_viz !== 'buttons') {
+      throw Error(`[controls] Invalid number item_viz '${selectedConfig.show.item_viz}' [buttons]`);
+    }
+    if (!Object.hasOwn(NUMBER_STYLE_PRESETS, selectedConfig.show.item_style)) {
+      throw Error(`[controls] Invalid number item_style '${selectedConfig.show.item_style}' [${Object.keys(NUMBER_STYLE_PRESETS).join(', ')}]`);
+    }
+
+    const orientationConfig = selectedConfig.orientation === 'vertical' ? VERTICAL_NUMBER_CONFIG : HORIZONTAL_NUMBER_CONFIG;
+    const numberConfig = Merge.mergeDeep(
+      DEFAULT_NUMBER_CONFIG,
+      orientationConfig,
+      NUMBER_STYLE_PRESETS[selectedConfig.show.item_style],
+      normalizedConfig,
+    );
 
     super(numberConfig, index, templates, cardId, card);
 

@@ -2,7 +2,8 @@ fhs_button_showcase:
   template:
     type: card
     defaults:
-      - fhs_button_showcase_toggle_entity: input_boolean.demo_toggle
+      # - fhs_button_showcase_toggle_entity: input_boolean.demo_toggle
+      - fhs_button_showcase_toggle_entity: light.livingroom_light_duo_left_light
       - fhs_button_showcase_select_entity: input_select.demo_mode
       - fhs_button_showcase_number_entity: input_number.demo_value
   card:
@@ -13,54 +14,192 @@ fhs_button_showcase:
     layout:
       aspectratio: 1/1.4
       controls:
-        - id: demo-button
+        - id: demo-button-button
           type: button
-          mode: button
-          xpos: 50
-          ypos: 15
-          width: 70
-          height: 14
+          xpos: 75
+          ypos: 95
+          width: 20
+          height: 10
+          show:
+            item_variant: default
+            item_viz: viz_button
+            item_style: filled_square
           content:
-            mode: horizontal
-            icon: mdi:gesture-tap-button
-            text: Action
-            styles:
-              font-size: 0.8em
-              fill: var(--primary-text-color)
+            mode: content_horizontal
+            content_horizontal:
+              icon:
+                icon: mdi:gesture-tap-button
+              text:
+                text: Action
+                styles:
+                  font-size: 0.8em
           tap_action:
             action: more-info
 
-        - id: demo-toggle
+        - id: demo-button-line
           type: button
-          mode: toggle
+          xpos: 75
+          ypos: 115
+          width: 20
+          height: 10
+          show:
+            item_variant: default
+            item_viz: viz_line
+            item_style: filled_round
+          content:
+            mode: content_horizontal
+            content_horizontal:
+              gap: 3
+              # icon:
+              #   icon: mdi:gesture-tap-button
+              text:
+                text: Action
+                styles:
+                  font-size: 0.8em
+          tap_action:
+            action: toggle
+          hold_action:
+            action: more-info
+          double_tap_action:
+            action: more-info
+
+        - id: demo-toggle-ha
+          type: toggle
           entity_index: 0
           xpos: 50
-          ypos: 35
-          width: 55
-          height: 12
-          label:
-            text: Enabled
-            position: start
-            offset:
-              x: -4
-          viz:
-            toggle:
-              indicator:
-                shape: circle
-                fill: var(--primary-color)
+          ypos: 25
+          width: 20
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: ha
 
-        - id: demo-select
-          type: button
-          mode: select
-          entity_index: 1
+        - id: demo-toggle-ios
+          type: toggle
+          orientation: horizontal
+          entity_index: 0
           xpos: 50
-          ypos: 65
-          width: 86
-          height: 14
-          states:
-            - value: "off"
+          ypos: 50
+          width: 20
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: ios
+          content:
+            mode: content_icon
+          label:
+            position: start
+            gap: 5
+            offset:
+              x: 0
+              y: 0
+            text:
+              - type: name
+            styles:
+              font-size: 0.5em
+              text-anchor: end
+              dominant-baseline: central
+              fill: var(--primary-text-color)
+
+        - id: demo-toggle-ios-vertical
+          type: toggle
+          orientation: vertical
+          entity_index: 0
+          xpos: 70
+          ypos: 50
+          width: 20
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: ios
+          content:
+            mode: content_icon
+          label:
+            position: top
+            gap: 5
+            offset:
+              x: 0
+              y: 0
+            text:
+              - type: name
+            styles:
+              font-size: 0.5em
+              text-anchor: middle
+              dominant-baseline: central
+              fill: var(--primary-text-color)
+
+        - id: demo-toggle-industrial
+          type: toggle
+          entity_index: 0
+          xpos: 50
+          ypos: 75
+          width: 20
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: industrial
+
+        # - id: demo-toggle
+        #   type: button
+        #   mode: toggle
+        #   entity_index: 0
+        #   xpos: 50
+        #   ypos: 35
+        #   width: 55
+        #   height: 12
+        #   label:
+        #     text: Enabled
+        #     position: start
+        #     offset:
+        #       x: -4
+        #   viz:
+        #     toggle:
+        #       indicator:
+        #         shape: circle
+        #         fill: var(--primary-color)
+
+        - id: fan-mode
+          type: select
+          orientation: vertical
+          entity_index: 1
+          xpos: 25
+          ypos: 100
+          width: 15
+          height: 70
+
+          show:
+            item_variant: segmented
+            item_viz: viz_button
+            item_style: outlined_round
+
+          background:
+            radius: 5
+
+          track:
+            padding:
+              x: 1
+              y: 0.5
+          viz_line:
+            indicator:
+              position: bottom # top | bottom
+              thickness: 0.75
+              padding:
+                x: 0.5
+                y: 0.5
+          content:
+            mode: content_vertical
+            content_vertical:
+              padding:
+                x: 0.5
+                y: 0.5
+              gap: 0.5
+              text:
+                styles:
+                  font-size: 0.6em
+          option_map:
+            - value: 'off'
               icon: mdi:fan-off
-              text: "Off"
+              text: 'Off'
             - value: low
               icon: mdi:fan-speed-1
               text: Low
@@ -70,42 +209,185 @@ fhs_button_showcase:
             - value: high
               icon: mdi:fan-speed-3
               text: High
-          content:
-            mode: horizontal
-            text_overflow:
-              mode: fit
-              fit:
-                max_width: 18
-          viz:
-            select:
-              track:
-                fill: var(--secondary-background-color)
-              indicator:
-                radius: 2
-                fill: var(--primary-color)
-            animation:
-              duration: 250
-              easing: ease-out
 
-        - id: demo-number
-          type: button
-          mode: number
+        - id: fan-mode2
+          type: select
+          orientation: vertical
+          entity_index: 1
+          xpos: 50
+          ypos: 100
+          width: 15
+          height: 70
+
+          show:
+            item_variant: segmented
+            item_viz: viz_line
+            item_style: filled_round
+
+          background:
+            radius: 5
+
+          track:
+            padding:
+              x: 1
+              y: 0.5
+          viz_line:
+            indicator:
+              position: bottom # top | bottom
+              thickness: 0.75
+              padding:
+                x: 0.5
+                y: 0.5
+          content:
+            mode: content_vertical
+            content_vertical:
+              padding:
+                x: 0.5
+                y: 0.5
+              gap: 0.5
+              text:
+                styles:
+                  font-size: 0.6em
+          option_map:
+            - value: 'off'
+              icon: mdi:fan-off
+              text: 'Off'
+            - value: low
+              icon: mdi:fan-speed-1
+              text: Low
+            - value: medium
+              icon: mdi:fan-speed-2
+              text: Medium
+            - value: high
+              icon: mdi:fan-speed-3
+              text: High
+
+        - id: fan-mode3
+          type: select
+          orientation: horizontal
+          entity_index: 1
+          xpos: 50
+          ypos: 110
+          width: 70
+          height: 15
+
+          show:
+            item_variant: segmented
+            item_viz: viz_line
+            item_style: outlined_square
+
+          background:
+            radius: 5
+
+          track:
+            padding:
+              x: 1
+              y: 0.5
+          viz_line:
+            indicator:
+              position: bottom # top | bottom
+              thickness: 0.75
+              padding:
+                x: 0.5
+                y: 0.5
+          content:
+            mode: content_vertical
+            content_vertical:
+              padding:
+                x: 0.5
+                y: 0.5
+              gap: 0.5
+              text:
+                styles:
+                  font-size: 0.6em
+          option_map:
+            - value: 'off'
+              icon: mdi:fan-off
+              text: 'Off'
+            - value: low
+              icon: mdi:fan-speed-1
+              text: Low
+            - value: medium
+              icon: mdi:fan-speed-2
+              text: Medium
+            - value: high
+              icon: mdi:fan-speed-3
+              text: High
+
+        - id: demo-number-text
+          type: number
+          entity_index: 2
+          xpos: 15
+          ypos: 15
+          width: 30
+          height: 10
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: filled_square
+          # content:
+          #   mode: content_horizontal
+          #   content_horizontal:
+          #     padding: 2
+          #     minus:
+          #       text: '-'
+          #       mode: text
+          #     value:
+          #       text_overflow:
+          #         mode: fit
+          #         fit:
+          #           max_width: 18
+          #     plus:
+          #       text: '+'
+          #       mode: text
+
+        - id: demo-number-icons
+          type: number
           entity_index: 2
           xpos: 50
-          ypos: 95
-          width: 70
-          height: 14
+          ypos: 15
+          width: 30
+          height: 10
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: outlined_round
           content:
-            mode: horizontal
-            padding: 2
-            minus:
-              text: '-'
-              mode: text
-            value:
-              text_overflow:
-                mode: fit
-                fit:
-                  max_width: 18
-            plus:
-              text: '+'
-              mode: text
+            mode: content_horizontal
+            content_horizontal:
+              minus:
+                mode: content_icon
+              plus:
+                mode: content_icon
+
+        - id: demo-number-icons-v
+          type: number
+          orientation: vertical
+          entity_index: 2
+          xpos: 75
+          ypos: 15
+          width: 30
+          height: 10
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: filled_round
+          content:
+            mode: content_horizontal
+            content_horizontal: content_icon
+
+        - id: demo-number-icons-v2
+          type: number
+          orientation: vertical
+          entity_index: 2
+          xpos: 90
+          ypos: 15
+          width: 10
+          height: 30
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: outlined_square
+          content:
+            mode: content_horizontal
+            content_horizontal: content_icon

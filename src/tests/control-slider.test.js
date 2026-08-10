@@ -5,12 +5,11 @@ import ControlSlider from '../control-slider.js';
 const createSlider = (overrides = {}) => {
   const slider = Object.create(ControlSlider.prototype);
   slider.config = {
-    mode: 'single',
+    show: { item_variant: 'single', item_viz: 'linear', item_style: 'ha' },
     orientation: 'horizontal',
     width: 40,
     height: 10,
     svg: { xpos: 200, ypos: 200 },
-    show: { item_viz: 'ha' },
     circular: {
       start_angle: -135,
       arc_degrees: 270,
@@ -21,7 +20,7 @@ const createSlider = (overrides = {}) => {
   };
   slider.resolvedScale = { min: 0, max: 100, step: 0.5 };
   slider.activeValueIndex = 0;
-  slider.sliderValues = slider.config.mode === 'range' ? [20, 80] : [50];
+  slider.sliderValues = slider.config.show.item_variant === 'range' ? [20, 80] : [50];
   slider.scheduleSliderRender = () => {};
   return slider;
 };
@@ -46,7 +45,7 @@ test('maps horizontal and vertical SVG positions to the same scale', () => {
 });
 
 test('maps points on a circular arc back to their slider values', () => {
-  const slider = createSlider({ show: { item_viz: 'circular' } });
+  const slider = createSlider({ show: { item_variant: 'single', item_viz: 'circular', item_style: 'ha' } });
   const quarterPoint = slider.circularRatioToPoint(0.25, slider.getSliderGeometry().radius);
   const threeQuarterPoint = slider.circularRatioToPoint(0.75, slider.getSliderGeometry().radius);
 
@@ -55,7 +54,7 @@ test('maps points on a circular arc back to their slider values', () => {
 });
 
 test('range thumbs stop at each other and never exchange roles', () => {
-  const slider = createSlider({ mode: 'range' });
+  const slider = createSlider({ show: { item_variant: 'range', item_viz: 'linear', item_style: 'ha' } });
 
   slider.activeValueIndex = 0;
   slider.applySliderPointerValue(90);
@@ -69,7 +68,7 @@ test('range thumbs stop at each other and never exchange roles', () => {
 
 test('builds a complete path for a full circular arc', () => {
   const slider = createSlider({
-    show: { item_viz: 'circular' },
+    show: { item_variant: 'single', item_viz: 'circular', item_style: 'ha' },
     circular: {
       start_angle: 0,
       arc_degrees: 360,
@@ -105,7 +104,7 @@ test('constructs complete single and range configurations without runtime fallba
   const range = new ControlSlider(
     {
       id: 'range',
-      mode: 'range',
+      show: { item_variant: 'range', item_viz: 'linear', item_style: 'ha' },
       values: [{ entity_index: 0 }, { entity_index: 1 }],
       xpos: 50,
       ypos: 50,
@@ -122,7 +121,7 @@ test('constructs complete single and range configurations without runtime fallba
       entity_index: 0,
       xpos: 50,
       ypos: 50,
-      show: { item_viz: 'circular' },
+      show: { item_variant: 'single', item_viz: 'circular', item_style: 'ha' },
       value: { show: false },
     },
     2,
@@ -136,7 +135,7 @@ test('constructs complete single and range configurations without runtime fallba
       entity_index: 0,
       xpos: 50,
       ypos: 50,
-      show: { item_viz: 'circular' },
+      show: { item_variant: 'single', item_viz: 'circular', item_style: 'ha' },
       circular: { track: { width: 8 } },
       value: { show: false },
     },

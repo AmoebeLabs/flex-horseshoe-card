@@ -44,11 +44,12 @@ fhs_slider_control_showcase:
               styles:
                 font-size: 0.7em
           show:
-            item_viz: ha
+            item_variant: single
+            item_viz: linear
+            item_style: ha
 
         - id: slider-range
           type: slider
-          mode: range
           values:
             - entity_index: 1
             - entity_index: 2
@@ -66,7 +67,9 @@ fhs_slider_control_showcase:
               styles:
                 font-size: 0.65em
           show:
-            item_viz: ha
+            item_variant: range
+            item_viz: linear
+            item_style: ha
 
         - id: slider-circular
           type: slider
@@ -83,11 +86,12 @@ fhs_slider_control_showcase:
               styles:
                 font-size: 0.8em
           show:
+            item_variant: single
             item_viz: circular
+            item_style: ha
 
         - id: slider-circular-range
           type: slider
-          mode: range
           values:
             - entity_index: 1
             - entity_index: 2
@@ -104,4 +108,6 @@ fhs_slider_control_showcase:
               styles:
                 font-size: 0.65em
           show:
+            item_variant: range
             item_viz: circular
+            item_style: ha

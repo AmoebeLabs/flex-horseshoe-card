@@ -75,7 +75,9 @@ export default class ControlButton extends ControlBase {
         },
       },
       show: {
+        item_variant: 'default',
         item_viz: 'viz_button',
+        item_style: 'filled_square',
       },
       viz_button: {
         inactive: {
@@ -184,10 +186,66 @@ export default class ControlButton extends ControlBase {
         },
       },
     };
-    const buttonConfig = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG, config);
+    const BUTTON_SURFACE_PRESETS = {
+      filled: {},
+      outlined: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+        viz_button: {
+          inactive: {
+            background: {
+              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+            },
+          },
+          active: {
+            background: {
+              styles: { fill: 'var(--primary-color)', stroke: 'none' },
+            },
+            icon: { styles: { fill: 'var(--primary-background-color)' } },
+            text: { styles: { fill: 'var(--primary-background-color)' } },
+          },
+        },
+        viz_line: {
+          inactive: {
+            background: {
+              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+            },
+          },
+          active: {
+            background: {
+              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+            },
+          },
+        },
+      },
+    };
+    const BUTTON_SHAPE_PRESETS = {
+      round: { background: { radius: 5 } },
+      square: { background: { radius: 2 } },
+    };
+    const BUTTON_STYLE_PRESETS = {
+      filled_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.round),
+      filled_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.square),
+      outlined_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.round),
+      outlined_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.square),
+    };
+    const selectedConfig = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG, config);
+    if (selectedConfig.show.item_variant !== 'default') {
+      throw Error(`[controls] Invalid button item_variant '${selectedConfig.show.item_variant}' [default]`);
+    }
+    if (!['viz_button', 'viz_line'].includes(selectedConfig.show.item_viz)) {
+      throw Error(`[controls] Invalid button item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`);
+    }
+    if (!Object.hasOwn(BUTTON_STYLE_PRESETS, selectedConfig.show.item_style)) {
+      throw Error(`[controls] Invalid button item_style '${selectedConfig.show.item_style}' [${Object.keys(BUTTON_STYLE_PRESETS).join(', ')}]`);
+    }
+    const buttonConfig = Merge.mergeDeep(
+      DEFAULT_BUTTON_CONFIG,
+      BUTTON_STYLE_PRESETS[selectedConfig.show.item_style],
+      config,
+    );
     const selectedVizName = buttonConfig.show.item_viz;
-
-    // A custom visualization starts with the complete button visualization.
     buttonConfig[selectedVizName] = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG.viz_button, buttonConfig[selectedVizName]);
 
     // An explicit state map replaces the default map instead of concatenating
@@ -413,7 +471,7 @@ export default class ControlButton extends ControlBase {
     );
     let indicator = svg``;
 
-    if (vizName === 'viz_line') {
+    if (this.config.show.item_viz === 'viz_line') {
       const indicatorPaddingX = Utils.calculateSvgDimension(viz.indicator.padding.x);
       const indicatorPaddingY = Utils.calculateSvgDimension(viz.indicator.padding.y);
       const indicatorThickness = Utils.calculateSvgDimension(viz.indicator.thickness);
