@@ -36,7 +36,7 @@ import { computeStateDomain } from './frontend_mods/common/entity/compute_state_
 import Colors from './colors.js';
 import Utils from './utils.js';
 import Merge from './merge.js';
-import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS, DEFAULT_ZPOS } from './const.js';
+import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
 import LineTool from './line-tool.js';
@@ -859,225 +859,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  _isCalcExpression(value) {
-    return typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
-  }
-
-  _calculateStaticCalc(value, constants = {}) {
-    const expression = value.slice(5, -1).trim();
-
-    if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
-      throw new Error(`Invalid static calc expression '${value}'`);
-    }
-
-    const calcScope = {
-      ...constants,
-      sin: Math.sin,
-      cos: Math.cos,
-      tan: Math.tan,
-      abs: Math.abs,
-      round: Math.round,
-      floor: Math.floor,
-      ceil: Math.ceil,
-      min: Math.min,
-      max: Math.max,
-      sqrt: Math.sqrt,
-      PI: Math.PI,
-    };
-
-    // eslint-disable-next-line no-new-func
-    const result = Function(...Object.keys(calcScope), `"use strict"; return (${expression});`)(...Object.values(calcScope));
-
-    if (!this._isStaticNumber(result)) {
-      throw new Error(`Static calc expression '${value}' did not return a finite number`);
-    }
-
-    return result;
-  }
-
-  _isStaticNumber(value) {
-    return typeof value === 'number' && Number.isFinite(value);
-  }
-
-
-  /**
-   * Resolves item-level entity ids and animation triggers against the explicit entities list.
-   *
-   * Tools continue to consume entity_index internally while user YAML may use
-   * the matching entity id directly. Unknown ids fail during configuration so
-   * they can never silently fall back to the first entity.
-   *
-   * @param {object} config - Card config after ids and static values are resolved.
-   * @param {Array<object>} resolvedEntitiesConfig - Explicit resolved entity configs.
-   */
-  _resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig) {
-    const entityIndexes = {};
-
-    resolvedEntitiesConfig.forEach((entityConfig, index) => {
-      entityIndexes[entityConfig.entity] = entityIndexes[entityConfig.entity] === undefined ? index : null;
-    });
-
-    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout[section];
-
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (item.entity === undefined) return;
-        if (entityIndexes[item.entity] === undefined) throw new Error(`[${section}] Unknown entity: ${item.entity}`);
-        if (entityIndexes[item.entity] === null) throw new Error(`[${section}] Entity '${item.entity}' occurs more than once; use entity_index`);
-
-        item.entity_index = entityIndexes[item.entity];
-      });
-    });
-
-    if (config.animations !== undefined) {
-      const resolvedAnimations = {};
-
-      Object.entries(config.animations).forEach(([animationKey, animationItems]) => {
-        const entityReference = animationKey.substring('entity.'.length);
-        let entityIndex;
-
-        if (/^\d+$/.test(entityReference)) {
-          entityIndex = Number(entityReference);
-          if (resolvedEntitiesConfig[entityIndex] === undefined) {
-            throw new Error(`[animations] Unknown entity index: ${entityIndex}`);
-          }
-        } else {
-          const slotMatch = entityReference.match(/^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/);
-
-          if (slotMatch) {
-            const slotName = slotMatch[1];
-            const slotIndex = Number(slotMatch[2]);
-            const slot = this.entitySlots[slotName];
-
-            if (slot === undefined) throw new Error(`[animations] Unknown entity slot: ${slotName}`);
-            if (slot[slotIndex] === undefined) {
-              throw new Error(`[animations] Entity slot ${slotName} has no index ${slotIndex}`);
-            }
-
-            entityIndex = slot[slotIndex];
-          } else {
-            entityIndex = entityIndexes[entityReference];
-            if (entityIndex === undefined) throw new Error(`[animations] Unknown entity: ${entityReference}`);
-            if (entityIndex === null) throw new Error(`[animations] Entity '${entityReference}' occurs more than once; use entity.<index>`);
-          }
-        }
-
-        const resolvedAnimationKey = `entity.${entityIndex}`;
-        if (resolvedAnimations[resolvedAnimationKey] !== undefined) {
-          throw new Error(`[animations] Duplicate entity target: ${resolvedAnimationKey}`);
-        }
-
-        resolvedAnimations[resolvedAnimationKey] = animationItems;
-      });
-
-      config.animations = resolvedAnimations;
-    }
-  }
-
-  _isStaticRef(value) {
-    return typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')');
-  }
-
-  _cloneStaticValue(value) {
-    if (value && typeof value === 'object') {
-      return Merge.mergeDeep(Array.isArray(value) ? [] : {}, value);
-    }
-
-    return value;
-  }
-
-  _buildConstants(config) {
-    const constants = config.constants;
-    const calcConstants = {
-      zpos: { ...DEFAULT_ZPOS },
-    };
-
-    if (!constants || typeof constants !== 'object') {
-      return calcConstants;
-    }
-
-    Object.entries(constants).forEach(([key, value]) => {
-      constants[key] = this._calculateStaticValues(value, calcConstants);
-
-      if (this._isStaticNumber(constants[key])) {
-        calcConstants[key] = constants[key];
-      }
-    });
-
-    return calcConstants;
-  }
-
-  _replaceStaticRef(value, constants) {
-    if (!this._isStaticRef(value)) return value;
-
-    const refName = value.slice(4, -1).trim();
-
-    if (!(refName in constants)) {
-      throw new Error(`Static ref '${refName}' not found`);
-    }
-
-    const resolvedRef = this._cloneStaticValue(constants[refName]);
-
-    // Mark object and array refs internally so same_as can replace that exact path instead of deep-merging it.
-    if (resolvedRef && typeof resolvedRef === 'object') {
-      Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, {
-        value: true,
-      });
-    }
-
-    return resolvedRef;
-  }
-
-  _replaceStaticRefs(value, constants = {}) {
-    if (this._isStaticRef(value)) {
-      return this._replaceStaticRef(value, constants);
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this._replaceStaticRefs(item, constants));
-    }
-
-    if (value && typeof value === 'object') {
-      Object.entries(value).forEach(([key, itemValue]) => {
-        value[key] = this._replaceStaticRefs(itemValue, constants);
-      });
-
-      return value;
-    }
-
-    return value;
-  }
-
-  _calculateStaticValues(value, constants = {}) {
-    if (this._isCalcExpression(value)) {
-      return this._calculateStaticCalc(value, constants);
-    }
-
-    if (Array.isArray(value)) {
-      const evaluatedArray = value.map((item) => this._calculateStaticValues(item, constants));
-
-      // Arrays are recreated during calc evaluation; keep the ref marker for same_as replacement.
-      if (value[SameAs.STATIC_REF_MARKER]) {
-        Object.defineProperty(evaluatedArray, SameAs.STATIC_REF_MARKER, {
-          value: true,
-        });
-      }
-
-      return evaluatedArray;
-    }
-
-    if (value && typeof value === 'object') {
-      Object.entries(value).forEach(([key, itemValue]) => {
-        value[key] = this._calculateStaticValues(itemValue, constants);
-      });
-
-      return value;
-    }
-
-    return value;
-  }
 
 
   setConfig(config) {
@@ -1128,10 +909,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this.cardConfig.assignLayoutItemIds(config);
 
-      const calcConstants = this._buildConstants(config);
-
-      this._replaceStaticRefs(config, config.constants);
-      this._calculateStaticValues(config, calcConstants);
+      this.cardConfig.compileStaticValues(config);
 
       // Entity disabled templates use finalized constants but run before entity slots exist.
       Templates.setContext({
@@ -1181,7 +959,7 @@ class FlexHorseshoeCard extends LitElement {
         }
       }
 
-      this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
+      this.cardConfig.resolveLayoutEntityIndexes(config, resolvedEntitiesConfig, this.entitySlots);
       this.cardConfig.flattenEntitySlotIndexes(config, this.entitySlots);
 
       const newConfig = {

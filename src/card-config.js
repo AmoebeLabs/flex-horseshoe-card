@@ -1,10 +1,136 @@
 import ConfigHelper from './config-helper.js';
 import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
+import Merge from './merge.js';
+import SameAs from './same-as.js';
+import { DEFAULT_ZPOS } from './const.js';
 
 /** Owns validation and compilation of user-facing card configuration. */
 export default class CardConfig {
   constructor(templates) {
     this.templates = templates;
+  }
+
+  /** Expands constants, deep-cloned ref() values and static calc() expressions. */
+  compileStaticValues(config) {
+    const isCalcExpression = (value) => typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
+    const calculateValue = (value, constants) => {
+      if (isCalcExpression(value)) {
+        const expression = value.slice(5, -1).trim();
+        if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) throw new Error(`Invalid static calc expression '${value}'`);
+        const calcScope = {
+          ...constants,
+          sin: Math.sin,
+          cos: Math.cos,
+          tan: Math.tan,
+          abs: Math.abs,
+          round: Math.round,
+          floor: Math.floor,
+          ceil: Math.ceil,
+          min: Math.min,
+          max: Math.max,
+          sqrt: Math.sqrt,
+          PI: Math.PI,
+        };
+        // eslint-disable-next-line no-new-func
+        const result = Function(...Object.keys(calcScope), `"use strict"; return (${expression});`)(...Object.values(calcScope));
+        if (typeof result !== 'number' || !Number.isFinite(result)) {
+          throw new Error(`Static calc expression '${value}' did not return a finite number`);
+        }
+        return result;
+      }
+
+      if (Array.isArray(value)) {
+        const evaluatedArray = value.map((entry) => calculateValue(entry, constants));
+        if (value[SameAs.STATIC_REF_MARKER]) Object.defineProperty(evaluatedArray, SameAs.STATIC_REF_MARKER, { value: true });
+        return evaluatedArray;
+      }
+      if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, entry]) => {
+          value[key] = calculateValue(entry, constants);
+        });
+      }
+      return value;
+    };
+
+    const calcConstants = { zpos: { ...DEFAULT_ZPOS } };
+    const constants = config.constants ?? {};
+    Object.entries(constants).forEach(([key, value]) => {
+      constants[key] = calculateValue(value, calcConstants);
+      if (typeof constants[key] === 'number' && Number.isFinite(constants[key])) calcConstants[key] = constants[key];
+    });
+
+    const replaceRefs = (value) => {
+      if (typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')')) {
+        const refName = value.slice(4, -1).trim();
+        if (!(refName in constants)) throw new Error(`Static ref '${refName}' not found`);
+        const constant = constants[refName];
+        const resolvedRef = constant && typeof constant === 'object'
+          ? Merge.mergeDeep(Array.isArray(constant) ? [] : {}, constant)
+          : constant;
+        if (resolvedRef && typeof resolvedRef === 'object') Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, { value: true });
+        return resolvedRef;
+      }
+      if (Array.isArray(value)) return value.map((entry) => replaceRefs(entry));
+      if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, entry]) => {
+          value[key] = replaceRefs(entry);
+        });
+      }
+      return value;
+    };
+
+    replaceRefs(config);
+    calculateValue(config, calcConstants);
+  }
+
+  /** Resolves layout entity ids and animation targets to flat entity indexes. */
+  resolveLayoutEntityIndexes(config, resolvedEntityConfigs, entitySlots) {
+    const entityIndexes = {};
+    resolvedEntityConfigs.forEach((entityConfig, index) => {
+      entityIndexes[entityConfig.entity] = entityIndexes[entityConfig.entity] === undefined ? index : null;
+    });
+
+    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
+      const items = config.layout[section];
+      if (!Array.isArray(items)) return;
+      items.forEach((item) => {
+        if (item.entity === undefined) return;
+        if (entityIndexes[item.entity] === undefined) throw new Error(`[${section}] Unknown entity: ${item.entity}`);
+        if (entityIndexes[item.entity] === null) throw new Error(`[${section}] Entity '${item.entity}' occurs more than once; use entity_index`);
+        item.entity_index = entityIndexes[item.entity];
+      });
+    });
+
+    if (config.animations === undefined) return;
+    const resolvedAnimations = {};
+    Object.entries(config.animations).forEach(([animationKey, animationItems]) => {
+      const entityReference = animationKey.substring('entity.'.length);
+      let entityIndex;
+
+      if (/^\d+$/.test(entityReference)) {
+        entityIndex = Number(entityReference);
+        if (resolvedEntityConfigs[entityIndex] === undefined) throw new Error(`[animations] Unknown entity index: ${entityIndex}`);
+      } else {
+        const slotMatch = entityReference.match(/^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/);
+        if (slotMatch) {
+          const slotName = slotMatch[1];
+          const slotIndex = Number(slotMatch[2]);
+          const slot = entitySlots[slotName];
+          if (slot === undefined) throw new Error(`[animations] Unknown entity slot: ${slotName}`);
+          if (slot[slotIndex] === undefined) throw new Error(`[animations] Entity slot ${slotName} has no index ${slotIndex}`);
+          entityIndex = slot[slotIndex];
+        } else {
+          entityIndex = entityIndexes[entityReference];
+          if (entityIndex === undefined) throw new Error(`[animations] Unknown entity: ${entityReference}`);
+          if (entityIndex === null) throw new Error(`[animations] Entity '${entityReference}' occurs more than once; use entity.<index>`);
+        }
+      }
+
+      const resolvedAnimationKey = `entity.${entityIndex}`;
+      if (resolvedAnimations[resolvedAnimationKey] !== undefined) throw new Error(`[animations] Duplicate entity target: ${resolvedAnimationKey}`);
+      resolvedAnimations[resolvedAnimationKey] = animationItems;
+    });
+    config.animations = resolvedAnimations;
   }
 
   /** Assigns stable string ids to every visible and definition item. */

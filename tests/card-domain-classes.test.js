@@ -185,3 +185,44 @@ test('CardConfig assigns stable ids throughout visible layout sections', () => {
   assert.deepEqual(config.layout.compounds[0].lines.map((item) => item.id), ['0', 'line']);
   assert.equal(config.layout.masks.mask.circles[0].id, '0');
 });
+
+test('CardConfig expands calculated constants and independent deep refs', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const config = {
+    constants: {
+      spacing: 4,
+      width: 'calc(spacing * 2)',
+      visual: { width: 'calc(spacing + 1)', styles: { fill: 'red' } },
+    },
+    layout: {
+      controls: [
+        { width: 'calc(width + 2)', visual: 'ref(visual)' },
+        { visual: 'ref(visual)' },
+      ],
+    },
+  };
+
+  cardConfig.compileStaticValues(config);
+
+  assert.equal(config.constants.width, 8);
+  assert.equal(config.layout.controls[0].width, 10);
+  assert.equal(config.layout.controls[0].visual.width, 5);
+  assert.notEqual(config.layout.controls[0].visual, config.layout.controls[1].visual);
+  config.layout.controls[0].visual.styles.fill = 'blue';
+  assert.equal(config.layout.controls[1].visual.styles.fill, 'red');
+  assert.throws(() => cardConfig.compileStaticValues({ value: 'ref(missing)' }), /Static ref 'missing' not found/);
+});
+
+test('CardConfig resolves direct entity ids and named animation slots', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const config = {
+    layout: { controls: [{ entity: 'sensor.second' }] },
+    animations: { 'entity.rooms[0]': [{ state: 'on' }] },
+  };
+  const entities = [{ entity: 'sensor.first' }, { entity: 'sensor.second' }];
+
+  cardConfig.resolveLayoutEntityIndexes(config, entities, { flat: [0, 1], rooms: [1] });
+
+  assert.equal(config.layout.controls[0].entity_index, 1);
+  assert.deepEqual(config.animations, { 'entity.1': [{ state: 'on' }] });
+});
