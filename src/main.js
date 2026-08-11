@@ -29,6 +29,7 @@ import CardConfig from './card-config.js';
 import CardEntities from './card-entities.js';
 import CardAnimations from './card-animations.js';
 import CardTools from './card-tools.js';
+import CardLayout from './card-layout.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
@@ -36,16 +37,12 @@ import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
-import Utils from './utils.js';
-import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import StateTool from './state-tool.js';
 import ControlTool from './control-tool.js';
-import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import Compounds from './compounds.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
-import MasksClips from './masks-clips.js';
 import { VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 
@@ -69,6 +66,7 @@ class FlexHorseshoeCard extends LitElement {
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
+    this.cardLayout = new CardLayout(Templates, this.cardId);
     this.cardTools = new CardTools(this, Templates, this.cardId);
     this.homeAssistant = new HomeAssistant(() => this.cardTools.hassConnected());
     this.entities = [];
@@ -86,17 +84,9 @@ class FlexHorseshoeCard extends LitElement {
     this.cardEntities = new CardEntities(Templates, this.cardTheme);
     this.entitiesStr = [];
     this.attributesStr = [];
-    this.viewBoxSize = SVG_VIEW_BOX;
-    this.viewBox = { width: SVG_VIEW_BOX, height: SVG_VIEW_BOX };
     this.colorStops = {};
     this.childCards = new ChildCards(this);
     this.cardAnimations = new CardAnimations();
-    this.groupManager = undefined;
-    this.sourceGroupConfigs = undefined;
-    this.activeGroupConfigs = undefined;
-    this.activeGroupSignatures = {};
-    this.groupsHaveJavascript = false;
-    this.changedGroupIds = new Set();
     this.resolvedEntityConfigs = [];
     this.entitySlots = { flat: [], default: [] };
     this.entityConfigsInitialized = false;
@@ -330,45 +320,7 @@ class FlexHorseshoeCard extends LitElement {
     // Groups are complete runtime components. Evaluate marked groups before tools,
     // rebuild the manager only for changed results, and mark every dependent descendant.
     const groupsPerformanceStart = performanceEnabled ? performance.now() : undefined;
-    this.changedGroupIds.clear();
-    if (configuredEntityStateChanged && this.groupsHaveJavascript) {
-      const nextActiveGroupConfigs = [...this.activeGroupConfigs];
-      const directlyChangedGroupIds = new Set();
-
-      this.sourceGroupConfigs.forEach((sourceGroupConfig, groupIndex) => {
-        if (!Templates.hasJavascriptTemplates(sourceGroupConfig)) return;
-
-        const groupId = String(sourceGroupConfig.id);
-        const activeGroupConfig = Templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, {
-          resolveKeys: true,
-        });
-        const activeGroupSignature = JSON.stringify(activeGroupConfig);
-        nextActiveGroupConfigs[groupIndex] = activeGroupConfig;
-        if (activeGroupSignature !== this.activeGroupSignatures[groupId]) {
-          this.activeGroupSignatures[groupId] = activeGroupSignature;
-          directlyChangedGroupIds.add(groupId);
-        }
-      });
-
-      if (directlyChangedGroupIds.size > 0) {
-        this.activeGroupConfigs = nextActiveGroupConfigs;
-        this.groupManager = new GroupManager(this.activeGroupConfigs);
-
-        Object.keys(this.groupManager.groups).forEach((groupId) => {
-          let currentGroupId = groupId;
-
-          while (currentGroupId) {
-            if (directlyChangedGroupIds.has(currentGroupId)) {
-              this.changedGroupIds.add(groupId);
-              break;
-            }
-
-            const currentGroup = this.groupManager.groups[currentGroupId];
-            currentGroupId = currentGroupId === 'card' ? undefined : (currentGroup.parent ?? 'card');
-          }
-        });
-      }
-    }
+    this.cardLayout.updateGroups(configuredEntityStateChanged);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:groups`, {
@@ -470,7 +422,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this.evaluateJavascriptTemplates = false;
     this.cardInputEntities.markStateHandled();
-    this.changedGroupIds.clear();
+    this.cardLayout.markGroupsHandled();
 
     Templates.setContext({
       hass: this._hass,
@@ -498,27 +450,7 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   _calculateSvgCoordinatesInGroup(item) {
-    return this.groupManager.calculateSvgCoordinatesInGroup(item);
-  }
-
-  _computeSvgDimensions(config) {
-    const layout = config.layout;
-
-    if (layout?.icons) {
-      layout.icons.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
-    if (this?.horseshoes) {
-      this.horseshoes.forEach((item) => {
-        item.svg = this._calculateSvgCoordinatesInGroup(item);
-        item.svg.radius = Utils.calculateSvgDimension(item.radius);
-        item.svg.tickmarksRadius = Utils.calculateSvgDimension(item.tickmarks_radius);
-        item.svg.rotateX = item.svg.xpos;
-        item.svg.rotateY = item.svg.ypos;
-      });
-    }
+    return this.cardLayout.calculateSvgCoordinatesInGroup(item);
   }
 
   /** *****************************************************************************
@@ -660,33 +592,14 @@ class FlexHorseshoeCard extends LitElement {
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
-      this.config.layout.groups ??= [];
-      this.sourceGroupConfigs = this.config.layout.groups;
-      this.activeGroupConfigs = this.sourceGroupConfigs;
-      this.activeGroupSignatures = {};
-      this.groupsHaveJavascript = this.sourceGroupConfigs.some((group) => Templates.hasJavascriptTemplates(group));
-      this.changedGroupIds.clear();
       this.entityConfigsInitialized = false;
-      this.config.layout.gradients ??= {};
-      this.config.layout.clips ??= {};
-      this.config.layout.masks ??= {};
-      this.groupManager = new GroupManager(this.activeGroupConfigs);
-      this.masksClips = new MasksClips(this.config, this.cardId, this);
+      this.cardLayout.setConfig(this.config, this.horseshoes);
 
       this.cardTools.setHorseshoeConfig(config);
       this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
       this.bar_mode = newConfig.bar_mode || 'normal';
 
-      // Get aspectratio. This can be defined at card level or layout level
-      this.aspectratio = (this.config.layout.aspectratio || this.config.aspectratio || '1/1').trim();
-
-      const ar = this.aspectratio.split('/');
-      if (!this.viewBox) this.viewBox = {};
-      this.viewBox.width = ar[0] * SVG_DEFAULT_DIMENSIONS;
-      this.viewBox.height = ar[1] * SVG_DEFAULT_DIMENSIONS;
-
-      this._computeSvgDimensions(this.config);
       this.cardTools.setLayoutToolConfig(this.config);
       this.childCards.setConfig(this.config.cards ?? []);
 
@@ -906,35 +819,7 @@ class FlexHorseshoeCard extends LitElement {
    * Renders reusable SVG definitions for filters and other shared drawing helpers.
    */
   _renderSvgDefs() {
-    return svg`
-      <defs>
-        <filter id="fhs-inset-1" x="-50%" y="-50%" width="400%" height="400%">
-          <feComponentTransfer in="SourceAlpha">
-            <feFuncA type="table" tableValues="1 0"></feFuncA>
-          </feComponentTransfer>
-          <feGaussianBlur stdDeviation="1"></feGaussianBlur>
-          <feOffset dx="0" dy="1" result="offsetblur"></feOffset>
-          <feFlood flood-color="rgba(0, 0, 0, 0.3)" result="color"></feFlood>
-          <feComposite in2="offsetblur" operator="in"></feComposite>
-          <feComposite in2="SourceAlpha" operator="in"></feComposite>
-          <feMerge>
-            <feMergeNode in="SourceGraphic"></feMergeNode>
-            <feMergeNode></feMergeNode>
-          </feMerge>
-        </filter>
-
-        <filter id="fhs-inset-2">
-          <feOffset dx="1" dy="1"></feOffset>
-          <feGaussianBlur stdDeviation="0.5" result="offset-blur"></feGaussianBlur>
-          <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
-          <feFlood flood-color="black" flood-opacity="0.4" result="color"></feFlood>
-          <feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
-          <feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
-        </filter>
-
-        ${this.masksClips.renderDefs()}
-      </defs>
-    `;
+    return this.cardLayout.renderSvgDefs();
   }
 
   _renderSvg() {
@@ -947,7 +832,7 @@ class FlexHorseshoeCard extends LitElement {
     return svg`
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
             class="${cardFilter}"
-          viewBox='0 0 ${this.viewBox.width} ${this.viewBox.height}'>
+          viewBox='0 0 ${this.cardLayout.viewBox.width} ${this.cardLayout.viewBox.height}'>
             ${this._renderSvgDefs()}
             <g id="layout-tools" class="layout-tools">
               ${this._renderLayoutTools()}
@@ -981,11 +866,11 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   _getGroupScaleTransform(item) {
-    return this.groupManager.getGroupScaleTransform(item);
+    return this.cardLayout.getGroupScaleTransform(item);
   }
 
   _getGroupScaleStyle(item) {
-    return this.groupManager.getGroupScaleStyle(item);
+    return this.cardLayout.getGroupScaleStyle(item);
   }
 
   /**

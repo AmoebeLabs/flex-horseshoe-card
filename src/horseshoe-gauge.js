@@ -46,7 +46,7 @@ export default class HorseshoeGauge extends BaseTool {
     return horseshoes
       .filter(Boolean)
       .map((horseshoeConfig, index) => HorseshoeGauge.applyLegacyTickmarkCompat(horseshoeConfig))
-      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, card.groupManager), index, templates, cardId, card))
+      .map((horseshoeConfig, index) => new HorseshoeGauge(normalizeBaseConfig(horseshoeConfig, index, card.cardLayout.groupManager), index, templates, cardId, card))
       .filter((horseshoe) => horseshoe.show?.horseshoe !== false);
   }
 
@@ -199,7 +199,7 @@ export default class HorseshoeGauge extends BaseTool {
     this.activeItemConfig = this.config;
 
     if (this.configChanged || !this.normalizedConfig) {
-      this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
+      this.config.group_config = this.card.cardLayout.groupManager.getGroupForItem(this.config);
       this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.cardTheme.getActiveColorStopMode());
     }
   }

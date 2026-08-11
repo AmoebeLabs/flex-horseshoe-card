@@ -120,7 +120,7 @@ card showcases in Home Assistant.
 - [x] Extract runtime entity and derived sparkline handling into `CardEntities`.
 - [x] Extract state-triggered styles into `CardAnimations`.
 - [x] Extract tool construction, collections, entity assignment, and lifecycle into `CardTools`.
-- [ ] Extract viewBox, groups, dimensions, masks, clips, and SVG definitions into `CardLayout`.
+- [x] Extract viewBox, groups, dimensions, masks, clips, and SVG definitions into `CardLayout`.
 - [ ] Remove shared mutable JavaScript template context between simultaneous cards.
 - [ ] Reduce `main.js` to the Lit shell and explicit domain call order.
 - [ ] Run final automated build and manual Home Assistant showcase checks.

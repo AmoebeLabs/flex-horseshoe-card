@@ -65,7 +65,7 @@ export default class BaseTool {
    */
   updateRuntimeConfig() {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
-    this.configChanged = !this.activeConfigInitialized || this.card.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
+    this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
@@ -199,7 +199,7 @@ export default class BaseTool {
    * @returns {Array<object>} Ordered color_filter configs.
    */
   getColorFilterCascade(extraFilters = []) {
-    const groupFilters = this.card.groupManager
+    const groupFilters = this.card.cardLayout.groupManager
       .getGroupChainForItem(this.config)
       .map((group) => group.color_filter);
 
@@ -224,7 +224,7 @@ export default class BaseTool {
   getRenderStyles(styles, extraFilters = []) {
     const filteredStyles = ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
 
-    return this.card.masksClips.applyGradientRefs(filteredStyles);
+    return this.card.cardLayout.masksClips.applyGradientRefs(filteredStyles);
   }
 
   /**
@@ -304,20 +304,20 @@ export default class BaseTool {
       // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
       // each mask constrain the previous result, which is the useful combined effect.
       maskIds.forEach((maskId) => {
-        this.card.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
+        this.card.cardLayout.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
           result = svg`<g mask="url(#${svgMaskId})">${result}</g>`;
         });
       });
     }
 
     if (item.clip) {
-      result = svg`<g clip-path="url(#${this.card.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
+      result = svg`<g clip-path="url(#${this.card.cardLayout.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
     }
 
     // Hidden tools remain in the SVG and in every normal lifecycle phase. This
     // preserves text measurement, fit references, history and runtime state,
     // while the outer layer guarantees no visible or pointer-active descendant.
-    if (!this.card.groupManager.isItemVisible(item)) {
+    if (!this.card.cardLayout.groupManager.isItemVisible(item)) {
       result = svg`
         <g
           class="fhs-layout-item--hidden"

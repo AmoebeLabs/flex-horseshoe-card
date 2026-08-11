@@ -8,6 +8,7 @@ import CardConfig from '../src/card-config.js';
 import CardEntities from '../src/card-entities.js';
 import CardAnimations from '../src/card-animations.js';
 import CardTools from '../src/card-tools.js';
+import CardLayout from '../src/card-layout.js';
 
 class Connection {
   constructor() {
@@ -345,4 +346,45 @@ test('CardTools assigns entity state and forwards every shared lifecycle phase',
     ['state', '21.0', 'sensor.temperature'],
     'hassAvailable', 'hassConnected', 'connected', 'disconnected', 'firstUpdated', 'updated',
   ]);
+});
+
+test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const cardLayout = new CardLayout(templates, 'card');
+  const config = {
+    layout: {
+      aspectratio: '1/2',
+      groups: [{ id: 'room', xpos: 60, ypos: 40 }],
+      icons: [{ id: 'status', group: 'room', xpos: 50, ypos: 55 }],
+    },
+  };
+
+  cardLayout.setConfig(config);
+
+  assert.deepEqual(cardLayout.viewBox, { width: 200, height: 400 });
+  assert.deepEqual(config.layout.icons[0].svg, { xpos: 120, ypos: 90 });
+});
+
+test('CardLayout marks descendants when a dynamic parent group changes', () => {
+  const templates = {
+    hasJavascriptTemplates: (group) => group.dynamic === true,
+    getJsTemplateOrValue: (group) => ({ ...group, xpos: 65 }),
+  };
+  const cardLayout = new CardLayout(templates, 'card');
+  const config = {
+    layout: {
+      groups: [
+        { id: 'parent', xpos: 50, ypos: 50, dynamic: true },
+        { id: 'child', parent: 'parent', xpos: 50, ypos: 50 },
+      ],
+    },
+  };
+
+  cardLayout.setConfig(config);
+  cardLayout.updateGroups(true);
+
+  assert.deepEqual([...cardLayout.changedGroupIds].sort(), ['child', 'parent']);
+  assert.equal(cardLayout.groupManager.getGroup('child').xpos, 65);
+  cardLayout.markGroupsHandled();
+  assert.equal(cardLayout.changedGroupIds.size, 0);
 });
