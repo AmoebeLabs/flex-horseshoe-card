@@ -25,6 +25,7 @@ import CardInputEntities from './card-input-entities.js';
 import CardActions from './card-actions.js';
 import HomeAssistant from './home-assistant.js';
 import CardTheme from './card-theme.js';
+import CardConfig from './card-config.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -54,7 +55,7 @@ import Compounds from './compounds.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
-import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
+import { VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
@@ -81,6 +82,7 @@ class FlexHorseshoeCard extends LitElement {
     this.entities = [];
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
     this.actions = new CardActions(this, this.cardInputEntities);
+    this.cardConfig = new CardConfig(Templates);
     this.cardTheme = new CardTheme(
       this,
       () => this._updateGradientsAfterRender(),
@@ -897,76 +899,6 @@ class FlexHorseshoeCard extends LitElement {
     return typeof value === 'number' && Number.isFinite(value);
   }
 
-  _assignIdItems(items) {
-    return items.map((item, index) => ({
-      ...item,
-      id: String(item.id ?? index),
-    }));
-  }
-
-  _assignSectionIds(config) {
-    config.layout.groups ??= [];
-    config.layout.groups = this._assignIdItems(config.layout.groups);
-
-    if (Array.isArray(config.layout.compounds)) {
-      config.layout.compounds = this._assignIdItems(config.layout.compounds);
-
-      config.layout.compounds.forEach((compound) => {
-        VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-          const children = compound[section];
-
-          if (!Array.isArray(children)) return;
-
-          compound[section] = this._assignIdItems(children);
-        });
-      });
-    }
-
-    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout?.[section];
-
-      if (!Array.isArray(items)) return;
-
-      config.layout[section] = this._assignIdItems(items);
-    });
-
-    [config.layout?.clips, config.layout?.masks].forEach((definitions) => {
-      if (!definitions) return;
-
-      Object.values(definitions).forEach((definition) => {
-        DEFINITION_SHAPE_SECTIONS.forEach((section) => {
-          const items = definition[section];
-
-          if (!Array.isArray(items)) return;
-
-          definition[section] = this._assignIdItems(items);
-        });
-      });
-    });
-  }
-
-  /**
-   * Removes statically disabled layout items after reuse has been compiled.
-   *
-   * A disabled base item remains available while same_as is expanded. Filtering
-   * here then prevents every remaining disabled item from entering JavaScript
-   * detection, entity resolution, tool construction or any runtime lifecycle.
-   *
-   * @param {object} config - Card config after ref, calc and same_as processing.
-   */
-  _removeDisabledLayoutItems(config) {
-    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout[section];
-
-      if (!Array.isArray(items)) return;
-
-      config.layout[section] = items.filter((item) => {
-        if (item.disabled === undefined) return true;
-
-        return !ConfigHelper.isDisabled(item, item.disabled, section, Templates);
-      });
-    });
-  }
 
   /**
    * Resolves item-level entity ids and animation triggers against the explicit entities list.
@@ -1147,253 +1079,6 @@ class FlexHorseshoeCard extends LitElement {
     return value;
   }
 
-  /**
-   * Removes disabled entities before slot resolution.
-   *
-   * Entity slots are built only after this pass, so disabled entities cannot
-   * leave empty or shifting slot addresses.
-   *
-   * @param {object} config - Card configuration with calculated static values.
-   */
-  _removeDisabledEntityConfigs(config) {
-    config.entities = config.entities
-      .map((entityConfig, index) => {
-        if (entityConfig.disabled === undefined) return entityConfig;
-
-        const item = {
-          ...entityConfig,
-          entity_index: index,
-        };
-        const disabled = ConfigHelper.isDisabled(item, entityConfig.disabled, 'entities', Templates);
-
-        return {
-          ...entityConfig,
-          disabled,
-        };
-      })
-      .filter((entityConfig) => entityConfig.disabled !== true);
-  }
-
-  /**
-   * Builds the final slot map for the flat configured entity list.
-   *
-   * Slots are sticky: an entity with a slot changes the active slot for the
-   * following entities. Every entity is also recorded in the internal flat
-   * slot, so numeric indices and named slot references share one address model.
-   *
-   * @param {Array<object>} entityConfigs - Final entity configs after template merge.
-   * @returns {object} Slot names mapped to flat entity indices.
-   */
-  _buildEntitySlots(entityConfigs) {
-    const entitySlots = {
-      flat: [],
-      default: [],
-    };
-    let activeSlot = 'default';
-
-    entityConfigs.forEach((entityConfig, index) => {
-      if (entityConfig.slot !== undefined) {
-        if (typeof entityConfig.slot !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(entityConfig.slot)) {
-          throw new Error(`[entities] Invalid slot ${entityConfig.slot} at index ${index}`);
-        }
-        if (entityConfig.slot === 'flat') {
-          throw new Error('[entities] Slot name flat is reserved');
-        }
-        activeSlot = entityConfig.slot;
-      }
-
-      entityConfig.slot = activeSlot;
-      entitySlots[activeSlot] ??= [];
-      entitySlots[activeSlot].push(index);
-      entitySlots.flat.push(index);
-    });
-
-    return entitySlots;
-  }
-
-  /**
-   * Converts user-facing entity_index values into symbolic addresses before
-   * compounds and SameAs inherit and modify them.
-   *
-   * @param {object} config - Card configuration after static values are resolved.
-   */
-  _normalizeEntityIndexAddresses(config) {
-    const normalizeValue = (value) => {
-      if (typeof value === 'number') {
-        return { type: 'entity_address', slot: 'flat', index: value };
-      }
-
-      if (typeof value === 'string') {
-        const slotMatch = value.match(/^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]$/);
-        if (slotMatch) {
-          return {
-            type: 'entity_address',
-            slot: slotMatch[1],
-            index: Number(slotMatch[2]),
-          };
-        }
-      }
-
-      throw new Error(`[layout] Invalid entity_index ${value}. Use a number or slot[index]`);
-    };
-
-    const visit = (value) => {
-      if (Array.isArray(value)) {
-        value.forEach((entry) => visit(entry));
-        return;
-      }
-
-      if (!value || typeof value !== 'object') return;
-
-      Object.entries(value).forEach(([key, entryValue]) => {
-        if (key === 'entity_index' && entryValue !== undefined) {
-          value[key] = normalizeValue(entryValue);
-          return;
-        }
-        visit(entryValue);
-      });
-    };
-
-    visit(config.layout);
-  }
-
-  /**
-   * Flattens symbolic entity slot addresses into the numeric indices consumed by tools.
-   *
-   * @param {object} config - Card configuration after SameAs and entity-id resolution.
-   */
-  _flattenEntitySlotIndexes(config) {
-    const visit = (value) => {
-      if (Array.isArray(value)) {
-        value.forEach((entry) => visit(entry));
-        return;
-      }
-
-      if (!value || typeof value !== 'object') return;
-
-      Object.entries(value).forEach(([key, entryValue]) => {
-        if (key === 'entity_index' && entryValue?.type === 'entity_address') {
-          const slot = this.entitySlots[entryValue.slot];
-          if (slot === undefined) throw new Error(`[layout] Unknown entity slot ${entryValue.slot}`);
-          if (entryValue.index >= slot.length) {
-            throw new Error(`[layout] Entity slot ${entryValue.slot} has no index ${entryValue.index}`);
-          }
-          value[key] = slot[entryValue.index];
-          return;
-        }
-        visit(entryValue);
-      });
-    };
-
-    visit(config.layout);
-  }
-
-  /**
-   * Records JavaScript-template metadata for every supported runtime config unit.
-   *
-   * The scan runs after card templates, ref(), calc() and same_as have produced
-   * their final config shapes. Metadata is stored by Templates in a WeakMap,
-   * leaving the public configuration untouched. The returned card flag allows
-   * later lifecycle steps to skip all dynamic work for fully static cards.
-   *
-   * @param {object} config - Finalized card config before runtime tool construction.
-   * @returns {boolean} True when any supported runtime config unit contains JavaScript.
-   */
-  /**
-   * Validates every configured gesture before tools may consume the config.
-   *
-   * Control-specific semantic actions are accepted here and converted by their
-   * constructors. JavaScript action templates are validated after evaluation.
-   *
-   * @param {object} config - Final static card config after inheritance and disabled filtering.
-   */
-  _validateActionConfigs(config) {
-    const gestureProperties = ['tap_action', 'hold_action', 'double_tap_action'];
-    const validActions = [
-      'none',
-      'more-info',
-      'toggle',
-      'perform-action',
-      'call-service',
-      'navigate',
-      'url',
-      'assist',
-      'fire-dom-event',
-      'increment',
-      'decrement',
-      'select-option',
-    ];
-
-    const visit = (value, configPath) => {
-      if (Array.isArray(value)) {
-        value.forEach((entry, index) => visit(entry, `${configPath}[${index}]`));
-        return;
-      }
-
-      if (!value || typeof value !== 'object') return;
-
-      Object.entries(value).forEach(([property, propertyValue]) => {
-        const propertyPath = configPath ? `${configPath}.${property}` : property;
-
-        if (property === 'double_tap') {
-          throw Error(`[actions] Invalid '${propertyPath}'; use 'double_tap_action'`);
-        }
-
-        if (gestureProperties.includes(property)) {
-          const configuredActions = propertyValue.actions ?? [propertyValue];
-
-          configuredActions.forEach((actionConfig, actionIndex) => {
-            const actionPath = propertyValue.actions
-              ? `${propertyPath}.actions[${actionIndex}].action`
-              : `${propertyPath}.action`;
-
-            if (!Templates.hasJavascriptTemplates(actionConfig.action)
-              && !validActions.includes(actionConfig.action)) {
-              throw Error(`[actions] Invalid action '${actionConfig.action}' at '${actionPath}'`);
-            }
-          });
-        }
-
-        visit(propertyValue, propertyPath);
-      });
-    };
-
-    visit(config, '');
-  }
-
-  _detectJavascriptTemplates(config) {
-    let cardHasJavascript = false;
-
-    config.entities.forEach((entityConfig) => {
-      if (Templates.detectJavascriptTemplates(entityConfig)) cardHasJavascript = true;
-    });
-
-    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout[section];
-
-      if (!Array.isArray(items)) return;
-
-      items.forEach((item) => {
-        if (Templates.detectJavascriptTemplates(item)) cardHasJavascript = true;
-      });
-    });
-
-    config.layout.groups.forEach((group) => {
-      if (Templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
-    });
-
-    if (config.animations) {
-      Object.values(config.animations).forEach((animationItems) => {
-        animationItems.forEach((animationItem) => {
-          if (Templates.detectJavascriptTemplates(animationItem)) cardHasJavascript = true;
-        });
-      });
-    }
-
-    if (config.styles && Templates.detectJavascriptTemplates(config.styles)) cardHasJavascript = true;
-
-    return cardHasJavascript;
-  }
 
   setConfig(config) {
     const performanceEnabled = config.dev?.performance === true;
@@ -1441,7 +1126,7 @@ class FlexHorseshoeCard extends LitElement {
       }
       if (config?.palettes) this.cardTheme.loadPalettes(config.palettes);
 
-      this._assignSectionIds(config);
+      this.cardConfig.assignLayoutItemIds(config);
 
       const calcConstants = this._buildConstants(config);
 
@@ -1456,18 +1141,18 @@ class FlexHorseshoeCard extends LitElement {
         horseshoes: this.horseshoes,
       });
       ControlTool.compileConfig(config, Templates);
-      this._removeDisabledEntityConfigs(config);
+      this.cardConfig.removeDisabledEntityConfigs(config);
 
-      this.entitySlots = this._buildEntitySlots(config.entities);
-      this._normalizeEntityIndexAddresses(config);
+      this.entitySlots = this.cardConfig.buildEntitySlots(config.entities);
+      this.cardConfig.normalizeEntityIndexAddresses(config);
       Compounds.compile(config);
       SameAs.compile(config);
 
-      this._removeDisabledLayoutItems(config);
+      this.cardConfig.removeDisabledLayoutItems(config);
       this.cardInputEntities.validateConfig(config);
-      this._validateActionConfigs(config);
+      this.cardConfig.validateActionConfigs(config);
 
-      this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
+      this.hasJavascriptTemplates = this.cardConfig.detectJavascriptTemplates(config);
 
       // this._assignSectionIds(config);
       // this._buildConstants(config);
@@ -1497,7 +1182,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       this._resolveLayoutItemEntityIndexes(config, resolvedEntitiesConfig);
-      this._flattenEntitySlotIndexes(config);
+      this.cardConfig.flattenEntitySlotIndexes(config, this.entitySlots);
 
       const newConfig = {
         texts: [],

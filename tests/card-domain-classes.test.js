@@ -4,6 +4,7 @@ import HomeAssistant from '../src/home-assistant.js';
 import CardActions from '../src/card-actions.js';
 import CardInputEntities from '../src/card-input-entities.js';
 import CardTheme from '../src/card-theme.js';
+import CardConfig from '../src/card-config.js';
 
 class Connection {
   constructor() {
@@ -120,4 +121,67 @@ test('CardTheme reports mode changes and invalidates color-dependent rendering',
 
   cardTheme.markModeHandled();
   assert.equal(cardTheme.modeChanged, false);
+});
+
+test('CardConfig compiles named entity addresses to final flat indexes', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const entities = [
+    { entity: 'sensor.first', slot: 'rooms' },
+    { entity: 'sensor.second' },
+    { entity: 'sensor.third', slot: 'history' },
+  ];
+  const config = {
+    layout: {
+      controls: [
+        { entity_index: 'rooms[1]' },
+        { entity_index: 'history[0]' },
+      ],
+    },
+  };
+
+  const slots = cardConfig.buildEntitySlots(entities);
+  cardConfig.normalizeEntityIndexAddresses(config);
+  cardConfig.flattenEntitySlotIndexes(config, slots);
+
+  assert.deepEqual(slots, { flat: [0, 1, 2], default: [], rooms: [0, 1], history: [2] });
+  assert.deepEqual(config.layout.controls.map((control) => control.entity_index), [1, 2]);
+});
+
+test('CardConfig rejects unknown slots and invalid action names at configuration time', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const invalidSlotConfig = { layout: { controls: [{ entity_index: 'missing[0]' }] } };
+  cardConfig.normalizeEntityIndexAddresses(invalidSlotConfig);
+
+  assert.throws(
+    () => cardConfig.flattenEntitySlotIndexes(invalidSlotConfig, { flat: [], default: [] }),
+    /Unknown entity slot missing/,
+  );
+  assert.throws(
+    () => cardConfig.validateActionConfigs({ tap_action: { action: 'more-infos' } }),
+    /Invalid action 'more-infos'/,
+  );
+  assert.throws(
+    () => cardConfig.validateActionConfigs({ double_tap: { action: 'more-info' } }),
+    /use 'double_tap_action'/,
+  );
+});
+
+test('CardConfig assigns stable ids throughout visible layout sections', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const config = {
+    layout: {
+      groups: [{}, { id: 'named' }],
+      controls: [{}, { id: 'control' }],
+      compounds: [{ lines: [{}, { id: 'line' }] }],
+      masks: { mask: { circles: [{}] } },
+      clips: {},
+    },
+  };
+
+  cardConfig.assignLayoutItemIds(config);
+
+  assert.deepEqual(config.layout.groups.map((item) => item.id), ['0', 'named']);
+  assert.deepEqual(config.layout.controls.map((item) => item.id), ['0', 'control']);
+  assert.deepEqual(config.layout.compounds[0].lines.map((item) => item.id), ['0', 'line']);
+  assert.equal(config.layout.masks.mask.circles[0].id, '0');
 });
