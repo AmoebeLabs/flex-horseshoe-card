@@ -109,3 +109,18 @@ Keep all existing test scenarios and add regression coverage for:
 Tests and the complete build must pass after every implementation stage. Finish
 with manual checks of the control, horseshoe, cartesian, radial, Awair, and child
 card showcases in Home Assistant.
+
+## Current progress
+
+- [x] Move tests and ideas out of `src`; run tests before lint and Rollup.
+- [x] Add decimal precedence and trailing-zero regression coverage.
+- [x] Extract `CardStyles`, `CardInputEntities`, and `CardActions`.
+- [x] Extract `HomeAssistant` connection lifecycle and `CardTheme`.
+- [x] Extract static `CardConfig` compilation and validation.
+- [x] Extract runtime entity and derived sparkline handling into `CardEntities`.
+- [x] Extract state-triggered styles into `CardAnimations`.
+- [x] Extract tool construction, collections, entity assignment, and lifecycle into `CardTools`.
+- [ ] Extract viewBox, groups, dimensions, masks, clips, and SVG definitions into `CardLayout`.
+- [ ] Remove shared mutable JavaScript template context between simultaneous cards.
+- [ ] Reduce `main.js` to the Lit shell and explicit domain call order.
+- [ ] Run final automated build and manual Home Assistant showcase checks.

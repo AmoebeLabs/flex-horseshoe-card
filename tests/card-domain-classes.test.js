@@ -7,6 +7,7 @@ import CardTheme from '../src/card-theme.js';
 import CardConfig from '../src/card-config.js';
 import CardEntities from '../src/card-entities.js';
 import CardAnimations from '../src/card-animations.js';
+import CardTools from '../src/card-tools.js';
 
 class Connection {
   constructor() {
@@ -298,4 +299,50 @@ test('CardAnimations matches entity state and preserves reused styles and icons'
   assert.deepEqual(animations.styles.lines.status, { stroke: 'red', opacity: '0.5' });
   assert.deepEqual(animations.styles.icons.main, { fill: 'yellow' });
   assert.equal(animations.styles.iconsIcon.main, 'mdi:lightbulb');
+});
+
+test('CardTools preserves section render order and separates sparkline runtime updates', () => {
+  const cardTools = new CardTools({}, {}, 'card');
+  const calls = [];
+  const rectangle = { updateRuntimeConfig: () => calls.push('rectangle') };
+  const horseshoe = { updateRuntimeConfig: () => calls.push('horseshoe') };
+  const sparkline = { updateRuntimeConfig: () => calls.push('sparkline') };
+
+  cardTools.sections.rectangles = [rectangle];
+  cardTools.sections.horseshoes = [horseshoe];
+  cardTools.sections.sparklines = [sparkline];
+
+  assert.deepEqual(cardTools.getRenderableTools(), [rectangle, horseshoe, sparkline]);
+  cardTools.updateSparklineRuntimeConfig();
+  cardTools.updateRuntimeConfig();
+  assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle']);
+});
+
+test('CardTools assigns entity state and forwards every shared lifecycle phase', () => {
+  const cardTools = new CardTools({}, {}, 'card');
+  const calls = [];
+  const tool = {
+    entity_index: 0,
+    setState: (entity, config) => calls.push(['state', entity.state, config.entity]),
+    hassAvailable: () => calls.push('hassAvailable'),
+    hassConnected: () => calls.push('hassConnected'),
+    connected: () => calls.push('connected'),
+    disconnected: () => calls.push('disconnected'),
+    firstUpdated: () => calls.push('firstUpdated'),
+    updated: () => calls.push('updated'),
+  };
+  cardTools.sections.rectangles = [tool];
+
+  cardTools.setRuntimeEntityStates([{ entity: 'sensor.temperature' }], [{ state: '21.0' }]);
+  cardTools.hassAvailable();
+  cardTools.hassConnected();
+  cardTools.connected();
+  cardTools.disconnected();
+  cardTools.firstUpdated(new Map());
+  cardTools.updated(new Map());
+
+  assert.deepEqual(calls, [
+    ['state', '21.0', 'sensor.temperature'],
+    'hassAvailable', 'hassConnected', 'connected', 'disconnected', 'firstUpdated', 'updated',
+  ]);
 });

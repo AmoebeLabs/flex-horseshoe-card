@@ -28,6 +28,7 @@ import CardTheme from './card-theme.js';
 import CardConfig from './card-config.js';
 import CardEntities from './card-entities.js';
 import CardAnimations from './card-animations.js';
+import CardTools from './card-tools.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
@@ -37,18 +38,8 @@ import { computeStateDomain } from './frontend_mods/common/entity/compute_state_
 import Colors from './colors.js';
 import Utils from './utils.js';
 import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
-import HorseshoeGauge from './horseshoe-gauge.js';
-import RectangleTool from './rectangle-tool.js';
-import LineTool from './line-tool.js';
-import CircleTool from './circle-tool.js';
-import ArcTool from './arc-tool.js';
-import NameTool from './name-tool.js';
-import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
-import TextTool from './text-tool.js';
-import IconTool from './icon-tool.js';
 import ControlTool from './control-tool.js';
-import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
 import Compounds from './compounds.js';
@@ -78,7 +69,8 @@ class FlexHorseshoeCard extends LitElement {
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
-    this.homeAssistant = new HomeAssistant(() => this._getRenderableTools().forEach((tool) => tool.hassConnected()));
+    this.cardTools = new CardTools(this, Templates, this.cardId);
+    this.homeAssistant = new HomeAssistant(() => this.cardTools.hassConnected());
     this.entities = [];
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
     this.actions = new CardActions(this, this.cardInputEntities);
@@ -99,16 +91,6 @@ class FlexHorseshoeCard extends LitElement {
     this.colorStops = {};
     this.childCards = new ChildCards(this);
     this.cardAnimations = new CardAnimations();
-    this.rectangleTools = [];
-    this.lineTools = [];
-    this.circleTools = [];
-    this.arcTools = [];
-    this.nameTools = [];
-    this.areaTools = [];
-    this.stateTools = [];
-    this.textTools = [];
-    this.iconTools = [];
-    this.sparklineGraphTools = [];
     this.groupManager = undefined;
     this.sourceGroupConfigs = undefined;
     this.activeGroupConfigs = undefined;
@@ -249,53 +231,12 @@ class FlexHorseshoeCard extends LitElement {
 
     this.evaluateJavascriptTemplates = true;
 
-    // Async sparkline statistics update runtime config before entity data.
-    this.horseshoeGauges.forEach((horseshoe) => horseshoe.updateRuntimeConfig());
-    this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
-    this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
-    this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
-    this.textTools.forEach((textTool) => textTool.updateRuntimeConfig());
-    this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
-    this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
-    this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
-    this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
-    this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
-    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
-
-    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
-    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
-    this.textTools = (this.textTools ?? []).map((textTool) => this._setToolEntityState(textTool));
-    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
-    this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
-    this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
-    this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-    this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
-    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
+    // Async history has already updated derived sparkline entities, so all normal
+    // tools can now evaluate their runtime config and receive current entity data.
+    this.cardTools.updateRuntimeConfig();
+    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
 
     this.evaluateJavascriptTemplates = false;
-  }
-
-  /** Assigns only the selected entity data after the separate runtime-config phase. */
-  _setToolEntityState(tool) {
-    const entityIndex = tool.entity_index;
-
-    if (entityIndex === undefined || entityIndex === null) {
-      tool.setState(undefined, undefined);
-      return tool;
-    }
-
-    const entityConfig = this.resolvedEntityConfigs[entityIndex];
-    const entity = this.entities[entityIndex];
-
-    if (!entity || !entityConfig) {
-      return tool;
-    }
-
-    tool.setState(entity, entityConfig);
-
-    return tool;
   }
 
   /** **************************************************************************************
@@ -448,7 +389,7 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
-    let entityHasChanged = forceUpdate || themeChanged || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
+    let entityHasChanged = forceUpdate || themeChanged || configuredEntityStateChanged || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
@@ -491,7 +432,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     // Home Assistant availability is a distinct one-time lifecycle phase.
-    if (hassBecameAvailable) this._getRenderableTools().forEach((tool) => tool.hassAvailable());
+    if (hassBecameAvailable) this.cardTools.hassAvailable();
 
     // Runtime configuration and entity data still run for forced, theme and history updates.
     // JavaScript evaluation still occurs only for an actual configured entity update.
@@ -500,35 +441,13 @@ class FlexHorseshoeCard extends LitElement {
     const toolsPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
     // Runtime configuration is updated once before sparkline entity data.
-    this.sparklineGraphTools.forEach((sparklineGraphTool) => sparklineGraphTool.updateRuntimeConfig());
-
-    this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
-    this.cardEntities.updateSparklineEntities(this.resolvedEntityConfigs, this.entities, this.sparklineGraphTools);
+    this.cardTools.updateSparklineRuntimeConfig();
+    this.cardTools.setSparklineEntityStates(this.resolvedEntityConfigs, this.entities);
+    this.cardEntities.updateSparklineEntities(this.resolvedEntityConfigs, this.entities, this.cardTools.getBySection('sparklines'));
 
     // Remaining runtime configurations can now use the current local sparkline entities.
-    this.horseshoeGauges.forEach((horseshoe) => horseshoe.updateRuntimeConfig());
-    this.nameTools.forEach((nameTool) => nameTool.updateRuntimeConfig());
-    this.areaTools.forEach((areaTool) => areaTool.updateRuntimeConfig());
-    this.stateTools.forEach((stateTool) => stateTool.updateRuntimeConfig());
-    this.textTools.forEach((textTool) => textTool.updateRuntimeConfig());
-    this.rectangleTools.forEach((rectangleTool) => rectangleTool.updateRuntimeConfig());
-    this.lineTools.forEach((lineTool) => lineTool.updateRuntimeConfig());
-    this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
-    this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
-    this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
-    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
-
-    this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
-    this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
-    this.areaTools = (this.areaTools ?? []).map((areaTool) => this._setToolEntityState(areaTool));
-    this.stateTools = (this.stateTools ?? []).map((stateTool) => this._setToolEntityState(stateTool));
-    this.textTools = (this.textTools ?? []).map((textTool) => this._setToolEntityState(textTool));
-    this.rectangleTools = (this.rectangleTools ?? []).map((rectangleTool) => this._setToolEntityState(rectangleTool));
-    this.lineTools = (this.lineTools ?? []).map((lineTool) => this._setToolEntityState(lineTool));
-    this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
-    this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
-    this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
-    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
+    this.cardTools.updateRuntimeConfig();
+    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:tools`, {
@@ -754,8 +673,8 @@ class FlexHorseshoeCard extends LitElement {
       this.groupManager = new GroupManager(this.activeGroupConfigs);
       this.masksClips = new MasksClips(this.config, this.cardId, this);
 
-      this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
-      this.cardTheme.setHorseshoes(this.horseshoeGauges);
+      this.cardTools.setHorseshoeConfig(config);
+      this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
       this.bar_mode = newConfig.bar_mode || 'normal';
 
@@ -768,17 +687,7 @@ class FlexHorseshoeCard extends LitElement {
       this.viewBox.height = ar[1] * SVG_DEFAULT_DIMENSIONS;
 
       this._computeSvgDimensions(this.config);
-      this.nameTools = NameTool.setConfig(this.config, Templates, this.cardId, this);
-      this.areaTools = AreaTool.setConfig(this.config, Templates, this.cardId, this);
-      this.stateTools = StateTool.setConfig(this.config, Templates, this.cardId, this);
-      this.textTools = TextTool.setConfig(this.config, Templates, this.cardId, this);
-      this.rectangleTools = RectangleTool.setConfig(this.config, Templates, this.cardId, this);
-      this.lineTools = LineTool.setConfig(this.config, Templates, this.cardId, this);
-      this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
-      this.arcTools = ArcTool.setConfig(this.config, Templates, this.cardId, this);
-      this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
-      this.controlTools = ControlTool.setConfig(this.config, Templates, this.cardId, this);
-      this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
+      this.cardTools.setLayoutToolConfig(this.config);
       this.childCards.setConfig(this.config.cards ?? []);
 
       Templates.setContext({
@@ -788,7 +697,7 @@ class FlexHorseshoeCard extends LitElement {
         horseshoes: this.horseshoes,
         entity_slots: this.entitySlots,
       });
-      if (this._hass !== undefined) this._getRenderableTools().forEach((tool) => tool.hassAvailable());
+      if (this._hass !== undefined) this.cardTools.hassAvailable();
 
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setConfig`, {
@@ -849,22 +758,7 @@ class FlexHorseshoeCard extends LitElement {
    * @returns {Array<BaseTool>} Tools in the requested section.
    */
   getToolsBySection(section) {
-    const sections = {
-      rectangles: this.rectangleTools,
-      circles: this.circleTools,
-      arcs: this.arcTools,
-      horseshoes: this.horseshoeGauges,
-      lines: this.lineTools,
-      icons: this.iconTools,
-      areas: this.areaTools,
-      names: this.nameTools,
-      states: this.stateTools,
-      texts: this.textTools,
-      sparklines: this.sparklineGraphTools,
-      controls: this.controlTools,
-    };
-
-    return sections[section];
+    return this.cardTools.getBySection(section);
   }
 
   /**
@@ -929,7 +823,7 @@ class FlexHorseshoeCard extends LitElement {
     super.connectedCallback();
     this.cardInputEntities.connected();
     this.homeAssistant.connected();
-    this._getRenderableTools().forEach((tool) => tool.connected());
+    this.cardTools.connected();
   }
 
   /** *****************************************************************************
@@ -941,7 +835,7 @@ class FlexHorseshoeCard extends LitElement {
   disconnectedCallback() {
     this.cardInputEntities.disconnected();
     this.homeAssistant.disconnected();
-    this._getRenderableTools().forEach((tool) => tool.disconnected());
+    this.cardTools.disconnected();
     super.disconnectedCallback();
   }
 
@@ -1063,70 +957,20 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Returns every renderable layout tool in one list for global zpos sorting.
-   *
-   * @returns {Array<object>} Renderable tool instances.
-   */
-  _getRenderableTools() {
-    return [
-      ...(this.rectangleTools ?? []),
-      ...(this.circleTools ?? []),
-      ...(this.arcTools ?? []),
-      ...(this.horseshoeGauges ?? []),
-      ...(this.lineTools ?? []),
-      ...(this.iconTools ?? []),
-      ...(this.areaTools ?? []),
-      ...(this.nameTools ?? []),
-      ...(this.stateTools ?? []),
-      ...(this.textTools ?? []),
-      ...(this.sparklineGraphTools ?? []),
-      ...(this.controlTools ?? []),
-    ];
-  }
-
-  /**
-   * Converts sort fields to finite numbers so zpos templates cannot break sorting.
-   *
-   * @param {*} value - Tool sort field value.
-   * @param {number} fallback - Value used when conversion fails.
-   * @returns {number} Finite sort value.
-   */
-  _getToolSortNumber(value, fallback = 0) {
-    const numberValue = Number(value);
-
-    return Number.isFinite(numberValue) ? numberValue : fallback;
-  }
-
-  /**
-   * Sorts tools first by configured layer, then by existing render order.
-   *
-   * @param {object} firstTool - First renderable tool.
-   * @param {object} secondTool - Second renderable tool.
-   * @returns {number} Sort comparison result.
-   */
-  _sortRenderableTools(firstTool, secondTool) {
-    const zposDifference = this._getToolSortNumber(firstTool.zpos) - this._getToolSortNumber(secondTool.zpos);
-
-    if (zposDifference !== 0) return zposDifference;
-
-    return this._getToolSortNumber(firstTool.renderIndex) - this._getToolSortNumber(secondTool.renderIndex);
-  }
-
-  /**
    * Renders all layout tools through one globally sorted zpos pipeline.
    *
    * @returns {TemplateResult} Sorted SVG layout tool templates.
    */
   _renderLayoutTools() {
     return svg`
-      ${this._getRenderableTools()
-        .sort((firstTool, secondTool) => this._sortRenderableTools(firstTool, secondTool))
+      ${this.cardTools.getRenderableTools()
+        .sort((firstTool, secondTool) => Number(firstTool.zpos) - Number(secondTool.zpos) || Number(firstTool.renderIndex) - Number(secondTool.renderIndex))
         .map((tool) => tool.render())}
     `;
   }
 
   _renderSparklineTooltips() {
-    return html` <div class="sparkline-tooltip-layer">${this.sparklineGraphTools?.map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
+    return html` <div class="sparkline-tooltip-layer">${this.cardTools.getBySection('sparklines').map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
   }
 
   /** *****************************************************************************
@@ -1152,9 +996,7 @@ class FlexHorseshoeCard extends LitElement {
   firstUpdated(changedProperties) {
     super.firstUpdated?.(changedProperties);
 
-    this._getRenderableTools().forEach((tool) => tool.firstUpdated(changedProperties));
-
-    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+    this.cardTools.firstUpdated(changedProperties);
   }
 
   updated(changedProperties) {
@@ -1163,8 +1005,7 @@ class FlexHorseshoeCard extends LitElement {
 
     super.updated?.(changedProperties);
 
-    this._getRenderableTools().forEach((tool) => tool.updated(changedProperties));
-    this.sparklineGraphTools?.forEach((sparklineGraphTool) => sparklineGraphTool.attachPointerHandlers());
+    this.cardTools.updated(changedProperties);
 
     if (performanceEnabled) {
       const updatedPerformanceEnd = performance.now();
