@@ -11,6 +11,7 @@ import CardTools from '../src/card-tools.js';
 import CardLayout from '../src/card-layout.js';
 import Templates from '../src/templates.js';
 import BaseTool from '../src/base-tool.js';
+import ChildCards from '../src/child-cards.js';
 
 class Connection {
   constructor() {
@@ -483,6 +484,14 @@ test('CardLayout marks descendants when a dynamic parent group changes', () => {
   assert.equal(cardLayout.groupManager.getGroup('child').xpos, 65);
   cardLayout.markGroupsHandled();
   assert.equal(cardLayout.changedGroupIds.size, 0);
+});
+
+test('ChildCards renders against the CardLayout aspect ratio', () => {
+  const childCards = new ChildCards({
+    cardLayout: { aspectratio: '1/2' },
+  });
+
+  assert.doesNotThrow(() => childCards.render());
 });
 
 test('Templates keeps JavaScript context independent for simultaneous cards', () => {
