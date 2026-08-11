@@ -7,15 +7,15 @@
   "scripts": {
     "build": "npm run lint && npm run rollup",
     "rollup": "rollup -c",
-    "lint": "eslint src/*.js",
+    "lint": "biome lint src/*.js",
+    "format": "biome format --write src/*.js",
     "watch": "rollup -c --watch",
     "postversion": "npm run build",
     "audit-fix": "npx yarn-audit-fix",
     "serve": "rollup -c serve.config.js --watch"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "",
-    "@eslint/js": "",
+    "@biomejs/biome": "2.5.8",
     "@rollup/plugin-alias": "",
     "@rollup/plugin-commonjs": "^29",
     "@rollup/plugin-json": "^6.0.0",
@@ -23,24 +23,20 @@
     "@rollup/plugin-replace": "",
     "@rollup/plugin-terser": "^1",
     "@rollup/plugin-typescript": "^11",
-    "rollup-plugin-visualizer": "",
-    "typescript": "^5",
-    "tslib": "2.8.1",
-    "eslint": "^9",
-    "eslint-config-airbnb-extended": "^3",
-    "eslint-config-prettier": "^10.1.8",
+    "home-assistant-js-websocket": "^9.6.0",
     "rollup": "^4.60",
     "rollup-plugin-serve": "^3",
-    "home-assistant-js-websocket": "^9.6.0"
+    "rollup-plugin-visualizer": "",
+    "tslib": "2.8.1",
+    "typescript": "^5"
   },
   "dependencies": {
     "@formatjs/intl-utils": "^3.8.4",
     "@mdi/js": "^7.2.96",
-    "globals": "^17.5.0",
+    "@tanem/svg-injector": "",
+    "culori": "",
     "home-assistant-js-websocket": "^9.6.0",
     "lit": "^3.3.2",
-    "memoize-one": "^6.0.0",
-    "culori": "",
-    "@tanem/svg-injector": ""
+    "memoize-one": "^6.0.0"
   }
 }
