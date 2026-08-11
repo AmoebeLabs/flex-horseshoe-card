@@ -123,6 +123,8 @@ Suggested groups are:
 - **History charts:** line, area, bar, dots, and min/max.
 - **Specialized charts:** equalizer, graded, barcode, and radial barcode.
 - **Layouts:** groups, dynamic fitted rectangles, wide cards, and embedded cards.
+- **Controls:** button, toggle, select, number, and linear/circular slider
+  controls with their content, labels, actions, animations, and visual styles.
 - **Reusable and dynamic cards:** templates, constants, variables, animations, and JavaScript.
 - **Complete dashboards:** the existing advanced demo cards and future use-case examples.
 
@@ -140,6 +142,12 @@ The following user-visible documentation also needs to be synchronized with the 
 - Add screenshots for line, dots, equalizer, graded, and basic layout examples.
 - Ensure every chart page shows the currently supported axes, grid, labels, tooltip, and indicator behavior.
 - Ensure examples consistently use the current public configuration names, including `color_stops`.
+- Add a complete Controls reference with a per-control styling matrix and
+  copyable YAML for every supported visualization.
+- Include a light-brightness slider whose active track follows the current HA
+  light color, plus an explicit style override example.
+- Include single and dual linear/circular sliders, unavailable-state behavior,
+  a dual HVAC range, and button/toggle/select/number action examples.
 
 ## Recommended Delivery Order
 
@@ -148,8 +156,9 @@ The following user-visible documentation also needs to be synchronized with the 
 3. Publish First History Card.
 4. Correct outdated chart documentation.
 5. Add the compact intermediate examples.
-6. Rebuild the Examples overview as a visual gallery.
-7. Add further real-world use-case cards and screenshots over time.
+6. Publish the Controls reference and interactive controls showcase.
+7. Rebuild the Examples overview as a visual gallery.
+8. Add further real-world use-case cards and screenshots over time.
 
 This order closes the largest onboarding gap first. It also allows every later example to reuse concepts and links introduced by the earlier pages.
 
@@ -163,3 +172,5 @@ This order closes the largest onboarding gap first. It also allows every later e
 - Advanced demo cards are presented as showcase destinations, not starting points.
 - User documentation contains no internal implementation or processing details.
 - Documented chart behavior matches the current software.
+- Every control layer that can be styled is named and demonstrated in complete
+  YAML, including automatic HA entity colors and explicit style overrides.

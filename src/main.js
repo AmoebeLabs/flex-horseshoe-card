@@ -41,6 +41,7 @@ import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
 import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
+import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
 import GroupManager from './group-manager.js';
 import SameAs from './same-as.js';
@@ -97,9 +98,7 @@ class FlexHorseshoeCard extends LitElement {
     };
     this.fhsInputStateChanged = false;
     this.fhsInputEventHandler = (event) => {
-      const matchingConfig = this.config.entities.find(
-        (entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global',
-      );
+      const matchingConfig = this.config.entities.find((entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global');
 
       if (this.dev.debug) {
         console.log('[FHS global input event]', {
@@ -136,6 +135,7 @@ class FlexHorseshoeCard extends LitElement {
     this.animations.areas = {};
     this.animations.states = {};
     this.animations.texts = {};
+    this.animations.controls = {};
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
@@ -275,7 +275,7 @@ class FlexHorseshoeCard extends LitElement {
   static get styles() {
     return css`
       :host {
-        cursor: pointer;
+        cursor: default;
       }
 
       @media (print), (prefers-reduced-motion: reduce) {
@@ -1091,9 +1091,7 @@ class FlexHorseshoeCard extends LitElement {
   _changeFhsInputNumberValue(entityId, direction) {
     const entityConfig = this.config.entities.find((config) => config.entity === entityId);
     const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentValue = entityConfig.scope === 'global'
-      ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state)
-      : Number(this.entities[entityIndex].state);
+    const currentValue = entityConfig.scope === 'global' ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state) : Number(this.entities[entityIndex].state);
     const nextValue = calculateFhsInputNumberNextValue(entityConfig, currentValue, direction);
 
     this._setFhsInputNumberValue(entityId, nextValue);
@@ -1108,12 +1106,8 @@ class FlexHorseshoeCard extends LitElement {
   _setFhsInputBooleanState(entityId, service) {
     const entityConfig = this.config.entities.find((config) => config.entity === entityId);
     const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentState = entityConfig.scope === 'global'
-      ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state
-      : this.entities[entityIndex].state;
-    const nextState = service === 'toggle'
-      ? currentState === 'on' ? 'off' : 'on'
-      : service === 'turn_on' ? 'on' : 'off';
+    const currentState = entityConfig.scope === 'global' ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state : this.entities[entityIndex].state;
+    const nextState = service === 'toggle' ? (currentState === 'on' ? 'off' : 'on') : service === 'turn_on' ? 'on' : 'off';
     const timestamp = new Date().toISOString();
     const stateRecord = {
       entity_id: entityId,
@@ -1144,9 +1138,7 @@ class FlexHorseshoeCard extends LitElement {
         entity_index: index,
       };
 
-      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig)
-        ? Templates.getJsTemplateOrValue(item, entityConfig)
-        : entityConfig;
+      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig) ? Templates.getJsTemplateOrValue(item, entityConfig) : entityConfig;
 
       // Normalize reusable entity-level color stops once for every opted-in layout item.
       if (resolvedEntityConfig.color_stops) {
@@ -1278,8 +1270,7 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       if (entityType === 'bin_duration') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
-          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
 
         if (binnedHistory && sparklineGraphTool.historyDurationReady) {
           const binDurationHours = 1 / sparklineGraphTool.calculateBinsPerHour(sparklineGraphTool.config);
@@ -1304,11 +1295,8 @@ class FlexHorseshoeCard extends LitElement {
       }
 
       if (entityType === 'aggregate_func') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time'
-          && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
-        state = binnedHistory && sparklineGraphTool.historyDurationReady
-          ? sparklineGraphTool.config.sparkline.state_values.aggregate_func
-          : 'unavailable';
+        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
+        state = binnedHistory && sparklineGraphTool.historyDurationReady ? sparklineGraphTool.config.sparkline.state_values.aggregate_func : 'unavailable';
         unitOfMeasurement = undefined;
         deviceClass = undefined;
       }
@@ -1362,6 +1350,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
     this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
     this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
+    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -1373,6 +1362,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
 
     this.evaluateJavascriptTemplates = false;
   }
@@ -1544,7 +1534,7 @@ class FlexHorseshoeCard extends LitElement {
             }
 
             const currentGroup = this.groupManager.groups[currentGroupId];
-            currentGroupId = currentGroupId === 'card' ? undefined : currentGroup.parent ?? 'card';
+            currentGroupId = currentGroupId === 'card' ? undefined : (currentGroup.parent ?? 'card');
           }
         });
       }
@@ -1654,6 +1644,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools.forEach((circleTool) => circleTool.updateRuntimeConfig());
     this.arcTools.forEach((arcTool) => arcTool.updateRuntimeConfig());
     this.iconTools.forEach((iconTool) => iconTool.updateRuntimeConfig());
+    this.controlTools.forEach((controlTool) => controlTool.updateRuntimeConfig());
 
     this.horseshoeGauges = this.horseshoeGauges.map((horseshoe) => this._setToolEntityState(horseshoe));
     this.nameTools = (this.nameTools ?? []).map((nameTool) => this._setToolEntityState(nameTool));
@@ -1665,6 +1656,7 @@ class FlexHorseshoeCard extends LitElement {
     this.circleTools = (this.circleTools ?? []).map((circleTool) => this._setToolEntityState(circleTool));
     this.arcTools = (this.arcTools ?? []).map((arcTool) => this._setToolEntityState(arcTool));
     this.iconTools = (this.iconTools ?? []).map((iconTool) => this._setToolEntityState(iconTool));
+    this.controlTools = (this.controlTools ?? []).map((controlTool) => this._setToolEntityState(controlTool));
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:tools`, {
@@ -1685,13 +1677,11 @@ class FlexHorseshoeCard extends LitElement {
             ...sourceAnimationItem,
             entity_index: entityIndex,
           };
-          const item = Templates.hasJavascriptTemplates(sourceAnimationItem)
-            ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem)
-            : sourceAnimationItem;
+          const item = Templates.hasJavascriptTemplates(sourceAnimationItem) ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem) : sourceAnimationItem;
 
           if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts'].forEach((section) => {
+          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts', 'controls'].forEach((section) => {
             if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
           });
 
@@ -1902,7 +1892,7 @@ class FlexHorseshoeCard extends LitElement {
       config.layout[section] = items.filter((item) => {
         if (item.disabled === undefined) return true;
 
-        return !this._resolveDisabledConfigValue(item, item.disabled, section);
+        return !ConfigHelper.isDisabled(item, item.disabled, section, Templates);
       });
     });
   }
@@ -2087,29 +2077,13 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Evaluates config-time entity disabled flags and removes disabled entities.
+   * Removes disabled entities before slot resolution.
    *
-   * Entity structure is finalized before slots and flat indices are built. A
-   * disabled entity therefore cannot leave an empty slot or shift runtime
-   * tools after the card has been configured.
+   * Entity slots are built only after this pass, so disabled entities cannot
+   * leave empty or shifting slot addresses.
    *
-   * @param {object} config - Card configuration after template and static-value processing.
+   * @param {object} config - Card configuration with calculated static values.
    */
-  _resolveDisabledConfigValue(item, disabled, section) {
-    const resolvedDisabled = Templates.hasJavascriptTemplates(disabled)
-      ? Templates.getJsTemplateOrValue(item, disabled)
-      : disabled;
-
-    if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(resolvedDisabled)) {
-      throw new Error(`[${section}] disabled must resolve to true, false, 0 or 1`);
-    }
-
-    return resolvedDisabled === true
-      || resolvedDisabled === 1
-      || resolvedDisabled === 'true'
-      || resolvedDisabled === '1';
-  }
-
   _removeDisabledEntityConfigs(config) {
     config.entities = config.entities
       .map((entityConfig, index) => {
@@ -2119,7 +2093,7 @@ class FlexHorseshoeCard extends LitElement {
           ...entityConfig,
           entity_index: index,
         };
-        const disabled = this._resolveDisabledConfigValue(item, entityConfig.disabled, 'entities');
+        const disabled = ConfigHelper.isDisabled(item, entityConfig.disabled, 'entities', Templates);
 
         return {
           ...entityConfig,
@@ -2254,6 +2228,68 @@ class FlexHorseshoeCard extends LitElement {
    * @param {object} config - Finalized card config before runtime tool construction.
    * @returns {boolean} True when any supported runtime config unit contains JavaScript.
    */
+  /**
+   * Validates every configured gesture before tools may consume the config.
+   *
+   * Control-specific semantic actions are accepted here and converted by their
+   * constructors. JavaScript action templates are validated after evaluation.
+   *
+   * @param {object} config - Final static card config after inheritance and disabled filtering.
+   */
+  _validateActionConfigs(config) {
+    const gestureProperties = ['tap_action', 'hold_action', 'double_tap_action'];
+    const validActions = [
+      'none',
+      'more-info',
+      'toggle',
+      'perform-action',
+      'call-service',
+      'navigate',
+      'url',
+      'assist',
+      'fire-dom-event',
+      'increment',
+      'decrement',
+      'select-option',
+    ];
+
+    const visit = (value, configPath) => {
+      if (Array.isArray(value)) {
+        value.forEach((entry, index) => visit(entry, `${configPath}[${index}]`));
+        return;
+      }
+
+      if (!value || typeof value !== 'object') return;
+
+      Object.entries(value).forEach(([property, propertyValue]) => {
+        const propertyPath = configPath ? `${configPath}.${property}` : property;
+
+        if (property === 'double_tap') {
+          throw Error(`[actions] Invalid '${propertyPath}'; use 'double_tap_action'`);
+        }
+
+        if (gestureProperties.includes(property)) {
+          const configuredActions = propertyValue.actions ?? [propertyValue];
+
+          configuredActions.forEach((actionConfig, actionIndex) => {
+            const actionPath = propertyValue.actions
+              ? `${propertyPath}.actions[${actionIndex}].action`
+              : `${propertyPath}.action`;
+
+            if (!Templates.hasJavascriptTemplates(actionConfig.action)
+              && !validActions.includes(actionConfig.action)) {
+              throw Error(`[actions] Invalid action '${actionConfig.action}' at '${actionPath}'`);
+            }
+          });
+        }
+
+        visit(propertyValue, propertyPath);
+      });
+    };
+
+    visit(config, '');
+  }
+
   _detectJavascriptTemplates(config) {
     let cardHasJavascript = false;
 
@@ -2361,6 +2397,7 @@ class FlexHorseshoeCard extends LitElement {
         entities: this.entities,
         horseshoes: this.horseshoes,
       });
+      ControlTool.compileConfig(config, Templates);
       this._removeDisabledEntityConfigs(config);
 
       this.entitySlots = this._buildEntitySlots(config.entities);
@@ -2371,6 +2408,7 @@ class FlexHorseshoeCard extends LitElement {
       this._removeDisabledLayoutItems(config);
       this._normalizeFhsInputNumberConfigs(config);
       this._normalizeFhsInputBooleanConfigs(config);
+      this._validateActionConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
 
@@ -2467,6 +2505,7 @@ class FlexHorseshoeCard extends LitElement {
       this.circleTools = CircleTool.setConfig(this.config, Templates, this.cardId, this);
       this.arcTools = ArcTool.setConfig(this.config, Templates, this.cardId, this);
       this.iconTools = IconTool.setConfig(this.config, Templates, this.cardId, this);
+      this.controlTools = ControlTool.setConfig(this.config, Templates, this.cardId, this);
       this.sparklineGraphTools = SparklineGraphTool.setConfig(this.config, Templates, this.cardId, this);
       this.childCards.setConfig(this.config.cards ?? []);
 
@@ -2550,6 +2589,7 @@ class FlexHorseshoeCard extends LitElement {
       states: this.stateTools,
       texts: this.textTools,
       sparklines: this.sparklineGraphTools,
+      controls: this.controlTools,
     };
 
     return sections[section];
@@ -2770,6 +2810,7 @@ class FlexHorseshoeCard extends LitElement {
       ...(this.stateTools ?? []),
       ...(this.textTools ?? []),
       ...(this.sparklineGraphTools ?? []),
+      ...(this.controlTools ?? []),
     ];
   }
 
@@ -2895,10 +2936,7 @@ class FlexHorseshoeCard extends LitElement {
   _getGestureConfig(itemConfig, entityIndex, actionProperty) {
     const entityConfig = this.resolvedEntityConfigs[entityIndex];
 
-    return itemConfig?.[actionProperty]
-      ?? entityConfig?.[actionProperty]
-      ?? this.config?.[actionProperty]
-      ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+    return itemConfig?.[actionProperty] ?? entityConfig?.[actionProperty] ?? this.config?.[actionProperty] ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
   }
 
   /** Returns enabled gestures for the shared action-handler directive. */
@@ -2999,6 +3037,55 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Inserts current slider values into one configured action and executes it.
+   *
+   * @param {object} actionConfig - Normalized slider set-value action.
+   * @param {number} entityIndex - Entity index belonging to the active thumb.
+   * @param {Array<number>} values - Current single or lower/upper values.
+   * @param {number} activeIndex - Active value index.
+   */
+  async executeSliderAction(actionConfig, entityIndex, values, activeIndex) {
+    const entityId = this._getActionEntityId(entityIndex, actionConfig);
+    let executableAction;
+
+    if (actionConfig.action === 'set-value') {
+      const entityDomain = entityId.split('.')[0];
+      executableAction = {
+        action: 'perform-action',
+        perform_action: `${entityDomain}.set_value`,
+        target: { entity_id: entityId },
+        data: { value: values[activeIndex] },
+      };
+    } else {
+      executableAction = Merge.mergeDeep({}, actionConfig);
+
+      if (executableAction.value_field !== undefined) {
+        const valuePath = executableAction.value_field.split('.');
+        let valueTarget = executableAction;
+        valuePath.slice(0, -1).forEach((property) => {
+          valueTarget = valueTarget[property];
+        });
+        valueTarget[valuePath[valuePath.length - 1]] = values[activeIndex];
+        delete executableAction.value_field;
+      }
+
+      if (executableAction.value_fields !== undefined) {
+        Object.entries(executableAction.value_fields).forEach(([valuePathString, valueName]) => {
+          const valuePath = valuePathString.split('.');
+          let valueTarget = executableAction;
+          valuePath.slice(0, -1).forEach((property) => {
+            valueTarget = valueTarget[property];
+          });
+          valueTarget[valuePath[valuePath.length - 1]] = values[valueName === 'lower' ? 0 : 1];
+        });
+        delete executableAction.value_fields;
+      }
+    }
+
+    await this._executeAction(executableAction, entityId);
+  }
+
+  /**
    * Executes the selected tap, hold, or double-tap config for one exact item.
    *
    * @param {CustomEvent} event - Normalized gesture event.
@@ -3015,10 +3102,7 @@ class FlexHorseshoeCard extends LitElement {
 
     if (gestureConfig.haptic) fireEvent(this, 'haptic', gestureConfig.haptic);
 
-    await actions.reduce(
-      (previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)),
-      Promise.resolve(),
-    );
+    await actions.reduce((previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)), Promise.resolve());
   }
 
   /** Handles the legacy card-shell click as a normal tap on entity zero. */

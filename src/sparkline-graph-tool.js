@@ -223,10 +223,12 @@ export default class SparklineGraphTool extends BaseTool {
             },
             styles: {
               opacity: 0.2,
+              rx: 0,
+              ry: 0,
             },
           },
           foreground: {
-            styles: {},
+            styles: { rx: 0, ry: 0 },
           },
         },
         equalizer: {
@@ -251,6 +253,8 @@ export default class SparklineGraphTool extends BaseTool {
             },
             styles: {
               opacity: 0.2,
+              rx: 0,
+              ry: 0,
             },
           },
         },
@@ -538,6 +542,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.Graph = this.historyDurationReady
       ? new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {})
       : undefined;
+    this.graphReady = false;
     this.series = [];
     this.historySeries = undefined;
     this.gradient = [];
@@ -983,6 +988,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.preserveGraphWhileHistoryLoads = false;
       this.graphConfig = undefined;
       this.Graph = undefined;
+      this.graphReady = false;
       this.series = [];
       this.stats = {};
       this.clearTooltip();
@@ -1014,6 +1020,7 @@ export default class SparklineGraphTool extends BaseTool {
     });
     this.graphConfig = this.buildGraphConfig(this.config);
     this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
+    this.graphReady = false;
   }
 
   /**
@@ -1616,7 +1623,14 @@ export default class SparklineGraphTool extends BaseTool {
       this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     }
 
-    this.Graph.update(this.series);
+    this.graphReady = this.Graph.update(this.series);
+
+    // An accepted history response can legitimately contain no numeric rows.
+    // The engine then has no axis geometry, so no graph-dependent work follows.
+    if (!this.graphReady) {
+      this.stats = {};
+      return;
+    }
 
     // Width and height define the complete sparkline viewport. Rebuild only
     // when formatted labels or visible axis layers require a different draw
@@ -1638,7 +1652,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
       }
 
-      this.Graph.update(this.series);
+      this.graphReady = this.Graph.update(this.series);
     }
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
@@ -5499,7 +5513,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvg() {
     // Every historical mode remains empty until its first Home Assistant
     // history response is accepted. Current entity state is never a placeholder.
-    if (this.config.period.type !== 'real_time' && (!this.historyDurationReady || !this.historySeries)) {
+    if (!this.graphReady) {
       return svg`
         <g
           transform="${this.getGroupScaleTransform()}"
@@ -5541,6 +5555,8 @@ export default class SparklineGraphTool extends BaseTool {
           overflow="visible"
           touch-action="none"
           style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
+          ${this.actionHandler()}
+          @action=${(event) => this.handleAction(event)}
           @pointerdown=${(event) => event.stopPropagation()}
           @click=${(event) => event.stopPropagation()}
         >

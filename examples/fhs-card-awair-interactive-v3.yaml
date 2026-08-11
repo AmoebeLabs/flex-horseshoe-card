@@ -1,0 +1,670 @@
+fhs_card_awair_interactive_v3:
+  template:
+    type: card
+    defaults:
+      - fhs_card_awair_rooms:
+          - Livingroom
+          - Bedroom
+          - Study
+
+  card:
+    dev:
+      performance: false
+      fakeData: false
+
+    default_entities:
+      # All input sensors get there own slot for easy access
+      - entity: fhs_input_number.awair_sensor
+        slot: input_sensor
+        initial: 0
+        scope: global
+        unit: ''
+        persist: true
+      - entity: fhs_input_number.history_hours
+        slot: input_hours
+        initial: 24
+        scope: global
+        unit: 'h'
+      - entity: fhs_input_number.awair_room
+        slot: input_room
+        initial: 0
+        scope: global
+        unit: ''
+
+      # The selected sensor that shows gauge, icon, name and the history.
+      - entity: |
+          [[[
+            // const room = constants.awair_rooms[Number(entities[2].state)];
+            // const sensor = constants.awair_sensors[Number(entities[0].state)];
+
+            const room = 
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor =
+              constants.awair_sensors[Number(entities[entity_slots.input_sensor[0]].state)];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        slot: selected_sensor
+        name: |
+          [[[
+            // const room = constants.awair_rooms[Number(entities[2].state)];
+            // const sensor = constants.awair_sensors[Number(entities[0].state)];
+
+            const room =
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor =
+              constants.awair_sensors[Number(entities[entity_slots.input_sensor[0]].state)];
+
+            const entityId =
+              `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+
+            return states[entityId].attributes.friendly_name
+              .replace(/^Awair Element\s*/, '');
+          ]]]
+
+        # Room Scores for each room slotted into room_scores
+      - entity: |
+          [[[
+            const room = constants.awair_rooms[0];
+            const sensor = constants.awair_sensors[0];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        slot: room_scores
+      - entity: |
+          [[[
+            const room = constants.awair_rooms[1];
+            const sensor = constants.awair_sensors[0];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        disabled: ref(room_1_disabled)
+      - entity: |
+          [[[
+            const room = constants.awair_rooms[2];
+            const sensor = constants.awair_sensors[0];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        disabled: ref(room_2_disabled)
+
+        # Room Sensors for each room slotted into room_sensors
+      - entity: |
+          [[[
+            const room =
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+
+            const sensor = constants.awair_sensors[0];
+            // console.log('FROM 7: ', 'room', room, 'sensor', sensor);
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        slot: room_sensors
+      - entity: |
+          [[[
+            const room =
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor = constants.awair_sensors[1];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+      - entity: |
+          [[[
+            const room =
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor = constants.awair_sensors[2];
+
+            // console.log('FROM 8: ', 'room', room, 'sensor', sensor);
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+      - entity: |
+          [[[
+            const room = 
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor = constants.awair_sensors[3];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+      - entity: |
+          [[[
+            const room = 
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor = constants.awair_sensors[4];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+      - entity: |
+          [[[
+            const room = 
+              constants.awair_rooms[Number(entities[entity_slots.input_room[0]].state)];
+            const sensor = constants.awair_sensors[5];
+
+            return `sensor.awair_element_${room.toLowerCase()}_${sensor}`;
+          ]]]
+        icon: mdi:dots-hexagon
+
+    constants:
+      button_room_column_width: 32
+      button_room_width: 30
+      button_room_height: 9
+
+      # Depending on the list of rooms (max 3), rooms 2 and 3 may be disabled
+      # As we do things zero based, we count from room_0...
+      room_0_disabled: false # never ever
+      room_1_disabled: '[[[ return constants.awair_rooms.length < 2 ? 1:0; ]]]'
+      room_2_disabled: '[[[ return constants.awair_rooms.length < 3 ? 1:0; ]]]'
+
+      awair_line_percentage: 0.25
+      awair_rooms: '[[fhs_card_awair_rooms]]'
+      awair_sensors:
+        - score
+        - temperature
+        - humidity
+        - carbon_dioxide
+        - volatile_organic_compounds
+        - pm2_5
+      awair_color_stops:
+        - template:
+            name: fhs_colorstops_awair_score
+        - template:
+            name: fhs_colorstops_awair_temperature
+        - template:
+            name: fhs_colorstops_awair_humidity
+        - template:
+            name: fhs_colorstops_awair_co2
+        - template:
+            name: fhs_colorstops_awair_voc
+        - template:
+            name: fhs_colorstops_awair_pm25
+
+      awair_color_stop: |
+        [[[
+          return constants.awair_color_stops[
+            Number(entities[entity_slots.input_sensor[0]].state)
+          ];
+        ]]]
+
+    layout:
+      aspectratio: 1/1.4
+
+      groups:
+        - id: room
+          xpos: 50
+          ypos: 9
+
+        - id: sensor-buttons
+          xpos: 50
+          ypos: 27
+
+        - id: title
+          xpos: 50
+          ypos: 51 #48
+
+        - id: value
+          xpos: 50
+          ypos: 68
+
+        - id: graph
+          xpos: 50
+          ypos: 100 #98
+
+        - id: duration-buttons
+          xpos: 50
+          ypos: 133
+
+      controls:
+        # Room buttons stay independent so their score lines remain separate.
+        - id: room--value-0
+          type: button
+          group: room
+          entity_index: input_room[0]
+          xpos: 18
+          ypos: 50
+          width: calc(button_room_width)
+          height: calc(button_room_height)
+          show:
+            item_variant: default
+            item_viz: viz_button
+            item_style: outlined_square
+          content:
+            mode: content_text
+            content_text:
+              text: |
+                [[[
+                  return constants.awair_rooms[0];
+                ]]]
+              styles:
+                font-size: 0.8em
+                font-weight: 600
+          state_map:
+            map:
+              - { state: 0, active: true }
+              - { state: default, active: false }
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.awair_room
+            data:
+              value: 0
+
+        - id: room--value-1
+          type: button
+          disabled: ref(room_1_disabled)
+          group: room
+          entity_index: input_room[0]
+          xpos: 50
+          ypos: 50
+          width: calc(button_room_width)
+          height: calc(button_room_height)
+          show:
+            item_variant: default
+            item_viz: viz_button
+            item_style: outlined_square
+          content:
+            mode: content_text
+            content_text:
+              text: |
+                [[[
+                  return constants.awair_rooms[1];
+                ]]]
+              styles:
+                font-size: 0.8em
+                font-weight: 600
+          state_map:
+            map:
+              - { state: 1, active: true }
+              - { state: default, active: false }
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.awair_room
+            data:
+              value: 1
+
+        - id: room--value-2
+          type: button
+          disabled: ref(room_2_disabled)
+          group: room
+          entity_index: input_room[0]
+          xpos: 82
+          ypos: 50
+          width: calc(button_room_width)
+          height: calc(button_room_height)
+          show:
+            item_variant: default
+            item_viz: viz_button
+            item_style: outlined_square
+          content:
+            mode: content_text
+            content_text:
+              text: |
+                [[[
+                  return constants.awair_rooms[2];
+                ]]]
+              styles:
+                font-size: 0.8em
+                font-weight: 600
+          state_map:
+            map:
+              - { state: 2, active: true }
+              - { state: default, active: false }
+          tap_action:
+            haptic: selection
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.awair_room
+            data:
+              value: 2
+
+        # One select replaces the sensor rectangles, icons and state labels.
+        - id: sensor-selector
+          type: select
+          group: sensor-buttons
+          entity_index: input_sensor[0]
+          xpos: 50
+          ypos: 53.5
+          width: 98
+          height: 21.5
+          show:
+            item_variant: segmented
+            item_viz: viz_button
+            item_style: outlined_square
+          viz_button:
+            indicator:
+              padding: { x: 0.5, y: { top: 0.5, bottom: 7.5 } }
+          content:
+            mode: content_vertical
+            content_vertical:
+              padding:
+                x: 0.5
+                y:
+                  top: 1
+                  bottom: 4
+              gap: 0.5
+              items:
+                - id: icon
+                  type: icon
+                  size: 40
+                - id: value
+                  type: state
+                  styles:
+                    font-size: 0.7em
+                - id: status
+                  type: line
+                  length: calc(14 * awair_line_percentage)
+                  orientation: horizontal
+                  margin:
+                    top: 2
+                  show:
+                    item_style: colorstopinterpolated
+                  colorstopinterpolated:
+                    stroke: true
+                    fill: false
+          option_map:
+            - value: 0
+              entity_index: room_sensors[0]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_score
+            - value: 1
+              entity_index: room_sensors[1]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_temperature
+            - value: 2
+              entity_index: room_sensors[2]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_humidity
+            - value: 3
+              entity_index: room_sensors[3]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_co2
+            - value: 4
+              entity_index: room_sensors[4]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_voc
+            - value: 5
+              entity_index: room_sensors[5]
+              content:
+                status:
+                  color_stops:
+                    template:
+                      name: fhs_colorstops_awair_pm25
+
+        # Duration values remain hours; only their displayed labels are localized.
+        - id: duration-selector
+          type: select
+          group: duration-buttons
+          entity_index: input_hours[0]
+          xpos: 50
+          ypos: 50
+          width: 92
+          height: 10
+          show:
+            item_variant: segmented
+            item_viz: viz_button
+            item_style: outlined_square
+          content:
+            mode: content_vertical
+            content_vertical:
+              padding: { x: 0.5, y: 0.5 }
+              text:
+                styles:
+                  font-size: 0.55em
+                  font-weight: bold
+          option_map:
+            - value: 1
+              text: |
+                [[[
+                  const amount = 1;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'hour', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+            - value: 12
+              text: |
+                [[[
+                  const amount = 12;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'hour', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+            - value: 24
+              text: |
+                [[[
+                  const amount = 1;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'day', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+            - value: 48
+              text: |
+                [[[
+                  const amount = 2;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'day', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+            - value: 168
+              text: |
+                [[[
+                  const amount = 1;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'week', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+            - value: 336
+              text: |
+                [[[
+                  const amount = 2;
+                  const formatter = new Intl.NumberFormat(hass.locale.language, {
+                    style: 'unit', unit: 'week', unitDisplay: 'narrow',
+                  });
+                  return formatter.format(amount).replace(/\s/g, '');
+                ]]]
+
+      # Score indicators remain independent from the room buttons.
+      lines:
+        - id: room--value-0
+          group: room
+          xpos: 18
+          ypos: 57
+          length: calc(14 * awair_line_percentage)
+          orientation: horizontal
+          entity_index: room_scores[0]
+          show:
+            item_style: colorstopinterpolated
+          colorstopinterpolated:
+            stroke: true
+            fill: false
+          color_stops:
+            template:
+              name: fhs_colorstops_awair_score
+
+        - id: room--value-1
+          disabled: ref(room_1_disabled)
+          same_as: room--value-0
+          same_as_dxpos: calc(button_room_column_width)
+          same_as_dentity_index: 1
+
+        - id: room--value-2
+          disabled: ref(room_2_disabled)
+          same_as: room--value-1
+          same_as_dxpos: calc(button_room_column_width)
+          same_as_dentity_index: 1
+
+      compounds:
+        # ------------------------------------------------------------------------
+        # Selected sensor title
+        # ------------------------------------------------------------------------
+        - id: selected-title
+          group: title
+          entity_index: selected_sensor[0] #calc(entity_index_awair)
+
+          icons:
+            - id: icon
+              xpos: 10
+              yposc: 50
+              icon_size: 1
+              color_stops: ref(awair_color_stop)
+              show:
+                item_style: colorstopinterpolated
+
+          names:
+            - id: name
+              xpos: 18
+              ypos: 50
+              ellipsis: 30
+              styles:
+                font-size: 0.9em
+                text-anchor: start
+                fill: var(--secondary-text-color)
+                dominant-baseline: central
+                text-transform: none
+                letter-spacing: 0.04em
+
+          horseshoes:
+            - id: score
+              xpos: 10
+              ypos: 50
+              radius: 5
+              arc_degrees: 360
+              flip: both
+              horseshoe_state:
+                width: 4
+                linecap: butt
+              horseshoe_scale:
+                width: 2
+                linecap: butt
+                styles:
+                  opacity: 0.4
+              color_stops: ref(awair_color_stop)
+              show:
+                horseshoe_style: colorstopgradient
+                scale_style: colorstopsegments
+
+        # ------------------------------------------------------------------------
+        # Selected sensor value
+        # ------------------------------------------------------------------------
+        - id: selected-value
+          group: value
+          entity_index: selected_sensor[0] #calc(entity_index_awair)
+
+          states:
+            - id: state
+              xpos: 50
+              ypos: 50
+              show:
+                uom: end
+              styles:
+                font-size: 1.4em
+                font-weight: bold
+                text-anchor: middle
+                fill: var(--primary-text-color)
+
+          rectangles:
+            - id: background
+              fit:
+                section: states
+                item_id: state
+                padding:
+                  x: 2
+                  y: 0.5
+              radius: 2
+              show:
+                item_style: colorstopinterpolated
+              colorstopinterpolated:
+                fill: true
+                stroke: true
+              color_stops: ref(awair_color_stop)
+              styles:
+                opacity: 1
+                fill-opacity: 0.2
+                stroke-opacity: 1
+                stroke-width: 1
+
+        # ------------------------------------------------------------------------
+        # sensor history
+        # ------------------------------------------------------------------------
+        - id: selected-history
+          group: graph
+          entity_index: selected_sensor[0] #calc(entity_index_awair)
+
+          sparklines:
+            - id: graph
+              xpos: 50
+              ypos: 50
+              width: 90
+              height: 45 #50
+              margin: 0
+
+              period:
+                type: rolling_window
+                rolling_window:
+                  duration:
+                    hour: |
+                      [[[
+                        return Number(entities[entity_slots.input_hours[0]].state);
+                      ]]]
+                  bins:
+                    per_hour: auto
+                    density: medium
+
+              sparkline:
+                animate: true
+                show:
+                  chart_type: area
+                  line: true
+                  area: true
+                  fill: fade
+                  points: false
+                  grid: true
+                  axis: true
+                  tickmarks: true
+                  labels: true
+                  xlabels_at: ticks_major
+                  ylabels_at: ticks_major
+
+                state_values:
+                  aggregate_func: avg
+
+                line:
+                  line_width: 1
+                  show_dots: false
+
+                area:
+                  show_minmax: true
+
+                color_stops: ref(awair_color_stop)
+
+              x_axis:
+                labels:
+                  styles:
+                    font-size: 0.5em
+
+              y_axis:
+                labels:
+                  styles:
+                    font-size: 0.5em

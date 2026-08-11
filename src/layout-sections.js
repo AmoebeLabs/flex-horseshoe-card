@@ -20,6 +20,7 @@ export const VISIBLE_LAYOUT_SECTIONS = Object.freeze([
   'vlines',
   'icons',
   'sparklines',
+  'controls',
 ]);
 
 /** Shape sections supported inside static SVG clip and mask definitions. */

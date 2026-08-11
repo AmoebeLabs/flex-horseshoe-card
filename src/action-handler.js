@@ -16,6 +16,8 @@ const MOVE_TOLERANCE = 8;
  * @param {object} options - Enabled gestures for the current runtime config.
  */
 function bindActionHandler(element, options) {
+  const interactive = options.hasTap || options.hasHold || options.hasDoubleClick;
+  element.style.cursor = interactive ? 'pointer' : 'default';
   if (element.fhsActionHandler) {
     element.fhsActionHandler.options = options;
     return;
@@ -60,6 +62,7 @@ function bindActionHandler(element, options) {
     if (state.options.hasHold) {
       state.holdTimer = window.setTimeout(() => {
         state.held = true;
+        dispatchAction('hold');
       }, HOLD_TIME);
     }
   });
@@ -86,7 +89,6 @@ function bindActionHandler(element, options) {
 
     if (state.options.hasHold && state.held) {
       state.held = false;
-      dispatchAction('hold');
       return;
     }
 

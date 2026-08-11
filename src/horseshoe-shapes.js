@@ -693,7 +693,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     return stateArcs;
   }
 
-  if (strokeStyle === 'colorstop') {
+  if (strokeStyle === 'colorstop' || strokeStyle === 'colorstopinterpolated') {
     return [
       {
         key: 'state-value',
@@ -701,7 +701,7 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
         endAngle: toAngle,
         startCap: runtimeConfig.horseshoe_state.linecap.start,
         endCap: runtimeConfig.horseshoe_state.linecap.end,
-        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstops, false),
+        color: Colors.calculateStrokeColor(value, runtimeConfig.colorstops, strokeStyle === 'colorstopinterpolated'),
       },
     ];
   }

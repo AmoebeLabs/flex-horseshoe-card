@@ -11,5 +11,14 @@
     "isolatedModules": true
   },
   // "include": ["src/**/*.js", "src/**/*.ts", "src/frontend_mods/format_number.old", "src/frontend_mods/common/number/clamp.old"]
-  "include": ["src/**/*.js", "src/**/*.ts"]
+  "include": [
+    "src/**/*.js",
+    "src/**/*.ts",
+    "src/control-tool-old.no-js",
+    "src/control-tool-example-wrong.no-js",
+    "src/sparkline-graph copy.no-js",
+    "src/circular-slider-example.no-js",
+    "src/switch-tool-example.no-js",
+    "src/range-slider-example.no-js"
+  ]
 }

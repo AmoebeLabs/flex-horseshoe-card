@@ -5,6 +5,9 @@ import BaseTool from './base-tool.js';
 import ColorStops from './color-stops.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
+import NameTool from './name-tool.js';
+import AreaTool from './area-tool.js';
+import StateTool from './state-tool.js';
 import Templates from './templates.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
@@ -119,10 +122,32 @@ export default class TextTool extends BaseTool {
     this.hasExactMeasurement = false;
     this.textMeasurementSignature = '';
 
+    const inlineSourceToolClasses = {
+      name: NameTool,
+      area: AreaTool,
+      state: StateTool,
+    };
+    this.inlineTextSourceTools = this.sourceTextParts.map((part, partIndex) => {
+      if (!TEXT_SOURCE_SECTIONS[part.type] || part.id !== undefined) return undefined;
+
+      const SourceTool = inlineSourceToolClasses[part.type];
+      const sourceConfig = Merge.mergeDeep(
+        {
+          id: `${this.id}-source-${partIndex}`,
+          entity_index: part.entity_index ?? this.entity_index,
+          xpos: 0,
+          ypos: 0,
+        },
+        part,
+      );
+
+      return new SourceTool(sourceConfig, partIndex, this.templates, this.cardId, this.card);
+    });
+
     // Static references are validated during construction. A hidden source is
     // still present here; a disabled or misspelled source is not.
     this.sourceTextParts.forEach((part) => {
-      if (TEXT_SOURCE_SECTIONS[part.type]) this.getReferencedTextTool(part);
+      if (TEXT_SOURCE_SECTIONS[part.type] && part.id !== undefined) this.getReferencedTextTool(part);
     });
   }
 
@@ -144,23 +169,37 @@ export default class TextTool extends BaseTool {
     return sourceTool;
   }
 
+  /** Returns either an inline entity source or an explicitly referenced layout source. */
+  getTextSourceTool(part, partIndex) {
+    if (part.inline_source_index !== undefined) {
+      return this.inlineTextSourceTools[part.inline_source_index];
+    }
+
+    if (part.id === undefined) return this.inlineTextSourceTools[partIndex];
+
+    return this.getReferencedTextTool(part);
+  }
+
   /**
    * Evaluates every text part with its own effective entity context.
    */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+    this.inlineTextSourceTools.filter((sourceTool) => sourceTool !== undefined)
+      .forEach((sourceTool) => sourceTool.updateRuntimeConfig());
 
     if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
 
     if (this.activeTextPartsSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
-      const activeTextParts = this.sourceTextParts.map((sourcePart) => {
+      const activeTextParts = this.sourceTextParts.map((sourcePart, sourcePartIndex) => {
         const sourceTool = TEXT_SOURCE_SECTIONS[sourcePart.type]
-          ? this.getReferencedTextTool(sourcePart)
+          ? this.getTextSourceTool(sourcePart, sourcePartIndex)
           : undefined;
         const partContext = {
           ...sourcePart,
           // Text templates address the containing text item unless a part has its own id.
           id: sourcePart.id ?? this.config.id,
+          inline_source_index: sourcePart.id === undefined && sourceTool ? sourcePartIndex : undefined,
           entity_index: sourceTool
             ? sourceTool.entity_index
             : sourcePart.entity_index ?? this.config.entity_index,
@@ -198,10 +237,18 @@ export default class TextTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    const activeParts = this.activeTextParts.flatMap((part) => {
+    const activeParts = this.activeTextParts.flatMap((part, partIndex) => {
       const sourceTool = TEXT_SOURCE_SECTIONS[part.type]
-        ? this.getReferencedTextTool(part)
+        ? this.getTextSourceTool(part, partIndex)
         : undefined;
+      if (part.inline_source_index !== undefined) {
+        sourceTool.entity_index = part.entity_index;
+        sourceTool.config.entity_index = part.entity_index;
+        sourceTool.setState(
+          this.card.entities[part.entity_index],
+          this.card.resolvedEntityConfigs[part.entity_index],
+        );
+      }
       const entityIndex = sourceTool ? sourceTool.entity_index : part.entity_index;
       const partEntity = this.card.entities[entityIndex];
       const stateMapEntries = part.state_map?.map;
@@ -245,6 +292,7 @@ export default class TextTool extends BaseTool {
             source_reference: {
               type: activePart.type,
               id: activePart.id,
+              inline_source_index: activePart.inline_source_index,
               part_index: sourcePartIndex,
               options: sourceOptions,
             },
@@ -864,7 +912,10 @@ export default class TextTool extends BaseTool {
       // Source animations are resolved during render, after the animation
       // pipeline has activated the styles for this exact state update.
       if (part.source_reference) {
-        const sourceTool = this.getReferencedTextTool(part.source_reference);
+        const sourceTool = this.getTextSourceTool(
+          part.source_reference,
+          part.source_reference.inline_source_index,
+        );
         const currentSourcePart = sourceTool
           .getTextParts(part.source_reference.options)[part.source_reference.part_index];
 
