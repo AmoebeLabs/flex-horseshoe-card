@@ -6,6 +6,7 @@ import CardInputEntities from '../src/card-input-entities.js';
 import CardTheme from '../src/card-theme.js';
 import CardConfig from '../src/card-config.js';
 import CardEntities from '../src/card-entities.js';
+import CardAnimations from '../src/card-animations.js';
 
 class Connection {
   constructor() {
@@ -274,4 +275,27 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
 
   assert.equal(entities[1].state, '10.20');
   assert.equal(entities[1].attributes.source_entity_id, 'sensor.temperature');
+});
+
+test('CardAnimations matches entity state and preserves reused styles and icons', () => {
+  const animations = new CardAnimations();
+  const config = {
+    animations: {
+      'entity.0': [{
+        state: 'on',
+        lines: [
+          { animation_id: 'status', styles: { stroke: 'red' } },
+          { animation_id: 'status', reuse: true, styles: { opacity: 0.5 } },
+        ],
+        icons: [{ animation_id: 'main', icon: 'mdi:lightbulb', styles: { fill: 'yellow' } }],
+      }],
+    },
+  };
+  const templates = { hasJavascriptTemplates: () => false };
+
+  animations.update(config, [{ state: 'on' }], templates, true);
+
+  assert.deepEqual(animations.styles.lines.status, { stroke: 'red', opacity: '0.5' });
+  assert.deepEqual(animations.styles.icons.main, { fill: 'yellow' });
+  assert.equal(animations.styles.iconsIcon.main, 'mdi:lightbulb');
 });

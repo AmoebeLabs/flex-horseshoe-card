@@ -27,6 +27,7 @@ import HomeAssistant from './home-assistant.js';
 import CardTheme from './card-theme.js';
 import CardConfig from './card-config.js';
 import CardEntities from './card-entities.js';
+import CardAnimations from './card-animations.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
@@ -96,21 +97,8 @@ class FlexHorseshoeCard extends LitElement {
     this.viewBoxSize = SVG_VIEW_BOX;
     this.viewBox = { width: SVG_VIEW_BOX, height: SVG_VIEW_BOX };
     this.colorStops = {};
-    this.animations = {};
-    this.animations.lines = {};
     this.childCards = new ChildCards(this);
-    this.animations.vlines = {};
-    this.animations.hlines = {};
-    this.animations.circles = {};
-    this.animations.arcs = {};
-    this.animations.rectangles = {};
-    this.animations.icons = {};
-    this.animations.iconsIcon = {};
-    this.animations.names = {};
-    this.animations.areas = {};
-    this.animations.states = {};
-    this.animations.texts = {};
-    this.animations.controls = {};
+    this.cardAnimations = new CardAnimations();
     this.rectangleTools = [];
     this.lineTools = [];
     this.circleTools = [];
@@ -552,42 +540,7 @@ class FlexHorseshoeCard extends LitElement {
     // Evaluate a complete animation state item before matching its state and applying
     // its already active icons and styles. No animation field has a separate evaluator.
     const animationsPerformanceStart = performanceEnabled ? performance.now() : undefined;
-    if (configuredEntityStateChanged && this.config.animations) {
-      Object.keys(this.config.animations).forEach((animation) => {
-        const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
-
-        this.config.animations[animation].forEach((sourceAnimationItem) => {
-          const animationContext = {
-            ...sourceAnimationItem,
-            entity_index: entityIndex,
-          };
-          const item = Templates.hasJavascriptTemplates(sourceAnimationItem) ? Templates.getJsTemplateOrValue(animationContext, sourceAnimationItem) : sourceAnimationItem;
-
-          if (this.entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
-
-          ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts', 'controls'].forEach((section) => {
-            if (item[section]) item[section].forEach((animationItem) => this._updateAnimationStyles(section, animationItem));
-          });
-
-          if (item.icons) {
-            item.icons.forEach((animationItem) => {
-              const animationId = animationItem.animation_id;
-
-              if (!this.animations.icons[animationId] || !animationItem.reuse) {
-                this.animations.icons[animationId] = {};
-                this.animations.iconsIcon[animationId] = {};
-              }
-
-              this.animations.icons[animationId] = {
-                ...this.animations.icons[animationId],
-                ...ConfigHelper.toStyleDict(animationItem.styles),
-              };
-              this.animations.iconsIcon[animationId] = animationItem.icon;
-            });
-          }
-        });
-      });
-    }
+    this.cardAnimations.update(this.config, this.entities, Templates, configuredEntityStateChanged);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:animations`, {
@@ -623,19 +576,6 @@ class FlexHorseshoeCard extends LitElement {
         end: performance.now(),
       });
     }
-  }
-
-  _updateAnimationStyles(section, item) {
-    const animationId = item.animation_id;
-
-    if (animationId === undefined || animationId === null) return;
-
-    const styleDict = ConfigHelper.toStyleDict(item.styles);
-
-    this.animations[section][animationId] = {
-      ...(item.reuse ? (this.animations[section][animationId] ?? {}) : {}),
-      ...styleDict,
-    };
   }
 
   _calculateSvgCoordinatesInGroup(item) {

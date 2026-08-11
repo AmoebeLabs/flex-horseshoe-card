@@ -926,7 +926,7 @@ export default class TextTool extends BaseTool {
       }
 
       const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
-      const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
+      const animationStyles = ConfigHelper.toStyleDict(this.card.cardAnimations.styles.texts[renderPart.animation_id] ?? {});
 
       this.applyColorStops(partStyles, renderPart);
 

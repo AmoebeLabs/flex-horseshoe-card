@@ -181,7 +181,7 @@ export default class BaseTool {
    */
   getStyles(baseStyles) {
     const itemStyleDict = ConfigHelper.toStyleDict(this.config.styles);
-    const animationStyle = ConfigHelper.toStyleDict(this.card.animations?.[this.animationSection]?.[this.config.animation_id] ?? {});
+    const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
       ...baseStyles,

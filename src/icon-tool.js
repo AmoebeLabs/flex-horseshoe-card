@@ -107,7 +107,7 @@ export default class IconTool extends BaseTool {
    * @returns {string|undefined} Icon name or css url(...).
    */
   buildIcon(stateMapConfig, item = this.config) {
-    const entityAnimation = this.card.animations?.iconsIcon?.[item.animation_id];
+    const entityAnimation = this.card.cardAnimations.styles.iconsIcon[item.animation_id];
 
     if (entityAnimation) {
       return entityAnimation;
@@ -470,7 +470,7 @@ export default class IconTool extends BaseTool {
     defaultIconColor.filter = haStyle.filter;
 
     let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
-    const stateStyle = this.card.animations?.icons?.[renderItem.animation_id] ?? {};
+    const stateStyle = this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
     this.applyColorStops(configStyle, renderItem, ['fill', 'color']);
 
     configStyle = this.getRenderStyles({
