@@ -85,7 +85,7 @@ export default class BaseTool {
 
     // JavaScript may return the public color_stops shape, so normalize it after activating the complete item.
     if (this.configChanged && this.config.color_stops) {
-      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.getActiveColorStopMode());
+      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
@@ -97,7 +97,7 @@ export default class BaseTool {
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
     if (this.configChanged && this.config.sparkline?.color_stops) {
-      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.getActiveColorStopMode());
+      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);

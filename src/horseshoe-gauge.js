@@ -200,7 +200,7 @@ export default class HorseshoeGauge extends BaseTool {
 
     if (this.configChanged || !this.normalizedConfig) {
       this.config.group_config = this.card.groupManager.getGroupForItem(this.config);
-      this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.getActiveColorStopMode());
+      this.normalizedConfig = normalizeRuntimeConfig(this.config, this.card.cardTheme.getActiveColorStopMode());
     }
   }
 
@@ -348,7 +348,7 @@ export default class HorseshoeGauge extends BaseTool {
     }
 
     // External palettes must be applied before static gradient/tick path items are cached.
-    if (this.card?.config?.palettes && !this.card.palettesLoaded) {
+    if (this.card?.config?.palettes && !this.card.cardTheme.palettesLoaded) {
       return svg``;
     }
 

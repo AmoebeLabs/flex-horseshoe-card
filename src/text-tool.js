@@ -209,7 +209,7 @@ export default class TextTool extends BaseTool {
           : partContext;
 
         if (activePart.color_stops) {
-          activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
+          activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
         }
         if (activePart.color_stops
           || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
@@ -264,7 +264,7 @@ export default class TextTool extends BaseTool {
       }
 
       if (activePart.color_stops) {
-        activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
+        activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
       }
       if (activePart.color_stops
         || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {

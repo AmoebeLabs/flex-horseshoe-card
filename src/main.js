@@ -24,6 +24,7 @@ import CardStyles from './card-styles.js';
 import CardInputEntities from './card-input-entities.js';
 import CardActions from './card-actions.js';
 import HomeAssistant from './home-assistant.js';
+import CardTheme from './card-theme.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -55,7 +56,6 @@ import ChildCards from './child-cards.js';
 import MasksClips from './masks-clips.js';
 import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
-import Palette from './palettes.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
@@ -73,7 +73,6 @@ class FlexHorseshoeCard extends LitElement {
     super();
 
     Colors.setElement(this);
-    this.palettesLoaded = false;
 
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
@@ -82,6 +81,14 @@ class FlexHorseshoeCard extends LitElement {
     this.entities = [];
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
     this.actions = new CardActions(this, this.cardInputEntities);
+    this.cardTheme = new CardTheme(
+      this,
+      () => this._updateGradientsAfterRender(),
+      () => {
+        if (this._hass) this.setHass(this._hass, true);
+        this.requestUpdate();
+      },
+    );
     this.entitiesStr = [];
     this.attributesStr = [];
     this.viewBoxSize = SVG_VIEW_BOX;
@@ -134,16 +141,6 @@ class FlexHorseshoeCard extends LitElement {
     this.iconCache = {};
     this.svgUrlCache ||= {};
 
-    // Theme mode support
-    this.theme = {};
-    // Did not check for theme loading yet!
-    this.theme.checked = false;
-    this.theme.isLoaded = false;
-    this.theme.modeChanged = false;
-    this.theme.darkMode = false;
-    this.theme.light = {};
-    this.theme.dark = {};
-    this.palettes = {};
 
     // Determines if horseshoe has full range, or is split in right/left from the top middle
     this.bar_mode = 'normal'; // default
@@ -254,7 +251,7 @@ class FlexHorseshoeCard extends LitElement {
 
       // Normalize reusable entity-level color stops once for every opted-in layout item.
       if (resolvedEntityConfig.color_stops) {
-        resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.getActiveColorStopMode());
+        resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
       }
 
       return resolvedEntityConfig;
@@ -508,24 +505,6 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
 
-  themeIsDarkMode() {
-    return this.theme.darkMode === true;
-  }
-
-  themeIsLightMode() {
-    return this.theme.darkMode === false;
-  }
-
-  getActiveColorStopMode() {
-    const hassDarkMode = this._hass?.themes?.darkMode;
-
-    if (hassDarkMode !== undefined) {
-      return hassDarkMode === true ? 'dark' : 'light';
-    }
-
-    return this.themeIsDarkMode() ? 'dark' : 'light';
-  }
-
   set hass(hass) {
     this.setHass(hass);
   }
@@ -547,6 +526,7 @@ class FlexHorseshoeCard extends LitElement {
 
     this._hass = hass;
     this.homeAssistant.setHass(hass);
+    const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
 
     const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
@@ -574,7 +554,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
-    if (configuredEntityStateChanged || this.theme.modeChanged) {
+    if (configuredEntityStateChanged || this.cardTheme.modeChanged) {
       this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
     } else {
@@ -667,24 +647,7 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
-    let entityHasChanged = forceUpdate || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
-
-    const themeName = hass.selectedTheme || hass.themes.theme || '';
-    const themeDarkMode = hass.themes.darkMode === true;
-
-    this.theme.nameChanged = this.theme.name !== themeName;
-    this.theme.modeChanged = this.theme.darkMode !== themeDarkMode;
-
-    if (this.theme.nameChanged || this.theme.modeChanged) {
-      this.theme.name = themeName;
-      this.theme.darkMode = themeDarkMode;
-      Colors.colorCache = {};
-      const mode = this.getActiveColorStopMode();
-      Palette.applyAll(this, this.palettes, mode);
-      this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
-      this._updateGradientsAfterRender();
-      entityHasChanged = true;
-    }
+    let entityHasChanged = forceUpdate || themeChanged || configuredEntityStateChanged || this._getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
@@ -833,7 +796,7 @@ class FlexHorseshoeCard extends LitElement {
     });
 
     // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
-    this.theme.modeChanged = false;
+    this.cardTheme.markModeHandled();
 
     if (performanceEnabled && this.performanceUpdateStart === undefined) {
       this.performanceUpdateStart = setHassPerformanceStart;
@@ -1476,20 +1439,7 @@ class FlexHorseshoeCard extends LitElement {
       if (hasChildCards && !config.entities) {
         config.entities = [];
       }
-      if (config?.palettes) {
-        this.palettesLoaded = false;
-        Palette.loadAll(config?.palettes).then((palettes) => {
-          this.palettes = palettes;
-          const mode = this.getActiveColorStopMode();
-          Colors.setElement(this);
-          Palette.applyAll(this, palettes, mode);
-          Colors.colorCache = {};
-          this.palettesLoaded = true;
-          this.horseshoeGauges?.forEach((horseshoe) => horseshoe.clearPathItemCache());
-          if (this._hass) this.setHass(this._hass, true);
-          this.requestUpdate();
-        });
-      }
+      if (config?.palettes) this.cardTheme.loadPalettes(config.palettes);
 
       this._assignSectionIds(config);
 
@@ -1591,6 +1541,7 @@ class FlexHorseshoeCard extends LitElement {
       this.masksClips = new MasksClips(this.config, this.cardId, this);
 
       this.horseshoeGauges = HorseshoeGauge.setConfig(config, Templates, this.cardId, this);
+      this.cardTheme.setHorseshoes(this.horseshoeGauges);
 
       this.bar_mode = newConfig.bar_mode || 'normal';
 
