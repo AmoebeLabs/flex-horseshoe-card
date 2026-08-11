@@ -132,6 +132,27 @@ export default class CardTools {
     this.setEntityStates(RUNTIME_SECTIONS, entityConfigs, entities);
   }
 
+  /**
+   * Re-evaluates normal tools after asynchronous sparkline statistics change.
+   *
+   * History updates happen outside the normal Home Assistant setHass pass. The
+   * card-specific template context must therefore be restored before tools read
+   * the newly published local fhs_sparkline entities.
+   */
+  updateAfterSparklineStatistics() {
+    this.templates.setContext({
+      hass: this.card._hass,
+      config: this.card.config,
+      entities: this.card.entities,
+      horseshoes: this.card.horseshoes,
+      entity_slots: this.card.entitySlots,
+    });
+    this.card.evaluateJavascriptTemplates = true;
+    this.updateRuntimeConfig();
+    this.setRuntimeEntityStates(this.card.resolvedEntityConfigs, this.card.entities);
+    this.card.evaluateJavascriptTemplates = false;
+  }
+
   /** Forwards Home Assistant availability after the card receives its first hass object. */
   hassAvailable() {
     this.getRenderableTools().forEach((tool) => tool.hassAvailable());

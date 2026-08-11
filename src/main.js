@@ -117,34 +117,6 @@ class FlexHorseshoeCard extends LitElement {
 
 
 
-  /**
-   * Refeeds all normal entity-bound tools after async sparkline history refresh.
-   *
-   * Sparkline history arrives outside the normal Home Assistant setHass pass. The
-   * local fhs_sparkline entities are updated there, so the existing tools that
-   * point at those entity_index values must receive their entity state again.
-   */
-  _updateToolsAfterSparklineStatistics() {
-    // History resolves asynchronously and another card may have published its
-    // template context meanwhile. Restore this card before evaluating its tools.
-    this.templates.setContext({
-      hass: this._hass,
-      config: this.config,
-      entities: this.entities,
-      horseshoes: this.horseshoes,
-      entity_slots: this.entitySlots,
-    });
-
-    this.evaluateJavascriptTemplates = true;
-
-    // Async history has already updated derived sparkline entities, so all normal
-    // tools can now evaluate their runtime config and receive current entity data.
-    this.cardTools.updateRuntimeConfig();
-    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
-
-    this.evaluateJavascriptTemplates = false;
-  }
-
   /** **************************************************************************************
    * hass()
    *

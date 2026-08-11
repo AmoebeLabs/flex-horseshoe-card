@@ -422,6 +422,43 @@ test('CardTools assigns entity state to nested control tools through the same li
   assert.deepEqual(calls, [['20', 'sensor.second']]);
 });
 
+test('CardTools restores card template context after asynchronous sparkline statistics', () => {
+  const calls = [];
+  const templates = {
+    setContext: (context) => calls.push(['context', context]),
+  };
+  const card = {
+    _hass: { states: {} },
+    config: { entities: [{ entity: 'fhs_sparkline.graph_avg' }] },
+    entities: [{ state: '15' }],
+    horseshoes: [],
+    entitySlots: { graph: [0] },
+    resolvedEntityConfigs: [{ entity: 'fhs_sparkline.graph_avg' }],
+    evaluateJavascriptTemplates: false,
+  };
+  const cardTools = new CardTools(card, templates, 'card');
+  cardTools.sections.states = [{
+    entity_index: 0,
+    updateRuntimeConfig: () => calls.push('runtime'),
+    setState: (entity, config) => calls.push(['state', entity.state, config.entity]),
+  }];
+
+  cardTools.updateAfterSparklineStatistics();
+
+  assert.deepEqual(calls, [
+    ['context', {
+      hass: card._hass,
+      config: card.config,
+      entities: card.entities,
+      horseshoes: card.horseshoes,
+      entity_slots: card.entitySlots,
+    }],
+    'runtime',
+    ['state', '15', 'fhs_sparkline.graph_avg'],
+  ]);
+  assert.equal(card.evaluateJavascriptTemplates, false);
+});
+
 test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = {
