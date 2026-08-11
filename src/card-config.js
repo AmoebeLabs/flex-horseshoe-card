@@ -10,6 +10,20 @@ export default class CardConfig {
     this.templates = templates;
   }
 
+  /**
+   * Creates the complete developer configuration consumed during runtime.
+   *
+   * This runs once at the configuration boundary. Runtime domains can therefore
+   * read both flags directly without inventing their own defaults.
+   */
+  initializeDeveloperConfig(config) {
+    config.dev = {
+      debug: false,
+      performance: false,
+      ...config.dev,
+    };
+  }
+
   /** Expands constants, deep-cloned ref() values and static calc() expressions. */
   compileStaticValues(config) {
     const isCalcExpression = (value) => typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');

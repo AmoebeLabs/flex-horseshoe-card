@@ -396,6 +396,7 @@ class FlexHorseshoeCard extends LitElement {
 
       CardTemplates.compile(config, this);
 
+      this.cardConfig.initializeDeveloperConfig(config);
       this.dev = { ...config.dev };
 
       const hasChildCards = Array.isArray(config.cards);

@@ -152,6 +152,18 @@ test('CardConfig compiles named entity addresses to final flat indexes', () => {
   assert.deepEqual(config.layout.controls.map((control) => control.entity_index), [1, 2]);
 });
 
+test('CardConfig initializes developer flags for cards without a dev section', () => {
+  const cardConfig = new CardConfig({});
+  const config = {};
+
+  cardConfig.initializeDeveloperConfig(config);
+
+  assert.deepEqual(config.dev, {
+    debug: false,
+    performance: false,
+  });
+});
+
 test('CardConfig rejects unknown slots and invalid action names at configuration time', () => {
   const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
   const invalidSlotConfig = { layout: { controls: [{ entity_index: 'missing[0]' }] } };
