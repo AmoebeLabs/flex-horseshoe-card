@@ -23,6 +23,7 @@ import { styleMap } from 'lit/directives/style-map.js';
 import CardStyles from './card-styles.js';
 import CardInputEntities from './card-input-entities.js';
 import CardActions from './card-actions.js';
+import HomeAssistant from './home-assistant.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -77,10 +78,7 @@ class FlexHorseshoeCard extends LitElement {
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
-    this.hassConnection = undefined;
-    this.hassConnectionReadyHandler = () => {
-      this._getRenderableTools().forEach((tool) => tool.hassConnected());
-    };
+    this.homeAssistant = new HomeAssistant(() => this._getRenderableTools().forEach((tool) => tool.hassConnected()));
     this.entities = [];
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
     this.actions = new CardActions(this, this.cardInputEntities);
@@ -548,11 +546,7 @@ class FlexHorseshoeCard extends LitElement {
     const hassBecameAvailable = this._hass === undefined;
 
     this._hass = hass;
-    if (this.hassConnection !== hass.connection) {
-      if (this.hassConnection && this.isConnected) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
-      this.hassConnection = hass.connection;
-      if (this.isConnected) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
-    }
+    this.homeAssistant.setHass(hass);
     this.childCards.setHass(hass);
 
     const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
@@ -1769,7 +1763,7 @@ class FlexHorseshoeCard extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.cardInputEntities.connected();
-    if (this.hassConnection) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
+    this.homeAssistant.connected();
     this._getRenderableTools().forEach((tool) => tool.connected());
   }
 
@@ -1781,7 +1775,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   disconnectedCallback() {
     this.cardInputEntities.disconnected();
-    if (this.hassConnection) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
+    this.homeAssistant.disconnected();
     this._getRenderableTools().forEach((tool) => tool.disconnected());
     super.disconnectedCallback();
   }
