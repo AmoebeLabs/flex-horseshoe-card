@@ -8,9 +8,9 @@ fhs_button_showcase:
       - fhs_button_showcase_number_entity: input_number.demo_value
   card:
     entities:
-      - entity: '[[fhs_button_showcase_toggle_entity]]'
-      - entity: '[[fhs_button_showcase_select_entity]]'
-      - entity: '[[fhs_button_showcase_number_entity]]'
+      - entity: "[[fhs_button_showcase_toggle_entity]]"
+      - entity: "[[fhs_button_showcase_select_entity]]"
+      - entity: "[[fhs_button_showcase_number_entity]]"
     layout:
       aspectratio: 1/1.4
       controls:
@@ -131,9 +131,9 @@ fhs_button_showcase:
         - id: demo-toggle-industrial
           type: toggle
           entity_index: 0
-          xpos: 50
-          ypos: 75
-          width: 20
+          xpos: 90
+          ypos: 50
+          width: 15
           show:
             item_variant: switch
             item_viz: default
@@ -162,7 +162,7 @@ fhs_button_showcase:
           type: select
           orientation: vertical
           entity_index: 1
-          xpos: 25
+          xpos: 10
           ypos: 100
           width: 15
           height: 70
@@ -197,9 +197,9 @@ fhs_button_showcase:
                 styles:
                   font-size: 0.6em
           option_map:
-            - value: 'off'
+            - value: "off"
               icon: mdi:fan-off
-              text: 'Off'
+              text: "Off"
             - value: low
               icon: mdi:fan-speed-1
               text: Low
@@ -214,7 +214,7 @@ fhs_button_showcase:
           type: select
           orientation: vertical
           entity_index: 1
-          xpos: 50
+          xpos: 30
           ypos: 100
           width: 15
           height: 70
@@ -249,9 +249,9 @@ fhs_button_showcase:
                 styles:
                   font-size: 0.6em
           option_map:
-            - value: 'off'
+            - value: "off"
               icon: mdi:fan-off
-              text: 'Off'
+              text: "Off"
             - value: low
               icon: mdi:fan-speed-1
               text: Low
@@ -266,9 +266,9 @@ fhs_button_showcase:
           type: select
           orientation: horizontal
           entity_index: 1
-          xpos: 50
-          ypos: 110
-          width: 70
+          xpos: 70
+          ypos: 130
+          width: 60
           height: 15
 
           show:
@@ -301,9 +301,9 @@ fhs_button_showcase:
                 styles:
                   font-size: 0.6em
           option_map:
-            - value: 'off'
+            - value: "off"
               icon: mdi:fan-off
-              text: 'Off'
+              text: "Off"
             - value: low
               icon: mdi:fan-speed-1
               text: Low
