@@ -5,6 +5,7 @@ import CardActions from '../src/card-actions.js';
 import CardInputEntities from '../src/card-input-entities.js';
 import CardTheme from '../src/card-theme.js';
 import CardConfig from '../src/card-config.js';
+import CardEntities from '../src/card-entities.js';
 
 class Connection {
   constructor() {
@@ -225,4 +226,52 @@ test('CardConfig resolves direct entity ids and named animation slots', () => {
 
   assert.equal(config.layout.controls[0].entity_index, 1);
   assert.deepEqual(config.animations, { 'entity.1': [{ state: 'on' }] });
+});
+
+test('CardEntities links derived sparkline configs to their source entity', () => {
+  const cardEntities = new CardEntities(
+    { hasJavascriptTemplates: () => false },
+    { getActiveColorStopMode: () => 'light' },
+  );
+  const config = {
+    dev: { debug: false },
+    entities: [
+      { entity: 'sensor.temperature', attribute: 'value', decimals: 2 },
+      { entity: 'fhs_sparkline.history_avg' },
+    ],
+    layout: { sparklines: [{ id: 'history', entity_index: 0 }] },
+  };
+
+  const resolved = cardEntities.buildRuntimeEntityConfigs(config, false);
+
+  assert.equal(resolved[1].local, true);
+  assert.equal(resolved[1].source_entity_index, 0);
+  assert.equal(resolved[1].sparkline_id, 'history');
+  assert.equal(resolved[1].sparkline_entity_type, 'avg');
+  assert.equal(resolved[1].attribute, undefined);
+});
+
+test('CardEntities retains configured decimals in derived sparkline averages', () => {
+  const cardEntities = new CardEntities({}, {});
+  const resolvedConfigs = [
+    { entity: 'sensor.temperature', decimals: 2 },
+    {
+      entity: 'fhs_sparkline.history_avg',
+      local: true,
+      source_entity_index: 0,
+      sparkline_id: 'history',
+      sparkline_entity_type: 'avg',
+    },
+  ];
+  const entities = [{
+    entity_id: 'sensor.temperature',
+    state: '10.20',
+    attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
+  }];
+  const graph = { config: { id: 'history' }, stats: { avg: 10.2 } };
+
+  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graph]);
+
+  assert.equal(entities[1].state, '10.20');
+  assert.equal(entities[1].attributes.source_entity_id, 'sensor.temperature');
 });

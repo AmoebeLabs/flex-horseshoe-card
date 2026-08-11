@@ -26,16 +26,15 @@ import CardActions from './card-actions.js';
 import HomeAssistant from './home-assistant.js';
 import CardTheme from './card-theme.js';
 import CardConfig from './card-config.js';
+import CardEntities from './card-entities.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
-import ColorStops from './color-stops.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
 import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import Utils from './utils.js';
-import Merge from './merge.js';
 import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
@@ -91,6 +90,7 @@ class FlexHorseshoeCard extends LitElement {
         this.requestUpdate();
       },
     );
+    this.cardEntities = new CardEntities(Templates, this.cardTheme);
     this.entitiesStr = [];
     this.attributesStr = [];
     this.viewBoxSize = SVG_VIEW_BOX;
@@ -240,195 +240,6 @@ class FlexHorseshoeCard extends LitElement {
   static styles = CardStyles;
 
 
-  _resolveEntityConfigs(config, evaluateJavascript) {
-    if (config?.dev?.debug) {
-      console.log('resolving entity config for', config?.entities);
-    }
-    const resolvedEntityConfigs = config.entities.map((entityConfig, index) => {
-      const item = {
-        entity_index: index,
-      };
-
-      const resolvedEntityConfig = evaluateJavascript && Templates.hasJavascriptTemplates(entityConfig) ? Templates.getJsTemplateOrValue(item, entityConfig) : entityConfig;
-
-      // Normalize reusable entity-level color stops once for every opted-in layout item.
-      if (resolvedEntityConfig.color_stops) {
-        resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
-      }
-
-      return resolvedEntityConfig;
-    });
-    const sparklineEntityTypes = ['min_time', 'max_time', 'bin_duration', 'aggregate_func', 'duration', 'min', 'avg', 'max'];
-    const sparklineConfigs = config.layout.sparklines ?? [];
-
-    // Resolve every explicitly configured fhs_sparkline entity against the
-    // matching graph. This keeps its public index in entities while retaining
-    // the real Home Assistant source for metadata and action routing.
-    return resolvedEntityConfigs.map((entityConfig) => {
-      if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
-
-      let matchedSparkline;
-      let matchedType;
-
-      sparklineConfigs.forEach((sparklineConfig) => {
-        sparklineEntityTypes.forEach((entityType) => {
-          if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${entityType}`) {
-            matchedSparkline = sparklineConfig;
-            matchedType = entityType;
-          }
-        });
-      });
-
-      if (!matchedSparkline) {
-        throw new Error(`[entities] Unknown sparkline entity: ${entityConfig.entity}`);
-      }
-
-      const sourceEntityConfig = resolvedEntityConfigs[matchedSparkline.entity_index];
-      const localEntityConfig = {
-        ...sourceEntityConfig,
-        ...entityConfig,
-        local: true,
-        source_entity_index: matchedSparkline.entity_index,
-        sparkline_id: matchedSparkline.id,
-        sparkline_entity_type: matchedType,
-      };
-
-      // A derived state is already final and must never read the source
-      // attribute again. Source names are also replaced by the graph label.
-      delete localEntityConfig.attribute;
-      if (entityConfig.name === undefined) delete localEntityConfig.name;
-
-      if (matchedType === 'min_time' || matchedType === 'max_time') {
-        localEntityConfig.format = entityConfig.format ?? 'datetime-short';
-        localEntityConfig.unit = entityConfig.unit ?? '';
-      }
-
-      if (matchedType === 'duration' || matchedType === 'bin_duration') {
-        if (entityConfig.unit === undefined) delete localEntityConfig.unit;
-      }
-
-      if (matchedType === 'aggregate_func') {
-        localEntityConfig.unit = entityConfig.unit ?? '';
-      }
-
-      return localEntityConfig;
-    });
-  }
-
-  /**
-   * Copies the source HA entity into local sparkline entities and replaces only
-   * the values that are derived from the graph statistics.
-   */
-  _updateSparklineEntities() {
-    this.resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
-      if (!entityConfig.sparkline_entity_type) return;
-
-      const sparklineGraphTool = this.sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
-      const sourceEntity = this.entities[entityConfig.source_entity_index];
-      const sourceEntityConfig = this.resolvedEntityConfigs[entityConfig.source_entity_index];
-      const entityType = entityConfig.sparkline_entity_type;
-      const labelMap = {
-        min: 'min',
-        avg: 'mean',
-        max: 'max',
-        min_time: 'min',
-        max_time: 'max',
-        duration: 'Duration',
-        bin_duration: 'Bin duration',
-        aggregate_func: 'Aggregate function',
-      };
-      let state;
-      let unitOfMeasurement = sourceEntity.attributes.unit_of_measurement;
-      let deviceClass = sourceEntity.attributes.device_class;
-
-      if (['min', 'avg', 'max', 'min_time', 'max_time'].includes(entityType)) {
-        state = Object.hasOwn(sparklineGraphTool.stats, entityType) ? sparklineGraphTool.stats[entityType] : 'unavailable';
-
-        if (entityType === 'avg' && Number.isFinite(Number(state))) {
-          const sourceDecimals = sourceEntityConfig.decimals !== undefined ? Number(sourceEntityConfig.decimals) : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
-          state = Number(state).toFixed(sourceDecimals);
-        }
-
-        if (entityType === 'min_time' || entityType === 'max_time') {
-          unitOfMeasurement = undefined;
-          deviceClass = undefined;
-        }
-      }
-
-      if (entityType === 'duration') {
-        const historical = sparklineGraphTool.config.period.type !== 'real_time';
-
-        if (historical && sparklineGraphTool.historyDurationReady) {
-          const durationHours = sparklineGraphTool.config.period[sparklineGraphTool.config.period.type].duration.hour;
-          state = String(durationHours);
-          unitOfMeasurement = 'h';
-
-          if (durationHours < 1) {
-            state = String(durationHours * 60);
-            unitOfMeasurement = 'min';
-          }
-
-          if (durationHours >= 24) {
-            state = String(durationHours / 24);
-            unitOfMeasurement = 'd';
-          }
-        } else {
-          state = 'unavailable';
-          unitOfMeasurement = 'h';
-        }
-
-        deviceClass = 'duration';
-      }
-
-      if (entityType === 'bin_duration') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
-
-        if (binnedHistory && sparklineGraphTool.historyDurationReady) {
-          const binDurationHours = 1 / sparklineGraphTool.calculateBinsPerHour(sparklineGraphTool.config);
-          state = String(binDurationHours);
-          unitOfMeasurement = 'h';
-
-          if (binDurationHours < 1) {
-            state = String(binDurationHours * 60);
-            unitOfMeasurement = 'min';
-          }
-
-          if (binDurationHours >= 24) {
-            state = String(binDurationHours / 24);
-            unitOfMeasurement = 'd';
-          }
-        } else {
-          state = 'unavailable';
-          unitOfMeasurement = 'h';
-        }
-
-        deviceClass = 'duration';
-      }
-
-      if (entityType === 'aggregate_func') {
-        const binnedHistory = sparklineGraphTool.config.period.type !== 'real_time' && sparklineGraphTool.config.sparkline.show.chart_type !== 'state_bands';
-        state = binnedHistory && sparklineGraphTool.historyDurationReady ? sparklineGraphTool.config.sparkline.state_values.aggregate_func : 'unavailable';
-        unitOfMeasurement = undefined;
-        deviceClass = undefined;
-      }
-
-      const entity = Merge.mergeDeep(sourceEntity, {
-        entity_id: entityConfig.entity,
-        state: String(state),
-        label: entityConfig.name === undefined ? labelMap[entityType] : undefined,
-        attributes: {
-          ...sourceEntity.attributes,
-          source_entity_id: ['min', 'avg', 'max'].includes(entityType) ? sourceEntity.entity_id : undefined,
-          unit_of_measurement: unitOfMeasurement,
-          device_class: deviceClass,
-          sparkline_id: entityConfig.sparkline_id,
-          sparkline_entity_type: entityType,
-        },
-      });
-
-      this.entities[entityIndex] = entity;
-    });
-  }
 
   /**
    * Refeeds all normal entity-bound tools after async sparkline history refresh.
@@ -557,7 +368,7 @@ class FlexHorseshoeCard extends LitElement {
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
     if (configuredEntityStateChanged || this.cardTheme.modeChanged) {
-      this.resolvedEntityConfigs = this._resolveEntityConfigs(this.config, true);
+      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
     } else {
       this.resolvedEntityConfigs = this.resolvedEntityConfigs.slice(0, configuredEntityCount);
@@ -704,7 +515,7 @@ class FlexHorseshoeCard extends LitElement {
     this.sparklineGraphTools.forEach((sparklineGraphTool) => sparklineGraphTool.updateRuntimeConfig());
 
     this.sparklineGraphTools = (this.sparklineGraphTools ?? []).map((sparklineGraphTool) => this._setToolEntityState(sparklineGraphTool));
-    this._updateSparklineEntities();
+    this.cardEntities.updateSparklineEntities(this.resolvedEntityConfigs, this.entities, this.sparklineGraphTools);
 
     // Remaining runtime configurations can now use the current local sparkline entities.
     this.horseshoeGauges.forEach((horseshoe) => horseshoe.updateRuntimeConfig());
@@ -946,7 +757,7 @@ class FlexHorseshoeCard extends LitElement {
         entity_slots: this.entitySlots,
       });
 
-      const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
+      const resolvedEntitiesConfig = this.cardEntities.buildRuntimeEntityConfigs(config, false);
       this.cardInputEntities.initializeEntities(resolvedEntitiesConfig);
 
       if (resolvedEntitiesConfig.length > 0) {
