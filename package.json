@@ -1,13 +1,14 @@
 {
   "name": "flex-horseshoe",
-  "version": "5.4.7-dev.22",
+  "version": "5.4.7-dev.23",
   "description": "Flexible Horseshoe Card for Lovelace",
   "main": "src/main.js",
   "type": "module",
   "scripts": {
-    "build": "npm run lint && npm run rollup",
+    "build": "npm test && npm run lint && npm run rollup",
+    "test": "node --import ./tests/register-loader.js --test tests/*.test.js",
     "rollup": "rollup -c",
-    "lint": "biome lint src/*.js",
+    "lint": "biome lint src/*.js tests/*.js",
     "format": "biome format --write src/*.js",
     "watch": "rollup -c --watch",
     "postversion": "npm run build",

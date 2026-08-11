@@ -602,7 +602,7 @@ export default class ControlSlider extends ControlBase {
     if (!finalWrite && valueSignature === this.lastWrittenSignature) return;
 
     this.lastWrittenSignature = valueSignature;
-    this.card.executeSliderAction(
+    this.card.actions.executeSliderAction(
       this.config.set_value_action,
       this.config.values[this.activeValueIndex].entity_index,
       this.sliderValues,

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import ControlSlider from '../control-slider.js';
+import ControlSlider from '../src/control-slider.js';
 
 const createSlider = (overrides = {}) => {
   const slider = Object.create(ControlSlider.prototype);

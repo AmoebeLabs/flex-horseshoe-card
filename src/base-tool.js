@@ -334,7 +334,7 @@ export default class BaseTool {
 
   /** Returns the shared gesture directive configured for this layout item. */
   actionHandler() {
-    return actionHandler(this.card.getActionHandlerOptions(this.config, this.entity_index));
+    return actionHandler(this.card.actions.getActionHandlerOptions(this.config, this.entity_index));
   }
 
   /**
@@ -343,6 +343,6 @@ export default class BaseTool {
    * @param {CustomEvent} event - Gesture event from the shared action handler.
    */
   handleAction(event) {
-    this.card.handleAction(event, this.config, this.entity_index);
+    this.card.actions.handleAction(event, this.config, this.entity_index);
   }
 }

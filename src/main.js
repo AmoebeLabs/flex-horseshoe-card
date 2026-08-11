@@ -18,8 +18,11 @@
  *******************************************************************************
  */
 
-import { LitElement, html, css, svg } from 'lit';
+import { LitElement, html, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
+import CardStyles from './card-styles.js';
+import CardInputEntities from './card-input-entities.js';
+import CardActions from './card-actions.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import ColorStops from './color-stops.js';
@@ -52,14 +55,8 @@ import MasksClips from './masks-clips.js';
 import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
 import { version } from '../package.json';
 import Palette from './palettes.js';
-import { fireEvent } from './frontend_mods/common/dom/fire_event.js';
-import { normalizeFhsInputNumberConfig, clampFhsInputNumberValue, calculateFhsInputNumberNextValue } from './fhs-input-number.js';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
-
-const DEFAULT_TAP_ACTION = {
-  action: 'more-info',
-};
 
 const DEFAULT_SHOW = {
   horseshoe: true,
@@ -71,18 +68,6 @@ const DEFAULT_SHOW = {
 // ++ Class ++++++++++
 
 class FlexHorseshoeCard extends LitElement {
-  static fhsInputNumbers = new Map();
-
-  static fhsInputBooleans = new Map();
-
-  static fhsInputEvent = 'flex-horseshoe-card:fhs-input-number-changed';
-
-  static fhsInputBooleanEvent = 'flex-horseshoe-card:fhs-input-boolean-changed';
-
-  static fhsInputStoragePrefix = 'flex-horseshoe-card:fhs-input-number';
-
-  static fhsInputBooleanStoragePrefix = 'flex-horseshoe-card:fhs-input-boolean';
-
   constructor() {
     super();
 
@@ -96,26 +81,9 @@ class FlexHorseshoeCard extends LitElement {
     this.hassConnectionReadyHandler = () => {
       this._getRenderableTools().forEach((tool) => tool.hassConnected());
     };
-    this.fhsInputStateChanged = false;
-    this.fhsInputEventHandler = (event) => {
-      const matchingConfig = this.config.entities.find((entityConfig) => entityConfig.entity === event.detail.entity_id && entityConfig.scope === 'global');
-
-      if (this.dev.debug) {
-        console.log('[FHS global input event]', {
-          cardId: this.cardId,
-          entityId: event.detail.entity_id,
-          state: event.detail.state,
-          matched: matchingConfig !== undefined,
-        });
-      }
-
-      if (matchingConfig?.entity.startsWith('fhs_input_boolean.')) {
-        this._replaceFhsInputBooleanState(event.detail.entity_id, event.detail);
-      } else if (matchingConfig) {
-        this._replaceFhsInputNumberState(event.detail.entity_id, event.detail);
-      }
-    };
     this.entities = [];
+    this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
+    this.actions = new CardActions(this, this.cardInputEntities);
     this.entitiesStr = [];
     this.attributesStr = [];
     this.viewBoxSize = SVG_VIEW_BOX;
@@ -272,862 +240,8 @@ class FlexHorseshoeCard extends LitElement {
    *    Of course, if no mistakes are made ;-)
    *
    */
-  static get styles() {
-    return css`
-      :host {
-        cursor: default;
-      }
+  static styles = CardStyles;
 
-      @media (print), (prefers-reduced-motion: reduce) {
-        .animated {
-          animation-duration: 1ms !important;
-          transition-duration: 1ms !important;
-          animation-iteration-count: 1 !important;
-        }
-      }
-
-      @keyframes zoomOut {
-        from {
-          opacity: 1;
-        }
-
-        50% {
-          opacity: 0;
-          transform: scale3d(0.3, 0.3, 0.3);
-        }
-
-        to {
-          opacity: 0;
-        }
-      }
-
-      @keyframes bounce {
-        from,
-        20%,
-        53%,
-        80%,
-        to {
-          animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
-          transform: translate3d(0, 0, 0);
-        }
-
-        40%,
-        43% {
-          animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
-          transform: translate3d(0, -30px, 0);
-        }
-
-        70% {
-          animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
-          transform: translate3d(0, -15px, 0);
-        }
-
-        90% {
-          transform: translate3d(0, -4px, 0);
-        }
-      }
-
-      @keyframes flash {
-        from,
-        50%,
-        to {
-          opacity: 1;
-        }
-
-        25%,
-        75% {
-          opacity: 0;
-        }
-      }
-
-      @keyframes headShake {
-        0% {
-          transform: translateX(0);
-        }
-
-        6.5% {
-          transform: translateX(-6px) rotateY(-9deg);
-        }
-
-        18.5% {
-          transform: translateX(5px) rotateY(7deg);
-        }
-
-        31.5% {
-          transform: translateX(-3px) rotateY(-5deg);
-        }
-
-        43.5% {
-          transform: translateX(2px) rotateY(3deg);
-        }
-
-        50% {
-          transform: translateX(0);
-        }
-      }
-
-      @keyframes heartBeat {
-        0% {
-          transform: scale(1);
-        }
-
-        14% {
-          transform: scale(1.3);
-        }
-
-        28% {
-          transform: scale(1);
-        }
-
-        42% {
-          transform: scale(1.3);
-        }
-
-        70% {
-          transform: scale(1);
-        }
-      }
-
-      @keyframes jello {
-        from,
-        11.1%,
-        to {
-          transform: translate3d(0, 0, 0);
-        }
-
-        22.2% {
-          transform: skewX(-12.5deg) skewY(-12.5deg);
-        }
-
-        33.3% {
-          transform: skewX(6.25deg) skewY(6.25deg);
-        }
-
-        44.4% {
-          transform: skewX(-3.125deg) skewY(-3.125deg);
-        }
-
-        55.5% {
-          transform: skewX(1.5625deg) skewY(1.5625deg);
-        }
-
-        66.6% {
-          transform: skewX(-0.78125deg) skewY(-0.78125deg);
-        }
-
-        77.7% {
-          transform: skewX(0.390625deg) skewY(0.390625deg);
-        }
-
-        88.8% {
-          transform: skewX(-0.1953125deg) skewY(-0.1953125deg);
-        }
-      }
-
-      @keyframes pulse {
-        from {
-          transform: scale3d(1, 1, 1);
-        }
-
-        50% {
-          transform: scale3d(1.05, 1.05, 1.05);
-        }
-
-        to {
-          transform: scale3d(1, 1, 1);
-        }
-      }
-
-      @keyframes rubberBand {
-        from {
-          transform: scale3d(1, 1, 1);
-        }
-
-        30% {
-          transform: scale3d(1.25, 0.75, 1);
-        }
-
-        40% {
-          transform: scale3d(0.75, 1.25, 1);
-        }
-
-        50% {
-          transform: scale3d(1.15, 0.85, 1);
-        }
-
-        65% {
-          transform: scale3d(0.95, 1.05, 1);
-        }
-
-        75% {
-          transform: scale3d(1.05, 0.95, 1);
-        }
-
-        to {
-          transform: scale3d(1, 1, 1);
-        }
-      }
-
-      @keyframes shake {
-        from,
-        to {
-          transform: translate3d(0, 0, 0);
-        }
-
-        10%,
-        30%,
-        50%,
-        70%,
-        90% {
-          transform: translate3d(-10px, 0, 0);
-        }
-
-        20%,
-        40%,
-        60%,
-        80% {
-          transform: translate3d(10px, 0, 0);
-        }
-      }
-
-      @keyframes swing {
-        20% {
-          transform: rotate3d(0, 0, 1, 15deg);
-        }
-
-        40% {
-          transform: rotate3d(0, 0, 1, -10deg);
-        }
-
-        60% {
-          transform: rotate3d(0, 0, 1, 5deg);
-        }
-
-        80% {
-          transform: rotate3d(0, 0, 1, -5deg);
-        }
-
-        to {
-          transform: rotate3d(0, 0, 1, 0deg);
-        }
-      }
-
-      @keyframes tada {
-        from {
-          transform: scale3d(1, 1, 1);
-        }
-        10%,
-        20% {
-          transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg);
-        }
-        30%,
-        50%,
-        70%,
-        90% {
-          transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg);
-        }
-        40%,
-        60%,
-        80% {
-          transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg);
-        }
-        to {
-          transform: scale3d(1, 1, 1);
-        }
-      }
-
-      @keyframes wobble {
-        from {
-          transform: translate3d(0, 0, 0);
-        }
-        15% {
-          transform: translate3d(-25%, 0, 0) rotate3d(0, 0, 1, -5deg);
-        }
-        30% {
-          transform: translate3d(20%, 0, 0) rotate3d(0, 0, 1, 3deg);
-        }
-        45% {
-          transform: translate3d(-15%, 0, 0) rotate3d(0, 0, 1, -3deg);
-        }
-        60% {
-          transform: translate3d(10%, 0, 0) rotate3d(0, 0, 1, 2deg);
-        }
-        75% {
-          transform: translate3d(-5%, 0, 0) rotate3d(0, 0, 1, -1deg);
-        }
-        to {
-          transform: translate3d(0, 0, 0);
-        }
-      }
-
-      @media screen and (min-width: 467px) {
-        :host {
-          font-size: 12px;
-        }
-      }
-      @media screen and (max-width: 466px) {
-        :host {
-          font-size: 12px;
-        }
-      }
-
-      :host ha-card {
-        padding: 5px 5px 5px 5px;
-      }
-
-      :host([embedded]) {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-
-      :host([embedded]) ha-card {
-        box-sizing: border-box;
-        width: 100%;
-        height: 100%;
-      }
-
-      :host([embedded]) .container {
-        width: 100%;
-        height: 100%;
-      }
-
-      :host([embedded]) .container > svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      .container {
-        position: relative;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .fhs-child-card-layer {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-      }
-
-      .sparkline-tooltip-layer {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-      }
-
-      .sparkline-tooltip {
-        position: absolute;
-        z-index: 5;
-        pointer-events: none;
-        display: inline-block;
-        width: auto;
-        max-width: calc(100% - 24px);
-        padding: 0.2em 0.3em;
-        border-radius: 0.3em;
-        background: var(--card-background-color, var(--ha-card-background, rgba(32, 32, 32, 0.94)));
-        color: var(--primary-text-color);
-        box-shadow: 0 0.35em 0.9em rgba(0, 0, 0, 0.22);
-        border: 1px solid var(--divider-color);
-        font-size: var(--sparkline-tooltip-font-size, 0.5em);
-        -webkit-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-        line-height: 1.15;
-        transform: translate(-50%, -100%);
-      }
-
-      .sparkline-tooltip__title {
-        font-weight: 600;
-        margin-bottom: 0.22em;
-        white-space: nowrap;
-      }
-
-      .sparkline-tooltip__row {
-        display: grid;
-        grid-template-columns: auto auto;
-        gap: 0.6em;
-        align-items: baseline;
-        white-space: nowrap;
-      }
-
-      .sparkline-tooltip__row + .sparkline-tooltip__row {
-        margin-top: 0.08em;
-      }
-
-      .fhs-child-card {
-        position: absolute;
-        pointer-events: auto;
-      }
-
-      .fhs-child-card > * {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-
-      .fhs-child-card--frameless {
-        background: transparent;
-        border: 0;
-        box-shadow: none;
-      }
-
-      .labelContainer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 65%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-end;
-      }
-
-      .ellipsis {
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
-      }
-
-      .icon-svg-url.hidden {
-        display: none;
-      }
-
-      .state {
-        position: relative;
-        display: flex;
-        flex-wrap: wrap;
-        max-width: 100%;
-        min-width: 0px;
-      }
-
-      #label {
-        display: flex;
-        line-height: 1;
-      }
-
-      #label.bold {
-        font-weight: bold;
-      }
-
-      #label,
-      #name {
-        margin: 3% 0;
-      }
-
-      .text {
-        font-size: 100%;
-      }
-
-      #name {
-        font-size: 80%;
-        font-weight: 300;
-      }
-
-      .unit {
-        font-size: 65%;
-        font-weight: normal;
-        opacity: 0.6;
-        line-height: 2em;
-        vertical-align: bottom;
-        margin-left: 0.25rem;
-      }
-
-      .entity__area {
-        position: absolute;
-        top: 70%;
-        font-size: 120%;
-        opacity: 0.6;
-        display: flex;
-        line-height: 1;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 20%;
-        flex-direction: column;
-      }
-
-      .nam {
-        alignment-baseline: central;
-        fill: var(--primary-text-color);
-      }
-
-      .state__uom {
-        font-size: 20px;
-        opacity: 0.7;
-        margin: 0;
-        fill: var(--primary-text-color);
-      }
-
-      .state__value {
-        font-size: 3em;
-        opacity: 1;
-        fill: var(--primary-text-color);
-        text-anchor: middle;
-      }
-      .entity__name {
-        text-anchor: middle;
-        overflow: hidden;
-        opacity: 0.8;
-        fill: var(--primary-text-color);
-        font-size: 1.5em;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-
-      .entity__area {
-        font-size: 12px;
-        opacity: 0.7;
-        overflow: hidden;
-        fill: var(--primary-text-color);
-        text-anchor: middle;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-
-      .shadow {
-        font-size: 30px;
-        font-weight: 700;
-        text-anchor: middle;
-      }
-
-      .card--dropshadow-5 {
-        filter: drop-shadow(0 1px 0 #ccc) drop-shadow(0 2px 0 #c9c9c9) drop-shadow(0 3px 0 #bbb) drop-shadow(0 4px 0 #b9b9b9) drop-shadow(0 5px 0 #aaa) drop-shadow(0 6px 1px rgba(0, 0, 0, 0.1))
-          drop-shadow(0 0 5px rgba(0, 0, 0, 0.1)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.2)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.25))
-          drop-shadow(0 10px 10px rgba(0, 0, 0, 0.2)) drop-shadow(0 20px 20px rgba(0, 0, 0, 0.15));
-      }
-      .card--dropshadow-medium--opaque--sepia90 {
-        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
-          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
-      }
-
-      .card--dropshadow-heavy--sepia90 {
-        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.3em 0.45em rgba(0, 0, 0, 0.5))
-          drop-shadow(0px 0.6em 0.07em rgba(0, 0, 0, 0.3)) drop-shadow(0px 1.2em 1.25em rgba(0, 0, 0, 1)) drop-shadow(0px 1.8em 1.6em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2em rgba(0, 0, 0, 0.1))
-          drop-shadow(0px 3em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
-      }
-
-      .card--dropshadow-heavy {
-        filter: drop-shadow(0em 0.05em 0px #b2a98f22) drop-shadow(0em 0.07em 0px #b2a98f55) drop-shadow(0em 0.1em 0px #b2a98f88) drop-shadow(0px 0.3em 0.45em rgba(0, 0, 0, 0.5))
-          drop-shadow(0px 0.6em 0.07em rgba(0, 0, 0, 0.3)) drop-shadow(0px 1.2em 1.25em rgba(0, 0, 0, 1)) drop-shadow(0px 1.8em 1.6em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2em rgba(0, 0, 0, 0.1))
-          drop-shadow(0px 3em 2.5em rgba(0, 0, 0, 0.1));
-      }
-
-      .card--dropshadow-medium--sepia90 {
-        filter: drop-shadow(0em 0.05em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
-          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1)) sepia(90%);
-      }
-
-      .card--dropshadow-medium {
-        filter: drop-shadow(0em 0.05em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0em 0.15em 0px #b2a98f) drop-shadow(0px 0.6em 0.9em rgba(0, 0, 0, 0.15))
-          drop-shadow(0px 1.2em 0.15em rgba(0, 0, 0, 0.1)) drop-shadow(0px 2.4em 2.5em rgba(0, 0, 0, 0.1));
-      }
-
-      .card--dropshadow-light--sepia90 {
-        filter: drop-shadow(0px 0.1em 0px #b2a98f) drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, 0.5)) sepia(90%);
-      }
-
-      .card--dropshadow-light {
-        filter: drop-shadow(0px 0.1em 0px #b2a98f) drop-shadow(0.1em 0.5em 0.2em rgba(0, 0, 0, 0.5));
-      }
-
-      .card--dropshadow-down-and-distant {
-        filter: drop-shadow(0px 0.05em 0px #b2a98f) drop-shadow(0px 14px 10px rgba(0, 0, 0, 0.15)) drop-shadow(0px 24px 2px rgba(0, 0, 0, 0.1)) drop-shadow(0px 34px 30px rgba(0, 0, 0, 0.1));
-      }
-      .card--filter-none {
-      }
-
-      .horseshoe__svg__group {
-        /*
-          * Was transform: translateY(15%).
-          * After fixing SVG viewBox/namespace parsing, this offset became visible
-          * and moved the horseshoe down.
-          * A nice 6 year old bug ;-)
-          */
-      }
-
-      .line__horizontal {
-        stroke: var(--primary-text-color);
-        opacity: 0.3;
-        stroke-width: 2;
-      }
-
-      .line__vertical {
-        stroke: var(--primary-text-color);
-        opacity: 0.3;
-        stroke-width: 2;
-      }
-
-      .svg__dot {
-        fill: var(--primary-text-color);
-        opacity: 0.5;
-        align-self: center;
-        transform-origin: 50% 50%;
-      }
-
-      .icon {
-        align: center;
-      }
-    `;
-  }
-
-  /**
-   * Validates and completes local FHS number input definitions in the config layer.
-   *
-   * @param {object} config - Compiled card configuration.
-   */
-  _normalizeFhsInputNumberConfigs(config) {
-    config.entities.forEach((entityConfig) => {
-      if (!entityConfig.entity.startsWith('fhs_input_number.')) return;
-
-      normalizeFhsInputNumberConfig(entityConfig);
-    });
-  }
-
-  /**
-   * Validates and completes local FHS boolean input definitions in the config layer.
-   *
-   * @param {object} config - Compiled card configuration.
-   */
-  _normalizeFhsInputBooleanConfigs(config) {
-    config.entities.forEach((entityConfig) => {
-      if (!entityConfig.entity.startsWith('fhs_input_boolean.')) return;
-
-      if (entityConfig.initial === undefined) entityConfig.initial = false;
-      if (typeof entityConfig.initial !== 'boolean') {
-        throw Error(`FHS input boolean '${entityConfig.entity}' initial must be a boolean`);
-      }
-      if (entityConfig.scope !== undefined && !['card', 'global'].includes(entityConfig.scope)) {
-        throw Error(`FHS input boolean '${entityConfig.entity}' scope must be 'card' or 'global'`);
-      }
-
-      entityConfig.local = true;
-      entityConfig.scope ??= 'card';
-      entityConfig.persist ??= false;
-      if (typeof entityConfig.persist !== 'boolean') {
-        throw Error(`FHS input boolean '${entityConfig.entity}' persist must be a boolean`);
-      }
-      if (entityConfig.persist && entityConfig.scope !== 'global') {
-        throw Error(`FHS input boolean '${entityConfig.entity}' can only persist with scope 'global'`);
-      }
-      entityConfig.name ??= entityConfig.entity.split('.', 2)[1];
-      entityConfig.icon ??= 'mdi:toggle-switch';
-      entityConfig.tap_action ??= { action: 'none' };
-    });
-  }
-
-  /**
-   * Creates configured FHS number entities before the first Home Assistant pass.
-   *
-   * @param {Array<object>} entityConfigs - Resolved configured entities.
-   */
-  _initializeFhsInputNumberEntities(entityConfigs) {
-    entityConfigs.forEach((entityConfig, index) => {
-      if (!entityConfig.entity.startsWith('fhs_input_number.')) return;
-
-      const timestamp = new Date().toISOString();
-      let stateRecord = {
-        entity_id: entityConfig.entity,
-        state: String(Number(entityConfig.initial)),
-        last_changed: timestamp,
-        last_updated: timestamp,
-      };
-
-      if (entityConfig.scope === 'global') {
-        if (!FlexHorseshoeCard.fhsInputNumbers.has(entityConfig.entity)) {
-          if (entityConfig.persist) {
-            const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityConfig.entity}`;
-            const storedStateRecord = localStorage.getItem(storageKey);
-            if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
-          }
-          FlexHorseshoeCard.fhsInputNumbers.set(entityConfig.entity, stateRecord);
-        }
-        stateRecord = FlexHorseshoeCard.fhsInputNumbers.get(entityConfig.entity);
-      }
-
-      this.entities[index] = {
-        ...stateRecord,
-        attributes: {
-          friendly_name: entityConfig.name,
-          icon: entityConfig.icon,
-          unit_of_measurement: entityConfig.unit,
-          ...(entityConfig.min !== undefined ? { min: entityConfig.min } : {}),
-          ...(entityConfig.max !== undefined ? { max: entityConfig.max } : {}),
-          step: entityConfig.step,
-        },
-        context: {
-          id: null,
-          parent_id: null,
-          user_id: null,
-        },
-      };
-    });
-  }
-
-  /**
-   * Creates configured FHS boolean entities before the first Home Assistant pass.
-   *
-   * @param {Array<object>} entityConfigs - Resolved configured entities.
-   */
-  _initializeFhsInputBooleanEntities(entityConfigs) {
-    entityConfigs.forEach((entityConfig, index) => {
-      if (!entityConfig.entity.startsWith('fhs_input_boolean.')) return;
-
-      const timestamp = new Date().toISOString();
-      let stateRecord = {
-        entity_id: entityConfig.entity,
-        state: entityConfig.initial ? 'on' : 'off',
-        last_changed: timestamp,
-        last_updated: timestamp,
-      };
-
-      if (entityConfig.scope === 'global') {
-        if (!FlexHorseshoeCard.fhsInputBooleans.has(entityConfig.entity)) {
-          if (entityConfig.persist) {
-            const storageKey = `${FlexHorseshoeCard.fhsInputBooleanStoragePrefix}:${entityConfig.entity}`;
-            const storedStateRecord = localStorage.getItem(storageKey);
-            if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
-          }
-          FlexHorseshoeCard.fhsInputBooleans.set(entityConfig.entity, stateRecord);
-        }
-        stateRecord = FlexHorseshoeCard.fhsInputBooleans.get(entityConfig.entity);
-      }
-
-      this.entities[index] = {
-        ...stateRecord,
-        attributes: {
-          friendly_name: entityConfig.name,
-          icon: entityConfig.icon,
-        },
-        context: {
-          id: null,
-          parent_id: null,
-          user_id: null,
-        },
-      };
-    });
-  }
-
-  /**
-   * Replaces one local entity state and enters the normal entity update pipeline.
-   *
-   * @param {string} entityId - Local FHS entity id.
-   * @param {object} stateRecord - Shared state and timestamps.
-   */
-  _replaceFhsInputNumberState(entityId, stateRecord) {
-    this.config.entities.forEach((entityConfig, index) => {
-      if (entityConfig.entity !== entityId) return;
-
-      this.entities[index] = {
-        ...this.entities[index],
-        state: stateRecord.state,
-        last_changed: stateRecord.last_changed,
-        last_updated: stateRecord.last_updated,
-      };
-    });
-
-    this.fhsInputStateChanged = true;
-    this.setHass(this._hass);
-  }
-
-  /**
-   * Replaces one local boolean state and enters the normal entity update pipeline.
-   *
-   * @param {string} entityId - Local FHS boolean entity id.
-   * @param {object} stateRecord - Shared state and timestamps.
-   */
-  _replaceFhsInputBooleanState(entityId, stateRecord) {
-    this.config.entities.forEach((entityConfig, index) => {
-      if (entityConfig.entity !== entityId) return;
-
-      this.entities[index] = {
-        ...this.entities[index],
-        state: stateRecord.state,
-        last_changed: stateRecord.last_changed,
-        last_updated: stateRecord.last_updated,
-      };
-    });
-
-    this.fhsInputStateChanged = true;
-    this.setHass(this._hass);
-  }
-
-  /**
-   * Applies the local equivalent of input_number.set_value.
-   *
-   * @param {string} entityId - Target FHS input number.
-   * @param {number|string} value - New numeric state.
-   */
-  _setFhsInputNumberValue(entityId, value) {
-    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
-    const numericValue = clampFhsInputNumberValue(entityConfig, value);
-    const timestamp = new Date().toISOString();
-    const stateRecord = {
-      entity_id: entityId,
-      state: String(numericValue),
-      last_changed: timestamp,
-      last_updated: timestamp,
-    };
-
-    if (entityConfig.scope === 'global') {
-      FlexHorseshoeCard.fhsInputNumbers.set(entityId, stateRecord);
-      if (entityConfig.persist) {
-        const storageKey = `${FlexHorseshoeCard.fhsInputStoragePrefix}:${entityId}`;
-        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
-      }
-      fireEvent(window, FlexHorseshoeCard.fhsInputEvent, stateRecord);
-      return;
-    }
-
-    this._replaceFhsInputNumberState(entityId, stateRecord);
-  }
-
-  /**
-   * Applies the local equivalent of input_number.increment or decrement.
-   *
-   * @param {string} entityId - Target FHS input number.
-   * @param {number} direction - Positive one for increment, negative one for decrement.
-   */
-  _changeFhsInputNumberValue(entityId, direction) {
-    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
-    const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentValue = entityConfig.scope === 'global' ? Number(FlexHorseshoeCard.fhsInputNumbers.get(entityId).state) : Number(this.entities[entityIndex].state);
-    const nextValue = calculateFhsInputNumberNextValue(entityConfig, currentValue, direction);
-
-    this._setFhsInputNumberValue(entityId, nextValue);
-  }
-
-  /**
-   * Applies the local equivalent of input_boolean.turn_on, turn_off, or toggle.
-   *
-   * @param {string} entityId - Target FHS input boolean.
-   * @param {string} service - Boolean service name.
-   */
-  _setFhsInputBooleanState(entityId, service) {
-    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
-    const entityIndex = this.config.entities.indexOf(entityConfig);
-    const currentState = entityConfig.scope === 'global' ? FlexHorseshoeCard.fhsInputBooleans.get(entityId).state : this.entities[entityIndex].state;
-    const nextState = service === 'toggle' ? (currentState === 'on' ? 'off' : 'on') : service === 'turn_on' ? 'on' : 'off';
-    const timestamp = new Date().toISOString();
-    const stateRecord = {
-      entity_id: entityId,
-      state: nextState,
-      last_changed: timestamp,
-      last_updated: timestamp,
-    };
-
-    if (entityConfig.scope === 'global') {
-      FlexHorseshoeCard.fhsInputBooleans.set(entityId, stateRecord);
-      if (entityConfig.persist) {
-        const storageKey = `${FlexHorseshoeCard.fhsInputBooleanStoragePrefix}:${entityId}`;
-        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
-      }
-      fireEvent(window, FlexHorseshoeCard.fhsInputBooleanEvent, stateRecord);
-      return;
-    }
-
-    this._replaceFhsInputBooleanState(entityId, stateRecord);
-  }
 
   _resolveEntityConfigs(config, evaluateJavascript) {
     if (config?.dev?.debug) {
@@ -1434,7 +548,6 @@ class FlexHorseshoeCard extends LitElement {
     const hassBecameAvailable = this._hass === undefined;
 
     this._hass = hass;
-
     if (this.hassConnection !== hass.connection) {
       if (this.hassConnection && this.isConnected) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
       this.hassConnection = hass.connection;
@@ -1446,7 +559,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Capture every configured Home Assistant entity before evaluating dynamic config.
     // Object identity changes when HA publishes a new state or attribute set.
-    let configuredEntityStateChanged = this.fhsInputStateChanged || !this.entityConfigsInitialized;
+    let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
     const configuredEntityCount = this.config.entities.length;
 
     this.resolvedEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
@@ -1481,6 +594,7 @@ class FlexHorseshoeCard extends LitElement {
 
       if (entity) this.entities[index] = entity;
     });
+    this.actions.setHassAndEntities(hass, this.resolvedEntityConfigs, this.entities);
 
     Templates.setContext({
       hass: this._hass,
@@ -1713,7 +827,7 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     this.evaluateJavascriptTemplates = false;
-    this.fhsInputStateChanged = false;
+    this.cardInputEntities.markStateHandled();
     this.changedGroupIds.clear();
 
     Templates.setContext({
@@ -2406,8 +1520,7 @@ class FlexHorseshoeCard extends LitElement {
       SameAs.compile(config);
 
       this._removeDisabledLayoutItems(config);
-      this._normalizeFhsInputNumberConfigs(config);
-      this._normalizeFhsInputBooleanConfigs(config);
+      this.cardInputEntities.validateConfig(config);
       this._validateActionConfigs(config);
 
       this.hasJavascriptTemplates = this._detectJavascriptTemplates(config);
@@ -2427,8 +1540,7 @@ class FlexHorseshoeCard extends LitElement {
       });
 
       const resolvedEntitiesConfig = this._resolveEntityConfigs(config, false);
-      this._initializeFhsInputNumberEntities(resolvedEntitiesConfig);
-      this._initializeFhsInputBooleanEntities(resolvedEntitiesConfig);
+      this.cardInputEntities.initializeEntities(resolvedEntitiesConfig);
 
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
@@ -2467,6 +1579,7 @@ class FlexHorseshoeCard extends LitElement {
       };
 
       this.config = newConfig;
+      this.actions.setConfig(newConfig);
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
@@ -2655,8 +1768,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
-    window.addEventListener(FlexHorseshoeCard.fhsInputBooleanEvent, this.fhsInputEventHandler);
+    this.cardInputEntities.connected();
     if (this.hassConnection) this.hassConnection.addEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.connected());
   }
@@ -2668,8 +1780,7 @@ class FlexHorseshoeCard extends LitElement {
    *
    */
   disconnectedCallback() {
-    window.removeEventListener(FlexHorseshoeCard.fhsInputEvent, this.fhsInputEventHandler);
-    window.removeEventListener(FlexHorseshoeCard.fhsInputBooleanEvent, this.fhsInputEventHandler);
+    this.cardInputEntities.disconnected();
     if (this.hassConnection) this.hassConnection.removeEventListener('ready', this.hassConnectionReadyHandler);
     this._getRenderableTools().forEach((tool) => tool.disconnected());
     super.disconnectedCallback();
@@ -2694,7 +1805,7 @@ class FlexHorseshoeCard extends LitElement {
     const cardStyle = ConfigHelper.toStyleDict(this.activeCardStyles);
 
     const cardTemplate = html`
-      <ha-card @click=${(e) => this.handleCardClick(e)} style=${styleMap(cardStyle)}>
+      <ha-card @click=${(e) => this.actions.handleCardClick(e)} style=${styleMap(cardStyle)}>
         <div class="container" id="container">${this._renderSvg()} ${this._renderSparklineTooltips()} ${this.childCards.render()}</div>
       </ha-card>
     `;
@@ -2925,201 +2036,6 @@ class FlexHorseshoeCard extends LitElement {
     }
   }
 
-  /**
-   * Selects one gesture configuration using item, entity, card, and tap-default precedence.
-   *
-   * @param {object|undefined} itemConfig - Exact clicked runtime item config.
-   * @param {number|undefined} entityIndex - Exact clicked entity index.
-   * @param {string} actionProperty - tap_action, hold_action, or double_tap_action.
-   * @returns {object|undefined} Selected gesture configuration.
-   */
-  _getGestureConfig(itemConfig, entityIndex, actionProperty) {
-    const entityConfig = this.resolvedEntityConfigs[entityIndex];
-
-    return itemConfig?.[actionProperty] ?? entityConfig?.[actionProperty] ?? this.config?.[actionProperty] ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
-  }
-
-  /** Returns enabled gestures for the shared action-handler directive. */
-  getActionHandlerOptions(itemConfig, entityIndex) {
-    return {
-      hasTap: this._getGestureConfig(itemConfig, entityIndex, 'tap_action') !== undefined,
-      hasHold: this._getGestureConfig(itemConfig, entityIndex, 'hold_action') !== undefined,
-      hasDoubleClick: this._getGestureConfig(itemConfig, entityIndex, 'double_tap_action') !== undefined,
-    };
-  }
-
-  /** Resolves the HA entity target while preserving local sparkline source routing. */
-  _getActionEntityId(entityIndex, actionConfig) {
-    if (actionConfig.entity) return actionConfig.entity;
-
-    const entityConfig = this.resolvedEntityConfigs[entityIndex];
-    const targetIndex = entityConfig.source_entity_index ?? entityIndex;
-
-    return this.entities[targetIndex].entity_id;
-  }
-
-  /**
-   * Executes one current Home Assistant action object or compatible FHS extension.
-   *
-   * @param {object} actionConfig - One normalized action object.
-   * @param {string} entityId - Default entity selected by entity_index.
-   */
-  async _executeAction(actionConfig, entityId) {
-    switch (actionConfig.action) {
-      case 'more-info': {
-        fireEvent(this, 'hass-more-info', { entityId: actionConfig.entity ?? entityId });
-        break;
-      }
-      case 'toggle': {
-        const targetEntityId = actionConfig.entity ?? entityId;
-        if (targetEntityId.startsWith('fhs_input_boolean.')) {
-          this._setFhsInputBooleanState(targetEntityId, 'toggle');
-        } else {
-          await this._hass.callService('homeassistant', 'toggle', {}, { entity_id: targetEntityId });
-        }
-        break;
-      }
-      case 'perform-action': {
-        const [domain, service] = actionConfig.perform_action.split('.', 2);
-
-        if (domain === 'fhs_input_number' && service === 'set_value') {
-          this._setFhsInputNumberValue(actionConfig.target.entity_id, actionConfig.data.value);
-        } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
-          this._changeFhsInputNumberValue(actionConfig.target.entity_id, service === 'increment' ? 1 : -1);
-        } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
-          this._setFhsInputBooleanState(actionConfig.target.entity_id, service);
-        } else {
-          await this._hass.callService(domain, service, actionConfig.data, actionConfig.target);
-        }
-        break;
-      }
-      case 'navigate': {
-        window.history[actionConfig.navigation_replace ? 'replaceState' : 'pushState'](null, '', actionConfig.navigation_path);
-        fireEvent(window, 'location-changed', { replace: actionConfig.navigation_replace === true });
-        break;
-      }
-      case 'url': {
-        window.open(actionConfig.url_path, '_blank');
-        break;
-      }
-      case 'assist': {
-        fireEvent(this, 'hass-start-voice-assistant', {
-          pipeline_id: actionConfig.pipeline_id,
-          start_listening: actionConfig.start_listening,
-        });
-        break;
-      }
-      case 'call-service': {
-        const [domain, service] = actionConfig.service.split('.', 2);
-        if (domain === 'fhs_input_number' && service === 'set_value') {
-          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
-          const value = actionConfig.service_data?.value;
-          this._setFhsInputNumberValue(targetEntityId, value);
-        } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
-          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
-          this._changeFhsInputNumberValue(targetEntityId, service === 'increment' ? 1 : -1);
-        } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
-          const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
-          this._setFhsInputBooleanState(targetEntityId, service);
-        } else {
-          await this._hass.callService(domain, service, actionConfig.service_data, actionConfig.target);
-        }
-        break;
-      }
-      case 'fire-dom-event': {
-        fireEvent(this, 'll-custom', actionConfig);
-        break;
-      }
-      case 'none':
-      default:
-        break;
-    }
-  }
-
-  /**
-   * Inserts current slider values into one configured action and executes it.
-   *
-   * @param {object} actionConfig - Normalized slider set-value action.
-   * @param {number} entityIndex - Entity index belonging to the active thumb.
-   * @param {Array<number>} values - Current single or lower/upper values.
-   * @param {number} activeIndex - Active value index.
-   */
-  async executeSliderAction(actionConfig, entityIndex, values, activeIndex) {
-    const entityId = this._getActionEntityId(entityIndex, actionConfig);
-    let executableAction;
-
-    if (actionConfig.action === 'set-value') {
-      const entityDomain = entityId.split('.')[0];
-      executableAction = {
-        action: 'perform-action',
-        perform_action: `${entityDomain}.set_value`,
-        target: { entity_id: entityId },
-        data: { value: values[activeIndex] },
-      };
-    } else {
-      executableAction = Merge.mergeDeep({}, actionConfig);
-
-      if (executableAction.value_field !== undefined) {
-        const valuePath = executableAction.value_field.split('.');
-        let valueTarget = executableAction;
-        valuePath.slice(0, -1).forEach((property) => {
-          valueTarget = valueTarget[property];
-        });
-        valueTarget[valuePath[valuePath.length - 1]] = values[activeIndex];
-        delete executableAction.value_field;
-      }
-
-      if (executableAction.value_fields !== undefined) {
-        Object.entries(executableAction.value_fields).forEach(([valuePathString, valueName]) => {
-          const valuePath = valuePathString.split('.');
-          let valueTarget = executableAction;
-          valuePath.slice(0, -1).forEach((property) => {
-            valueTarget = valueTarget[property];
-          });
-          valueTarget[valuePath[valuePath.length - 1]] = values[valueName === 'lower' ? 0 : 1];
-        });
-        delete executableAction.value_fields;
-      }
-    }
-
-    await this._executeAction(executableAction, entityId);
-  }
-
-  /**
-   * Executes the selected tap, hold, or double-tap config for one exact item.
-   *
-   * @param {CustomEvent} event - Normalized gesture event.
-   * @param {object|undefined} itemConfig - Clicked runtime item config.
-   * @param {number|undefined} entityIndex - Clicked entity index.
-   */
-  async handleAction(event, itemConfig, entityIndex) {
-    event.stopPropagation();
-
-    const actionProperty = event.detail.action === 'double_tap' ? 'double_tap_action' : `${event.detail.action}_action`;
-    const gestureConfig = this._getGestureConfig(itemConfig, entityIndex, actionProperty);
-    const entityId = this._getActionEntityId(entityIndex, gestureConfig);
-    const actions = gestureConfig.actions ?? [gestureConfig];
-
-    if (gestureConfig.haptic) fireEvent(this, 'haptic', gestureConfig.haptic);
-
-    await actions.reduce((previousAction, actionConfig) => previousAction.then(() => this._executeAction(actionConfig, entityId)), Promise.resolve());
-  }
-
-  /** Handles the legacy card-shell click as a normal tap on entity zero. */
-  handleCardClick(event) {
-    const clickedChildCard = event.composedPath().some((node) => node.classList?.contains('fhs-child-card'));
-
-    if (clickedChildCard || !this.entities[0]) return;
-
-    this.handleAction(
-      {
-        detail: { action: 'tap' },
-        stopPropagation: () => event.stopPropagation(),
-      },
-      undefined,
-      0,
-    );
-  }
 
   /** *****************************************************************************
    * _computeState()
