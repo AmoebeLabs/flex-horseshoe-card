@@ -158,7 +158,7 @@ export default class TextTool extends BaseTool {
    */
   getReferencedTextTool(part) {
     const section = TEXT_SOURCE_SECTIONS[part.type];
-    const sourceTool = this.card.getToolsBySection(section)
+    const sourceTool = this.card.cardTools.getBySection(section)
       .find((tool) => String(tool.id) === String(part.id));
 
     if (!sourceTool) {
@@ -875,7 +875,7 @@ export default class TextTool extends BaseTool {
 
   /** @returns {object} SVG coordinates calculated through the normal group pipeline. */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**

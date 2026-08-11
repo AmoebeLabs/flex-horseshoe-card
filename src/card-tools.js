@@ -51,9 +51,40 @@ export default class CardTools {
     return this.sections[section];
   }
 
+  /** Returns a configured number or the measured width of a referenced tool. */
+  getItemWidth(itemWidthConfig) {
+    if (typeof itemWidthConfig === 'number') return itemWidthConfig;
+    const item = this.sections[itemWidthConfig.section].find((tool) => tool.id === itemWidthConfig.item_id);
+    return item.getWidth() + itemWidthConfig.padding * 2;
+  }
+
+  /** Returns a configured number or the measured height of a referenced tool. */
+  getItemHeight(itemHeightConfig) {
+    if (typeof itemHeightConfig === 'number') return itemHeightConfig;
+    const item = this.sections[itemHeightConfig.section].find((tool) => tool.id === itemHeightConfig.item_id);
+    return item.getHeight() + itemHeightConfig.padding * 2;
+  }
+
+  /** Returns center and measured dimensions of one referenced tool. */
+  getItemGeometry(fitConfig) {
+    const item = this.sections[fitConfig.section].find((tool) => tool.id === fitConfig.item_id);
+    return {
+      xpos: item.getXpos(),
+      ypos: item.getYpos(),
+      width: item.getWidth(),
+      height: item.getHeight(),
+    };
+  }
+
   /** Returns a fresh list in the established SVG render order. */
   getRenderableTools() {
     return RENDER_SECTIONS.flatMap((section) => this.sections[section]);
+  }
+
+  /** Sorts a fresh render list by layer and stable section render index. */
+  getSortedRenderableTools() {
+    return this.getRenderableTools()
+      .sort((firstTool, secondTool) => Number(firstTool.zpos) - Number(secondTool.zpos) || Number(firstTool.renderIndex) - Number(secondTool.renderIndex));
   }
 
   /** Updates only sparkline runtime config before derived sparkline entities exist. */

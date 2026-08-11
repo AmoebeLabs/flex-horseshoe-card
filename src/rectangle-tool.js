@@ -85,7 +85,7 @@ export default class RectangleTool extends BaseTool {
 
     // fit replaces all four rectangle geometry fields with the measured text geometry.
     if (config.fit) {
-      const itemGeometry = this.card.getItemGeometry(config.fit);
+      const itemGeometry = this.card.cardTools.getItemGeometry(config.fit);
 
       svgDimensions = {
         xpos: itemGeometry.xpos,
@@ -94,9 +94,9 @@ export default class RectangleTool extends BaseTool {
       width = Utils.calculateSvgDimension(itemGeometry.width + config.fit.padding.x * 2);
       height = Utils.calculateSvgDimension(itemGeometry.height + config.fit.padding.y * 2);
     } else {
-      svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
-      width = Utils.calculateSvgDimension(this.card.getItemWidth(config.width));
-      height = Utils.calculateSvgDimension(this.card.getItemHeight(config.height));
+      svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
+      width = Utils.calculateSvgDimension(this.card.cardTools.getItemWidth(config.width));
+      height = Utils.calculateSvgDimension(this.card.cardTools.getItemHeight(config.height));
     }
 
     const radiusConfig = typeof config.radius === 'object' ? config.radius : { all: config.radius };

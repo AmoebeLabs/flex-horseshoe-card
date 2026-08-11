@@ -596,7 +596,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} SVG dimensions for the outer placement and graph engine.
    */
   calculateSvgDimensions(config = this.config) {
-    const coordinates = this.card._calculateSvgCoordinatesInGroup(config);
+    const coordinates = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const width = Utils.calculateSvgDimension(config.width);
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);

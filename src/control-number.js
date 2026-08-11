@@ -415,7 +415,7 @@ export default class ControlNumber extends ControlBase {
 
   /** Converts the configured number center through the normal group pipeline. */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /** Runs one immediate press animation on a complete number button group. */
@@ -438,12 +438,12 @@ export default class ControlNumber extends ControlBase {
     const backgroundWidth = Utils.calculateSvgDimension(this.config.width);
     const backgroundHeight = Utils.calculateSvgDimension(this.config.height);
     const buttonSize = Utils.calculateSvgDimension(geometry.buttonSize);
-    const minusCenter = this.card._calculateSvgCoordinatesInGroup({
+    const minusCenter = this.card.cardLayout.calculateSvgCoordinatesInGroup({
       group: this.config.group,
       xpos: geometry.minusCenterX,
       ypos: geometry.minusCenterY,
     });
-    const plusCenter = this.card._calculateSvgCoordinatesInGroup({
+    const plusCenter = this.card.cardLayout.calculateSvgCoordinatesInGroup({
       group: this.config.group,
       xpos: geometry.plusCenterX,
       ypos: geometry.plusCenterY,

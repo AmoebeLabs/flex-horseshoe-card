@@ -320,6 +320,48 @@ test('CardTools preserves section render order and separates sparkline runtime u
   assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle']);
 });
 
+test('CardTools sorts renderables by z-position and stable render index', () => {
+  const cardTools = new CardTools({}, {}, 'card');
+  const late = { id: 'late', zpos: 10, renderIndex: 2 };
+  const second = { id: 'second', zpos: 5, renderIndex: 2 };
+  const first = { id: 'first', zpos: 5, renderIndex: 1 };
+  cardTools.sections.rectangles = [late, second, first];
+
+  assert.deepEqual(cardTools.getSortedRenderableTools().map((tool) => tool.id), ['first', 'second', 'late']);
+});
+
+test('CardTools measures referenced tool dimensions and geometry', () => {
+  const cardTools = new CardTools({}, {}, 'card');
+  cardTools.sections.texts = [{
+    id: 'label',
+    getXpos: () => 20,
+    getYpos: () => 30,
+    getWidth: () => 40,
+    getHeight: () => 10,
+  }];
+  const reference = { section: 'texts', item_id: 'label', padding: 2 };
+
+  assert.equal(cardTools.getItemWidth(reference), 44);
+  assert.equal(cardTools.getItemHeight(reference), 14);
+  assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
+});
+
+test('CardEntities uses configured attributes as color-stop values', () => {
+  const cardEntities = new CardEntities({}, {});
+  const colorStops = {
+    colors: [
+      { value: 0, color: 'blue' },
+      { value: 20, color: 'green' },
+      { value: 40, color: 'red' },
+    ],
+  };
+  const item = { entity_index: 0, show: { item_style: 'colorstop' } };
+  const config = { entities: [{ attribute: 'temperature' }] };
+  const entities = [{ state: '0', attributes: { temperature: 25 } }];
+
+  assert.equal(cardEntities.getItemColorFromStops(item, colorStops, config, entities), 'green');
+});
+
 test('CardTools assigns entity state and forwards every shared lifecycle phase', () => {
   const cardTools = new CardTools({}, {}, 'card');
   const calls = [];

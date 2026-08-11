@@ -10,10 +10,12 @@ const createContext = () => ({
     hasJavascriptTemplates: () => false,
   },
   card: {
-    _calculateSvgCoordinatesInGroup: (config) => ({
-      xpos: config.xpos,
-      ypos: config.ypos,
-    }),
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (config) => ({
+        xpos: config.xpos,
+        ypos: config.ypos,
+      }),
+    },
   },
 });
 

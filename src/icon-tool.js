@@ -63,7 +63,7 @@ export default class IconTool extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**
@@ -73,7 +73,7 @@ export default class IconTool extends BaseTool {
    * @returns {string} SVG transform value.
    */
   getGroupScaleTransform(item = this.config) {
-    return this.card._getGroupScaleTransform(item);
+    return this.card.cardLayout.getGroupScaleTransform(item);
   }
 
   /**
@@ -83,7 +83,7 @@ export default class IconTool extends BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle(item = this.config) {
-    return this.card._getGroupScaleStyle(item);
+    return this.card.cardLayout.getGroupScaleStyle(item);
   }
 
   /**

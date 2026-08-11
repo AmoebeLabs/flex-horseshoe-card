@@ -161,7 +161,7 @@ export default class NameTool extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**

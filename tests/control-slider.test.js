@@ -83,10 +83,12 @@ test('builds a complete path for a full circular arc', () => {
 test('constructs complete single and range configurations without runtime fallbacks', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = {
-    _calculateSvgCoordinatesInGroup: (config) => ({
-      xpos: config.xpos,
-      ypos: config.ypos,
-    }),
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (config) => ({
+        xpos: config.xpos,
+        ypos: config.ypos,
+      }),
+    },
   };
   const single = new ControlSlider(
     {
@@ -162,10 +164,12 @@ test('keeps only the background track for non-numeric entity states', () => {
       attributes: { min: 0, max: 100, step: 1 },
     }],
     resolvedEntityConfigs: [{}],
-    _calculateSvgCoordinatesInGroup: (config) => ({
-      xpos: config.xpos,
-      ypos: config.ypos,
-    }),
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (config) => ({
+        xpos: config.xpos,
+        ypos: config.ypos,
+      }),
+    },
   };
   const slider = new ControlSlider(
     {
@@ -198,10 +202,12 @@ test('reads and updates a configured numeric entity attribute', () => {
       attributes: { brightness: 128 },
     }],
     resolvedEntityConfigs: [{ attribute: 'brightness' }],
-    _calculateSvgCoordinatesInGroup: (config) => ({
-      xpos: config.xpos,
-      ypos: config.ypos,
-    }),
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (config) => ({
+        xpos: config.xpos,
+        ypos: config.ypos,
+      }),
+    },
   };
   const slider = new ControlSlider(
     {

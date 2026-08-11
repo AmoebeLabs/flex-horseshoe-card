@@ -33,9 +33,6 @@ import CardLayout from './card-layout.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
-import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
-import { computeStateDomain } from './frontend_mods/common/entity/compute_state_domain.ts';
 import Colors from './colors.js';
 import StateTool from './state-tool.js';
 import ControlTool from './control-tool.js';
@@ -85,7 +82,6 @@ class FlexHorseshoeCard extends LitElement {
     this.cardEntities = new CardEntities(this.templates, this.cardTheme);
     this.entitiesStr = [];
     this.attributesStr = [];
-    this.colorStops = {};
     this.childCards = new ChildCards(this);
     this.cardAnimations = new CardAnimations();
     this.resolvedEntityConfigs = [];
@@ -96,95 +92,14 @@ class FlexHorseshoeCard extends LitElement {
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
     this.colorCache = {};
-    this.isAndroid = false;
-    this.isSafari = false;
-    this.iOS = false;
-
-    this.resolvedVariables = {};
     this.iconCache = {};
-    this.svgUrlCache ||= {};
-
-
-    // Determines if horseshoe has full range, or is split in right/left from the top middle
-    this.bar_mode = 'normal'; // default
+    this.svgUrlCache = {};
 
     this.dev = {
       debug: false,
     };
     this.performanceUpdateStart = undefined;
     this.performanceRenderStart = undefined;
-    // http://jsfiddle.net/jlubean/dL5cLjxt/
-    // this.isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/);
-    // this.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-    // 2020.11.16
-    // See: https://javascriptio.com/view/10924/detect-if-device-is-ios
-    // After iOS 13 you should detect iOS devices like this, since iPad will not be detected as iOS devices
-    // by old ways (due to new "desktop" options, enabled by default)
-
-    this.isAndroid = !!window.navigator.userAgent.match(/Android/);
-    if (!this.isAndroid) {
-      const ua = window.navigator.userAgent || '';
-      const uaLower = ua.toLowerCase();
-      const platform = window.navigator.platform || '';
-
-      const isIOS = (/iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && window.navigator.maxTouchPoints > 1)) && !window.MSStream;
-
-      // Detect real Safari:
-      // Safari normally has "Version/17.4 ... Safari/605.1.15".
-      // Chrome uses this as strings "Safari/537.36", but doesn't have "Version/x ... Safari".
-      const safariVersionMatch = ua.match(/Version\/(\d+)(?:\.[\d.]+)?.*Safari/i);
-      const realSafariMajorVersion = safariVersionMatch ? Number(safariVersionMatch[1]) : undefined;
-
-      // Home Assistant iOS companion app
-      // The iOS app does not use a standard agent string...
-      // See: https://github.com/home-assistant/iOS/blob/master/Sources/Shared/API/HAAPI.swift
-      // It contains strings like "like Safari" and "OS 14_2", and "iOS 14.2.0"
-      const haOsLikeSafariMatch = uaLower.match(/\bos\s+(\d+)(?:[._]\d+)*.*like safari/);
-      const haIosVersionMatch = uaLower.match(/\bios\s+(\d+)(?:[._]\d+)*/);
-
-      const haAppMajorVersion = haIosVersionMatch ? Number(haIosVersionMatch[1]) : haOsLikeSafariMatch ? Number(haOsLikeSafariMatch[1]) : undefined;
-
-      const isRealSafari = Number.isFinite(realSafariMajorVersion);
-      const isHomeAssistantLikeSafari = Number.isFinite(haAppMajorVersion) && uaLower.includes('like safari');
-
-      const safariMajorVersion = isRealSafari ? realSafariMajorVersion : isHomeAssistantLikeSafari ? haAppMajorVersion : undefined;
-
-      this.iOS = isIOS;
-
-      // Now, tell me if this is Safari...
-      this.isSafari = Number.isFinite(safariMajorVersion);
-
-      this.safariMajorVersion = safariMajorVersion;
-      this.isHomeAssistantLikeSafari = isHomeAssistantLikeSafari;
-      this.isRealSafari = isRealSafari;
-
-      this.isSafari14 = this.isSafari && safariMajorVersion === 14;
-      this.isSafari15 = this.isSafari && safariMajorVersion === 15;
-      this.isSafari16 = this.isSafari && safariMajorVersion === 16;
-      this.isSafari17 = this.isSafari && safariMajorVersion === 17;
-      this.isSafari18 = this.isSafari && safariMajorVersion === 18;
-      this.isSafari26 = this.isSafari && safariMajorVersion === 26;
-      this.isSafari27 = this.isSafari && safariMajorVersion === 27;
-      this.isSafari28 = this.isSafari && safariMajorVersion === 28;
-      this.isSafari29 = this.isSafari && safariMajorVersion === 29;
-      this.isSafari30 = this.isSafari && safariMajorVersion === 30;
-
-      this.isSafariGte16 = this.isSafari && safariMajorVersion >= 16;
-
-      if (this.dev?.debug) {
-        console.log('browser detection', {
-          ua,
-          isAndroid: this.isAndroid,
-          isIOS: this.iOS,
-          isSafari: this.isSafari,
-          isRealSafari: this.isRealSafari,
-          isHomeAssistantLikeSafari: this.isHomeAssistantLikeSafari,
-          safariMajorVersion: this.safariMajorVersion,
-          isSafariGte16: this.isSafariGte16,
-        });
-      }
-    }
   }
 
   /** *****************************************************************************
@@ -353,10 +268,6 @@ class FlexHorseshoeCard extends LitElement {
 
       const newStateStr = StateTool.buildState(entity.state, entityConfig, this._hass, entity);
 
-      // testing
-      const stateObj = entity;
-      const domain = computeStateDomain(stateObj);
-
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
         entityHasChanged = true;
@@ -450,10 +361,6 @@ class FlexHorseshoeCard extends LitElement {
     }
   }
 
-  _calculateSvgCoordinatesInGroup(item) {
-    return this.cardLayout.calculateSvgCoordinatesInGroup(item);
-  }
-
   /** *****************************************************************************
    * setConfig()
    *
@@ -533,13 +440,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardInputEntities.validateConfig(config);
       this.cardConfig.validateActionConfigs(config);
 
-      this.hasJavascriptTemplates = this.cardConfig.detectJavascriptTemplates(config);
-
-      // this._assignSectionIds(config);
-      // this._buildConstants(config);
-      // this._replaceStaticRefs(config);
-      // this._calculateStaticValues(config);
-      // SameAs.compile(config);
+      this.cardConfig.detectJavascriptTemplates(config);
 
       this.templates.setContext({
         hass: this._hass,
@@ -599,8 +500,6 @@ class FlexHorseshoeCard extends LitElement {
       this.cardTools.setHorseshoeConfig(config);
       this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
-      this.bar_mode = newConfig.bar_mode || 'normal';
-
       this.cardTools.setLayoutToolConfig(this.config);
       this.childCards.setConfig(this.config.cards ?? []);
 
@@ -631,100 +530,6 @@ class FlexHorseshoeCard extends LitElement {
 
       throw error;
     }
-  }
-
-  _getItemStateValue(item = {}) {
-    const entityIndex = item.entity_index;
-
-    if (entityIndex === undefined || entityIndex === null) return undefined;
-
-    const entity = this.entities?.[entityIndex];
-    const entityConfig = this.config?.entities?.[entityIndex];
-
-    if (!entity) return undefined;
-
-    const attribute = entityConfig?.attribute;
-
-    if (attribute && entity.attributes && entity.attributes[attribute] !== undefined) {
-      return entity.attributes[attribute];
-    }
-
-    return entity.state;
-  }
-
-  _getItemColorFromStops(item, colorStops) {
-    if (!colorStops) return undefined;
-
-    const rawState = this._getItemStateValue(item);
-    const stateNumber = Number(rawState);
-
-    if (!Number.isFinite(stateNumber)) {
-      return undefined;
-    }
-
-    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
-  }
-
-  /**
-   * Returns the configured tool collection for a layout section.
-   *
-   * @param {string} section - Layout section name.
-   * @returns {Array<BaseTool>} Tools in the requested section.
-   */
-  getToolsBySection(section) {
-    return this.cardTools.getBySection(section);
-  }
-
-  /**
-   * Resolves a numeric width or the measured width of a referenced text tool.
-   *
-   * @param {number|object} itemWidthConfig - Numeric width or item reference.
-   * @returns {number} Width in FHS coordinates including configured padding.
-   */
-  getItemWidth(itemWidthConfig) {
-    if (typeof itemWidthConfig === 'number') {
-      return itemWidthConfig;
-    }
-
-    const tools = this.getToolsBySection(itemWidthConfig.section);
-    const item = tools.find((tool) => tool.id === itemWidthConfig.item_id);
-
-    return item.getWidth() + itemWidthConfig.padding * 2;
-  }
-
-  /**
-   * Resolves a numeric height or the measured height of a referenced text tool.
-   *
-   * @param {number|object} itemHeightConfig - Numeric height or item reference.
-   * @returns {number} Height in FHS coordinates including configured padding.
-   */
-  getItemHeight(itemHeightConfig) {
-    if (typeof itemHeightConfig === 'number') {
-      return itemHeightConfig;
-    }
-
-    const tools = this.getToolsBySection(itemHeightConfig.section);
-    const item = tools.find((tool) => tool.id === itemHeightConfig.item_id);
-
-    return item.getHeight() + itemHeightConfig.padding * 2;
-  }
-
-  /**
-   * Returns the complete measured geometry of a referenced text item.
-   *
-   * @param {object} fitConfig - Rectangle fit reference.
-   * @returns {object} Center and dimensions in their respective SVG/FHS coordinate systems.
-   */
-  getItemGeometry(fitConfig) {
-    const tools = this.getToolsBySection(fitConfig.section);
-    const item = tools.find((tool) => tool.id === fitConfig.item_id);
-
-    return {
-      xpos: item.getXpos(),
-      ypos: item.getYpos(),
-      width: item.getWidth(),
-      height: item.getHeight(),
-    };
   }
 
   /** *****************************************************************************
@@ -813,28 +618,16 @@ class FlexHorseshoeCard extends LitElement {
    *      - use align-items: center on the parent container of the svg.
    *
    */
-  /** *****************************************************************************
-   * _renderSvgDefs()
-   *
-   * Summary.
-   * Renders reusable SVG definitions for filters and other shared drawing helpers.
-   */
-  _renderSvgDefs() {
-    return this.cardLayout.renderSvgDefs();
-  }
-
   _renderSvg() {
     // For some reason, using a var/const for the viewboxsize doesn't work.
     // Even if the Chrome inspector shows 200 200. So hardcode for now!
     // const { viewBoxSize, } = this;
     //    console.log('Rendering SVG!!!!!!!!!!');
-    const cardFilter = this.config.card_filter ? this.config.card_filter : 'card--filter-none';
-
     return svg`
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
-            class="${cardFilter}"
+            class="${this.config.card_filter}"
           viewBox='0 0 ${this.cardLayout.viewBox.width} ${this.cardLayout.viewBox.height}'>
-            ${this._renderSvgDefs()}
+            ${this.cardLayout.renderSvgDefs()}
             <g id="layout-tools" class="layout-tools">
               ${this._renderLayoutTools()}
             </g>
@@ -849,29 +642,12 @@ class FlexHorseshoeCard extends LitElement {
    */
   _renderLayoutTools() {
     return svg`
-      ${this.cardTools.getRenderableTools()
-        .sort((firstTool, secondTool) => Number(firstTool.zpos) - Number(secondTool.zpos) || Number(firstTool.renderIndex) - Number(secondTool.renderIndex))
-        .map((tool) => tool.render())}
+      ${this.cardTools.getSortedRenderableTools().map((tool) => tool.render())}
     `;
   }
 
   _renderSparklineTooltips() {
     return html` <div class="sparkline-tooltip-layer">${this.cardTools.getBySection('sparklines').map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
-  }
-
-  /** *****************************************************************************
-   * _getGroupScaleTransform()
-   *
-   * Summary.
-   * Builds the group scale and flip transform for layout tools.
-   *
-   */
-  _getGroupScaleTransform(item) {
-    return this.cardLayout.getGroupScaleTransform(item);
-  }
-
-  _getGroupScaleStyle(item) {
-    return this.cardLayout.getGroupScaleStyle(item);
   }
 
   /**
@@ -940,10 +716,6 @@ class FlexHorseshoeCard extends LitElement {
   //   const x = 10 ** dec;
   //   return (Math.round(state * x) / x).toFixed(dec);
   // }
-
-  _computeEntity(entityId) {
-    return entityId.substr(entityId.indexOf('.') + 1);
-  }
 
   getCardSize() {
     return 4;

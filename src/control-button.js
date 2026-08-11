@@ -505,7 +505,7 @@ export default class ControlButton extends ControlBase {
    * Converts the button center through the ordinary group pipeline.
    */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**

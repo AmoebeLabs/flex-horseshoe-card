@@ -237,7 +237,7 @@ export default class BaseTool {
     if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopinterpolated') return;
 
     const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
-    const stopColor = this.card._getItemColorFromStops(item, colorStops);
+    const stopColor = this.card.cardEntities.getItemColorFromStops(item, colorStops, this.card.config, this.card.entities);
 
     if (stopColor) {
       const paintMode = item[item.show.item_style];
@@ -272,7 +272,7 @@ export default class BaseTool {
    * @returns {string} SVG transform value.
    */
   getGroupScaleTransform() {
-    return this.card._getGroupScaleTransform(this.config);
+    return this.card.cardLayout.getGroupScaleTransform(this.config);
   }
 
   /**
@@ -281,7 +281,7 @@ export default class BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle() {
-    return this.card._getGroupScaleStyle(this.config);
+    return this.card.cardLayout.getGroupScaleStyle(this.config);
   }
 
   /**

@@ -1,11 +1,31 @@
 import ColorStops from './color-stops.js';
 import Merge from './merge.js';
+import Colors from './colors.js';
 
 /** Owns runtime entity configuration and derived fhs_sparkline states. */
 export default class CardEntities {
   constructor(templates, cardTheme) {
     this.templates = templates;
     this.cardTheme = cardTheme;
+  }
+
+  /** Selects a discrete or interpolated color from one item's current entity value. */
+  getItemColorFromStops(item, colorStops, config, entities) {
+    if (!colorStops) return undefined;
+    const entityIndex = item.entity_index;
+    if (entityIndex === undefined || entityIndex === null) return undefined;
+
+    const entity = entities[entityIndex];
+    if (!entity) return undefined;
+    const entityConfig = config.entities[entityIndex];
+    const attribute = entityConfig.attribute;
+    const rawState = attribute && entity.attributes[attribute] !== undefined
+      ? entity.attributes[attribute]
+      : entity.state;
+    const stateNumber = Number(rawState);
+    if (!Number.isFinite(stateNumber)) return undefined;
+
+    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
   }
 
   /** Evaluates entity templates and links local sparkline entities to graphs. */

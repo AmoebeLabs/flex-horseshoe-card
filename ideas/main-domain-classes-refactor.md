@@ -122,5 +122,7 @@ card showcases in Home Assistant.
 - [x] Extract tool construction, collections, entity assignment, and lifecycle into `CardTools`.
 - [x] Extract viewBox, groups, dimensions, masks, clips, and SVG definitions into `CardLayout`.
 - [x] Remove shared mutable JavaScript template context between simultaneous cards.
-- [ ] Reduce `main.js` to the Lit shell and explicit domain call order.
-- [ ] Run final automated build and manual Home Assistant showcase checks.
+- [x] Reduce `main.js` to the Lit shell and explicit domain call order.
+- [x] Run the final automated tests, Biome check, and Rollup build.
+- [ ] Manually check the Home Assistant control, horseshoe, cartesian, radial,
+  Awair, and child-card showcases.

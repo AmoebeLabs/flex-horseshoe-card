@@ -116,12 +116,12 @@ export default class LineTool extends BaseTool {
     if (config.orientation === 'fromto') {
       const startConfig = config.start ?? { xpos: config.x1, ypos: config.y1 };
       const endConfig = config.end ?? { xpos: config.x2, ypos: config.y2 };
-      const start = this.card._calculateSvgCoordinatesInGroup({
+      const start = this.card.cardLayout.calculateSvgCoordinatesInGroup({
         ...config,
         xpos: startConfig.xpos ?? startConfig.x,
         ypos: startConfig.ypos ?? startConfig.y,
       });
-      const end = this.card._calculateSvgCoordinatesInGroup({
+      const end = this.card.cardLayout.calculateSvgCoordinatesInGroup({
         ...config,
         xpos: endConfig.xpos ?? endConfig.x,
         ypos: endConfig.ypos ?? endConfig.y,
@@ -137,7 +137,7 @@ export default class LineTool extends BaseTool {
       };
     }
 
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const length = Utils.calculateSvgDimension(config.length);
 
     if (config.orientation === 'vertical') {
