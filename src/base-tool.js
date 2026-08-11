@@ -64,7 +64,7 @@ export default class BaseTool {
    */
   updateRuntimeConfig() {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
-    this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
+    this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.cardTheme.modeChanged;
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {

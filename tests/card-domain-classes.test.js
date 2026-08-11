@@ -10,6 +10,7 @@ import CardAnimations from '../src/card-animations.js';
 import CardTools from '../src/card-tools.js';
 import CardLayout from '../src/card-layout.js';
 import Templates from '../src/templates.js';
+import BaseTool from '../src/base-tool.js';
 
 class Connection {
   constructor() {
@@ -401,6 +402,46 @@ test('CardTools assigns entity state and forwards every shared lifecycle phase',
     ['state', '21.0', 'sensor.temperature'],
     'hassAvailable', 'hassConnected', 'connected', 'disconnected', 'firstUpdated', 'updated',
   ]);
+});
+
+test('CardTools assigns entity state to nested control tools through the same lifecycle path', () => {
+  const cardTools = new CardTools({}, {}, 'card');
+  const calls = [];
+  const childTool = {
+    entity_index: 1,
+    setState: (entity, config) => calls.push([entity.state, config.entity]),
+  };
+
+  cardTools.setToolEntityState(
+    childTool,
+    [{ entity: 'sensor.first' }, { entity: 'sensor.second' }],
+    [{ state: '10' }, { state: '20' }],
+  );
+
+  assert.deepEqual(calls, [['20', 'sensor.second']]);
+});
+
+test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: true },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new BaseTool(
+    { id: 'status', group: 'card', zpos: 0, dzpos: 0 },
+    0,
+    templates,
+    'card',
+    card,
+    'lines',
+  );
+  tool.activeConfigInitialized = true;
+  tool.configChanged = false;
+
+  tool.updateRuntimeConfig();
+
+  assert.equal(tool.configChanged, true);
 });
 
 test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {

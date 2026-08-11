@@ -640,7 +640,11 @@ export default class ControlSelect extends ControlBase {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
       );
-      this.card._setToolEntityState(iconTool);
+      this.card.cardTools.setToolEntityState(
+        iconTool,
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+      );
     });
   }
 

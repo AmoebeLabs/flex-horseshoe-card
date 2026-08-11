@@ -264,7 +264,11 @@ export default class ControlContent {
           { transition: `fill ${transition}, color ${transition}, opacity ${transition}` },
         );
       }
-      this.card._setToolEntityState(child.tool);
+      this.card.cardTools.setToolEntityState(
+        child.tool,
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+      );
     });
   }
 

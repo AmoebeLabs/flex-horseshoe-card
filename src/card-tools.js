@@ -97,20 +97,28 @@ export default class CardTools {
     RUNTIME_SECTIONS.forEach((section) => this.sections[section].forEach((tool) => tool.updateRuntimeConfig()));
   }
 
+  /**
+   * Assigns the current entity and evaluated entity config to one tool.
+   *
+   * Controls use this for their visual child tools, while the section lifecycle
+   * below uses the same path for normal top-level tools.
+   */
+  setToolEntityState(tool, entityConfigs, entities) {
+    const entityIndex = tool.entity_index;
+    if (entityIndex === undefined || entityIndex === null) {
+      tool.setState(undefined, undefined);
+      return;
+    }
+
+    const entityConfig = entityConfigs[entityIndex];
+    const entity = entities[entityIndex];
+    if (entity && entityConfig) tool.setState(entity, entityConfig);
+  }
+
   /** Assigns entity data to every tool in the requested sections. */
   setEntityStates(sectionNames, entityConfigs, entities) {
     sectionNames.forEach((section) => {
-      this.sections[section].forEach((tool) => {
-        const entityIndex = tool.entity_index;
-        if (entityIndex === undefined || entityIndex === null) {
-          tool.setState(undefined, undefined);
-          return;
-        }
-
-        const entityConfig = entityConfigs[entityIndex];
-        const entity = entities[entityIndex];
-        if (entity && entityConfig) tool.setState(entity, entityConfig);
-      });
+      this.sections[section].forEach((tool) => this.setToolEntityState(tool, entityConfigs, entities));
     });
   }
 
