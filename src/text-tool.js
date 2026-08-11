@@ -8,7 +8,6 @@ import Merge from './merge.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
-import Templates from './templates.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 const TEXT_SOURCE_SECTIONS = {
@@ -93,7 +92,7 @@ export default class TextTool extends BaseTool {
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
     this.sourceTextParts = sourceTextParts;
-    this.textPartsHaveJavascript = this.sourceTextParts.some((part) => Templates.hasJavascriptTemplates(part));
+    this.textPartsHaveJavascript = this.sourceTextParts.some((part) => this.templates.hasJavascriptTemplates(part));
     this.activeTextParts = [];
     this.activeTextPartsSignature = undefined;
     this.textParts = [];
@@ -204,8 +203,8 @@ export default class TextTool extends BaseTool {
             ? sourceTool.entity_index
             : sourcePart.entity_index ?? this.config.entity_index,
         };
-        const activePart = Templates.hasJavascriptTemplates(sourcePart)
-          ? Templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
+        const activePart = this.templates.hasJavascriptTemplates(sourcePart)
+          ? this.templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
           : partContext;
 
         if (activePart.color_stops) {

@@ -9,6 +9,7 @@ import CardEntities from '../src/card-entities.js';
 import CardAnimations from '../src/card-animations.js';
 import CardTools from '../src/card-tools.js';
 import CardLayout from '../src/card-layout.js';
+import Templates from '../src/templates.js';
 
 class Connection {
   constructor() {
@@ -387,4 +388,27 @@ test('CardLayout marks descendants when a dynamic parent group changes', () => {
   assert.equal(cardLayout.groupManager.getGroup('child').xpos, 65);
   cardLayout.markGroupsHandled();
   assert.equal(cardLayout.changedGroupIds.size, 0);
+});
+
+test('Templates keeps JavaScript context independent for simultaneous cards', () => {
+  const firstCardTemplates = new Templates();
+  const secondCardTemplates = new Templates();
+  const javascript = '[[[ return `${constants.card}:${state}:${user.name}`; ]]]';
+
+  firstCardTemplates.setContext({
+    hass: { user: { name: 'Alice' }, states: {} },
+    config: { constants: { card: 'first' }, entities: [{ entity: 'sensor.first' }] },
+    entities: [{ state: '10', attributes: {} }],
+    entity_slots: {},
+  });
+  secondCardTemplates.setContext({
+    hass: { user: { name: 'Bob' }, states: {} },
+    config: { constants: { card: 'second' }, entities: [{ entity: 'sensor.second' }] },
+    entities: [{ state: '20', attributes: {} }],
+    entity_slots: {},
+  });
+
+  assert.equal(firstCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'first:10:Alice');
+  assert.equal(secondCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'second:20:Bob');
+  assert.equal(firstCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'first:10:Alice');
 });

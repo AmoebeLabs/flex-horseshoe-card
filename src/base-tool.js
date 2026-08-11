@@ -2,7 +2,6 @@ import { svg } from 'lit';
 import ConfigHelper from './config-helper.js';
 import ColorStops from './color-stops.js';
 import ColorFilter from './color-filter.js';
-import Templates from './templates.js';
 import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
@@ -69,7 +68,7 @@ export default class BaseTool {
 
     // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      const evaluatedConfig = Templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
+      const evaluatedConfig = this.templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
         resolveKeys: true,
       });
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);

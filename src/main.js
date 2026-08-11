@@ -66,13 +66,14 @@ class FlexHorseshoeCard extends LitElement {
     // Get cardId for unique SVG gradient Id
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
-    this.cardLayout = new CardLayout(Templates, this.cardId);
-    this.cardTools = new CardTools(this, Templates, this.cardId);
+    this.templates = new Templates();
+    this.cardLayout = new CardLayout(this.templates, this.cardId);
+    this.cardTools = new CardTools(this, this.templates, this.cardId);
     this.homeAssistant = new HomeAssistant(() => this.cardTools.hassConnected());
     this.entities = [];
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
     this.actions = new CardActions(this, this.cardInputEntities);
-    this.cardConfig = new CardConfig(Templates);
+    this.cardConfig = new CardConfig(this.templates);
     this.cardTheme = new CardTheme(
       this,
       () => this._updateGradientsAfterRender(),
@@ -81,7 +82,7 @@ class FlexHorseshoeCard extends LitElement {
         this.requestUpdate();
       },
     );
-    this.cardEntities = new CardEntities(Templates, this.cardTheme);
+    this.cardEntities = new CardEntities(this.templates, this.cardTheme);
     this.entitiesStr = [];
     this.attributesStr = [];
     this.colorStops = {};
@@ -211,7 +212,7 @@ class FlexHorseshoeCard extends LitElement {
   _updateToolsAfterSparklineStatistics() {
     // History resolves asynchronously and another card may have published its
     // template context meanwhile. Restore this card before evaluating its tools.
-    Templates.setContext({
+    this.templates.setContext({
       hass: this._hass,
       config: this.config,
       entities: this.entities,
@@ -276,7 +277,7 @@ class FlexHorseshoeCard extends LitElement {
       this.entities[index] = entity;
     });
 
-    Templates.setContext({
+    this.templates.setContext({
       hass: this._hass,
       config: this.config,
       entities: this.entities,
@@ -302,7 +303,7 @@ class FlexHorseshoeCard extends LitElement {
     });
     this.actions.setHassAndEntities(hass, this.resolvedEntityConfigs, this.entities);
 
-    Templates.setContext({
+    this.templates.setContext({
       hass: this._hass,
       config: this.config,
       entities: this.entities,
@@ -331,7 +332,7 @@ class FlexHorseshoeCard extends LitElement {
 
     const cardStylesPerformanceStart = performanceEnabled ? performance.now() : undefined;
     if (configuredEntityStateChanged && this.cardStylesHaveJavascript) {
-      this.activeCardStyles = Templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+      this.activeCardStyles = this.templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
     }
 
     if (performanceEnabled) {
@@ -411,7 +412,7 @@ class FlexHorseshoeCard extends LitElement {
     // Evaluate a complete animation state item before matching its state and applying
     // its already active icons and styles. No animation field has a separate evaluator.
     const animationsPerformanceStart = performanceEnabled ? performance.now() : undefined;
-    this.cardAnimations.update(this.config, this.entities, Templates, configuredEntityStateChanged);
+    this.cardAnimations.update(this.config, this.entities, this.templates, configuredEntityStateChanged);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:animations`, {
@@ -424,7 +425,7 @@ class FlexHorseshoeCard extends LitElement {
     this.cardInputEntities.markStateHandled();
     this.cardLayout.markGroupsHandled();
 
-    Templates.setContext({
+    this.templates.setContext({
       hass: this._hass,
       config: this.config,
       entities: this.entities,
@@ -514,13 +515,13 @@ class FlexHorseshoeCard extends LitElement {
       this.cardConfig.compileStaticValues(config);
 
       // Entity disabled templates use finalized constants but run before entity slots exist.
-      Templates.setContext({
+      this.templates.setContext({
         hass: this._hass,
         config,
         entities: this.entities,
         horseshoes: this.horseshoes,
       });
-      ControlTool.compileConfig(config, Templates);
+      ControlTool.compileConfig(config, this.templates);
       this.cardConfig.removeDisabledEntityConfigs(config);
 
       this.entitySlots = this.cardConfig.buildEntitySlots(config.entities);
@@ -540,7 +541,7 @@ class FlexHorseshoeCard extends LitElement {
       // this._calculateStaticValues(config);
       // SameAs.compile(config);
 
-      Templates.setContext({
+      this.templates.setContext({
         hass: this._hass,
         config,
         entities: this.entities,
@@ -591,7 +592,7 @@ class FlexHorseshoeCard extends LitElement {
       this.actions.setConfig(newConfig);
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
-      this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
+      this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.entityConfigsInitialized = false;
       this.cardLayout.setConfig(this.config, this.horseshoes);
 
@@ -603,7 +604,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardTools.setLayoutToolConfig(this.config);
       this.childCards.setConfig(this.config.cards ?? []);
 
-      Templates.setContext({
+      this.templates.setContext({
         hass: this._hass,
         config: this.config,
         entities: this.entities,
