@@ -241,6 +241,27 @@ export default class ConfigHelper {
   }
 
   /**
+   * Evaluates and validates one config-time disabled value.
+   *
+   * @param {object} item Config item used as JavaScript template context.
+   * @param {*} disabled Configured disabled value or JavaScript template.
+   * @param {string} section Config path used in validation errors.
+   * @param {object} templates Shared template evaluator.
+   * @returns {boolean} Whether the config item is disabled.
+   */
+  static isDisabled(item, disabled, section, templates) {
+    const resolvedDisabled = templates.hasJavascriptTemplates(disabled)
+      ? templates.getJsTemplateOrValue(item, disabled)
+      : disabled;
+
+    if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(resolvedDisabled)) {
+      throw new Error(`[${section}] disabled must resolve to true, false, 0 or 1`);
+    }
+
+    return resolvedDisabled === true || resolvedDisabled === 1 || resolvedDisabled === 'true' || resolvedDisabled === '1';
+  }
+
+  /**
    * Wraps a single value in an array.
    *
    * @param {*} value Value to normalize.

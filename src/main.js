@@ -1892,7 +1892,7 @@ class FlexHorseshoeCard extends LitElement {
       config.layout[section] = items.filter((item) => {
         if (item.disabled === undefined) return true;
 
-        return !this._resolveDisabledConfigValue(item, item.disabled, section);
+        return !ConfigHelper.isDisabled(item, item.disabled, section, Templates);
       });
     });
   }
@@ -2077,24 +2077,13 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Evaluates config-time entity disabled flags and removes disabled entities.
+   * Removes disabled entities before slot resolution.
    *
-   * Entity structure is finalized before slots and flat indices are built. A
-   * disabled entity therefore cannot leave an empty slot or shift runtime
-   * tools after the card has been configured.
+   * Entity slots are built only after this pass, so disabled entities cannot
+   * leave empty or shifting slot addresses.
    *
-   * @param {object} config - Card configuration after template and static-value processing.
+   * @param {object} config - Card configuration with calculated static values.
    */
-  _resolveDisabledConfigValue(item, disabled, section) {
-    const resolvedDisabled = Templates.hasJavascriptTemplates(disabled) ? Templates.getJsTemplateOrValue(item, disabled) : disabled;
-
-    if (![true, false, 0, 1, 'true', 'false', '1', '0'].includes(resolvedDisabled)) {
-      throw new Error(`[${section}] disabled must resolve to true, false, 0 or 1`);
-    }
-
-    return resolvedDisabled === true || resolvedDisabled === 1 || resolvedDisabled === 'true' || resolvedDisabled === '1';
-  }
-
   _removeDisabledEntityConfigs(config) {
     config.entities = config.entities
       .map((entityConfig, index) => {
@@ -2104,7 +2093,7 @@ class FlexHorseshoeCard extends LitElement {
           ...entityConfig,
           entity_index: index,
         };
-        const disabled = this._resolveDisabledConfigValue(item, entityConfig.disabled, 'entities');
+        const disabled = ConfigHelper.isDisabled(item, entityConfig.disabled, 'entities', Templates);
 
         return {
           ...entityConfig,
@@ -2408,6 +2397,7 @@ class FlexHorseshoeCard extends LitElement {
         entities: this.entities,
         horseshoes: this.horseshoes,
       });
+      ControlTool.compileConfig(config, Templates);
       this._removeDisabledEntityConfigs(config);
 
       this.entitySlots = this._buildEntitySlots(config.entities);
@@ -2481,7 +2471,6 @@ class FlexHorseshoeCard extends LitElement {
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = Templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.config.layout.groups ??= [];
-      this.config.layout.controls ??= [];
       this.sourceGroupConfigs = this.config.layout.groups;
       this.activeGroupConfigs = this.sourceGroupConfigs;
       this.activeGroupSignatures = {};

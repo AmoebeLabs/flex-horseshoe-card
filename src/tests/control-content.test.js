@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import ControlButton from '../control-button.js';
 import ControlContent from '../control-content.js';
 import ControlSelect from '../control-select.js';
+import ControlTool from '../control-tool.js';
 
 const createContext = () => ({
   templates: {
@@ -272,4 +273,35 @@ test('button and select opt into explicit content without changing control entit
     select.optionContentVisuals.map((content) => content.childTools[0].tool.entity_index),
     [1, 2],
   );
+});
+
+/**
+ * Keeps the optional controls section absent and lets select own option filtering.
+ */
+test('control config compilation filters disabled select options without inventing controls', () => {
+  const templates = {
+    hasJavascriptTemplates: () => false,
+  };
+  const config = {
+    layout: {
+      controls: [
+        {
+          type: 'select',
+          option_map: [
+            { value: 0 },
+            { value: 1, disabled: true },
+            { value: 2, disabled: '1' },
+          ],
+        },
+      ],
+    },
+  };
+
+  ControlTool.compileConfig(config, templates);
+
+  const configWithoutControls = { layout: {} };
+
+  assert.deepEqual(config.layout.controls[0].option_map.map((option) => option.value), [0]);
+  assert.deepEqual(ControlTool.setConfig(configWithoutControls, templates, 'card', {}), []);
+  assert.equal(Object.hasOwn(configWithoutControls.layout, 'controls'), false);
 });

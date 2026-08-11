@@ -118,12 +118,18 @@ export default class SparklineGraph {
     this._history = data;
   }
 
+  /**
+   * Updates graph data and reports whether complete axis geometry is available.
+   *
+   * @param {Array<object>|undefined} history - Graph source rows.
+   * @returns {boolean} True after axis geometry has been built; otherwise false.
+   */
   update(history = undefined) {
     if (history) {
       this._history = history;
     }
-    if (!this._history) return;
-    if (this._history?.length === 0) return;
+    if (!this._history) return false;
+    if (this._history.length === 0) return false;
 
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
@@ -133,7 +139,7 @@ export default class SparklineGraph {
       this.coords = [];
       this.bucketMeta = [];
       this.buildAxisGeometry();
-      return;
+      return true;
     }
 
     // Update time stuff
@@ -302,6 +308,7 @@ export default class SparklineGraph {
     if (this.config.y_axis.upper_bound !== undefined) this.max = Number(this.config.y_axis.upper_bound);
 
     this.buildAxisGeometry();
+    return true;
   }
 
   /**

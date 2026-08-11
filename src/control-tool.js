@@ -16,6 +16,26 @@ import ControlToggle from './control-toggle.js';
  */
 export default class ControlTool {
   /**
+   * Compiles subtype-owned control configuration before entity resolution.
+   *
+   * @param {object} config Full card configuration after static values.
+   * @param {object} templates Shared template evaluator.
+   */
+  static compileConfig(config, templates) {
+    if (config.layout.controls === undefined) return;
+
+    config.layout.controls.forEach((control) => {
+      switch (control.type) {
+        case 'select':
+          ControlSelect.removeDisabledOptionConfigs(control, templates);
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  /**
    * Builds control tool instances from the already normalized layout config.
    *
    * @param {object} config - Full card configuration after static card-level normalization.
@@ -28,6 +48,8 @@ export default class ControlTool {
   //   return [new ControlTool(config.layout.controls, 0, templates, cardId, card)];
 
   static setConfig(config, templates, cardId, card) {
+    if (config.layout.controls === undefined) return [];
+
     return config.layout.controls.map((control, index) => {
       switch (control.type) {
         case 'toggle':
