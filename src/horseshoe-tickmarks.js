@@ -233,75 +233,88 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
     return [];
   }
 
-  const min = Number(runtimeConfig.horseshoe_scale.min);
-  const max = Number(runtimeConfig.horseshoe_scale.max);
-
+  const absolute = runtimeConfig.bar_mode === 'absolute';
+  const min = absolute ? 0 : Number(runtimeConfig.horseshoe_scale.min);
+  const max = absolute ? geometry.getActiveMagnitudeMax() : Number(runtimeConfig.horseshoe_scale.max);
+  const toSourceValue = (value) => absolute ? geometry.magnitudeToSourceValue(value) : value;
   const majorTickConfig = visibility.major ? tickmarks.ticks_major : undefined;
   const minorTickConfig = visibility.minor ? tickmarks.ticks_minor : undefined;
-
   const majorTickSize = Number(majorTickConfig?.ticksize);
   const minorTickSize = Number(minorTickConfig?.ticksize);
-
-  const majorValues = Number.isFinite(majorTickSize) && majorTickSize > 0 ? buildTickValues(min, max, majorTickSize) : [];
-
-  const minorValues =
-    Number.isFinite(minorTickSize) && minorTickSize > 0
-      ? buildTickValues(min, max, minorTickSize).filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
-      : [];
-
-  // spline scales can compress value ranges; this map stores per-minor maximum thickness.
+  const majorMagnitudes = Number.isFinite(majorTickSize) && majorTickSize > 0
+    ? buildTickValues(min, max, majorTickSize)
+    : [];
+  const minorMagnitudes = Number.isFinite(minorTickSize) && minorTickSize > 0
+    ? buildTickValues(min, max, minorTickSize)
+      .filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
+    : [];
+  const majorValues = majorMagnitudes.map(toSourceValue);
+  const minorValues = minorMagnitudes.map(toSourceValue);
   const minorThicknessByValue = new Map();
 
-  if ((runtimeConfig.horseshoe_scale.type === 'splineorg' || runtimeConfig.horseshoe_scale.type === 'spline') && majorValues.length > 1 && minorValues.length) {
+  // Spline scales can compress value ranges. Thickness is calculated in the
+  // visible magnitude domain and stored against the corresponding signed value.
+  if ((runtimeConfig.horseshoe_scale.type === 'splineorg' || runtimeConfig.horseshoe_scale.type === 'spline') && majorMagnitudes.length > 1 && minorMagnitudes.length) {
     const minorRadius = geometry.radius + Number(minorTickConfig.offset ?? 0);
     const majorThickness = Number(majorTickConfig.thickness);
-    // Use an early non-start interval as the visual reference for relative spline compression.
-    const majorGapDegreesByInterval = majorValues.slice(0, -1).map((value, index) => Math.abs(geometry.valueToAngle(majorValues[index + 1]) - geometry.valueToAngle(value)));
+    const majorGapDegreesByInterval = majorMagnitudes.slice(0, -1).map((magnitude, index) => (
+      Math.abs(geometry.valueToAngle(toSourceValue(majorMagnitudes[index + 1])) - geometry.valueToAngle(toSourceValue(magnitude)))
+    ));
     const referenceMajorGapDegrees = majorGapDegreesByInterval[1] ?? majorGapDegreesByInterval[0];
 
-    for (let index = 0; index < majorValues.length - 1; index += 1) {
-      const majorStartValue = majorValues[index];
-      const majorEndValue = majorValues[index + 1];
-      const minorValuesBetweenMajorTicks = minorValues.filter((value) => value > majorStartValue && value < majorEndValue);
+    for (let index = 0; index < majorMagnitudes.length - 1; index += 1) {
+      const majorStartMagnitude = majorMagnitudes[index];
+      const majorEndMagnitude = majorMagnitudes[index + 1];
+      const minorMagnitudesBetweenMajorTicks = minorMagnitudes.filter((magnitude) => magnitude > majorStartMagnitude && magnitude < majorEndMagnitude);
 
-      if (minorValuesBetweenMajorTicks.length) {
-        const majorGapDegrees = Math.abs(geometry.valueToAngle(majorEndValue) - geometry.valueToAngle(majorStartValue));
+      if (minorMagnitudesBetweenMajorTicks.length) {
+        const majorGapDegrees = Math.abs(
+          geometry.valueToAngle(toSourceValue(majorEndMagnitude)) - geometry.valueToAngle(toSourceValue(majorStartMagnitude)),
+        );
         const majorGapArcLength = degreesToArcLength(majorGapDegrees, minorRadius);
-        // Remove the major tick thickness before dividing the remaining interval into minor slots.
         const availableMinorArcLength = Math.max(0, majorGapArcLength - majorThickness);
-        const minorSlotsBetweenMajorTicks = Math.abs(majorEndValue - majorStartValue) / minorTickSize;
+        const minorSlotsBetweenMajorTicks = (majorEndMagnitude - majorStartMagnitude) / minorTickSize;
         const intervalRatio = Math.min(1, majorGapDegrees / referenceMajorGapDegrees);
-        const maxMinorThickness = Math.min(availableMinorArcLength / minorSlotsBetweenMajorTicks, Number(minorTickConfig.thickness) * intervalRatio);
+        const maxMinorThickness = Math.min(
+          availableMinorArcLength / minorSlotsBetweenMajorTicks,
+          Number(minorTickConfig.thickness) * intervalRatio,
+        );
 
         if (runtimeConfig.debug_ticks || runtimeConfig.dev?.debug_ticks) {
           console.log('[horseshoe-tickmarks] spline minor interval', {
             scaleType: runtimeConfig.horseshoe_scale.type,
-            majorStartValue,
-            majorEndValue,
-            minorValues: minorValuesBetweenMajorTicks,
+            majorStartMagnitude,
+            majorEndMagnitude,
+            minorMagnitudes: minorMagnitudesBetweenMajorTicks,
             majorGapDegrees,
             referenceMajorGapDegrees,
             intervalRatio,
-            minorRadius,
-            majorGapArcLength,
-            majorThickness,
-            availableMinorArcLength,
-            minorTickSize,
-            minorSlotsBetweenMajorTicks,
-            configuredMinorThickness: Number(minorTickConfig.thickness),
             maxMinorThickness,
           });
         }
 
-        minorValuesBetweenMajorTicks.forEach((value) => {
-          minorThicknessByValue.set(value, maxMinorThickness);
+        minorMagnitudesBetweenMajorTicks.forEach((magnitude) => {
+          minorThicknessByValue.set(toSourceValue(magnitude), maxMinorThickness);
         });
       }
     }
   }
 
-  const minorTickPathItems = buildTickPathItemsForConfig(runtimeConfig, geometry, minorTickConfig, minorValues, 'minor', minorThicknessByValue);
-  const majorTickPathItems = buildTickPathItemsForConfig(runtimeConfig, geometry, majorTickConfig, majorValues, 'major');
+  const minorTickPathItems = buildTickPathItemsForConfig(
+    runtimeConfig,
+    geometry,
+    minorTickConfig,
+    minorValues,
+    'minor',
+    minorThicknessByValue,
+  );
+  const majorTickPathItems = buildTickPathItemsForConfig(
+    runtimeConfig,
+    geometry,
+    majorTickConfig,
+    majorValues,
+    'major',
+  );
 
   return [...minorTickPathItems, ...majorTickPathItems];
 }

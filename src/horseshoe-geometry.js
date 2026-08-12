@@ -294,7 +294,7 @@ export class GaugeScale {
  * Converts normalized scale positions into angles, transforms, and SVG coordinates.
  */
 export class GaugeGeometry {
-  constructor(config, scale) {
+  constructor(config, scale, activeValue) {
     this.cx = config.svg.xpos;
     this.cy = config.svg.ypos;
 
@@ -309,11 +309,95 @@ export class GaugeGeometry {
     this.flip = config.flip ?? 'none';
     this.groupConfig = config.group_config;
     this.barMode = config.bar_mode;
+    this.absoluteSign = Number(activeValue) < 0 ? -1 : 1;
 
     this.zeroRatio = config.zero_ratio;
     this.zeroAngle = this.ratioToAngle(this.zeroRatio);
 
     this.scale = scale;
+  }
+
+  /**
+   * Selects the signed scale branch used by absolute scale, background, tick,
+   * label, and gradient layers. Zero belongs to the positive branch.
+   *
+   * @param {number} value - Current signed entity or animated display value.
+   * @returns {boolean} Whether the active branch changed.
+   */
+  setActiveValue(value) {
+    const nextSign = Number(value) < 0 ? -1 : 1;
+    const changed = this.barMode === 'absolute' && nextSign !== this.absoluteSign;
+
+    this.absoluteSign = nextSign;
+
+    return changed;
+  }
+
+  /**
+   * Returns the signed source interval represented from the physical start to
+   * the end of an absolute horseshoe. A 0..max scale mirrors max for negatives.
+   *
+   * @returns {{start: number, end: number}} Active signed source interval.
+   */
+  getActiveSourceRange() {
+    if (this.barMode !== 'absolute') {
+      return {
+        start: this.scale.min,
+        end: this.scale.max,
+      };
+    }
+
+    return {
+      start: 0,
+      end: this.absoluteSign < 0
+        ? (this.scale.min < 0 ? this.scale.min : -this.scale.max)
+        : this.scale.max,
+    };
+  }
+
+  /**
+   * Converts a positive visual magnitude into the signed value used for scale
+   * mapping and color-stop lookup on the active absolute branch.
+   *
+   * @param {number} magnitude - Positive distance from zero.
+   * @returns {number} Signed source value.
+   */
+  magnitudeToSourceValue(magnitude) {
+    const numericMagnitude = Number(magnitude);
+
+    if (numericMagnitude === 0) {
+      return 0;
+    }
+
+    return this.barMode === 'absolute' ? numericMagnitude * this.absoluteSign : numericMagnitude;
+  }
+
+  /** Returns the visible positive magnitude limit of the active branch. */
+  getActiveMagnitudeMax() {
+    const range = this.getActiveSourceRange();
+
+    return Math.abs(range.end);
+  }
+
+  /**
+   * Selects signed color stops from the active branch and orders them from the
+   * physical horseshoe start toward its end.
+   *
+   * @param {Array<object>} colorStops - Normalized signed color stops.
+   * @returns {Array<object>} In-range color stops in visual arc order.
+   */
+  getActiveColorStops(colorStops) {
+    if (this.barMode !== 'absolute') {
+      return colorStops;
+    }
+
+    const range = this.getActiveSourceRange();
+    const sourceMin = Math.min(range.start, range.end);
+    const sourceMax = Math.max(range.start, range.end);
+
+    return colorStops
+      .filter((colorStop) => Number(colorStop.value) >= sourceMin && Number(colorStop.value) <= sourceMax)
+      .sort((colorStopA, colorStopB) => this.valueToRatio(colorStopA.value) - this.valueToRatio(colorStopB.value));
   }
 
   /**
@@ -454,6 +538,27 @@ export class GaugeGeometry {
   valueToRatio(value) {
     const numericValue = Number(value);
     const symmetricalBidirectional = this.barMode === 'bidirectional' || this.barMode === 'bidirectional_symmetrical';
+
+    // Absolute mode folds the active signed branch onto the complete arc. A
+    // 0..max scale maps both signs through the same magnitude scale. A signed
+    // scale normalizes each side independently around its configured zero.
+    if (this.barMode === 'absolute') {
+      const zeroScaleRatio = this.scaleValueToRatio(0);
+      const valueScaleRatio = this.scaleValueToRatio(this.scale.min === 0 ? Math.abs(numericValue) : numericValue);
+
+      if (this.scale.min === 0) {
+        const endScaleRatio = this.scaleValueToRatio(this.scale.max);
+        return clamp((valueScaleRatio - zeroScaleRatio) / (endScaleRatio - zeroScaleRatio), 0, 1);
+      }
+
+      if (numericValue < 0) {
+        const endScaleRatio = this.scaleValueToRatio(this.scale.min);
+        return clamp((zeroScaleRatio - valueScaleRatio) / (zeroScaleRatio - endScaleRatio), 0, 1);
+      }
+
+      const endScaleRatio = this.scaleValueToRatio(this.scale.max);
+      return clamp((valueScaleRatio - zeroScaleRatio) / (endScaleRatio - zeroScaleRatio), 0, 1);
+    }
 
     // Normal, linear bidirectional, and one-sided scales use the configured scale directly.
     if (!symmetricalBidirectional || this.scale.min >= 0 || this.scale.max <= 0) {
