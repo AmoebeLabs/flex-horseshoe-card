@@ -133,53 +133,50 @@ export default class CardTools {
   }
 
   /**
-   * Re-evaluates normal tools after asynchronous sparkline statistics change.
-   *
-   * History updates happen outside the normal Home Assistant setHass pass. The
-   * card-specific template context must therefore be restored before tools read
-   * the newly published local fhs_sparkline entities.
+   * Announces the first hass object once, after tool construction, so tools can
+   * initialize their HA-dependent resources in a distinct lifecycle phase.
    */
-  updateAfterSparklineStatistics() {
-    this.templates.setContext({
-      hass: this.card._hass,
-      config: this.card.config,
-      entities: this.card.entities,
-      horseshoes: this.card.horseshoes,
-      entity_slots: this.card.entitySlots,
-    });
-    this.card.evaluateJavascriptTemplates = true;
-    this.updateRuntimeConfig();
-    this.setRuntimeEntityStates(this.card.resolvedEntityConfigs, this.card.entities);
-    this.card.evaluateJavascriptTemplates = false;
-  }
-
-  /** Forwards Home Assistant availability after the card receives its first hass object. */
   hassAvailable() {
     this.getRenderableTools().forEach((tool) => tool.hassAvailable());
   }
 
-  /** Forwards connection readiness from the Home Assistant connection helper. */
+  /**
+   * Announces websocket readiness after reconnects so history-backed tools mark
+   * cached series for refresh during the next normal setHass pass.
+   */
   hassConnected() {
     this.getRenderableTools().forEach((tool) => tool.hassConnected());
   }
 
-  /** Forwards the custom-element connection lifecycle. */
+  /**
+   * Forwards DOM connection so history-backed and nested tools can mark their
+   * existing data for resynchronization after a card is reused.
+   */
   connected() {
     this.getRenderableTools().forEach((tool) => tool.connected());
   }
 
-  /** Forwards the custom-element disconnection lifecycle. */
+  /**
+   * Forwards DOM disconnection so every tool releases owned timers, animation
+   * frames and global pointer listeners even during an active interaction.
+   */
   disconnected() {
     this.getRenderableTools().forEach((tool) => tool.disconnected());
   }
 
-  /** Forwards Lit's first update and attaches sparkline pointer handlers. */
+  /**
+   * Forwards Lit's first committed render, then attaches sparkline handlers to
+   * the SVG elements created by that render.
+   */
   firstUpdated(changedProperties) {
     this.getRenderableTools().forEach((tool) => tool.firstUpdated(changedProperties));
     this.attachSparklinePointerHandlers();
   }
 
-  /** Forwards Lit updates and restores pointer handlers replaced by rendering. */
+  /**
+   * Forwards every committed render and reattaches sparkline pointer handlers
+   * because Lit may have replaced the SVG elements they belonged to.
+   */
   updated(changedProperties) {
     this.getRenderableTools().forEach((tool) => tool.updated(changedProperties));
     this.attachSparklinePointerHandlers();

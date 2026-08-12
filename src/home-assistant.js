@@ -2,28 +2,53 @@
 export default class HomeAssistant {
   constructor(notifyToolsConnected) {
     this.hass = undefined;
+    this.localeSignature = undefined;
+    this.localeChanged = false;
     this.connection = undefined;
     this.connectedToDom = false;
     this.notifyToolsConnected = notifyToolsConnected;
     this.connectionReadyHandler = () => this.notifyToolsConnected();
   }
 
-  /** Stores HA and moves the ready listener when the connection changes. */
+  /**
+   * Stores the current hass object, records locale changes and moves the ready
+   * listener to the active websocket connection.
+   */
   setHass(hass) {
+    const localeSignature = JSON.stringify(hass.locale);
+
     this.hass = hass;
-    if (this.connection === hass.connection) return;
-    if (this.connection && this.connectedToDom) this.connection.removeEventListener('ready', this.connectionReadyHandler);
-    this.connection = hass.connection;
-    if (this.connectedToDom) this.connection.addEventListener('ready', this.connectionReadyHandler);
+    this.localeChanged = localeSignature !== this.localeSignature;
+    this.localeSignature = localeSignature;
+
+    if (this.connection !== hass.connection) {
+      if (this.connection && this.connectedToDom) this.connection.removeEventListener('ready', this.connectionReadyHandler);
+      this.connection = hass.connection;
+      if (this.connectedToDom) this.connection.addEventListener('ready', this.connectionReadyHandler);
+    }
+
   }
 
-  /** Attaches the connection listener when the card enters the DOM. */
+  /** Clears the locale marker after every context-dependent card domain ran. */
+  markLocaleHandled() {
+    this.localeChanged = false;
+  }
+
+  /**
+   * Attaches one ready listener while the card is present in the DOM.
+   *
+   * Home Assistant emits ready after a websocket reconnect; CardTools then marks
+   * history-backed tools for resynchronization on the next hass pass.
+   */
   connected() {
     this.connectedToDom = true;
     if (this.connection) this.connection.addEventListener('ready', this.connectionReadyHandler);
   }
 
-  /** Detaches the connection listener when the card leaves the DOM. */
+  /**
+   * The ready subscription follows the card's DOM lifetime because only attached
+   * cards need to resynchronize history and render the resulting update.
+   */
   disconnected() {
     if (this.connection) this.connection.removeEventListener('ready', this.connectionReadyHandler);
     this.connectedToDom = false;

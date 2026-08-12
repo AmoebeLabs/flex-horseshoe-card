@@ -14,7 +14,7 @@ export default class CardConfig {
    * Creates the complete developer configuration consumed during runtime.
    *
    * This runs once at the configuration boundary. Runtime domains can therefore
-   * read both flags directly without inventing their own defaults.
+   * read both completed flags directly.
    */
   initializeDeveloperConfig(config) {
     config.dev = {
@@ -22,6 +22,16 @@ export default class CardConfig {
       performance: false,
       ...config.dev,
     };
+  }
+
+  /**
+   * Adds the card-level values required by rendering and runtime domains.
+   *
+   * This mutates the compiled config so the Templates context can retain the
+   * same config reference from compilation through rendering.
+   */
+  initializeCardRuntimeDefaults(config) {
+    config.card_filter ??= 'card--filter-none';
   }
 
   /** Expands constants, deep-cloned ref() values and static calc() expressions. */
@@ -97,7 +107,12 @@ export default class CardConfig {
     calculateValue(config, calcConstants);
   }
 
-  /** Resolves layout entity ids and animation targets to flat entity indexes. */
+  /**
+   * Resolves layout entity ids and animation targets to flat entity indexes.
+   *
+   * For example, `animations.entity.rooms[0]` becomes `animations.entity.2`
+   * when the first entity in the `rooms` slot occupies flat index 2.
+   */
   resolveLayoutEntityIndexes(config, resolvedEntityConfigs, entitySlots) {
     const entityIndexes = {};
     resolvedEntityConfigs.forEach((entityConfig, index) => {
@@ -227,7 +242,12 @@ export default class CardConfig {
     return cardHasJavascript;
   }
 
-  /** Builds named slots for the final flat configured entity list. */
+  /**
+   * Builds named slots for the final flat configured entity list.
+   *
+   * A slot starts at an entity containing `slot: room`; following entities
+   * inherit that slot until another explicit slot starts.
+   */
   buildEntitySlots(entityConfigs) {
     const entitySlots = { flat: [], default: [] };
     let activeSlot = 'default';
@@ -250,7 +270,12 @@ export default class CardConfig {
     return entitySlots;
   }
 
-  /** Converts entity_index values to symbolic addresses before inheritance. */
+  /**
+   * Converts entity indexes to symbolic addresses before same_as inheritance.
+   *
+   * `entity_index: rooms[1]` becomes
+   * `{ type: 'entity_address', slot: 'rooms', index: 1 }` until flattening.
+   */
   normalizeEntityIndexAddresses(config) {
     const normalizeValue = (value) => {
       if (typeof value === 'number') return { type: 'entity_address', slot: 'flat', index: value };
@@ -280,7 +305,11 @@ export default class CardConfig {
     visit(config.layout);
   }
 
-  /** Flattens symbolic entity addresses after inheritance is complete. */
+  /**
+   * Flattens symbolic entity addresses after inheritance is complete.
+   *
+   * With `rooms: [3, 4]`, the address `rooms[1]` becomes flat entity index 4.
+   */
   flattenEntitySlotIndexes(config, entitySlots) {
     const visit = (value) => {
       if (Array.isArray(value)) {

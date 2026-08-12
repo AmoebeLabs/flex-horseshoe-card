@@ -22,6 +22,7 @@ export function normalizeBaseConfig(config, index, groupManager) {
 
   return {
     entity_index: entityIndex,
+    bar_mode: 'normal',
     ...config,
     group_config: groupConfig,
     index,
