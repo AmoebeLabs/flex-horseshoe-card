@@ -299,8 +299,10 @@ function renderArcBackgroundLayer(geometry, backgroundItems, options = {}) {
     gradientPrefix,
   } = options;
 
-  const { filter, ...pathStyles } = styles;
-  const groupStyle = filter ? { filter } : {};
+  // Gradient arcs overlap to hide rasterization gaps. Compositing opacity on
+  // the complete layer keeps those overlaps invisible; path paint stays local.
+  const { filter, opacity, ...pathStyles } = styles;
+  const groupStyle = { filter, opacity };
 
   return svg`
     <g class=${layerClass} style=${styleMap(groupStyle)}>
