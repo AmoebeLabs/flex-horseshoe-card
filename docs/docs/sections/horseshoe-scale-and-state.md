@@ -102,12 +102,38 @@ Configure `bar_mode` on the horseshoe item itself because it affects the geometr
 
 | Mode                        | Behavior                                                       |
 | :-------------------------- | :------------------------------------------------------------- |
-| `normal`                    | Grows from the scale minimum toward the current value.         |
-| `bidirectional`             | Grows away from the calculated or configured zero position.    |
-| `bidirectional_symmetrical` | Uses the center of the scale as the zero position.             |
-| `bidirectional_linear`      | Displays the bidirectional value with linear segment geometry. |
+| `normal`                    | Grows from the scale minimum toward the current value.                |
+| `bidirectional`             | Grows away from the calculated or configured zero position.           |
+| `bidirectional_symmetrical` | Uses the center of the scale as the zero position.                    |
+| `bidirectional_linear`      | Displays the bidirectional value with linear segment geometry.        |
+| `absolute`                  | Grows from the arc start using the active signed branch's magnitude. |
 
 When the scale range crosses zero, the default `zero_ratio` is calculated from `horseshoe_scale.min` and `horseshoe_scale.max`. Set `zero_ratio` manually only when the visual zero position should differ from the numeric ratio.
+
+### Absolute bars
+
+`bar_mode: absolute` keeps the entity value signed for state text and color-stop selection, but draws its magnitude from the physical start of the horseshoe. Do not configure `zero_ratio` for this mode.
+
+A `0..max` scale shares one magnitude range between both signs. With `min: 0` and `max: 15`, both `-5` and `+5` fill one third of the arc. Signed color stops remain independent, so those values can still use different colors.
+
+A scale that crosses zero gives each sign its own complete arc. With `min: -10` and `max: 40`, `-5` fills half of the negative branch while `+5` fills one eighth of the positive branch. The active branch also supplies scale/background colors, ticks, and magnitude labels. At exactly zero, the positive branch is active.
+
+`absolute` uses the configured linear, `spline`, or `splineorg` mapping independently for each branch and supports every continuous horseshoe color style.
+
+```yaml linenums="1"
+bar_mode: absolute
+
+horseshoe_scale:
+  min: -10
+  max: 40
+  type: linear
+
+color_stops:
+  - -10: green
+  - 0: gray
+  - 5: orange
+  - 40: red
+```
 
 ## :material-horseshoe: Background layer
 

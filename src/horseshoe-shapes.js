@@ -10,6 +10,32 @@ import ConfigHelper from './config-helper.js';
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 /**
+ * Returns color-stop points in physical arc order for the current geometry.
+ * Absolute mode keeps signed source values for color lookup while folding the
+ * selected negative or positive branch onto the complete horseshoe.
+ */
+function buildActiveColorPoints(runtimeConfig, geometry) {
+  const colorStops = asArray(runtimeConfig.colorstops?.colors);
+  const range = geometry.getActiveSourceRange();
+  const activeStops = geometry.getActiveColorStops(colorStops);
+  const boundaryPoints = [
+    {
+      value: range.start,
+      color: Colors.calculateStrokeColor(range.start, runtimeConfig.colorstops, false),
+    },
+    ...activeStops,
+    {
+      value: range.end,
+      color: Colors.calculateStrokeColor(range.end, runtimeConfig.colorstops, false),
+    },
+  ];
+
+  return boundaryPoints
+    .sort((pointA, pointB) => geometry.valueToRatio(pointA.value) - geometry.valueToRatio(pointB.value))
+    .filter((point, index, points) => points.findIndex((candidate) => Number(candidate.value) === Number(point.value)) === index);
+}
+
+/**
  * Builds closed SVG band paths for arcs with butt or round caps.
  */
 class ArcPathBuilder {
@@ -125,32 +151,15 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     ];
   }
 
-  // Add synthetic min/max points so the first and last color spans cover the full scale.
-  const scalePoints = [
-    {
-      value: Number(runtimeConfig.horseshoe_scale.min),
-      color: colorStops[0].color,
-    },
-    ...colorStops.map((stop) => ({
-      value: Number(stop.value),
-      color: stop.color,
-    })),
-    {
-      value: Number(runtimeConfig.horseshoe_scale.max),
-      color: colorStops[colorStops.length - 1].color,
-    },
-  ];
+  const scalePoints = buildActiveColorPoints(runtimeConfig, geometry);
 
   for (let i = 0; i < scalePoints.length - 1; i += 1) {
     const pointA = scalePoints[i];
     const pointB = scalePoints[i + 1];
-
     const colorStopStartAngle = geometry.valueToAngle(pointA.value);
     const colorStopEndAngle = geometry.valueToAngle(pointB.value);
     const isFirst = i === 0;
     const isLast = i === scalePoints.length - 2;
-
-    // Keep the outer scale caps intact while applying half-gaps between internal segments.
     const drawStartAngle = isFirst ? colorStopStartAngle : colorStopStartAngle + gap / 2;
     const drawEndAngle = isLast ? colorStopEndAngle : colorStopEndAngle - gap / 2;
     const visible = drawEndAngle > drawStartAngle;
@@ -167,7 +176,6 @@ function buildColorStopScaleArcs(runtimeConfig, geometry) {
     });
   }
 
-  // Restore the configured caps on the visible edge segments after internal gaps are applied.
   const visibleScaleArcs = scaleArcs.filter((arc) => arc.visible !== false);
 
   if (visibleScaleArcs.length) {
@@ -253,18 +261,7 @@ export function buildArcBackgroundItems(runtimeConfig, geometry, options = {}) {
     }
 
     const backgroundItems = [];
-    const minValue = Number(runtimeConfig.horseshoe_scale.min);
-    const maxValue = Number(runtimeConfig.horseshoe_scale.max);
-    const stopPoints = colorStops.map((stop) => ({
-      value: Number(stop.value),
-      color: stop.color,
-    }));
-    // Synthetic min/max points cover the full scale, unless the config already defines them.
-    const segmentPoints = [
-      ...(stopPoints[0]?.value === minValue ? [] : [{ value: minValue, color: colorStops[0].color }]),
-      ...stopPoints,
-      ...(stopPoints[stopPoints.length - 1]?.value === maxValue ? [] : [{ value: maxValue, color: colorStops[colorStops.length - 1].color }]),
-    ];
+    const segmentPoints = buildActiveColorPoints(runtimeConfig, geometry);
 
     for (let i = 0; i < segmentPoints.length - 1; i += 1) {
       const pointA = segmentPoints[i];
@@ -355,6 +352,9 @@ const COLORSTOP_GRADIENT_MAX_ARC_LENGTH = 6;
  * @returns {Array<object>} Static full-scale gradient path items.
  */
 function buildGradientArcPathItems(runtimeConfig, geometry, options = {}) {
+  if (runtimeConfig.bar_mode === 'absolute') {
+    return buildAbsoluteGradientArcPathItems(runtimeConfig, geometry, options);
+  }
   const {
     mode = 'colorstopgradient',
     radius = geometry.radius,
@@ -476,6 +476,103 @@ function buildGradientArcPathItems(runtimeConfig, geometry, options = {}) {
   });
 }
 
+function buildAbsoluteGradientArcPathItems(runtimeConfig, geometry, options = {}) {
+  const {
+    mode = 'colorstopgradient',
+    radius = geometry.radius,
+    width = runtimeConfig.horseshoe_state.width,
+    startCap = runtimeConfig.horseshoe_state.linecap.start,
+    endCap = runtimeConfig.horseshoe_state.linecap.end,
+    keyPrefix = mode,
+  } = options;
+  const activePoints = buildActiveColorPoints(runtimeConfig, geometry);
+  const gradientPoints = mode === 'lineargradient'
+    ? activePoints.map((point, index) => ({
+        value: index / (activePoints.length - 1),
+        sourceValue: point.value,
+        color: point.color,
+      }))
+    : activePoints.map((point) => ({
+        value: point.value,
+        sourceValue: point.value,
+        color: point.color,
+      }));
+  const valueToAngle = mode === 'lineargradient'
+    ? (value) => geometry.startAngle + Number(value) * geometry.arcDegrees
+    : (value) => geometry.valueToAngle(value);
+  const gradientColorStops = {
+    colors: gradientPoints.map((point) => ({
+      value: point.value,
+      color: point.color,
+    })),
+  };
+  const gradientArcs = [];
+
+  for (let pointIndex = 0; pointIndex < gradientPoints.length - 1; pointIndex += 1) {
+    const pointA = gradientPoints[pointIndex];
+    const pointB = gradientPoints[pointIndex + 1];
+    const intervals = [{
+      startValue: pointA.value,
+      endValue: pointB.value,
+    }];
+
+    while (intervals.length) {
+      const interval = intervals.pop();
+      const startAngle = valueToAngle(interval.startValue);
+      const endAngle = valueToAngle(interval.endValue);
+      const arcLength = radius * Math.abs(endAngle - startAngle) * Math.PI / 180;
+
+      if (arcLength > COLORSTOP_GRADIENT_MAX_ARC_LENGTH) {
+        const midValue = (interval.startValue + interval.endValue) / 2;
+        intervals.push({ startValue: midValue, endValue: interval.endValue });
+        intervals.push({ startValue: interval.startValue, endValue: midValue });
+      } else {
+        gradientArcs.push({
+          startValue: interval.startValue,
+          endValue: interval.endValue,
+          startAngle,
+          endAngle,
+        });
+      }
+    }
+  }
+
+  return gradientArcs.map((gradientArc, index) => {
+    const isLast = index === gradientArcs.length - 1;
+    const segmentDegrees = Math.abs(gradientArc.endAngle - gradientArc.startAngle);
+    const overlapDegrees = segmentDegrees * 0.5;
+    const gradientStart = geometry.pointAt(gradientArc.startAngle, radius);
+    const gradientEnd = geometry.pointAt(gradientArc.endAngle, radius);
+    const arc = {
+      key: `${keyPrefix}-${index}`,
+      startAngle: gradientArc.startAngle,
+      endAngle: isLast ? gradientArc.endAngle : gradientArc.endAngle + overlapDegrees,
+      startCap: index === 0 ? startCap : 'butt',
+      endCap: isLast ? endCap : 'butt',
+      startValue: gradientArc.startValue,
+      endValue: gradientArc.endValue,
+      gradient: {
+        x1: gradientStart.x,
+        y1: gradientStart.y,
+        x2: gradientEnd.x,
+        y2: gradientEnd.y,
+        startColor: Colors.calculateStrokeColor(gradientArc.startValue, gradientColorStops, true),
+        endColor: Colors.calculateStrokeColor(gradientArc.endValue, gradientColorStops, true),
+      },
+    };
+
+    return {
+      key: arc.key,
+      arc,
+      path: ArcPathBuilder.buildBandPath({
+        geometry,
+        arc,
+        band: { radius, width },
+      }),
+    };
+  });
+}
+
 /**
  * Builds the cached full-scale micro-arcs revealed by the state clip.
  *
@@ -513,19 +610,7 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
     ];
   }
 
-  const minValue = Number(runtimeConfig.horseshoe_scale.min);
-  const maxValue = Number(runtimeConfig.horseshoe_scale.max);
-
-  // Threshold colors also own the ranges outside the first and last explicit
-  // stop. Synthetic boundaries make colorstopsegments cover the full scale,
-  // matching colorstop, colorstopgradient, and the scale/background builders.
-  const statePoints = [
-    ...(Number(colorStops[0].value) === minValue ? [] : [{ ...colorStops[0], value: minValue }]),
-    ...colorStops,
-    ...(Number(colorStops[colorStops.length - 1].value) === maxValue
-      ? []
-      : [{ ...colorStops[colorStops.length - 1], value: maxValue }]),
-  ];
+  const statePoints = buildActiveColorPoints(runtimeConfig, geometry);
 
   for (let i = 0; i < statePoints.length - 1; i += 1) {
     const pointA = statePoints[i];
@@ -534,9 +619,6 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
     const segmentEndAngle = geometry.valueToAngle(pointB.value);
     const clippedStartAngle = Math.max(segmentStartAngle, fromAngle);
     const clippedEndAngle = Math.min(segmentEndAngle, toAngle);
-
-    // Gaps separate adjacent color sections, but never shorten the outside
-    // start or the current-value end of the complete active horseshoe.
     const drawStartAngle = clippedStartAngle === fromAngle ? clippedStartAngle : clippedStartAngle + gap / 2;
     const drawEndAngle = clippedEndAngle === toAngle ? clippedEndAngle : clippedEndAngle - gap / 2;
     const visible = drawEndAngle > drawStartAngle;
@@ -554,7 +636,6 @@ function buildColorStopStateArcs(runtimeConfig, geometry, fromAngle, toAngle) {
     });
   }
 
-  // Restore the state linecaps only on the visible ends of the clipped state range.
   const visibleStateArcs = stateArcs.filter((arc) => arc.visible !== false);
 
   if (visibleStateArcs.length) {
@@ -586,9 +667,11 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
 
   if (strokeStyle === 'autominmax') {
     const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const absolute = runtimeConfig.bar_mode === 'absolute';
     let color = Colors.calculateStrokeColor(value, runtimeConfig.colorstopsMinMax, true);
 
-    // In dual mode, interpolate each side independently around the shared color at zero.
+    // Bidirectional rendering keeps its original min-to-zero and zero-to-max
+    // interpolation because its negative arc still runs toward the zero point.
     if (bidirectional) {
       const numericValue = Number(value);
       const min = Number(runtimeConfig.horseshoe_scale.min);
@@ -601,6 +684,17 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
       color = numericValue < 0
         ? Colors.getGradientValue(firstColor, zeroColor, (numericValue - min) / (0 - min))
         : Colors.getGradientValue(zeroColor, lastColor, numericValue / max);
+    }
+
+    // Absolute rendering starts both signed branches at zero and follows the
+    // clamped branch ratio supplied by geometry toward the signed endpoint.
+    if (absolute) {
+      const numericValue = Number(value);
+      const range = geometry.getActiveSourceRange();
+      const zeroColor = Colors.calculateStrokeColor(0, runtimeConfig.colorstops, true);
+      const endColor = Colors.calculateStrokeColor(range.end, runtimeConfig.colorstops, true);
+
+      color = Colors.getGradientValue(zeroColor, endColor, geometry.valueToRatio(numericValue));
     }
 
     return [
@@ -620,17 +714,25 @@ function buildColorAwareStateArcs(runtimeConfig, geometry, value, arcRange) {
     let startColor = colorStops[0].color;
     let endColor = colorStops[colorStops.length - 1].color;
     const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const absolute = runtimeConfig.bar_mode === 'absolute';
     let activeColors = colorStops.map((colorStop) => colorStop.color);
 
-    if (bidirectional) {
+    if (bidirectional || absolute) {
       const zeroColor = Colors.calculateStrokeColor(0, runtimeConfig.colorstops, true);
 
       if (Number(value) < 0) {
-        endColor = zeroColor;
-        activeColors = [
-          ...colorStops.filter((colorStop) => Number(colorStop.value) < 0).map((colorStop) => colorStop.color),
-          zeroColor,
-        ];
+        const negativeColors = colorStops
+          .filter((colorStop) => Number(colorStop.value) < 0)
+          .map((colorStop) => colorStop.color);
+
+        if (absolute) {
+          startColor = zeroColor;
+          endColor = negativeColors[0];
+          activeColors = [zeroColor, ...negativeColors.reverse()];
+        } else {
+          endColor = zeroColor;
+          activeColors = [...negativeColors, zeroColor];
+        }
       } else {
         startColor = zeroColor;
         activeColors = [
@@ -1036,13 +1138,89 @@ function buildTickValues(min, max, ticksize) {
 }
 
 /**
+ * Builds magnitude labels for the signed branch currently occupying an
+ * absolute horseshoe. Values remain signed internally for geometry and color.
+ */
+function buildAbsoluteLabelStopItems(runtimeConfig, geometry) {
+  const labelsAt = runtimeConfig.show.labels_at ?? 'none';
+  const magnitudeMax = geometry.getActiveMagnitudeMax();
+  const activeColorStops = geometry.getActiveColorStops(asArray(runtimeConfig.colorstops?.colors));
+  const toLabelStop = (magnitude, role, extra = {}) => ({
+    value: geometry.magnitudeToSourceValue(magnitude),
+    text: String(magnitude),
+    role,
+    magnitude,
+    ...extra,
+  });
+  let labelStops = [];
+
+  if (labelsAt === 'minmax' || labelsAt === 'minmax0') {
+    labelStops = [
+      toLabelStop(0, 'min'),
+      toLabelStop(magnitudeMax, 'max'),
+    ];
+  }
+
+  if (labelsAt === 'colorstop' || labelsAt === 'colorstops' || labelsAt === 'both') {
+    labelStops = [
+      toLabelStop(0, 'min'),
+      ...activeColorStops.map((stop) => ({
+        value: Number(stop.value),
+        text: stop.label ?? String(Math.abs(Number(stop.value))),
+        role: 'colorstop',
+        magnitude: Math.abs(Number(stop.value)),
+        color: stop.color,
+      })),
+      toLabelStop(magnitudeMax, 'max'),
+    ];
+  }
+
+  if (labelsAt === 'ticks_major' || labelsAt === 'both') {
+    const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
+
+    if (Number.isFinite(ticksize) && ticksize > 0) {
+      const tickLabels = buildTickValues(0, magnitudeMax, ticksize).map((magnitude, index, values) => (
+        toLabelStop(magnitude, index === 0 ? 'min' : index === values.length - 1 ? 'max' : 'tick-major')
+      ));
+
+      labelStops = labelsAt === 'both' ? [...labelStops, ...tickLabels] : tickLabels;
+    }
+  }
+
+  const uniqueStops = labelStops
+    .sort((stopA, stopB) => stopA.magnitude - stopB.magnitude)
+    .filter((stop, index, stops) => stops.findIndex((candidate) => candidate.magnitude === stop.magnitude) === index);
+  const distanceMin = Number(runtimeConfig.horseshoe_labels.distance_min ?? 0);
+  const visibleStops = [];
+
+  uniqueStops.forEach((stop) => {
+    const previous = visibleStops[visibleStops.length - 1];
+
+    if (!previous || distanceMin <= 0 || stop.magnitude - previous.magnitude >= distanceMin) {
+      visibleStops.push(stop);
+    }
+  });
+
+  if (visibleStops.length) {
+    visibleStops[0].role = 'min';
+    visibleStops[visibleStops.length - 1].role = 'max';
+  }
+
+  return visibleStops;
+}
+
+/**
  * Builds and filters label stops for min/max, color stops, major ticks, or both.
  *
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
  * @returns {Array<object>} Label stop definitions before positioning.
  */
-function buildLabelStopItems(runtimeConfig) {
+function buildLabelStopItems(runtimeConfig, geometry) {
   const labelsAt = runtimeConfig.show.labels_at ?? 'none';
+
+  if (runtimeConfig.bar_mode === 'absolute' && labelsAt !== 'segment' && labelsAt !== 'stringstate') {
+    return buildAbsoluteLabelStopItems(runtimeConfig, geometry);
+  }
   const min = Number(runtimeConfig.horseshoe_scale.min);
   const max = Number(runtimeConfig.horseshoe_scale.max);
   const colorStops = asArray(runtimeConfig.colorstops?.colors);
@@ -1248,7 +1426,7 @@ function buildLabelStopItems(runtimeConfig) {
  * @returns {Array<object>} Positioned label items.
  */
 export function buildLabelItems(runtimeConfig, geometry) {
-  return buildLabelStopItems(runtimeConfig).map((labelStop) => buildLabelItem(runtimeConfig, geometry, labelStop));
+  return buildLabelStopItems(runtimeConfig, geometry).map((labelStop) => buildLabelItem(runtimeConfig, geometry, labelStop));
 }
 
 /**

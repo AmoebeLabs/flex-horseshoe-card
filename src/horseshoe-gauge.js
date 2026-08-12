@@ -251,10 +251,14 @@ export default class HorseshoeGauge extends BaseTool {
       zero_ratio: this.config.zero_ratio,
     });
 
+    const geometryValue = Number.isFinite(this.displayValue) ? this.displayValue : nextValue;
+
     if (geometryConfigSignature !== this.geometryConfigSignature) {
       this.scale = new GaugeScale(this.config.horseshoe_scale);
-      this.geometry = new GaugeGeometry(this.config, this.scale);
+      this.geometry = new GaugeGeometry(this.config, this.scale, geometryValue);
       this.geometryConfigSignature = geometryConfigSignature;
+    } else {
+      this.geometry.setActiveValue(geometryValue);
     }
 
     this.refreshPathItemCacheKey();
@@ -352,6 +356,9 @@ export default class HorseshoeGauge extends BaseTool {
       return svg``;
     }
 
+    this.geometry.setActiveValue(this.displayValue ?? this.value);
+    this.refreshPathItemCacheKey();
+
     const groupTransform = this.geometry.getGroupTransform();
 
     return this.renderItemLayers(svg`
@@ -389,6 +396,7 @@ export default class HorseshoeGauge extends BaseTool {
       flip: this.config.flip,
       group_config: this.config.group_config,
       bar_mode: this.config.bar_mode,
+      absolute_sign: this.config.bar_mode === 'absolute' ? this.geometry.absoluteSign : undefined,
       zero_ratio: this.config.zero_ratio,
       colorstops: this.config.colorstops,
       colorstopsMinMax: this.config.colorstopsMinMax,
@@ -627,6 +635,14 @@ export default class HorseshoeGauge extends BaseTool {
     }
 
     const value = Number(options.value ?? this.displayValue ?? this.value);
+    const branchChanged = this.geometry.setActiveValue(value);
+
+    // Static layers use the active branch too. Crossing zero invalidates their
+    // cached scale, background, tick, label, and full-gradient path items.
+    if (branchChanged) {
+      this.refreshPathItemCacheKey();
+      this.card.requestUpdate();
+    }
 
     const statePathItems = buildStatePathItems(this.config, this.geometry, value);
     updateStatePathElements(
