@@ -12,6 +12,8 @@ import CardLayout from '../src/card-layout.js';
 import Templates from '../src/templates.js';
 import BaseTool from '../src/base-tool.js';
 import ChildCards from '../src/child-cards.js';
+import HorseshoeGauge from '../src/horseshoe-gauge.js';
+import { normalizeBaseConfig } from '../src/horseshoe-state.js';
 
 class Connection {
   constructor() {
@@ -41,7 +43,8 @@ test('HomeAssistant owns exactly one ready listener across connection changes', 
     connectedCalls += 1;
   });
 
-  homeAssistant.setHass({ connection: firstConnection });
+  homeAssistant.setHass({ connection: firstConnection, locale: { language: 'en' } });
+  assert.equal(homeAssistant.localeChanged, true);
   assert.equal(firstConnection.listeners.size, 0);
 
   homeAssistant.connected();
@@ -49,9 +52,18 @@ test('HomeAssistant owns exactly one ready listener across connection changes', 
   firstConnection.becomeReady();
   assert.equal(connectedCalls, 1);
 
-  homeAssistant.setHass({ connection: secondConnection });
+  homeAssistant.markLocaleHandled();
+  homeAssistant.setHass({ connection: secondConnection, locale: { language: 'en' } });
+  assert.equal(homeAssistant.localeChanged, false);
   assert.equal(firstConnection.listeners.size, 0);
   assert.equal(secondConnection.listeners.size, 1);
+
+  homeAssistant.setHass({ connection: secondConnection, locale: { language: 'nl' } });
+  assert.equal(homeAssistant.localeChanged, true);
+  assert.equal(secondConnection.listeners.size, 1);
+
+  homeAssistant.markLocaleHandled();
+  assert.equal(homeAssistant.localeChanged, false);
 
   homeAssistant.disconnected();
   assert.equal(secondConnection.listeners.size, 0);
@@ -163,6 +175,44 @@ test('CardConfig initializes developer flags for cards without a dev section', (
   assert.deepEqual(config.dev, {
     debug: false,
     performance: false,
+  });
+});
+
+test('CardConfig adds runtime defaults without replacing the compiled config', () => {
+  const cardConfig = new CardConfig({});
+  const config = {
+    show: { scale_style: 'lineargradient' },
+  };
+  const compiledConfig = config;
+
+  cardConfig.initializeCardRuntimeDefaults(config);
+
+  assert.equal(config, compiledConfig);
+  assert.equal(config.card_filter, 'card--filter-none');
+  assert.equal(config.bar_mode, undefined);
+  assert.deepEqual(config.show, { scale_style: 'lineargradient' });
+});
+
+test('Horseshoe defaults stay inside actual horseshoe configuration', () => {
+  const groupManager = {
+    getGroupForItem: () => ({ id: 'card' }),
+  };
+  const cardDefaults = new CardConfig({});
+  const cardConfig = { layout: {} };
+  const horseshoeConfig = normalizeBaseConfig({ horseshoe_scale: {} }, 0, groupManager);
+  const legacyCardConfig = {
+    layout: {},
+    horseshoe_scale: { min: 0, max: 100 },
+    show: { horseshoe_style: 'lineargradient' },
+  };
+
+  cardDefaults.initializeCardRuntimeDefaults(cardConfig);
+
+  assert.equal(horseshoeConfig.bar_mode, 'normal');
+  assert.equal(HorseshoeGauge.getLegacyRootConfig(cardConfig), undefined);
+  assert.deepEqual(HorseshoeGauge.getLegacyRootConfig(legacyCardConfig), {
+    show: { horseshoe_style: 'lineargradient' },
+    horseshoe_scale: { min: 0, max: 100 },
   });
 });
 
@@ -292,6 +342,10 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
 
   assert.equal(entities[1].state, '10.20');
   assert.equal(entities[1].attributes.source_entity_id, 'sensor.temperature');
+  assert.equal(cardEntities.stateChanged, true);
+
+  cardEntities.markStateHandled();
+  assert.equal(cardEntities.stateChanged, false);
 });
 
 test('CardAnimations matches entity state and preserves reused styles and icons', () => {
@@ -422,43 +476,6 @@ test('CardTools assigns entity state to nested control tools through the same li
   assert.deepEqual(calls, [['20', 'sensor.second']]);
 });
 
-test('CardTools restores card template context after asynchronous sparkline statistics', () => {
-  const calls = [];
-  const templates = {
-    setContext: (context) => calls.push(['context', context]),
-  };
-  const card = {
-    _hass: { states: {} },
-    config: { entities: [{ entity: 'fhs_sparkline.graph_avg' }] },
-    entities: [{ state: '15' }],
-    horseshoes: [],
-    entitySlots: { graph: [0] },
-    resolvedEntityConfigs: [{ entity: 'fhs_sparkline.graph_avg' }],
-    evaluateJavascriptTemplates: false,
-  };
-  const cardTools = new CardTools(card, templates, 'card');
-  cardTools.sections.states = [{
-    entity_index: 0,
-    updateRuntimeConfig: () => calls.push('runtime'),
-    setState: (entity, config) => calls.push(['state', entity.state, config.entity]),
-  }];
-
-  cardTools.updateAfterSparklineStatistics();
-
-  assert.deepEqual(calls, [
-    ['context', {
-      hass: card._hass,
-      config: card.config,
-      entities: card.entities,
-      horseshoes: card.horseshoes,
-      entity_slots: card.entitySlots,
-    }],
-    'runtime',
-    ['state', '15', 'fhs_sparkline.graph_avg'],
-  ]);
-  assert.equal(card.evaluateJavascriptTemplates, false);
-});
-
 test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = {
@@ -532,24 +549,46 @@ test('ChildCards renders against the CardLayout aspect ratio', () => {
 });
 
 test('Templates keeps JavaScript context independent for simultaneous cards', () => {
-  const firstCardTemplates = new Templates();
-  const secondCardTemplates = new Templates();
+  const firstEntities = [{ state: '10', attributes: {} }];
+  const secondEntities = [{ state: '20', attributes: {} }];
+  const firstCardTemplates = new Templates(firstEntities);
+  const secondCardTemplates = new Templates(secondEntities);
   const javascript = '[[[ return `${constants.card}:${state}:${user.name}`; ]]]';
 
-  firstCardTemplates.setContext({
-    hass: { user: { name: 'Alice' }, states: {} },
-    config: { constants: { card: 'first' }, entities: [{ entity: 'sensor.first' }] },
-    entities: [{ state: '10', attributes: {} }],
-    entity_slots: {},
-  });
-  secondCardTemplates.setContext({
-    hass: { user: { name: 'Bob' }, states: {} },
-    config: { constants: { card: 'second' }, entities: [{ entity: 'sensor.second' }] },
-    entities: [{ state: '20', attributes: {} }],
-    entity_slots: {},
-  });
+  firstCardTemplates.beginConfig({ constants: { card: 'first' }, entities: [{ entity: 'sensor.first' }] });
+  firstCardTemplates.setEntitySlots({});
+  firstCardTemplates.setHass({ user: { name: 'Alice' }, states: {} });
+  secondCardTemplates.beginConfig({ constants: { card: 'second' }, entities: [{ entity: 'sensor.second' }] });
+  secondCardTemplates.setEntitySlots({});
+  secondCardTemplates.setHass({ user: { name: 'Bob' }, states: {} });
 
   assert.equal(firstCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'first:10:Alice');
   assert.equal(secondCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'second:20:Bob');
   assert.equal(firstCardTemplates.getJsTemplateOrValue({ entity_index: 0 }, javascript), 'first:10:Alice');
+});
+
+test('Templates keeps one context object while lifecycle values change', () => {
+  const entities = [{ state: '10', attributes: {} }];
+  const templates = new Templates(entities);
+  const context = templates.context;
+  const firstConfig = { constants: { card: 'first' }, entities: [{ entity: 'sensor.first' }] };
+  const secondConfig = { constants: { card: 'second' }, entities: [{ entity: 'sensor.second' }] };
+  const slots = { source: [0] };
+  const hass = { states: {}, user: { name: 'Alice' } };
+
+  templates.beginConfig(firstConfig);
+  templates.setEntitySlots(slots);
+  templates.setHass(hass);
+
+  assert.equal(templates.context, context);
+  assert.equal(context.config, firstConfig);
+  assert.equal(context.entity_slots, slots);
+  assert.equal(context.hass, hass);
+  assert.equal(context.entities, entities);
+
+  templates.beginConfig(secondConfig);
+
+  assert.equal(templates.context, context);
+  assert.equal(context.config, secondConfig);
+  assert.equal(context.entity_slots, undefined);
 });

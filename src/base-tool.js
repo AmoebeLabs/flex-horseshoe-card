@@ -6,11 +6,13 @@ import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
- * Shared base for layout tools that receive static config from the card and resolve runtime state per hass update.
+ * Shared base for layout tools that own their static config, active runtime
+ * config and entity state. The injected Templates instance supplies the
+ * persistent card-wide context shared by tools belonging to this card.
  */
 export default class BaseTool {
   /**
-   * Stores the normalized static item config and shared card context.
+   * Stores this tool's normalized config and references to its parent card context.
    *
    * @param {object} config - Static item config after card-level refs, calc, ids, and same_as handling.
    * @param {number} index - Item index inside its layout section.
@@ -66,7 +68,8 @@ export default class BaseTool {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.cardTheme.modeChanged;
 
-    // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
+    // Static tools retain their finalized source config. JavaScript-backed tools
+    // evaluate a complete active config during the relevant hass update.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       const evaluatedConfig = this.templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
         resolveKeys: true,

@@ -157,13 +157,23 @@ export default class CardInputEntities {
     };
   }
 
-  /** Starts listening for global local-input changes. */
+  /**
+   * Listens for global FHS input changes while this card is in the DOM.
+   *
+   * Global FHS inputs publish their state through window events. This card
+   * updates its local entity record through the normal hass pipeline.
+   */
   connected() {
     window.addEventListener(CardInputEntities.numberEvent, this.eventHandler);
     window.addEventListener(CardInputEntities.booleanEvent, this.eventHandler);
   }
 
-  /** Stops listening for global local-input changes. */
+  /**
+   * Stops global input delivery while the card is detached.
+   *
+   * Removing the exact constructor-owned handler makes the window subscription
+   * follow this card instance's Lit connection lifecycle.
+   */
   disconnected() {
     window.removeEventListener(CardInputEntities.numberEvent, this.eventHandler);
     window.removeEventListener(CardInputEntities.booleanEvent, this.eventHandler);

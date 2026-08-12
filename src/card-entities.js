@@ -7,6 +7,7 @@ export default class CardEntities {
   constructor(templates, cardTheme) {
     this.templates = templates;
     this.cardTheme = cardTheme;
+    this.stateChanged = false;
   }
 
   /** Selects a discrete or interpolated color from one item's current entity value. */
@@ -158,6 +159,12 @@ export default class CardEntities {
           sparkline_entity_type: entityType,
         },
       });
+      this.stateChanged = true;
     });
+  }
+
+  /** Marks the current local sparkline entity states as consumed by the card update. */
+  markStateHandled() {
+    this.stateChanged = false;
   }
 }

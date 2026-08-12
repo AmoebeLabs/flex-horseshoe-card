@@ -1206,8 +1206,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.card.entities,
         this.card.cardTools.getBySection('sparklines'),
       );
-      this.card.cardTools.updateAfterSparklineStatistics();
-      this.card.requestUpdate();
+      this.card.setHass(this.card._hass);
       this.scheduleBinBoundaryRefresh();
     }, delay);
   }
@@ -1523,10 +1522,9 @@ export default class SparklineGraphTool extends BaseTool {
           this.card.entities,
           this.card.cardTools.getBySection('sparklines'),
         );
-        this.card.cardTools.updateAfterSparklineStatistics();
         if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
         this.historyResynchronizationRequested = false;
-        this.card.requestUpdate();
+        this.card.setHass(this.card._hass);
       })
       .catch((error) => {
         if (!this.historyResynchronizationRequested) {
