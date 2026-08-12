@@ -7,6 +7,30 @@ export default class Templates {
 
   static javascriptFunctionCache = new Map();
 
+  constructor() {
+    this.context = {};
+  }
+
+  /** Stores context on one card evaluator instead of shared module state. */
+  setContext(context) {
+    this.context = context;
+  }
+
+  /** Uses the shared metadata cache because detection contains no card state. */
+  detectJavascriptTemplates(value) {
+    return Templates.detectJavascriptTemplates(value);
+  }
+
+  /** Reads shared template metadata without reading another card context. */
+  hasJavascriptTemplates(value) {
+    return Templates.hasJavascriptTemplates(value);
+  }
+
+  /** Evaluates a config value exclusively with this card evaluator context. */
+  getJsTemplateOrValue(item, value, options = {}) {
+    return Templates._getJsTemplateOrValue(item, value, options, 0, this.context);
+  }
+
   static setContext(context = {}) {
     Templates.context = context;
   }
@@ -85,10 +109,10 @@ export default class Templates {
    */
 
   static getJsTemplateOrValue(item, value, options = {}) {
-    return Templates._getJsTemplateOrValue(item, value, options, 0);
+    return Templates._getJsTemplateOrValue(item, value, options, 0, Templates.context);
   }
 
-  static _getJsTemplateOrValue(item, value, options = {}, depth = 0) {
+  static _getJsTemplateOrValue(item, value, options, depth, context) {
     const { resolveKeys = true, maxDepth = 10 } = options;
 
     if (depth >= maxDepth) return value;
@@ -100,15 +124,15 @@ export default class Templates {
     }
 
     if (Array.isArray(value)) {
-      return value.map((entry) => Templates._getJsTemplateOrValue(item, entry, options, depth));
+      return value.map((entry) => Templates._getJsTemplateOrValue(item, entry, options, depth, context));
     }
 
     if (Templates.isPlainObject(value)) {
       return Object.fromEntries(
         Object.entries(value).map(([key, entryValue]) => {
-          const resolvedKey = resolveKeys ? Templates._getJsTemplateOrValue(item, key, options, depth) : key;
+          const resolvedKey = resolveKeys ? Templates._getJsTemplateOrValue(item, key, options, depth, context) : key;
 
-          const resolvedValue = Templates._getJsTemplateOrValue(item, entryValue, options, depth);
+          const resolvedValue = Templates._getJsTemplateOrValue(item, entryValue, options, depth, context);
 
           return [String(resolvedKey), resolvedValue];
         }),
@@ -121,9 +145,9 @@ export default class Templates {
 
     if (!Templates.isJsTemplate(trimmedValue)) return value;
 
-    const evaluatedValue = Templates.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
+    const evaluatedValue = Templates.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue), context);
 
-    return Templates._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1);
+    return Templates._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1, context);
   }
 
   /**
@@ -157,11 +181,11 @@ export default class Templates {
    * @param {string} javascript JavaScript function body to evaluate.
    * @returns {*} Template return value, or undefined when evaluation fails.
    */
-  static evaluateJsTemplate(item, javascript) {
-    const { hass, config, entities = [], entity_slots } = Templates.context;
+  static evaluateJsTemplate(item, javascript, context = Templates.context) {
+    const { hass, config, entities = [], entity_slots } = context;
 
     const entityIndex = Templates._getItemEntityIndex(item);
-    const state = Templates._getTemplateState(item);
+    const state = Templates._getTemplateState(item, context);
     const entity = entities?.[entityIndex];
     const states = hass?.states;
     const constants = config?.constants ?? {};
@@ -227,10 +251,10 @@ export default class Templates {
    * displays the entity state itself or one of its attributes.
    */
 
-  static _getTemplateState(item = {}) {
+  static _getTemplateState(item = {}, context = Templates.context) {
     const entityIndex = Templates._getItemEntityIndex(item);
-    const entityState = Templates.context.entities?.[entityIndex];
-    const entityConfig = Templates.context.config?.entities?.[entityIndex] || {};
+    const entityState = context.entities?.[entityIndex];
+    const entityConfig = context.config?.entities?.[entityIndex] || {};
 
     // Entity may not be available yet during initial render or reload.
     if (!entityState) return undefined;

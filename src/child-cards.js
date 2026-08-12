@@ -128,7 +128,7 @@ export default class ChildCards {
   }
 
   render() {
-    const [aspectWidth, aspectHeight] = this.parentCard.aspectratio.split('/').map(Number);
+    const [aspectWidth, aspectHeight] = this.parentCard.cardLayout.aspectratio.split('/').map(Number);
     const logicalCardWidth = aspectWidth * 100;
     const logicalCardHeight = aspectHeight * 100;
 

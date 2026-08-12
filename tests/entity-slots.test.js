@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import Compounds from '../compounds.js';
-import SameAs from '../same-as.js';
-import Templates from '../templates.js';
+import Compounds from '../src/compounds.js';
+import SameAs from '../src/same-as.js';
+import Templates from '../src/templates.js';
 
 const entityAddress = (slot, index) => ({
   type: 'entity_address',

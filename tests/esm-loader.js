@@ -20,7 +20,10 @@ export async function resolve(specifier, context, nextResolve) {
 export async function load(url, context, nextLoad) {
   if (!url.endsWith('.ts')) return nextLoad(url, context);
 
-  const source = await readFile(new URL(url), 'utf8');
+  const source = (await readFile(new URL(url), 'utf8'))
+    .replaceAll('__DEV__', 'false')
+    .replaceAll('__DEMO__', 'false')
+    .replaceAll('__BACKWARDS_COMPAT__', 'false');
   return {
     format: 'module',
     shortCircuit: true,

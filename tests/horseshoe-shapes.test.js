@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import Colors from '../colors.js';
-import { buildStatePathItems } from '../horseshoe-shapes.js';
+import Colors from '../src/colors.js';
+import { buildStatePathItems } from '../src/horseshoe-shapes.js';
 
 /** Builds the minimum normal horseshoe config needed to inspect its resolved state color. */
 const createRuntimeConfig = (horseshoeStyle) => ({

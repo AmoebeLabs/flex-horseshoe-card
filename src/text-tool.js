@@ -8,7 +8,6 @@ import Merge from './merge.js';
 import NameTool from './name-tool.js';
 import AreaTool from './area-tool.js';
 import StateTool from './state-tool.js';
-import Templates from './templates.js';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 const TEXT_SOURCE_SECTIONS = {
@@ -93,7 +92,7 @@ export default class TextTool extends BaseTool {
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
     this.sourceTextParts = sourceTextParts;
-    this.textPartsHaveJavascript = this.sourceTextParts.some((part) => Templates.hasJavascriptTemplates(part));
+    this.textPartsHaveJavascript = this.sourceTextParts.some((part) => this.templates.hasJavascriptTemplates(part));
     this.activeTextParts = [];
     this.activeTextPartsSignature = undefined;
     this.textParts = [];
@@ -159,7 +158,7 @@ export default class TextTool extends BaseTool {
    */
   getReferencedTextTool(part) {
     const section = TEXT_SOURCE_SECTIONS[part.type];
-    const sourceTool = this.card.getToolsBySection(section)
+    const sourceTool = this.card.cardTools.getBySection(section)
       .find((tool) => String(tool.id) === String(part.id));
 
     if (!sourceTool) {
@@ -204,12 +203,12 @@ export default class TextTool extends BaseTool {
             ? sourceTool.entity_index
             : sourcePart.entity_index ?? this.config.entity_index,
         };
-        const activePart = Templates.hasJavascriptTemplates(sourcePart)
-          ? Templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
+        const activePart = this.templates.hasJavascriptTemplates(sourcePart)
+          ? this.templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
           : partContext;
 
         if (activePart.color_stops) {
-          activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
+          activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
         }
         if (activePart.color_stops
           || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
@@ -264,7 +263,7 @@ export default class TextTool extends BaseTool {
       }
 
       if (activePart.color_stops) {
-        activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.getActiveColorStopMode());
+        activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
       }
       if (activePart.color_stops
         || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
@@ -876,7 +875,7 @@ export default class TextTool extends BaseTool {
 
   /** @returns {object} SVG coordinates calculated through the normal group pipeline. */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**
@@ -926,7 +925,7 @@ export default class TextTool extends BaseTool {
       }
 
       const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
-      const animationStyles = ConfigHelper.toStyleDict(this.card.animations.texts[renderPart.animation_id] ?? {});
+      const animationStyles = ConfigHelper.toStyleDict(this.card.cardAnimations.styles.texts[renderPart.animation_id] ?? {});
 
       this.applyColorStops(partStyles, renderPart);
 

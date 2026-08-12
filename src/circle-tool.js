@@ -56,7 +56,7 @@ export default class CircleTool extends BaseTool {
    * @returns {object} SVG circle dimensions.
    */
   calculateSvgDimensions(config = this.config) {
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
 
     // Keep legacy radius behavior. Use radius_percent when the radius must follow the card percentage scale.
     svgDimensions.radius = config.radius_percent !== undefined

@@ -596,7 +596,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} SVG dimensions for the outer placement and graph engine.
    */
   calculateSvgDimensions(config = this.config) {
-    const coordinates = this.card._calculateSvgCoordinatesInGroup(config);
+    const coordinates = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const width = Utils.calculateSvgDimension(config.width);
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);
@@ -1201,8 +1201,12 @@ export default class SparklineGraphTool extends BaseTool {
       }
       // A bin boundary advances the in-memory graph without fetching history.
       // Refresh local statistics and their bound tools from the recalculated series.
-      this.card._updateSparklineEntities();
-      this.card._updateToolsAfterSparklineStatistics();
+      this.card.cardEntities.updateSparklineEntities(
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+        this.card.cardTools.getBySection('sparklines'),
+      );
+      this.card.cardTools.updateAfterSparklineStatistics();
       this.card.requestUpdate();
       this.scheduleBinBoundaryRefresh();
     }, delay);
@@ -1514,8 +1518,12 @@ export default class SparklineGraphTool extends BaseTool {
         this.addCurrentEntityToHistory(entity);
         this.series = this.historySeries;
         this.updateGraphFromSeries();
-        this.card._updateSparklineEntities();
-        this.card._updateToolsAfterSparklineStatistics();
+        this.card.cardEntities.updateSparklineEntities(
+          this.card.resolvedEntityConfigs,
+          this.card.entities,
+          this.card.cardTools.getBySection('sparklines'),
+        );
+        this.card.cardTools.updateAfterSparklineStatistics();
         if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
         this.historyResynchronizationRequested = false;
         this.card.requestUpdate();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import SparklineGraph from '../sparkline-graph.js';
+import SparklineGraph from '../src/sparkline-graph.js';
 
 /** Builds only the state owned by SparklineGraph.update for its lifecycle contract. */
 const createStateBandsGraph = () => {

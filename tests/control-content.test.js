@@ -1,19 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import ControlButton from '../control-button.js';
-import ControlContent from '../control-content.js';
-import ControlSelect from '../control-select.js';
-import ControlTool from '../control-tool.js';
+import ControlButton from '../src/control-button.js';
+import ControlContent from '../src/control-content.js';
+import ControlSelect from '../src/control-select.js';
+import ControlTool from '../src/control-tool.js';
 
 const createContext = () => ({
   templates: {
     hasJavascriptTemplates: () => false,
   },
   card: {
-    _calculateSvgCoordinatesInGroup: (config) => ({
-      xpos: config.xpos,
-      ypos: config.ypos,
-    }),
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (config) => ({
+        xpos: config.xpos,
+        ypos: config.ypos,
+      }),
+    },
   },
 });
 

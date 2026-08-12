@@ -114,7 +114,7 @@ export default class ControlBase extends BaseTool {
       };
     }
 
-    return this.card.getActionHandlerOptions(itemConfig, entityIndex);
+    return this.card.actions.getActionHandlerOptions(itemConfig, entityIndex);
   }
 
   /**
@@ -133,7 +133,7 @@ export default class ControlBase extends BaseTool {
       return;
     }
 
-    this.card.handleAction(event, itemConfig, entityIndex);
+    this.card.actions.handleAction(event, itemConfig, entityIndex);
   }
 
   /**

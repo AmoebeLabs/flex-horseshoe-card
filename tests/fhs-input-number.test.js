@@ -4,7 +4,7 @@ import {
   normalizeFhsInputNumberConfig,
   clampFhsInputNumberValue,
   calculateFhsInputNumberNextValue,
-} from '../fhs-input-number.js';
+} from '../src/fhs-input-number.js';
 
 const config = (overrides = {}) => ({
   entity: 'fhs_input_number.test',

@@ -61,7 +61,7 @@ export default class ArcTool extends BaseTool {
    * @returns {object} SVG arc dimensions.
    */
   calculateSvgDimensions(config = this.config) {
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const radius = Utils.calculateSvgDimension(config.radius);
     const arcDegrees = Number(config.arc_degrees);
     const rotate = Number(config.rotate);

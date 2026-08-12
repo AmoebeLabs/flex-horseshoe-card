@@ -640,7 +640,11 @@ export default class ControlSelect extends ControlBase {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
       );
-      this.card._setToolEntityState(iconTool);
+      this.card.cardTools.setToolEntityState(
+        iconTool,
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+      );
     });
   }
 
@@ -708,7 +712,7 @@ export default class ControlSelect extends ControlBase {
 
   /** Converts the select center through the normal group pipeline. */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /** Runs one immediate press animation around the center of the selected segment. */

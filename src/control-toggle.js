@@ -395,7 +395,7 @@ export default class ControlToggle extends ControlBase {
   }
 
   calculateSvgDimensions(config = this.config) {
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const viz = config[config.show.item_style];
 
     const configuredSize = Utils.calculateSvgDimension(config.width);
@@ -408,7 +408,7 @@ export default class ControlToggle extends ControlBase {
   }
 
   calculateSvgDimensionsV1(config = this.config) {
-    const svgDimensions = this.card._calculateSvgCoordinatesInGroup(config);
+    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
 
     svgDimensions.track = {};
     svgDimensions.track.radius = Utils.calculateSvgDimension(config.track.radius);

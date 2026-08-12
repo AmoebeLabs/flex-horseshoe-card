@@ -647,7 +647,7 @@ export default class MasksClips {
    */
   calculateShapeCenter(shape, targetItem) {
     if (shape.dxpos !== undefined || shape.dypos !== undefined) {
-      const targetSvg = this.card._calculateSvgCoordinatesInGroup(targetItem);
+      const targetSvg = this.card.calculateSvgCoordinatesInGroup(targetItem);
 
       return {
         xpos: targetSvg.xpos + Utils.calculateSvgDimension(shape.dxpos),
@@ -655,7 +655,7 @@ export default class MasksClips {
       };
     }
 
-    return this.card._calculateSvgCoordinatesInGroup(shape);
+    return this.card.calculateSvgCoordinatesInGroup(shape);
   }
 
   /**
