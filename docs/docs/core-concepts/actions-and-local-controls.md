@@ -3,11 +3,11 @@ template: main.html
 title: Actions and Interactive Controls
 description: Configure tap, hold, double-tap, haptic feedback, multiple actions, item overrides, and browser-local helper entities in the Flexible Horseshoe Card.
 tags:
-  - Actions
-  - Haptics
-  - Interactive controls
-  - Helpers
-  - Entities
+- Actions
+- Haptics
+- Interactive controls
+- Helpers
+- Entities
 ---
 
 # Actions and interactive controls
