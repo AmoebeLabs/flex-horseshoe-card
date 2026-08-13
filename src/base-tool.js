@@ -21,7 +21,7 @@ export default class BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    * @param {string} animationSection - Animation bucket name for this tool type.
    * @param {string} zposSection - Layer bucket name for zpos defaults.
-   * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
+   * @param {number|undefined} defaultEntityIndex - Entity index selected by tools whose content is entity-bound by definition.
    * @param {object|undefined} colorStopPaintDefaults - Tool-specific fill and stroke defaults.
    */
   constructor(
@@ -32,7 +32,7 @@ export default class BaseTool {
     card,
     animationSection,
     zposSection = animationSection,
-    defaultEntityIndex = 0,
+    defaultEntityIndex = undefined,
     colorStopPaintDefaults = undefined,
   ) {
     this.sourceConfig = config;
@@ -147,6 +147,9 @@ export default class BaseTool {
     this.entity = entity;
     this.entityConfig = entityConfig;
   }
+
+  /** Activates configuration that does not depend on an entity state. */
+  setStaticState() {}
 
   /** Called once when Home Assistant context first becomes available to this tool. */
   hassAvailable() {}

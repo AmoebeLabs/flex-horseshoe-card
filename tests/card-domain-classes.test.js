@@ -69,25 +69,23 @@ test('HomeAssistant owns exactly one ready listener across connection changes', 
   assert.equal(secondConnection.listeners.size, 0);
 });
 
-test('CardActions preserves item, entity, card and default tap precedence', () => {
+test('CardActions preserves item, entity and entity-bound default tap precedence', () => {
   const actions = new CardActions(new EventTarget(), {});
   const entityTap = { action: 'toggle' };
-  const cardTap = { action: 'navigate', navigation_path: '/test' };
-  actions.setConfig({ tap_action: cardTap });
   actions.setHassAndEntities({}, [{ tap_action: entityTap }, {}], [{ entity_id: 'light.first' }, { entity_id: 'sensor.second' }]);
 
   const itemTap = { action: 'more-info' };
+  const standaloneTap = { action: 'navigate', navigation_path: '/test' };
   assert.equal(actions.getGestureConfig({ tap_action: itemTap }, 0, 'tap_action'), itemTap);
   assert.equal(actions.getGestureConfig({}, 0, 'tap_action'), entityTap);
-  assert.equal(actions.getGestureConfig({}, 1, 'tap_action'), cardTap);
-
-  actions.setConfig({});
   assert.deepEqual(actions.getGestureConfig({}, 1, 'tap_action'), { action: 'more-info' });
+  assert.equal(actions.getGestureConfig({ tap_action: standaloneTap }, undefined, 'tap_action'), standaloneTap);
+  assert.equal(actions.getGestureConfig({}, undefined, 'tap_action'), undefined);
+  assert.equal(actions.getGestureConfig({}, undefined, 'hold_action'), undefined);
 });
 
 test('CardActions routes derived sparkline actions to the source entity', () => {
   const actions = new CardActions(new EventTarget(), {});
-  actions.setConfig({});
   actions.setHassAndEntities({}, [{}, { source_entity_index: 0 }], [{ entity_id: 'sensor.source' }, { entity_id: 'fhs_sparkline.graph_avg' }]);
 
   assert.equal(actions.getActionEntityId(1, {}), 'sensor.source');
@@ -557,6 +555,7 @@ test('CardTools assigns entity state to nested control tools through the same li
   const childTool = {
     entity_index: 1,
     setState: (entity, config) => calls.push([entity.state, config.entity]),
+    setStaticState: () => calls.push(['static']),
   };
 
   cardTools.setToolEntityState(
@@ -566,6 +565,15 @@ test('CardTools assigns entity state to nested control tools through the same li
   );
 
   assert.deepEqual(calls, [['20', 'sensor.second']]);
+
+  childTool.entity_index = undefined;
+  cardTools.setToolEntityState(
+    childTool,
+    [{ entity: 'sensor.first' }, { entity: 'sensor.second' }],
+    [{ state: '10' }, { state: '20' }],
+  );
+
+  assert.deepEqual(calls, [['20', 'sensor.second'], ['static']]);
 });
 
 test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
@@ -583,6 +591,8 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
     card,
     'lines',
   );
+  assert.equal(tool.entity_index, undefined);
+
   tool.activeConfigInitialized = true;
   tool.configChanged = false;
 

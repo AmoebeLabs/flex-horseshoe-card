@@ -286,6 +286,33 @@ test('button and select opt into explicit content without changing control entit
   );
 });
 
+test('entityless button initializes literal content without an entity state', () => {
+  const { templates, card } = createContext();
+  const button = new ControlButton(
+    {
+      id: 'url-button',
+      xpos: 50,
+      ypos: 50,
+      content: {
+        mode: 'content_text',
+        content_text: { text: 'Action' },
+      },
+      tap_action: { action: 'url', url_path: 'https://example.com' },
+    },
+    0,
+    templates,
+    'card',
+    card,
+  );
+
+  button.updateRuntimeConfig();
+  button.setStaticState();
+
+  assert.equal(button.entity_index, undefined);
+  assert.equal(button.active, false);
+  assert.equal(button.contentTextTool.textParts[0].value, 'Action');
+});
+
 /**
  * Keeps the optional controls section absent and lets select own option filtering.
  */
