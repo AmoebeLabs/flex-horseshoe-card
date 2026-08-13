@@ -402,7 +402,12 @@ class FlexHorseshoeCard extends LitElement {
       if (resolvedEntitiesConfig.length > 0) {
         const newdomain = computeDomain(resolvedEntitiesConfig[0].entity);
 
-        if (newdomain !== 'sensor' && newdomain !== 'fhs_input_number' && newdomain !== 'fhs_input_boolean') {
+        if (
+          newdomain !== 'sensor'
+          && newdomain !== 'fhs_input_number'
+          && newdomain !== 'fhs_input_boolean'
+          && newdomain !== 'fhs_input_select'
+        ) {
           if (resolvedEntitiesConfig[0].attribute && !isNaN(resolvedEntitiesConfig[0].attribute)) {
             throw Error('First entity or attribute must be a numbered sensorvalue, but is NOT');
           }

@@ -10,11 +10,20 @@ const createContext = () => ({
     hasJavascriptTemplates: () => false,
   },
   card: {
+    entities: [{ entity_id: 'sensor.test', state: '', attributes: {} }],
+    resolvedEntityConfigs: [{}],
     cardLayout: {
+      changedGroupIds: new Set(),
       calculateSvgCoordinatesInGroup: (config) => ({
         xpos: config.xpos,
         ypos: config.ypos,
       }),
+    },
+    cardTheme: {
+      modeChanged: false,
+    },
+    cardAnimations: {
+      styles: {},
     },
   },
 });
@@ -306,4 +315,165 @@ test('control config compilation filters disabled select options without inventi
   assert.deepEqual(config.layout.controls[0].option_map.map((option) => option.value), [0]);
   assert.deepEqual(ControlTool.setConfig(configWithoutControls, templates, 'card', {}), []);
   assert.equal(Object.hasOwn(configWithoutControls.layout, 'controls'), false);
+});
+
+test('select separates matching state, action value and translated presentation', () => {
+  const { templates, card } = createContext();
+  const select = new ControlSelect(
+    {
+      id: 'state-value-select',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      option_map: [
+        {
+          state: 'heating',
+          value: 'heat',
+          text: 'Verwarmen',
+          action_data: { temperature: 21 },
+          tap_action: {
+            action: 'perform-action',
+            perform_action: 'climate.set_hvac_mode',
+            data: {
+              hvac_mode: 'option(value)',
+              temperature: 'option(action_data.temperature)',
+            },
+          },
+          hold_action: {
+            actions: [
+              {
+                action: 'perform-action',
+                data: { mode: 'option(value)' },
+              },
+              {
+                action: 'perform-action',
+                data: { temperature: 'option(action_data.temperature)' },
+              },
+            ],
+          },
+        },
+        { value: 'cool', text: 'Koelen' },
+      ],
+    },
+    0,
+    templates,
+    'card',
+    card,
+  );
+
+  select.setState(
+    { entity_id: 'climate.room', state: 'heating', attributes: {} },
+    {},
+  );
+
+  assert.equal(select.selectedOptionIndex, 0);
+  assert.equal(select.config.option_map[0].text, 'Verwarmen');
+  assert.equal(select.optionActionConfigs[0].tap_action.data.hvac_mode, 'heat');
+  assert.equal(select.optionActionConfigs[0].tap_action.data.temperature, 21);
+  assert.equal(select.optionActionConfigs[0].hold_action.actions[0].data.mode, 'heat');
+  assert.equal(select.optionActionConfigs[0].hold_action.actions[1].data.temperature, 21);
+  assert.equal(select.config.option_map[1].state, 'cool');
+});
+
+test('select builds and refreshes an omitted option_map from entity attributes', () => {
+  const { templates, card } = createContext();
+  const select = new ControlSelect(
+    {
+      id: 'entity-options-select',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+    },
+    0,
+    templates,
+    'card',
+    card,
+  );
+
+  select.updateRuntimeConfig();
+  select.setState(
+    {
+      entity_id: 'input_select.chart_type',
+      state: 'area',
+      attributes: { options: ['line', 'area', 'bar'] },
+    },
+    {},
+  );
+
+  assert.deepEqual(
+    select.config.option_map.map(({ state, value, text }) => ({ state, value, text })),
+    [
+      { state: 'line', value: 'line', text: 'line' },
+      { state: 'area', value: 'area', text: 'area' },
+      { state: 'bar', value: 'bar', text: 'bar' },
+    ],
+  );
+  assert.equal(select.selectedOptionIndex, 1);
+  assert.equal(select.optionActionConfigs[2].tap_action.option, 'bar');
+  const unchangedOptionTextTools = select.optionTextTools;
+
+  select.setState(
+    {
+      entity_id: 'input_select.chart_type',
+      state: 'bar',
+      attributes: { options: ['line', 'area', 'bar'] },
+    },
+    {},
+  );
+
+  assert.equal(select.optionTextTools, unchangedOptionTextTools);
+
+  select.setState(
+    {
+      entity_id: 'input_select.chart_type',
+      state: 'dots',
+      attributes: { options: ['line', 'dots'] },
+    },
+    {},
+  );
+
+  assert.deepEqual(select.config.option_map.map((option) => option.value), ['line', 'dots']);
+  assert.equal(select.selectedOptionIndex, 1);
+  assert.equal(select.optionTextTools.length, 2);
+});
+
+test('select matches a configured entity attribute and rejects invalid option references', () => {
+  const { templates, card } = createContext();
+  const select = new ControlSelect(
+    {
+      id: 'attribute-select',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      option_map: [
+        { value: 'eco' },
+        { value: 'comfort' },
+      ],
+    },
+    0,
+    templates,
+    'card',
+    card,
+  );
+
+  select.setState(
+    {
+      entity_id: 'climate.room',
+      state: 'heat',
+      attributes: { preset_mode: 'comfort' },
+    },
+    { attribute: 'preset_mode' },
+  );
+
+  assert.equal(select.selectedOptionIndex, 1);
+  assert.throws(
+    () => ControlSelect.buildOptionActionConfig({
+      value: 'heat',
+      tap_action: {
+        action: 'perform-action',
+        data: { mode: 'option(missing)' },
+      },
+    }),
+    /not found/,
+  );
 });

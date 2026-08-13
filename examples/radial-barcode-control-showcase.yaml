@@ -4,39 +4,20 @@ fhs_showcase_radial_barcode_v1:
 
   card:
     entities:
-      - entity: fhs_input_number.radial_variant
+      - entity: fhs_input_select.radial_variant
         slot: variant
-        initial: 0
-        min: 0
-        max: 4
-        step: 1
+        options: [fixed, sunburst, sunburst_centered, sunburst_outward, sunburst_inward]
+        initial: fixed
         scope: global
-        unit: ''
-      - entity: fhs_input_number.radial_viz
+      - entity: fhs_input_select.radial_viz
         slot: viz
-        initial: 0
-        min: 0
-        max: 3
-        step: 1
+        options: [bar, flower, flower2, rice_grain]
+        initial: bar
         scope: global
-        unit: ''
       - entity: sensor.awair_element_study_temperature
         slot: source
         name: Study temperature
         unit: C
-
-    constants:
-      radial_variants:
-        - null
-        - sunburst
-        - sunburst_centered
-        - sunburst_outward
-        - sunburst_inward
-      radial_viz:
-        - bar
-        - flower
-        - flower2
-        - rice_grain
 
     layout:
       aspectratio: 1/1.5
@@ -72,15 +53,12 @@ fhs_showcase_radial_barcode_v1:
               chart_type: radial_barcode
               chart_variant: |
                 [[[
-                  return constants.radial_variants[
-                    Number(entities[entity_slots.variant[0]].state)
-                  ];
+                  const variant = entities[entity_slots.variant[0]].state;
+                  return variant === 'fixed' ? null : variant;
                 ]]]
               chart_viz: |
                 [[[
-                  return constants.radial_viz[
-                    Number(entities[entity_slots.viz[0]].state)
-                  ];
+                  return entities[entity_slots.viz[0]].state;
                 ]]]
             radial_barcode:
               size: 15
@@ -128,11 +106,11 @@ fhs_showcase_radial_barcode_v1:
                 styles:
                   font-size: 0.52em
           option_map:
-            - { value: 0, text: Fixed }
-            - { value: 1, text: Sunburst }
-            - { value: 2, text: Centered }
-            - { value: 3, text: Outward }
-            - { value: 4, text: Inward }
+            - { value: fixed, text: Fixed }
+            - { value: sunburst, text: Sunburst }
+            - { value: sunburst_centered, text: Centered }
+            - { value: sunburst_outward, text: Outward }
+            - { value: sunburst_inward, text: Inward }
 
         - id: radial-viz
           type: select
@@ -155,7 +133,7 @@ fhs_showcase_radial_barcode_v1:
                 styles:
                   font-size: 0.56em
           option_map:
-            - { value: 1, text: Flower }
-            - { value: 2, text: Flower 2 }
-            - { value: 3, text: Rice grain }
-            - { value: 0, text: Bar }
+            - { value: flower, text: Flower }
+            - { value: flower2, text: Flower 2 }
+            - { value: rice_grain, text: Rice grain }
+            - { value: bar, text: Bar }

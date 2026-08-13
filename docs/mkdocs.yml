@@ -191,7 +191,7 @@ nav:
       # - Overview: core-concepts/overview.md
       - Card Structure: core-concepts/card-structure.md
       - Entity Definitions: core-concepts/entity-definitions.md
-      - Actions and Local Controls: core-concepts/actions-and-local-controls.md
+      - Actions and Interactive Controls: core-concepts/actions-and-local-controls.md
       - External Palettes: core-concepts/external-palettes.md
       # - Template Variables: core-concepts/template-variables.md
       - Positioning and Groups: core-concepts/positioning-and-groups.md

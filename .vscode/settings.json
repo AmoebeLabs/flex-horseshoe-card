@@ -1,0 +1,16 @@
+{
+  "[markdown]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false,
+    "editor.formatOnPaste": false,
+    "editor.formatOnType": false,
+    "prettier.enable": false,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never",
+      "source.organizeImports": "never"
+    }
+  },
+  "prettier.disableLanguages": [
+    "markdown"
+  ]
+}

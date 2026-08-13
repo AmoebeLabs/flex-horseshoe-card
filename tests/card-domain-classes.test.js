@@ -94,6 +94,38 @@ test('CardActions routes derived sparkline actions to the source entity', () => 
   assert.equal(actions.getActionEntityId(1, { entity: 'sensor.override' }), 'sensor.override');
 });
 
+test('CardActions executes standard select-option actions without select control domain logic', async () => {
+  const serviceCalls = [];
+  const localCalls = [];
+  const actions = new CardActions(new EventTarget(), {
+    setSelectOption: (...args) => localCalls.push(['select', ...args]),
+    setNumberValue: (...args) => localCalls.push(['number', ...args]),
+  });
+  actions.setHassAndEntities(
+    {
+      callService: (...args) => {
+        serviceCalls.push(args);
+      },
+    },
+    [],
+    [],
+  );
+
+  await actions.executeAction({ action: 'select-option', option: 'cool' }, 'select.hvac_mode');
+  await actions.executeAction({ action: 'select-option', option: 'heat' }, 'input_select.hvac_mode');
+  await actions.executeAction({ action: 'select-option', option: 'area' }, 'fhs_input_select.chart_type');
+  await actions.executeAction({ action: 'select-option', option: 2 }, 'fhs_input_number.legacy_index');
+
+  assert.deepEqual(serviceCalls, [
+    ['select', 'select_option', { option: 'cool' }, { entity_id: 'select.hvac_mode' }],
+    ['input_select', 'select_option', { option: 'heat' }, { entity_id: 'input_select.hvac_mode' }],
+  ]);
+  assert.deepEqual(localCalls, [
+    ['select', 'fhs_input_select.chart_type', 'area'],
+    ['number', 'fhs_input_number.legacy_index', 2],
+  ]);
+});
+
 test('CardInputEntities validates, initializes and updates card-scoped numbers', () => {
   const entities = [];
   let updateCalls = 0;
@@ -116,6 +148,66 @@ test('CardInputEntities validates, initializes and updates card-scoped numbers',
 
   inputs.markStateHandled();
   assert.equal(inputs.stateChanged, false);
+});
+
+test('CardInputEntities initializes and synchronizes persistent global selects', () => {
+  const previousWindow = globalThis.window;
+  const previousLocalStorage = globalThis.localStorage;
+  const storage = new Map();
+  globalThis.window = new EventTarget();
+  globalThis.localStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, value),
+  };
+  CardInputEntities.selects.clear();
+
+  try {
+    const firstEntities = [];
+    const secondEntities = [];
+    let firstUpdates = 0;
+    let secondUpdates = 0;
+    const entityConfig = {
+      entity: 'fhs_input_select.shared_mode',
+      options: ['line', 'area', 'bar'],
+      initial: 'line',
+      scope: 'global',
+      persist: true,
+    };
+    const first = new CardInputEntities('first', firstEntities, () => {
+      firstUpdates += 1;
+    });
+    const second = new CardInputEntities('second', secondEntities, () => {
+      secondUpdates += 1;
+    });
+    const firstConfig = { dev: { debug: false }, entities: [{ ...entityConfig }] };
+    const secondConfig = { dev: { debug: false }, entities: [{ ...entityConfig }] };
+
+    first.validateConfig(firstConfig);
+    second.validateConfig(secondConfig);
+    first.initializeEntities(firstConfig.entities);
+    second.initializeEntities(secondConfig.entities);
+    first.connected();
+    second.connected();
+
+    first.setSelectOption('fhs_input_select.shared_mode', 'bar');
+
+    assert.equal(firstEntities[0].state, 'bar');
+    assert.equal(secondEntities[0].state, 'bar');
+    assert.deepEqual(firstEntities[0].attributes.options, ['line', 'area', 'bar']);
+    assert.equal(firstUpdates, 1);
+    assert.equal(secondUpdates, 1);
+    assert.equal(
+      JSON.parse(storage.get('flex-horseshoe-card:fhs-input-select:fhs_input_select.shared_mode')).state,
+      'bar',
+    );
+
+    first.disconnected();
+    second.disconnected();
+  } finally {
+    CardInputEntities.selects.clear();
+    globalThis.window = previousWindow;
+    globalThis.localStorage = previousLocalStorage;
+  }
 });
 
 test('CardTheme reports mode changes and invalidates color-dependent rendering', () => {

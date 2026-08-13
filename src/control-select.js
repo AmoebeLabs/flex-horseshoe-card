@@ -8,7 +8,7 @@ import Merge from "./merge.js";
 import TextTool from "./text-tool.js";
 import Utils from "./utils.js";
 
-/** Segmented select control backed by one Home Assistant input_select entity. */
+/** Segmented select control backed by an entity state or configured attribute. */
 export default class ControlSelect extends ControlBase {
   /**
    * Removes disabled options before entity addresses are resolved.
@@ -31,13 +31,122 @@ export default class ControlSelect extends ControlBase {
     });
   }
 
+  /**
+   * Completes one explicit or entity-derived option map.
+   *
+   * State identifies the selected segment, value feeds actions, and text is
+   * presentation. Keeping those roles separate lets one map handle translated
+   * labels and services whose accepted value differs from the reported state.
+   */
+  static normalizeOptionMap(optionMap, selectConfig) {
+    if (!Array.isArray(optionMap) || optionMap.length === 0) {
+      throw Error("[controls] Select option_map must contain at least one option");
+    }
+
+    return optionMap.map((option, optionIndex) => {
+      if (!Object.hasOwn(option, "value")) {
+        throw Error(
+          `[controls] Select option_map[${optionIndex}] requires value`,
+        );
+      }
+
+      return Merge.mergeDeep(
+        {
+          state: option.value,
+          text: option.value,
+          tap_action: selectConfig.tap_action,
+          ...(selectConfig.hold_action !== undefined
+            ? { hold_action: selectConfig.hold_action }
+            : {}),
+          ...(selectConfig.double_tap_action !== undefined
+            ? { double_tap_action: selectConfig.double_tap_action }
+            : {}),
+          entity_index: selectConfig.entity_index,
+          content: {},
+          text_config: {},
+          icon_config: {},
+        },
+        option,
+      );
+    });
+  }
+
+  /**
+   * Replaces exact option(path) values inside one option's gesture configs.
+   *
+   * For example, data.hvac_mode: option(value) receives the raw option value.
+   * References are not interpolated into surrounding strings, preserving the
+   * referenced property's original datatype.
+   */
+  static buildOptionActionConfig(option) {
+    const replaceOptionReferences = (value) => {
+      if (Array.isArray(value)) {
+        return value.map((entry) => replaceOptionReferences(entry));
+      }
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([property, propertyValue]) => [
+            property,
+            replaceOptionReferences(propertyValue),
+          ]),
+        );
+      }
+      if (typeof value !== "string") return value;
+
+      const optionReference = value.trim();
+      const referenceMatch = optionReference.match(
+        /^option\(([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\)$/,
+      );
+
+      if (referenceMatch === null) {
+        if (optionReference.startsWith("option(")) {
+          throw Error(
+            `[controls] Invalid select option reference '${value}'`,
+          );
+        }
+        return value;
+      }
+
+      let referencedValue = option;
+      referenceMatch[1].split(".").forEach((property) => {
+        if (
+          referencedValue === null ||
+          typeof referencedValue !== "object" ||
+          !Object.hasOwn(referencedValue, property)
+        ) {
+          throw Error(
+            `[controls] Select option reference '${value}' not found`,
+          );
+        }
+        referencedValue = referencedValue[property];
+      });
+      return referencedValue;
+    };
+
+    const actionConfig = Merge.mergeDeep({}, option);
+    ["tap_action", "hold_action", "double_tap_action"].forEach(
+      (actionProperty) => {
+        if (actionConfig[actionProperty] !== undefined) {
+          actionConfig[actionProperty] = replaceOptionReferences(
+            actionConfig[actionProperty],
+          );
+        }
+      },
+    );
+    return actionConfig;
+  }
+
   /** Normalizes select configuration and creates reusable option content tools. */
   constructor(config, index, templates, cardId, card) {
+    const usesEntityOptions = config.option_map === undefined;
     const DEFAULT_SELECT_CONFIG = {
       orientation: "horizontal",
       width: 34,
       height: 11,
-      tap_action: { action: "select-option" },
+      tap_action: {
+        action: "select-option",
+        option: "option(value)",
+      },
       background: {
         radius: 5,
         styles: {},
@@ -302,28 +411,31 @@ export default class ControlSelect extends ControlBase {
       }
     });
 
-    selectConfig.option_map = selectConfig.option_map.map((option) =>
-      Merge.mergeDeep(
-        {
-          tap_action: selectConfig.tap_action,
-          entity_index: selectConfig.entity_index,
-          content: {},
-          text_config: {},
-          icon_config: {},
-        },
-        option,
-      ),
-    );
+    selectConfig.option_map = usesEntityOptions
+      ? []
+      : ControlSelect.normalizeOptionMap(
+          selectConfig.option_map,
+          selectConfig,
+        );
 
     super(selectConfig, index, templates, cardId, card);
 
+    this.usesEntityOptions = usesEntityOptions;
+    this.optionsInitialized = !usesEntityOptions;
+    this.entityOptionsSignature = undefined;
+    this.controlHassAvailable = false;
+    this.controlConnected = false;
     this.config.svg = this.calculateSvgDimensions();
-    this.selectedOptionIndex = 0;
+    this.selectedOptionIndex = -1;
     this.optionTextTools = [];
     this.optionIconTools = [];
     this.optionContentVisuals = [];
-    this.optionActionConfigs = [];
-    this.createOptionContentTools();
+    this.optionActionConfigs = this.optionsInitialized
+      ? this.config.option_map.map((option) =>
+          ControlSelect.buildOptionActionConfig(option),
+        )
+      : [];
+    if (this.optionsInitialized) this.createOptionContentTools();
     this.createControlLabelTextTool(this.config.width, this.config.height);
   }
 
@@ -542,10 +654,14 @@ export default class ControlSelect extends ControlBase {
   /** Updates evaluated select config, geometry and child tool configuration. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+    let contentRebuilt = false;
 
     if (this.configChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
-      this.createOptionContentTools();
+      if (this.optionsInitialized) {
+        this.createOptionContentTools();
+        contentRebuilt = true;
+      }
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
 
@@ -556,52 +672,84 @@ export default class ControlSelect extends ControlBase {
     this.optionIconTools
       .filter((iconTool) => iconTool !== undefined)
       .forEach((iconTool) => iconTool.updateRuntimeConfig());
+
+    // Rebuilt segment visuals join the lifecycle phase already reached by their
+    // parent select instead of waiting for a card reconnect.
+    if (contentRebuilt && this.controlHassAvailable) {
+      this.optionContentVisuals.forEach((contentVisual) =>
+        contentVisual.hassAvailable(),
+      );
+    }
+    if (contentRebuilt && this.controlConnected) {
+      this.optionContentVisuals.forEach((contentVisual) =>
+        contentVisual.connected(),
+      );
+    }
   }
 
   /** Selects the active option and publishes state plus visual styles. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
+    // Entity-driven selects publish their segment definitions through the same
+    // attributes.options contract as Home Assistant select entities.
+    if (this.usesEntityOptions) {
+      if (
+        !Array.isArray(entity.attributes.options) ||
+        entity.attributes.options.length === 0
+      ) {
+        throw Error(
+          `[controls] Select '${this.id}' requires option_map or entity.attributes.options`,
+        );
+      }
+
+      const entityOptionsSignature = JSON.stringify(entity.attributes.options);
+      if (entityOptionsSignature !== this.entityOptionsSignature) {
+        const entityOptionMap = entity.attributes.options.map((option) => ({
+          value: option,
+        }));
+        this.config.option_map = ControlSelect.normalizeOptionMap(
+          entityOptionMap,
+          this.config,
+        );
+        this.entityOptionsSignature = entityOptionsSignature;
+        this.optionsInitialized = true;
+        this.createOptionContentTools();
+        this.optionContentVisuals.forEach((contentVisual) =>
+          contentVisual.updateRuntimeConfig(),
+        );
+        this.optionTextTools.forEach((textTool) =>
+          textTool.updateRuntimeConfig(),
+        );
+        this.optionIconTools
+          .filter((iconTool) => iconTool !== undefined)
+          .forEach((iconTool) => iconTool.updateRuntimeConfig());
+        if (this.controlHassAvailable) {
+          this.optionContentVisuals.forEach((contentVisual) =>
+            contentVisual.hassAvailable(),
+          );
+        }
+        if (this.controlConnected) {
+          this.optionContentVisuals.forEach((contentVisual) =>
+            contentVisual.connected(),
+          );
+        }
+      }
+    }
+
+    const selectedState =
+      entityConfig.attribute === undefined
+        ? entity.state
+        : entity.attributes[entityConfig.attribute];
     this.selectedOptionIndex = this.config.option_map.findIndex(
-      (option) => String(option.value) === String(entity.state),
+      (option) => String(option.state) === String(selectedState),
     );
     const viz = this.config[this.config.show.item_viz];
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
 
-    // The internal semantic default becomes a normal HA action only after the
-    // exact control entity, domain and option value are available.
-    const entityDomain = entity.entity_id.split(".")[0];
-    this.optionActionConfigs = this.config.option_map.map((option) => {
-      let tapAction = option.tap_action;
-
-      if (option.tap_action.action === "select-option") {
-        switch (entityDomain) {
-          case "input_select":
-            tapAction = {
-              action: "perform-action",
-              perform_action: "input_select.select_option",
-              target: { entity_id: entity.entity_id },
-              data: { option: option.value },
-            };
-            break;
-          case "input_number":
-          case "fhs_input_number":
-            tapAction = {
-              action: "perform-action",
-              perform_action: `${entityDomain}.set_value`,
-              target: { entity_id: entity.entity_id },
-              data: { value: option.value },
-            };
-            break;
-          default:
-            throw Error(
-              `[controls] Select control does not support entity domain '${entityDomain}'`,
-            );
-        }
-      }
-
-      return Merge.mergeDeep(option, { tap_action: tapAction });
-    });
+    this.optionActionConfigs = this.config.option_map.map((option) =>
+      ControlSelect.buildOptionActionConfig(option),
+    );
     this.optionContentVisuals.forEach((contentVisual, optionIndex) => {
       const optionStyle =
         optionIndex === this.selectedOptionIndex
@@ -671,6 +819,7 @@ export default class ControlSelect extends ControlBase {
   /** Forwards initial Home Assistant availability to segment visual content. */
   hassAvailable() {
     super.hassAvailable();
+    this.controlHassAvailable = true;
     this.optionContentVisuals.forEach((contentVisual) =>
       contentVisual.hassAvailable(),
     );
@@ -679,6 +828,7 @@ export default class ControlSelect extends ControlBase {
   /** Forwards DOM connection to segment visual content. */
   connected() {
     super.connected();
+    this.controlConnected = true;
     this.optionContentVisuals.forEach((contentVisual) =>
       contentVisual.connected(),
     );
@@ -689,6 +839,7 @@ export default class ControlSelect extends ControlBase {
     this.optionContentVisuals.forEach((contentVisual) =>
       contentVisual.disconnected(),
     );
+    this.controlConnected = false;
     super.disconnected();
   }
 
@@ -737,6 +888,8 @@ export default class ControlSelect extends ControlBase {
 
   /** Renders background, segments, moving indicator, content and hit areas. */
   render() {
+    if (!this.optionsInitialized) return this.renderControl(svg``);
+
     const viz = this.config[this.config.show.item_viz];
     const horizontal = this.config.orientation === "horizontal";
     const optionCount = this.config.option_map.length;
