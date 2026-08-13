@@ -56,6 +56,30 @@ export default class CardActions {
   /** Executes one normalized Home Assistant action or compatible FHS action. */
   async executeAction(actionConfig, entityId) {
     switch (actionConfig.action) {
+      case 'select-option': {
+        const entityDomain = entityId.split('.')[0];
+
+        // The select control supplies one semantic option value. This action
+        // router owns the standard service translation for compatible entities.
+        switch (entityDomain) {
+          case 'input_select':
+          case 'select':
+            await this.hass.callService(entityDomain, 'select_option', { option: actionConfig.option }, { entity_id: entityId });
+            break;
+          case 'fhs_input_select':
+            this.inputEntities.setSelectOption(entityId, actionConfig.option);
+            break;
+          case 'input_number':
+            await this.hass.callService('input_number', 'set_value', { value: actionConfig.option }, { entity_id: entityId });
+            break;
+          case 'fhs_input_number':
+            this.inputEntities.setNumberValue(entityId, actionConfig.option);
+            break;
+          default:
+            throw Error(`Select option action does not support entity domain '${entityDomain}'; configure a perform-action with option(value)`);
+        }
+        break;
+      }
       case 'more-info':
         fireEvent(this.element, 'hass-more-info', { entityId: actionConfig.entity ?? entityId });
         break;
@@ -69,6 +93,8 @@ export default class CardActions {
         const [domain, service] = actionConfig.perform_action.split('.', 2);
         if (domain === 'fhs_input_number' && service === 'set_value') {
           this.inputEntities.setNumberValue(actionConfig.target.entity_id, actionConfig.data.value);
+        } else if (domain === 'fhs_input_select' && service === 'select_option') {
+          this.inputEntities.setSelectOption(actionConfig.target.entity_id, actionConfig.data.option);
         } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
           this.inputEntities.changeNumberValue(actionConfig.target.entity_id, service === 'increment' ? 1 : -1);
         } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {
@@ -96,6 +122,8 @@ export default class CardActions {
         const targetEntityId = actionConfig.target?.entity_id ?? actionConfig.service_data?.entity_id;
         if (domain === 'fhs_input_number' && service === 'set_value') {
           this.inputEntities.setNumberValue(targetEntityId, actionConfig.service_data?.value);
+        } else if (domain === 'fhs_input_select' && service === 'select_option') {
+          this.inputEntities.setSelectOption(targetEntityId, actionConfig.service_data?.option);
         } else if (domain === 'fhs_input_number' && ['increment', 'decrement'].includes(service)) {
           this.inputEntities.changeNumberValue(targetEntityId, service === 'increment' ? 1 : -1);
         } else if (domain === 'fhs_input_boolean' && ['turn_on', 'turn_off', 'toggle'].includes(service)) {

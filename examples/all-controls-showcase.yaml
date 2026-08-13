@@ -10,13 +10,10 @@ fhs_all_controls_showcase:
         slot: enabled
         initial: false
         scope: card
-      - entity: fhs_input_number.controls_option
+      - entity: fhs_input_select.controls_option
         slot: option
-        initial: 1
-        min: 0
-        max: 3
-        step: 1
-        unit: ''
+        options: ['off', low, medium, high]
+        initial: low
         scope: card
       - entity: fhs_input_number.controls_number
         slot: number
@@ -190,6 +187,13 @@ fhs_all_controls_showcase:
           ypos: 78
           width: 90
           height: 13
+          tap_action:
+            action: perform-action
+            perform_action: fhs_input_select.select_option
+            target:
+              entity_id: fhs_input_select.controls_option
+            data:
+              option: option(value)
           show:
             item_variant: segmented
             item_viz: viz_button
@@ -204,16 +208,16 @@ fhs_all_controls_showcase:
                 styles:
                   font-size: 0.55em
           option_map:
-            - value: 0
+            - value: 'off'
               icon: mdi:fan-off
               text: 'Off'
-            - value: 1
+            - value: low
               icon: mdi:fan-speed-1
               text: Low
-            - value: 2
+            - value: medium
               icon: mdi:fan-speed-2
               text: Medium
-            - value: 3
+            - value: high
               icon: mdi:fan-speed-3
               text: High
 
@@ -238,16 +242,6 @@ fhs_all_controls_showcase:
               text:
                 styles:
                   font-size: 0.6em
-          option_map:
-            - value: 0
-              text: 'Off'
-            - value: 1
-              text: Low
-            - value: 2
-              text: Medium
-            - value: 3
-              text: High
-
         # Number
         - id: number-filled
           type: number

@@ -1,5 +1,6 @@
 import { fireEvent } from './frontend_mods/common/dom/fire_event.js';
 import { normalizeFhsInputNumberConfig, clampFhsInputNumberValue, calculateFhsInputNumberNextValue } from './fhs-input-number.js';
+import { normalizeFhsInputSelectConfig } from './fhs-input-select.js';
 
 /**
  * Owns local FHS input configuration, shared storage, events and state changes.
@@ -9,13 +10,19 @@ export default class CardInputEntities {
 
   static booleans = new Map();
 
+  static selects = new Map();
+
   static numberEvent = 'flex-horseshoe-card:fhs-input-number-changed';
 
   static booleanEvent = 'flex-horseshoe-card:fhs-input-boolean-changed';
 
+  static selectEvent = 'flex-horseshoe-card:fhs-input-select-changed';
+
   static numberStoragePrefix = 'flex-horseshoe-card:fhs-input-number';
 
   static booleanStoragePrefix = 'flex-horseshoe-card:fhs-input-boolean';
+
+  static selectStoragePrefix = 'flex-horseshoe-card:fhs-input-select';
 
   /**
    * @param {string} cardId Unique card identifier used in debug output.
@@ -43,11 +50,7 @@ export default class CardInputEntities {
         });
       }
 
-      if (matchingConfig?.entity.startsWith('fhs_input_boolean.')) {
-        this.replaceEntityState(event.detail.entity_id, event.detail);
-      } else if (matchingConfig) {
-        this.replaceEntityState(event.detail.entity_id, event.detail);
-      }
+      if (matchingConfig) this.replaceEntityState(event.detail.entity_id, event.detail);
     };
   }
 
@@ -58,6 +61,10 @@ export default class CardInputEntities {
     config.entities.forEach((entityConfig) => {
       if (entityConfig.entity.startsWith('fhs_input_number.')) {
         normalizeFhsInputNumberConfig(entityConfig);
+        return;
+      }
+      if (entityConfig.entity.startsWith('fhs_input_select.')) {
+        normalizeFhsInputSelectConfig(entityConfig);
         return;
       }
       if (!entityConfig.entity.startsWith('fhs_input_boolean.')) return;
@@ -86,6 +93,8 @@ export default class CardInputEntities {
     entityConfigs.forEach((entityConfig, index) => {
       if (entityConfig.entity.startsWith('fhs_input_number.')) {
         this.initializeNumberEntity(entityConfig, index);
+      } else if (entityConfig.entity.startsWith('fhs_input_select.')) {
+        this.initializeSelectEntity(entityConfig, index);
       } else if (entityConfig.entity.startsWith('fhs_input_boolean.')) {
         this.initializeBooleanEntity(entityConfig, index);
       }
@@ -157,6 +166,47 @@ export default class CardInputEntities {
     };
   }
 
+  /** Creates one local select state record, including global persistence. */
+  initializeSelectEntity(entityConfig, index) {
+    const timestamp = new Date().toISOString();
+    let stateRecord = {
+      entity_id: entityConfig.entity,
+      state: entityConfig.initial,
+      last_changed: timestamp,
+      last_updated: timestamp,
+    };
+
+    if (entityConfig.scope === 'global') {
+      if (!CardInputEntities.selects.has(entityConfig.entity)) {
+        if (entityConfig.persist) {
+          const storageKey = `${CardInputEntities.selectStoragePrefix}:${entityConfig.entity}`;
+          const storedStateRecord = localStorage.getItem(storageKey);
+          if (storedStateRecord !== null) stateRecord = JSON.parse(storedStateRecord);
+          if (!entityConfig.options.includes(stateRecord.state)) {
+            stateRecord = {
+              entity_id: entityConfig.entity,
+              state: entityConfig.initial,
+              last_changed: timestamp,
+              last_updated: timestamp,
+            };
+          }
+        }
+        CardInputEntities.selects.set(entityConfig.entity, stateRecord);
+      }
+      stateRecord = CardInputEntities.selects.get(entityConfig.entity);
+    }
+
+    this.entities[index] = {
+      ...stateRecord,
+      attributes: {
+        friendly_name: entityConfig.name,
+        icon: entityConfig.icon,
+        options: [...entityConfig.options],
+      },
+      context: { id: null, parent_id: null, user_id: null },
+    };
+  }
+
   /**
    * Listens for global FHS input changes while this card is in the DOM.
    *
@@ -166,6 +216,7 @@ export default class CardInputEntities {
   connected() {
     window.addEventListener(CardInputEntities.numberEvent, this.eventHandler);
     window.addEventListener(CardInputEntities.booleanEvent, this.eventHandler);
+    window.addEventListener(CardInputEntities.selectEvent, this.eventHandler);
   }
 
   /**
@@ -177,6 +228,7 @@ export default class CardInputEntities {
   disconnected() {
     window.removeEventListener(CardInputEntities.numberEvent, this.eventHandler);
     window.removeEventListener(CardInputEntities.booleanEvent, this.eventHandler);
+    window.removeEventListener(CardInputEntities.selectEvent, this.eventHandler);
   }
 
   /** Clears the mutation marker after the card completed its update. */
@@ -230,6 +282,34 @@ export default class CardInputEntities {
         localStorage.setItem(storageKey, JSON.stringify(stateRecord));
       }
       fireEvent(window, CardInputEntities.booleanEvent, stateRecord);
+      return;
+    }
+
+    this.replaceEntityState(entityId, stateRecord);
+  }
+
+  /** Applies the local equivalent of input_select.select_option. */
+  setSelectOption(entityId, option) {
+    const entityConfig = this.config.entities.find((config) => config.entity === entityId);
+    if (!entityConfig.options.includes(option)) {
+      throw Error(`FHS input select '${entityId}' cannot select unknown option '${option}'`);
+    }
+
+    const timestamp = new Date().toISOString();
+    const stateRecord = {
+      entity_id: entityId,
+      state: option,
+      last_changed: timestamp,
+      last_updated: timestamp,
+    };
+
+    if (entityConfig.scope === 'global') {
+      CardInputEntities.selects.set(entityId, stateRecord);
+      if (entityConfig.persist) {
+        const storageKey = `${CardInputEntities.selectStoragePrefix}:${entityId}`;
+        localStorage.setItem(storageKey, JSON.stringify(stateRecord));
+      }
+      fireEvent(window, CardInputEntities.selectEvent, stateRecord);
       return;
     }
 

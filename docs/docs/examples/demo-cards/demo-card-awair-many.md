@@ -5,8 +5,8 @@ description: Explore an interactive Awair card for viewing indoor air quality me
 hideno:
 toc:
 tags:
-- Demo Card
-- Awair Card
+  - Demo Card
+  - Awair Card
 ---
 
 <!-- GT/GL -->
@@ -18,29 +18,31 @@ tags:
 This interactive Awair card brings several indoor air quality measurements together in one view. Use the controls to select a room, choose the measurement you want to inspect, and change the displayed history period.
 
 <video
-  controls
-  autoplay
-  muted
-  loop
-  playsinline
-  style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
+controls
+autoplay
+muted
+loop
+playsinline
+style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
+
 >
-  <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.webm" type="video/webm">
+
+  <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.mp4" type="video/webm">
 </video>
 
 The current value, horseshoe, colors, name, unit, and history graph follow the selected measurement. This makes it possible to explore several Awair devices without filling the dashboard with a separate card for every sensor.
 
-| Description                                                                 | Aspect ratio |
-| :-------------------------------------------------------------------------- | :----------- |
+| Description                                                                  | Aspect ratio |
+| :--------------------------------------------------------------------------- | :----------- |
 | Displays selectable measurements and history from several Awair air sensors. | `1/1.4`      |
 
 ### Available controls
 
-| Control     | Options                                                     |
-| :---------- | :---------------------------------------------------------- |
-| Room        | Living room, study, or bedroom.                             |
-| Measurement | Awair score, temperature, humidity, CO2, VOC, or PM2.5.     |
-| History     | 1 hour, 12 hours, 1 day, 2 days, 1 week, or 2 weeks.        |
+| Control     | type   | Options                                                 |
+| :---------- | :----- | :------------------------------------------------------ |
+| Room        | select | Living room, study, or bedroom.                         |
+| Measurement | select | Awair score, temperature, humidity, CO2, VOC, or PM2.5. |
+| History     | select | 1 hour, 12 hours, 1 day, 2 days, 1 week, or 2 weeks.    |
 
 Selections can be shared by multiple FHS cards on the same dashboard. Changing a control can therefore update several related cards at once and keep their displayed room, measurement, or history period synchronized.
 
@@ -51,7 +53,7 @@ Selections can be shared by multiple FHS cards on the same dashboard. Changing a
 | Selection controls | Switches between rooms, measurements, and history periods directly on the card. |
 | Horseshoe          | Displays the current measurement using its matching scale and colors.           |
 | Sparkline history  | Shows the selected measurement over the chosen period.                          |
-| Adaptive layout    | Keeps labels, values, and controls readable when their content changes.          |
+| Adaptive layout    | Keeps labels, values, and controls readable when their content changes.         |
 | Shared selections  | Keeps multiple cards synchronized while browsing the dashboard.                 |
 
 ## :material-horseshoe: Required entities
@@ -59,6 +61,7 @@ Selections can be shared by multiple FHS cards on the same dashboard. Changing a
 This example uses Awair sensors for the available rooms and measurements. Change the entity IDs in the card configuration to match the names used by your Awair integration.
 
 ## YAML definition
+
 ??? info "Definition of the interactive Awair card"
 
     ```yaml linenums="1" hl_lines="1"
@@ -99,7 +102,7 @@ This example uses Awair sensors for the available rooms and measurements. Change
 
                 return states[entityId].attributes.friendly_name
                   .replace(/^Awair Element\s*/, '');
-              ]]]           
+              ]]]
             decimals: 1
 
         constants:
