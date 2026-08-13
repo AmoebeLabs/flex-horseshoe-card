@@ -101,3 +101,36 @@ test('format decimal bounds override entity decimals last', () => {
 
   assert.equal(tool.state, '10,2');
 });
+
+test('decimals override does not duplicate a negative value split across value parts', () => {
+  const entity = {
+    entity_id: 'sensor.electricity_cost',
+    state: '-3.91',
+    attributes: { device_class: 'monetary', unit_of_measurement: 'GBP' },
+  };
+  const hass = {
+    language: 'en-US',
+    locale: { language: 'en-US', number_format: 'language' },
+    entities: { [entity.entity_id]: { entity_id: entity.entity_id } },
+    states: { [entity.entity_id]: entity },
+    // Negative monetary values arrive as separate value parts: the minus sign and the
+    // number are split by the currency symbol → [value "-", unit "£", value "3.91"].
+    formatEntityStateToParts: () => [
+      { type: 'value', value: '-' },
+      { type: 'unit', value: '£' },
+      { type: 'value', value: '3.91' },
+    ],
+    formatEntityAttributeValueToParts: () => [],
+  };
+  const tool = Object.create(StateTool.prototype);
+  tool.config = { show: { uom: 'end' } };
+  tool.entityConfig = { entity: entity.entity_id, decimals: 2 };
+  tool.entity = entity;
+  tool.card = { _hass: hass };
+  tool.textEllipsis = (value) => value;
+
+  tool.buildStateAndUom();
+
+  assert.equal(tool.state, '-3.91');
+  assert.equal(tool.uom, '£');
+});
