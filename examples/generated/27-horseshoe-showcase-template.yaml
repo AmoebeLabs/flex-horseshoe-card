@@ -1,15 +1,19 @@
-fhs_showcase_horseshoe:
+fhs_showcase_horseshoe_v2:
   template:
     type: card
     defaults:
       - entity: sensor.awair_element_study_temperature
       - name: Horseshoe showcase
       - unit: C
+
   card:
     default_entities:
       - entity: fhs_input_number.showcase_horseshoe_style
         slot: style
         initial: 0
+        min: 0
+        max: 5
+        step: 1
         scope: global
         unit: ''
       - entity: fhs_input_boolean.showcase_horseshoe_tickmarks
@@ -120,6 +124,7 @@ fhs_showcase_horseshoe:
         slot: source
         name: '[[name]]'
         unit: '[[unit]]'
+
     constants:
       horseshoe_styles:
         - fixed
@@ -139,20 +144,6 @@ fhs_showcase_horseshoe:
         - colorstopsegments
         - colorstopgradient
         - lineargradient
-      get_value_from_item_id: |
-        [[[ return Number(item.id.split('--value-')[1]); ]]]
-      background_style_button_xpos: 32
-      background_style_button_dxpos: 20
-      background_style_button_width: 14
-      offset_label_xpos: 25
-      offset_minus_xpos: 45
-      offset_value_xpos: 55
-      offset_plus_xpos: 65
-      offset_button_width: 8
-      scale_style_button_xpos: 25
-      scale_style_button_dxpos: 17
-      scale_style_button_width: 13
-      button_default_height: 8
       ypos_row_1: 100
       ypos_row_2: 112
       ypos_row_3: 124
@@ -163,8 +154,10 @@ fhs_showcase_horseshoe:
       ypos_row_8: 184
       ypos_row_9: 196
       ypos_row_10: 208
+
     layout:
       aspectratio: 1/2.1
+
       groups:
         - id: title
           xpos: 50
@@ -172,48 +165,7 @@ fhs_showcase_horseshoe:
         - id: chart
           xpos: 50
           ypos: 55
-        - id: controls
-          xpos: 50
-          ypos: calc(ypos_row_1)
-        - id: options
-          xpos: 50
-          ypos: calc(ypos_row_2)
-        - id: tick-background-style
-          xpos: 50
-          ypos: calc(ypos_row_3)
-        - id: gauge-background-style
-          xpos: 50
-          ypos: calc(ypos_row_4)
-        - id: labels-offset
-          xpos: 27
-          ypos: calc(ypos_row_5)
-        - id: background-offset
-          xpos: 77
-          ypos: calc(ypos_row_5) #165
-        - id: ticks-offset
-          xpos: 27
-          ypos: calc(ypos_row_6)
-        - id: tick-background-offset
-          xpos: 77
-          ypos: calc(ypos_row_6) #195
-        - id: horseshoe-width
-          xpos: 27
-          ypos: calc(ypos_row_7)
-        - id: scale-width
-          xpos: 77
-          ypos: calc(ypos_row_7)
-        - id: scale-background-style
-          xpos: 50
-          ypos: calc(ypos_row_8)
-        - id: major-ticks-width
-          xpos: 27
-          ypos: calc(ypos_row_9)
-        - id: minor-ticks-width
-          xpos: 77
-          ypos: calc(ypos_row_9)
-        - id: minor-ticks-offset
-          xpos: 50
-          ypos: calc(ypos_row_10)
+
       horseshoes:
         - id: showcase
           group: chart
@@ -227,28 +179,49 @@ fhs_showcase_horseshoe:
               [[[ return Number(entities[entity_slots.horseshoe_width[0]].state); ]]]
             linecap: round
           horseshoe_scale:
-            # min: 0
-            # max: 40
             width: |
               [[[ return Number(entities[entity_slots.scale_width[0]].state); ]]]
             styles:
               opacity: 0.35
           show:
-            horseshoe_style: '[[[ return constants.horseshoe_styles[Number(entities[entity_slots.style[0]].state)]; ]]]'
-            scale_style: '[[[ return constants.scale_styles[Number(entities[entity_slots.scale_style[0]].state)]; ]]]'
-            tickmarks: "[[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]"
-            labels_at: "[[[ return entities[entity_slots.show_labels[0]].state === 'on' ? 'ticks_major' : 'none'; ]]]"
-            label_badges: "[[[ return entities[entity_slots.show_label_badges[0]].state === 'on'; ]]]"
+            horseshoe_style: |
+              [[[
+                return constants.horseshoe_styles[
+                  Number(entities[entity_slots.style[0]].state)
+                ];
+              ]]]
+            scale_style: |
+              [[[
+                return constants.scale_styles[
+                  Number(entities[entity_slots.scale_style[0]].state)
+                ];
+              ]]]
+            tickmarks: |
+              [[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]
+            labels_at: |
+              [[[
+                return entities[entity_slots.show_labels[0]].state === 'on'
+                  ? 'ticks_major'
+                  : 'none';
+              ]]]
+            label_badges: |
+              [[[ return entities[entity_slots.show_label_badges[0]].state === 'on'; ]]]
             tick_background: |
               [[[
-                const enabled = entities[entity_slots.show_tick_background[0]].state === 'on';
-                const style = constants.background_styles[Number(entities[entity_slots.tick_background_style[0]].state)];
+                const enabled =
+                  entities[entity_slots.show_tick_background[0]].state === 'on';
+                const style = constants.background_styles[
+                  Number(entities[entity_slots.tick_background_style[0]].state)
+                ];
                 return enabled ? style : 'none';
               ]]]
             horseshoe_background: |
               [[[
-                const enabled = entities[entity_slots.show_background[0]].state === 'on';
-                const style = constants.background_styles[Number(entities[entity_slots.background_style[0]].state)];
+                const enabled =
+                  entities[entity_slots.show_background[0]].state === 'on';
+                const style = constants.background_styles[
+                  Number(entities[entity_slots.background_style[0]].state)
+                ];
                 return enabled ? style : 'none';
               ]]]
           horseshoe_background:
@@ -282,7 +255,11 @@ fhs_showcase_horseshoe:
                 opacity: 0.5
             background:
               offset: |
-                [[[ return Number(entities[entity_slots.tick_background_offset[0]].state); ]]]
+                [[[
+                  return Number(
+                    entities[entity_slots.tick_background_offset[0]].state
+                  );
+                ]]]
               width: 7
               styles:
                 fill: var(--divider-color)
@@ -308,6 +285,7 @@ fhs_showcase_horseshoe:
               20: '#66bb6a'
               30: '#f9a825'
               40: '#d32f2f'
+
       states:
         - id: value
           group: chart
@@ -320,63 +298,7 @@ fhs_showcase_horseshoe:
             font-size: 2.6em
             text-anchor: middle
             dominant-baseline: central
-        - id: labels-offset-value
-          group: labels-offset
-          entity_index: labels_offset[0]
-          xpos: calc(offset_value_xpos)
-          ypos: 50
-          show:
-            uom: none
-          styles:
-            font-size: 0.7em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: ticks-offset-value
-          same_as: labels-offset-value
-          group: ticks-offset
-          entity_index: ticks_offset[0]
-        - id: tick-background-offset-value
-          same_as: ticks-offset-value
-          group: tick-background-offset
-          entity_index: tick_background_offset[0]
-        - id: background-offset-value
-          same_as: tick-background-offset-value
-          group: background-offset
-          entity_index: background_offset[0]
-        - id: horseshoe-width-value
-          group: horseshoe-width
-          entity_index: horseshoe_width[0]
-          xpos: calc(offset_value_xpos)
-          ypos: 50
-          show:
-            uom: none
-          styles:
-            font-size: 0.7em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: scale-width-value
-          same_as: horseshoe-width-value
-          group: scale-width
-          entity_index: scale_width[0]
-        - id: major-ticks-width-value
-          group: major-ticks-width
-          entity_index: major_ticks_width[0]
-          xpos: calc(offset_value_xpos)
-          ypos: 50
-          show:
-            uom: none
-          styles:
-            font-size: 0.7em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: minor-ticks-width-value
-          same_as: major-ticks-width-value
-          group: minor-ticks-width
-          entity_index: minor_ticks_width[0]
-        - id: minor-ticks-offset-value
-          same_as: major-ticks-width-value
-          group: minor-ticks-offset
-          entity_index: minor_ticks_offset_delta[0]
+
       texts:
         - id: title
           group: title
@@ -388,654 +310,296 @@ fhs_showcase_horseshoe:
             font-weight: bold
             text-anchor: middle
             dominant-baseline: central
-        - id: labels-offset-label
-          group: labels-offset
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Labels
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: labels-offset-minus
-          group: labels-offset
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          text: '-'
-          styles:
-            font-size: 0.8em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: labels-offset-plus
-          same_as: labels-offset-minus
-          group: labels-offset
-          xpos: calc(offset_plus_xpos)
-          text: '+'
-        - id: ticks-offset-label
-          same_as: labels-offset-label
-          group: ticks-offset
-          text: Ticks
-        - id: ticks-offset-minus
-          same_as: labels-offset-minus
-          group: ticks-offset
-        - id: ticks-offset-plus
-          same_as: labels-offset-plus
-          group: ticks-offset
-        - id: tick-background-offset-label
-          same_as: labels-offset-label
-          group: tick-background-offset
-          text: Tick BG
-        - id: tick-background-offset-minus
-          same_as: labels-offset-minus
-          group: tick-background-offset
-        - id: tick-background-offset-plus
-          same_as: labels-offset-plus
-          group: tick-background-offset
-        - id: background-offset-label
-          same_as: labels-offset-label
-          group: background-offset
-          text: Gauge BG
-        - id: background-offset-minus
-          same_as: labels-offset-minus
-          group: background-offset
-        - id: background-offset-plus
-          same_as: labels-offset-plus
-          group: background-offset
-        - id: horseshoe-width-label
-          group: horseshoe-width
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Horseshoe
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: horseshoe-width-minus
-          group: horseshoe-width
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          text: '-'
-          styles:
-            font-size: 0.8em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: horseshoe-width-plus
-          same_as: horseshoe-width-minus
-          group: horseshoe-width
-          xpos: calc(offset_plus_xpos)
-          text: '+'
-        - id: scale-width-label
-          group: scale-width
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Scale
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: scale-width-minus
-          same_as: horseshoe-width-minus
-          group: scale-width
-          text: '-'
-        - id: scale-width-plus
-          same_as: horseshoe-width-plus
-          group: scale-width
-          text: '+'
-        - id: major-ticks-width-label
-          group: major-ticks-width
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Major width
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: major-ticks-width-minus
-          group: major-ticks-width
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          text: '-'
-          styles:
-            font-size: 0.8em
-            text-anchor: middle
-            dominant-baseline: central
-        - id: major-ticks-width-plus
-          same_as: major-ticks-width-minus
-          group: major-ticks-width
-          xpos: calc(offset_plus_xpos)
-          text: '+'
-        - id: minor-ticks-width-label
-          group: minor-ticks-width
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Minor width
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: minor-ticks-width-minus
-          same_as: major-ticks-width-minus
-          group: minor-ticks-width
-        - id: minor-ticks-width-plus
-          same_as: major-ticks-width-plus
-          group: minor-ticks-width
-        - id: minor-ticks-offset-label
-          group: minor-ticks-offset
-          xpos: calc(offset_label_xpos)
-          ypos: 50
-          text: Minor delta
-          styles:
-            font-size: 0.52em
-            text-anchor: start
-            dominant-baseline: central
-        - id: minor-ticks-offset-minus
-          same_as: major-ticks-width-minus
-          group: minor-ticks-offset
-        - id: minor-ticks-offset-plus
-          same_as: major-ticks-width-plus
-          group: minor-ticks-offset
-        - id: scale-style--value-0
-          group: scale-background-style
-          entity_index: scale_style[0]
-          xpos: calc(scale_style_button_xpos)
-          ypos: 50
-          text: None
-          styles:
-            font-size: 0.42em
-            text-anchor: middle
-            dominant-baseline: central
-            pointer-events: none
-            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
-        - id: scale-style--value-1
-          same_as: scale-style--value-0
-          same_as_dxpos: calc(scale_style_button_dxpos)
-          text: Fixed
-        - id: scale-style--value-2
-          same_as: scale-style--value-1
-          same_as_dxpos: calc(scale_style_button_dxpos)
-          text: Segments
-        - id: scale-style--value-3
-          same_as: scale-style--value-2
-          same_as_dxpos: calc(scale_style_button_dxpos)
-          text: Gradient
-        - id: scale-style--value-4
-          same_as: scale-style--value-3
-          same_as_dxpos: calc(scale_style_button_dxpos)
-          text: Linear
-        - id: scale-style-label
-          group: scale-background-style
-          xpos: 2
-          ypos: 50
-          text: Scale BG
-          styles:
-            font-size: 0.48em
-            text-anchor: start
-            dominant-baseline: central
-        - id: tick-background-style--value-0
-          group: tick-background-style
-          entity_index: tick_background_style[0]
-          xpos: calc(background_style_button_xpos)
-          ypos: 50
-          text: None
-          styles:
-            font-size: 0.42em
-            text-anchor: middle
-            dominant-baseline: central
-            pointer-events: none
-            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
-        - id: tick-background-style--value-1
-          same_as: tick-background-style--value-0
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Fixed
-        - id: tick-background-style--value-2
-          same_as: tick-background-style--value-1
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Segments
-        - id: tick-background-style--value-3
-          same_as: tick-background-style--value-2
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Gradient
-        - id: gauge-background-style--value-0
-          same_as: tick-background-style--value-0
-          group: gauge-background-style
-          entity_index: background_style[0]
-          text: None
-        - id: gauge-background-style--value-1
-          same_as: gauge-background-style--value-0
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Fixed
-        - id: gauge-background-style--value-2
-          same_as: gauge-background-style--value-1
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Segments
-        - id: gauge-background-style--value-3
-          same_as: gauge-background-style--value-2
-          same_as_dxpos: calc(background_style_button_dxpos)
-          text: Gradient
-        - id: tick-background-style-label
-          group: tick-background-style
-          xpos: 2
-          ypos: 50
-          text: Tick BG
-          styles:
-            font-size: 0.48em
-            text-anchor: start
-            dominant-baseline: central
-        - id: gauge-background-style-label
-          group: gauge-background-style
-          xpos: 2
-          ypos: 50
-          text: Gauge BG
-          styles:
-            font-size: 0.48em
-            text-anchor: start
-            dominant-baseline: central
-        - id: style--value-0
-          group: controls
-          entity_index: style[0]
-          xpos: 10
-          ypos: 50
-          text: Fixed
-          styles:
-            font-size: 0.48em
-            text-anchor: middle
-            dominant-baseline: central
-            pointer-events: none
-        - id: style--value-1
-          same_as: style--value-0
-          same_as_dxpos: 16
-          text: Auto
-        - id: style--value-2
-          same_as: style--value-1
-          same_as_dxpos: 16
-          text: Stop
-        - id: style--value-3
-          same_as: style--value-2
-          same_as_dxpos: 16
-          text: Segments
-        - id: style--value-4
-          same_as: style--value-3
-          same_as_dxpos: 16
-          text: Gradient
-        - id: style--value-5
-          same_as: style--value-4
-          same_as_dxpos: 16
-          text: Linear
-        - id: option-tickmarks
-          group: options
-          entity_index: show_tickmarks[0]
-          xpos: 8
-          ypos: 50
-          text: Ticks
-          styles:
-            font-size: 0.52em
-            text-anchor: middle
-            dominant-baseline: central
-            pointer-events: none
-            fill: "[[[ return state === 'on' ? 'var(--primary-background-color)' : 'var(--primary-text-color)'; ]]]"
-        - id: option-labels
-          same_as: option-tickmarks
-          same_as_dxpos: 16
-          entity_index: show_labels[0]
-          text: Labels
-        - id: option-badges
-          same_as: option-labels
-          same_as_dxpos: 16
-          entity_index: show_label_badges[0]
-          text: Badges
-        - id: option-tick-background
-          same_as: option-badges
-          same_as_dxpos: 16
-          entity_index: show_tick_background[0]
-          text: Tick BG
-        - id: option-background
-          same_as: option-tick-background
-          same_as_dxpos: 16
-          entity_index: show_background[0]
-          text: Gauge BG
-      rectangles:
-        - id: option-tickmarks
-          group: options
-          entity_index: show_tickmarks[0]
-          xpos: 8
-          ypos: 50
-          width: 14
-          height: calc(button_default_height)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: toggle
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill-opacity: 0.7
-            fill: "[[[ return state === 'on' ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
-        - id: option-labels
-          same_as: option-tickmarks
-          same_as_dxpos: 16
-          entity_index: show_labels[0]
-        - id: option-badges
-          same_as: option-labels
-          same_as_dxpos: 16
-          entity_index: show_label_badges[0]
-        - id: option-tick-background
-          same_as: option-badges
-          same_as_dxpos: 16
-          entity_index: show_tick_background[0]
-        - id: option-background
-          same_as: option-tick-background
-          same_as_dxpos: 16
-          entity_index: show_background[0]
-        - id: major-ticks-width-minus
-          group: major-ticks-width
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          width: calc(offset_button_width)
-          height: calc(button_default_height)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_major_ticks_width
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill: var(--card-background-color)
-            fill-opacity: 0.7
-        - id: major-ticks-width-plus
-          same_as: major-ticks-width-minus
-          group: major-ticks-width
-          xpos: calc(offset_plus_xpos)
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_major_ticks_width
-        - id: minor-ticks-width-minus
-          same_as: major-ticks-width-minus
-          group: minor-ticks-width
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_width
-        - id: minor-ticks-width-plus
-          same_as: major-ticks-width-plus
-          group: minor-ticks-width
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_width
-        - id: minor-ticks-offset-minus
-          same_as: major-ticks-width-minus
-          group: minor-ticks-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_offset_delta
-        - id: minor-ticks-offset-plus
-          same_as: major-ticks-width-plus
-          group: minor-ticks-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_minor_ticks_offset_delta
-        - id: scale-style--value-0
-          group: scale-background-style
-          entity_index: scale_style[0]
-          xpos: calc(scale_style_button_xpos)
-          ypos: 50
-          width: calc(scale_style_button_width)
-          height: calc(button_default_height)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.set_value
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_scale_style
-            data:
-              value: ref(get_value_from_item_id)
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill-opacity: 0.7
-            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
-        - id: scale-style--value-1
-          same_as: scale-style--value-0
-          same_as_dxpos: calc(scale_style_button_dxpos)
-        - id: scale-style--value-2
-          same_as: scale-style--value-1
-          same_as_dxpos: calc(scale_style_button_dxpos)
-        - id: scale-style--value-3
-          same_as: scale-style--value-2
-          same_as_dxpos: calc(scale_style_button_dxpos)
-        - id: scale-style--value-4
-          same_as: scale-style--value-3
-          same_as_dxpos: calc(scale_style_button_dxpos)
-        - id: tick-background-style--value-0
-          group: tick-background-style
-          entity_index: tick_background_style[0]
-          xpos: calc(background_style_button_xpos)
-          ypos: 50
-          width: calc(background_style_button_width)
-          height: calc(button_default_height)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.set_value
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_tick_background_style
-            data:
-              value: ref(get_value_from_item_id)
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill-opacity: 0.7
-            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
-        - id: tick-background-style--value-1
-          same_as: tick-background-style--value-0
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: tick-background-style--value-2
-          same_as: tick-background-style--value-1
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: tick-background-style--value-3
-          same_as: tick-background-style--value-2
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: gauge-background-style--value-0
-          same_as: tick-background-style--value-0
-          group: gauge-background-style
-          entity_index: background_style[0]
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.set_value
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_background_style
-            data:
-              value: ref(get_value_from_item_id)
-        - id: gauge-background-style--value-1
-          same_as: gauge-background-style--value-0
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: gauge-background-style--value-2
-          same_as: gauge-background-style--value-1
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: gauge-background-style--value-3
-          same_as: gauge-background-style--value-2
-          same_as_dxpos: calc(background_style_button_dxpos)
-        - id: style--value-0
-          group: controls
-          entity_index: style[0]
-          xpos: 10
-          ypos: 50
-          width: 13
-          height: calc(button_default_height)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.set_value
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_style
-            data:
-              value: ref(get_value_from_item_id)
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill-opacity: 0.7
-            fill: "[[[ return Number(state) === Number(item.id.split('--value-')[1]) ? 'var(--primary-color)' : 'var(--card-background-color)'; ]]]"
-        - id: style--value-1
-          same_as: style--value-0
-          same_as_dxpos: 16
-        - id: style--value-2
-          same_as: style--value-1
-          same_as_dxpos: 16
-        - id: style--value-3
-          same_as: style--value-2
-          same_as_dxpos: 16
-        - id: style--value-4
-          same_as: style--value-3
-          same_as_dxpos: 16
-        - id: style--value-5
-          same_as: style--value-4
-          same_as_dxpos: 16
 
-        - id: horseshoe-width-minus
-          group: horseshoe-width
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          width: calc(offset_button_width)
-          height: calc(offset_button_width)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_width
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill: var(--card-background-color)
-            fill-opacity: 0.7
-        - id: horseshoe-width-plus
-          same_as: horseshoe-width-minus
-          group: horseshoe-width
-          xpos: calc(offset_plus_xpos)
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_width
-        - id: scale-width-minus
-          same_as: horseshoe-width-minus
-          group: scale-width
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_scale_width
-        - id: scale-width-plus
-          same_as: horseshoe-width-plus
-          group: scale-width
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_scale_width
-        - id: labels-offset-minus
-          group: labels-offset
-          xpos: calc(offset_minus_xpos)
-          ypos: 50
-          width: calc(offset_button_width)
-          height: calc(offset_button_width)
-          radius: 2
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_labels_offset
-          styles:
-            stroke-width: 1
-            stroke: var(--divider-color)
-            fill: var(--card-background-color)
-            fill-opacity: 0.7
-        - id: labels-offset-plus
-          same_as: labels-offset-minus
-          group: labels-offset
-          xpos: calc(offset_plus_xpos)
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_labels_offset
-        - id: ticks-offset-minus
-          same_as: labels-offset-minus
-          group: ticks-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_ticks_offset
-        - id: ticks-offset-plus
-          same_as: labels-offset-plus
-          group: ticks-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_ticks_offset
-        - id: tick-background-offset-minus
-          same_as: ticks-offset-minus
-          group: tick-background-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_tick_background_offset
-        - id: tick-background-offset-plus
-          same_as: ticks-offset-plus
-          group: tick-background-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_tick_background_offset
-        - id: background-offset-minus
-          same_as: ticks-offset-minus
-          group: background-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.decrement
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_background_offset
-        - id: background-offset-plus
-          same_as: ticks-offset-plus
-          group: background-offset
-          tap_action:
-            haptic: selection
-            action: perform-action
-            perform_action: fhs_input_number.increment
-            target:
-              entity_id: fhs_input_number.showcase_horseshoe_background_offset
+      controls:
+        - id: horseshoe-style
+          type: select
+          entity_index: style[0]
+          xpos: 50
+          ypos: calc(ypos_row_1)
+          width: 96
+          height: 9
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.42em
+          option_map:
+            - { value: 0, text: Fixed }
+            - { value: 1, text: Auto }
+            - { value: 2, text: Stop }
+            - { value: 3, text: Segments }
+            - { value: 4, text: Gradient }
+            - { value: 5, text: Linear }
+
+        - id: show-tickmarks
+          type: toggle
+          entity_index: show_tickmarks[0]
+          xpos: 10
+          ypos: calc(ypos_row_2)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Ticks
+            styles:
+              font-size: 0.42em
+
+        - id: show-labels
+          type: toggle
+          entity_index: show_labels[0]
+          xpos: 30
+          ypos: calc(ypos_row_2)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Labels
+            styles:
+              font-size: 0.42em
+
+        - id: show-label-badges
+          type: toggle
+          entity_index: show_label_badges[0]
+          xpos: 50
+          ypos: calc(ypos_row_2)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Badges
+            styles:
+              font-size: 0.42em
+
+        - id: show-tick-background
+          type: toggle
+          entity_index: show_tick_background[0]
+          xpos: 70
+          ypos: calc(ypos_row_2)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Tick BG
+            styles:
+              font-size: 0.42em
+
+        - id: show-background
+          type: toggle
+          entity_index: show_background[0]
+          xpos: 90
+          ypos: calc(ypos_row_2)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Gauge BG
+            styles:
+              font-size: 0.42em
+
+        - id: tick-background-style
+          type: select
+          entity_index: tick_background_style[0]
+          xpos: 58
+          ypos: calc(ypos_row_3)
+          width: 72
+          height: 9
+          show:
+            item_style: outlined_round
+          label:
+            position: start
+            gap: 3
+            text: Tick BG
+            styles:
+              font-size: 0.48em
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.42em
+          option_map:
+            - { value: 0, text: None }
+            - { value: 1, text: Fixed }
+            - { value: 2, text: Segments }
+            - { value: 3, text: Gradient }
+
+        - id: gauge-background-style
+          type: select
+          entity_index: background_style[0]
+          xpos: 58
+          ypos: calc(ypos_row_4)
+          width: 72
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Gauge BG
+            styles:
+              font-size: 0.48em
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.42em
+          option_map:
+            - { value: 0, text: None }
+            - { value: 1, text: Fixed }
+            - { value: 2, text: Segments }
+            - { value: 3, text: Gradient }
+
+        - id: labels-offset
+          type: number
+          entity_index: labels_offset[0]
+          xpos: 32
+          ypos: calc(ypos_row_5)
+          width: 24
+          height: 8
+          show:
+            item_style: outlined_round
+          label:
+            position: start
+            gap: 3
+            text: Labels
+            styles:
+              font-size: 0.52em
+
+        - id: background-offset
+          type: number
+          entity_index: background_offset[0]
+          xpos: 82
+          ypos: calc(ypos_row_5)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Gauge BG
+            styles:
+              font-size: 0.52em
+
+        - id: ticks-offset
+          type: number
+          entity_index: ticks_offset[0]
+          xpos: 32
+          ypos: calc(ypos_row_6)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Ticks
+            styles:
+              font-size: 0.52em
+
+        - id: tick-background-offset
+          type: number
+          entity_index: tick_background_offset[0]
+          xpos: 82
+          ypos: calc(ypos_row_6)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Tick BG
+            styles:
+              font-size: 0.52em
+
+        - id: horseshoe-width
+          type: number
+          entity_index: horseshoe_width[0]
+          xpos: 32
+          ypos: calc(ypos_row_7)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Horseshoe
+            styles:
+              font-size: 0.52em
+
+        - id: scale-width
+          type: number
+          entity_index: scale_width[0]
+          xpos: 82
+          ypos: calc(ypos_row_7)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Scale
+            styles:
+              font-size: 0.52em
+
+        - id: scale-style
+          type: select
+          entity_index: scale_style[0]
+          xpos: 58
+          ypos: calc(ypos_row_8)
+          width: 72
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Scale BG
+            styles:
+              font-size: 0.48em
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.42em
+          option_map:
+            - { value: 0, text: None }
+            - { value: 1, text: Fixed }
+            - { value: 2, text: Segments }
+            - { value: 3, text: Gradient }
+            - { value: 4, text: Linear }
+
+        - id: major-ticks-width
+          type: number
+          entity_index: major_ticks_width[0]
+          xpos: 32
+          ypos: calc(ypos_row_9)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Major width
+            styles:
+              font-size: 0.52em
+
+        - id: minor-ticks-width
+          type: number
+          entity_index: minor_ticks_width[0]
+          xpos: 82
+          ypos: calc(ypos_row_9)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Minor width
+            styles:
+              font-size: 0.52em
+
+        - id: minor-ticks-offset
+          type: number
+          entity_index: minor_ticks_offset_delta[0]
+          xpos: 55
+          ypos: calc(ypos_row_10)
+          width: 24
+          height: 8
+          label:
+            position: start
+            gap: 3
+            text: Minor delta
+            styles:
+              font-size: 0.52em
