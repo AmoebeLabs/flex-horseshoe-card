@@ -6,6 +6,10 @@ import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /** Owns card geometry, runtime groups, the viewBox, and reusable SVG definitions. */
 export default class CardLayout {
+  /**
+   * Creates card geometry state and reusable SVG definition managers that share
+   * the card's template evaluator and id namespace.
+   */
   constructor(templates, cardId) {
     this.templates = templates;
     this.cardId = cardId;

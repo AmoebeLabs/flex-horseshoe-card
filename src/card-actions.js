@@ -5,6 +5,10 @@ const DEFAULT_TAP_ACTION = { action: 'more-info' };
 
 /** Owns gesture selection, entity targeting and action execution. */
 export default class CardActions {
+  /**
+   * Stores the card element and local input-entity service used by normalized
+   * Home Assistant gesture actions.
+   */
   constructor(element, inputEntities) {
     this.element = element;
     this.inputEntities = inputEntities;
@@ -162,13 +166,5 @@ export default class CardActions {
 
     if (gestureConfig.haptic) fireEvent(this.element, 'haptic', gestureConfig.haptic);
     await actions.reduce((previousAction, configuredAction) => previousAction.then(() => this.executeAction(configuredAction, entityId)), Promise.resolve());
-  }
-
-  /** Handles the legacy card-shell click as a normal tap on entity zero. */
-  handleCardClick(event) {
-    const clickedChildCard = event.composedPath().some((node) => node.classList?.contains('fhs-child-card'));
-    if (clickedChildCard || !this.entities[0]) return;
-
-    this.handleAction({ detail: { action: 'tap' }, stopPropagation: () => event.stopPropagation() }, undefined, 0);
   }
 }

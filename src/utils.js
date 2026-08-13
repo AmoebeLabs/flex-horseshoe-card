@@ -59,6 +59,12 @@ export default class Utils {
     return (argDimension / 100) * SVG_DEFAULT_DIMENSIONS;
   }
 
+  /**
+   * Returns the active Lovelace configuration and synchronizes its current
+   * view index with hui-root's runtime selection.
+   *
+   * @returns {object|null} Active Lovelace configuration.
+   */
   static getLovelace() {
     let root = window.document.querySelector('home-assistant');
     root = root && root.shadowRoot;

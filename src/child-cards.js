@@ -127,6 +127,12 @@ export default class ChildCards {
     );
   }
 
+  /**
+   * Positions child cards in the parent's logical aspect-ratio space. Sorting
+   * by zpos preserves explicit stacking while source order breaks equal layers.
+   *
+   * @returns {object} Lit HTML template for the child-card layer.
+   */
   render() {
     const [aspectWidth, aspectHeight] = this.parentCard.cardLayout.aspectratio.split('/').map(Number);
     const logicalCardWidth = aspectWidth * 100;

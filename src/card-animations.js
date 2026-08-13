@@ -2,6 +2,10 @@ import ConfigHelper from './config-helper.js';
 
 /** Owns evaluated animation styles and state-trigger matching. */
 export default class CardAnimations {
+  /**
+   * Creates stable style maps per renderable section so matching state
+   * animations can update entries without replacing domain references.
+   */
   constructor() {
     this.styles = {
       lines: {}, vlines: {}, hlines: {}, circles: {}, arcs: {}, rectangles: {},

@@ -16,6 +16,10 @@ const RENDER_SECTIONS = ['rectangles', 'circles', 'arcs', 'horseshoes', 'lines',
 
 /** Owns every configured layout tool and forwards their shared lifecycle phases. */
 export default class CardTools {
+  /**
+   * Creates stable section arrays for every tool family. Main and runtime
+   * domains retain these arrays throughout the card lifecycle.
+   */
   constructor(card, templates, cardId) {
     this.card = card;
     this.templates = templates;

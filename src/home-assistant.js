@@ -1,5 +1,11 @@
 /** Owns the current Home Assistant object and connection-ready lifecycle. */
 export default class HomeAssistant {
+  /**
+   * Creates the card's Home Assistant lifecycle state. The ready callback keeps
+   * one stable function identity so websocket listeners can follow reconnects.
+   *
+   * @param {Function} notifyToolsConnected - Notifies tools after websocket readiness.
+   */
   constructor(notifyToolsConnected) {
     this.hass = undefined;
     this.localeSignature = undefined;

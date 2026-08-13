@@ -184,6 +184,14 @@ export default class ControlToggle extends ControlBase {
     this.iconTool = new IconTool(iconConfig, 0, this.templates, this.cardId, this.card);
   }
 
+  /**
+   * Validates the toggle variant and completes the selected visual preset.
+   * The resulting config contains orientation-specific track, thumb and icon
+   * geometry so runtime state changes only select the prepared on/off branch.
+   *
+   * @param {object} config - Merged toggle configuration.
+   * @returns {object} Completed toggle configuration.
+   */
   buildConfig(config) {
     const SWITCH_STYLES = {
       // === 1. IOS STYLE ===
@@ -207,7 +215,7 @@ export default class ControlToggle extends ControlBase {
         unchecked: {
           track: { styles: { fill: '#E9E9EA', opacity: '1.0' } },
           thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-          icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Subtiel transparant icoon bij 'uit'
+          icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Keep the off-state icon visually secondary.
         },
       },
 
@@ -241,7 +249,7 @@ export default class ControlToggle extends ControlBase {
           icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
         },
         unchecked: {
-          track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Track dimt bij 'uit'
+          track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Dim the track in the off state.
           thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)' } },
           icon: { styles: { fill: '#757575', opacity: '0.5' } },
         },
@@ -261,7 +269,7 @@ export default class ControlToggle extends ControlBase {
         trackH: 26,
         trackRx: 0,
         checked: {
-          track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // Extra stroke bij 'aan'
+          track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // The checked outline reinforces the industrial state.
           thumb: { styles: { fill: '#FFFFFF' } },
           icon: { styles: { fill: '#D32F2F' } },
         },
@@ -327,17 +335,15 @@ export default class ControlToggle extends ControlBase {
     };
 
     if (config[styleName].icon) {
-      // Bereken hoeveel procent van de knop het icoon mag innemen (bijv. 65%)
+      // Keep the icon inside the thumb while preserving its 24-unit source grid.
       const iconCoverage = 0.65;
 
-      // 1. Bereken de dynamische schaalfactor op basis van de huidige knopgrootte
       const iconScale = (config[styleName].knobW * iconCoverage) / 24;
 
-      // 2. Bereken de exacte verschuiving om het icoon perfect te centreren binnen deze specifieke knop
+      // Translation happens in the icon's unscaled coordinate system.
       const iconTranslateX = (config[styleName].knobW - 24 * iconScale) / 2 / iconScale;
       const iconTranslateY = (config[styleName].knobH - 24 * iconScale) / 2 / iconScale;
 
-      // 3. Sla de kant-en-klare transformatie-string op in de config
       config[styleName].iconTransform = `scale(${iconScale}) translate(${iconTranslateX} ${iconTranslateY})`;
     } else {
       config[styleName].iconTransform = '';
@@ -345,7 +351,8 @@ export default class ControlToggle extends ControlBase {
     return config;
   }
 
-  /* Validates the configured toggle orientation at config/runtime boundaries.
+  /**
+   * Validates the configured toggle orientation at config/runtime boundaries.
    *
    * @param {string} orientation - Line orientation from config.
    */
@@ -371,12 +378,6 @@ export default class ControlToggle extends ControlBase {
     }
   }
 
-  /**
-   * Converts toggle config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime area config.
-   * @returns {object} SVG coordinates.
-   */
   /** Publishes the toggle entity to the internal IconTool. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
@@ -394,6 +395,13 @@ export default class ControlToggle extends ControlBase {
     }
   }
 
+  /**
+   * Fits the selected preset's native viewBox into the configured control size
+   * and converts its center through the card's group geometry.
+   *
+   * @param {object} config - Static or runtime toggle configuration.
+   * @returns {object} SVG position and dimensions.
+   */
   calculateSvgDimensions(config = this.config) {
     const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const viz = config[config.show.item_style];
@@ -407,40 +415,7 @@ export default class ControlToggle extends ControlBase {
     return svgDimensions;
   }
 
-  /**
-   * SwitchTool::_renderSwitch()
-   *
-   * Summary.
-   * Renders the switch using precalculated coordinates and dimensions.
-   * Only the runtime style is calculated before rendering the switch
-   *
-   */
-
-  // _renderSwitch() {
-  //   return svg`
-  //     <g>
-  //       <rect class="${classMap(this.classes.track)}" x="${this.svg.track.x1}" y="${this.svg.track.y1}"
-  //         width="${this.svg.track.width}" height="${this.svg.track.height}" rx="${this.svg.track.radius}"
-  //         style="${styleMap(this.styles.track)}"
-  //       />
-  //       <rect class="${classMap(this.classes.thumb)}" x="${this.svg.thumb.x1}" y="${this.svg.thumb.y1}"
-  //         width="${this.svg.thumb.width}" height="${this.svg.thumb.height}" rx="${this.svg.thumb.radius}"
-  //         style="${styleMap(this.styles.thumb)}"
-  //       />
-  //     </g>
-  //     `;
-  // }
-
-  /** *****************************************************************************
-   * SwitchTool::render()
-   *
-   * Summary.
-   * The render() function for this object.
-   *
-   * https://codepen.io/joegaffey/pen/vrVZaN
-   *
-   */
-
+  /** Builds the native-viewBox track, thumb and optional icon for the current state. */
   _renderToggle() {
     const styleName = this.config.show.item_style;
     const itemConfig = this.config;
@@ -539,6 +514,7 @@ export default class ControlToggle extends ControlBase {
       `;
   }
 
+  /** Renders the prepared toggle visualization inside the shared control shell. */
   render() {
     const toggle = svg`
       <g

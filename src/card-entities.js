@@ -4,6 +4,10 @@ import Colors from './colors.js';
 
 /** Owns runtime entity configuration and derived fhs_sparkline states. */
 export default class CardEntities {
+  /**
+   * Stores the shared template and theme domains used while resolved entity
+   * configuration is rebuilt for each Home Assistant update.
+   */
   constructor(templates, cardTheme) {
     this.templates = templates;
     this.cardTheme = cardTheme;
