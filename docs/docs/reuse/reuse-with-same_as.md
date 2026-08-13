@@ -338,7 +338,7 @@ The card resolves the calculations as follows:
 
 `calc()` is evaluated while the configuration is processed. It is static and is not reevaluated during entity updates.
 
-See [Combining `calc()` with `same_as`](reuse-calc-same-as.md) for more detailed examples.
+See [Combining `calc()` with `same_as`](reuse-combined.md) for more detailed examples.
 
 ## :material-horseshoe: Supported sections
 
@@ -385,7 +385,7 @@ The clearest configuration is usually the one that makes the intended visual rel
 ## :material-horseshoe: Related documentation
 
 * [Less YAML with Reuse](reuse-introduction.md)
-* [Combining `calc()` with `same_as`](reuse-calc-same-as.md)
+* [Combining `calc()` with `same_as`](reuse-combined.md)
 * [Reusable YAML Card Examples](reuse-card-examples.md)
 * [Reuse Reference](reuse-reference.md)
 * [Groups](../sections/groups-section.md)
