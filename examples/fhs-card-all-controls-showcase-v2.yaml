@@ -1,8 +1,8 @@
-fhs_all_controls_showcase_v2:
+fhs_card_all_controls_showcase_v2:
   template:
     type: card
     defaults:
-      - fhs_all_controls_showcase_update_interval: 100
+      - fhs_card_all_controls_showcase_update_interval: 100
 
   card:
     entities:
@@ -299,7 +299,7 @@ fhs_all_controls_showcase_v2:
           width: 82
           height: 12
           interaction:
-            update_interval: "[[fhs_all_controls_showcase_update_interval]]"
+            update_interval: "[[fhs_card_all_controls_showcase_update_interval]]"
           value:
             position: top
             state:
@@ -341,7 +341,7 @@ fhs_all_controls_showcase_v2:
           width: 36
           height: 36
           interaction:
-            update_interval: "[[fhs_all_controls_showcase_update_interval]]"
+            update_interval: "[[fhs_card_all_controls_showcase_update_interval]]"
           value:
             position: center
             state:

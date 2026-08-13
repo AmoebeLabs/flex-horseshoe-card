@@ -1,16 +1,16 @@
-fhs_button_showcase:
+fhs_card_button_showcase_v1:
   template:
     type: card
     defaults:
-      # - fhs_button_showcase_toggle_entity: input_boolean.demo_toggle
-      - fhs_button_showcase_toggle_entity: light.livingroom_light_duo_left_light
-      - fhs_button_showcase_select_entity: input_select.demo_mode
-      - fhs_button_showcase_number_entity: input_number.demo_value
+      # - fhs_card_button_showcase_toggle_entity: input_boolean.demo_toggle
+      - fhs_card_button_showcase_toggle_entity: light.livingroom_light_duo_left_light
+      - fhs_card_button_showcase_select_entity: input_select.demo_mode
+      - fhs_card_button_showcase_number_entity: input_number.demo_value
   card:
     entities:
-      - entity: "[[fhs_button_showcase_toggle_entity]]"
-      - entity: "[[fhs_button_showcase_select_entity]]"
-      - entity: "[[fhs_button_showcase_number_entity]]"
+      - entity: "[[fhs_card_button_showcase_toggle_entity]]"
+      - entity: "[[fhs_card_button_showcase_select_entity]]"
+      - entity: "[[fhs_card_button_showcase_number_entity]]"
     layout:
       aspectratio: 1/1.4
       controls:
