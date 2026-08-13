@@ -236,6 +236,7 @@ export default class IconTool extends BaseTool {
     if (!elements.length) return;
 
     SVGInjector(elements, {
+      /** Removes source dimensions so IconTool remains responsible for sizing. */
       beforeEach(svgNode) {
         svgNode.removeAttribute('height');
         svgNode.removeAttribute('width');

@@ -3,6 +3,10 @@ import Palette from './palettes.js';
 
 /** Owns Home Assistant theme state, color mode and loaded palettes. */
 export default class CardTheme {
+  /**
+   * Stores the card host and callbacks required when theme colors invalidate
+   * cached palettes, gradients and horseshoe paths.
+   */
   constructor(element, redrawGradients, updateCard) {
     this.element = element;
     this.redrawGradients = redrawGradients;

@@ -165,7 +165,7 @@ export default class SparklineGraphTool extends BaseTool {
       height: 25,
       margin: 0,
       history: {
-        period: 'rolling_window', // maakt niet uit wat hier staat? wordt niet gebruikt??
+        period: 'rolling_window',
       },
       period: {
         type: 'calendar',
@@ -176,12 +176,6 @@ export default class SparklineGraphTool extends BaseTool {
           duration: {
             hour: 24,
           },
-          // 2026.07.05 aantal van deze calender instelling overschrijftr dus de rolling window instelling. waar nu weer
-          // aangetoond dus. maar wat gevolg voor rst van grafiek? nog onduidelijk. blijft tot einde van de dag lopen. of eigenlijk tot de helft vreemd genoeg
-          // komt dus nooit verder. waar zit deze rare fout.
-          //
-          // er zitten ergens testen die hierdoor fout gaan. want die kijken of één van de twee bestaat. zonder het type te controleren
-          // ik vermoed dat het daarom misgaat dus... Gevolgen??
           bins: {
             per_hour: 'auto',
             density: 'medium',
@@ -1174,6 +1168,12 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
+  /**
+   * Advances active history charts when wall-clock time enters a new bucket.
+   * No history is fetched here: the graph carries its last value into the new
+   * bucket, recalculates local statistics, and lets the card's normal hass
+   * pipeline propagate those statistics to tools that reference them.
+   */
   scheduleBinBoundaryRefresh() {
     window.clearTimeout(this.binBoundaryTimer);
     const activeHistoryPeriod = this.config.period.type === 'rolling_window' || (this.config.period.type === 'calendar' && this.config.period.calendar.offset === 0);
@@ -1308,14 +1308,14 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.config.period?.type === 'calendar' && this.config.period?.calendar?.period === 'day') {
       const start = new Date(now);
-      // 1. Altijd strak op het begin van vandaag zetten (00:00:00)
+      // Calendar-day ranges start at local midnight.
       start.setHours(0, 0, 0, 0);
 
-      // 2. Exact jouw oude logica, omgerekend naar dagen:
+      // Offset selects the day; durations beyond 24 hours extend the start backwards.
       const offsetDays = this.config.period?.calendar?.offset ?? 0;
       const durationDaysAdjustment = (periodHours - 24) / 24;
 
-      // 3. Pas de dagen veilig toe (JavaScript handelt maanden/jaren perfect af)
+      // Date arithmetic preserves local calendar boundaries across months and years.
       start.setDate(start.getDate() + offsetDays - durationDaysAdjustment);
 
       return {
@@ -1825,16 +1825,23 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedX;
   }
 
-  // Version from Gemini. Extended with angle to allow touch go outside SVG
-
+  /**
+   * Finds the radial bin under a pointer. Normal hit testing preserves the
+   * exact rendered segment; the angle calculation keeps tracking a finger
+   * after Safari moves it outside the SVG or its shadow-root hit area.
+   *
+   * @param {MouseEvent|TouchEvent|PointerEvent} e - Browser interaction event.
+   * @returns {number} Radial bin index, or NaN when no bin can be identified.
+   */
   getRadialBarcodePointIndexFromEvent(e) {
-    // 1. Extract touch or cursor data safely
+    // Touch events expose coordinates through a touch collection; mouse and
+    // pointer events carry the same coordinates on the event itself.
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0];
     const point = touch ?? e;
 
-    // 2. COORDINATE-BASED RADARS (Handles active pointer tracking)
+    // Prefer the actual path because it follows non-uniform bins exactly and
+    // still works through the component's shadow root.
     if (point?.clientX !== undefined && point?.clientY !== undefined) {
-      // A. PRIMARY SHADOW-DOM PIXEL RADAR: Try exact pixel hit test inside the web component scope
       const shadowContainer = this.elements.svg.getRootNode();
       const hitTestScope = shadowContainer instanceof ShadowRoot ? shadowContainer : document;
       const elementStack = Array.from(hitTestScope.elementsFromPoint(point.clientX, point.clientY));
@@ -1843,42 +1850,36 @@ export default class SparklineGraphTool extends BaseTool {
 
       const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
 
-      // If the browser successfully tracks the exact node underneath the point, return its index immediately
       if (bin) {
         return Number(bin.dataset.pointIndex);
       }
 
-      // B. SECONDARY ANGLE RADAR: Webkit/Safari Fallback (When finger drifts outside Shadow DOM limits)
-      // Query a specific radial element (like the background group) to keep the center calculation stable
+      // Safari can stop returning the path after a finger leaves its hit area.
+      // Continue around the same center by translating angle to bin index.
       const radialContainer = this.elements.svg.querySelector('.sparkline-radial-barcode__bg-bin')?.parentNode ?? this.elements.svg;
       const svgRect = radialContainer.getBoundingClientRect();
       const centerX = svgRect.left + svgRect.width / 2;
       const centerY = svgRect.top + svgRect.height / 2;
 
-      // Calculate raw angle in radians (-PI to PI)
       const radians = Math.atan2(point.clientY - centerY, point.clientX - centerX);
 
-      // Convert radians to degrees and apply the +90 deg offset
-      // to align index 0 precisely at 12 o'clock (top), turning clockwise
+      // SVG angles start on the right. History starts at 12 o'clock and
+      // advances clockwise, hence the quarter-turn offset.
       const degrees = (radians * (180 / Math.PI) + 360 + 90) % 360;
 
-      // Fetch the total number of petals rendered in the DOM tree. Use background bins!!!!
+      // Background bins are complete even when history has foreground gaps.
       const binsList = this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bg-bin');
       const totalBins = binsList.length;
 
       if (totalBins === 0) return NaN;
 
-      // Convert the calculated degree slice directly into your petal index
       const degreesPerBin = 360 / totalBins;
       const calculatedIndex = Math.floor(degrees / degreesPerBin);
 
-      // Clamp the index safely between 0 and the maximum index to prevent array bounds errors
       return Math.min(Math.max(0, calculatedIndex), totalBins - 1);
     }
 
-    // 3. TRADITIONAL DESKTOP FALLBACK
-    // Executed for non-coordinate or accessibility actions where raw screen pixels (clientX) are absent,
-    // but a valid, direct DOM event target is present (e.g., standard keyboard focus/blur triggers).
+    // Keyboard and synthetic events may only identify their direct DOM target.
     const target = e?.target ?? e?.currentTarget;
     const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     return bin ? Number(bin.dataset.pointIndex) : NaN;
@@ -1908,6 +1909,13 @@ export default class SparklineGraphTool extends BaseTool {
     return snappedIndex;
   }
 
+  /**
+   * Uses Home Assistant's statistics terminology for tooltip row labels so
+   * min, mean and max follow the active frontend locale.
+   *
+   * @param {string} stat - Internal statistic name.
+   * @returns {string} Localized label with an initial capital.
+   */
   getTooltipLabel(stat) {
     const localized = this.card._hass.localize(`ui.panel.developer-tools.statistics.${stat === 'avg' ? 'mean' : stat}`);
 
@@ -1998,6 +2006,14 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
+  /**
+   * Builds the cartesian tooltip model from one aggregated history bucket.
+   * Position is measured in the card container because the tooltip is HTML,
+   * while the active point itself belongs to the scaled SVG coordinate space.
+   *
+   * @param {number} pointIndex - Index shared by graph coordinates and bucket metadata.
+   * @param {MouseEvent|TouchEvent|PointerEvent} event - Current pointer event.
+   */
   updateTooltipFromPointIndex(pointIndex, event) {
     const bucket = this.Graph.bucketMeta[pointIndex];
     const point = this.Graph.coords[pointIndex];
@@ -2042,6 +2058,14 @@ export default class SparklineGraphTool extends BaseTool {
     };
   }
 
+  /**
+   * Applies a radial hover frame directly to the current DOM. Pointer movement
+   * can occur much faster than entity updates, so highlighting and tooltip
+   * placement bypass a complete Lit card render.
+   *
+   * @param {number} pointIndex - Radial history bin to highlight.
+   * @param {MouseEvent|TouchEvent|PointerEvent} event - Current pointer event.
+   */
   updateTooltipFromRadialBarcode(pointIndex, event) {
     this.activeX = undefined;
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
@@ -2062,17 +2086,28 @@ export default class SparklineGraphTool extends BaseTool {
     this.updateTooltipVisibilityDom(true);
   }
 
+  /**
+   * Clears the tooltip model shared by the next Lit render.
+   */
   clearTooltip() {
     this.tooltip = {};
     this.tooltipVisible = false;
   }
 
+  /**
+   * Hides radial hover output while retaining the rendered graph.
+   */
   clearRadialTooltip() {
     this.clearTooltip();
     this.updateTooltipVisibilityDom(false);
     this.updateActiveIndicatorDom();
   }
 
+  /**
+   * Coalesces radial move and leave events into one animation-frame update.
+   * The latest pending event wins, which keeps touch tracking responsive
+   * without repeatedly measuring and mutating layout in the same frame.
+   */
   scheduleRadialHoverFrame() {
     if (this._radialRafId) return;
 
@@ -2099,6 +2134,9 @@ export default class SparklineGraphTool extends BaseTool {
     });
   }
 
+  /**
+   * Restores radial segment styles captured before pointer highlighting.
+   */
   restoreRadialActiveBinDom() {
     const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     if (!bins) return;
@@ -2120,8 +2158,14 @@ export default class SparklineGraphTool extends BaseTool {
     });
   }
 
+  /**
+   * Emphasizes one radial foreground bin and dims its peers. Original inline
+   * styles are saved on each SVG path so leaving the chart restores custom
+   * user styling rather than replacing it with hard-coded defaults.
+   *
+   * @param {number} pointIndex - Foreground bin to emphasize.
+   */
   updateRadialActiveBinDom(pointIndex) {
-    // const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin');
     if (!bins) return;
 
@@ -2141,6 +2185,9 @@ export default class SparklineGraphTool extends BaseTool {
     });
   }
 
+  /**
+   * Synchronizes the cartesian indicator line with the active graph X.
+   */
   updateActiveIndicatorDom() {
     const activeIndicator = this.elements.activeIndicator;
 
@@ -2156,6 +2203,11 @@ export default class SparklineGraphTool extends BaseTool {
     activeIndicator.style.visibility = 'visible';
   }
 
+  /**
+   * Updates both the persistent tooltip state and its current HTML element.
+   *
+   * @param {boolean} show - Whether the tooltip must be visible.
+   */
   updateTooltipVisibilityDom(show) {
     this.tooltipVisible = show;
     const tooltip = this.elements.tooltip;
@@ -2165,6 +2217,12 @@ export default class SparklineGraphTool extends BaseTool {
     tooltip.style.display = show ? 'block' : 'none';
   }
 
+  /**
+   * Positions the HTML tooltip inside the card and keeps it within the graph
+   * bounds measured at pointer-entry time.
+   *
+   * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   */
   updateTooltipPositionDom(e) {
     const tooltip = this.elements.tooltip;
     const containerBox = this.elements.containerRect || this.elements.container.getBoundingClientRect();
@@ -2196,6 +2254,9 @@ export default class SparklineGraphTool extends BaseTool {
     tooltip.style.top = `${top}px`;
   }
 
+  /**
+   * Writes the current tooltip model into the already-rendered HTML rows.
+   */
   updateTooltipContentDom() {
     const tooltip = this.elements.tooltip;
 
@@ -2216,6 +2277,13 @@ export default class SparklineGraphTool extends BaseTool {
     rows[2].children[1].children[1].textContent = this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : '';
   }
 
+  /**
+   * Updates the active cartesian bucket or exact state-band segment. This is
+   * the common pointer route used by hover and drag after browser coordinates
+   * have entered the SVG.
+   *
+   * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   */
   updateActivePointer(e) {
     this.pointerEvent = e;
 
@@ -2258,6 +2326,12 @@ export default class SparklineGraphTool extends BaseTool {
     this.updateTooltipVisibilityDom(true);
   }
 
+  /**
+   * Rebuilds cartesian tooltip state from a pointer and requests a Lit update.
+   * This route is used where direct DOM synchronization is not active.
+   *
+   * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   */
   updateTooltipFromPointer(e) {
     const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
     const pointIndex = this.getPointIndexFromX(pointerX);
@@ -2270,6 +2344,11 @@ export default class SparklineGraphTool extends BaseTool {
     this.updateTooltipFromPointIndex(pointIndex, e);
   }
 
+  /**
+   * Queues the radial bin identified by the latest pointer coordinates.
+   *
+   * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   */
   updateRadialActivePointer(e) {
     const pointIndex = this.getRadialBarcodePointIndexFromEvent(e);
 
@@ -2295,148 +2374,10 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Attaches the proven slider pointer handlers to the sparkline SVG after Lit
-   * has rendered the element.
+   * Connects the rendered SVG to the shared hover and drag lifecycle. Handlers
+   * are allocated once per tool instance; drag listeners move to window so
+   * tracking continues outside the graph and through Safari touch behavior.
    */
-
-  firstUpdatedFromSliderExample(changedProperties) {
-    // const thisValue = this;
-    this.labelValue = this._stateValue;
-
-    // function Frame() {
-    //   thisValue.rid = window.requestAnimationFrame(Frame);
-    //   thisValue.updateValue(thisValue, thisValue.m);
-    //   thisValue.updateThumb(thisValue, thisValue.m);
-    //   thisValue.updateActiveTrack(thisValue, thisValue.m);
-    // }
-
-    function Frame2() {
-      this.rid = window.requestAnimationFrame(Frame2);
-      this.updateValue(this, this.m);
-      this.updateThumb(this, this.m);
-      this.updateActiveTrack(this, this.m);
-    }
-
-    function pointerMove(e) {
-      let scaleValue;
-
-      e.preventDefault();
-
-      if (this.dragging) {
-        this.m = this.mouseEventToPoint(e);
-
-        switch (this.config.position.orientation) {
-          case 'horizontal':
-            scaleValue = this.svgCoordinateToSliderValue(this, this.m);
-            this.m.x = this.valueToSvg(this, scaleValue);
-            this.m.x = Math.max(this.svg.scale.min, Math.min(this.m.x, this.svg.scale.max));
-            this.m.x = Math.round(this.m.x / this.svg.scale.step) * this.svg.scale.step;
-            break;
-
-          case 'vertical':
-            scaleValue = this.svgCoordinateToSliderValue(this, this.m);
-            this.m.y = this.valueToSvg(this, scaleValue);
-            this.m.y = Math.round(this.m.y / this.svg.scale.step) * this.svg.scale.step;
-            break;
-
-          default:
-        }
-      }
-    }
-
-    if (this.dev.debug) console.log('slider - firstUpdated');
-    this.elements = {};
-    this.elements.svg = this._card.shadowRoot.getElementById('rangeslider-'.concat(this.toolId));
-    this.elements.capture = this.elements.svg.querySelector('#capture');
-    this.elements.track = this.elements.svg.querySelector('#rs-track');
-    this.elements.activeTrack = this.elements.svg.querySelector('#active-track');
-    this.elements.thumbGroup = this.elements.svg.querySelector('#rs-thumb-group');
-    this.elements.thumb = this.elements.svg.querySelector('#rs-thumb');
-    this.elements.label = this.elements.svg.querySelector('#rs-label tspan');
-
-    if (this.dev.debug) console.log('slider - firstUpdated svg = ', this.elements.svg, 'path=', this.elements.path, 'thumb=', this.elements.thumb, 'label=', this.elements.label, 'text=', this.elements.text);
-
-    function pointerDown(e) {
-      e.preventDefault();
-
-      // @NTS: Keep this comment for later!!
-      // Safari: We use mouse stuff for pointerdown, but have to use pointer stuff to make sliding work on Safari. WHY??
-      window.addEventListener('pointermove', pointerMove.bind(this), false);
-      // eslint-disable-next-line no-use-before-define
-      window.addEventListener('pointerup', pointerUp.bind(this), false);
-
-      // @NTS: Keep this comment for later!!
-      // Below lines prevent slider working on Safari...
-      //
-      // window.addEventListener('mousemove', pointerMove.bind(this), false);
-      // window.addEventListener('touchmove', pointerMove.bind(this), false);
-      // window.addEventListener('mouseup', pointerUp.bind(this), false);
-      // window.addEventListener('touchend', pointerUp.bind(this), false);
-
-      const mousePos = this.mouseEventToPoint(e);
-      const thumbPos = this.svg.thumb.x1 + this.svg.thumb.cx;
-      if (mousePos.x > thumbPos - 10 && mousePos.x < thumbPos + this.svg.thumb.width + 10) {
-        // fireEvent(window, 'haptic', 'heavy');
-      } else {
-        // fireEvent(window, 'haptic', 'error');
-        return;
-      }
-
-      // User is dragging the thumb of the slider!
-      this.dragging = true;
-
-      // Check for drag_action. If none specified, or update_interval = 0, don't update while dragging...
-
-      if (this.config.user_actions?.drag_action && this.config.user_actions?.drag_action.update_interval) {
-        if (this.config.user_actions.drag_action.update_interval > 0) {
-          this.timeOutId = setTimeout(() => this.callDragService(), this.config.user_actions.drag_action.update_interval);
-        } else {
-          this.timeOutId = null;
-        }
-      }
-      this.m = this.mouseEventToPoint(e);
-
-      if (this.config.position.orientation === 'horizontal') {
-        this.m.x = Math.round(this.m.x / this.svg.scale.step) * this.svg.scale.step;
-      } else {
-        this.m.y = Math.round(this.m.y / this.svg.scale.step) * this.svg.scale.step;
-      }
-      if (this.dev.debug) console.log('pointerDOWN', Math.round(this.m.x * 100) / 100);
-    }
-
-    function pointerUp(e) {
-      e.preventDefault();
-
-      // @NTS: Keep this comment for later!!
-      // Safari: Fixes unable to grab pointer
-      window.removeEventListener('pointermove', pointerMove.bind(this), false);
-      window.removeEventListener('pointerup', pointerUp.bind(this), false);
-
-      window.removeEventListener('mousemove', pointerMove.bind(this), false);
-      window.removeEventListener('touchmove', pointerMove.bind(this), false);
-      window.removeEventListener('mouseup', pointerUp.bind(this), false);
-      window.removeEventListener('touchend', pointerUp.bind(this), false);
-
-      if (!this.dragging) return;
-
-      this.dragging = false;
-      clearTimeout(this.timeOutId);
-      this.target = 0;
-      if (this.dev.debug) console.log('pointerUP');
-      this.callTapService();
-    }
-
-    // @NTS: Keep this comment for later!!
-    // For things to work in Safari, we need separate touch and mouse down handlers...
-    // DON't ask WHY! The pointerdown method prevents listening on window events later on.
-    // ie, we can't move our finger
-
-    // this.elements.svg.addEventListener("pointerdown", pointerDown.bind(this), false);
-
-    this.elements.svg.addEventListener('touchstart', pointerDown.bind(this), false);
-    this.elements.svg.addEventListener('mousedown', pointerDown.bind(this), false);
-  }
-
   attachPointerHandlers() {
     this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
     this.elements.container = this.card.shadowRoot.getElementById('container');
@@ -2452,7 +2393,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.elements.svg.dataset.pointerReady = 'true';
 
-    // 1. INLINE INSTANCE HANDLERS (Your lazy-allocation pattern)
+    // Handler identity must remain stable: window listeners are removed with
+    // the exact function object that was registered during pointer-down.
     this.Frame2 =
       this.Frame2 ||
       function Frame2() {
@@ -2502,7 +2444,7 @@ export default class SparklineGraphTool extends BaseTool {
           const svgBox = this.elements.svg.getBoundingClientRect();
           const scaleX = svgBox.width / this.svg.width;
           const scaleY = svgBox.height / this.svg.height;
-          // FIXED: Restored your exact original array coordinate lookups ([1][0] and [0][0])
+          // Half a bucket extends hover hit testing to both chart edges.
           const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
           this.elements.tooltipBounds = {
             left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
@@ -2955,6 +2897,15 @@ export default class SparklineGraphTool extends BaseTool {
     return Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.config.line?.styles));
   }
 
+  /**
+   * Selects the visible series color using the same precedence as entity tools:
+   * entity override, calculated color stop, indexed line color, then the first
+   * series color.
+   *
+   * @param {number|string} inState - Value represented by the SVG item.
+   * @param {number} i - Entity or series index.
+   * @returns {string} CSS color for the rendered item.
+   */
   computeColor(inState, i) {
     const { colorstops, line_color, colorstops_transition } = this.config.sparkline;
     const state = Number(inState) || 0;
@@ -3589,6 +3540,14 @@ export default class SparklineGraphTool extends BaseTool {
   // @mouseover=${(e) => this.updateTooltipFromPointIndex(point[3], e)}
   // @mouseout=${() => this.clearTooltip()}
 
+  /**
+   * Renders one series of point markers. Each marker keeps its bucket index and
+   * timestamp so the shared pointer lifecycle can recover tooltip metadata.
+   *
+   * @param {Array<Array<number>>} points - SVG point tuples.
+   * @param {number} i - Series index.
+   * @returns {object|undefined} Lit SVG template for the point group.
+   */
   renderSvgPoints(points, i) {
     if (!points) return;
     const color = this.computeColor(this.card.entities[i].state, i);
@@ -3620,6 +3579,12 @@ export default class SparklineGraphTool extends BaseTool {
     </g>`;
   }
 
+  /**
+   * Builds point tuples only for chart modes that expose dots, then delegates
+   * the actual SVG and animation attributes to the series renderer.
+   *
+   * @returns {object|string} Lit SVG template or an empty result.
+   */
   renderPoints() {
     if (this.config.sparkline.show.chart_type !== 'dots' && this.config.sparkline.show.points !== true && this.config.sparkline.line?.show_dots !== true && this.config.sparkline.area?.show_dots !== true) return '';
 
@@ -3628,6 +3593,13 @@ export default class SparklineGraphTool extends BaseTool {
     return this.renderSvgPoints(points, 0);
   }
 
+  /**
+   * Renders the HTML tooltip shell inside the card container. Pointer updates
+   * write into these stable nodes directly, while a normal Lit render recreates
+   * the same state after entity or configuration changes.
+   *
+   * @returns {object} Lit HTML template for the tooltip.
+   */
   renderTooltip() {
     const tooltipStyles = ConfigHelper.toStyleDict(this.config.sparkline.tooltip?.styles);
     const styles = {
@@ -3931,6 +3903,13 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders the traffic-light grade collection for one entity series.
+   *
+   * @param {Array<object>} trafficLights - Calculated grade rectangles.
+   * @param {number} i - Entity or series index.
+   * @returns {object|string} Lit SVG template or an empty result.
+   */
   renderSvgGraded(trafficLights, i) {
     if (!trafficLights) return '';
     const color = this.computeColor(this.card.entities[i].state, i);
@@ -3951,6 +3930,15 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Builds the luminance mask that reveals equalizer foreground buckets.
+   * Real-time mode keeps every SVG bucket stable and changes opacity; history
+   * mode sizes the mask from aggregated values and may animate its introduction.
+   *
+   * @param {Array<object>} equalizer - Equalizer geometry from SparklineGraph.
+   * @param {number} index - Entity or series index used in the mask id.
+   * @returns {object|string} Lit SVG mask template or an empty result.
+   */
   renderSvgEqualizerMask(equalizer, index) {
     if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
@@ -4041,6 +4029,14 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Builds the history-bar mask used by the shared gradient background. The
+   * mask follows the same introduction geometry as the visible bars.
+   *
+   * @param {Array<object>} bars - Bar geometry from SparklineGraph.
+   * @param {number} index - Entity or series index used in the mask id.
+   * @returns {object|string} Lit SVG mask template or an empty result.
+   */
   renderSvgBarsMask(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
     if (this.config.period.type === 'real_time') return '';
@@ -4202,6 +4198,13 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Applies the configured series color or gradient through the equalizer mask.
+   *
+   * @param {Array<object>} equalizer - Equalizer geometry.
+   * @param {number} index - Entity or series index.
+   * @returns {object|string} Lit SVG background template or an empty result.
+   */
   renderSvgEqualizerBackground(equalizer, index) {
     if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
@@ -4220,6 +4223,13 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Applies the configured series color or gradient through the history-bar mask.
+   *
+   * @param {Array<object>} bars - Bar geometry.
+   * @param {number} index - Entity or series index.
+   * @returns {object|string} Lit SVG background template or an empty result.
+   */
   renderSvgBarsBackground(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
     if (this.config.period.type === 'real_time') return '';
@@ -4239,6 +4249,14 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders bar geometry as stable SVG rectangles. Real-time updates transition
+   * their dimensions in place; newly inserted history bars use SVG animation.
+   *
+   * @param {Array<object>} bars - Bar geometry from SparklineGraph.
+   * @param {number} index - Entity or series index.
+   * @returns {object|string} Lit SVG bar template or an empty result.
+   */
   renderSvgBars(bars, index) {
     if (!bars) return '';
 
@@ -4327,6 +4345,14 @@ export default class SparklineGraphTool extends BaseTool {
   // @mouseover=${() => this.updateTooltipFromPointIndex(i, undefined)}
   // @mouseout=${() => this.clearTooltip()}
 
+  /**
+   * Renders one colored radial history segment with its pointer lookup index.
+   *
+   * @param {object} bin - Aggregated radial bin.
+   * @param {string} path - SVG path for the foreground segment.
+   * @param {number} index - History bucket index.
+   * @returns {object} Lit SVG path template.
+   */
   renderSvgRadialBarcodeBin(bin, path, index) {
     const color = this.computeColor(bin.value, this.entity_index);
     const foregroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.foreground?.styles);
@@ -4345,6 +4371,14 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders one complete radial hit target behind its optional foreground bin.
+   *
+   * @param {object} bin - Background radial bin.
+   * @param {string} path - SVG path for the background segment.
+   * @param {number} index - History bucket index.
+   * @returns {object} Lit SVG path template.
+   */
   renderSvgRadialBarcodeBackgroundBin(bin, path, index) {
     const backgroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.background?.styles);
     delete backgroundStyles.fill;
@@ -4361,6 +4395,12 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Builds the continuous annular background used behind radial barcode bins.
+   *
+   * @param {number} radius - Outer radius of the annulus.
+   * @returns {object} Lit SVG path template.
+   */
   renderSvgRadialBarcodeBackground(radius) {
     const { start, end, start2, end2, largeArcFlag, sweepFlag } = this.Graph._calcRadialBarcodeCoords(0, 359.9, true, radius, radius, this.radialBarcodeChartWidth);
     const radius2 = { x: radius - this.radialBarcodeChartWidth, y: radius - this.radialBarcodeChartWidth };
@@ -4397,6 +4437,13 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders optional clock references inside a radial barcode. Absolute labels
+   * show clock hours; relative labels show offsets from the active period end.
+   *
+   * @param {number} radius - Available face radius.
+   * @returns {object|string} Lit SVG face template.
+   */
   renderSvgRadialBarcodeFace(radius) {
     if (!this.config?.sparkline?.radial_barcode?.face) return svg``;
 
@@ -4454,6 +4501,14 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Combines background hit bins, available foreground bins, and the optional
+   * clock face into one radial series.
+   *
+   * @param {Array<object>} radialBarcode - Foreground radial bins.
+   * @param {number} index - Entity or series index.
+   * @returns {object|string} Lit SVG radial template or an empty result.
+   */
   renderSvgRadialBarcode(radialBarcode, index) {
     if (!radialBarcode) return '';
     const radialBarcodePaths = this.Graph.getRadialBarcodePaths();
@@ -4475,6 +4530,13 @@ export default class SparklineGraphTool extends BaseTool {
     `;
   }
 
+  /**
+   * Renders cartesian barcode buckets as independently colored SVG columns.
+   *
+   * @param {Array<object>} barcode - Barcode geometry from SparklineGraph.
+   * @param {number} index - Entity or series index.
+   * @returns {object|string} Lit SVG barcode template or an empty result.
+   */
   renderSvgBarcode(barcode, index) {
     if (!barcode) return '';
 

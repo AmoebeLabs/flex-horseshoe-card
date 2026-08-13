@@ -107,6 +107,10 @@ class CubicSpline {
  * Monotone cubic spline used by the default spline scale to preserve anchor ordering without overshoot.
  */
 class MonotoneCubicSpline {
+  /**
+   * Builds monotone tangents for ordered scale anchors without overshooting
+   * their configured positions.
+   */
   constructor(x, y) {
     this.x = x;
     this.y = y;
@@ -155,6 +159,13 @@ class MonotoneCubicSpline {
     }
   }
 
+  /**
+   * Interpolates one value inside the anchor interval and clamps lookup to
+   * the endpoint positions.
+   *
+   * @param {number} value - Scale value to interpolate.
+   * @returns {number} Interpolated position.
+   */
   get(value) {
     if (value <= this.x[0]) {
       return this.y[0];
@@ -196,6 +207,10 @@ class MonotoneCubicSpline {
  * Maps configured scale values to normalized positions along the horseshoe arc.
  */
 export class GaugeScale {
+  /**
+   * Builds the selected linear or spline value-to-ratio mapping from the
+   * normalized horseshoe scale configuration.
+   */
   constructor(config) {
     this.type = config.type;
     this.min = Number(config.min);
@@ -294,6 +309,10 @@ export class GaugeScale {
  * Converts normalized scale positions into angles, transforms, and SVG coordinates.
  */
 export class GaugeGeometry {
+  /**
+   * Captures the current horseshoe scale branch and converts normalized ratios
+   * into the configured arc's transformed coordinate space.
+   */
   constructor(config, scale, activeValue) {
     this.cx = config.svg.xpos;
     this.cy = config.svg.ypos;

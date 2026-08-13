@@ -6,6 +6,10 @@ import { DEFAULT_ZPOS } from './const.js';
 
 /** Owns validation and compilation of user-facing card configuration. */
 export default class CardConfig {
+  /**
+   * Stores the card's template compiler used while raw YAML becomes validated
+   * runtime configuration.
+   */
   constructor(templates) {
     this.templates = templates;
   }

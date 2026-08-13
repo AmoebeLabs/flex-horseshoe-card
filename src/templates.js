@@ -295,6 +295,12 @@ export default class Templates {
     return entityState.state;
   }
 
+  /**
+   * Extracts the numeric entity index used to evaluate an item's templates.
+   *
+   * @param {object} item - Tool or nested visual configuration.
+   * @returns {number|undefined} Numeric entity index.
+   */
   static _getItemEntityIndex(item = {}) {
     if (item.entity_index === undefined || item.entity_index === null) return undefined;
 

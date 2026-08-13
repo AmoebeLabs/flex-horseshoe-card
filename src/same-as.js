@@ -234,6 +234,12 @@ export default class SameAs {
     return value?.type === 'entity_address' && typeof value.slot === 'string' && Number.isInteger(value.index);
   }
 
+  /**
+   * Distinguishes literal numeric offsets from entity-address expressions.
+   *
+   * @param {*} value - same_as offset value.
+   * @returns {boolean} True for a finite number.
+   */
   static isStaticNumber(value) {
     return typeof value === 'number' && Number.isFinite(value);
   }

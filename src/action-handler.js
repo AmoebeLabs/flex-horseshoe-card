@@ -135,11 +135,20 @@ function bindActionHandler(element, options) {
 /** Lit attribute directive that keeps gesture options current across renders. */
 const actionHandler = directive(
   class extends Directive {
+    /**
+     * Binds the directive's current gesture flags to the target element and
+     * keeps Lit from writing an attribute value.
+     *
+     * @param {object} part - Lit attribute part containing the target element.
+     * @param {Array<object>} values - Current action-handler options.
+     * @returns {symbol} Lit noChange sentinel.
+     */
     update(part, [options]) {
       bindActionHandler(part.element, options);
       return noChange;
     }
 
+    /** Produces no attribute value because update() owns the element listeners. */
     render() {}
   },
 );

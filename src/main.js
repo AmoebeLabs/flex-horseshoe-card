@@ -50,6 +50,11 @@ console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; fon
  * updates and post-render DOM work in their corresponding lifecycle phases.
  */
 class FlexHorseshoeCard extends LitElement {
+  /**
+   * Assembles the per-card domains and their callbacks once. Lovelace config,
+   * Home Assistant updates and Lit rendering then reuse these same objects for the
+   * complete custom-element lifecycle.
+   */
   constructor() {
     super();
 
@@ -493,7 +498,7 @@ class FlexHorseshoeCard extends LitElement {
     const cardStyle = ConfigHelper.toStyleDict(this.activeCardStyles);
 
     const cardTemplate = html`
-      <ha-card @click=${(e) => this.actions.handleCardClick(e)} style=${styleMap(cardStyle)}>
+      <ha-card style=${styleMap(cardStyle)}>
         <div class="container" id="container">${this._renderSvg()} ${this._renderSparklineTooltips()} ${this.childCards.render()}</div>
       </ha-card>
     `;
