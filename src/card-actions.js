@@ -24,19 +24,37 @@ export default class CardActions {
     this.entities = entities;
   }
 
-  /** Selects the item action, entity action, or entity-bound default tap action. */
+  /** Selects one gesture and rejects more-info actions without a Home Assistant target. */
   getGestureConfig(itemConfig, entityIndex, actionProperty) {
-    const itemAction = itemConfig?.[actionProperty];
-    if (itemAction !== undefined) return itemAction;
+    let gestureConfig = itemConfig?.[actionProperty];
 
-    // An entity-bound item inherits actions from that entity and opens its
-    // more-info dialog on a normal tap when no tap action was configured.
-    if (entityIndex !== undefined) {
-      const entityAction = this.resolvedEntityConfigs[entityIndex][actionProperty];
-      return entityAction ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+    if (gestureConfig === undefined && entityIndex !== undefined) {
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      gestureConfig = entityConfig[actionProperty];
+
+      if (gestureConfig === undefined && actionProperty === 'tap_action') {
+        gestureConfig = DEFAULT_TAP_ACTION;
+      }
     }
 
-    return undefined;
+    if (gestureConfig === undefined) return undefined;
+
+    const configuredActions = gestureConfig.actions ?? [gestureConfig];
+    const hasInvalidMoreInfoTarget = configuredActions.some((actionConfig) => {
+      if (actionConfig.action !== 'more-info') return false;
+
+      if (actionConfig.entity !== undefined) {
+        return actionConfig.entity.startsWith('fhs_');
+      }
+
+      if (entityIndex === undefined) return true;
+
+      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const targetIndex = entityConfig.source_entity_index ?? entityIndex;
+      return this.entities[targetIndex].entity_id.startsWith('fhs_');
+    });
+
+    return hasInvalidMoreInfoTarget ? undefined : gestureConfig;
   }
 
   /** Returns enabled gestures for the shared action-handler directive. */

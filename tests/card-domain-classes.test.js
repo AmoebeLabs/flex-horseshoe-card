@@ -72,13 +72,31 @@ test('HomeAssistant owns exactly one ready listener across connection changes', 
 test('CardActions preserves item, entity and entity-bound default tap precedence', () => {
   const actions = new CardActions(new EventTarget(), {});
   const entityTap = { action: 'toggle' };
-  actions.setHassAndEntities({}, [{ tap_action: entityTap }, {}], [{ entity_id: 'light.first' }, { entity_id: 'sensor.second' }]);
+  actions.setHassAndEntities(
+    {},
+    [{ tap_action: entityTap }, {}, {}, { source_entity_index: 1 }],
+    [
+      { entity_id: 'light.first' },
+      { entity_id: 'sensor.second' },
+      { entity_id: 'fhs_input_boolean.demo' },
+      { entity_id: 'fhs_sparkline.history' },
+    ],
+  );
 
   const itemTap = { action: 'more-info' };
   const standaloneTap = { action: 'navigate', navigation_path: '/test' };
   assert.equal(actions.getGestureConfig({ tap_action: itemTap }, 0, 'tap_action'), itemTap);
   assert.equal(actions.getGestureConfig({}, 0, 'tap_action'), entityTap);
   assert.deepEqual(actions.getGestureConfig({}, 1, 'tap_action'), { action: 'more-info' });
+  assert.equal(actions.getGestureConfig({}, 2, 'tap_action'), undefined);
+  assert.equal(actions.getGestureConfig({ tap_action: itemTap }, 2, 'tap_action'), undefined);
+  const explicitHomeAssistantMoreInfo = { action: 'more-info', entity: 'sensor.second' };
+  assert.equal(
+    actions.getGestureConfig({ tap_action: explicitHomeAssistantMoreInfo }, 2, 'tap_action'),
+    explicitHomeAssistantMoreInfo,
+  );
+  assert.equal(actions.getGestureConfig({ tap_action: entityTap }, 2, 'tap_action'), entityTap);
+  assert.deepEqual(actions.getGestureConfig({}, 3, 'tap_action'), { action: 'more-info' });
   assert.equal(actions.getGestureConfig({ tap_action: standaloneTap }, undefined, 'tap_action'), standaloneTap);
   assert.equal(actions.getGestureConfig({}, undefined, 'tap_action'), undefined);
   assert.equal(actions.getGestureConfig({}, undefined, 'hold_action'), undefined);
