@@ -574,8 +574,21 @@ export default class ControlButton extends ControlBase {
       const indicatorPaddingX = Utils.calculateSvgDimension(viz.indicator.padding.x);
       const indicatorPaddingY = Utils.calculateSvgDimension(viz.indicator.padding.y);
       const indicatorThickness = Utils.calculateSvgDimension(viz.indicator.thickness);
-      const indicatorWidth = width - indicatorPaddingX * 2;
       const indicatorY = viz.indicator.position === 'top' ? y + indicatorPaddingY : y + height - indicatorPaddingY - indicatorThickness;
+      const backgroundRadius = Math.min(
+        Utils.calculateSvgDimension(this.config.background.radius),
+        width / 2,
+        height / 2,
+      );
+      const roundedEdgeInset = Utils.calculateRoundedRectHorizontalInset(
+        backgroundRadius,
+        y,
+        y + height,
+        indicatorY,
+        indicatorY + indicatorThickness,
+      );
+      const indicatorInsetX = roundedEdgeInset + indicatorPaddingX;
+      const indicatorWidth = width - indicatorInsetX * 2;
       const indicatorStyles = this.getStyles(
         Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.indicator.styles), {
           transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
@@ -586,7 +599,7 @@ export default class ControlButton extends ControlBase {
       indicator = svg`
         <rect
           class="button-control__indicator"
-          x="${x + indicatorPaddingX}"
+          x="${x + indicatorInsetX}"
           y="${indicatorY}"
           width="${indicatorWidth}"
           height="${indicatorThickness}"

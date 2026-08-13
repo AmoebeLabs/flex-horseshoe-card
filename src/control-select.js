@@ -923,11 +923,11 @@ export default class ControlSelect extends ControlBase {
 
     // A separator is centered on the segment boundary. Add half its stroke to
     // internal indicator sides so their visible gap equals the outer x inset.
-    const indicatorLeftPadding =
+    let indicatorLeftPadding =
       horizontal && this.selectedOptionIndex > 0
         ? separatorPaddingX + separatorStrokeWidth / 2
         : indicatorPaddingX;
-    const indicatorRightPadding =
+    let indicatorRightPadding =
       horizontal && this.selectedOptionIndex < optionCount - 1
         ? separatorPaddingX + separatorStrokeWidth / 2
         : indicatorPaddingX;
@@ -935,9 +935,9 @@ export default class ControlSelect extends ControlBase {
     const indicatorThickness = Utils.calculateSvgDimension(
       viz.indicator.thickness,
     );
-    const indicatorX = trackX + indicatorLeftPadding;
+    let indicatorX = trackX + indicatorLeftPadding;
     let indicatorY;
-    const indicatorWidth =
+    let indicatorWidth =
       segmentWidth - indicatorLeftPadding - indicatorRightPadding;
     let indicatorHeight;
 
@@ -963,8 +963,8 @@ export default class ControlSelect extends ControlBase {
         );
     }
 
-    // The first and last button corners run concentrically with the outer
-    // background. Separate x/y radii account for the indicator inset.
+    // Outer indicator geometry follows the rounded background. Filled
+    // indicators use corner radii; line indicators use the arc inset.
     const backgroundX = this.config.svg.xpos - backgroundWidth / 2;
     const backgroundY = this.config.svg.ypos - backgroundHeight / 2;
     const indicatorRadius = Utils.calculateSvgDimension(viz.indicator.radius);
@@ -973,6 +973,33 @@ export default class ControlSelect extends ControlBase {
       backgroundWidth / 2,
       backgroundHeight / 2,
     );
+
+    if (this.config.show.item_viz === "viz_line") {
+      const selectedIndicatorY = indicatorY
+        + (!horizontal && this.selectedOptionIndex >= 0 ? this.selectedOptionIndex * segmentHeight : 0);
+      const roundedEdgeInset = Utils.calculateRoundedRectHorizontalInset(
+        backgroundRadius,
+        backgroundY,
+        backgroundY + backgroundHeight,
+        selectedIndicatorY,
+        selectedIndicatorY + indicatorHeight,
+      );
+      const trackOuterInset = trackX - backgroundX;
+      const roundedIndicatorPadding = Math.max(
+        indicatorPaddingX,
+        roundedEdgeInset + indicatorPaddingX - trackOuterInset,
+      );
+
+      if (!horizontal || this.selectedOptionIndex === 0) {
+        indicatorLeftPadding = Math.max(indicatorLeftPadding, roundedIndicatorPadding);
+      }
+      if (!horizontal || this.selectedOptionIndex === optionCount - 1) {
+        indicatorRightPadding = Math.max(indicatorRightPadding, roundedIndicatorPadding);
+      }
+
+      indicatorX = trackX + indicatorLeftPadding;
+      indicatorWidth = segmentWidth - indicatorLeftPadding - indicatorRightPadding;
+    }
     const edgeRadius = Math.min(
       backgroundRadius -
         Math.max(

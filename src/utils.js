@@ -60,6 +60,17 @@ export default class Utils {
   }
 
   /**
+   * Calculates the horizontal inset required to keep an item inside a rounded rectangle.
+   * The nearest vertical edge selects the corner arc intersected by the item.
+   */
+  static calculateRoundedRectHorizontalInset(radius, rectangleTop, rectangleBottom, itemTop, itemBottom) {
+    const edgeDistance = Math.min(itemTop - rectangleTop, rectangleBottom - itemBottom);
+    if (edgeDistance >= radius) return 0;
+
+    return radius - Math.sqrt(radius ** 2 - (radius - edgeDistance) ** 2);
+  }
+
+  /**
    * Returns the active Lovelace configuration and synchronizes its current
    * view index with hui-root's runtime selection.
    *

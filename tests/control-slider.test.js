@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ControlSlider from '../src/control-slider.js';
+import Utils from '../src/utils.js';
 
 const createSlider = (overrides = {}) => {
   const slider = Object.create(ControlSlider.prototype);
@@ -24,6 +25,13 @@ const createSlider = (overrides = {}) => {
   slider.scheduleSliderRender = () => {};
   return slider;
 };
+
+test('keeps line indicators inside rounded control corners', () => {
+  assert.equal(Utils.calculateRoundedRectHorizontalInset(5, 0, 20, 5, 15), 0);
+  assert.equal(Utils.calculateRoundedRectHorizontalInset(5, 0, 20, 0, 1), 5);
+  assert.equal(Utils.calculateRoundedRectHorizontalInset(5, 0, 20, 1, 2), 2);
+  assert.equal(Utils.calculateRoundedRectHorizontalInset(5, 0, 20, 18, 19), 2);
+});
 
 test('snaps values to step and clamps at both scale bounds', () => {
   const slider = createSlider();
