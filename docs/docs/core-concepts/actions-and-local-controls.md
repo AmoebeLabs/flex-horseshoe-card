@@ -686,7 +686,7 @@ period:
     duration:
       hour: |
         [[[
-          return Number(entities[0].state) \* 24;
+          return Number(entities[0].state) * 24;
         ]]]
     bins:
       per_hour: 2
