@@ -33,6 +33,16 @@ export default class StateTool extends BaseTool {
     return states.map((stateConfig, index) => new StateTool(stateConfig, index, templates, cardId, card));
   }
 
+  /**
+   * Converts a raw entity value before locale formatting. Configured converters
+   * run first, then decimals follow the entity metadata unless YAML overrides them.
+   *
+   * @param {*} inState - Raw entity state or configured attribute value.
+   * @param {object} entityConfig - Resolved entity formatting configuration.
+   * @param {object} hass - Current Home Assistant object.
+   * @param {object} stateObj - Home Assistant state object.
+   * @returns {*} Converted and formatted display state.
+   */
   static buildState(inState, entityConfig, hass, stateObj) {
     // Keep undefined as state. Do NOT change this one!!
     if (typeof inState === 'undefined') return inState;
@@ -425,7 +435,7 @@ export default class StateTool extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**

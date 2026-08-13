@@ -236,6 +236,13 @@ export default class Colors {
     return (Math.min(Math.max(argValue, argStart), argEnd) - argStart) / (argEnd - argStart);
   }
 
+  /**
+   * Walks Home Assistant's shadow roots to the active Lovelace panel. The
+   * panel is the secondary CSS-variable scope when a color is not defined on
+   * the card itself.
+   *
+   * @returns {Element|null} Active Lovelace panel element.
+   */
   static getLovelacePanel() {
     var root = window.document.querySelector('home-assistant');
     root = root && root.shadowRoot;
@@ -296,37 +303,13 @@ export default class Colors {
     return lastStop.color;
   }
 
-  /** *****************************************************************************
-   * card::_getColorVariable()
+  /**
+   * Resolves one CSS var() expression against the card and Lovelace scopes,
+   * including a nested fallback after the top-level comma.
    *
-   * Summary.
-   * Get value of CSS color variable, specified as var(--color-value)
-   * These variables are defined in the Lovelace element so it appears...
-   *
+   * @param {string} argColor - CSS variable expression.
+   * @returns {string} Resolved CSS color or configured fallback.
    */
-
-  // Stap 1: Haal de tekstuele waarde op van je eigen kaart (inline stijl)
-  // Dit geeft de string terug: "var(--primary-color)"
-  static resolveColorVariable(argColor) {
-    const rawValue = this.element.style.getPropertyValue(argColor).trim();
-    // console.log('rawValue for ', argColor, ':', rawValue);
-    let returnedColor = rawValue;
-    // Stap 2: Check of het een 'var()' verwijzing is en extraheer de naam
-    if (rawValue.startsWith('var(')) {
-      // Haal "--primary-color" uit de string "var(--primary-color)"
-      const innerVar = rawValue.replace(/^var\((--.*?)\)$/, '$1').trim();
-
-      // Stap 3: Resolve die globale variabele via de document.body
-      const resolvedColor = window.getComputedStyle(document.body).getPropertyValue(innerVar).trim();
-      returnedColor = resolvedColor;
-      // console.log('De echte kleur is:', resolvedColor); // Output: #3498db of rgb(...)
-    } else {
-      // Als er geen var() in stond, maar direct een kleur (bijv. "red" of "#fff")
-      // console.log('De echte kleur is:', rawValue);
-    }
-    return returnedColor;
-  }
-
   static getColorVariable(argColor) {
     const varBody = argColor.slice(4, -1).trim();
     let varName = varBody;
@@ -363,6 +346,12 @@ export default class Colors {
     return fallback;
   }
 
+  /**
+   * Reads one CSS variable directly from the cached Lovelace panel scope.
+   *
+   * @param {string} argColor - CSS variable expression.
+   * @returns {string} Computed CSS variable value.
+   */
   static getLovelaceColorVariable(argColor) {
     const newColor = argColor.substr(4, argColor.length - 5);
 
@@ -420,6 +409,12 @@ export default class Colors {
     return `#${rHex}${gHex}${bHex}${aHex}`;
   }
 
+  /**
+   * Returns one two-character hexadecimal color channel.
+   *
+   * @param {string} argValue - Hexadecimal channel value.
+   * @returns {string} Two-character channel value.
+   */
   static padZero(argValue) {
     if (argValue.length < 2) {
       argValue = `0${argValue}`;
@@ -427,60 +422,14 @@ export default class Colors {
     return argValue.substr(0, 2);
   }
 
-  /** *****************************************************************************
-   * card::_colorToRGBA()
+  /**
+   * Converts a configured CSS color to cached RGBA channel values. CSS
+   * variables are resolved against the card and Lovelace roots before canvas
+   * parses hex, rgb, hsl, or named colors for gradient interpolation.
    *
-   * Summary.
-   * Get RGBA color value of argColor.
-   *
-   * The argColor can be specified as:
-   * - a css variable, var(--color-value)
-   * - a hex value, #fff or #ffffff
-   * - an rgb() or rgba() value
-   * - a hsl() or hsla() value
-   * - a named css color value, such as white.
-   *
+   * @param {string} argColor - CSS color value to convert.
+   * @returns {Array<number>} Red, green, blue, and alpha channel values.
    */
-
-  static resolveColorVariableV0(argColor) {
-    let color = argColor;
-
-    while (typeof color === 'string' && color.trim().startsWith('var(')) {
-      color = Colors.getColorVariable(color).trim();
-      console.log('resolving color variable ', argColor, ', to: ', color, '...');
-    }
-
-    return color;
-  }
-
-  static colorToRGBAChat(argColor) {
-    if (argColor == null) return [0, 0, 0, 0];
-
-    const retColor = Colors.colorCache[argColor];
-    if (retColor) return retColor;
-
-    let theColor = argColor;
-
-    if (typeof theColor === 'string' && theColor.trim().startsWith('var(')) {
-      theColor = Colors.resolveColorVariable(theColor);
-    }
-
-    const canvas = window.document.createElement('canvas');
-
-    canvas.width = canvas.height = 1;
-    const ctx = canvas.getContext('2d');
-
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = theColor;
-    ctx.fillRect(0, 0, 1, 1);
-
-    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
-
-    Colors.colorCache[argColor] = outColor;
-
-    return outColor;
-  }
-
   static colorToRGBA(argColor) {
     if (argColor == null) return [0, 0, 0, 0];
 
@@ -549,6 +498,12 @@ export default class Colors {
     return outColor;
   }
 
+  /**
+   * Converts an HSL object with degree/percentage channels to RGB 0..255.
+   *
+   * @param {object} hsl - Hue, saturation and lightness channels.
+   * @returns {object} Red, green and blue channels.
+   */
   static hslToRgb(hsl) {
     const h = hsl.h / 360;
     const s = hsl.s / 100;
@@ -588,6 +543,13 @@ export default class Colors {
   // @2026.05.16
   // 1:1 copy of _computeColor() function in the Home Assistant repository
   // https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-entity-card.ts
+  /**
+   * Derives the Home Assistant state color used by light, climate and other
+   * state-aware entity icons.
+   *
+   * @param {object} entity - Home Assistant state object.
+   * @returns {string|undefined} CSS color for the entity state.
+   */
   static computeColor(entity) {
     if (entity.attributes?.hvac_action) {
       const hvacAction = entity.attributes.hvac_action;
@@ -612,6 +574,12 @@ export default class Colors {
     return undefined;
   }
 
+  /**
+   * Builds icon styles from Home Assistant state color and brightness rules.
+   *
+   * @param {object} entity - Home Assistant state object.
+   * @returns {object} CSS style dictionary for IconTool.
+   */
   static getHaEntityIconStyle(entity) {
     const color = Colors.computeColor(entity);
     const filter = stateColorBrightness(entity);

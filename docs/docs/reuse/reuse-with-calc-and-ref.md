@@ -223,7 +223,7 @@ For a unique value with no meaningful relationship to other settings, writing th
 ## :material-horseshoe: Related documentation
 
 * [Less YAML with Reuse](reuse-introduction.md)
-* [Reusing Section Items](reuse-same-as.md)
-* [Combining `calc()` with `same_as`](reuse-calc-same-as.md)
+* [Reusing Section Items](reuse-with-same_as.md)
+* [Combining `calc()` with `same_as`](reuse-combined.md)
 * [Reusable YAML Card Examples](reuse-card-examples.md)
 * [Reuse Reference](reuse-reference.md)

@@ -22,6 +22,7 @@ export function normalizeBaseConfig(config, index, groupManager) {
 
   return {
     entity_index: entityIndex,
+    bar_mode: 'normal',
     ...config,
     group_config: groupConfig,
     index,
@@ -212,10 +213,28 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
   // Keep those points distinct while retaining a visually complete horseshoe.
   const arcDegrees = config.arc_degrees === 360 ? 359.999 : config.arc_degrees ?? 260;
   const barMode = config.bar_mode ?? 'normal';
-  const bidirectionalGradient = ['autominmax', 'minmaxgradient', 'lineargradient'].includes(show.horseshoe_style)
-    && (barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical' || barMode === 'bidirectional_linear');
+  const supportedBarModes = ['normal', 'bidirectional', 'bidirectional_symmetrical', 'bidirectional_linear', 'absolute'];
 
-  if (bidirectionalGradient && horseshoeScale.min < 0 && !colorStops.colors.some((colorStop) => Number(colorStop.value) < 0)) {
+  if (!supportedBarModes.includes(barMode)) {
+    throw new Error(`[V2] Invalid bar_mode '${barMode}' [${supportedBarModes.join(', ')}]`);
+  }
+
+  // Absolute bars use the physical arc start as zero. A 0..max scale shares
+  // one magnitude range, while a negative min gives each sign its own range.
+  if (barMode === 'absolute') {
+    if (Number(horseshoeScale.min) > 0 || Number(horseshoeScale.max) <= 0) {
+      throw new Error('[V2] absolute bar_mode requires horseshoe_scale.min <= 0 and horseshoe_scale.max > 0');
+    }
+
+    if (config.zero_ratio !== undefined) {
+      throw new Error('[V2] absolute bar_mode does not support zero_ratio');
+    }
+  }
+
+  const bidirectionalGradient = ['autominmax', 'minmaxgradient', 'lineargradient'].includes(show.horseshoe_style)
+    && (barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical' || barMode === 'bidirectional_linear' || barMode === 'absolute');
+
+  if (bidirectionalGradient && (horseshoeScale.min < 0 || barMode === 'absolute') && !colorStops.colors.some((colorStop) => Number(colorStop.value) < 0)) {
     throw new Error(`[V2] ${show.horseshoe_style} with ${barMode} requires a color_stop below 0`);
   }
 

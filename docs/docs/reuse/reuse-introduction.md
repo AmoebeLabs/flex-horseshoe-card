@@ -532,7 +532,7 @@ Avoid introducing reuse when it makes a simple item harder to understand. A uniq
 
 ## :material-horseshoe: Related documentation
 
-* [Combining `calc()` with `same_as`](reuse-calc-same-as.md)
+* [Combining `calc()` with `same_as`](reuse-combined.md)
 * [Reusable YAML Card Examples](reuse-card-examples.md)
 * [Reuse Reference](reuse-reference.md)
 * [Groups](../sections/groups-section.md)

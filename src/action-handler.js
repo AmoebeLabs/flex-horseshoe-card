@@ -16,6 +16,8 @@ const MOVE_TOLERANCE = 8;
  * @param {object} options - Enabled gestures for the current runtime config.
  */
 function bindActionHandler(element, options) {
+  const interactive = options.hasTap || options.hasHold || options.hasDoubleClick;
+  element.style.cursor = interactive ? 'pointer' : 'default';
   if (element.fhsActionHandler) {
     element.fhsActionHandler.options = options;
     return;
@@ -60,6 +62,7 @@ function bindActionHandler(element, options) {
     if (state.options.hasHold) {
       state.holdTimer = window.setTimeout(() => {
         state.held = true;
+        dispatchAction('hold');
       }, HOLD_TIME);
     }
   });
@@ -86,7 +89,6 @@ function bindActionHandler(element, options) {
 
     if (state.options.hasHold && state.held) {
       state.held = false;
-      dispatchAction('hold');
       return;
     }
 
@@ -133,11 +135,20 @@ function bindActionHandler(element, options) {
 /** Lit attribute directive that keeps gesture options current across renders. */
 const actionHandler = directive(
   class extends Directive {
+    /**
+     * Binds the directive's current gesture flags to the target element and
+     * keeps Lit from writing an attribute value.
+     *
+     * @param {object} part - Lit attribute part containing the target element.
+     * @param {Array<object>} values - Current action-handler options.
+     * @returns {symbol} Lit noChange sentinel.
+     */
     update(part, [options]) {
       bindActionHandler(part.element, options);
       return noChange;
     }
 
+    /** Produces no attribute value because update() owns the element listeners. */
     render() {}
   },
 );

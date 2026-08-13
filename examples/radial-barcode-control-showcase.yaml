@@ -1,0 +1,139 @@
+fhs_showcase_radial_barcode_v1:
+  template:
+    type: card
+
+  card:
+    entities:
+      - entity: fhs_input_select.radial_variant
+        slot: variant
+        options: [fixed, sunburst, sunburst_centered, sunburst_outward, sunburst_inward]
+        initial: fixed
+        scope: global
+      - entity: fhs_input_select.radial_viz
+        slot: viz
+        options: [bar, flower, flower2, rice_grain]
+        initial: bar
+        scope: global
+      - entity: sensor.awair_element_study_temperature
+        slot: source
+        name: Study temperature
+        unit: C
+
+    layout:
+      aspectratio: 1/1.5
+
+      groups:
+        - id: title
+          xpos: 50
+          ypos: 7
+        - id: chart
+          xpos: 50
+          ypos: 60
+
+      sparklines:
+        - id: radial-showcase
+          group: chart
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          width: 82
+          height: 82
+          margin: 0
+          period:
+            type: calendar
+            calendar:
+              period: day
+              offset: 0
+              duration:
+                hour: 24
+              bins:
+                per_hour: 2
+          sparkline:
+            show:
+              chart_type: radial_barcode
+              chart_variant: |
+                [[[
+                  const variant = entities[entity_slots.variant[0]].state;
+                  return variant === 'fixed' ? null : variant;
+                ]]]
+              chart_viz: |
+                [[[
+                  return entities[entity_slots.viz[0]].state;
+                ]]]
+            radial_barcode:
+              size: 15
+              line_width: 0.02
+              column_spacing: 0.2
+              background:
+                styles:
+                  opacity: 0.14
+              foreground:
+                styles:
+                  opacity: 1
+            colorstops_transition: smooth
+            color_stops:
+              0: '#1565c0'
+              18: '#42a5f5'
+              24: '#66bb6a'
+              28: '#f9a825'
+              35: '#d32f2f'
+
+      texts:
+        - id: title
+          group: title
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          text: Radial barcode showcase
+          styles:
+            font-size: 1.2em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+
+      controls:
+        - id: radial-variant
+          type: select
+          entity_index: variant[0]
+          xpos: 50
+          ypos: 120
+          width: 94
+          height: 13
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.52em
+          option_map:
+            - { value: fixed, text: Fixed }
+            - { value: sunburst, text: Sunburst }
+            - { value: sunburst_centered, text: Centered }
+            - { value: sunburst_outward, text: Outward }
+            - { value: sunburst_inward, text: Inward }
+
+        - id: radial-viz
+          type: select
+          entity_index: viz[0]
+          xpos: 50
+          ypos: 142
+          width: 92
+          height: 13
+          label:
+            position: top
+            gap: 2
+            text: chart_viz
+            styles:
+              font-size: 0.52em
+              fill: var(--secondary-text-color)
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.56em
+          option_map:
+            - { value: flower, text: Flower }
+            - { value: flower2, text: Flower 2 }
+            - { value: rice_grain, text: Rice grain }
+            - { value: bar, text: Bar }

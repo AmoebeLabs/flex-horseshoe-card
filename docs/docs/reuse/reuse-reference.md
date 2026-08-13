@@ -199,8 +199,8 @@ Use the static reuse features for layout structure and shared configuration. Use
 ## :material-horseshoe: Related documentation
 
 * [Less YAML with Reuse](reuse-introduction.md)
-* [Reusing Section Items](reuse-same-as.md)
-* [YAML Calculations](reuse-calculations.md)
-* [Combining `calc()` with `same_as`](reuse-calc-same-as.md)
+* [Reusing Section Items](reuse-with-same_as.md)
+* [YAML Calculations](reuse-with-calc-and-ref.md)
+* [Combining `calc()` with `same_as`](reuse-combined.md)
 * [Reusable YAML Card Examples](reuse-card-examples.md)
 * [Templates](../core-concepts/templating.md)

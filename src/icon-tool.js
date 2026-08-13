@@ -63,7 +63,7 @@ export default class IconTool extends BaseTool {
    * @returns {object} SVG coordinates.
    */
   calculateSvgDimensions(config = this.config) {
-    return this.card._calculateSvgCoordinatesInGroup(config);
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**
@@ -73,7 +73,7 @@ export default class IconTool extends BaseTool {
    * @returns {string} SVG transform value.
    */
   getGroupScaleTransform(item = this.config) {
-    return this.card._getGroupScaleTransform(item);
+    return this.card.cardLayout.getGroupScaleTransform(item);
   }
 
   /**
@@ -83,7 +83,7 @@ export default class IconTool extends BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle(item = this.config) {
-    return this.card._getGroupScaleStyle(item);
+    return this.card.cardLayout.getGroupScaleStyle(item);
   }
 
   /**
@@ -107,7 +107,7 @@ export default class IconTool extends BaseTool {
    * @returns {string|undefined} Icon name or css url(...).
    */
   buildIcon(stateMapConfig, item = this.config) {
-    const entityAnimation = this.card.animations?.iconsIcon?.[item.animation_id];
+    const entityAnimation = this.card.cardAnimations.styles.iconsIcon[item.animation_id];
 
     if (entityAnimation) {
       return entityAnimation;
@@ -236,6 +236,7 @@ export default class IconTool extends BaseTool {
     if (!elements.length) return;
 
     SVGInjector(elements, {
+      /** Removes source dimensions so IconTool remains responsible for sizing. */
       beforeEach(svgNode) {
         svgNode.removeAttribute('height');
         svgNode.removeAttribute('width');
@@ -470,7 +471,7 @@ export default class IconTool extends BaseTool {
     defaultIconColor.filter = haStyle.filter;
 
     let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
-    const stateStyle = this.card.animations?.icons?.[renderItem.animation_id] ?? {};
+    const stateStyle = this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
     this.applyColorStops(configStyle, renderItem, ['fill', 'color']);
 
     configStyle = this.getRenderStyles({

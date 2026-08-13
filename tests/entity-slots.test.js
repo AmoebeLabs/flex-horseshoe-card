@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import Compounds from '../compounds.js';
-import SameAs from '../same-as.js';
-import Templates from '../templates.js';
+import Compounds from '../src/compounds.js';
+import SameAs from '../src/same-as.js';
+import Templates from '../src/templates.js';
 
 const entityAddress = (slot, index) => ({
   type: 'entity_address',
@@ -86,30 +86,29 @@ test('compound children retain slot addresses through compilation', () => {
  * Verifies the config-time expression used by entity disabled filtering.
  */
 test('config-time disabled templates resolve from constants', () => {
-  Templates.setContext({
-    config: {
-      constants: {
-        rooms: ['livingroom', 'study'],
-      },
+  const templates = new Templates([]);
+  templates.beginConfig({
+    constants: {
+      rooms: ['livingroom', 'study'],
     },
     entities: [],
   });
 
-  const disabled = Templates.getJsTemplateOrValue(
+  const disabled = templates.getJsTemplateOrValue(
     { entity_index: 2 },
     '[[[ return constants.rooms.length < 3; ]]]',
   );
 
   assert.equal(disabled, true);
 
-  const numericDisabled = Templates.getJsTemplateOrValue(
+  const numericDisabled = templates.getJsTemplateOrValue(
     { entity_index: 2 },
     '[[[ return constants.rooms.length < 3 ? 1 : 0; ]]]',
   );
 
   assert.equal(numericDisabled, 1);
 
-  const stringDisabled = Templates.getJsTemplateOrValue(
+  const stringDisabled = templates.getJsTemplateOrValue(
     { entity_index: 2 },
     '[[[ return "1"; ]]]',
   );

@@ -6,6 +6,13 @@
  * @returns {object} New object with merged key/values
  */
 export default class Merge {
+  /**
+   * Merges nested configuration objects from left to right while replacing
+   * arrays as complete configuration values.
+   *
+   * @param {...object} objects - Configuration layers in precedence order.
+   * @returns {object} Merged configuration object.
+   */
   static mergeDeep(...objects) {
     const isObject = (obj) => obj && typeof obj === 'object';
     return objects.reduce((prev, obj) => {

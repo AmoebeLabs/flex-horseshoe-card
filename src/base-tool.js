@@ -2,16 +2,17 @@ import { svg } from 'lit';
 import ConfigHelper from './config-helper.js';
 import ColorStops from './color-stops.js';
 import ColorFilter from './color-filter.js';
-import Templates from './templates.js';
 import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
- * Shared base for layout tools that receive static config from the card and resolve runtime state per hass update.
+ * Shared base for layout tools that own their static config, active runtime
+ * config and entity state. The injected Templates instance supplies the
+ * persistent card-wide context shared by tools belonging to this card.
  */
 export default class BaseTool {
   /**
-   * Stores the normalized static item config and shared card context.
+   * Stores this tool's normalized config and references to its parent card context.
    *
    * @param {object} config - Static item config after card-level refs, calc, ids, and same_as handling.
    * @param {number} index - Item index inside its layout section.
@@ -20,7 +21,7 @@ export default class BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    * @param {string} animationSection - Animation bucket name for this tool type.
    * @param {string} zposSection - Layer bucket name for zpos defaults.
-   * @param {number|undefined} defaultEntityIndex - Fallback entity index for entity-bound tools.
+   * @param {number|undefined} defaultEntityIndex - Entity index selected by tools whose content is entity-bound by definition.
    * @param {object|undefined} colorStopPaintDefaults - Tool-specific fill and stroke defaults.
    */
   constructor(
@@ -31,7 +32,7 @@ export default class BaseTool {
     card,
     animationSection,
     zposSection = animationSection,
-    defaultEntityIndex = 0,
+    defaultEntityIndex = undefined,
     colorStopPaintDefaults = undefined,
   ) {
     this.sourceConfig = config;
@@ -65,11 +66,12 @@ export default class BaseTool {
    */
   updateRuntimeConfig() {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
-    this.configChanged = !this.activeConfigInitialized || this.card.changedGroupIds.has(activeGroupId) || this.card.theme.modeChanged;
+    this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.cardTheme.modeChanged;
 
-    // Static tools reuse their finalized config and never enter the recursive JavaScript evaluator.
+    // Static tools retain their finalized source config. JavaScript-backed tools
+    // evaluate a complete active config during the relevant hass update.
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      const evaluatedConfig = Templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
+      const evaluatedConfig = this.templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
         resolveKeys: true,
       });
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
@@ -85,7 +87,7 @@ export default class BaseTool {
 
     // JavaScript may return the public color_stops shape, so normalize it after activating the complete item.
     if (this.configChanged && this.config.color_stops) {
-      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.getActiveColorStopMode());
+      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
@@ -97,7 +99,7 @@ export default class BaseTool {
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
     if (this.configChanged && this.config.sparkline?.color_stops) {
-      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.getActiveColorStopMode());
+      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
@@ -146,6 +148,9 @@ export default class BaseTool {
     this.entityConfig = entityConfig;
   }
 
+  /** Activates configuration that does not depend on an entity state. */
+  setStaticState() {}
+
   /** Called once when Home Assistant context first becomes available to this tool. */
   hassAvailable() {}
 
@@ -181,7 +186,7 @@ export default class BaseTool {
    */
   getStyles(baseStyles) {
     const itemStyleDict = ConfigHelper.toStyleDict(this.config.styles);
-    const animationStyle = ConfigHelper.toStyleDict(this.card.animations?.[this.animationSection]?.[this.config.animation_id] ?? {});
+    const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
       ...baseStyles,
@@ -199,7 +204,7 @@ export default class BaseTool {
    * @returns {Array<object>} Ordered color_filter configs.
    */
   getColorFilterCascade(extraFilters = []) {
-    const groupFilters = this.card.groupManager
+    const groupFilters = this.card.cardLayout.groupManager
       .getGroupChainForItem(this.config)
       .map((group) => group.color_filter);
 
@@ -224,7 +229,7 @@ export default class BaseTool {
   getRenderStyles(styles, extraFilters = []) {
     const filteredStyles = ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
 
-    return this.card.masksClips.applyGradientRefs(filteredStyles);
+    return this.card.cardLayout.masksClips.applyGradientRefs(filteredStyles);
   }
 
   /**
@@ -238,7 +243,7 @@ export default class BaseTool {
     if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopinterpolated') return;
 
     const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
-    const stopColor = this.card._getItemColorFromStops(item, colorStops);
+    const stopColor = this.card.cardEntities.getItemColorFromStops(item, colorStops, this.card.config, this.card.entities);
 
     if (stopColor) {
       const paintMode = item[item.show.item_style];
@@ -273,7 +278,7 @@ export default class BaseTool {
    * @returns {string} SVG transform value.
    */
   getGroupScaleTransform() {
-    return this.card._getGroupScaleTransform(this.config);
+    return this.card.cardLayout.getGroupScaleTransform(this.config);
   }
 
   /**
@@ -282,7 +287,7 @@ export default class BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle() {
-    return this.card._getGroupScaleStyle(this.config);
+    return this.card.cardLayout.getGroupScaleStyle(this.config);
   }
 
   /**
@@ -304,20 +309,20 @@ export default class BaseTool {
       // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
       // each mask constrain the previous result, which is the useful combined effect.
       maskIds.forEach((maskId) => {
-        this.card.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
+        this.card.cardLayout.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
           result = svg`<g mask="url(#${svgMaskId})">${result}</g>`;
         });
       });
     }
 
     if (item.clip) {
-      result = svg`<g clip-path="url(#${this.card.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
+      result = svg`<g clip-path="url(#${this.card.cardLayout.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
     }
 
     // Hidden tools remain in the SVG and in every normal lifecycle phase. This
     // preserves text measurement, fit references, history and runtime state,
     // while the outer layer guarantees no visible or pointer-active descendant.
-    if (!this.card.groupManager.isItemVisible(item)) {
+    if (!this.card.cardLayout.groupManager.isItemVisible(item)) {
       result = svg`
         <g
           class="fhs-layout-item--hidden"
@@ -334,7 +339,7 @@ export default class BaseTool {
 
   /** Returns the shared gesture directive configured for this layout item. */
   actionHandler() {
-    return actionHandler(this.card.getActionHandlerOptions(this.config, this.entity_index));
+    return actionHandler(this.card.actions.getActionHandlerOptions(this.config, this.entity_index));
   }
 
   /**
@@ -343,6 +348,6 @@ export default class BaseTool {
    * @param {CustomEvent} event - Gesture event from the shared action handler.
    */
   handleAction(event) {
-    this.card.handleAction(event, this.config, this.entity_index);
+    this.card.actions.handleAction(event, this.config, this.entity_index);
   }
 }

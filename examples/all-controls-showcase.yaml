@@ -1,0 +1,375 @@
+fhs_all_controls_showcase:
+  template:
+    type: card
+    defaults:
+      - fhs_all_controls_showcase_update_interval: 100
+
+  card:
+    entities:
+      - entity: fhs_input_boolean.controls_enabled
+        slot: enabled
+        initial: false
+        scope: card
+      - entity: fhs_input_select.controls_option
+        slot: option
+        options: ['off', low, medium, high]
+        initial: low
+        scope: card
+      - entity: fhs_input_number.controls_number
+        slot: number
+        initial: 12
+        min: 0
+        max: 30
+        step: 1
+        unit: ''
+        scope: card
+      - entity: fhs_input_number.controls_slider
+        slot: slider
+        initial: 45
+        min: 0
+        max: 100
+        step: 1
+        unit: ''
+        scope: card
+      - entity: fhs_input_number.controls_lower
+        slot: lower
+        initial: 18
+        min: 5
+        max: 35
+        step: 0.5
+        unit: ''
+        scope: card
+      - entity: fhs_input_number.controls_upper
+        slot: upper
+        initial: 24
+        min: 5
+        max: 35
+        step: 0.5
+        unit: ''
+        scope: card
+
+    layout:
+      aspectratio: 1/2.5
+
+      texts:
+        - id: title
+          xpos: 50
+          ypos: 6
+          text: Controls showcase
+          styles:
+            font-size: 1.1em
+            font-weight: 600
+            text-anchor: middle
+            dominant-baseline: central
+
+        - id: button-label
+          xpos: 5
+          ypos: 15
+          text: Button
+          styles:
+            font-size: 0.55em
+            fill: var(--secondary-text-color)
+            text-anchor: start
+            dominant-baseline: central
+
+        - id: toggle-label
+          same_as: button-label
+          ypos: 40
+          text: Toggle
+
+        - id: select-label
+          same_as: button-label
+          ypos: 66
+          text: Select
+
+        - id: number-label
+          same_as: button-label
+          ypos: 108
+          text: Number
+
+        - id: slider-label
+          same_as: button-label
+          ypos: 151
+          text: Slider
+
+      controls:
+        # Button
+        - id: button-filled
+          type: button
+          entity_index: enabled[0]
+          xpos: 27
+          ypos: 27
+          width: 40
+          height: 11
+          show:
+            item_variant: default
+            item_viz: viz_button
+            item_style: filled_round
+          content:
+            mode: content_horizontal
+            content_horizontal:
+              gap: 2
+              icon:
+                icon: mdi:gesture-tap-button
+              text:
+                text: Toggle
+                styles:
+                  font-size: 0.7em
+          tap_action:
+            haptic: selection
+            action: toggle
+
+        - id: button-line
+          type: button
+          entity_index: enabled[0]
+          xpos: 73
+          ypos: 27
+          width: 40
+          height: 11
+          show:
+            item_variant: default
+            item_viz: viz_line
+            item_style: outlined_round
+          content:
+            mode: content_horizontal
+            content_horizontal:
+              gap: 2
+              icon:
+                icon: mdi:information-outline
+              text:
+                text: More info
+                styles:
+                  font-size: 0.7em
+          tap_action:
+            action: more-info
+
+        # Toggle
+        - id: toggle-ha
+          type: toggle
+          entity_index: enabled[0]
+          xpos: 18
+          ypos: 52
+          width: 20
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: ha
+
+        - id: toggle-ios
+          type: toggle
+          entity_index: enabled[0]
+          xpos: 50
+          ypos: 52
+          width: 20
+          content:
+            mode: content_icon
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: ios
+
+        - id: toggle-industrial
+          type: toggle
+          entity_index: enabled[0]
+          xpos: 82
+          ypos: 52
+          width: 16
+          show:
+            item_variant: switch
+            item_viz: default
+            item_style: industrial
+
+        # Select
+        - id: select-button
+          type: select
+          entity_index: option[0]
+          xpos: 50
+          ypos: 78
+          width: 90
+          height: 13
+          tap_action:
+            action: perform-action
+            perform_action: fhs_input_select.select_option
+            target:
+              entity_id: fhs_input_select.controls_option
+            data:
+              option: option(value)
+          show:
+            item_variant: segmented
+            item_viz: viz_button
+            item_style: outlined_round
+          content:
+            mode: content_vertical
+            content_vertical:
+              gap: 0.5
+              icon:
+                size: 40
+              text:
+                styles:
+                  font-size: 0.55em
+          option_map:
+            - value: 'off'
+              icon: mdi:fan-off
+              text: 'Off'
+            - value: low
+              icon: mdi:fan-speed-1
+              text: Low
+            - value: medium
+              icon: mdi:fan-speed-2
+              text: Medium
+            - value: high
+              icon: mdi:fan-speed-3
+              text: High
+
+        - id: select-line
+          type: select
+          entity_index: option[0]
+          xpos: 50
+          ypos: 96
+          width: 90
+          height: 13
+          show:
+            item_variant: segmented
+            item_viz: viz_line
+            item_style: filled_round
+          viz_line:
+            indicator:
+              position: bottom
+          content:
+            mode: content_horizontal
+            content_horizontal:
+              gap: 1
+              text:
+                styles:
+                  font-size: 0.6em
+        # Number
+        - id: number-filled
+          type: number
+          entity_index: number[0]
+          xpos: 27
+          ypos: 121
+          width: 42
+          height: 11
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: filled_round
+
+        - id: number-outlined
+          type: number
+          entity_index: number[0]
+          xpos: 73
+          ypos: 121
+          width: 42
+          height: 11
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: outlined_round
+          content:
+            mode: content_horizontal
+            content_horizontal:
+              minus:
+                mode: content_icon
+              plus:
+                mode: content_icon
+
+        - id: number-vertical
+          type: number
+          orientation: vertical
+          entity_index: number[0]
+          xpos: 50
+          ypos: 138
+          width: 11
+          height: 26
+          show:
+            item_variant: stepper
+            item_viz: buttons
+            item_style: outlined_square
+          content:
+            mode: content_horizontal
+            content_horizontal: content_icon
+
+        # Slider
+        - id: slider-single
+          type: slider
+          entity_index: slider[0]
+          xpos: 50
+          ypos: 165
+          width: 82
+          height: 12
+          interaction:
+            update_interval: '[[fhs_all_controls_showcase_update_interval]]'
+          value:
+            position: top
+            state:
+              styles:
+                font-size: 0.65em
+          show:
+            item_variant: single
+            item_viz: linear
+            item_style: ha
+
+        - id: slider-range
+          type: slider
+          values:
+            - entity_index: lower[0]
+            - entity_index: upper[0]
+          xpos: 50
+          ypos: 187
+          width: 82
+          height: 12
+          interaction:
+            update_interval: 0
+          value:
+            position: top
+            gap: 3
+            range_spacing: 10
+            state:
+              styles:
+                font-size: 0.6em
+          show:
+            item_variant: range
+            item_viz: linear
+            item_style: ha
+
+        - id: slider-circular
+          type: slider
+          entity_index: slider[0]
+          xpos: 28
+          ypos: 224
+          width: 36
+          height: 36
+          interaction:
+            update_interval: '[[fhs_all_controls_showcase_update_interval]]'
+          value:
+            position: center
+            state:
+              styles:
+                font-size: 0.75em
+          show:
+            item_variant: single
+            item_viz: circular
+            item_style: ha
+
+        - id: slider-circular-range
+          type: slider
+          values:
+            - entity_index: lower[0]
+            - entity_index: upper[0]
+          xpos: 72
+          ypos: 224
+          width: 36
+          height: 36
+          interaction:
+            update_interval: 0
+          value:
+            position: center
+            range_spacing: 10
+            state:
+              styles:
+                font-size: 0.6em
+          show:
+            item_variant: range
+            item_viz: circular
+            item_style: ha

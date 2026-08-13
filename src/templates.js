@@ -1,21 +1,70 @@
 // templates.js
 
 export default class Templates {
-  static context = {};
-
   static javascriptTemplateFlags = new WeakMap();
 
   static javascriptFunctionCache = new Map();
 
-  static setContext(context = {}) {
-    Templates.context = context;
+  /**
+   * Creates one JavaScript template context for one card instance.
+   *
+   * The entities array keeps the same identity for the complete card lifecycle.
+   * Home Assistant, config and entity slots are published when their lifecycle
+   * phase starts. Every tool reads those values from this persistent context.
+   *
+   * @param {Array<object>} entities - Mutable runtime entity array owned by the card.
+   */
+  constructor(entities) {
+    this.context = {
+      hass: undefined,
+      config: undefined,
+      entities,
+      entity_slots: undefined,
+    };
+  }
+
+  /**
+   * Lovelace config lifecycle: starts a new setConfig pass and removes entity
+   * slots belonging to the previously compiled card config.
+   */
+  beginConfig(config) {
+    this.context.config = config;
+    this.context.entity_slots = undefined;
+  }
+
+  /** Publishes the final named slots after disabled entities have been removed. */
+  setEntitySlots(entitySlots) {
+    this.context.entity_slots = entitySlots;
+  }
+
+  /**
+   * Home Assistant lifecycle: publishes the hass object received by the card's
+   * hass setter before runtime templates evaluate the update.
+   */
+  setHass(hass) {
+    this.context.hass = hass;
+  }
+
+  /** Records JavaScript syntax metadata by finalized config object identity. */
+  detectJavascriptTemplates(value) {
+    return Templates.detectJavascriptTemplates(value);
+  }
+
+  /** Reads JavaScript syntax metadata recorded for the supplied config object. */
+  hasJavascriptTemplates(value) {
+    return Templates.hasJavascriptTemplates(value);
+  }
+
+  /** Evaluates a config value exclusively with this card evaluator context. */
+  getJsTemplateOrValue(item, value, options = {}) {
+    return this._getJsTemplateOrValue(item, value, options, 0);
   }
 
   /**
    * Detects JavaScript templates in one finalized config component.
    *
-   * This pass runs after ref(), calc() and same_as. Flags are stored outside the
-   * user config, so no internal metadata can become a visible YAML/config key.
+   * This pass runs after ref(), calc() and same_as. A WeakMap stores flags beside
+   * the user config and preserves the public YAML/config shape.
    * Arrays, object values and object keys are all included because templates may
    * return complete config shapes and color stops support dynamic keys.
    *
@@ -84,11 +133,7 @@ export default class Templates {
    * @returns {*} The resolved value, preserving null, undefined, and non-string primitives.
    */
 
-  static getJsTemplateOrValue(item, value, options = {}) {
-    return Templates._getJsTemplateOrValue(item, value, options, 0);
-  }
-
-  static _getJsTemplateOrValue(item, value, options = {}, depth = 0) {
+  _getJsTemplateOrValue(item, value, options, depth) {
     const { resolveKeys = true, maxDepth = 10 } = options;
 
     if (depth >= maxDepth) return value;
@@ -100,15 +145,15 @@ export default class Templates {
     }
 
     if (Array.isArray(value)) {
-      return value.map((entry) => Templates._getJsTemplateOrValue(item, entry, options, depth));
+      return value.map((entry) => this._getJsTemplateOrValue(item, entry, options, depth));
     }
 
     if (Templates.isPlainObject(value)) {
       return Object.fromEntries(
         Object.entries(value).map(([key, entryValue]) => {
-          const resolvedKey = resolveKeys ? Templates._getJsTemplateOrValue(item, key, options, depth) : key;
+          const resolvedKey = resolveKeys ? this._getJsTemplateOrValue(item, key, options, depth) : key;
 
-          const resolvedValue = Templates._getJsTemplateOrValue(item, entryValue, options, depth);
+          const resolvedValue = this._getJsTemplateOrValue(item, entryValue, options, depth);
 
           return [String(resolvedKey), resolvedValue];
         }),
@@ -121,9 +166,9 @@ export default class Templates {
 
     if (!Templates.isJsTemplate(trimmedValue)) return value;
 
-    const evaluatedValue = Templates.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
+    const evaluatedValue = this.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
 
-    return Templates._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1);
+    return this._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1);
   }
 
   /**
@@ -140,7 +185,7 @@ export default class Templates {
    * Extracts the JavaScript body from a full template string.
    *
    * @param {*} value Template-like value to trim and unwrap.
-   * @returns {string} Inner JavaScript without the surrounding `[[[` and `]]]`.
+   * @returns {string} JavaScript body enclosed by the template markers.
    */
   static extractJsTemplateCode(value) {
     return String(value).trim().slice(3, -3).trim();
@@ -157,12 +202,14 @@ export default class Templates {
    * @param {string} javascript JavaScript function body to evaluate.
    * @returns {*} Template return value, or undefined when evaluation fails.
    */
-  static evaluateJsTemplate(item, javascript) {
-    const { hass, config, entities = [], entity_slots } = Templates.context;
+  evaluateJsTemplate(item, javascript) {
+    const {
+      hass, config, entities, entity_slots,
+    } = this.context;
 
     const entityIndex = Templates._getItemEntityIndex(item);
-    const state = Templates._getTemplateState(item);
-    const entity = entities?.[entityIndex];
+    const state = this._getTemplateState(item);
+    const entity = entities[entityIndex];
     const states = hass?.states;
     const constants = config?.constants ?? {};
     const user = hass?.user;
@@ -220,17 +267,17 @@ export default class Templates {
   /** *****************************************************************************
    * Returns the state value that should be used for JavaScript templates.
    *
-   * If the configured entity uses an attribute, that attribute value is returned.
-   * Otherwise the normal entity state is returned.
+   * A configured attribute supplies the template state. Entity configurations
+   * using their primary state supply the Home Assistant entity state.
    *
    * This allows templates to simply use `state`, regardless of whether the card
    * displays the entity state itself or one of its attributes.
    */
 
-  static _getTemplateState(item = {}) {
+  _getTemplateState(item = {}) {
     const entityIndex = Templates._getItemEntityIndex(item);
-    const entityState = Templates.context.entities?.[entityIndex];
-    const entityConfig = Templates.context.config?.entities?.[entityIndex] || {};
+    const entityState = this.context.entities[entityIndex];
+    const entityConfig = this.context.config.entities[entityIndex];
 
     // Entity may not be available yet during initial render or reload.
     if (!entityState) return undefined;
@@ -248,6 +295,12 @@ export default class Templates {
     return entityState.state;
   }
 
+  /**
+   * Extracts the numeric entity index used to evaluate an item's templates.
+   *
+   * @param {object} item - Tool or nested visual configuration.
+   * @returns {number|undefined} Numeric entity index.
+   */
   static _getItemEntityIndex(item = {}) {
     if (item.entity_index === undefined || item.entity_index === null) return undefined;
 
