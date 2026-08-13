@@ -296,37 +296,6 @@ export default class Colors {
     return lastStop.color;
   }
 
-  /** *****************************************************************************
-   * card::_getColorVariable()
-   *
-   * Summary.
-   * Get value of CSS color variable, specified as var(--color-value)
-   * These variables are defined in the Lovelace element so it appears...
-   *
-   */
-
-  // Stap 1: Haal de tekstuele waarde op van je eigen kaart (inline stijl)
-  // Dit geeft de string terug: "var(--primary-color)"
-  static resolveColorVariable(argColor) {
-    const rawValue = this.element.style.getPropertyValue(argColor).trim();
-    // console.log('rawValue for ', argColor, ':', rawValue);
-    let returnedColor = rawValue;
-    // Stap 2: Check of het een 'var()' verwijzing is en extraheer de naam
-    if (rawValue.startsWith('var(')) {
-      // Haal "--primary-color" uit de string "var(--primary-color)"
-      const innerVar = rawValue.replace(/^var\((--.*?)\)$/, '$1').trim();
-
-      // Stap 3: Resolve die globale variabele via de document.body
-      const resolvedColor = window.getComputedStyle(document.body).getPropertyValue(innerVar).trim();
-      returnedColor = resolvedColor;
-      // console.log('De echte kleur is:', resolvedColor); // Output: #3498db of rgb(...)
-    } else {
-      // Als er geen var() in stond, maar direct een kleur (bijv. "red" of "#fff")
-      // console.log('De echte kleur is:', rawValue);
-    }
-    return returnedColor;
-  }
-
   static getColorVariable(argColor) {
     const varBody = argColor.slice(4, -1).trim();
     let varName = varBody;
@@ -427,60 +396,14 @@ export default class Colors {
     return argValue.substr(0, 2);
   }
 
-  /** *****************************************************************************
-   * card::_colorToRGBA()
+  /**
+   * Converts a configured CSS color to cached RGBA channel values. CSS
+   * variables are resolved against the card and Lovelace roots before canvas
+   * parses hex, rgb, hsl, or named colors for gradient interpolation.
    *
-   * Summary.
-   * Get RGBA color value of argColor.
-   *
-   * The argColor can be specified as:
-   * - a css variable, var(--color-value)
-   * - a hex value, #fff or #ffffff
-   * - an rgb() or rgba() value
-   * - a hsl() or hsla() value
-   * - a named css color value, such as white.
-   *
+   * @param {string} argColor - CSS color value to convert.
+   * @returns {Array<number>} Red, green, blue, and alpha channel values.
    */
-
-  static resolveColorVariableV0(argColor) {
-    let color = argColor;
-
-    while (typeof color === 'string' && color.trim().startsWith('var(')) {
-      color = Colors.getColorVariable(color).trim();
-      console.log('resolving color variable ', argColor, ', to: ', color, '...');
-    }
-
-    return color;
-  }
-
-  static colorToRGBAChat(argColor) {
-    if (argColor == null) return [0, 0, 0, 0];
-
-    const retColor = Colors.colorCache[argColor];
-    if (retColor) return retColor;
-
-    let theColor = argColor;
-
-    if (typeof theColor === 'string' && theColor.trim().startsWith('var(')) {
-      theColor = Colors.resolveColorVariable(theColor);
-    }
-
-    const canvas = window.document.createElement('canvas');
-
-    canvas.width = canvas.height = 1;
-    const ctx = canvas.getContext('2d');
-
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = theColor;
-    ctx.fillRect(0, 0, 1, 1);
-
-    const outColor = [...ctx.getImageData(0, 0, 1, 1).data];
-
-    Colors.colorCache[argColor] = outColor;
-
-    return outColor;
-  }
-
   static colorToRGBA(argColor) {
     if (argColor == null) return [0, 0, 0, 0];
 
