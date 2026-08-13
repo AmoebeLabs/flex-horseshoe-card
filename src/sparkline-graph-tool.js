@@ -1523,8 +1523,12 @@ export default class SparklineGraphTool extends BaseTool {
           this.card.cardTools.getBySection('sparklines'),
         );
         if (this.config.history.refresh_interval !== undefined) this.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(this.config.history.refresh_interval);
-        this.historyResynchronizationRequested = false;
+
+        this.historyResynchronizationRequested = true;
+        // Keep the history flag active during the synchronous card pipeline so
+        // its existing render decision sees the newly accepted graph data.
         this.card.setHass(this.card._hass);
+        this.historyResynchronizationRequested = false;
       })
       .catch((error) => {
         if (!this.historyResynchronizationRequested) {
