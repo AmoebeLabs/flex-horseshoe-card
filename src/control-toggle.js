@@ -407,53 +407,6 @@ export default class ControlToggle extends ControlBase {
     return svgDimensions;
   }
 
-  calculateSvgDimensionsV1(config = this.config) {
-    const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-
-    svgDimensions.track = {};
-    svgDimensions.track.radius = Utils.calculateSvgDimension(config.track.radius);
-
-    svgDimensions.thumb = {};
-    svgDimensions.thumb.radius = Utils.calculateSvgDimension(config.thumb.radius);
-    svgDimensions.thumb.offset = Utils.calculateSvgDimension(config.thumb.offset);
-
-    switch (config.orientation) {
-      // eslint-disable-next-line default-case-last
-      default:
-      case 'horizontal':
-        // this.config = Merge.mergeDeep(DEFAULT_SWITCH_CONFIG, HORIZONTAL_SWITCH_CONFIG, argConfig);
-
-        svgDimensions.track.width = Utils.calculateSvgDimension(config.track.width);
-        svgDimensions.track.height = Utils.calculateSvgDimension(config.track.height);
-        svgDimensions.thumb.width = Utils.calculateSvgDimension(config.thumb.width);
-        svgDimensions.thumb.height = Utils.calculateSvgDimension(config.thumb.height);
-
-        svgDimensions.track.x1 = svgDimensions.xpos - svgDimensions.track.width / 2;
-        svgDimensions.track.y1 = svgDimensions.ypos - svgDimensions.track.height / 2;
-
-        svgDimensions.thumb.x1 = svgDimensions.xpos - svgDimensions.thumb.width / 2;
-        svgDimensions.thumb.y1 = svgDimensions.ypos - svgDimensions.thumb.height / 2;
-        break;
-
-      case 'vertical':
-        // this.config = Merge.mergeDeep(DEFAULT_SWITCH_CONFIG, VERTICAL_SWITCH_CONFIG, argConfig);
-
-        svgDimensions.track.width = Utils.calculateSvgDimension(config.track.height);
-        svgDimensions.track.height = Utils.calculateSvgDimension(config.track.width);
-        svgDimensions.thumb.width = Utils.calculateSvgDimension(config.thumb.height);
-        svgDimensions.thumb.height = Utils.calculateSvgDimension(config.thumb.width);
-
-        svgDimensions.track.x1 = svgDimensions.xpos - svgDimensions.track.width / 2;
-        svgDimensions.track.y1 = svgDimensions.ypos - svgDimensions.track.height / 2;
-
-        svgDimensions.thumb.x1 = svgDimensions.xpos - svgDimensions.thumb.width / 2;
-        svgDimensions.thumb.y1 = svgDimensions.ypos - svgDimensions.thumb.height / 2;
-        break;
-    }
-
-    return svgDimensions;
-  }
-
   /**
    * SwitchTool::_renderSwitch()
    *
@@ -582,34 +535,6 @@ export default class ControlToggle extends ControlBase {
           </g>
         </g>
         </svg>
-      </g>
-      `;
-  }
-
-  _renderToggleV1() {
-    const toggleStyles = {
-      // 'stroke-linecap': 'round',
-      // stroke: 'var(--primary-text-color)',
-      // opacity: '1.0',
-      // 'stroke-width': '2',
-    };
-    const stylesTrack = this.getStyles(toggleStyles);
-    this.applyColorStops(stylesTrack);
-    const stylesThumb = this.getStyles(toggleStyles);
-    this.applyColorStops(stylesThumb);
-
-    console.log('renderToggle - config', this.config.svg);
-    return svg`
-      <g>
-        <rect class="toggle-control--track" x="${this.config.svg.track.x1}" y="${this.config.svg.track.y1}"
-          width="${this.config.svg.track.width}" height="${this.config.svg.track.height}" rx="${this.config.svg.track.radius}"
-          style=${styleMap(this.getRenderStyles(stylesTrack))}
-        />
-        <rect class="toggle-control--thumb" x="${this.config.svg.thumb.x1}" y="${this.config.svg.thumb.y1}"
-          width="${this.config.svg.thumb.width}" height="${this.config.svg.thumb.height}" rx="${this.config.svg.thumb.radius}"
-          style=${styleMap(this.getRenderStyles(stylesThumb))}
-        />
-
       </g>
       `;
   }
