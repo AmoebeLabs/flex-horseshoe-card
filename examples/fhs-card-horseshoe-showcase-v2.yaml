@@ -8,14 +8,11 @@ fhs_card_horseshoe_showcase_v2:
 
   card:
     default_entities:
-      - entity: fhs_input_number.showcase_horseshoe_style
+      - entity: fhs_input_select.showcase_horseshoe_style
         slot: style
-        initial: 0
-        min: 0
-        max: 5
-        step: 1
+        options: [fixed, autominmax, colorstop, colorstopinterpolated, colorstopsegments, minmaxgradient, colorstopgradient, lineargradient]
+        initial: fixed
         scope: global
-        unit: ''
       - entity: fhs_input_boolean.showcase_horseshoe_tickmarks
         slot: show_tickmarks
         initial: true
@@ -64,19 +61,15 @@ fhs_card_horseshoe_showcase_v2:
         max: 30
         step: 1
         scope: card
-      - entity: fhs_input_number.showcase_horseshoe_tick_background_style
+      - entity: fhs_input_select.showcase_horseshoe_tick_background_style
         slot: tick_background_style
-        initial: 1
-        min: 0
-        max: 3
-        step: 1
+        options: [none, fixed, colorstopsegments, colorstopgradient]
+        initial: fixed
         scope: card
-      - entity: fhs_input_number.showcase_horseshoe_background_style
+      - entity: fhs_input_select.showcase_horseshoe_background_style
         slot: background_style
-        initial: 1
-        min: 0
-        max: 3
-        step: 1
+        options: [none, fixed, colorstopsegments, colorstopgradient]
+        initial: fixed
         scope: card
       - entity: fhs_input_number.showcase_horseshoe_width
         slot: horseshoe_width
@@ -92,12 +85,10 @@ fhs_card_horseshoe_showcase_v2:
         max: 20
         step: 1
         scope: card
-      - entity: fhs_input_number.showcase_horseshoe_scale_style
+      - entity: fhs_input_select.showcase_horseshoe_scale_style
         slot: scale_style
-        initial: 1
-        min: 0
-        max: 4
-        step: 1
+        options: [none, fixed, colorstopsegments, colorstopgradient, lineargradient]
+        initial: fixed
         scope: card
       - entity: fhs_input_number.showcase_horseshoe_major_ticks_width
         slot: major_ticks_width
@@ -120,30 +111,12 @@ fhs_card_horseshoe_showcase_v2:
         max: 30
         step: 1
         scope: card
-      - entity: '[[entity]]'
+      - entity: "[[entity]]"
         slot: source
-        name: '[[name]]'
-        unit: '[[unit]]'
+        name: "[[name]]"
+        unit: "[[unit]]"
 
     constants:
-      horseshoe_styles:
-        - fixed
-        - autominmax
-        - colorstop
-        - colorstopsegments
-        - colorstopgradient
-        - lineargradient
-      background_styles:
-        - none
-        - fixed
-        - colorstopsegments
-        - colorstopgradient
-      scale_styles:
-        - none
-        - fixed
-        - colorstopsegments
-        - colorstopgradient
-        - lineargradient
       ypos_row_1: 100
       ypos_row_2: 112
       ypos_row_3: 124
@@ -154,6 +127,7 @@ fhs_card_horseshoe_showcase_v2:
       ypos_row_8: 184
       ypos_row_9: 196
       ypos_row_10: 208
+      select_width: 75
 
     layout:
       aspectratio: 1/2.1
@@ -185,17 +159,9 @@ fhs_card_horseshoe_showcase_v2:
               opacity: 0.35
           show:
             horseshoe_style: |
-              [[[
-                return constants.horseshoe_styles[
-                  Number(entities[entity_slots.style[0]].state)
-                ];
-              ]]]
+              [[[ return entities[entity_slots.style[0]].state; ]]]
             scale_style: |
-              [[[
-                return constants.scale_styles[
-                  Number(entities[entity_slots.scale_style[0]].state)
-                ];
-              ]]]
+              [[[ return entities[entity_slots.scale_style[0]].state; ]]]
             tickmarks: |
               [[[ return entities[entity_slots.show_tickmarks[0]].state === 'on'; ]]]
             labels_at: |
@@ -210,18 +176,15 @@ fhs_card_horseshoe_showcase_v2:
               [[[
                 const enabled =
                   entities[entity_slots.show_tick_background[0]].state === 'on';
-                const style = constants.background_styles[
-                  Number(entities[entity_slots.tick_background_style[0]].state)
-                ];
+                const style =
+                  entities[entity_slots.tick_background_style[0]].state;
                 return enabled ? style : 'none';
               ]]]
             horseshoe_background: |
               [[[
                 const enabled =
                   entities[entity_slots.show_background[0]].state === 'on';
-                const style = constants.background_styles[
-                  Number(entities[entity_slots.background_style[0]].state)
-                ];
+                const style = entities[entity_slots.background_style[0]].state;
                 return enabled ? style : 'none';
               ]]]
           horseshoe_background:
@@ -280,11 +243,11 @@ fhs_card_horseshoe_showcase_v2:
                 min: 0
                 max: 40
             colors:
-              0: '#1565c0'
-              10: '#42a5f5'
-              20: '#66bb6a'
-              30: '#f9a825'
-              40: '#d32f2f'
+              0: "#1565c0"
+              10: "#42a5f5"
+              20: "#66bb6a"
+              30: "#f9a825"
+              40: "#d32f2f"
 
       states:
         - id: value
@@ -304,7 +267,7 @@ fhs_card_horseshoe_showcase_v2:
           group: title
           xpos: 50
           ypos: 50
-          text: '[[name]]'
+          text: "[[name]]"
           styles:
             font-size: 1.2em
             font-weight: bold
@@ -315,10 +278,16 @@ fhs_card_horseshoe_showcase_v2:
         - id: horseshoe-style
           type: select
           entity_index: style[0]
-          xpos: 50
-          ypos: calc(ypos_row_1)
-          width: 96
+          xpos: 58
+          ypos: calc(ypos_row_2)
+          width: calc(select_width)
           height: 9
+          label:
+            position: start
+            gap: 3
+            text: Horseshoe
+            styles:
+              font-size: 0.48em
           content:
             mode: content_vertical
             content_vertical:
@@ -326,84 +295,21 @@ fhs_card_horseshoe_showcase_v2:
                 styles:
                   font-size: 0.42em
           option_map:
-            - { value: 0, text: Fixed }
-            - { value: 1, text: Auto }
-            - { value: 2, text: Stop }
-            - { value: 3, text: Segments }
-            - { value: 4, text: Gradient }
-            - { value: 5, text: Linear }
-
-        - id: show-tickmarks
-          type: toggle
-          entity_index: show_tickmarks[0]
-          xpos: 10
-          ypos: calc(ypos_row_2)
-          width: 11
-          label:
-            position: top
-            gap: 1
-            text: Ticks
-            styles:
-              font-size: 0.42em
-
-        - id: show-labels
-          type: toggle
-          entity_index: show_labels[0]
-          xpos: 30
-          ypos: calc(ypos_row_2)
-          width: 11
-          label:
-            position: top
-            gap: 1
-            text: Labels
-            styles:
-              font-size: 0.42em
-
-        - id: show-label-badges
-          type: toggle
-          entity_index: show_label_badges[0]
-          xpos: 50
-          ypos: calc(ypos_row_2)
-          width: 11
-          label:
-            position: top
-            gap: 1
-            text: Badges
-            styles:
-              font-size: 0.42em
-
-        - id: show-tick-background
-          type: toggle
-          entity_index: show_tick_background[0]
-          xpos: 70
-          ypos: calc(ypos_row_2)
-          width: 11
-          label:
-            position: top
-            gap: 1
-            text: Tick BG
-            styles:
-              font-size: 0.42em
-
-        - id: show-background
-          type: toggle
-          entity_index: show_background[0]
-          xpos: 90
-          ypos: calc(ypos_row_2)
-          width: 11
-          label:
-            position: top
-            gap: 1
-            text: Gauge BG
-            styles:
-              font-size: 0.42em
+            - { value: fixed, text: Fixed }
+            - { value: autominmax, text: Auto }
+            - { value: colorstop, text: Stop }
+            - { value: colorstopinterpolated, text: Interp. }
+            - { value: colorstopsegments, text: Segments }
+            - { value: minmaxgradient, text: Min/Max }
+            - { value: colorstopgradient, text: Gradient }
+            - { value: lineargradient, text: Linear }
 
         - id: tick-background-style
           type: select
           entity_index: tick_background_style[0]
           xpos: 58
           ypos: calc(ypos_row_3)
-          width: 72
+          width: calc(select_width)
           height: 9
           show:
             item_style: outlined_round
@@ -420,17 +326,82 @@ fhs_card_horseshoe_showcase_v2:
                 styles:
                   font-size: 0.42em
           option_map:
-            - { value: 0, text: None }
-            - { value: 1, text: Fixed }
-            - { value: 2, text: Segments }
-            - { value: 3, text: Gradient }
+            - { value: none, text: None }
+            - { value: fixed, text: Fixed }
+            - { value: colorstopsegments, text: Segments }
+            - { value: colorstopgradient, text: Gradient }
+
+        - id: show-tickmarks
+          type: toggle
+          entity_index: show_tickmarks[0]
+          xpos: 10
+          ypos: calc(ypos_row_1)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Ticks
+            styles:
+              font-size: 0.42em
+
+        - id: show-labels
+          type: toggle
+          entity_index: show_labels[0]
+          xpos: 30
+          ypos: calc(ypos_row_1)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Labels
+            styles:
+              font-size: 0.42em
+
+        - id: show-label-badges
+          type: toggle
+          entity_index: show_label_badges[0]
+          xpos: 50
+          ypos: calc(ypos_row_1)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Badges
+            styles:
+              font-size: 0.42em
+
+        - id: show-tick-background
+          type: toggle
+          entity_index: show_tick_background[0]
+          xpos: 70
+          ypos: calc(ypos_row_1)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Tick BG
+            styles:
+              font-size: 0.42em
+
+        - id: show-background
+          type: toggle
+          entity_index: show_background[0]
+          xpos: 90
+          ypos: calc(ypos_row_1)
+          width: 11
+          label:
+            position: top
+            gap: 1
+            text: Gauge BG
+            styles:
+              font-size: 0.42em
 
         - id: gauge-background-style
           type: select
           entity_index: background_style[0]
           xpos: 58
           ypos: calc(ypos_row_4)
-          width: 72
+          width: calc(select_width)
           height: 9
           label:
             position: start
@@ -445,16 +416,42 @@ fhs_card_horseshoe_showcase_v2:
                 styles:
                   font-size: 0.42em
           option_map:
-            - { value: 0, text: None }
-            - { value: 1, text: Fixed }
-            - { value: 2, text: Segments }
-            - { value: 3, text: Gradient }
+            - { value: none, text: None }
+            - { value: fixed, text: Fixed }
+            - { value: colorstopsegments, text: Segments }
+            - { value: colorstopgradient, text: Gradient }
+
+        - id: scale-style
+          type: select
+          entity_index: scale_style[0]
+          xpos: 58
+          ypos: calc(ypos_row_5)
+          width: calc(select_width)
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Scale BG
+            styles:
+              font-size: 0.48em
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.42em
+          option_map:
+            - { value: none, text: None }
+            - { value: fixed, text: Fixed }
+            - { value: colorstopsegments, text: Segments }
+            - { value: colorstopgradient, text: Gradient }
+            - { value: lineargradient, text: Linear }
 
         - id: labels-offset
           type: number
           entity_index: labels_offset[0]
           xpos: 32
-          ypos: calc(ypos_row_5)
+          ypos: calc(ypos_row_6)
           width: 24
           height: 8
           show:
@@ -470,7 +467,7 @@ fhs_card_horseshoe_showcase_v2:
           type: number
           entity_index: background_offset[0]
           xpos: 82
-          ypos: calc(ypos_row_5)
+          ypos: calc(ypos_row_6)
           width: 24
           height: 8
           label:
@@ -484,7 +481,7 @@ fhs_card_horseshoe_showcase_v2:
           type: number
           entity_index: ticks_offset[0]
           xpos: 32
-          ypos: calc(ypos_row_6)
+          ypos: calc(ypos_row_7)
           width: 24
           height: 8
           label:
@@ -498,7 +495,7 @@ fhs_card_horseshoe_showcase_v2:
           type: number
           entity_index: tick_background_offset[0]
           xpos: 82
-          ypos: calc(ypos_row_6)
+          ypos: calc(ypos_row_7)
           width: 24
           height: 8
           label:
@@ -512,7 +509,7 @@ fhs_card_horseshoe_showcase_v2:
           type: number
           entity_index: horseshoe_width[0]
           xpos: 32
-          ypos: calc(ypos_row_7)
+          ypos: calc(ypos_row_8)
           width: 24
           height: 8
           label:
@@ -526,7 +523,7 @@ fhs_card_horseshoe_showcase_v2:
           type: number
           entity_index: scale_width[0]
           xpos: 82
-          ypos: calc(ypos_row_7)
+          ypos: calc(ypos_row_8)
           width: 24
           height: 8
           label:
@@ -535,32 +532,6 @@ fhs_card_horseshoe_showcase_v2:
             text: Scale
             styles:
               font-size: 0.52em
-
-        - id: scale-style
-          type: select
-          entity_index: scale_style[0]
-          xpos: 58
-          ypos: calc(ypos_row_8)
-          width: 72
-          height: 9
-          label:
-            position: start
-            gap: 3
-            text: Scale BG
-            styles:
-              font-size: 0.48em
-          content:
-            mode: content_vertical
-            content_vertical:
-              text:
-                styles:
-                  font-size: 0.42em
-          option_map:
-            - { value: 0, text: None }
-            - { value: 1, text: Fixed }
-            - { value: 2, text: Segments }
-            - { value: 3, text: Gradient }
-            - { value: 4, text: Linear }
 
         - id: major-ticks-width
           type: number
