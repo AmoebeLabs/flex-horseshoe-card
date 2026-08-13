@@ -62,6 +62,19 @@ Each shape or entity supports three gestures:
 | `number` | Increase or decrease a numeric value in fixed steps |
 | `slider` | Set a single value or a lower and upper range       |
 
+<video
+controls
+autoplay
+muted
+loop
+playsinline
+style="display: block; width: 100%; max-width: 400px; margin-inline: auto;"
+
+>
+
+  <source src="../../../assets/videos/2026.08.13-fhs-showcase-controls.mp4" type="video/webm">
+</video>
+
 ## :material-horseshoe: Actions
 
 ### Where actions can be configured
@@ -330,6 +343,25 @@ content:
       styles:
         font-size: 0.6em
 ```
+
+#### Example of rich content for buttons and select
+
+- top row (rooms) with button text and line status indicator below button. The status indicator is shifted down using padding.
+- second row contains the sensor buttons. An icon, state value and again the status indicator is shiftd down using padding.
+- last row (history) just contains text that shows the history time frame
+
+<video
+controls
+autoplay
+muted
+loop
+playsinline
+style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
+
+>
+
+  <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.mp4" type="video/webm">
+</video>
 
 A select can also present live information in every segment. Use the same
 `items`, `padding`, `gap`, and item `margin` settings as button content.
