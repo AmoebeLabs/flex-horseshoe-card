@@ -13,14 +13,8 @@ export default class CardActions {
     this.element = element;
     this.inputEntities = inputEntities;
     this.hass = undefined;
-    this.config = undefined;
     this.resolvedEntityConfigs = undefined;
     this.entities = undefined;
-  }
-
-  /** Publishes the validated card configuration used for gesture precedence. */
-  setConfig(config) {
-    this.config = config;
   }
 
   /** Publishes current Home Assistant and entity data after every hass update. */
@@ -30,10 +24,19 @@ export default class CardActions {
     this.entities = entities;
   }
 
-  /** Selects item, entity, card, and tap-default gesture precedence. */
+  /** Selects the item action, entity action, or entity-bound default tap action. */
   getGestureConfig(itemConfig, entityIndex, actionProperty) {
-    const entityConfig = this.resolvedEntityConfigs[entityIndex];
-    return itemConfig?.[actionProperty] ?? entityConfig?.[actionProperty] ?? this.config?.[actionProperty] ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+    const itemAction = itemConfig?.[actionProperty];
+    if (itemAction !== undefined) return itemAction;
+
+    // An entity-bound item inherits actions from that entity and opens its
+    // more-info dialog on a normal tap when no tap action was configured.
+    if (entityIndex !== undefined) {
+      const entityAction = this.resolvedEntityConfigs[entityIndex][actionProperty];
+      return entityAction ?? (actionProperty === 'tap_action' ? DEFAULT_TAP_ACTION : undefined);
+    }
+
+    return undefined;
   }
 
   /** Returns enabled gestures for the shared action-handler directive. */
@@ -48,6 +51,7 @@ export default class CardActions {
   /** Resolves the HA entity target while preserving sparkline source routing. */
   getActionEntityId(entityIndex, actionConfig) {
     if (actionConfig.entity) return actionConfig.entity;
+    if (entityIndex === undefined) return undefined;
     const entityConfig = this.resolvedEntityConfigs[entityIndex];
     const targetIndex = entityConfig.source_entity_index ?? entityIndex;
     return this.entities[targetIndex].entity_id;

@@ -109,8 +109,8 @@ export default class CardTools {
    */
   setToolEntityState(tool, entityConfigs, entities) {
     const entityIndex = tool.entity_index;
-    if (entityIndex === undefined || entityIndex === null) {
-      tool.setState(undefined, undefined);
+    if (entityIndex === undefined) {
+      tool.setStaticState();
       return;
     }
 

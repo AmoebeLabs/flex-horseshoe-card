@@ -419,7 +419,6 @@ class FlexHorseshoeCard extends LitElement {
       this.cardConfig.initializeCardRuntimeDefaults(config);
 
       this.config = config;
-      this.actions.setConfig(config);
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);

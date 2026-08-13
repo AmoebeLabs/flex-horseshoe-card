@@ -749,6 +749,11 @@ export default class TextTool extends BaseTool {
     return wrappedRecords.map((record) => record.part);
   }
 
+  /** Builds literal text parts that do not read an entity state. */
+  setStaticState() {
+    this.setState(undefined, undefined);
+  }
+
   /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
     if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {

@@ -3,45 +3,64 @@ template: main.html
 title: Actions and Interactive Controls
 description: Configure tap, hold, double-tap, haptic feedback, multiple actions, item overrides, and browser-local helper entities in the Flexible Horseshoe Card.
 tags:
-  - Actions
-  - Haptics
-  - Interactive controls
-  - Helpers
-  - Entities
+  - Actions
+  - Haptics
+  - Interactive controls
+  - Helpers
+  - Entities
 ---
 
 # Actions and interactive controls
 
-Actions make an entity or an individual layout item interactive. FHS follows the current Home Assistant dashboard action format, so familiar actions such as opening more information, toggling an entity, performing an action, navigating, opening a URL, or starting Assist use the same YAML.
+Actions make entities and individual layout items interactive. FHS uses the current Home Assistant dashboard action format, so you can use familiar actions such as opening more information, toggling an entity, performing an action, navigating, opening a URL, or starting Assist.
 
-A normal tap opens the entity's more-info dialog by default.
+!!! info "If an entity_index is defined, a tap action opens its more-info dialog by default."
 
 ## :material-horseshoe: At a glance
 
-Actions describe what happens after an interaction. Interactive controls provide
-ready-made interfaces for common dashboard tasks.
+Actions define what happens when someone interacts with the card. Interactive
+controls give you ready-made controls for common dashboard tasks.
+
 
 ### Available actions
 
-| Action           | Result                                                     |
+!!! success "The supported actions should be compatible with the Home Assistant actions"
+
+
+| Action           | Result                                                     |
 | :--------------- | :--------------------------------------------------------- |
-| `more-info`      | Opens the more-info dialog for an entity                   |
-| `toggle`         | Toggles an entity between its on and off states            |
+| `more-info`      | Opens the more-info dialog for an entity                   |
+| `toggle`         | Toggles an entity between its on and off states            |
 | `perform-action` | Runs a Home Assistant action with optional target and data |
-| `navigate`       | Opens another dashboard path                               |
-| `url`            | Opens a URL                                                |
-| `assist`         | Starts Home Assistant Assist                               |
-| `none`           | Disables the configured gesture                            |
+| `navigate`       | Opens another dashboard path                               |
+| `url`            | Opens a URL                                                |
+| `assist`         | Starts Home Assistant Assist                               |
+| `none`           | Disables the configured gesture                            |
+
+### Available gestures: Tap, hold, and double tap
+
+Each shape or entity supports three gestures:
+
+| Gesture    | Configuration       | Default     |
+| :--------- | :------------------ | :---------- |
+| Tap        | `tap_action`        | `more-info` |
+| Hold       | `hold_action`       | None        |
+| Double tap | `double_tap_action` | None        |
+
+!!! warning "Double tap delays the single tap action with 250msec"
+    This is the time frame the double tap needs to detect double tap.
 
 ### Interactive controls
 
-| Control  | Use it to                                           |
+!!! info "The interactive controls are specifically made for the Flexible Horseshoe to support user interactions."
+
+| Control  | Use it to                                           |
 | :------- | :-------------------------------------------------- |
 | `button` | Show configurable content and run tap, hold, or double-tap actions |
-| `toggle` | Display and change an on/off state                  |
+| `toggle` | Display and change an on/off state                  |
 | `select` | Choose one option with configurable content in every segment |
 | `number` | Increase or decrease a numeric value in fixed steps |
-| `slider` | Set a single value or a lower and upper range       |
+| `slider` | Set a single value or a lower and upper range       |
 
 ## :material-horseshoe: Actions
 
@@ -51,94 +70,82 @@ Configure an action on an entity when every item using that entity should behave
 
 ```yaml linenums="1"
 entities:
-  - entity: light.hall
-    tap_action:
-      action: toggle
+  - entity: light.hall
+    tap_action:
+      action: toggle
 ```
 
 Configure the action on a layout item when only that item should behave differently:
 
 ```yaml linenums="1"
 layout:
-  icons:
-    - id: hall-light
-      entity_index: 0
-      xpos: 50
-      ypos: 50
-      tap_action:
-        action: perform-action
-        perform_action: light.turn_on
-        target:
-          entity_id: light.hall
-        data:
-          brightness_pct: 50
+  icons:
+    - id: hall-light
+      entity_index: 0
+      xpos: 50
+      ypos: 50
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        target:
+          entity_id: light.hall
+        data:
+          brightness_pct: 50
 ```
 
-The item action takes priority over the action on its entity. If neither is present, FHS uses the card action and then the default tap action. This also works when the same Home Assistant entity appears more than once in the `entities` list: the clicked item's exact `entity_index` is used.
+An action on the item takes priority over the action on its entity. An item connected to an entity opens more-info on tap when neither defines a tap action. Items without an entity respond only to actions configured on the item. When the same Home Assistant entity appears more than once in the `entities` list, the clicked item uses its exact `entity_index`.
 
 Actions are available on horseshoes, entity parts, text items, icons, lines, circles, arcs, and rectangles. Standalone text defaults to `none`, while sparklines keep their pointer interaction for graph tooltips.
 
-### Tap, hold, and double tap
-
-The same action format is available for all three gestures:
-
-| Gesture    | Configuration       | Default     |
-| :--------- | :------------------ | :---------- |
-| Tap        | `tap_action`        | `more-info` |
-| Hold       | `hold_action`       | None        |
-| Double tap | `double_tap_action` | None        |
-
-!!! warning "Double tap delays the single tap action with 250msec"
-    This is the time frame the double tap needs to detect double tap.
 
 ```yaml linenums="1"
 entities:
-  - entity: light.hall
-    tap_action:
-      action: toggle
-    hold_action:
-      action: more-info
-    double_tap_action:
-      action: perform-action
-      perform_action: light.turn_on
-      target:
-        entity_id: light.hall
-      data:
-        brightness_pct: 100
+  - entity: light.hall
+    tap_action:
+      action: toggle
+    hold_action:
+      action: more-info
+    double_tap_action:
+      action: perform-action
+      perform_action: light.turn_on
+      target:
+        entity_id: light.hall
+      data:
+        brightness_pct: 100
 ```
 
 ### Performing a Home Assistant action
 
-Use `perform-action` for service calls:
+Use `perform-action` when you want to call a Home Assistant action:
 
 ```yaml linenums="1"
 tap_action:
-  action: perform-action
-  perform_action: light.turn_on
-  target:
-    entity_id: light.hall
-  data:
-    brightness_pct: 50
+  action: perform-action
+  perform_action: light.turn_on
+  target:
+    entity_id: light.hall
+  data:
+    brightness_pct: 50
 ```
 
-Existing FHS configurations using `call-service`, `service`, and `service_data` remain supported. Existing `fire-dom-event` actions also remain supported.
+Older FHS configurations that use `call-service`, `service`, `service_data`, or `fire-dom-event` are still supported.
 
 ### Multiple actions
 
-FHS can run several actions in their listed order. Each entry inside `actions` is a normal Home Assistant action:
+FHS can run multiple actions in sequence. They run in the order listed. Each entry inside `actions` is a normal Home Assistant action:
 
 ```yaml linenums="1"
 tap_action:
-  actions:
-    - action: perform-action
-      perform_action: light.turn_on
-      target:
-        entity_id: light.hall
-    - action: navigate
-      navigation_path: /lovelace/lights
+  actions:
+    - action: perform-action
+      perform_action: light.turn_on
+      target:
+        entity_id: light.hall
+    - action: navigate
+      navigation_path: /lovelace/lights
 ```
 
-The `actions` list can also be used inside `hold_action` and `double_tap_action`.
+You can also use an `actions` list inside `hold_action` and `double_tap_action`.
 
 ### Haptic feedback
 
@@ -146,10 +153,10 @@ Supported Home Assistant Companion apps can provide immediate feedback when a ge
 
 ```yaml linenums="1"
 tap_action:
-  haptic: success
-  actions:
-    - action: toggle
-    - action: more-info
+  haptic: success
+  actions:
+    - action: toggle
+    - action: more-info
 ```
 
 This uses the Home Assistant Companion app's haptic feedback.
@@ -158,22 +165,23 @@ Available values are `success`, `warning`, `failure`, `light`, `medium`, `heavy`
 
 ## :material-horseshoe: Interactive controls
 
-Interactive controls provide ready-made buttons, toggles, selectors, number
-steppers, and sliders. Connect a control to an entity to display and change its
-value, or configure an action for commands such as opening details or starting
-a service.
+Interactive controls give you ready-made buttons, toggles, selectors, number
+steppers, and sliders. Connect a control to an entity when you want to show or
+change its value. For commands, configure an action instead, for example to open
+details or perform a Home Assistant action.
 
-| Control  | Common entity source                                                  |
+| Control  | Common entity source                                                  |
 | :------- | :-------------------------------------------------------------------- |
-| `button` | Any entity, or an explicit action target                              |
+| `button` | Any entity, or an explicit action target                              |
 | `toggle` | Home Assistant on/off entity, `input_boolean`, or `fhs_input_boolean` |
-| `select` | `select`, `input_select`, or `fhs_input_select`                       |
-| `number` | `input_number` or `fhs_input_number`                                  |
-| `slider` | A numeric entity or numeric entity attribute                          |
+| `select` | `select`, `input_select`, or `fhs_input_select`                       |
+| `number` | `input_number` or `fhs_input_number`                                  |
+| `slider` | A numeric entity or numeric entity attribute                          |
 
-Use a Home Assistant entity when its state belongs to the home, automations, or
-multiple devices. Use an FHS browser-local helper when the state only controls
-the presentation or behavior of FHS cards in the current browser.
+Use a Home Assistant entity when the state is part of your home, is used by
+automations, or needs to be shared across devices. Use an FHS browser-local
+helper when the value only affects how FHS cards look or behave in the current
+browser.
 
 ### Button control
 
@@ -185,7 +193,7 @@ A button can show text, an icon, entity information, status indicators, a
 horseshoe, or a sparkline. Choose the content and its arrangement with
 `content.mode`:
 
-| Mode                 | Result                                  |
+| Mode                 | Result                                  |
 | :------------------- | :-------------------------------------- |
 | `content_text` | Text |
 | `content_icon` | Icon |
@@ -197,52 +205,52 @@ and `type`:
 
 ```yaml linenums="1"
 content:
-  mode: content_horizontal
-  content_horizontal:
-    padding: { x: 2, y: 1 }
-    gap: 2
-    items:
-      - id: icon
-        type: icon
-        icon: mdi:gesture-tap-button
-      - id: label
-        type: text
-        text: Run
+  mode: content_horizontal
+  content_horizontal:
+    padding: { x: 2, y: 1 }
+    gap: 2
+    items:
+      - id: icon
+        type: icon
+        icon: mdi:gesture-tap-button
+      - id: label
+        type: text
+        text: Run
 ```
 
 Combine any of these visual items in the same list:
 
-| Item type   | Shows                             |
+| Item type   | Shows                             |
 | :---------- | :-------------------------------- |
-| `icon`      | An entity icon or configured icon |
-| `text`      | Configured text                   |
-| `state`     | Entity value and unit             |
-| `name`      | Entity name                       |
-| `area`      | Entity area                       |
-| `line`      | Compact status line               |
-| `circle`    | Compact status circle             |
-| `horseshoe` | Compact horseshoe visualization   |
-| `sparkline` | Compact history visualization     |
+| `icon`      | An entity icon or configured icon |
+| `text`      | Configured text                   |
+| `state`     | Entity value and unit             |
+| `name`      | Entity name                       |
+| `area`      | Entity area                       |
+| `line`      | Compact status line               |
+| `circle`    | Compact status circle             |
+| `horseshoe` | Compact horseshoe visualization   |
+| `sparkline` | Compact history visualization     |
 
 ```yaml linenums="1"
 content:
-  mode: content_vertical
-  content_vertical:
-    padding:
-      x: 1
-      y: { top: 1, bottom: 1 }
-    gap: 0.5
-    items:
-      - id: icon
-        type: icon
-        size: 40
-      - id: value
-        type: state
-        styles:
-          font-size: 0.6em
-      - id: status
-        type: line
-        length: 5
+  mode: content_vertical
+  content_vertical:
+    padding:
+      x: 1
+      y: { top: 1, bottom: 1 }
+    gap: 0.5
+    items:
+      - id: icon
+        type: icon
+        size: 40
+      - id: value
+        type: state
+        styles:
+          font-size: 0.6em
+      - id: status
+        type: line
+        length: 5
 ```
 
 `padding` creates space around the complete content. `gap` controls the
@@ -261,10 +269,10 @@ A toggle can optionally show an icon inside its moving knob:
 
 ```yaml linenums="1"
 content:
-  mode: content_icon
-  content_icon:
-    icon:
-      icon: mdi:check
+  mode: content_icon
+  content_icon:
+    icon:
+      icon: mdi:check
 ```
 
 ### Select control
@@ -276,23 +284,23 @@ Use `fhs_input_select` for a choice that belongs to the dashboard:
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_select.chart_type
-    options:
-      - line
-      - area
-      - bar
-      - dots
-    initial: line
+  - entity: fhs_input_select.chart_type
+    options:
+      - line
+      - area
+      - bar
+      - dots
+    initial: line
 
 layout:
-  controls:
-    - id: chart-type
-      type: select
-      entity_index: 0
-      xpos: 50
-      ypos: 90
-      width: 90
-      height: 12
+  controls:
+    - id: chart-type
+      type: select
+      entity_index: 0
+      xpos: 50
+      ypos: 90
+      width: 90
+      height: 12
 ```
 
 When `option_map` is omitted, the control reads the option list from the
@@ -312,15 +320,15 @@ sets the same arrangement for every segment:
 
 ```yaml linenums="1"
 content:
-  mode: content_vertical
-  content_vertical:
-    padding: { x: 1, y: 1 }
-    gap: 1
-    icon:
-      size: 40
-    text:
-      styles:
-        font-size: 0.6em
+  mode: content_vertical
+  content_vertical:
+    padding: { x: 1, y: 1 }
+    gap: 1
+    icon:
+      size: 40
+    text:
+      styles:
+        font-size: 0.6em
 ```
 
 A select can also present live information in every segment. Use the same
@@ -332,29 +340,29 @@ This example shows an icon, current value, and status line for every sensor:
 
 ```yaml linenums="1"
 content:
-  mode: content_vertical
-  content_vertical:
-    padding: { x: 0.5, y: { top: 1, bottom: 1 } }
-    gap: 0.5
-    items:
-      - id: icon
-        type: icon
-        size: 40
-      - id: value
-        type: state
-        styles:
-          font-size: 0.55em
-      - id: status
-        type: line
-        length: 4
+  mode: content_vertical
+  content_vertical:
+    padding: { x: 0.5, y: { top: 1, bottom: 1 } }
+    gap: 0.5
+    items:
+      - id: icon
+        type: icon
+        size: 40
+      - id: value
+        type: state
+        styles:
+          font-size: 0.55em
+      - id: status
+        type: line
+        length: 4
 
 option_map:
-  - value: score
-    entity_index: room_sensors[0]
-  - value: temperature
-    entity_index: room_sensors[1]
-  - value: humidity
-    entity_index: room_sensors[2]
+  - value: score
+    entity_index: room_sensors[0]
+  - value: temperature
+    entity_index: room_sensors[1]
+  - value: humidity
+    entity_index: room_sensors[2]
 ```
 
 Give an item its own settings for a specific option through
@@ -362,18 +370,18 @@ Give an item its own settings for a specific option through
 
 ```yaml linenums="1"
 option_map:
-  - value: score
-    entity_index: room_sensors[0]
-    content:
-      status:
-        show:
-          item_style: colorstopinterpolated
-        colorstopinterpolated:
-          stroke: true
-          fill: false
-        color_stops:
-          template:
-            name: fhs_colorstops_awair_score
+  - value: score
+    entity_index: room_sensors[0]
+    content:
+      status:
+        show:
+          item_style: colorstopinterpolated
+        colorstopinterpolated:
+          stroke: true
+          fill: false
+        color_stops:
+          template:
+            name: fhs_colorstops_awair_score
 ```
 
 Add an `option_map` when an option needs another label, an icon, visual entity,
@@ -382,29 +390,29 @@ or additional action data. The `value` normally matches the entity option.
 
 ```yaml linenums="1"
 option_map:
-  - value: "off"
-    text: Uit
-    icon: mdi:fan-off
-  - value: low
-    text: Laag
-    icon: mdi:fan-speed-1
-  - value: medium
-    text: Normaal
-    icon: mdi:fan-speed-2
-  - value: high
-    text: Hoog
-    icon: mdi:fan-speed-3
+  - value: "off"
+    text: Uit
+    icon: mdi:fan-off
+  - value: low
+    text: Laag
+    icon: mdi:fan-speed-1
+  - value: medium
+    text: Normaal
+    icon: mdi:fan-speed-2
+  - value: high
+    text: Hoog
+    icon: mdi:fan-speed-3
 ```
 
 For most selects, `value` is all that is needed. The other fields refine
 matching and presentation:
 
-| Field   | Purpose                                                                   |
+| Field   | Purpose                                                                   |
 | :------ | :------------------------------------------------------------------------ |
 | `value` | Value supplied to the select action; required in an explicit `option_map` |
-| `state` | Entity state that selects this segment; defaults to `value`               |
-| `text`  | Visible label; defaults to `value`                                        |
-| `icon`  | Optional icon shown with the label                                        |
+| `state` | Entity state that selects this segment; defaults to `value`               |
+| `text`  | Visible label; defaults to `value`                                        |
+| `icon`  | Optional icon shown with the label                                        |
 
 For example, `state: heating` can select a segment whose action uses
 `value: heat`, while `text: Verwarmen` provides the visible label.
@@ -416,12 +424,12 @@ the selected value belongs in the action data:
 
 ```yaml linenums="1"
 tap_action:
-  action: perform-action
-  perform_action: climate.set_hvac_mode
-  target:
-    entity_id: climate.living_room
-  data:
-    hvac_mode: option(value)
+  action: perform-action
+  perform_action: climate.set_hvac_mode
+  target:
+    entity_id: climate.living_room
+  data:
+    hvac_mode: option(value)
 ```
 
 An option can carry additional values when an action needs more than the
@@ -429,18 +437,18 @@ selected state:
 
 ```yaml linenums="1"
 option_map:
-  - value: comfort
-    text: Comfort
-    action_data:
-      temperature: 21
+  - value: comfort
+    text: Comfort
+    action_data:
+      temperature: 21
 
 tap_action:
-  action: perform-action
-  perform_action: climate.set_temperature
-  target:
-    entity_id: climate.living_room
-  data:
-    temperature: option(action_data.temperature)
+  action: perform-action
+  perform_action: climate.set_temperature
+  target:
+    entity_id: climate.living_room
+  data:
+    temperature: option(action_data.temperature)
 ```
 
 Write `option(...)` as the complete value of a YAML field. It can be used in
@@ -478,20 +486,20 @@ Use `fhs_input_boolean` for a browser-local on/off choice. Set `initial` to `tru
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_boolean.show_labels
-    initial: true
-    scope: global
-    persist: true
+  - entity: fhs_input_boolean.show_labels
+    initial: true
+    scope: global
+    persist: true
 ```
 
 Change the choice explicitly with an action:
 
 ```yaml linenums="1"
 tap_action:
-  action: perform-action
-  perform_action: fhs_input_boolean.toggle
-  target:
-    entity_id: fhs_input_boolean.show_labels
+  action: perform-action
+  perform_action: fhs_input_boolean.toggle
+  target:
+    entity_id: fhs_input_boolean.show_labels
 ```
 
 The explicit services `fhs_input_boolean.turn_on` and `fhs_input_boolean.turn_off` are also supported. A plain `action: toggle` works when the selected entity is a local FHS boolean.
@@ -500,7 +508,7 @@ In templates, the value is `on` or `off`:
 
 ```yaml linenums="1"
 visibility: |
-  [[[ return state === 'on' ? 'visible' : 'hidden'; ]]]
+  [[[ return state === 'on' ? 'visible' : 'hidden'; ]]]
 ```
 
 A local boolean can be used in the same way as a real Home Assistant `input_boolean`; choose the local `fhs_input_boolean` entity when the state should remain inside the browser, or reference the real `input_boolean` when Home Assistant should own and synchronize the state across devices.
@@ -514,30 +522,30 @@ selected option can be used directly in templates and entity names.
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_select.awair_room
-    options:
-      - livingroom
-      - bedroom
-      - study
-    initial: livingroom
+  - entity: fhs_input_select.awair_room
+    options:
+      - livingroom
+      - bedroom
+      - study
+    initial: livingroom
 ```
 
 For example, an Awair card can use the selected room directly:
 
 ```yaml linenums="1"
 entity: |
-  [[[
-    const room = entities[entity_slots.input_room[0]].state;
-    return `sensor.awair_element_${room}_score`;
-  ]]]
+  [[[
+    const room = entities[entity_slots.input_room[0]].state;
+    return `sensor.awair_element_${room}_score`;
+  ]]]
 ```
 
-| Option    | Default      | Description                                                               |
+| Option    | Default      | Description                                                               |
 | :-------- | :----------- | :------------------------------------------------------------------------ |
-| `options` | Required     | Non-empty list of unique strings available for selection                  |
-| `initial` | First option | Option selected when the input is first created                           |
-| `scope`   | `card`       | Keeps the value in one card, or shares it between FHS cards with `global` |
-| `persist` | `false`      | Restores a global input after a page reload when set to `true`            |
+| `options` | Required     | Non-empty list of unique strings available for selection                  |
+| `initial` | First option | Option selected when the input is first created                           |
+| `scope`   | `card`       | Keeps the value in one card, or shares it between FHS cards with `global` |
+| `persist` | `false`      | Restores a global input after a page reload when set to `true`            |
 
 The selected value must be one of the configured options. Quote YAML words such
 as `on`, `off`, `yes`, and `no` when they should remain strings.
@@ -547,12 +555,12 @@ explicitly:
 
 ```yaml linenums="1"
 tap_action:
-  action: perform-action
-  perform_action: fhs_input_select.select_option
-  target:
-    entity_id: fhs_input_select.awair_room
-  data:
-    option: study
+  action: perform-action
+  perform_action: fhs_input_select.select_option
+  target:
+    entity_id: fhs_input_select.awair_room
+  data:
+    option: study
 ```
 
 Use `scope: global` to share the selection between FHS cards in the same
@@ -566,69 +574,69 @@ Use `fhs_input_number` for a browser-local numeric value, such as a history peri
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_number.history_days
-    initial: 1
-    min: 1
-    max: 14
-    step: 1
-    scope: global
-    persist: true
+  - entity: fhs_input_number.history_days
+    initial: 1
+    min: 1
+    max: 14
+    step: 1
+    scope: global
+    persist: true
 ```
 
-| Option    | Default  | Description                                                                                      |
+| Option    | Default  | Description                                                                                      |
 | :-------- | :------- | :----------------------------------------------------------------------------------------------- |
-| `initial` | Required | Number used when the input is first created                                                      |
-| `min`     | None     | Lowest accepted value. Existing inputs remain unbounded when it is omitted.                      |
-| `max`     | None     | Highest accepted value. Existing inputs remain unbounded when it is omitted.                     |
-| `step`    | `1`      | Amount used by `increment` and `decrement`.                                                      |
-| `scope`   | `card`   | `card` keeps the value in one card; `global` shares it with FHS cards in the current browser tab |
-| `persist` | `false`  | Restores a global input after a page reload when set to `true`                                   |
+| `initial` | Required | Number used when the input is first created                                                      |
+| `min`     | None     | Lowest accepted value. Existing inputs remain unbounded when it is omitted.                      |
+| `max`     | None     | Highest accepted value. Existing inputs remain unbounded when it is omitted.                     |
+| `step`    | `1`      | Amount used by `increment` and `decrement`.                                                      |
+| `scope`   | `card`   | `card` keeps the value in one card; `global` shares it with FHS cards in the current browser tab |
+| `persist` | `false`  | Restores a global input after a page reload when set to `true`                                   |
 
 Set the value with the familiar `perform-action` format:
 
 ```yaml linenums="1"
 tap_action:
-  action: perform-action
-  perform_action: fhs_input_number.set_value
-  target:
-    entity_id: fhs_input_number.history_days
-  data:
-    value: 7
+  action: perform-action
+  perform_action: fhs_input_number.set_value
+  target:
+    entity_id: fhs_input_number.history_days
+  data:
+    value: 7
 ```
 
 Incrementing and decrementing use the configured step and clamp the result to the configured bounds:
 
 ```yaml linenums="1"
 - entity: fhs_input_number.horseshoe_offset
-  initial: 0
-  min: -20
-  max: 20
-  step: 1
+  initial: 0
+  min: -20
+  max: 20
+  step: 1
 
 layout:
-  rectangles:
-    - id: offset-up
-      tap_action:
-        action: perform-action
-        perform_action: fhs_input_number.increment
-        target:
-          entity_id: fhs_input_number.horseshoe_offset
-    - id: offset-down
-      tap_action:
-        action: perform-action
-        perform_action: fhs_input_number.decrement
-        target:
-          entity_id: fhs_input_number.horseshoe_offset
+  rectangles:
+    - id: offset-up
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.increment
+        target:
+          entity_id: fhs_input_number.horseshoe_offset
+    - id: offset-down
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.decrement
+        target:
+          entity_id: fhs_input_number.horseshoe_offset
 ```
 
 The same services can be used with the legacy action format:
 
 ```yaml linenums="1"
 tap_action:
-  action: call-service
-  service: fhs_input_number.increment
-  service_data:
-    entity_id: fhs_input_number.horseshoe_offset
+  action: call-service
+  service: fhs_input_number.increment
+  service_data:
+    entity_id: fhs_input_number.horseshoe_offset
 ```
 
 Every FHS card that should use a global input includes the same `fhs_input_number` in its own `entities` list. Those cards then update together, including while navigating between dashboards. Add `persist: true` to restore the latest value after a full page reload.
@@ -641,43 +649,43 @@ A graph can read the input through its position in the `entities` list. This exa
 
 ```yaml linenums="1"
 period:
-  type: rolling_window
-  rolling_window:
-    duration:
-      hour: |
-        [[[
-          return Number(entities[0].state) * 24;
-        ]]]
-    bins:
-      per_hour: 2
+  type: rolling_window
+  rolling_window:
+    duration:
+      hour: |
+        [[[
+          return Number(entities[0].state) \* 24;
+        ]]]
+    bins:
+      per_hour: 2
 ```
 
 Connect a control with `entity_index`. In its style template, `state` contains the current helper value, which makes the active choice easy to show:
 
 ```yaml linenums="1"
 layout:
-  rectangles:
-    - id: seven-days
-      entity_index: 0
-      xpos: 75
-      ypos: 12
-      width: 18
-      height: 8
-      tap_action:
-        haptic: selection
-        action: perform-action
-        perform_action: fhs_input_number.set_value
-        target:
-          entity_id: fhs_input_number.history_days
-        data:
-          value: 7
-      styles:
-        fill: |
-          [[[
-            return Number(state) === 7
-              ? 'var(--primary-color)'
-              : 'var(--secondary-background-color)';
-          ]]]
+  rectangles:
+    - id: seven-days
+      entity_index: 0
+      xpos: 75
+      ypos: 12
+      width: 18
+      height: 8
+      tap_action:
+        haptic: selection
+        action: perform-action
+        perform_action: fhs_input_number.set_value
+        target:
+          entity_id: fhs_input_number.history_days
+        data:
+          value: 7
+      styles:
+        fill: |
+          [[[
+            return Number(state) === 7
+              ? 'var(--primary-color)'
+              : 'var(--secondary-background-color)';
+          ]]]
 ```
 
 Graphs, labels, colors, visibility, and other templated options can respond to the helper value.

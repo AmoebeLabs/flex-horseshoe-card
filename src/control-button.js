@@ -426,6 +426,33 @@ export default class ControlButton extends ControlBase {
     if (this.contentTextTool) this.contentTextTool.updateRuntimeConfig();
   }
 
+  /** Initializes an entityless command button with its inactive visualization. */
+  setStaticState() {
+    super.setStaticState();
+
+    const viz = this.config[this.config.show.item_viz];
+    const visualState = viz.inactive;
+    const transition = viz.animation.duration + 'ms ' + viz.animation.easing;
+
+    this.active = false;
+
+    if (this.contentVisual) this.contentVisual.setState(visualState, transition);
+
+    if (this.contentIconTool) {
+      this.contentIconTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), this.contentIconBaseStyles, {
+        transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
+      });
+      this.contentIconTool.setStaticState();
+    }
+
+    if (this.contentTextTool) {
+      this.contentTextTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), this.contentTextBaseStyles, {
+        transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
+      });
+      this.contentTextTool.setStaticState();
+    }
+  }
+
   /**
    * Selects active/inactive visualization and publishes state to child tools.
    */

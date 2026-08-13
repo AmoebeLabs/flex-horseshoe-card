@@ -233,6 +233,17 @@ export default class ControlBase extends BaseTool {
     }
   }
 
+  /** Initializes a literal label or its explicitly configured entity. */
+  setStaticState() {
+    if (this.hasControlLabel) {
+      this.card.cardTools.setToolEntityState(
+        this.labelTextTool,
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+      );
+    }
+  }
+
   /** Runs TextTool measurement and overflow lifecycle after rendering. */
   updated() {
     if (this.hasControlLabel) this.labelTextTool.updated();
