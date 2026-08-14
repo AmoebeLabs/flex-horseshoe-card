@@ -18,7 +18,7 @@ function createStateTool({ state, haFormattedValue, haPrecision, decimals, forma
   };
   const hass = {
     language: 'nl',
-    locale: { language: 'nl-NL', number_format: 'comma_decimal' },
+    locale: { language: 'nl-NL', number_format: 'decimal_comma' },
     entities: {
       [entity.entity_id]: {
         entity_id: entity.entity_id,
