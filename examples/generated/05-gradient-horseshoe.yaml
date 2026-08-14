@@ -1,0 +1,37 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Temperature
+    unit: C
+layout:
+  horseshoes:
+    - id: temperature
+      entity_index: 0
+      xpos: 50
+      ypos: 50
+      radius: 42
+      arc_degrees: 260
+      show:
+        horseshoe_style: colorstopgradient
+      horseshoe_scale:
+        min: 10
+        max: 35
+      horseshoe_state:
+        width: 12
+      color_stops:
+        colors:
+          10: '#1565c0'
+          18: '#42a5f5'
+          24: '#66bb6a'
+          28: '#ffa726'
+          35: '#d32f2f'
+  states:
+    - id: value
+      entity_index: 0
+      xpos: 50
+      ypos: 58
+      show:
+        uom: end
+      styles:
+        font-size: 2.4em
+        text-anchor: middle

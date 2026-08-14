@@ -324,17 +324,17 @@ sparkline:
 
 Move the pointer or a finger over the ring to inspect an individual segment. The selected foreground segment is highlighted, while the remaining segments are dimmed relative to their configured opacity. The tooltip displays the value and time information for the selected bin.
 
-Leave `chart_viz` unset to use regular ring segments. Choose `flower`, `flower2`, or `rice_grain` to change their shape.
+Leave `chart_viz` unset for backwards-compatible default behavior. You can also set `chart_viz: bar` explicitly. With a fixed-width variant these form a regular ring; with a sunburst variant they become value-sized radial bars. Choose `flower`, `flower2`, or `rice_grain` to replace the bars with rounded shapes.
 
-Leave `chart_variant` unset for a fixed-width ring. Use `sunburst`, `sunburst_centered`, `sunburst_outward`, or `sunburst_inward` when each segment’s radial size should represent its value.
+Leave `chart_variant` unset for backwards-compatible behavior. You can also set `chart_variant: fixed` explicitly for a fixed-width ring. Use `sunburst`, `sunburst_centered`, `sunburst_outward`, or `sunburst_inward` when each segment’s radial size should represent its value.
 
 ### Configuration fields
 
 | Field                                   |     Required     | Default        | Description                                                                                    |
 | :-------------------------------------- | :--------------: | :------------- | :--------------------------------------------------------------------------------------------- |
 | `show.chart_type`                       | :material-check: |                | Use `radial_barcode` to display a radial barcode chart.                                        |
-| `show.chart_viz`                        | :material-close: | Not set        | Choose `flower`, `flower2`, or `rice_grain`. Leave it unset for regular ring segments.         |
-| `show.chart_variant`                    | :material-close: | Not set        | Chooses a centered, outward, or inward sunburst layout. Leave it unset for a fixed-width ring. |
+| `show.chart_viz`                        | :material-close: | Not set        | Supports `bar`, `flower`, `flower2`, or `rice_grain`. `bar` is the explicit standard-segment mode; its geometry follows the selected `chart_variant`. |
+| `show.chart_variant`                    | :material-close: | Not set        | Supports `fixed`, `sunburst`, `sunburst_centered`, `sunburst_outward`, and `sunburst_inward`. `fixed` explicitly selects the fixed-width ring. |
 | `radial_barcode.size`                   | :material-close: | `5`            | Controls the radial width of the barcode ring.                                                 |
 | `radial_barcode.line_width`             | :material-close: | `0`            | Adds line width to the radial segments.                                                        |
 | `radial_barcode.background.styles`      | :material-close: | `opacity: 0.3` | Applies styles to the complete reference ring.                                                 |

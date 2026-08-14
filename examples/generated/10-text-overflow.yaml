@@ -1,0 +1,34 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Awair Element Study Temperature
+    unit: C
+layout:
+  texts:
+    - id: title
+      entity_index: 0
+      xpos: 50
+      ypos: 32
+      text: 'Awair Element Study Temperature'
+      text_overflow:
+        mode: wrap
+        wrap:
+          max_width: 55
+          max_lines: 2
+          dy: 1.3
+      styles:
+        font-size: 1em
+        text-anchor: middle
+    - id: value
+      entity_index: 0
+      xpos: 50
+      ypos: 70
+      text: '[[[ return state + " " + entity.attributes.unit_of_measurement; ]]]'
+      text_overflow:
+        mode: fit
+        fit:
+          max_width: 35
+      styles:
+        font-size: 2em
+        text-anchor: middle
+

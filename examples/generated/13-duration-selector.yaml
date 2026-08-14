@@ -1,0 +1,61 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: fhs_input_number.history_hours
+    initial: 24
+    scope: global
+    unit: h
+layout:
+  rectangles:
+    - id: duration--value-1-hour
+      entity_index: 0
+      xpos: 15
+      ypos: 50
+      width: 22
+      height: 14
+      radius: 2
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.set_value
+        target:
+          entity_id: fhs_input_number.history_hours
+        data:
+          value: 1
+      styles:
+        fill: var(--secondary-background-color)
+    - id: duration--value-1-day
+      same_as: duration--value-1-hour
+      same_as_dxpos: 25
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.set_value
+        target:
+          entity_id: fhs_input_number.history_hours
+        data:
+          value: 24
+    - id: duration--value-1-week
+      same_as: duration--value-1-day
+      same_as_dxpos: 25
+      tap_action:
+        action: perform-action
+        perform_action: fhs_input_number.set_value
+        target:
+          entity_id: fhs_input_number.history_hours
+        data:
+          value: 168
+  texts:
+    - id: duration--value-1-hour
+      xpos: 15
+      ypos: 50
+      text: 1h
+      styles:
+        text-anchor: middle
+        dominant-baseline: central
+    - id: duration--value-1-day
+      same_as: duration--value-1-hour
+      same_as_dxpos: 25
+      text: 1d
+    - id: duration--value-1-week
+      same_as: duration--value-1-day
+      same_as_dxpos: 25
+      text: 1w
+

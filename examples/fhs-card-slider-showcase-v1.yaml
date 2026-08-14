@@ -1,8 +1,8 @@
-fhs_slider_control_showcase:
+fhs_card_slider_showcase_v1:
   template:
     type: card
     defaults:
-      - fhs_slider_control_showcase_update_interval: 100
+      - fhs_card_slider_showcase_update_interval: 100
 
   card:
     entities:
@@ -37,7 +37,7 @@ fhs_slider_control_showcase:
           width: 70
           height: 12
           interaction:
-            update_interval: '[[fhs_slider_control_showcase_update_interval]]'
+            update_interval: '[[fhs_card_slider_showcase_update_interval]]'
           value:
             position: top
             state:
@@ -79,7 +79,7 @@ fhs_slider_control_showcase:
           width: 34
           height: 34
           interaction:
-            update_interval: '[[fhs_slider_control_showcase_update_interval]]'
+            update_interval: '[[fhs_card_slider_showcase_update_interval]]'
           value:
             position: center
             state:

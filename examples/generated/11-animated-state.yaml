@@ -1,0 +1,22 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Temperature
+    unit: C
+layout:
+  states:
+    - id: value
+      entity_index: 0
+      xpos: 50
+      ypos: 58
+      animation_id: entity.0
+      show:
+        uom: end
+      styles:
+        font-size: 2.5em
+        text-anchor: middle
+animations:
+  entity.0:
+    - animation: pulse
+      duration: 1s
+

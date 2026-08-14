@@ -163,14 +163,16 @@ horseshoe_background:
 
 Use `show.horseshoe_style` to control how the horseshoe is colored.
 
-| Style               | What it does                                                      |
-| :------------------ | :---------------------------------------------------------------- |
-| `fixed`             | Uses a single fixed color.                                        |
-| `autominmax`        | Changes the horseshoe color as the value moves through the scale. |
-| `colorstop`         | Uses the color that matches the current value range.              |
-| `colorstopsegments` | Displays each color range as a separate solid segment.            |
-| `colorstopgradient` | Creates a smooth gradient from all configured color stops.        |
-| `lineargradient`    | Creates a gradient from the first and last color stops.           |
+| Style                    | What it does                                                      |
+| :----------------------- | :---------------------------------------------------------------- |
+| `fixed`                  | Uses a single fixed color.                                        |
+| `autominmax`             | Changes the horseshoe color as the value moves through the scale. |
+| `colorstop`              | Uses the color that matches the current value range.              |
+| `colorstopinterpolated`  | Interpolates the current state color between adjacent color stops. |
+| `colorstopsegments`      | Displays each color range as a separate solid segment.            |
+| `minmaxgradient`         | Creates a gradient between the scale minimum and maximum colors.  |
+| `colorstopgradient`      | Creates a smooth gradient from all configured color stops.        |
+| `lineargradient`         | Creates a gradient from the first and last color stops.           |
 
 `colorstopgradient` uses every configured color stop. For example, with blue at `0`, yellow at `50`, and red at `100`, the gradient runs from blue through yellow to red. The horseshoe reveals that gradient up to the current value.
 

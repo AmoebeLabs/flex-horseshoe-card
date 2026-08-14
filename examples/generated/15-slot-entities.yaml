@@ -1,0 +1,34 @@
+type: custom:flex-horseshoe-card
+entities:
+  - entity: fhs_input_number.history_hours
+    slot: input
+    initial: 24
+    scope: global
+    unit: h
+  - entity: sensor.awair_element_study_temperature
+    slot: sensor
+    name: Temperature
+    unit: C
+  - entity: sensor.awair_element_study_humidity
+    slot: sensor
+    name: Humidity
+    unit: '%'
+layout:
+  names:
+    - id: title
+      entity_index: sensor[0]
+      xpos: 50
+      ypos: 30
+      styles:
+        text-anchor: middle
+  states:
+    - id: value
+      entity_index: sensor[0]
+      xpos: 50
+      ypos: 58
+      show:
+        uom: end
+      styles:
+        font-size: 2em
+        text-anchor: middle
+

@@ -1,0 +1,39 @@
+# Copy this dictionary into the Lovelace configuration where FHS templates are defined.
+fhs_templates:
+  templates:
+    generated_sensor_tile:
+      template:
+        type: card
+        defaults:
+          - title_y: 30
+          - state_y: 58
+          - horseshoe_style: colorstopgradient
+      card:
+        show:
+          horseshoe_style: '[[horseshoe_style]]'
+        horseshoe_scale:
+          min: 0
+          max: 100
+        color_stops:
+          0: '#d32f2f'
+          50: '#f9a825'
+          100: '#2e7d32'
+        layout:
+          names:
+            - id: name
+              entity_index: 0
+              xpos: 50
+              ypos: '[[title_y]]'
+              styles:
+                text-anchor: middle
+          states:
+            - id: state
+              entity_index: 0
+              xpos: 50
+              ypos: '[[state_y]]'
+              show:
+                uom: end
+              styles:
+                font-size: 2.2em
+                text-anchor: middle
+

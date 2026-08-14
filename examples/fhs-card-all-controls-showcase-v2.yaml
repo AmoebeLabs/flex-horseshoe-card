@@ -1,8 +1,8 @@
-fhs_all_controls_showcase:
+fhs_card_all_controls_showcase_v2:
   template:
     type: card
     defaults:
-      - fhs_all_controls_showcase_update_interval: 100
+      - fhs_card_all_controls_showcase_update_interval: 100
 
   card:
     entities:
@@ -12,7 +12,7 @@ fhs_all_controls_showcase:
         scope: card
       - entity: fhs_input_select.controls_option
         slot: option
-        options: ['off', low, medium, high]
+        options: ["off", low, medium, high]
         initial: low
         scope: card
       - entity: fhs_input_number.controls_number
@@ -21,7 +21,7 @@ fhs_all_controls_showcase:
         min: 0
         max: 30
         step: 1
-        unit: ''
+        unit: ""
         scope: card
       - entity: fhs_input_number.controls_slider
         slot: slider
@@ -29,7 +29,7 @@ fhs_all_controls_showcase:
         min: 0
         max: 100
         step: 1
-        unit: ''
+        unit: ""
         scope: card
       - entity: fhs_input_number.controls_lower
         slot: lower
@@ -37,7 +37,7 @@ fhs_all_controls_showcase:
         min: 5
         max: 35
         step: 0.5
-        unit: ''
+        unit: ""
         scope: card
       - entity: fhs_input_number.controls_upper
         slot: upper
@@ -45,11 +45,11 @@ fhs_all_controls_showcase:
         min: 5
         max: 35
         step: 0.5
-        unit: ''
+        unit: ""
         scope: card
 
     layout:
-      aspectratio: 1/2.5
+      aspectratio: 1/2.3
 
       texts:
         - id: title
@@ -208,9 +208,9 @@ fhs_all_controls_showcase:
                 styles:
                   font-size: 0.55em
           option_map:
-            - value: 'off'
+            - value: "off"
               icon: mdi:fan-off
-              text: 'Off'
+              text: "Off"
             - value: low
               icon: mdi:fan-speed-1
               text: Low
@@ -253,13 +253,13 @@ fhs_all_controls_showcase:
           show:
             item_variant: stepper
             item_viz: buttons
-            item_style: filled_round
+            item_style: filled_square
 
         - id: number-outlined
           type: number
           entity_index: number[0]
-          xpos: 73
-          ypos: 121
+          xpos: 27 # 73
+          ypos: 138 #121
           width: 42
           height: 11
           show:
@@ -278,8 +278,8 @@ fhs_all_controls_showcase:
           type: number
           orientation: vertical
           entity_index: number[0]
-          xpos: 50
-          ypos: 138
+          xpos: 75
+          ypos: 129 #138
           width: 11
           height: 26
           show:
@@ -299,7 +299,7 @@ fhs_all_controls_showcase:
           width: 82
           height: 12
           interaction:
-            update_interval: '[[fhs_all_controls_showcase_update_interval]]'
+            update_interval: "[[fhs_card_all_controls_showcase_update_interval]]"
           value:
             position: top
             state:
@@ -337,11 +337,11 @@ fhs_all_controls_showcase:
           type: slider
           entity_index: slider[0]
           xpos: 28
-          ypos: 224
+          ypos: 215
           width: 36
           height: 36
           interaction:
-            update_interval: '[[fhs_all_controls_showcase_update_interval]]'
+            update_interval: "[[fhs_card_all_controls_showcase_update_interval]]"
           value:
             position: center
             state:
@@ -358,7 +358,7 @@ fhs_all_controls_showcase:
             - entity_index: lower[0]
             - entity_index: upper[0]
           xpos: 72
-          ypos: 224
+          ypos: 215 #224
           width: 36
           height: 36
           interaction:

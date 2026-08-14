@@ -1,0 +1,141 @@
+title: FHS generated card catalog
+path: fhs-generated-card-catalog
+cards:
+  - type: custom:flex-horseshoe-card
+    entities:
+      - entity: sensor.awair_element_study_temperature
+        name: Study temperature
+        unit: C
+    show:
+      horseshoe_style: colorstopgradient
+    horseshoe_scale:
+      min: 10
+      max: 35
+    color_stops:
+      10: '#1565c0'
+      24: '#66bb6a'
+      35: '#d32f2f'
+    layout:
+      states:
+        - id: value
+          entity_index: 0
+          xpos: 50
+          ypos: 58
+          show:
+            uom: end
+          styles:
+            font-size: 2.4em
+            text-anchor: middle
+  - type: custom:flex-horseshoe-card
+    entities:
+      - entity: sensor.awair_element_study_score
+        name: Air quality score
+        unit: '%'
+    show:
+      horseshoe_style: colorstopsegments
+    horseshoe_scale:
+      min: 0
+      max: 100
+    color_stops:
+      0: '#d32f2f'
+      40: '#f9a825'
+      70: '#7cb342'
+      90: '#2e7d32'
+    layout:
+      states:
+        - id: value
+          entity_index: 0
+          xpos: 50
+          ypos: 58
+          show:
+            uom: end
+          styles:
+            font-size: 2.4em
+            text-anchor: middle
+  - type: custom:flex-horseshoe-card
+    entities:
+      - entity: sensor.awair_element_study_temperature
+        name: Temperature history
+        unit: C
+    layout:
+      sparklines:
+        - id: history
+          entity_index: 0
+          xpos: 50
+          ypos: 55
+          width: 88
+          height: 42
+          period:
+            type: rolling_window
+            rolling_window:
+              duration:
+                hour: 24
+              bins:
+                per_hour: auto
+                density: medium
+          sparkline:
+            show:
+              chart_type: area
+              line: true
+              area: true
+              grid: true
+              axis: true
+              labels: true
+  - type: custom:flex-horseshoe-card
+    entities:
+      - entity: sensor.dsmr_reading_electricity_currently_delivered
+        name: Current power
+        unit: W
+    layout:
+      sparklines:
+        - id: realtime
+          entity_index: 0
+          xpos: 50
+          ypos: 55
+          width: 70
+          height: 55
+          period:
+            type: real_time
+          sparkline:
+            show:
+              chart_type: bar
+            bar:
+              foreground:
+                styles:
+                  rx: 3
+                  ry: 3
+  - type: custom:flex-horseshoe-card
+    entities:
+      - entity: fhs_input_number.history_hours
+        initial: 24
+        scope: global
+        unit: h
+    layout:
+      rectangles:
+        - id: duration
+          entity_index: 0
+          xpos: 50
+          ypos: 50
+          width: 44
+          height: 20
+          radius: 3
+          tap_action:
+            action: perform-action
+            perform_action: fhs_input_number.set_value
+            target:
+              entity_id: fhs_input_number.history_hours
+            data:
+              value: 24
+          styles:
+            fill: var(--primary-color)
+            fill-opacity: 0.2
+      texts:
+        - id: label
+          entity_index: 0
+          xpos: 50
+          ypos: 50
+          text: 1 day
+          styles:
+            text-anchor: middle
+            dominant-baseline: central
+            pointer-events: none

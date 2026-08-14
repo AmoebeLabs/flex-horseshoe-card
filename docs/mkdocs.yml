@@ -61,14 +61,34 @@ plugins:
   - search
   - tags
   - blog
+  # Preserve indexed URLs when documentation pages move or are combined.
+  - redirects:
+      redirect_maps:
+        "layout-overview/visual-shapes.md": "sections/visual-shapes-section.md"
+        "sections/layout-overview/visual-shapes.md": "sections/visual-shapes-section.md"
+        "sections/visual-shapes.md": "sections/visual-shapes-section.md"
+        "sections/areas-section.md": "sections/entities-section.md"
+        "sections/icons-section.md": "sections/entities-section.md"
+        "sections/names-section.md": "sections/entities-section.md"
+        "sections/states-section.md": "sections/entities-section.md"
+        "sections/horseshoe-ticks.md": "sections/horseshoe-ticks-and-labels.md"
+        "sections/horseshoe-labels.md": "sections/horseshoe-ticks-and-labels.md"
+        "core-concepts/size-of-card.md": "core-concepts/card-structure.md"
+        "reuse/reuse-introduction2.md": "reuse/reuse-introduction.md"
+        "card-configuration/overview.md": "sections/layout-overview.md"
+        "card-configuration/sections/layout-overview.md": "sections/layout-overview.md"
+        "card-configuration/circles-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/hlines-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/vlines-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/sections/circles-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/sections/hlines-vlines-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/sections/hlines-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/sections/vlines-section.md": "sections/visual-shapes-section.md"
+        "card-configuration/groups-section.md": "sections/groups-section.md"
+        "card-configuration/positioning-and-groups.md": "core-concepts/positioning-and-groups.md"
+        "card-configuration/entities-definition.md": "core-concepts/entity-definitions.md"
   - minify:
       minify_html: true
-  # Redirect pages pages that I want to rename etc. without loosing Google / Bing indexing...
-  # And users getting a 404 while clicking on an old link of course!
-  # This is using a HTML refresh with 0 seconds and contains a "no-index" for the old page.
-  # - redirects:
-  #     redirect_maps:
-  #       'start/introduction.md': 'start/preface.md'
 
 extra_css:
   - assets/stylesheets/extra.css
@@ -180,6 +200,9 @@ nav:
           - Kleenex Pollen Cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
           - Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
           - Awair Cards: examples/demo-cards/demo-card-awair-many.md
+          # NOT YET ACTIVATED
+          # - Generated YAML Card Catalog: examples/generated-card-catalog.md
+
           # - Light Card: examples/demo-cards/light-card.md
           # - Person Card: examples/demo-cards/person-card.md
           # - Power Outlet Card: examples/demo-cards/power-outlet-card.md
