@@ -12,7 +12,7 @@ import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 import Colors from './colors.js';
 import { hs2rgb, rgb2hex, rgb2hsv, hsv2rgb } from './frontend_mods/common/color/convert-color.ts';
 import { rgbw2rgb, rgbww2rgb, temperature2rgb } from './frontend_mods/common/color/convert-light-color.ts';
-import { getDefaultFormatOptions, getNumberFormatOptions } from './frontend_mods/common/number/format_number.ts';
+import { getDefaultFormatOptions, getNumberFormatOptions, numberFormatToLocale } from './frontend_mods/common/number/format_number.ts';
 
 /**
  * Layout state tool that renders an entity state value and optional unit of measurement.
@@ -68,10 +68,10 @@ export default class StateTool extends BaseTool {
           inState = inState === 'undefined' ? 'undefined' : `${Math.round((inState / 255) * 100)}`;
           break;
         case 'multiply':
-          inState = `${Math.round(inState * parameter)}`;
+          inState = `${inState * parameter}`;
           break;
         case 'divide':
-          inState = `${Math.round(inState / parameter)}`;
+          inState = `${inState / parameter}`;
           break;
         case 'rgb_csv':
         case 'rgb_hex':
@@ -590,11 +590,14 @@ export default class StateTool extends BaseTool {
       || formatConfig.decimals_max !== undefined
       || formatConfig.locale !== undefined
       || formatConfig.separator !== undefined;
-    const isNumeric = hasNumberFormatOverride && !Number.isNaN(Number(rawValue)) && rawValue !== null && rawValue !== '';
+    const isNumeric = hasNumberFormatOverride && !Number.isNaN(Number(stateValue)) && stateValue !== null && stateValue !== '';
     let formattedValue;
+    let numericPartIndex = -1;
 
     if (isNumeric) {
-      const activeLocale = formatConfig.locale || this.card._hass.locale?.language || this.card._hass.language || 'en-US';
+      const activeLocale = formatConfig.locale !== undefined
+        ? formatConfig.locale
+        : numberFormatToLocale(this.card._hass.locale);
       const registryEntity = this.card._hass.entities[formatEntity.entity_id];
       const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
       const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
@@ -606,16 +609,31 @@ export default class StateTool extends BaseTool {
         minDigits = maxDigits;
       }
 
+      // HA can split a signed monetary value around its currency part:
+      // [{ value: '-' }, { unit: '£' }, { value: '3.91' }]. Replace only the
+      // value part containing digits so signs, literals, units and order remain HA-owned.
+      numericPartIndex = parts.findIndex(
+        (part) => part.type === 'value' && /\p{Decimal_Number}/u.test(part.value),
+      );
+      const hasSeparateSign = parts.some(
+        (part, index) => index !== numericPartIndex
+          && part.type === 'value'
+          && !/\p{Decimal_Number}/u.test(part.value),
+      );
+      const numberToFormat = hasSeparateSign
+        ? Math.abs(Number(stateValue))
+        : Number(stateValue);
+
       // HA and entity precision are fixed; only explicit min/max formatting can make the precision dynamic.
       formattedValue = new Intl.NumberFormat(activeLocale, {
         useGrouping: formatConfig.separator !== false,
         minimumFractionDigits: minDigits,
         maximumFractionDigits: maxDigits,
-      }).format(Number(rawValue));
+      }).format(numberToFormat);
     }
 
-    return parts.map((part) => {
-      if (part.type === 'value' && formattedValue !== undefined) {
+    return parts.map((part, index) => {
+      if (index === numericPartIndex && formattedValue !== undefined) {
         return { ...part, value: formattedValue };
       }
 
@@ -632,16 +650,13 @@ export default class StateTool extends BaseTool {
    */
   buildStateAndUom() {
     const parts = this.formatEntityStateParts();
-    let state = '';
-    let unit = '';
-
-    parts.forEach((part) => {
-      if (part.type === 'unit') {
-        unit += part.value;
-      } else if (part.type === 'value') {
-        state += part.value;
-      }
-    });
+    // Match HA value-parts semantics: literals stay in their original position,
+    // while the separately styled unit is taken from the first unit part.
+    const state = parts
+      .filter((part) => part.type !== 'unit')
+      .map((part) => part.value)
+      .join('');
+    const unit = parts.find((part) => part.type === 'unit')?.value ?? '';
 
     this.state = this.textEllipsis(state.trim(), this.config.max_characters ?? this.config.ellipsis);
     this.uom = this.buildUom(unit.trim());
