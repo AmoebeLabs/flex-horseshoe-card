@@ -40,18 +40,23 @@ Starting with `v5.4.7-dev.22`, several color-style names changed so that the
 name describes the visual result consistently across horseshoes, layout items,
 tick marks, backgrounds, and graph tracks.
 
-| Context | v5.4.7 and earlier | v5.4.7-dev.22 and later | Visual result |
-| :------ | :----------------- | :---------------------- | :------------ |
-| Horseshoe state | `horseshoe_style: lineargradient` | `horseshoe_style: minmaxgradient` | Continuous minimum/zero/maximum gradient over the active horseshoe |
-| Layout items and multipart text | `item_style: colorstopgradient` | `item_style: colorstopinterpolated` | One interpolated color for the current value |
-| Layout-item paint settings | `colorstopgradient:` | `colorstopinterpolated:` | Selects whether the interpolated color affects fill, stroke, or both |
-| Tick colors | `color_mode: colorstopgradient` | `color_mode: colorstopinterpolated` | One interpolated tick color |
-| Horseshoe scale | `scale_style: colorstop` | `scale_style: colorstopsegments` | Separate solid scale sections at the color-stop positions |
-| Horseshoe background | `horseshoe_background: colorstop` | `horseshoe_background: colorstopsegments` | Separate solid background sections |
-| Tick background | `tick_background: colorstop` | `tick_background: colorstopsegments` | Separate solid tick-background sections |
-| Label background | `label_background: colorstop` | `label_background: colorstopsegments` | Separate solid label-background sections |
-| Bar and equalizer track | `item_style: colorstop` | `item_style: colorstopsegments` | Separate solid track sections |
-| Bar and equalizer track paint settings | `colorstop:` | `colorstopsegments:` | Selects whether the segmented color affects fill, stroke, or both |
+!!! info "Main changes are: a gradient is a real gradient and some styles have been renamed for this"
+    The horseshoe is now able to simulate a conicgradient in SVG, therefore it can draw a real gradient based on the configured color stops.
+    <br><br>Other tools used linear gradients, which are supported in SVG. So now a gradient style shows a real gradient!
+
+
+| Context | v5.4.7 and earlier | Change | v5.4.7-dev.22 and later | Visual result |
+| :------ | :----------------- | :- | :---------------------- | :------------ |
+| Horseshoe state | `horseshoe_style: lineargradient` | Renamed | `horseshoe_style: minmaxgradient` | Continuous minimum/zero/maximum gradient over the active horseshoe |
+| Layout items and multipart text | `item_style: colorstopgradient` | Renamed | `item_style: colorstopinterpolated` | One interpolated color for the current value |
+| Layout-item paint settings | `colorstopgradient:` | Renamed | `colorstopinterpolated:` | Selects whether the interpolated color affects fill, stroke, or both |
+| Tick colors | `color_mode: colorstopgradient` | Renamed | `color_mode: colorstopinterpolated` | One interpolated tick color |
+| Horseshoe scale | `scale_style: colorstop` | Renamed | `scale_style: colorstopsegments` | Separate solid scale sections at the color-stop positions |
+| Horseshoe background | `horseshoe_background: colorstop` | Renamed | `horseshoe_background: colorstopsegments` | Separate solid background sections |
+| Tick background | `tick_background: colorstop` | Renamed | `tick_background: colorstopsegments` | Separate solid tick-background sections |
+| Label background | `label_background: colorstop` | Renamed | `label_background: colorstopsegments` | Separate solid label-background sections |
+| Bar and equalizer track | `item_style: colorstop` | Renamed | `item_style: colorstopsegments` | Separate solid track sections |
+| Bar and equalizer track paint settings | `colorstop:` | Renamed | `colorstopsegments:` | Selects whether the segmented color affects fill, stroke, or both |
 
 The previous `horseshoe_style: lineargradient` behavior is therefore named
 `minmaxgradient` from `v5.4.7-dev.22` onward. The new `lineargradient` style
