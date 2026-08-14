@@ -579,13 +579,22 @@ export class GaugeGeometry {
       return clamp((valueScaleRatio - zeroScaleRatio) / (endScaleRatio - zeroScaleRatio), 0, 1);
     }
 
-    // Normal, linear bidirectional, and one-sided scales use the configured scale directly.
-    if (!symmetricalBidirectional || this.scale.min >= 0 || this.scale.max <= 0) {
+    // Normal and linear bidirectional modes use the configured scale directly.
+    if (!symmetricalBidirectional) {
       return this.scaleValueToRatio(numericValue);
     }
 
     // Symmetrical bidirectional bars reserve the visual midpoint for value 0.
-    // The negative side is compressed into 0..0.5, the positive side into 0.5..1.
+    // A one-sided scale occupies its matching half; a signed scale compresses
+    // both configured branches independently around that midpoint.
+    if (this.scale.min >= 0) {
+      return 0.5 + 0.5 * this.scaleValueToRatio(numericValue);
+    }
+
+    if (this.scale.max <= 0) {
+      return 0.5 * this.scaleValueToRatio(numericValue);
+    }
+
     const zeroScaleRatio = this.scaleValueToRatio(0);
 
     if (numericValue < 0) {

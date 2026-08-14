@@ -3,23 +3,28 @@ import ConfigHelper from './config-helper.js';
 import { buildArcBackgroundItems, buildBandPath } from './horseshoe-shapes.js';
 
 /**
- * Builds numeric tick values from min to max using the configured tick size.
+ * Builds numeric tick values outward from the supplied anchor.
+ * Normal scales anchor at min; bidirectional and absolute scales anchor at zero.
  */
-function buildTickValues(min, max, ticksize) {
-  const values = [];
+function buildTickValues(min, max, ticksize, anchor) {
+  const values = [anchor];
 
-  for (let value = min; value <= max + 1e-9; value += ticksize) {
+  for (let value = anchor - ticksize; value >= min - 1e-9; value -= ticksize) {
     values.push(Number(value.toFixed(10)));
   }
 
-  return values;
+  for (let value = anchor + ticksize; value <= max + 1e-9; value += ticksize) {
+    values.push(Number(value.toFixed(10)));
+  }
+
+  return values.sort((valueA, valueB) => valueA - valueB);
 }
 
 /**
  * Checks whether a value lands on the major tick interval.
  */
-function isMajorTick(value, min, majorTicksize) {
-  const ratio = (value - min) / majorTicksize;
+function isMajorTick(value, anchor, majorTicksize) {
+  const ratio = (value - anchor) / majorTicksize;
 
   return Math.abs(ratio - Math.round(ratio)) < 1e-9;
 }
@@ -234,19 +239,21 @@ export default function buildTickPathItems(runtimeConfig, geometry) {
   }
 
   const absolute = runtimeConfig.bar_mode === 'absolute';
+  const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
   const min = absolute ? 0 : Number(runtimeConfig.horseshoe_scale.min);
   const max = absolute ? geometry.getActiveMagnitudeMax() : Number(runtimeConfig.horseshoe_scale.max);
+  const tickAnchor = absolute || bidirectional ? 0 : min;
   const toSourceValue = (value) => absolute ? geometry.magnitudeToSourceValue(value) : value;
   const majorTickConfig = visibility.major ? tickmarks.ticks_major : undefined;
   const minorTickConfig = visibility.minor ? tickmarks.ticks_minor : undefined;
   const majorTickSize = Number(majorTickConfig?.ticksize);
   const minorTickSize = Number(minorTickConfig?.ticksize);
   const majorMagnitudes = Number.isFinite(majorTickSize) && majorTickSize > 0
-    ? buildTickValues(min, max, majorTickSize)
+    ? buildTickValues(min, max, majorTickSize, tickAnchor)
     : [];
   const minorMagnitudes = Number.isFinite(minorTickSize) && minorTickSize > 0
-    ? buildTickValues(min, max, minorTickSize)
-      .filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, min, majorTickSize) : true))
+    ? buildTickValues(min, max, minorTickSize, tickAnchor)
+      .filter((value) => (Number.isFinite(majorTickSize) && majorTickSize > 0 ? !isMajorTick(value, tickAnchor, majorTickSize) : true))
     : [];
   const majorValues = majorMagnitudes.map(toSourceValue);
   const minorValues = minorMagnitudes.map(toSourceValue);
