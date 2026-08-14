@@ -1,0 +1,385 @@
+fhs_showcase_cartesian_v3:
+  template:
+    type: card
+    defaults:
+      - entity: sensor.awair_element_study_temperature
+      - name: Cartesian sparkline showcase
+      - unit: C
+
+  card:
+    default_entities:
+      - entity: fhs_input_number.showcase_cartesian_type
+        slot: chart_type
+        initial: 0
+        min: 0
+        max: 3
+        step: 1
+        scope: global
+        unit: ""
+      - entity: fhs_input_boolean.showcase_cartesian_axis_x
+        slot: show_axis_x
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_axis_y
+        slot: show_axis_y
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_labels_x
+        slot: show_labels_x
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_labels_y
+        slot: show_labels_y
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_tickmarks_x
+        slot: show_tickmarks_x
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_tickmarks_y
+        slot: show_tickmarks_y
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_grid_x
+        slot: show_grid_x
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_grid_y
+        slot: show_grid_y
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_points
+        slot: show_points
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_minmax
+        slot: show_minmax
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_smoothing
+        slot: smoothing
+        initial: true
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_fade
+        slot: show_fade
+        initial: false
+        scope: card
+      - entity: fhs_input_boolean.showcase_cartesian_line
+        slot: show_line
+        initial: true
+        scope: card
+      - entity: fhs_input_select.showcase_cartesian_color_transition
+        slot: color_transition
+        options: [smooth, hard]
+        initial: smooth
+        scope: card
+      - entity: "[[entity]]"
+        slot: source
+        name: "[[name]]"
+        unit: "[[unit]]"
+
+    constants:
+      chart_types:
+        - line
+        - area
+        - bar
+        - dots
+      ypos_row_title: 7
+      ypos_row_chart: 55
+      ypos_row_1: 128
+      ypos_row_2: 146
+      ypos_row_3: 163
+      ypos_row_4: 180
+
+    layout:
+      aspectratio: 1/1.9
+
+      groups:
+        - id: title
+          xpos: 50
+          ypos: calc(ypos_row_title)
+        - id: chart
+          xpos: 50
+          ypos: calc(ypos_row_chart)
+
+      sparklines:
+        - id: showcase
+          group: chart
+          entity_index: source[0]
+          xpos: 50
+          ypos: 50
+          width: 88
+          height: 72
+          margin: 0
+          period:
+            type: rolling_window
+            rolling_window:
+              duration:
+                hour: 24
+              bins:
+                per_hour: auto
+                density: medium
+          sparkline:
+            state_values:
+              aggregate_func: avg
+              smoothing: |
+                [[[ return entities[entity_slots.smoothing[0]].state === 'on'; ]]]
+            show:
+              chart_type: |
+                [[[
+                  return constants.chart_types[
+                    Number(entities[entity_slots.chart_type[0]].state)
+                  ];
+                ]]]
+              line: |
+                [[[
+                  const chartType = Number(entities[entity_slots.chart_type[0]].state);
+                  return chartType === 0 || entities[entity_slots.show_line[0]].state === 'on';
+                ]]]
+              area: true
+              fill: |
+                [[[
+                  return entities[entity_slots.show_fade[0]].state === 'on'
+                    ? 'fade'
+                    : undefined;
+                ]]]
+              points: |
+                [[[ return entities[entity_slots.show_points[0]].state === 'on'; ]]]
+              grid:
+                x: |
+                  [[[ return entities[entity_slots.show_grid_x[0]].state === 'on'; ]]]
+                y: |
+                  [[[ return entities[entity_slots.show_grid_y[0]].state === 'on'; ]]]
+              axis:
+                x: |
+                  [[[ return entities[entity_slots.show_axis_x[0]].state === 'on'; ]]]
+                y: |
+                  [[[ return entities[entity_slots.show_axis_y[0]].state === 'on'; ]]]
+              tickmarks:
+                x: |
+                  [[[ return entities[entity_slots.show_tickmarks_x[0]].state === 'on'; ]]]
+                y: |
+                  [[[ return entities[entity_slots.show_tickmarks_y[0]].state === 'on'; ]]]
+              labels:
+                x: |
+                  [[[ return entities[entity_slots.show_labels_x[0]].state === 'on'; ]]]
+                y: |
+                  [[[ return entities[entity_slots.show_labels_y[0]].state === 'on'; ]]]
+              xlabels_at: ticks_major
+              ylabels_at: ticks_major
+            line:
+              line_width: 1
+              show_minmax: |
+                [[[ return entities[entity_slots.show_minmax[0]].state === 'on'; ]]]
+            dots:
+              radius: 1
+            area:
+              show_minmax: |
+                [[[ return entities[entity_slots.show_minmax[0]].state === 'on'; ]]]
+            colorstops_transition: |
+              [[[ return entities[entity_slots.color_transition[0]].state; ]]]
+            color_stops:
+              0: "#1565c0"
+              10: "#42a5f5"
+              20: "#66bb6a"
+              30: "#f9a825"
+              40: "#d32f2f"
+          x_axis:
+            labels:
+              styles:
+                font-size: 0.5em
+          y_axis:
+            labels:
+              styles:
+                font-size: 0.5em
+
+      texts:
+        - id: title
+          group: title
+          xpos: 50
+          ypos: 50
+          text: "[[name]]"
+          styles:
+            font-size: 1.2em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+
+      controls:
+        - id: chart-type
+          type: select
+          entity_index: chart_type[0]
+          xpos: 34
+          ypos: calc(ypos_row_1)
+          width: 62
+          height: 10
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.65em
+          option_map:
+            - { value: 0, text: Line }
+            - { value: 1, text: Area }
+            - { value: 2, text: Bar }
+            - { value: 3, text: Dots }
+
+        - id: color-transition
+          type: select
+          entity_index: color_transition[0]
+          xpos: 82
+          ypos: calc(ypos_row_1)
+          width: 28
+          height: 10
+          label:
+            position: top
+            gap: 1
+            text: Colors
+            styles:
+              font-size: 0.44em
+          content:
+            mode: content_vertical
+            content_vertical:
+              text:
+                styles:
+                  font-size: 0.55em
+          option_map:
+            - { value: smooth, text: Smooth }
+            - { value: hard, text: Hard }
+
+        - id: show-axis-x
+          type: toggle
+          entity_index: show_axis_x[0]
+          xpos: 20
+          ypos: calc(ypos_row_3)
+          width: 10
+          label:
+            position: top
+            gap: 1
+            text: X axis
+            styles:
+              font-size: 0.44em
+
+        - id: show-axis-y
+          same_as: show-axis-x
+          xpos: 40
+          entity_index: show_axis_y[0]
+          label:
+            text: Y axis
+
+        - id: show-grid-x
+          same_as: show-axis-x
+          xpos: 60
+          entity_index: show_grid_x[0]
+          label:
+            text: X grid
+
+        - id: show-grid-y
+          same_as: show-axis-x
+          xpos: 80
+          entity_index: show_grid_y[0]
+          label:
+            text: Y grid
+
+        - id: show-tickmarks-x
+          same_as: show-axis-x
+          xpos: 20
+          ypos: calc(ypos_row_4)
+          entity_index: show_tickmarks_x[0]
+          label:
+            text: X ticks
+
+        - id: show-tickmarks-y
+          same_as: show-axis-x
+          xpos: 40
+          ypos: calc(ypos_row_4)
+          entity_index: show_tickmarks_y[0]
+          label:
+            text: Y ticks
+
+        - id: show-labels-x
+          same_as: show-axis-x
+          xpos: 60
+          ypos: calc(ypos_row_4)
+          entity_index: show_labels_x[0]
+          label:
+            text: X labels
+
+        - id: show-labels-y
+          same_as: show-axis-x
+          xpos: 80
+          ypos: calc(ypos_row_4)
+          entity_index: show_labels_y[0]
+          label:
+            text: Y labels
+
+        - id: show-smoothing
+          same_as: show-axis-x
+          xpos: 10
+          ypos: calc(ypos_row_2)
+          entity_index: smoothing[0]
+          visibility: |
+            [[[
+              return Number(entities[entity_slots.chart_type[0]].state) <= 1
+                ? 'visible'
+                : 'unavailable';
+            ]]]
+          label:
+            text: Smooth
+
+        - id: show-fade
+          same_as: show-axis-x
+          xpos: 30
+          ypos: calc(ypos_row_2)
+          entity_index: show_fade[0]
+          visibility: |
+            [[[
+              return Number(entities[entity_slots.chart_type[0]].state) === 1
+                ? 'visible'
+                : 'unavailable';
+            ]]]
+          label:
+            text: Fade
+
+        - id: show-line
+          same_as: show-axis-x
+          xpos: 50
+          ypos: calc(ypos_row_2)
+          entity_index: show_line[0]
+          visibility: |
+            [[[
+              return Number(entities[entity_slots.chart_type[0]].state) === 1
+                ? 'visible'
+                : 'unavailable';
+            ]]]
+          label:
+            text: Line
+
+        - id: show-points
+          same_as: show-axis-x
+          xpos: 70
+          ypos: calc(ypos_row_2)
+          entity_index: show_points[0]
+          visibility: |
+            [[[
+              return Number(entities[entity_slots.chart_type[0]].state) === 3
+                ? 'unavailable'
+                : 'visible';
+            ]]]
+          label:
+            text: Points
+
+        - id: show-minmax
+          same_as: show-axis-x
+          xpos: 90
+          ypos: calc(ypos_row_2)
+          entity_index: show_minmax[0]
+          visibility: |
+            [[[
+              return Number(entities[entity_slots.chart_type[0]].state) <= 1
+                ? 'visible'
+                : 'unavailable';
+            ]]]
+          label:
+            text: Min/Max
