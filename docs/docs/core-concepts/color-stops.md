@@ -58,9 +58,6 @@ The previous `horseshoe_style: lineargradient` behavior is therefore named
 distributes every configured color evenly over the rendered range and ignores
 the numeric distance between color-stop values.
 
-The former `colorstop_gradient` layout-item alias was also removed. Configure
-an explicit `show.item_style` and its matching paint settings instead.
-
 ## :material-horseshoe: Color stop formats
 
 The card supports several color stop formats.
