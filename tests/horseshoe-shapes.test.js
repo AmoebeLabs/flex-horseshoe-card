@@ -262,3 +262,97 @@ test('absolute runtime config rejects displaced zero and scales without zero', (
     horseshoe_scale: { min: -10, max: 40, type: 'linear' },
   }).bar_mode, 'absolute');
 });
+
+test('one-sided positive bidirectional scale aligns state, labels, and ticks on the positive half', () => {
+  const config = {
+    ...createAbsoluteRuntimeConfig({ min: 0, max: 40, ticksize: 10 }),
+    bar_mode: 'bidirectional',
+    zero_ratio: 0.5,
+  };
+  const geometry = createAbsoluteGeometry(config, 20);
+  const state = buildStatePathItems(config, geometry, 20);
+  const labels = buildLabelItems(config, geometry);
+  const ticks = buildTickPathItems(config, geometry);
+
+  assert.equal(geometry.valueToRatio(0), 0.5);
+  assert.equal(geometry.valueToRatio(20), 0.75);
+  assert.equal(geometry.valueToRatio(40), 1);
+  assert.equal(state[0].arc.startAngle, 90);
+  assert.equal(state[0].arc.endAngle, 135);
+  assert.deepEqual(labels.map((item) => item.angle), [90, 112.5, 135, 157.5, 180]);
+  assert.deepEqual(ticks.map((item) => (item.startAngle + item.endAngle) / 2), [90, 112.5, 135, 157.5, 180]);
+});
+
+test('switching a positive scale from normal to bidirectional moves labels and ticks', () => {
+  const normalConfig = {
+    ...createAbsoluteRuntimeConfig({ min: 0, max: 40, ticksize: 10 }),
+    bar_mode: 'normal',
+    zero_ratio: 0,
+  };
+  const bidirectionalConfig = {
+    ...normalConfig,
+    bar_mode: 'bidirectional',
+    zero_ratio: 0.5,
+  };
+  const normalGeometry = createAbsoluteGeometry(normalConfig, 20);
+  const bidirectionalGeometry = createAbsoluteGeometry(bidirectionalConfig, 20);
+
+  assert.deepEqual(buildLabelItems(normalConfig, normalGeometry).map((item) => item.angle), [0, 45, 90, 135, 180]);
+  assert.deepEqual(buildLabelItems(bidirectionalConfig, bidirectionalGeometry).map((item) => item.angle), [90, 112.5, 135, 157.5, 180]);
+  assert.deepEqual(buildTickPathItems(normalConfig, normalGeometry).map((item) => (item.startAngle + item.endAngle) / 2), [0, 45, 90, 135, 180]);
+  assert.deepEqual(buildTickPathItems(bidirectionalConfig, bidirectionalGeometry).map((item) => (item.startAngle + item.endAngle) / 2), [90, 112.5, 135, 157.5, 180]);
+});
+
+test('one-sided negative bidirectional scale occupies the negative half', () => {
+  const config = {
+    ...createAbsoluteRuntimeConfig({ min: -40, max: 0, ticksize: 10 }),
+    bar_mode: 'bidirectional_symmetrical',
+    zero_ratio: 0.5,
+  };
+  const geometry = createAbsoluteGeometry(config, -20);
+
+  assert.equal(geometry.valueToRatio(-40), 0);
+  assert.equal(geometry.valueToRatio(-20), 0.25);
+  assert.equal(geometry.valueToRatio(0), 0.5);
+});
+
+test('bidirectional ticks and labels count outward from zero', () => {
+  const config = {
+    ...createAbsoluteRuntimeConfig({ min: -15, max: 35, ticksize: 10 }),
+    bar_mode: 'bidirectional_symmetrical',
+    zero_ratio: 0.5,
+  };
+  const geometry = createAbsoluteGeometry(config, 5);
+
+  assert.deepEqual(buildTickPathItems(config, geometry).map((item) => item.value), [-10, 0, 10, 20, 30]);
+  assert.deepEqual(buildLabelItems(config, geometry).map((item) => item.text), ['-10', '0', '10', '20', '30']);
+});
+
+test('bidirectional positive scales keep zero without creating negative labels', () => {
+  const config = {
+    ...createAbsoluteRuntimeConfig({ min: 5, max: 35, ticksize: 10 }),
+    bar_mode: 'bidirectional',
+    zero_ratio: 0.5,
+  };
+  const geometry = createAbsoluteGeometry(config, 15);
+
+  assert.deepEqual(buildTickPathItems(config, geometry).map((item) => item.value), [0, 10, 20, 30]);
+  assert.deepEqual(buildLabelItems(config, geometry).map((item) => item.text), ['0', '10', '20', '30']);
+});
+
+test('absolute colorstopgradient follows negative colors from zero toward the scale minimum', () => {
+  const config = createAbsoluteRuntimeConfig({
+    min: -10,
+    max: 40,
+    horseshoeStyle: 'colorstopgradient',
+  });
+  const geometry = createAbsoluteGeometry(config, -5);
+  const paths = buildColorStopGradientPathItems(config, geometry);
+
+  assert.equal(paths[0].arc.startValue, 0);
+  assert.equal(paths[0].arc.gradient.startColor, '#808080');
+  assert.ok(new Set(paths.flatMap((item) => [item.arc.gradient.startColor, item.arc.gradient.endColor])).size > 2);
+  assert.equal(paths[paths.length - 1].arc.endValue, -10);
+  assert.equal(paths[paths.length - 1].arc.gradient.endColor, '#008000');
+});
+

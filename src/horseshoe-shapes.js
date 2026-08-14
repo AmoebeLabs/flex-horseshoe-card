@@ -501,10 +501,14 @@ function buildAbsoluteGradientArcPathItems(runtimeConfig, geometry, options = {}
     ? (value) => geometry.startAngle + Number(value) * geometry.arcDegrees
     : (value) => geometry.valueToAngle(value);
   const gradientColorStops = {
-    colors: gradientPoints.map((point) => ({
-      value: point.value,
-      color: point.color,
-    })),
+    // Negative absolute paths run from zero toward decreasing source values.
+    // Color interpolation still requires its lookup stops in numeric order.
+    colors: gradientPoints
+      .map((point) => ({
+        value: point.value,
+        color: point.color,
+      }))
+      .sort((pointA, pointB) => pointA.value - pointB.value),
   };
   const gradientArcs = [];
 
@@ -1120,21 +1124,26 @@ function buildLabelItem(runtimeConfig, geometry, labelConfig = {}) {
 }
 
 /**
- * Builds numeric tick values from min to max using the configured tick size.
+ * Builds numeric tick values outward from the supplied anchor.
  *
  * @param {number} min - First scale value.
  * @param {number} max - Last scale value.
  * @param {number} ticksize - Distance between generated tick values.
+ * @param {number} anchor - Value from which both tick branches are counted.
  * @returns {Array<number>} Numeric tick values.
  */
-function buildTickValues(min, max, ticksize) {
-  const values = [];
+function buildTickValues(min, max, ticksize, anchor) {
+  const values = [anchor];
 
-  for (let value = min; value <= max + 1e-9; value += ticksize) {
+  for (let value = anchor - ticksize; value >= min - 1e-9; value -= ticksize) {
     values.push(Number(value.toFixed(10)));
   }
 
-  return values;
+  for (let value = anchor + ticksize; value <= max + 1e-9; value += ticksize) {
+    values.push(Number(value.toFixed(10)));
+  }
+
+  return values.sort((valueA, valueB) => valueA - valueB);
 }
 
 /**
@@ -1179,7 +1188,7 @@ function buildAbsoluteLabelStopItems(runtimeConfig, geometry) {
     const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
 
     if (Number.isFinite(ticksize) && ticksize > 0) {
-      const tickLabels = buildTickValues(0, magnitudeMax, ticksize).map((magnitude, index, values) => (
+      const tickLabels = buildTickValues(0, magnitudeMax, ticksize, 0).map((magnitude, index, values) => (
         toLabelStop(magnitude, index === 0 ? 'min' : index === values.length - 1 ? 'max' : 'tick-major')
       ));
 
@@ -1256,9 +1265,11 @@ function buildLabelStopItems(runtimeConfig, geometry) {
 
   if (labelsAt === 'ticks_major') {
     const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
+    const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const tickAnchor = bidirectional ? 0 : min;
 
     if (Number.isFinite(ticksize) && ticksize > 0) {
-      labelStops = buildTickValues(min, max, ticksize).map((value, index, values) => ({
+      labelStops = buildTickValues(min, max, ticksize, tickAnchor).map((value, index, values) => ({
         value,
         text: String(value),
         role: index === 0 ? 'min' : index === values.length - 1 ? 'max' : 'tick-major',
@@ -1281,9 +1292,11 @@ function buildLabelStopItems(runtimeConfig, geometry) {
       : [];
 
     const ticksize = Number(runtimeConfig.horseshoe_tickmarks?.ticks_major?.ticksize);
+    const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const tickAnchor = bidirectional ? 0 : min;
     const tickLabels =
       Number.isFinite(ticksize) && ticksize > 0
-        ? buildTickValues(min, max, ticksize).map((value) => ({
+        ? buildTickValues(min, max, ticksize, tickAnchor).map((value) => ({
             value,
             text: String(value),
             role: 'tick-major',
@@ -1379,10 +1392,12 @@ function buildLabelStopItems(runtimeConfig, geometry) {
   }
 
   // Normalize label stops into sorted, in-range, unique values before applying spacing.
+  const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
   const validStops = labelStops
     .filter((stop) => {
       const value = Number(stop.value);
-      return Number.isFinite(value) && value >= min && value <= max;
+      const inScale = value >= min && value <= max;
+      return Number.isFinite(value) && (inScale || (bidirectional && value === 0));
     })
     .sort((a, b) => Number(a.value) - Number(b.value))
     .filter((stop, index, array) => {
