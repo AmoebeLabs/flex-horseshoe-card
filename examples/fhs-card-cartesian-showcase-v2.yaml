@@ -1,4 +1,4 @@
-fhs_card_cartesian_showcase_v2:
+fhs_showcase_cartesian_v2:
   template:
     type: card
     defaults:
@@ -15,7 +15,7 @@ fhs_card_cartesian_showcase_v2:
         max: 3
         step: 1
         scope: global
-        unit: ''
+        unit: ""
       - entity: fhs_input_boolean.showcase_cartesian_axis
         slot: show_axis
         initial: true
@@ -40,10 +40,10 @@ fhs_card_cartesian_showcase_v2:
         slot: show_minmax
         initial: true
         scope: card
-      - entity: '[[entity]]'
+      - entity: "[[entity]]"
         slot: source
-        name: '[[name]]'
-        unit: '[[unit]]'
+        name: "[[name]]"
+        unit: "[[unit]]"
 
     constants:
       chart_types:
@@ -114,11 +114,11 @@ fhs_card_cartesian_showcase_v2:
               show_minmax: |
                 [[[ return entities[entity_slots.show_minmax[0]].state === 'on'; ]]]
             color_stops:
-              0: '#1565c0'
-              10: '#42a5f5'
-              20: '#66bb6a'
-              30: '#f9a825'
-              40: '#d32f2f'
+              0: "#1565c0"
+              10: "#42a5f5"
+              20: "#66bb6a"
+              30: "#f9a825"
+              40: "#d32f2f"
           x_axis:
             labels:
               styles:
@@ -133,7 +133,7 @@ fhs_card_cartesian_showcase_v2:
           group: title
           xpos: 50
           ypos: 50
-          text: '[[name]]'
+          text: "[[name]]"
           styles:
             font-size: 1.2em
             font-weight: bold

@@ -522,6 +522,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
     // console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
 
+    const periodUsesJavascript = templates.hasJavascriptTemplates(sparklineConfig.period);
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
 
     this.svg = this.calculateSvgDimensions();
@@ -530,8 +531,15 @@ export default class SparklineGraphTool extends BaseTool {
     this.stateBandsStateMap = this.config.sparkline.state_map;
     this.gradeValues = [];
     this.gradeRanks = [];
-    const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
+
+    // A JavaScript-backed period becomes concrete during updateRuntimeConfig().
+    // Static periods can create their graph immediately from the source config.
+    this.historyDurationReady = false;
+    if (!periodUsesJavascript) {
+      const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
+      this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
+    }
+
     this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config) : undefined;
     this.Graph = this.historyDurationReady
       ? new SparklineGraph(this.svg.width, this.svg.height, this.svg.margin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {})
@@ -818,6 +826,22 @@ export default class SparklineGraphTool extends BaseTool {
   /** Updates graph configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
+
+    // A calendar day always spans at least one complete day. A duration can
+    // still contain 6 or 12 hours after switching from a rolling window, so
+    // normalize that transition before history and graph geometry consume it.
+    if (
+      this.configChanged
+      && this.config.period.type === 'calendar'
+      && this.config.period.calendar.period === 'day'
+      && Number(this.config.period.calendar.duration.hour) < 24
+    ) {
+      const requestedDuration = this.config.period.calendar.duration.hour;
+      this.config.period.calendar.duration.hour = 24;
+      console.warn(
+        `[FHS sparkline] calendar day duration '${requestedDuration}' hours is shorter than one day; using 24 hours`,
+      );
+    }
 
     // Dynamic JavaScript templates can return a boolean again after the initial
     // config pass. Normalize it to the x/y shape consumed by the graph renderer.
@@ -2724,6 +2748,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line mask definition.
    */
   renderSvgLineMask(line, i) {
+    if (this.config.sparkline.show.line !== true) return '';
     if (!line) return '';
 
     const lineStyles = this.getLineStyles();
@@ -2751,6 +2776,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line background SVG.
    */
   renderSvgLineBackground(line, i) {
+    if (this.config.sparkline.show.line !== true) return '';
     if (!line) return '';
 
     const lineStyles = this.getLineStyles();
@@ -4232,6 +4258,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   renderSvgBarsBackground(bars, index) {
     if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    // Fade belongs to each value-colored bar. The shared color-stop layer
+    // would otherwise remain visible through its transparent end.
+    if (this.config.sparkline.show.fill === 'fade') return '';
     if (this.config.period.type === 'real_time') return '';
     if (!bars) return '';
 
@@ -4268,6 +4297,7 @@ export default class SparklineGraphTool extends BaseTool {
         ? 'y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)'
         : undefined;
     const foregroundStyles = { ...this.config.sparkline.bar.foreground.styles };
+    const fade = this.config.sparkline.show.fill === 'fade';
 
     // The graph color remains authoritative; foreground styles control shape,
     // transforms, opacity and other presentation properties.
@@ -4285,7 +4315,23 @@ export default class SparklineGraphTool extends BaseTool {
         ></rect>
         ${bars.map((bar, i) => {
           const color = this.computeColor(bar.value, index);
+          const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${index}-${i}`;
+          const fill = fade ? `url(#${gradientId})` : color;
           return svg`
+            ${fade
+              ? svg`
+                <linearGradient
+                  id=${gradientId}
+                  x1='0%'
+                  y1=${bar.value >= 0 ? '0%' : '100%'}
+                  x2='0%'
+                  y2=${bar.value >= 0 ? '100%' : '0%'}
+                >
+                  <stop stop-color=${color} offset='0%' stop-opacity='1'></stop>
+                  <stop stop-color=${color} offset='100%' stop-opacity='0.1'></stop>
+                </linearGradient>
+              `
+              : ''}
             <rect
               class='bar'
               x=${bar.x}
@@ -4294,7 +4340,7 @@ export default class SparklineGraphTool extends BaseTool {
               width=${Math.max(1, bar.width)}
               rx=${foregroundStyles.rx}
               ry=${foregroundStyles.ry}
-              fill=${color}
+              fill=${fill}
               stroke=${color}
               style=${styleMap(this.getRenderStyles({
                 y: realTimeBarTransition ? `${bar.y}px` : undefined,
