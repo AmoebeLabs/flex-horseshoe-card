@@ -614,9 +614,16 @@ export default class StateTool extends BaseTool {
       }).format(Number(rawValue));
     }
 
+    // `formattedValue` is the complete formatted number (including sign). A negative
+    // value can arrive as several `value` parts (e.g. "-" and "3.91", split by the
+    // currency symbol for monetary entities), so write it to the FIRST value part only
+    // and blank the rest — otherwise every value part is overwritten and the value doubles.
+    let valueApplied = false;
     return parts.map((part) => {
       if (part.type === 'value' && formattedValue !== undefined) {
-        return { ...part, value: formattedValue };
+        const value = valueApplied ? '' : formattedValue;
+        valueApplied = true;
+        return { ...part, value };
       }
 
       if (part.type === 'unit' && this.entityConfig.unit !== undefined) {
