@@ -163,6 +163,11 @@ horseshoe_background:
 
 Use `show.horseshoe_style` to control how the horseshoe is colored.
 
+!!! warning "Style names changed in v5.4.7-dev.22"
+    Existing cards may require updated color-style names. See
+    [Migrating from v5.4.7](../core-concepts/color-stops.md#migrating-from-v547)
+    for the complete old-to-new table.
+
 | Style                    | What it does                                                      |
 | :----------------------- | :---------------------------------------------------------------- |
 | `fixed`                  | Uses a single fixed color.                                        |
@@ -170,15 +175,15 @@ Use `show.horseshoe_style` to control how the horseshoe is colored.
 | `colorstop`              | Uses the color that matches the current value range.              |
 | `colorstopinterpolated`  | Interpolates the current state color between adjacent color stops. |
 | `colorstopsegments`      | Displays each color range as a separate solid segment.            |
-| `minmaxgradient`         | Creates a gradient between the scale minimum and maximum colors.  |
+| `minmaxgradient`         | Creates a continuous minimum/zero/maximum gradient over the active horseshoe. |
 | `colorstopgradient`      | Creates a smooth gradient from all configured color stops.        |
-| `lineargradient`         | Creates a gradient from the first and last color stops.           |
+| `lineargradient`         | Distributes all configured colors evenly over the rendered range. |
 
 `colorstopgradient` uses every configured color stop. For example, with blue at `0`, yellow at `50`, and red at `100`, the gradient runs from blue through yellow to red. The horseshoe reveals that gradient up to the current value.
 
-For a normal bar, `lineargradient` uses only the first and last color stops. The gradient starts with the first color and ends with the last, while any intermediate color stops are ignored.
+For a normal bar, `lineargradient` distributes every configured color evenly over the active horseshoe. The numeric distance between color-stop values does not affect their visual spacing.
 
-For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. The negative side runs from the first color stop to the color at zero. The positive side runs from the color at zero to the last color stop. Add a color stop at `0` to control the center color, or let FHS calculate it from the surrounding stops.
+For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. Each side distributes its applicable colors evenly between the outer scale value and zero. Add a color stop at `0` to control the center color, or let FHS calculate it from the surrounding stops.
 
 ```yaml linenums="1"
 bar_mode: bidirectional

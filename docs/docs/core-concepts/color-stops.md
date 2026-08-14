@@ -34,6 +34,33 @@ color_stops:
 
 How the colors are rendered depends on the target element and, for horseshoes, the configured horseshoe style.
 
+## :material-swap-horizontal: Migrating from v5.4.7
+
+Starting with `v5.4.7-dev.22`, several color-style names changed so that the
+name describes the visual result consistently across horseshoes, layout items,
+tick marks, backgrounds, and graph tracks.
+
+| Context | v5.4.7 and earlier | v5.4.7-dev.22 and later | Visual result |
+| :------ | :----------------- | :---------------------- | :------------ |
+| Horseshoe state | `horseshoe_style: lineargradient` | `horseshoe_style: minmaxgradient` | Continuous minimum/zero/maximum gradient over the active horseshoe |
+| Layout items and multipart text | `item_style: colorstopgradient` | `item_style: colorstopinterpolated` | One interpolated color for the current value |
+| Layout-item paint settings | `colorstopgradient:` | `colorstopinterpolated:` | Selects whether the interpolated color affects fill, stroke, or both |
+| Tick colors | `color_mode: colorstopgradient` | `color_mode: colorstopinterpolated` | One interpolated tick color |
+| Horseshoe scale | `scale_style: colorstop` | `scale_style: colorstopsegments` | Separate solid scale sections at the color-stop positions |
+| Horseshoe background | `horseshoe_background: colorstop` | `horseshoe_background: colorstopsegments` | Separate solid background sections |
+| Tick background | `tick_background: colorstop` | `tick_background: colorstopsegments` | Separate solid tick-background sections |
+| Label background | `label_background: colorstop` | `label_background: colorstopsegments` | Separate solid label-background sections |
+| Bar and equalizer track | `item_style: colorstop` | `item_style: colorstopsegments` | Separate solid track sections |
+| Bar and equalizer track paint settings | `colorstop:` | `colorstopsegments:` | Selects whether the segmented color affects fill, stroke, or both |
+
+The previous `horseshoe_style: lineargradient` behavior is therefore named
+`minmaxgradient` from `v5.4.7-dev.22` onward. The new `lineargradient` style
+distributes every configured color evenly over the rendered range and ignores
+the numeric distance between color-stop values.
+
+The former `colorstop_gradient` layout-item alias was also removed. Configure
+an explicit `show.item_style` and its matching paint settings instead.
+
 ## :material-horseshoe: Color stop formats
 
 The card supports several color stop formats.
@@ -195,7 +222,8 @@ Common styles include:
 | `colorstop` | The horseshoe uses the color for the current value range. |
 | `colorstopsegments` | Each color range is shown as a separate solid section. |
 | `colorstopgradient` | Creates a smooth gradient using all color stops. |
-| `lineargradient` | Creates a gradient using the first and last color stops. |
+| `minmaxgradient` | Creates a continuous minimum/zero/maximum gradient over the active horseshoe. |
+| `lineargradient` | Distributes all configured colors evenly over the rendered range. |
 | `autominmax` | The horseshoe changes color as the value rises or falls. |
 | `fixed` | The horseshoe has one fixed color. |
 
@@ -446,7 +474,8 @@ For more information about template syntax and reusable constants, see [Template
 | One color based on the current value | `horseshoe_style: colorstop` |
 | Separate colored ranges | `horseshoe_style: colorstopsegments` |
 | See the colors change as the value passes each color stop | `horseshoe_style: colorstopgradient` |
-| Always show the full change from the first color to the last | `horseshoe_style: lineargradient` |
+| Distribute every configured color evenly over the rendered range | `horseshoe_style: lineargradient` |
+| Show a continuous minimum/zero/maximum gradient over the active horseshoe | `horseshoe_style: minmaxgradient` |
 | Fixed horseshoe color | `horseshoe_style: fixed` with a configured color |
 | Shared colors across multiple cards | External palettes, theme variables, or reusable `color_stops` |
 | Different colors for light and dark mode | `color_stops.modes.light` and `color_stops.modes.dark` |
