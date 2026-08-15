@@ -62,18 +62,16 @@ Each shape or entity supports three gestures:
 | `number` | Increase or decrease a numeric value in fixed steps |
 | `slider` | Set a single value or a lower and upper range       |
 
-<video
-controls
-autoplay
-muted
-loop
-playsinline
-style="display: block; width: 100%; max-width: 400px; margin-inline: auto;"
+{{ loop_video(
+  "2026.08.13-fhs-showcase-controls.mp4",
+  "Demo of all the possible interactive controls that the Flexible Horseshoe Card in Home Assistant supports",
+  "Demos the type and visualization options for the interactive controls like buttons, selects, toggles, numbers and sliders",
+  "fhs-demo-card-awair-selectable--dark.png",
+  "2026-08-13",
+  "PT0M45S",
+  "400px") }}
 
->
 
-  <source src="../../../assets/videos/2026.08.13-fhs-showcase-controls.mp4" type="video/webm">
-</video>
 
 ## :material-horseshoe: Actions
 
@@ -350,18 +348,15 @@ content:
 - second row contains the sensor buttons. An icon, state value and again the status indicator is shiftd down using padding.
 - last row (history) just contains text that shows the history time frame
 
-<video
-controls
-autoplay
-muted
-loop
-playsinline
-style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
+{{ loop_video(
+  "fhs-demo-card-awair-selectable--dark.mp4",
+  "Demo of all the possible conRich control content example from Interactive Awair showcase build with Flexible Horseshoe Card in Home Assistant",
+  "Demos rich content buttons and selects with icons, state and lines making it much easier to build these kind of cards",
+  "fhs-demo-card-awair-selectable--dark.png",
+  "2026-08-13",
+  "PT0M45S",
+  "720px") }}
 
->
-
-  <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.mp4" type="video/webm">
-</video>
 
 A select can also present live information in every segment. Use the same
 `items`, `padding`, `gap`, and item `margin` settings as button content.
