@@ -30,6 +30,21 @@ style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
   <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.mp4" type="video/webm">
 </video>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  "name": "Interactive Awair showcase build with Flexible Horseshoe Car in Home Assistant",
+  "description": "A full demo showing the interactive possibilities of the Flexible Horseshoe Card with three Awair Elements. All sensors and selectable history duration.",
+  "thumbnailUrl": [
+    "{{ config.site_url }}assets/images/fhs-demo-card-awair-selectable--dark.png"
+  ],
+  "uploadDate": "2026-08-15T12:00:00+02:00",
+  "duration": "PT0M30S",
+  "contentUrl": "{{ config.site_url }}assets/videos/fhs-demo-card-awair-selectable--dark.mp4"
+}
+</script>
+
 The current value, horseshoe, colors, name, unit, and history graph follow the selected measurement. This makes it possible to explore several Awair devices without filling the dashboard with a separate card for every sensor.
 
 | Description                                                                  | Aspect ratio |
