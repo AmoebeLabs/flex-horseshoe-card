@@ -350,7 +350,7 @@ content:
 
 {{ loop_video(
   "fhs-demo-card-awair-selectable--dark.mp4",
-  "Demo of all the possible conRich control content example from Interactive Awair showcase build with Flexible Horseshoe Card in Home Assistant",
+  "Demo of Rich control content from Interactive Awair showcase build with Flexible Horseshoe Card in Home Assistant",
   "Demos rich content buttons and selects with icons, state and lines making it much easier to build these kind of cards",
   "fhs-demo-card-awair-selectable--dark.png",
   "2026-08-13",
