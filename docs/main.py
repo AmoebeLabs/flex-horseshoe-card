@@ -23,10 +23,10 @@ def define_env(env: MacrosPlugin):
   "@type": "VideoObject",
   "name": "{titel}",
   "description": "{beschrijving}",
-  "thumbnailUrl": ["../../assets/images/{thumbnail}"],
+  "thumbnailUrl": ["/assets/images/{thumbnail}"],
   "uploadDate": "{datum}T12:00:00+02:00",
   "duration": "{duur}",
-  "contentUrl": "../../assets/videos/{bestand}"
+  "contentUrl": "/assets/videos/{bestand}"
 }}
 </script>
 """
