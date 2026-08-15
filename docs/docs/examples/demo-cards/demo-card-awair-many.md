@@ -17,33 +17,14 @@ tags:
 
 This interactive Awair card brings several indoor air quality measurements together in one view. Use the controls to select a room, choose the measurement you want to inspect, and change the displayed history period.
 
-<video
-controls
-autoplay
-muted
-loop
-playsinline
-style="display: block; width: 100%; max-width: 720px; margin-inline: auto;"
-
->
-
-  <source src="../../../assets/videos/fhs-demo-card-awair-selectable--dark.mp4" type="video/webm">
-</video>
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "VideoObject",
-  "name": "Interactive Awair showcase build with Flexible Horseshoe Car in Home Assistant",
-  "description": "A full demo showing the interactive possibilities of the Flexible Horseshoe Card with three Awair Elements. All sensors and selectable history duration.",
-  "thumbnailUrl": [
-    "{{ config.site_url }}assets/images/fhs-demo-card-awair-selectable--dark.png"
-  ],
-  "uploadDate": "2026-08-15T12:00:00+02:00",
-  "duration": "PT0M30S",
-  "contentUrl": "{{ config.site_url }}assets/videos/fhs-demo-card-awair-selectable--dark.mp4"
-}
-</script>
+{{ loop_video(
+  "fhs-demo-card-awair-selectable--dark.mp4",
+  "Interactive Awair showcase build with Flexible Horseshoe Car in Home Assistant",
+  "A full demo showing the interactive possibilities of the Flexible Horseshoe Card with three Awair Elements. All sensors and selectable history duration.",
+  "fhs-demo-card-awair-selectable--dark.png",
+  "2026-08-15",
+  "PT0M30S",
+  "720px") }}
 
 The current value, horseshoe, colors, name, unit, and history graph follow the selected measurement. This makes it possible to explore several Awair devices without filling the dashboard with a separate card for every sensor.
 

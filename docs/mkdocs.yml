@@ -10,7 +10,7 @@ site_description: >-
 # Repository
 repo_name: Flexible Horseshoe Card
 repo_url: https://github.com/amoebelabs/flex-horseshoe-card
-edit_uri: ''
+edit_uri: ""
 
 copyright: Copyright &copy; 2020-2027 Marco @AmoebeLabs
 
@@ -23,7 +23,7 @@ theme:
   name: material
   palette:
     # Palette toggle for automatic mode
-    - media: '(prefers-color-scheme)'
+    - media: "(prefers-color-scheme)"
       primary: amoebelabs-light
       accent: amoebelabs-light
       toggle:
@@ -31,7 +31,7 @@ theme:
         name: Switch to light mode
 
     # Palette toggle for light mode
-    - media: '(prefers-color-scheme: light)'
+    - media: "(prefers-color-scheme: light)"
       primary: amoebelabs-light
       accent: amoebelabs-light
       scheme: default
@@ -39,7 +39,7 @@ theme:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
-    - media: '(prefers-color-scheme: dark)'
+    - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: amoebelabs-dark
       accent: amoebelabs-dark
@@ -60,7 +60,8 @@ theme:
 plugins:
   - search
   - tags
-  - blog
+  # - blog
+  - macros
   # Preserve indexed URLs when documentation pages move or are combined.
   - redirects:
       redirect_maps:
