@@ -19,8 +19,8 @@ This interactive Awair card brings several indoor air quality measurements toget
 
 {{ loop_video(
   "fhs-demo-card-awair-selectable--dark.mp4",
-  "Interactive Awair showcase build with Flexible Horseshoe Car in Home Assistant",
-  "A full demo showing the interactive possibilities of the Flexible Horseshoe Card with three Awair Elements. All sensors and selectable history duration.",
+  "Interactive Awair showcase build with Flexible Horseshoe Card in Home Assistant",
+  "A complete demonstration of the Flexible Horseshoe Card using three Awair Elements. Select a room and sensor to explore their current values, history, and history duration.",
   "fhs-demo-card-awair-selectable--dark.png",
   "2026-08-15",
   "PT0M30S",
