@@ -1,13 +1,13 @@
-import { svg } from 'lit';
-import { styleMap } from 'lit/directives/style-map.js';
-import { SVGInjector } from '@tanem/svg-injector';
-import BaseTool from './base-tool.js';
-import Colors from './colors.js';
-import ConfigHelper from './config-helper.js';
-import Merge from './merge.js';
-import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from './weather-icons-name.ts';
-import { FONT_SIZE, SVG_VIEW_BOX } from './const.js';
-import { entityIcon, attributeIcon } from './frontend_mods/data/icons.ts';
+import { svg } from "lit";
+import { styleMap } from "lit/directives/style-map.js";
+import { SVGInjector } from "@tanem/svg-injector";
+import BaseTool from "./base-tool.js";
+import Colors from "./colors.js";
+import ConfigHelper from "./config-helper.js";
+import Merge from "./merge.js";
+import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from "./weather-icons-name.ts";
+import { FONT_SIZE, SVG_VIEW_BOX } from "./const.js";
+import { entityIcon, attributeIcon } from "./frontend_mods/data/icons.ts";
 
 /**
  * Layout icon tool that renders Home Assistant icons and URL image/SVG icons.
@@ -25,7 +25,10 @@ export default class IconTool extends BaseTool {
   static setConfig(config, templates, cardId, card) {
     const icons = config.layout?.icons ?? [];
 
-    return icons.map((iconConfig, index) => new IconTool(iconConfig, index, templates, cardId, card));
+    return icons.map(
+      (iconConfig, index) =>
+        new IconTool(iconConfig, index, templates, cardId, card),
+    );
   }
 
   /**
@@ -38,10 +41,21 @@ export default class IconTool extends BaseTool {
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
   constructor(config, index, templates, cardId, card) {
-    const hasStandaloneIconSource = config.icon !== undefined || config.state_map !== undefined;
+    const hasStandaloneIconSource =
+      config.icon !== undefined || config.state_map !== undefined;
     const defaultEntityIndex = hasStandaloneIconSource ? undefined : 0;
 
-    super(config, index, templates, cardId, card, 'icons', 'icons', defaultEntityIndex, { fill: true, stroke: false });
+    super(
+      config,
+      index,
+      templates,
+      cardId,
+      card,
+      "icons",
+      "icons",
+      defaultEntityIndex,
+      { fill: true, stroke: false },
+    );
 
     this.config.svg = this.calculateSvgDimensions();
     this.iconId = Math.random().toString(36).substr(2, 9);
@@ -53,7 +67,8 @@ export default class IconTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configChanged)
+      this.config.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -97,7 +112,12 @@ export default class IconTool extends BaseTool {
 
     const state = this.entity?.state;
 
-    return entries.find((entry) => entry.state === state) ?? entries.find((entry) => entry.state === 'default');
+    return (
+      entries.find(
+        (entry) =>
+          entry.state !== undefined && String(entry.state) === String(state),
+      ) ?? entries.find((entry) => entry.state === "default")
+    );
   }
 
   /**
@@ -107,7 +127,8 @@ export default class IconTool extends BaseTool {
    * @returns {string|undefined} Icon name or css url(...).
    */
   buildIcon(stateMapConfig, item = this.config) {
-    const entityAnimation = this.card.cardAnimations.styles.iconsIcon[item.animation_id];
+    const entityAnimation =
+      this.card.cardAnimations.styles.iconsIcon[item.animation_id];
 
     if (entityAnimation) {
       return entityAnimation;
@@ -131,14 +152,16 @@ export default class IconTool extends BaseTool {
 
     const entityId = this.entityConfig.entity;
     const attribute = this.entityConfig.attribute;
-    const attributeValue = attribute ? this.entity.attributes?.[attribute] : undefined;
-    const domain = this.entity.entity_id?.split('.')[0];
+    const attributeValue = attribute
+      ? this.entity.attributes?.[attribute]
+      : undefined;
+    const domain = this.entity.entity_id?.split(".")[0];
 
     if (this.entity.attributes?.icon && !attribute) {
       return this.entity.attributes.icon;
     }
 
-    if (attribute && domain === 'weather') {
+    if (attribute && domain === "weather") {
       const weatherIcon = FIXED_WEATHER_ATTRIBUTE_ICONS_NAME[attribute];
 
       if (weatherIcon) {
@@ -150,10 +173,27 @@ export default class IconTool extends BaseTool {
     this.card.entitiesIconKey ??= {};
     this.card.entitiesIconPending ??= {};
 
-    const iconId = attribute ? `${entityId}|attribute:${attribute}` : `${entityId}|state`;
+    const iconId = attribute
+      ? `${entityId}|attribute:${attribute}`
+      : `${entityId}|state`;
     const key = attribute
-      ? [entityId, 'attribute', attribute, attributeValue ?? '', domain ?? '', this.entity.attributes?.device_class ?? '', this.entity.attributes?.icon ?? ''].join('|')
-      : [entityId, 'state', this.entity.state ?? '', domain ?? '', this.entity.attributes?.device_class ?? '', this.entity.attributes?.icon ?? ''].join('|');
+      ? [
+          entityId,
+          "attribute",
+          attribute,
+          attributeValue ?? "",
+          domain ?? "",
+          this.entity.attributes?.device_class ?? "",
+          this.entity.attributes?.icon ?? "",
+        ].join("|")
+      : [
+          entityId,
+          "state",
+          this.entity.state ?? "",
+          domain ?? "",
+          this.entity.attributes?.device_class ?? "",
+          this.entity.attributes?.icon ?? "",
+        ].join("|");
 
     if (this.card.entitiesIconKey[iconId] === key) {
       return this.card.entitiesIcon[iconId];
@@ -165,8 +205,18 @@ export default class IconTool extends BaseTool {
       this.card.entitiesIconPending[iconId] = true;
 
       const iconPromise = attribute
-        ? attributeIcon(this.card._hass, this.entity, attribute, attributeValue !== undefined ? String(attributeValue) : undefined)
-        : entityIcon(this.card._hass.entities, this.card._hass.config, this.card._hass.connection, this.entity);
+        ? attributeIcon(
+            this.card._hass,
+            this.entity,
+            attribute,
+            attributeValue !== undefined ? String(attributeValue) : undefined,
+          )
+        : entityIcon(
+            this.card._hass.entities,
+            this.card._hass.config,
+            this.card._hass.connection,
+            this.entity,
+          );
 
       iconPromise
         .then((icon) => {
@@ -184,7 +234,14 @@ export default class IconTool extends BaseTool {
           }
         })
         .catch((err) => {
-          console.error(attribute ? 'IconTool.buildIcon attributeIcon failed' : 'IconTool.buildIcon entityIcon failed', entityId, attribute ?? '', err);
+          console.error(
+            attribute
+              ? "IconTool.buildIcon attributeIcon failed"
+              : "IconTool.buildIcon entityIcon failed",
+            entityId,
+            attribute ?? "",
+            err,
+          );
         })
         .finally(() => {
           this.card.entitiesIconPending[iconId] = false;
@@ -201,7 +258,9 @@ export default class IconTool extends BaseTool {
    * @returns {boolean} True when the icon is a css url(...).
    */
   isUrlIcon(icon) {
-    return typeof icon === 'string' && /^url\(['"]?.+['"]?\)$/i.test(icon.trim());
+    return (
+      typeof icon === "string" && /^url\(['"]?.+['"]?\)$/i.test(icon.trim())
+    );
   }
 
   /**
@@ -211,7 +270,7 @@ export default class IconTool extends BaseTool {
    * @returns {boolean} True when the URL ends in .svg.
    */
   isSvgUrl(url) {
-    return url.endsWith('.svg');
+    return url.endsWith(".svg");
   }
 
   /**
@@ -223,23 +282,25 @@ export default class IconTool extends BaseTool {
   getUrlFromCssUrl(value) {
     return value
       .trim()
-      .replace(/^url\(['"]?/i, '')
-      .replace(/['"]?\)$/, '');
+      .replace(/^url\(['"]?/i, "")
+      .replace(/['"]?\)$/, "");
   }
 
   /**
    * Injects pending external SVG URL icons into the shadow DOM.
    */
   injectSvgUrlIcons() {
-    const elements = this.card.shadowRoot.querySelectorAll('svg.icon-svg-url[data-src]:not(.injected-svg)');
+    const elements = this.card.shadowRoot.querySelectorAll(
+      "svg.icon-svg-url[data-src]:not(.injected-svg)",
+    );
 
     if (!elements.length) return;
 
     SVGInjector(elements, {
       /** Removes source dimensions so IconTool remains responsible for sizing. */
       beforeEach(svgNode) {
-        svgNode.removeAttribute('height');
-        svgNode.removeAttribute('width');
+        svgNode.removeAttribute("height");
+        svgNode.removeAttribute("width");
       },
 
       afterEach: (err, injectedSvg) => {
@@ -256,7 +317,7 @@ export default class IconTool extends BaseTool {
       },
 
       cacheRequests: false,
-      evalScripts: 'once',
+      evalScripts: "once",
       httpRequestWithCredentials: false,
       renumerateIRIElements: false,
     });
@@ -279,7 +340,7 @@ export default class IconTool extends BaseTool {
     const iconCx = x1 + 12 * scale;
     const iconCy = y1 + 12 * scale;
 
-    svgNode.classList.remove('hidden');
+    svgNode.classList.remove("hidden");
 
     return svg`
       <g
@@ -299,7 +360,7 @@ export default class IconTool extends BaseTool {
             width="${iconPixels}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
-            pointer-events="${item.tap_action?.action === 'none' ? 'none' : 'auto'}"
+            pointer-events="${item.tap_action?.action === "none" ? "none" : "auto"}"
           ></rect>
 
           <g class="icon-style-animation" style="${styleMap(configStyle)}">
@@ -367,7 +428,15 @@ export default class IconTool extends BaseTool {
    */
   renderSvgUrlIcon(item, url, configStyle, iconPixels, cx, cy, adjust) {
     if (this.card.svgUrlCache[url]) {
-      return this.renderCachedSvgUrlIcon(item, url, configStyle, iconPixels, cx, cy, adjust);
+      return this.renderCachedSvgUrlIcon(
+        item,
+        url,
+        configStyle,
+        iconPixels,
+        cx,
+        cy,
+        adjust,
+      );
     }
 
     return this.renderSvgUrlPlaceholder(item, url, iconPixels, cx, cy, adjust);
@@ -402,7 +471,7 @@ export default class IconTool extends BaseTool {
             width="${iconPixels}px"
             stroke-width="0px"
             fill="rgba(0,0,0,0)"
-            pointer-events="${item.tap_action?.action === 'none' ? 'none' : 'auto'}"
+            pointer-events="${item.tap_action?.action === "none" ? "none" : "auto"}"
           ></rect>
 
           <g class="icon-style-animation" style="${styleMap(configStyle)}">
@@ -430,9 +499,11 @@ export default class IconTool extends BaseTool {
    * @returns {string|undefined} Rendered icon path.
    */
   getRenderedHaIconPath() {
-    const iconElement = this.card.shadowRoot.getElementById(`icon-${this.iconId}`);
+    const iconElement = this.card.shadowRoot.getElementById(
+      `icon-${this.iconId}`,
+    );
 
-    return iconElement?.shadowRoot?.querySelector('*')?.path;
+    return iconElement?.shadowRoot?.querySelector("*")?.path;
   }
 
   /**
@@ -451,34 +522,43 @@ export default class IconTool extends BaseTool {
     }
 
     // icon_size_percent is relative to the full square SVG viewbox; icon_size keeps the legacy font-size based sizing.
-    const iconPixels = renderItem.icon_size_percent !== undefined
-      ? (Number(renderItem.icon_size_percent) / 100) * SVG_VIEW_BOX
-      : (renderItem.icon_size ? renderItem.icon_size : renderItem.size ? renderItem.size : 2) * FONT_SIZE;
+    const iconPixels =
+      renderItem.icon_size_percent !== undefined
+        ? (Number(renderItem.icon_size_percent) / 100) * SVG_VIEW_BOX
+        : (renderItem.icon_size
+            ? renderItem.icon_size
+            : renderItem.size
+              ? renderItem.size
+              : 2) * FONT_SIZE;
     const cx = item.svg.xpos;
     const cy = item.svg.ypos;
-    const align = renderItem.align ? renderItem.align : 'center';
-    const adjust = align === 'center' ? 0.5 : align === 'start' ? -1 : 1;
+    const align = renderItem.align ? renderItem.align : "center";
+    const adjust = align === "center" ? 0.5 : align === "start" ? -1 : 1;
     const xpx = cx - iconPixels * adjust;
     const ypx = cy - iconPixels * adjust;
     const foIconPixels = iconPixels;
 
     const haStyle = this.entity
       ? Colors.getHaEntityIconStyle(this.entity)
-      : { fill: 'currentColor', color: 'var(--state-icon-color)' };
+      : { fill: "currentColor", color: "var(--state-icon-color)" };
     const defaultIconColor = {};
     defaultIconColor.fill = haStyle.fill;
     defaultIconColor.color = haStyle.color;
     defaultIconColor.filter = haStyle.filter;
 
     let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
-    const stateStyle = this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
-    this.applyColorStops(configStyle, renderItem, ['fill', 'color']);
+    const stateStyle =
+      this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
+    this.applyColorStops(configStyle, renderItem, ["fill", "color"]);
 
-    configStyle = this.getRenderStyles({
-      ...defaultIconColor,
-      ...configStyle,
-      ...stateStyle,
-    }, renderItem === item ? [] : [renderItem.color_filter]);
+    configStyle = this.getRenderStyles(
+      {
+        ...defaultIconColor,
+        ...configStyle,
+        ...stateStyle,
+      },
+      renderItem === item ? [] : [renderItem.color_filter],
+    );
 
     const icon = this.buildIcon(smItem, renderItem);
 
@@ -486,10 +566,32 @@ export default class IconTool extends BaseTool {
       const url = this.getUrlFromCssUrl(icon);
 
       if (this.isSvgUrl(url)) {
-        return this.renderItemLayers(this.renderSvgUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust), renderItem);
+        return this.renderItemLayers(
+          this.renderSvgUrlIcon(
+            renderItem,
+            url,
+            configStyle,
+            iconPixels,
+            cx,
+            cy,
+            adjust,
+          ),
+          renderItem,
+        );
       }
 
-      return this.renderItemLayers(this.renderImageUrlIcon(renderItem, url, configStyle, iconPixels, cx, cy, adjust), renderItem);
+      return this.renderItemLayers(
+        this.renderImageUrlIcon(
+          renderItem,
+          url,
+          configStyle,
+          iconPixels,
+          cx,
+          cy,
+          adjust,
+        ),
+        renderItem,
+      );
     }
 
     if (!icon) {
@@ -532,11 +634,13 @@ export default class IconTool extends BaseTool {
           window.setTimeout(readIconPath, delay);
         };
 
-        const afterRender = this.card?.updateComplete && typeof this.card.updateComplete.then === 'function'
-          ? this.card.updateComplete
-          : new Promise((resolve) => {
-            window.requestAnimationFrame(resolve);
-          });
+        const afterRender =
+          this.card?.updateComplete &&
+          typeof this.card.updateComplete.then === "function"
+            ? this.card.updateComplete
+            : new Promise((resolve) => {
+                window.requestAnimationFrame(resolve);
+              });
 
         afterRender.then(() => {
           window.setTimeout(readIconPath, 0);
@@ -546,15 +650,17 @@ export default class IconTool extends BaseTool {
 
     if (this.iconSvg) {
       const x1 = cx - iconPixels * adjust;
-      const y1 = cy - iconPixels * 0.5 - (renderItem.yposc ? 0 : iconPixels * 0.25);
+      const y1 =
+        cy - iconPixels * 0.5 - (renderItem.yposc ? 0 : iconPixels * 0.25);
       const scale = iconPixels / 24;
       const rotate = renderItem.rotate ?? 0;
       const iconCx = x1 + 12 * scale;
       const iconCy = y1 + 12 * scale;
 
-      configStyle['transform-origin'] ??= '0 0';
+      configStyle["transform-origin"] ??= "0 0";
 
-      return this.renderItemLayers(svg`
+      return this.renderItemLayers(
+        svg`
         <g
           transform="${this.getGroupScaleTransform(renderItem)}"
           style="${this.getGroupScaleStyle(renderItem)}"
@@ -573,7 +679,7 @@ export default class IconTool extends BaseTool {
               width="${iconPixels}px"
               stroke-width="0px"
               fill="rgba(0,0,0,0)"
-              pointer-events="${renderItem.tap_action?.action === 'none' ? 'none' : 'auto'}"
+              pointer-events="${renderItem.tap_action?.action === "none" ? "none" : "auto"}"
             ></rect>
 
             <g class="icon-style-animation" style="${styleMap(configStyle)}">
@@ -587,7 +693,9 @@ export default class IconTool extends BaseTool {
             </g>
           </g>
         </g>
-      `, renderItem);
+      `,
+        renderItem,
+      );
     }
 
     return svg`
