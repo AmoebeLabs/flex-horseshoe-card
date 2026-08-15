@@ -93,7 +93,7 @@ export default class BaseTool {
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
     if (this.configChanged && this.colorStopPaintDefaults
       && (this.config.color_stops
-        || ['colorstop', 'colorstopinterpolated'].includes(this.config.show?.item_style))) {
+        || ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(this.config.show?.item_style))) {
       this.normalizeLayoutItemColorStopMode(this.config);
     }
 
@@ -118,7 +118,7 @@ export default class BaseTool {
     item.show ??= {};
     item.show.item_style ??= 'colorstop';
 
-    if (item.show.item_style !== 'colorstop' && item.show.item_style !== 'colorstopinterpolated') return;
+    if (!['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(item.show.item_style)) return;
 
     item.colorstop = {
       ...paintDefaults,
@@ -128,8 +128,12 @@ export default class BaseTool {
       ...paintDefaults,
       ...item.colorstopinterpolated,
     };
+    item.colorstopsegments = {
+      ...paintDefaults,
+      ...item.colorstopsegments,
+    };
 
-    ['colorstop', 'colorstopinterpolated'].forEach((mode) => {
+    ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].forEach((mode) => {
       if (typeof item[mode].fill !== 'boolean' || typeof item[mode].stroke !== 'boolean') {
         throw new Error(`[${this.animationSection}] ${mode}.fill and ${mode}.stroke must be boolean`);
       }
@@ -240,7 +244,7 @@ export default class BaseTool {
    * @param {Array<string>} fillProperties - Renderer properties representing logical fill.
    */
   applyColorStops(styles, item = this.config, fillProperties = ['fill']) {
-    if (item.show?.item_style !== 'colorstop' && item.show?.item_style !== 'colorstopinterpolated') return;
+    if (!['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(item.show?.item_style)) return;
 
     const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
     const stopColor = this.card.cardEntities.getItemColorFromStops(item, colorStops, this.card.config, this.card.entities);

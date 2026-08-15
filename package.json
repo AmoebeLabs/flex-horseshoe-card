@@ -1,6 +1,6 @@
 {
   "name": "flex-horseshoe",
-  "version": "5.4.7-dev.25",
+  "version": "5.4.7-dev.26",
   "description": "Flexible Horseshoe Card for Lovelace",
   "main": "src/main.js",
   "type": "module",
