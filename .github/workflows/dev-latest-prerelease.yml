@@ -1,6 +1,7 @@
 name: Dev latest prerelease
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - '**'
