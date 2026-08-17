@@ -177,24 +177,34 @@ export default class CardTemplates {
    */
   static getTemplate(card, templateName) {
     const lovelaceConfigs = [card.lovelace.config, card.lovelace.rawConfig];
+    const templateCatalogs = ['fhs_user_templates', 'fhs_sys_templates'];
     let template;
 
-    // Search every view catalog first, so a view-specific template always wins.
+    // Search every view catalog first, preserving the existing config/rawConfig
+    // order. User templates are checked before system templates at each level.
     lovelaceConfigs.forEach((lovelaceConfig) => {
       if (template) return;
 
       lovelaceConfig.views.forEach((view) => {
         if (template) return;
 
-        template = view.fhs_user_templates?.templates?.[templateName];
+        templateCatalogs.forEach((catalogName) => {
+          if (template) return;
+
+          template = view[catalogName]?.templates?.[templateName];
+        });
       });
     });
 
-    // Fall back to the dashboard catalogs in config and rawConfig.
+    // Fall back to dashboard catalogs, using the same catalog precedence.
     lovelaceConfigs.forEach((lovelaceConfig) => {
       if (template) return;
 
-      template = lovelaceConfig.fhs_user_templates?.templates?.[templateName];
+      templateCatalogs.forEach((catalogName) => {
+        if (template) return;
+
+        template = lovelaceConfig[catalogName]?.templates?.[templateName];
+      });
     });
 
     if (!template) {
