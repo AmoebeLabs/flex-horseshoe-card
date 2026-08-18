@@ -1,5 +1,5 @@
-import Merge from './merge.js';
-import Utils from './utils.js';
+import Merge from "./merge.js";
+import Utils from "./utils.js";
 
 /**
  * Compiles root-level FHS templates into normal card configuration.
@@ -28,7 +28,7 @@ export default class CardTemplates {
       const compiledConfig = CardTemplates.compileTemplateUse(config, card);
 
       if (compiledConfig.dev?.debug || config.dev?.debug) {
-        console.log('[FHS templates] compiled root template', {
+        console.log("[FHS templates] compiled root template", {
           template: config.template,
           compiledConfig,
         });
@@ -41,7 +41,10 @@ export default class CardTemplates {
       });
     }
 
-    const compiledTemplateParts = CardTemplates.compileTemplateParts(config, card);
+    const compiledTemplateParts = CardTemplates.compileTemplateParts(
+      config,
+      card,
+    );
 
     // A card template may own local entities without changing the positional
     // contract of entities supplied by the card instance. Matching explicit
@@ -52,7 +55,9 @@ export default class CardTemplates {
 
       compiledTemplateParts.default_entities.forEach((entityConfig) => {
         if (defaultEntitiesById[entityConfig.entity] !== undefined) {
-          throw new Error(`[templates] Duplicate default entity: ${entityConfig.entity}`);
+          throw new Error(
+            `[templates] Duplicate default entity: ${entityConfig.entity}`,
+          );
         }
 
         defaultEntitiesById[entityConfig.entity] = entityConfig;
@@ -60,26 +65,39 @@ export default class CardTemplates {
 
       compiledTemplateParts.entities ??= [];
       const configuredEntityIds = new Set();
-      compiledTemplateParts.entities = compiledTemplateParts.entities.map((entityConfig) => {
-        configuredEntityIds.add(entityConfig.entity);
+      compiledTemplateParts.entities = compiledTemplateParts.entities.map(
+        (entityConfig) => {
+          configuredEntityIds.add(entityConfig.entity);
 
-        if (defaultEntitiesById[entityConfig.entity] === undefined) return entityConfig;
+          if (defaultEntitiesById[entityConfig.entity] === undefined)
+            return entityConfig;
 
-        const defaultEntity = defaultEntitiesById[entityConfig.entity];
-        if (defaultEntity.slot !== undefined
-          && entityConfig.slot !== undefined
-          && defaultEntity.slot !== entityConfig.slot) {
-          throw new Error(`[templates] Entity ${entityConfig.entity} cannot change its default slot`);
-        }
+          const defaultEntity = defaultEntitiesById[entityConfig.entity];
+          if (
+            defaultEntity.slot !== undefined &&
+            entityConfig.slot !== undefined &&
+            defaultEntity.slot !== entityConfig.slot
+          ) {
+            throw new Error(
+              `[templates] Entity ${entityConfig.entity} cannot change its default slot`,
+            );
+          }
 
-        const mergedEntity = CardTemplates.mergeTemplateConfig(defaultEntity, entityConfig);
-        if (defaultEntity.slot !== undefined) mergedEntity.slot = defaultEntity.slot;
-        return mergedEntity;
-      });
+          const mergedEntity = CardTemplates.mergeTemplateConfig(
+            defaultEntity,
+            entityConfig,
+          );
+          if (defaultEntity.slot !== undefined)
+            mergedEntity.slot = defaultEntity.slot;
+          return mergedEntity;
+        },
+      );
 
       compiledTemplateParts.default_entities.forEach((entityConfig) => {
         if (!configuredEntityIds.has(entityConfig.entity)) {
-          compiledTemplateParts.entities.push(Merge.mergeDeep({}, entityConfig));
+          compiledTemplateParts.entities.push(
+            Merge.mergeDeep({}, entityConfig),
+          );
         }
       });
 
@@ -108,10 +126,19 @@ export default class CardTemplates {
    * @returns {object} Config object with the template body applied.
    */
   static compileTemplateUse(configPart, card) {
-    const templateName = typeof configPart.template === 'string' ? configPart.template : configPart.template.name;
-    const templateVariables = typeof configPart.template === 'string' ? undefined : configPart.template.variables;
+    const templateName =
+      typeof configPart.template === "string"
+        ? configPart.template
+        : configPart.template.name;
+    const templateVariables =
+      typeof configPart.template === "string"
+        ? undefined
+        : configPart.template.variables;
     const template = CardTemplates.getTemplate(card, templateName);
-    const templateConfig = CardTemplates.replaceVariables(templateVariables, template);
+    const templateConfig = CardTemplates.replaceVariables(
+      templateVariables,
+      template,
+    );
     const localConfig = Merge.mergeDeep({}, configPart);
 
     // if (configPart.template?.name || typeof configPart.template === 'string') {
@@ -142,12 +169,17 @@ export default class CardTemplates {
    */
   static compileTemplateParts(configPart, card) {
     if (Array.isArray(configPart)) {
-      return configPart.map((item) => CardTemplates.compileTemplateParts(item, card));
+      return configPart.map((item) =>
+        CardTemplates.compileTemplateParts(item, card),
+      );
     }
 
-    if (configPart && typeof configPart === 'object') {
+    if (configPart && typeof configPart === "object") {
       if (configPart.template !== undefined) {
-        const compiledConfigPart = CardTemplates.compileTemplateUse(configPart, card);
+        const compiledConfigPart = CardTemplates.compileTemplateUse(
+          configPart,
+          card,
+        );
 
         return CardTemplates.compileTemplateParts(compiledConfigPart, card);
       }
@@ -155,7 +187,10 @@ export default class CardTemplates {
       const compiledConfigPart = {};
 
       Object.entries(configPart).forEach(([key, value]) => {
-        compiledConfigPart[key] = key === 'cards' ? value : CardTemplates.compileTemplateParts(value, card);
+        compiledConfigPart[key] =
+          key === "cards"
+            ? value
+            : CardTemplates.compileTemplateParts(value, card);
       });
 
       return compiledConfigPart;
@@ -177,7 +212,7 @@ export default class CardTemplates {
    */
   static getTemplate(card, templateName) {
     const lovelaceConfigs = [card.lovelace.config, card.lovelace.rawConfig];
-    const templateCatalogs = ['fhs_user_templates', 'fhs_sys_templates'];
+    const templateCatalogs = ["fhs_user_templates", "fhs_sys_templates"];
     let template;
 
     // Search every view catalog first, preserving the existing config/rawConfig
@@ -185,7 +220,7 @@ export default class CardTemplates {
     lovelaceConfigs.forEach((lovelaceConfig) => {
       if (template) return;
 
-      lovelaceConfig.views.forEach((view) => {
+      lovelaceConfig.views?.forEach((view) => {
         if (template) return;
 
         templateCatalogs.forEach((catalogName) => {
@@ -243,17 +278,17 @@ export default class CardTemplates {
       const key = Object.keys(variable)[0];
       const value = Object.values(variable)[0];
 
-      if (typeof value === 'number' || typeof value === 'boolean') {
-        const rxp = new RegExp(`"\\[\\[${key}\\]\\]"`, 'gm');
+      if (typeof value === "number" || typeof value === "boolean") {
+        const rxp = new RegExp(`"\\[\\[${key}\\]\\]"`, "gm");
         jsonConfig = jsonConfig.replace(rxp, value);
       }
 
-      if (typeof value === 'object') {
-        const rxp = new RegExp(`"\\[\\[${key}\\]\\]"`, 'gm');
+      if (typeof value === "object") {
+        const rxp = new RegExp(`"\\[\\[${key}\\]\\]"`, "gm");
         const valueString = JSON.stringify(value);
         jsonConfig = jsonConfig.replace(rxp, valueString);
       } else {
-        const rxp = new RegExp(`\\[\\[${key}\\]\\]`, 'gm');
+        const rxp = new RegExp(`\\[\\[${key}\\]\\]`, "gm");
         jsonConfig = jsonConfig.replace(rxp, value);
       }
     });
@@ -279,12 +314,19 @@ export default class CardTemplates {
         // mergeDeep() always starts from an object internally, so using it with
         // an array as the root would turn entities[] into {0: ...}. Keep the
         // root as an array and clone only object items inside it.
-        mergedConfig[key] = value.map((item) => (item && typeof item === 'object' ? Merge.mergeDeep(Array.isArray(item) ? [] : {}, item) : item));
+        mergedConfig[key] = value.map((item) =>
+          item && typeof item === "object"
+            ? Merge.mergeDeep(Array.isArray(item) ? [] : {}, item)
+            : item,
+        );
         return;
       }
 
-      if (value && typeof value === 'object') {
-        mergedConfig[key] = CardTemplates.mergeTemplateConfig(mergedConfig[key] ?? {}, value);
+      if (value && typeof value === "object") {
+        mergedConfig[key] = CardTemplates.mergeTemplateConfig(
+          mergedConfig[key] ?? {},
+          value,
+        );
         return;
       }
 
