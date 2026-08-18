@@ -5,6 +5,7 @@ import CardActions from '../src/card-actions.js';
 import CardInputEntities from '../src/card-input-entities.js';
 import CardTheme from '../src/card-theme.js';
 import CardConfig from '../src/card-config.js';
+import CardTemplates from '../src/card-templates.js';
 import CardEntities from '../src/card-entities.js';
 import CardAnimations from '../src/card-animations.js';
 import CardTools from '../src/card-tools.js';
@@ -711,4 +712,42 @@ test('Templates keeps one context object while lifecycle values change', () => {
   assert.equal(templates.context, context);
   assert.equal(context.config, secondConfig);
   assert.equal(context.entity_slots, undefined);
+});
+
+
+test("CardTemplates searches system and user Lovelace catalogs", () => {
+  const systemTemplate = { name: "system" };
+  const userTemplate = { name: "user" };
+  const card = {
+    lovelace: {
+      config: {
+        views: [{
+          fhs_sys_templates: { templates: { system_only: systemTemplate, shared: systemTemplate } },
+          fhs_user_templates: { templates: { shared: userTemplate } },
+        }],
+        fhs_sys_templates: { templates: { dashboard_only: systemTemplate } },
+      },
+      rawConfig: { views: [], fhs_user_templates: { templates: {} } },
+    },
+  };
+
+  assert.equal(CardTemplates.getTemplate(card, "system_only"), systemTemplate);
+  assert.equal(CardTemplates.getTemplate(card, "dashboard_only"), systemTemplate);
+  assert.equal(CardTemplates.getTemplate(card, "shared"), userTemplate);
+});
+
+test("CardTemplates keeps view catalogs ahead of dashboard catalogs", () => {
+  const viewTemplate = { name: "view" };
+  const dashboardTemplate = { name: "dashboard" };
+  const card = {
+    lovelace: {
+      config: {
+        views: [{ fhs_sys_templates: { templates: { same: viewTemplate } } }],
+        fhs_user_templates: { templates: { same: dashboardTemplate } },
+      },
+      rawConfig: { views: [] },
+    },
+  };
+
+  assert.equal(CardTemplates.getTemplate(card, "same"), viewTemplate);
 });
