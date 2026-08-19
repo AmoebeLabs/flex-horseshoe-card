@@ -247,17 +247,18 @@ export default class BaseTool {
     if (!['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(item.show?.item_style)) return;
 
     const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
-    const stopColor = this.card.cardEntities.getItemColorFromStops(item, colorStops, this.card.config, this.card.entities);
+    const activeStop = this.card.cardEntities.getItemColorStop(item, colorStops, this.card.config, this.card.entities);
 
-    if (stopColor) {
+    if (activeStop) {
       const paintMode = item[item.show.item_style];
+      Object.assign(styles, ConfigHelper.toStyleDict(activeStop.styles));
 
       if (paintMode.fill) {
         fillProperties.forEach((property) => {
-          styles[property] = stopColor;
+          styles[property] = activeStop.color;
         });
       }
-      if (paintMode.stroke) styles.stroke = stopColor;
+      if (paintMode.stroke) styles.stroke = activeStop.color;
     }
   }
 

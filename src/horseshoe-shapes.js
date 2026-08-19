@@ -929,31 +929,15 @@ function getStringstateStateRoleStyles(labelStateEntry, relation) {
 function buildMappedStateArcs(runtimeConfig, geometry, value) {
   const stateMap = runtimeConfig.state_map.map;
   const segmentGap = runtimeConfig.horseshoe_state.segment_gap;
-  const colorStopGap = Number(runtimeConfig.colorstops?.gap ?? 0);
   const count = stateMap.length;
 
   if (!count) {
     return [];
   }
 
-  // Segment mode shows equal visual slots. String-state modes reuse the color-stop scale segment that contains the mapped value.
+  // Mapped states occupy equal visual slots. Their value is the segment index.
   const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(value));
   const step = geometry.arcDegrees / count;
-  const colorStops = asArray(runtimeConfig.colorstops?.colors);
-  const colorStopPoints = [
-    {
-      value: Number(runtimeConfig.horseshoe_scale.min),
-      color: colorStops[0]?.color,
-    },
-    ...colorStops.map((stop) => ({
-      value: Number(stop.value),
-      color: stop.color,
-    })),
-    {
-      value: Number(runtimeConfig.horseshoe_scale.max),
-      color: colorStops[colorStops.length - 1]?.color,
-    },
-  ];
 
   const arcs = stateMap.map((item, index) => {
     const relation = getMappedStateRelation(index, currentIndex);
@@ -968,25 +952,7 @@ function buildMappedStateArcs(runtimeConfig, geometry, value) {
     let segmentStartValue;
     let segmentEndValue;
 
-    if (runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level') {
-      for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
-        const pointA = colorStopPoints[colorStopIndex];
-        const pointB = colorStopPoints[colorStopIndex + 1];
-        const isFirst = colorStopIndex === 0;
-        const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
 
-        if (isInSegment) {
-          const isLast = colorStopIndex === colorStopPoints.length - 2;
-
-          segmentStartValue = pointA.value;
-          segmentEndValue = pointB.value;
-          startAngle = isFirst ? geometry.valueToAngle(pointA.value) : geometry.valueToAngle(pointA.value) + colorStopGap / 2;
-          endAngle = isLast ? geometry.valueToAngle(pointB.value) : geometry.valueToAngle(pointB.value) - colorStopGap / 2;
-          segmentColor = item.color ?? pointA.color;
-          break;
-        }
-      }
-    }
 
     return {
       key: `mapped-state-${index}`,
@@ -1312,33 +1278,13 @@ function buildLabelStopItems(runtimeConfig, geometry) {
     const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(runtimeConfig.mapped_state?.value));
 
     if (runtimeConfig.horseshoe_state?.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state?.mode === 'stringstate_level') {
-      const colorStopPoints = [
-        { value: Number(runtimeConfig.horseshoe_scale.min) },
-        ...colorStops.map((stop) => ({ value: Number(stop.value) })),
-        { value: Number(runtimeConfig.horseshoe_scale.max) },
-      ];
-
       labelStops = stateMap.map((item, index) => {
         const relation = getMappedStateRelation(index, currentIndex);
         const labelStateEntry = getLabelStateMapEntry(runtimeConfig, item.state);
         const itemValue = Number(item.value);
-        let labelValue = itemValue;
-        let labelStartValue;
-        let labelEndValue;
-
-        for (let colorStopIndex = 0; colorStopIndex < colorStopPoints.length - 1; colorStopIndex += 1) {
-          const pointA = colorStopPoints[colorStopIndex];
-          const pointB = colorStopPoints[colorStopIndex + 1];
-          const isFirst = colorStopIndex === 0;
-          const isInSegment = (isFirst && itemValue >= pointA.value && itemValue <= pointB.value) || (itemValue > pointA.value && itemValue <= pointB.value);
-
-          if (isInSegment) {
-            labelValue = (pointA.value + pointB.value) / 2;
-            labelStartValue = pointA.value;
-            labelEndValue = pointB.value;
-            break;
-          }
-        }
+        const labelValue = index + 0.5;
+        const labelStartValue = index;
+        const labelEndValue = index + 1;
 
         const roleStyles = getStringstateRoleStyles(runtimeConfig, relation);
         const stateStyles = ConfigHelper.toStyleDict(labelStateEntry?.styles);

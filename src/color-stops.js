@@ -138,10 +138,13 @@ export default class ColorStops {
     //   - 20: green
     if (Array.isArray(value)) {
       // flatMap keeps both supported array shapes in one sequential flow.
-      return value
+      const normalizedEntries = value
         .flatMap((entry) => ColorStops.normalizeColorArrayEntry(entry))
-        .filter(Boolean)
-        .sort((a, b) => a.value - b.value);
+        .filter(Boolean);
+
+      return normalizedEntries.some((entry) => entry.state !== undefined)
+        ? normalizedEntries
+        : normalizedEntries.sort((a, b) => a.value - b.value);
     }
 
     // Dict:
@@ -166,6 +169,15 @@ export default class ColorStops {
    * @returns {Array<object>} Zero, one, or many normalized color-stop entries.
    */
   static normalizeColorArrayEntry(entry) {
+    // String-state shape:
+    //
+    // - state: on
+    //   color: green
+    if (ColorStops.isPlainObject(entry) && Object.prototype.hasOwnProperty.call(entry, "state") && Object.prototype.hasOwnProperty.call(entry, "color")) {
+      const normalizedEntry = ColorStops.normalizeColorEntry(entry);
+      return normalizedEntry ? [normalizedEntry] : [];
+    }
+
     // SAK v2 shape:
     //
     // - value: 10
@@ -219,6 +231,16 @@ export default class ColorStops {
    */
   static normalizeColorEntry(entry) {
     if (!ColorStops.isPlainObject(entry)) return null;
+
+    if (entry.state !== undefined) {
+      if (entry.color === undefined || entry.color === null) return null;
+
+      return {
+        ...entry,
+        state: String(entry.state),
+        color: String(entry.color),
+      };
+    }
 
     const value = Number(entry.value);
 

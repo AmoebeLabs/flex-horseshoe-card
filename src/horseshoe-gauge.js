@@ -43,6 +43,24 @@ export default class HorseshoeGauge extends BaseTool {
       ...layoutConfigs,
     ];
 
+    const debug = config.dev?.debug === true
+      || config.debug === true
+      || config.debug_state_map === true
+      || horseshoes.some((horseshoe) => horseshoe.debug_state_map === true || horseshoe.horseshoe_state?.debug_state_map === true);
+
+    if (debug) {
+      console.log('[FHS horseshoe] setConfig', {
+        count: horseshoes.length,
+        configs: horseshoes.map((horseshoe) => ({
+          show: horseshoe.show,
+          entity_index: horseshoe.entity_index,
+          horseshoe_state: horseshoe.horseshoe_state,
+          color_stops: horseshoe.color_stops,
+          colorstops: horseshoe.colorstops,
+        })),
+      });
+    }
+
     return horseshoes
       .filter(Boolean)
       .map((horseshoeConfig, index) => HorseshoeGauge.applyLegacyTickmarkCompat(horseshoeConfig))
@@ -238,6 +256,21 @@ export default class HorseshoeGauge extends BaseTool {
     this.mappedState = mappedState;
     this.value = nextValue;
 
+    const debug = this.config.dev?.debug === true || this.config.debug === true || this.config.debug_state_map === true || this.config.horseshoe_state?.debug_state_map === true;
+
+    if (debug) {
+      console.log('[FHS horseshoe] setState', {
+        index: this.index,
+        entity: entity.entity_id,
+        rawState: stateData.rawState,
+        value: this.value,
+        mappedState: this.mappedState,
+        show: this.config.show,
+        stateMap: this.config.state_map,
+        colorstops: this.config.colorstops,
+      });
+    }
+
     // Scale and geometry change only when their active inputs change, not for every entity update.
     const geometryConfigSignature = JSON.stringify({
       horseshoe_scale: this.config.horseshoe_scale,
@@ -348,6 +381,18 @@ export default class HorseshoeGauge extends BaseTool {
    */
   render() {
     if (!Number.isFinite(this.value) || !this.config || !this.scale || !this.geometry) {
+      const debug = this.config?.dev?.debug === true || this.config?.debug === true || this.config?.debug_state_map === true || this.config?.horseshoe_state?.debug_state_map === true;
+
+      if (debug) {
+        console.log('[FHS horseshoe] render skipped', {
+          index: this.index,
+          value: this.value,
+          hasConfig: Boolean(this.config),
+          hasScale: Boolean(this.scale),
+          hasGeometry: Boolean(this.geometry),
+        });
+      }
+
       return svg``;
     }
 
@@ -496,6 +541,17 @@ export default class HorseshoeGauge extends BaseTool {
    */
   renderState() {
     const statePathItems = buildStatePathItems(this.config, this.geometry, this.displayValue ?? this.value);
+    const debug = this.config.dev?.debug === true || this.config.debug === true || this.config.debug_state_map === true || this.config.horseshoe_state?.debug_state_map === true;
+
+    if (debug) {
+      console.log('[FHS horseshoe] renderState', {
+        index: this.index,
+        value: this.displayValue ?? this.value,
+        style: this.config.show?.horseshoe_style,
+        paths: statePathItems.map((item) => ({ key: item.key, hasPath: Boolean(item.path), arc: item.arc })),
+      });
+    }
+
     let gradientPathItems;
 
     // The full color scale is static; state changes only alter the active clip in the renderer.

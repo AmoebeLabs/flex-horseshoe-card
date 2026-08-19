@@ -14,8 +14,11 @@ export default class CardEntities {
     this.stateChanged = false;
   }
 
-  /** Selects a discrete or interpolated color from one item's current entity value. */
-  getItemColorFromStops(item, colorStops, config, entities) {
+  /**
+   * Selects the complete color-stop entry for an item current entity value.
+   * Numeric stops use range logic; state stops use exact string matching.
+   */
+  getItemColorStop(item, colorStops, config, entities) {
     if (!colorStops) return undefined;
     const entityIndex = item.entity_index;
     if (entityIndex === undefined || entityIndex === null) return undefined;
@@ -27,10 +30,29 @@ export default class CardEntities {
     const rawState = attribute && entity.attributes[attribute] !== undefined
       ? entity.attributes[attribute]
       : entity.state;
+    const stateStops = colorStops.colors.filter((stop) => stop.state !== undefined);
+
+    if (stateStops.length) {
+      return stateStops.find((stop) => String(stop.state) === String(rawState));
+    }
+
     const stateNumber = Number(rawState);
     if (!Number.isFinite(stateNumber)) return undefined;
 
-    return Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
+    const color = Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
+    const selectedStop = stateNumber <= colorStops.colors[0].value
+      ? colorStops.colors[0]
+      : colorStops.colors.find((stop, index) => {
+          const nextStop = colorStops.colors[index + 1];
+          return nextStop === undefined || stateNumber < nextStop.value;
+        });
+
+    return selectedStop ? { ...selectedStop, color } : undefined;
+  }
+
+  /** Returns only the resolved color for existing renderers and callers. */
+  getItemColorFromStops(item, colorStops, config, entities) {
+    return this.getItemColorStop(item, colorStops, config, entities)?.color;
   }
 
   /** Evaluates entity templates and links local sparkline entities to graphs. */
