@@ -399,7 +399,43 @@ export function getGaugeStateData(config, entity, entityConfig) {
     value = entity.attributes[entityConfig.attribute];
   }
 
-  if (config.state_map?.type === 'rank_state') {
+  const stringColorStops = config.colorstops.colors.filter((colorStop) => colorStop.state !== undefined);
+
+  if (stringColorStops.length) {
+    // Convert the public state/color list once into the numeric runtime shape
+    // consumed by the existing state-map and horseshoe rendering pipeline.
+    const orderedStops = stringColorStops.some((colorStop) => colorStop.rank !== undefined)
+      ? [...stringColorStops].sort((a, b) => Number(a.rank) - Number(b.rank))
+      : stringColorStops;
+    const stateMap = {
+      map: orderedStops.map((colorStop, index) => ({
+        ...colorStop,
+        value: index,
+      })),
+    };
+    const mappedState = stateMap.map.find((entry) => String(entry.state) === String(value));
+    const renderColorStops = {
+      ...config.colorstops,
+      colors: orderedStops.map((colorStop, index) => ({
+        ...colorStop,
+        value: index,
+      })),
+    };
+
+    return {
+      config: {
+        ...config,
+        colorstops: renderColorStops,
+        state_map: stateMap,
+        mapped_state: mappedState,
+      },
+      rawState: entity.state,
+      mappedState,
+      value: Number(mappedState.value),
+    };
+  }
+
+  if (config.state_map?.type === "rank_state") {
     // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
     const sourceColorStops = config.colorstops;
     const numericValue = Number(value);
