@@ -263,6 +263,34 @@ test('absolute runtime config rejects displaced zero and scales without zero', (
   }).bar_mode, 'absolute');
 });
 
+test('segmented state gap follows color stops unless horseshoe state overrides it', () => {
+  const config = {
+    show: { horseshoe_style: 'colorstop' },
+    arc_degrees: 0.3,
+    horseshoe_scale: { min: 0, max: 4, type: 'linear' },
+    horseshoe_state: { mode: 'stringstate_level' },
+    colorstops: {
+      gap: 0.01,
+      scales: {},
+      colors: [
+        { state: 'low', color: '#838383' },
+        { state: 'moderate', color: '#fcc449' },
+        { state: 'high', color: '#ed8003' },
+        { state: 'very_high', color: '#e73f10' },
+      ],
+    },
+  };
+
+  assert.equal(normalizeRuntimeConfig(config).horseshoe_state.segment_gap, 0.01);
+  assert.equal(normalizeRuntimeConfig({
+    ...config,
+    horseshoe_state: {
+      ...config.horseshoe_state,
+      segment_gap: 0.02,
+    },
+  }).horseshoe_state.segment_gap, 0.02);
+});
+
 test('one-sided positive bidirectional scale aligns state, labels, and ticks on the positive half', () => {
   const config = {
     ...createAbsoluteRuntimeConfig({ min: 0, max: 40, ticksize: 10 }),
