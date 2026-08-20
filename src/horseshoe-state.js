@@ -1,7 +1,7 @@
-import ColorStops from './color-stops.js';
-import ConfigHelper from './config-helper.js';
-import { clamp } from './frontend_mods/common/number/clamp.ts';
-import { SVG_VIEW_BOX } from './const.js';
+import ColorStops from "./color-stops.js";
+import ConfigHelper from "./config-helper.js";
+import { clamp } from "./frontend_mods/common/number/clamp.ts";
+import { SVG_VIEW_BOX } from "./const.js";
 
 /**
  * Default animation configuration copied into normalized runtime state.
@@ -9,7 +9,7 @@ import { SVG_VIEW_BOX } from './const.js';
 const DEFAULT_STATE_ANIMATION = {
   enabled: true,
   duration: 2500,
-  easing: 'ease-out',
+  easing: "ease-out",
   debug: false,
 };
 
@@ -22,14 +22,14 @@ export function normalizeBaseConfig(config, index, groupManager) {
 
   return {
     entity_index: entityIndex,
-    bar_mode: 'normal',
+    bar_mode: "normal",
     ...config,
     group_config: groupConfig,
     index,
     show: {
       horseshoe: true,
-      horseshoe_style: 'fixed',
-      labels_at: 'none',
+      horseshoe_style: "fixed",
+      labels_at: "none",
       ...(config.show ?? {}),
     },
   };
@@ -39,27 +39,27 @@ export function normalizeBaseConfig(config, index, groupManager) {
  * Normalizes linecap configuration to explicit start and end values.
  */
 export function normalizeLinecap(linecap) {
-  if (typeof linecap === 'string') {
+  if (typeof linecap === "string") {
     return {
       start: linecap,
       end: linecap,
     };
   }
 
-  if (linecap && typeof linecap === 'object') {
+  if (linecap && typeof linecap === "object") {
     return {
-      start: linecap.start ?? 'butt',
-      end: linecap.end ?? 'butt',
+      start: linecap.start ?? "butt",
+      end: linecap.end ?? "butt",
     };
   }
 
   return {
-    start: 'butt',
-    end: 'butt',
+    start: "butt",
+    end: "butt",
   };
 }
 
-const STRINGSTATE_RELATIONS = ['before', 'current', 'after'];
+const STRINGSTATE_RELATIONS = ["before", "current", "after"];
 
 /**
  * Normalizes string-state label role and state-map style dictionaries.
@@ -95,7 +95,9 @@ function normalizeStringstateLabelConfig(config) {
           if (normalizedEntry[relation]) {
             normalizedEntry[relation] = {
               ...normalizedEntry[relation],
-              styles: ConfigHelper.toStyleDict(normalizedEntry[relation].styles),
+              styles: ConfigHelper.toStyleDict(
+                normalizedEntry[relation].styles,
+              ),
             };
           }
         });
@@ -128,13 +130,13 @@ export function getZeroRatio(horseshoeScale) {
 export function normalizeRuntimeConfig(config, colorStopMode) {
   const show = {
     horseshoe: true,
-    horseshoe_style: 'fixed',
-    labels_at: 'none',
+    horseshoe_style: "fixed",
+    labels_at: "none",
     ...(config.show ?? {}),
   };
 
   if (!config.horseshoe_scale) {
-    throw new Error('[V2] Missing horseshoe_scale');
+    throw new Error("[V2] Missing horseshoe_scale");
   }
 
   // The active color-stop template supplies the default value range. Explicit
@@ -144,36 +146,39 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     min: defaultColorStopScale.min ?? 0,
     max: defaultColorStopScale.max ?? 100,
     width: 6,
-    color: 'var(--primary-background-color)',
-    linecap: 'round',
-    type: 'linear',
+    color: "var(--primary-background-color)",
+    linecap: "round",
+    type: "linear",
     ...(config.horseshoe_scale ?? {}),
   };
 
   // const horseshoeScale = config.horseshoe_scale;
 
   if (horseshoeScale.min === undefined) {
-    throw new Error('[V2] Missing horseshoe_scale.min');
+    throw new Error("[V2] Missing horseshoe_scale.min");
   }
 
   if (horseshoeScale.max === undefined) {
-    throw new Error('[V2] Missing horseshoe_scale.max');
+    throw new Error("[V2] Missing horseshoe_scale.max");
   }
 
   if (!horseshoeScale.type) {
-    throw new Error('[V2] Missing horseshoe_scale.type');
+    throw new Error("[V2] Missing horseshoe_scale.type");
   }
 
-  if ((horseshoeScale.type === 'splineorg' || horseshoeScale.type === 'spline') && !horseshoeScale.spline) {
-    throw new Error('[V2] Missing horseshoe_scale.spline');
+  if (
+    (horseshoeScale.type === "splineorg" || horseshoeScale.type === "spline") &&
+    !horseshoeScale.spline
+  ) {
+    throw new Error("[V2] Missing horseshoe_scale.spline");
   }
 
   const horseshoeState = {
     width: 12,
-    color: 'var(--primary-color)',
-    linecap: 'round',
-    mode: 'value',
-    segment_gap: 2,
+    color: "var(--primary-color)",
+    linecap: "round",
+    mode: "value",
+    segment_gap: config.colorstops.gap,
     animation: DEFAULT_STATE_ANIMATION,
     ...(config.horseshoe_state ?? {}),
   };
@@ -193,7 +198,10 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   const stateMap = config.state_map ?? horseshoeState.state_map;
 
-  const colorStops = ColorStops.ensureMinimumStops(config.colorstops, horseshoeScale.max);
+  const colorStops = ColorStops.ensureMinimumStops(
+    config.colorstops,
+    horseshoeScale.max,
+  );
   let colorStopsMinMax = ColorStops.normalize();
 
   // Fixed horseshoes do not require color stops. Build the automatic min/max gradient only when stops exist.
@@ -201,54 +209,100 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     const firstColorStop = colorStops.colors[0];
     const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
 
-    colorStopsMinMax = ColorStops.normalize({
-      [horseshoeScale.min]: firstColorStop.color,
-      [horseshoeScale.max]: lastColorStop.color,
-    }, colorStopMode);
+    colorStopsMinMax = ColorStops.normalize(
+      {
+        [horseshoeScale.min]: firstColorStop.color,
+        [horseshoeScale.max]: lastColorStop.color,
+      },
+      colorStopMode,
+    );
   }
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
   // One SVG arc cannot draw a full circle because its start and end points coincide.
   // Keep those points distinct while retaining a visually complete horseshoe.
-  const arcDegrees = config.arc_degrees === 360 ? 359.999 : config.arc_degrees ?? 260;
-  const barMode = config.bar_mode ?? 'normal';
-  const supportedBarModes = ['normal', 'bidirectional', 'bidirectional_symmetrical', 'bidirectional_linear', 'absolute'];
+  const arcDegrees =
+    config.arc_degrees === 360 ? 359.999 : (config.arc_degrees ?? 260);
+  const barMode = config.bar_mode ?? "normal";
+  const supportedBarModes = [
+    "normal",
+    "bidirectional",
+    "bidirectional_symmetrical",
+    "bidirectional_linear",
+    "absolute",
+  ];
 
   if (!supportedBarModes.includes(barMode)) {
-    throw new Error(`[V2] Invalid bar_mode '${barMode}' [${supportedBarModes.join(', ')}]`);
+    throw new Error(
+      `[V2] Invalid bar_mode '${barMode}' [${supportedBarModes.join(", ")}]`,
+    );
   }
 
   // Absolute bars use the physical arc start as zero. A 0..max scale shares
   // one magnitude range, while a negative min gives each sign its own range.
-  if (barMode === 'absolute') {
+  if (barMode === "absolute") {
     if (Number(horseshoeScale.min) > 0 || Number(horseshoeScale.max) <= 0) {
-      throw new Error('[V2] absolute bar_mode requires horseshoe_scale.min <= 0 and horseshoe_scale.max > 0');
+      throw new Error(
+        "[V2] absolute bar_mode requires horseshoe_scale.min <= 0 and horseshoe_scale.max > 0",
+      );
     }
 
     if (config.zero_ratio !== undefined) {
-      throw new Error('[V2] absolute bar_mode does not support zero_ratio');
+      throw new Error("[V2] absolute bar_mode does not support zero_ratio");
     }
   }
 
-  const bidirectionalGradient = ['autominmax', 'minmaxgradient', 'lineargradient'].includes(show.horseshoe_style)
-    && (barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical' || barMode === 'bidirectional_linear' || barMode === 'absolute');
+  const bidirectionalGradient =
+    ["autominmax", "minmaxgradient", "lineargradient"].includes(
+      show.horseshoe_style,
+    ) &&
+    (barMode === "bidirectional" ||
+      barMode === "bidirectional_symmetrical" ||
+      barMode === "bidirectional_linear" ||
+      barMode === "absolute");
 
-  if (bidirectionalGradient && (horseshoeScale.min < 0 || barMode === 'absolute') && !colorStops.colors.some((colorStop) => Number(colorStop.value) < 0)) {
-    throw new Error(`[V2] ${show.horseshoe_style} with ${barMode} requires a color_stop below 0`);
+  if (
+    bidirectionalGradient &&
+    (horseshoeScale.min < 0 || barMode === "absolute") &&
+    !colorStops.colors.some((colorStop) => Number(colorStop.value) < 0)
+  ) {
+    throw new Error(
+      `[V2] ${show.horseshoe_style} with ${barMode} requires a color_stop below 0`,
+    );
   }
 
-  if (bidirectionalGradient && horseshoeScale.max > 0 && !colorStops.colors.some((colorStop) => Number(colorStop.value) > 0)) {
-    throw new Error(`[V2] ${show.horseshoe_style} with ${barMode} requires a color_stop above 0`);
+  if (
+    bidirectionalGradient &&
+    horseshoeScale.max > 0 &&
+    !colorStops.colors.some((colorStop) => Number(colorStop.value) > 0)
+  ) {
+    throw new Error(
+      `[V2] ${show.horseshoe_style} with ${barMode} requires a color_stop above 0`,
+    );
   }
 
-  const symmetricalBidirectional = barMode === 'bidirectional' || barMode === 'bidirectional_symmetrical';
+  const symmetricalBidirectional =
+    barMode === "bidirectional" || barMode === "bidirectional_symmetrical";
   const groupConfig = config.group_config;
   const groupCenterOffset = 50;
-  const itemXpos = config.xpos ?? config.horseshoe_position?.xpos ?? config.horseshoe_position?.cx ?? 50;
-  const itemYpos = config.yposc || (config.ypos ?? config.horseshoe_position?.ypos ?? config.horseshoe_position?.cy ?? 50);
-  const xpos = groupConfig ? groupConfig.xpos + itemXpos - groupCenterOffset : itemXpos;
-  const ypos = groupConfig ? groupConfig.ypos + itemYpos - groupCenterOffset : itemYpos;
+  const itemXpos =
+    config.xpos ??
+    config.horseshoe_position?.xpos ??
+    config.horseshoe_position?.cx ??
+    50;
+  const itemYpos =
+    config.yposc ||
+    (config.ypos ??
+      config.horseshoe_position?.ypos ??
+      config.horseshoe_position?.cy ??
+      50);
+  const xpos = groupConfig
+    ? groupConfig.xpos + itemXpos - groupCenterOffset
+    : itemXpos;
+  const ypos = groupConfig
+    ? groupConfig.ypos + itemYpos - groupCenterOffset
+    : itemYpos;
   const groupSvg = groupConfig
     ? {
         xpos: (groupConfig.xpos / 100) * SVG_VIEW_BOX,
@@ -283,7 +337,9 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
     start_angle: config.start_angle ?? 90 + (360 - arcDegrees) / 2,
     bar_mode: barMode,
-    zero_ratio: config.zero_ratio ?? (symmetricalBidirectional ? 0.5 : getZeroRatio(horseshoeScale)),
+    zero_ratio:
+      config.zero_ratio ??
+      (symmetricalBidirectional ? 0.5 : getZeroRatio(horseshoeScale)),
 
     state_map: stateMap,
 
@@ -321,8 +377,12 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
     horseshoe_labels: {
       ...horseshoeLabels,
-      stringstate_level: normalizeStringstateLabelConfig(horseshoeLabels.stringstate_level),
-      stringstate_mode: normalizeStringstateLabelConfig(horseshoeLabels.stringstate_mode),
+      stringstate_level: normalizeStringstateLabelConfig(
+        horseshoeLabels.stringstate_level,
+      ),
+      stringstate_mode: normalizeStringstateLabelConfig(
+        horseshoeLabels.stringstate_mode,
+      ),
       background: {
         ...(horseshoeLabels.background ?? {}),
         styles: {
@@ -336,8 +396,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
         },
       },
       styles: {
-        fill: 'var(--primary-text-color)',
-        'font-size': '6px',
+        fill: "var(--primary-text-color)",
+        "font-size": "6px",
         ...ConfigHelper.toStyleDict(horseshoeLabels.styles),
       },
     },
@@ -355,7 +415,9 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
         ? {
             ...horseshoeTickmarks.ticks_major,
             styles: {
-              ...ConfigHelper.toStyleDict(horseshoeTickmarks.ticks_major?.styles),
+              ...ConfigHelper.toStyleDict(
+                horseshoeTickmarks.ticks_major?.styles,
+              ),
             },
           }
         : horseshoeTickmarks.ticks_major,
@@ -363,7 +425,9 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
         ? {
             ...horseshoeTickmarks.ticks_minor,
             styles: {
-              ...ConfigHelper.toStyleDict(horseshoeTickmarks.ticks_minor?.styles),
+              ...ConfigHelper.toStyleDict(
+                horseshoeTickmarks.ticks_minor?.styles,
+              ),
             },
           }
         : horseshoeTickmarks.ticks_minor,
@@ -395,16 +459,23 @@ export function getStateMapItem(stateMap, rawState, value) {
 export function getGaugeStateData(config, entity, entityConfig) {
   let value = entity.state;
 
-  if (entityConfig?.attribute && entity.attributes?.[entityConfig.attribute] !== undefined) {
+  if (
+    entityConfig?.attribute &&
+    entity.attributes?.[entityConfig.attribute] !== undefined
+  ) {
     value = entity.attributes[entityConfig.attribute];
   }
 
-  const stringColorStops = config.colorstops.colors.filter((colorStop) => colorStop.state !== undefined);
+  const stringColorStops = config.colorstops.colors.filter(
+    (colorStop) => colorStop.state !== undefined,
+  );
 
   if (stringColorStops.length) {
     // Convert the public state/color list once into the numeric runtime shape
     // consumed by the existing state-map and horseshoe rendering pipeline.
-    const orderedStops = stringColorStops.some((colorStop) => colorStop.rank !== undefined)
+    const orderedStops = stringColorStops.some(
+      (colorStop) => colorStop.rank !== undefined,
+    )
       ? [...stringColorStops].sort((a, b) => Number(a.rank) - Number(b.rank))
       : stringColorStops;
     const stateMap = {
@@ -413,7 +484,9 @@ export function getGaugeStateData(config, entity, entityConfig) {
         value: index,
       })),
     };
-    const mappedState = stateMap.map.find((entry) => String(entry.state) === String(value));
+    const mappedState = stateMap.map.find(
+      (entry) => String(entry.state) === String(value),
+    );
     const renderColorStops = {
       ...config.colorstops,
       colors: orderedStops.map((colorStop, index) => ({
@@ -439,19 +512,31 @@ export function getGaugeStateData(config, entity, entityConfig) {
     // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
     const sourceColorStops = config.colorstops;
     const numericValue = Number(value);
-    let activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
+    let activeSourceStop =
+      sourceColorStops.colors[sourceColorStops.colors.length - 1];
 
     // Step 2: translate the raw numeric entity value through the original color-stop thresholds.
     if (numericValue <= Number(sourceColorStops.colors[0].value)) {
       activeSourceStop = sourceColorStops.colors[0];
-    } else if (numericValue >= Number(sourceColorStops.colors[sourceColorStops.colors.length - 1].value)) {
-      activeSourceStop = sourceColorStops.colors[sourceColorStops.colors.length - 1];
+    } else if (
+      numericValue >=
+      Number(sourceColorStops.colors[sourceColorStops.colors.length - 1].value)
+    ) {
+      activeSourceStop =
+        sourceColorStops.colors[sourceColorStops.colors.length - 1];
     } else {
-      for (let index = 0; index < sourceColorStops.colors.length - 1; index += 1) {
+      for (
+        let index = 0;
+        index < sourceColorStops.colors.length - 1;
+        index += 1
+      ) {
         const startColorStop = sourceColorStops.colors[index];
         const endColorStop = sourceColorStops.colors[index + 1];
 
-        if (numericValue >= Number(startColorStop.value) && numericValue < Number(endColorStop.value)) {
+        if (
+          numericValue >= Number(startColorStop.value) &&
+          numericValue < Number(endColorStop.value)
+        ) {
           activeSourceStop = startColorStop;
           break;
         }
@@ -479,7 +564,9 @@ export function getGaugeStateData(config, entity, entityConfig) {
       })),
     };
     // Step 5: use the active rank from the source stop to find the derived string state.
-    const mappedStateIndex = rankedStateMap.map.findIndex((entry) => String(entry.rank) === String(activeSourceStop.rank));
+    const mappedStateIndex = rankedStateMap.map.findIndex(
+      (entry) => String(entry.rank) === String(activeSourceStop.rank),
+    );
     const mappedState = {
       ...rankedStateMap.map[mappedStateIndex],
       color: activeSourceStop.color,
@@ -503,7 +590,8 @@ export function getGaugeStateData(config, entity, entityConfig) {
       max: rankedStateMap.map.length,
     };
     const firstColorStop = rankedColorStops.colors[0];
-    const lastColorStop = rankedColorStops.colors[rankedColorStops.colors.length - 1];
+    const lastColorStop =
+      rankedColorStops.colors[rankedColorStops.colors.length - 1];
 
     // Step 8: publish a state-specific active config; the normalized source config remains unchanged.
     const activeConfig = {
