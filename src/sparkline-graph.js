@@ -38,13 +38,14 @@ export default class SparklineGraph {
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
-   * @param {object} margin - Drawing margins with l, t, r and b values.
+   * @param {object} axisMargin - Space reserved outside the shared axis area.
+   * @param {object} configuredMargin - User-configured margin inside the axes.
    * @param {object} config - Validated sparkline configuration.
    * @param {Array<number>} gradeValues - Numeric grade boundaries.
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - Numeric mapping for categorical state bands.
    */
-  constructor(width, height, margin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
+  constructor(width, height, axisMargin, configuredMargin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
     this.aggregateFuncMap = {
       avg: this._average,
       median: this._median,
@@ -59,21 +60,20 @@ export default class SparklineGraph {
 
     this.config = config;
 
-    // graphArea describes the full SVG. drawArea subtracts label and axis
-    // margins and is the coordinate system used by every chart family.
+    this.width = width;
+    this.height = height;
+
+    // graphArea is the complete SVG viewport. The engine owns every area used
+    // for chart geometry; the tool only supplies the measured outer axis space.
     this.graphArea = {};
     this.graphArea.x = 0;
     this.graphArea.y = 0;
     this.graphArea.width = width - 2 * this.graphArea.x;
     this.graphArea.height = height - 2 * this.graphArea.y;
 
-    this.drawArea = {};
-    this.drawArea.x = margin.l;
-    this.drawArea.y = margin.t;
-    this.drawArea.top = margin.t;
-    this.drawArea.bottom = margin.b;
-    this.drawArea.width = width - (margin.l + margin.r);
-    this.drawArea.height = height - (margin.t + margin.b);
+    this.axisArea = {};
+    this.dataArea = {};
+    this.setGraphAreas(axisMargin, configuredMargin, 0);
 
     this._history = undefined;
     this.coords = [];
@@ -82,9 +82,6 @@ export default class SparklineGraph {
     this.stateBandTransitions = [];
     this.xAxis = {};
     this.yAxis = {};
-    this.width = width;
-    this.height = height;
-    this.margin = margin;
     this._max = 0;
     this._min = 0;
     // Real-time retains the original one-value graph contract and has no
@@ -109,6 +106,112 @@ export default class SparklineGraph {
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
     this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
+  }
+
+  /**
+   * Applies outer axis space and calculates the inner paint extent owned by
+   * the active chart. Bars reserve half a final bar at both time endpoints;
+   * dots reserve their radius and inherited stroke around every coordinate.
+   * Other chart families use only the configured margin.
+   *
+   * @param {object} axisMargin - Space occupied by visible axes and labels.
+   * @param {object} configuredMargin - User-configured margin inside the axes.
+   * @param {number} bucketCount - Number of visible data coordinates.
+   * @returns {boolean} Whether axisArea or dataArea changed.
+   */
+  setGraphAreas(axisMargin, configuredMargin, bucketCount) {
+    const previousAxisArea = this.axisArea;
+    const previousDataArea = this.dataArea;
+    const chartType = this.config.sparkline.show.chart_type;
+    let rendersDots = chartType === 'dots';
+    let chartTop = 0;
+    let chartRight = 0;
+    let chartBottom = 0;
+    let chartLeft = 0;
+
+    if (chartType === 'line') {
+      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true;
+    }
+    if (chartType === 'area') {
+      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.area.show_dots === true;
+    }
+
+    if (rendersDots) {
+      const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
+      const inheritedStrokeWidth = this.config.geometry.line_width / 2;
+      const dotExtent = radius + inheritedStrokeWidth / 2;
+      chartTop = dotExtent;
+      chartRight = dotExtent;
+      chartBottom = dotExtent;
+      chartLeft = dotExtent;
+    }
+
+    if (chartType === 'bar' && bucketCount > 1) {
+      const axisWidth = this.width - axisMargin.l - axisMargin.r;
+      const configuredDataWidth = axisWidth - configuredMargin.l - configuredMargin.r;
+      // N inclusive bucket centers span dataArea. Solving the final bar width
+      // here keeps the first and last half-bars exactly inside axisArea.
+      const finalBarWidth = Math.max(1, (configuredDataWidth + this.config.geometry.column_spacing) / bucketCount - this.config.geometry.column_spacing);
+      chartLeft = finalBarWidth / 2;
+      chartRight = finalBarWidth / 2;
+    }
+
+    const effectiveMargin = {
+      t: configuredMargin.t + chartTop,
+      r: configuredMargin.r + chartRight,
+      b: configuredMargin.b + chartBottom,
+      l: configuredMargin.l + chartLeft,
+    };
+
+    this.axisMargin = { ...axisMargin };
+    this.configuredMargin = { ...configuredMargin };
+    this.chartGeometryMargin = {
+      t: chartTop,
+      r: chartRight,
+      b: chartBottom,
+      l: chartLeft,
+      x: chartLeft,
+      y: chartTop,
+    };
+    this.effectiveMargin = {
+      ...effectiveMargin,
+      x: effectiveMargin.l,
+      y: effectiveMargin.t,
+    };
+    this.axisArea = {
+      x: axisMargin.l,
+      y: axisMargin.t,
+      width: this.width - axisMargin.l - axisMargin.r,
+      height: this.height - axisMargin.t - axisMargin.b,
+    };
+    this.dataArea = {
+      x: this.axisArea.x + effectiveMargin.l,
+      y: this.axisArea.y + effectiveMargin.t,
+      top: this.axisArea.y + effectiveMargin.t,
+      bottom: axisMargin.b + effectiveMargin.b,
+      width: this.axisArea.width - effectiveMargin.l - effectiveMargin.r,
+      height: this.axisArea.height - effectiveMargin.t - effectiveMargin.b,
+    };
+    this.drawArea = this.dataArea;
+    this.margin = {
+      t: axisMargin.t + effectiveMargin.t,
+      r: axisMargin.r + effectiveMargin.r,
+      b: axisMargin.b + effectiveMargin.b,
+      l: axisMargin.l + effectiveMargin.l,
+      x: axisMargin.l + effectiveMargin.l,
+      y: axisMargin.t + effectiveMargin.t,
+    };
+
+    return (
+      previousAxisArea.x !== this.axisArea.x ||
+      previousAxisArea.y !== this.axisArea.y ||
+      previousAxisArea.width !== this.axisArea.width ||
+      previousAxisArea.height !== this.axisArea.height ||
+      previousDataArea.x !== this.dataArea.x ||
+      previousDataArea.y !== this.dataArea.y ||
+      previousDataArea.width !== this.dataArea.width ||
+      previousDataArea.height !== this.dataArea.height
+    );
   }
 
   /**
@@ -285,9 +388,7 @@ export default class SparklineGraph {
     // Calculate min/max samples only for the active graph family.
     // Line settings must not leak into area, and area settings must not leak into line.
     const chartType = this.config.sparkline.show.chart_type;
-    const showMinMax = chartType === 'line'
-      ? this.config.sparkline.line?.show_minmax === true
-      : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
+    const showMinMax = chartType === 'line' ? this.config.sparkline.line?.show_minmax === true : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
 
     if (['line', 'area'].includes(chartType) && showMinMax) {
       const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);
@@ -1688,7 +1789,6 @@ export default class SparklineGraph {
     this._endTime = new Date();
     if (this.config.period.type === 'calendar') {
       if (this.config.period.calendar.period === 'day' && this.config.period.calendar.offset !== 0) {
-
         this._endTime.setHours(-this.config.period.calendar.duration.hour);
         this._endTime.setHours(0, 0, 0, 0);
       } else if (this.config.period.calendar.period === 'day') {
