@@ -69,6 +69,7 @@ test('normalizes explicit series in declaration order with independent graph set
       {
         id: 'humidity',
         entity_index: 1,
+        y_axis_id: 'secondary',
         sparkline: {
           show: { chart_type: 'dots' },
           state_values: { aggregate_func: 'max' },
@@ -82,6 +83,8 @@ test('normalizes explicit series in declaration order with independent graph set
   assert.equal(series.items[0].config.color, '#42a5f5');
   assert.equal(series.items[1].config.sparkline.show.chart_type, 'dots');
   assert.equal(series.items[1].config.sparkline.state_values.aggregate_func, 'max');
+  assert.equal(series.items[0].y_axis_id, 'primary');
+  assert.equal(series.items[1].y_axis_id, 'secondary');
   assert.equal(series.items[0].config.series, undefined);
   assert.equal(series.items[1].config.series, undefined);
 });
@@ -104,6 +107,14 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
       series: [{ id: 'temperature' }],
     }),
     /requires entity_index/,
+  );
+
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'temperature', entity_index: 0, y_axis_id: 'right' }],
+    }),
+    /y_axis_id must be primary or secondary/,
   );
 });
 
