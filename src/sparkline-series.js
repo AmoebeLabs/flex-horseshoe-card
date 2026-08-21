@@ -43,6 +43,10 @@ export default class SparklineSeries {
           throw new Error(`[sparklines] series '${seriesConfig.id}' period ${periodType}.offset must be numeric`);
         }
       }
+      const yAxisId = seriesConfig.y_axis_id ?? 'primary';
+      if (!['primary', 'secondary'].includes(yAxisId)) {
+        throw new Error(`[sparklines] series '${seriesConfig.id}' y_axis_id must be primary or secondary`);
+      }
       const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
       if (config.series !== undefined && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
         throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots or bar`);
@@ -58,6 +62,7 @@ export default class SparklineSeries {
       return {
         id: seriesConfig.id,
         entity_index: seriesConfig.entity_index,
+        y_axis_id: seriesConfig.y_axis_id ?? 'primary',
         config: effectiveConfig,
         entity: undefined,
         entityConfig: undefined,

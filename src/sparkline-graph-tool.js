@@ -636,6 +636,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg = this.calculateSvgDimensions();
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
+    this.axisGraphs = { primary: undefined, secondary: undefined };
     this.config.svg = this.svg;
     this.stateBandsStateMap = this.config.sparkline.state_map;
     this.gradeValues = [];
@@ -781,27 +782,36 @@ export default class SparklineGraphTool extends BaseTool {
   calculateAxisMargin() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showXTickmarks = chartAxes.x && this.config.sparkline.show.tickmarks.x;
-    const showYTickmarks = chartAxes.y && this.config.sparkline.show.tickmarks.y;
     const showXLabels = chartAxes.x && this.config.sparkline.show.labels.x;
-    const showYLabels = chartAxes.y && this.config.sparkline.show.labels.y;
     const xTickSize = showXTickmarks ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
-    const yTickSize = showYTickmarks ? Utils.calculateSvgDimension(this.config.y_axis.tickmarks_major.size) : 0;
     const xLabelOffset = showXLabels ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset) : 0;
-    const yLabelOffset = showYLabels ? Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : 0;
     const xFontSize = this.resolveAxisFontSizePixels('x', FONT_SIZE);
     const yFontSize = this.resolveAxisFontSizePixels('y', FONT_SIZE);
     const xFontHeight = xFontSize;
     const yFontHeight = yFontSize * 0.85;
-    const yLabels = this.buildYAxisTicks('major').map((tick) => tick.label);
-    const yLabelLength = yLabels.reduce((length, label) => Math.max(length, label.length), 0);
-    const yLabelWidth = yLabelLength * yFontSize * 0.5;
+    const primaryGraph = this.axisGraphs.primary;
+    const secondaryGraph = this.axisGraphs.secondary;
+    const primaryChartAxes = primaryGraph !== undefined ? CHART_AXES[primaryGraph.config.sparkline.show.chart_type] : undefined;
+    const secondaryChartAxes = secondaryGraph !== undefined ? CHART_AXES[secondaryGraph.config.sparkline.show.chart_type] : undefined;
+    const primaryShowYTickmarks = primaryGraph !== undefined && primaryChartAxes.y && primaryGraph.config.sparkline.show.tickmarks.y;
+    const secondaryShowYTickmarks = secondaryGraph !== undefined && secondaryChartAxes.y && secondaryGraph.config.sparkline.show.tickmarks.y;
+    const primaryShowYLabels = primaryGraph !== undefined && primaryChartAxes.y && primaryGraph.config.sparkline.show.labels.y;
+    const secondaryShowYLabels = secondaryGraph !== undefined && secondaryChartAxes.y && secondaryGraph.config.sparkline.show.labels.y;
+    const primaryYTickSize = primaryShowYTickmarks ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const secondaryYTickSize = secondaryShowYTickmarks ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const primaryYLabelOffset = primaryShowYLabels ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset) : 0;
+    const secondaryYLabelOffset = secondaryShowYLabels ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.labels.offset) : 0;
+    const primaryYLabels = primaryShowYLabels ? this.buildYAxisTicks('major', primaryGraph).map((tick) => tick.label) : [];
+    const secondaryYLabels = secondaryShowYLabels ? this.buildYAxisTicks('major', secondaryGraph).map((tick) => tick.label) : [];
+    const primaryYLabelWidth = primaryYLabels.reduce((length, label) => Math.max(length, label.length), 0) * yFontSize * 0.5;
+    const secondaryYLabelWidth = secondaryYLabels.reduce((length, label) => Math.max(length, label.length), 0) * yFontSize * 0.5;
     let t = 0;
     let r = 0;
     let b = xTickSize;
-    let l = yTickSize;
+    let l = 0;
 
-    // X labels are outside axisArea. Endpoint label extents therefore reserve
-    // outer viewport space independently from the user's data margin.
+    // X labels are outside axisArea. Endpoint label extents reserve outer
+    // viewport space independently from both y-axis groups.
     if (showXLabels) {
       const xTicks = this.buildXAxisTicks('major');
       const firstLabelWidth = xTicks[0].label.length * xFontSize * 0.6;
@@ -815,12 +825,21 @@ export default class SparklineGraphTool extends BaseTool {
       r = Math.max(r, lastLabelRightExtent);
     }
 
-    // Y labels sit outside the left axis. Half a line above and below axisArea
-    // keeps labels on the extreme ticks inside the complete SVG viewport.
-    if (showYLabels && this.config.sparkline.show.chart_type !== 'state_bands') {
-      l = Math.max(l, yTickSize + yLabelOffset + yLabelWidth);
+    // Primary labels/ticks reserve the left side; secondary labels/ticks
+    // reserve the right side. Both groups use the same axisArea.
+    if (primaryShowYLabels && primaryGraph.config.sparkline.show.chart_type !== 'state_bands') {
+      l = Math.max(l, primaryYTickSize + primaryYLabelOffset + primaryYLabelWidth);
       t = Math.max(t, yFontHeight / 2);
       b = Math.max(b, yFontHeight / 2);
+    } else if (primaryShowYTickmarks) {
+      l = Math.max(l, primaryYTickSize);
+    }
+    if (secondaryShowYLabels && secondaryGraph.config.sparkline.show.chart_type !== 'state_bands') {
+      r = Math.max(r, secondaryYTickSize + secondaryYLabelOffset + secondaryYLabelWidth);
+      t = Math.max(t, yFontHeight / 2);
+      b = Math.max(b, yFontHeight / 2);
+    } else if (secondaryShowYTickmarks) {
+      r = Math.max(r, secondaryYTickSize);
     }
 
     return { t, r, b, l, x: l, y: t };
@@ -1091,6 +1110,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.svg = this.calculateSvgDimensions(this.config);
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
+    this.axisGraphs = { primary: undefined, secondary: undefined };
     this.config.svg = this.svg;
 
     // Runtime templates can change shared sparkline settings. Each existing
@@ -1100,6 +1120,12 @@ export default class SparklineGraphTool extends BaseTool {
       item.config = Merge.mergeDeep({}, this.config, seriesConfig);
       delete item.config.id;
       delete item.config.series;
+      if (item.config.y_axis_id !== undefined) {
+        if (!['primary', 'secondary'].includes(item.config.y_axis_id)) {
+          throw new Error('[sparklines] series ' + item.id + ' y_axis_id must be primary or secondary');
+        }
+        item.y_axis_id = item.config.y_axis_id;
+      }
     });
 
     // A period belongs to each history source. When a runtime template changes
@@ -1798,12 +1824,32 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    const lowerBound = Math.min(...readyItems.map((item) => item.graph.min));
-    const upperBound = Math.max(...readyItems.map((item) => item.graph.max));
-    readyItems.forEach((item) => {
-      item.graph.setSharedYAxisBounds(lowerBound, upperBound);
-      item.graph.update(item.rows);
-    });
+    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
+    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
+    this.axisGraphs = {
+      primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
+      secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
+    };
+
+    if (primaryItems.length > 0) {
+      const configuredBoundsItem = primaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
+      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...primaryItems.map((item) => item.graph.min));
+      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...primaryItems.map((item) => item.graph.max));
+      primaryItems.forEach((item) => {
+        item.graph.setSharedYAxisBounds(lowerBound, upperBound);
+        item.graph.update(item.rows);
+      });
+    }
+
+    if (secondaryItems.length > 0) {
+      const configuredBoundsItem = secondaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
+      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...secondaryItems.map((item) => item.graph.min));
+      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...secondaryItems.map((item) => item.graph.max));
+      secondaryItems.forEach((item) => {
+        item.graph.setSharedYAxisBounds(lowerBound, upperBound);
+        item.graph.update(item.rows);
+      });
+    }
 
     const axisMargin = this.calculateAxisMargin();
     const barItems = readyItems.filter((item) => item.config.sparkline.show.chart_type === "bar");
@@ -1911,6 +1957,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.Graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
     }
 
+    this.axisGraphs = { primary: this.Graph, secondary: undefined };
     this.graphReady = this.sparklineSeries.updateGraphs()[0];
 
     // An accepted history response can legitimately contain no numeric rows.
@@ -3138,6 +3185,8 @@ export default class SparklineGraphTool extends BaseTool {
           stroke-width="${lineStyles['stroke-width']}"
           stroke-linecap="${lineStyles['stroke-linecap']}"
           stroke-linejoin="${lineStyles['stroke-linejoin']}"
+          stroke-dasharray="${lineStyles['stroke-dasharray']}"
+          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
           d="${line}"
         ></path>
       </mask>
@@ -3199,6 +3248,8 @@ export default class SparklineGraphTool extends BaseTool {
           stroke-width="${lineStyles['stroke-width']}"
           stroke-linecap="${lineStyles['stroke-linecap']}"
           stroke-linejoin="${lineStyles['stroke-linejoin']}"
+          stroke-dasharray="${lineStyles['stroke-dasharray']}"
+          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
           d="${line}"
         ></path>
       </mask>
@@ -3257,6 +3308,8 @@ export default class SparklineGraphTool extends BaseTool {
           stroke-width="${lineStyles['stroke-width']}"
           stroke-linecap="${lineStyles['stroke-linecap']}"
           stroke-linejoin="${lineStyles['stroke-linejoin']}"
+          stroke-dasharray="${lineStyles['stroke-dasharray']}"
+          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
           d="${this.linePath}"
         ></path>
       </mask>
@@ -3577,9 +3630,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {string} level - major or minor.
    * @returns {Array<object>} Y-axis ticks.
    */
-  buildYAxisTicks(level) {
-    if (this.config.sparkline.show.chart_type === 'state_bands') {
-      return this.Graph.yAxis.ticks.map((tick) => ({
+  buildYAxisTicks(level, graph) {
+    if (graph.config.sparkline.show.chart_type === 'state_bands') {
+      return graph.yAxis.ticks.map((tick) => ({
         axis: 'y',
         level,
         value: tick.value,
@@ -3593,7 +3646,7 @@ export default class SparklineGraphTool extends BaseTool {
     const formatter = new Intl.NumberFormat(this.card._hass.locale?.language || this.card._hass.language);
     const ticks = [];
 
-    this.Graph.yAxis.ticks.forEach((tick) => {
+    graph.yAxis.ticks.forEach((tick) => {
       ticks.push({
         axis: 'y',
         level,
@@ -3613,11 +3666,11 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {string} axis - x or y.
    * @returns {Array<object>} Label ticks.
    */
-  buildLabelTicks(axis) {
-    const labelsAt = this.config.sparkline.show[`${axis}labels_at`];
+  buildLabelTicks(axis, graph) {
+    const labelsAt = graph.config.sparkline.show[axis + 'labels_at'];
 
     if (labelsAt === 'none') return [];
-    return axis === 'x' ? this.buildXAxisTicks('major') : this.buildYAxisTicks('major');
+    return axis === 'x' ? this.buildXAxisTicks('major') : this.buildYAxisTicks('major', graph);
   }
 
   /**
@@ -3629,21 +3682,19 @@ export default class SparklineGraphTool extends BaseTool {
   renderGrid() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.grid.x && chartAxes.x;
-    const showY = this.config.sparkline.show.grid.y && chartAxes.y;
+    const primaryGraph = this.axisGraphs.primary;
+    const secondaryGraph = this.axisGraphs.secondary;
+    const yGraph = primaryGraph !== undefined ? primaryGraph : secondaryGraph;
+    const showY = yGraph !== undefined && yGraph.config.sparkline.show.grid.y && CHART_AXES[yGraph.config.sparkline.show.chart_type].y;
     if (!showX && !showY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.grid_major.styles));
-    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.y_axis.grid_major.styles));
+    let yStyles;
+    if (yGraph !== undefined) yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(yGraph.config.y_axis.grid_major.styles));
     const xTicks = this.buildXAxisTicks('major');
-    const yTicks =
-      this.config.sparkline.show.chart_type === 'state_bands'
-        ? this.Graph.yAxis.gridTicks.map((tick) => ({
-            axis: 'y',
-            level: 'major',
-            value: tick.value,
-            y: tick.y,
-          }))
-        : this.buildYAxisTicks('major');
+    const yTicks = yGraph !== undefined && yGraph.config.sparkline.show.chart_type === 'state_bands'
+      ? yGraph.yAxis.gridTicks.map((tick) => ({ axis: 'y', level: 'major', value: tick.value, y: tick.y }))
+      : yGraph !== undefined ? this.buildYAxisTicks('major', yGraph) : [];
 
     return svg`
       ${
@@ -3671,9 +3722,9 @@ export default class SparklineGraphTool extends BaseTool {
           (tick) => svg`
           <line
             class="sparkline-grid-line sparkline-grid-line--y-major"
-            x1="${this.Graph.axisArea.x}"
+            x1="${yGraph.axisArea.x}"
             y1="${tick.y}"
-            x2="${this.Graph.axisArea.x + this.Graph.axisArea.width}"
+            x2="${yGraph.axisArea.x + yGraph.axisArea.width}"
             y2="${tick.y}"
             style=${styleMap(yStyles)}
           ></line>
@@ -3694,11 +3745,16 @@ export default class SparklineGraphTool extends BaseTool {
   renderAxis() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.axis.x && chartAxes.x;
-    const showY = this.config.sparkline.show.axis.y && chartAxes.y;
-    if (!showX && !showY) return '';
+    const primaryGraph = this.axisGraphs.primary;
+    const secondaryGraph = this.axisGraphs.secondary;
+    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.axis.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.axis.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.axis.styles));
-    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.y_axis.axis.styles));
+    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.axis.styles)) : undefined;
+    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.axis.styles)) : undefined;
+    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
 
     return svg`
       <g class="sparkline-axis" style="pointer-events:none;">
@@ -3715,16 +3771,28 @@ export default class SparklineGraphTool extends BaseTool {
             : ''
         }
         ${
-          showY
+          showPrimaryY
             ? svg`<line
           class="sparkline-axis-line sparkline-axis-line--y"
-          x1="${this.Graph.axisArea.x}"
-          y1="${this.Graph.axisArea.y}"
-          x2="${this.Graph.axisArea.x}"
-          y2="${this.Graph.axisArea.y + this.Graph.axisArea.height}"
-          style=${styleMap(yStyles)}
+          x1="${primaryGraph.axisArea.x}"
+          y1="${primaryGraph.axisArea.y}"
+          x2="${primaryGraph.axisArea.x}"
+          y2="${primaryGraph.axisArea.y + primaryGraph.axisArea.height}"
+          style=${styleMap(primaryYStyles)}
         ></line>`
             : ''
+        }
+        ${
+          showSecondaryY
+            ? svg`<line
+          class="sparkline-axis-line sparkline-axis-line--y-secondary"
+          x1="${rightX}"
+          y1="${secondaryGraph.axisArea.y}"
+          x2="${rightX}"
+          y2="${secondaryGraph.axisArea.y + secondaryGraph.axisArea.height}"
+          style=${styleMap(secondaryYStyles)}
+        ></line>`
+            : ""
         }
       </g>
     `;
@@ -3738,17 +3806,23 @@ export default class SparklineGraphTool extends BaseTool {
   renderTickmarks() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.tickmarks.x && chartAxes.x;
-    const showY = this.config.sparkline.show.tickmarks.y && chartAxes.y;
-    if (!showX && !showY) return '';
+    const primaryGraph = this.axisGraphs.primary;
+    const secondaryGraph = this.axisGraphs.secondary;
+    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return '';
 
     const xTickConfig = this.config.x_axis.tickmarks_major;
-    const yTickConfig = this.config.y_axis.tickmarks_major;
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(xTickConfig.styles));
-    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(yTickConfig.styles));
     const xTicks = this.buildXAxisTicks('major');
-    const yTicks = this.buildYAxisTicks('major');
     const xTickSize = Utils.calculateSvgDimension(xTickConfig.size);
-    const yTickSize = Utils.calculateSvgDimension(yTickConfig.size);
+    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.tickmarks_major.styles)) : undefined;
+    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.tickmarks_major.styles)) : undefined;
+    const primaryYTicks = primaryGraph !== undefined ? this.buildYAxisTicks('major', primaryGraph) : [];
+    const secondaryYTicks = secondaryGraph !== undefined ? this.buildYAxisTicks('major', secondaryGraph) : [];
+    const primaryYTickSize = primaryGraph !== undefined ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const secondaryYTickSize = secondaryGraph !== undefined ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
 
     return svg`
       ${
@@ -3770,22 +3844,40 @@ export default class SparklineGraphTool extends BaseTool {
           : ''
       }
       ${
-        showY
+        showPrimaryY
           ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--y" style="pointer-events:none;">
-        ${yTicks.map(
+        ${primaryYTicks.map(
           (tick) => svg`
           <line
             class="sparkline-tickmark sparkline-tickmark--y-major"
-            x1="${this.Graph.axisArea.x - yTickSize}"
+            x1="${primaryGraph.axisArea.x - primaryYTickSize}"
             y1="${tick.y}"
-            x2="${this.Graph.axisArea.x}"
+            x2="${primaryGraph.axisArea.x}"
             y2="${tick.y}"
-            style=${styleMap(yStyles)}
+            style=${styleMap(primaryYStyles)}
           ></line>
         `,
         )}
       </g>`
           : ''
+      }
+      ${
+        showSecondaryY
+          ? svg`<g class="sparkline-tickmarks sparkline-tickmarks--y-secondary" style="pointer-events:none;">
+        ${secondaryYTicks.map(
+          (tick) => svg`
+          <line
+            class="sparkline-tickmark sparkline-tickmark--y-secondary-major"
+            x1="${rightX}"
+            y1="${tick.y}"
+            x2="${rightX + secondaryYTickSize}"
+            y2="${tick.y}"
+            style=${styleMap(secondaryYStyles)}
+          ></line>
+        `,
+        )}
+      </g>`
+          : ""
       }
     `;
   }
@@ -3799,16 +3891,25 @@ export default class SparklineGraphTool extends BaseTool {
   renderAxisLabels() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.labels.x && chartAxes.x;
-    const showY = this.config.sparkline.show.labels.y && chartAxes.y;
-    if (!showX && !showY) return '';
+    const primaryGraph = this.axisGraphs.primary;
+    const secondaryGraph = this.axisGraphs.secondary;
+    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.labels.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.labels.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return '';
 
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.labels.styles));
-    const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.y_axis.labels.styles));
-    const xTicks = this.buildLabelTicks('x');
-    const yTicks = this.buildLabelTicks('y');
+    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.labels.styles)) : undefined;
+    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.labels.styles)) : undefined;
+    const xTicks = this.buildLabelTicks('x', this.Graph);
+    const primaryYTicks = primaryGraph !== undefined ? this.buildLabelTicks('y', primaryGraph) : [];
+    const secondaryYTicks = secondaryGraph !== undefined ? this.buildLabelTicks('y', secondaryGraph) : [];
     const xTickSize = this.config.sparkline.show.tickmarks.x && chartAxes.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
-    const yTickSize = this.config.sparkline.show.tickmarks.y && chartAxes.y ? Utils.calculateSvgDimension(this.config.y_axis.tickmarks_major.size) : 0;
-    const stateBands = this.config.sparkline.show.chart_type === 'state_bands';
+    const primaryYTickSize = primaryGraph !== undefined && primaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const secondaryYTickSize = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
+    const primaryYLabelOffset = primaryGraph !== undefined ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset) : 0;
+    const secondaryYLabelOffset = secondaryGraph !== undefined ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.labels.offset) : 0;
+    const stateBands = primaryGraph !== undefined && primaryGraph.config.sparkline.show.chart_type === 'state_bands';
+    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
 
     return svg`
       ${
@@ -3828,20 +3929,36 @@ export default class SparklineGraphTool extends BaseTool {
           : ''
       }
       ${
-        showY
+        showPrimaryY
           ? svg`<g class="sparkline-labels sparkline-labels--y" style="pointer-events:none;">
-        ${yTicks.map(
+        ${primaryYTicks.map(
           (tick) => svg`
           <text
             class="sparkline-label sparkline-label--y"
-            x="${stateBands ? this.Graph.drawArea.x + Utils.calculateSvgDimension(this.config.y_axis.labels.offset) : this.Graph.axisArea.x - yTickSize - Utils.calculateSvgDimension(this.config.y_axis.labels.offset)}"
+            x="${stateBands ? primaryGraph.drawArea.x + primaryYLabelOffset : primaryGraph.axisArea.x - primaryYTickSize - primaryYLabelOffset}"
             y="${stateBands ? tick.labelY : tick.y}"
-            style=${styleMap(stateBands ? { ...yStyles, 'font-size': `${tick.fontSize}px` } : yStyles)}
+            style=${styleMap(stateBands ? { ...primaryYStyles, 'font-size': `${tick.fontSize}px` } : primaryYStyles)}
           >${tick.label}</text>
         `,
         )}
       </g>`
           : ''
+      }
+      ${
+        showSecondaryY
+          ? svg`<g class="sparkline-labels sparkline-labels--y-secondary" style="pointer-events:none;">
+        ${secondaryYTicks.map(
+          (tick) => svg`
+          <text
+            class="sparkline-label sparkline-label--y-secondary"
+            x="${rightX + secondaryYTickSize + secondaryYLabelOffset}"
+            y="${tick.y}"
+            style=${styleMap({ ...secondaryYStyles, "text-anchor": "start" })}
+          >${tick.label}</text>
+        `,
+        )}
+      </g>`
+          : ""
       }
     `;
   }

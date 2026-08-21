@@ -118,6 +118,17 @@ test('area chart omits its line layers when show.line is false', () => {
 
   assert.notEqual(tool.renderSvgLineMask('M 0 0 L 100 50', 0), '');
   assert.notEqual(tool.renderSvgLineBackground('M 0 0 L 100 50', 0), '');
+
+  tool.getLineStyles = () => ({
+    'stroke-width': 1,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'stroke-dasharray': '4 2',
+  });
+  const dashedMask = tool.renderSvgLineMask('M 0 0 L 100 50', 0);
+
+  assert.match(dashedMask.strings.join(''), /stroke-dasharray/);
+  assert.ok(dashedMask.values.includes('4 2'));
 });
 
 test('bar fade reverses at zero for positive and negative values', () => {
@@ -357,6 +368,24 @@ test('axis margin contains labels and tickmarks independently from data margin',
         labels: { offset: 2 },
       },
     },
+    axisGraphs: {
+      primary: {
+        config: {
+          sparkline: {
+            show: {
+              chart_type: 'line',
+              tickmarks: { y: true },
+              labels: { y: true },
+            },
+          },
+          y_axis: {
+            tickmarks_major: { size: 1 },
+            labels: { offset: 2 },
+          },
+        },
+      },
+      secondary: undefined,
+    },
     resolveAxisFontSizePixels: (axis) => (axis === 'x' ? 8 : 10),
     buildXAxisTicks: () => [{ label: '08:00' }, { label: '12:00' }],
     buildYAxisTicks: () => [{ label: '-20' }, { label: '100' }],
@@ -372,7 +401,7 @@ test('axis margin contains labels and tickmarks independently from data margin',
   });
 });
 
-test('explicit series use their own graphs and one shared y-axis range', () => {
+test('explicit series use independent primary and secondary y-axis ranges', () => {
   const calls = [];
   const makeGraph = (min, max) => ({
     min,
@@ -401,9 +430,10 @@ test('explicit series use their own graphs and one shared y-axis range', () => {
       dots: { radius: 1 },
       line_color: ['#1565c0', '#d32f2f'],
     },
+    y_axis: {},
   });
-  const first = { id: 'temperature', config: makeConfig('line'), graph: makeGraph(10, 20), rows: [{ state: 10 }] };
-  const second = { id: 'humidity', config: makeConfig('dots'), graph: makeGraph(30, 40), rows: [{ state: 30 }] };
+  const first = { id: 'temperature', y_axis_id: 'primary', config: makeConfig('line'), graph: makeGraph(10, 20), rows: [{ state: 10 }] };
+  const second = { id: 'humidity', y_axis_id: 'secondary', config: makeConfig('dots'), graph: makeGraph(30, 40), rows: [{ state: 30 }] };
 
   Object.assign(tool, {
     sparklineSeries: { items: [first, second], defaultItem: first },
@@ -421,10 +451,24 @@ test('explicit series use their own graphs and one shared y-axis range', () => {
 
   tool.updateMultipleSeriesGraphs();
 
-  assert.deepEqual(calls, [[10, 10, 40], [30, 10, 40]]);
+  assert.deepEqual(calls, [[10, 10, 20], [30, 30, 40]]);
+  assert.equal(tool.axisGraphs.primary, first.graph);
+  assert.equal(tool.axisGraphs.secondary, second.graph);
   assert.equal(tool.graphReady, true);
   assert.equal(tool.line.length, 1);
   assert.equal(tool.points.length, 2);
+
+  first.graph.min = 10;
+  first.graph.max = 20;
+  second.graph.min = 30;
+  second.graph.max = 40;
+  first.config.y_axis = { lower_bound: -10, upper_bound: 50 };
+  second.config.y_axis = { lower_bound: 0, upper_bound: 100 };
+  calls.length = 0;
+
+  tool.updateMultipleSeriesGraphs();
+
+  assert.deepEqual(calls, [[10, -10, 50], [30, 0, 100]]);
 });
 
 
@@ -496,6 +540,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
       area: { show_dots: false },
       dots: { radius: 1 },
     },
+    y_axis: {},
   });
   const first = { id: "first", config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }] };
   const line = { id: "line", config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }] };
