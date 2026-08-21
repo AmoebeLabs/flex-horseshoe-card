@@ -134,7 +134,11 @@ test('bar fade reverses at zero for positive and negative values', () => {
       },
     },
     historySeries: [],
-    Graph: { width: 100, height: 50 },
+    sparklineSeries: {
+      defaultItem: {
+        graph: { width: 100, height: 50 },
+      },
+    },
     computeColor: (value) => (value >= 0 ? 'red' : 'blue'),
     getRenderStyles: (styles) => styles,
   });
@@ -187,6 +191,15 @@ test('accepted history keeps its update flag active through the card pipeline', 
     historyDurationReady: true,
     historyPromise: undefined,
     historySeries: undefined,
+    sparklineSeries: {
+      defaultItem: {
+        graph: undefined,
+        rows: [],
+      },
+      setRows(rows) {
+        this.defaultItem.rows = rows;
+      },
+    },
     historyPeriodSignature: 'active-period',
     historyEntityId: entity.entity_id,
     historyResynchronizationRequested: false,

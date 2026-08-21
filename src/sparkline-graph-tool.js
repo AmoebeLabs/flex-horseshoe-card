@@ -7,7 +7,8 @@ import Colors from './colors';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
-import SparklineGraph, { X, Y, V } from './sparkline-graph.js';
+import { X, Y, V } from './sparkline-graph.js';
+import SparklineSeries from './sparkline-series.js';
 import StateTool from './state-tool.js';
 import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
 import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
@@ -133,6 +134,21 @@ const computeThresholds = (stops, type) => {
  * and pointer interaction to the existing FHS tool pipeline.
  */
 export default class SparklineGraphTool extends BaseTool {
+  /** Exposes the implicit graph to the established single-series render path. */
+  get Graph() {
+    return this.sparklineSeries.defaultItem.graph;
+  }
+
+  /** Exposes the implicit rows to the established single-series lifecycle. */
+  get series() {
+    return this.sparklineSeries.defaultItem.rows;
+  }
+
+  /** Stores normalized rows in the coordinator-owned implicit series. */
+  set series(rows) {
+    this.sparklineSeries.setRows(rows);
+  }
+
   /**
    * Builds sparkline tool instances from layout.sparklines.
    *
@@ -532,6 +548,9 @@ export default class SparklineGraphTool extends BaseTool {
     const periodUsesJavascript = templates.hasJavascriptTemplates(sparklineConfig.period);
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
 
+    // Existing YAML becomes one internal default series before any graph exists.
+    this.sparklineSeries = new SparklineSeries(this.config);
+
     this.svg = this.calculateSvgDimensions();
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
@@ -549,9 +568,18 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config) : undefined;
-    this.Graph = this.historyDurationReady
-      ? new SparklineGraph(this.svg.width, this.svg.height, this.axisMargin, this.configuredGraphMargin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {})
-      : undefined;
+    if (this.historyDurationReady) {
+      this.sparklineSeries.createGraph(
+        this.svg.width,
+        this.svg.height,
+        this.axisMargin,
+        this.configuredGraphMargin,
+        this.graphConfig,
+        this.gradeValues,
+        this.gradeRanks,
+        this.graphConfig.sparkline.state_map ?? {},
+      );
+    }
     this.graphReady = false;
     this.series = [];
     this.historySeries = undefined;
@@ -984,7 +1012,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.historyLoading = false;
       this.preserveGraphWhileHistoryLoads = false;
       this.graphConfig = undefined;
-      this.Graph = undefined;
+      this.sparklineSeries.clearGraph();
       this.graphReady = false;
       this.series = [];
       this.stats = {};
@@ -1016,7 +1044,16 @@ export default class SparklineGraphTool extends BaseTool {
       return true;
     });
     this.graphConfig = this.buildGraphConfig(this.config);
-    this.Graph = new SparklineGraph(this.svg.width, this.svg.height, this.axisMargin, this.configuredGraphMargin, this.graphConfig, this.gradeValues, this.gradeRanks, this.graphConfig.sparkline.state_map ?? {});
+    this.sparklineSeries.createGraph(
+      this.svg.width,
+      this.svg.height,
+      this.axisMargin,
+      this.configuredGraphMargin,
+      this.graphConfig,
+      this.gradeValues,
+      this.gradeRanks,
+      this.graphConfig.sparkline.state_map ?? {},
+    );
     this.graphReady = false;
   }
 
@@ -1562,7 +1599,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.Graph.hours = (range.end.getTime() - range.start.getTime()) / (60 * 60 * 1000);
     }
 
-    this.graphReady = this.Graph.update(this.series);
+    this.graphReady = this.sparklineSeries.updateGraph();
 
     // An accepted history response can legitimately contain no numeric rows.
     // The engine then has no axis geometry, so no graph-dependent work follows.
@@ -1578,7 +1615,7 @@ export default class SparklineGraphTool extends BaseTool {
     const graphAreasChanged = this.Graph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.Graph.coords.length);
     if (graphAreasChanged) {
       this.axisMargin = axisMargin;
-      this.graphReady = this.Graph.update(this.series);
+      this.graphReady = this.sparklineSeries.updateGraph();
     }
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
