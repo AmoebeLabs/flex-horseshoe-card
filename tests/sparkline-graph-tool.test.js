@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
+import SparklineGraph from '../src/sparkline-graph.js';
 
 test('dynamic calendar period initializes and clamps a rolling duration to one day', () => {
   const previousWindow = globalThis.window;
@@ -50,7 +51,7 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
       height: 40,
       margin: 0,
       period: {
-        type: "[[[ return entities[0].state; ]]]",
+        type: '[[[ return entities[0].state; ]]]',
         rolling_window: {
           duration: { hour: 24 },
           bins: { per_hour: 'auto', density: 'medium' },
@@ -78,9 +79,7 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
     assert.equal(tool.config.period.calendar.duration.hour, 24);
     assert.equal(tool.historyDurationReady, true);
     assert.notEqual(tool.Graph, undefined);
-    assert.deepEqual(warnings, [
-      "[FHS sparkline] calendar day duration '6' hours is shorter than one day; using 24 hours",
-    ]);
+    assert.deepEqual(warnings, ["[FHS sparkline] calendar day duration '6' hours is shorter than one day; using 24 hours"]);
 
     tool.updateRuntimeConfig();
 
@@ -140,10 +139,13 @@ test('bar fade reverses at zero for positive and negative values', () => {
     getRenderStyles: (styles) => styles,
   });
 
-  const rendered = tool.renderSvgBars([
+  const rendered = tool.renderSvgBars(
+    [
     { x: 1, y: 2, width: 3, height: 4, value: 5 },
     { x: 6, y: 7, width: 3, height: 4, value: -5 },
-  ], 0);
+    ],
+    0,
+  );
   const positiveBar = rendered.values[3][0];
   const negativeBar = rendered.values[3][1];
 
@@ -299,4 +301,39 @@ test('completed calendar history is not fetched again while its fixed range is r
 
   assert.equal(apiCalls, 0);
   assert.equal(tool.historyPromise, undefined);
+});
+
+test('axis margin contains labels and tickmarks independently from data margin', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    config: {
+      sparkline: {
+        show: {
+          chart_type: 'line',
+          tickmarks: { x: true, y: true },
+          labels: { x: true, y: true },
+        },
+      },
+      x_axis: {
+        tickmarks_major: { size: 1 },
+        labels: { offset: 2, styles: { 'text-anchor': 'middle' } },
+      },
+      y_axis: {
+        tickmarks_major: { size: 1 },
+        labels: { offset: 2 },
+      },
+    },
+    resolveAxisFontSizePixels: (axis) => (axis === 'x' ? 8 : 10),
+    buildXAxisTicks: () => [{ label: '08:00' }, { label: '12:00' }],
+    buildYAxisTicks: () => [{ label: '-20' }, { label: '100' }],
+  });
+
+  assert.deepEqual(tool.calculateAxisMargin(), {
+    t: 4.25,
+    r: 12,
+    b: 14,
+    l: 21,
+    x: 21,
+    y: 4.25,
+  });
 });
