@@ -327,10 +327,12 @@ export default class SparklineGraph {
     const bucketMs = ONE_HOUR / this.points;
     this.calendarBucketStartMs = undefined;
     this.calendarBucketCount = undefined;
+    this.visibleBucketCount = undefined;
     this.offsetHours = 0;
     switch (this.config.period.type) {
       case 'real_time':
         requiredNumOfPoints = 1;
+        this.visibleBucketCount = requiredNumOfPoints;
         this.hours = 1;
         break;
       case 'calendar':
@@ -339,7 +341,7 @@ export default class SparklineGraph {
           calendarStart.setHours(0, 0, 0, 0);
           calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
 
-          if (this.config.period.calendar.offset === 0) {
+          if (this.config.period.calendar.offset === 0 && this.config.period.calendar.full_day !== true) {
             this.calendarBucketCount = Math.ceil((this._endTime.getTime() - calendarStart.getTime()) / bucketMs);
             this.calendarBucketStartMs = this._endTime.getTime() - this.calendarBucketCount * bucketMs;
           } else {
@@ -349,10 +351,18 @@ export default class SparklineGraph {
           }
 
           requiredNumOfPoints = this.calendarBucketCount;
+          this.visibleBucketCount = requiredNumOfPoints;
+
+          // A current series in a complete comparison day ends at its projected
+          // current time. Historical series retain every bucket through midnight.
+          if (this.activeDataEnd !== undefined) {
+            this.visibleBucketCount = Math.ceil((this.activeDataEnd.getTime() - this.calendarBucketStartMs) / bucketMs);
+          }
         }
         break;
       case 'rolling_window':
         requiredNumOfPoints = Math.ceil(this.hours * this.points);
+        this.visibleBucketCount = requiredNumOfPoints;
         break;
       default:
         break;
@@ -502,7 +512,7 @@ export default class SparklineGraph {
         axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
         axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR);
         dataStart = new Date(axisStart);
-        dataEnd = period.offset === 0 ? new Date(now) : new Date(axisEnd);
+        dataEnd = period.offset === 0 && period.full_day !== true ? new Date(now) : new Date(axisEnd);
       } else {
         axisEnd = new Date(now);
         axisStart = new Date(axisEnd.getTime() - period.duration.hour * ONE_HOUR);
@@ -515,7 +525,7 @@ export default class SparklineGraph {
       axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
       axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR - bucketMs);
       dataStart = new Date(axisStart);
-      dataEnd = period.offset === 0 ? new Date(this._snapToBin(new Date())) : new Date(axisEnd);
+      dataEnd = period.offset === 0 && period.full_day !== true ? new Date(this._snapToBin(new Date())) : new Date(axisEnd);
     } else {
       axisStart = new Date(this.bucketMeta[0].start);
       axisEnd = new Date(this.bucketMeta[this.bucketMeta.length - 1].start);
@@ -874,12 +884,12 @@ export default class SparklineGraph {
       const now = new Date();
       const extraHours = period.duration.hour - 24;
 
-      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
+      hours = period.offset === 0 && period.full_day !== true ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
     }
 
     let age = this._endTime - new Date(item.last_changed).getTime();
 
-    if (period.offset === 0 && age < 0) {
+    if (period.offset === 0 && period.full_day !== true && age < 0) {
       age = 0;
     }
 
@@ -927,7 +937,7 @@ export default class SparklineGraph {
       return coords.push([x, 0, item ? last[0] : last[1]]);
     };
 
-    for (let i = 0; i < history.length; i += 1) getCoords(history[i], i);
+    for (let i = 0; i < this.visibleBucketCount; i += 1) getCoords(history[i], i);
 
     return coords;
   }
@@ -1814,9 +1824,21 @@ export default class SparklineGraph {
   _updateEndTime() {
     this._endTime = new Date();
     if (this.config.period.type === 'calendar') {
-      if (this.config.period.calendar.period === 'day' && this.config.period.calendar.offset !== 0) {
-        this._endTime.setHours(-this.config.period.calendar.duration.hour);
-        this._endTime.setHours(0, 0, 0, 0);
+      if (
+        this.config.period.calendar.period === 'day'
+        && (this.config.period.calendar.offset !== 0 || this.config.period.calendar.full_day === true)
+      ) {
+        // Historical days and shared day comparisons have a fixed local end.
+        // The active day keeps its current-bin end unless a comparison needs
+        // the complete 24-hour reference axis.
+        const calendarStart = new Date(this._endTime);
+        calendarStart.setHours(0, 0, 0, 0);
+        calendarStart.setHours(
+          calendarStart.getHours()
+            + this.config.period.calendar.offset * 24
+            - (this.config.period.calendar.duration.hour - 24),
+        );
+        this._endTime = new Date(calendarStart.getTime() + this.config.period.calendar.duration.hour * ONE_HOUR);
       } else if (this.config.period.calendar.period === 'day') {
         this._endTime = this._snapToBin(this._endTime);
         this._endTime = new Date(this._endTime.getTime() + (60 / this.points) * 60 * 1000);

@@ -547,7 +547,7 @@ Range calculation returns:
 ```
 
 Calendar offsets use local boundaries because days can contain 23 or 25 hours.
-Rolling offsets use elapsed-time range differences.
+Rolling offsets use signed whole-day differences of 24 hours each.
 
 Completed historical ranges are static after a successful fetch. Active ranges
 receive entity states and may resynchronize. Static status follows concrete

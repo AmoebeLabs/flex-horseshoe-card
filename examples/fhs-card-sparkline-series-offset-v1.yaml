@@ -1,0 +1,82 @@
+# Phase 6 visual test: compare the current rolling window with the same hours yesterday.
+type: custom:flex-horseshoe-card
+entities:
+  - entity: sensor.awair_element_study_temperature
+    name: Study temperature
+    unit: C
+
+layout:
+  aspectratio: 1/1.35
+
+  groups:
+    - id: title
+      xpos: 50
+      ypos: 8
+    - id: chart
+      xpos: 50
+      ypos: 56
+
+  texts:
+    - id: title
+      group: title
+      xpos: 50
+      ypos: 50
+      text: Today and yesterday
+      styles:
+        font-size: 1.1em
+        font-weight: bold
+        text-anchor: middle
+        dominant-baseline: central
+
+  sparklines:
+    - id: rolling-offset-comparison
+      group: chart
+      entity_index: 0
+      xpos: 50
+      ypos: 50
+      width: 88
+      height: 78
+      margin: 1
+      period:
+        type: rolling_window
+        rolling_window:
+          offset: 0
+          duration:
+            hour: 24
+          bins:
+            per_hour: auto
+            density: medium
+      sparkline:
+        state_values:
+          aggregate_func: avg
+        show:
+          chart_type: line
+          line: true
+          grid: true
+          axis: true
+          tickmarks: true
+          labels: true
+          xlabels_at: ticks_major
+          ylabels_at: ticks_major
+        line:
+          line_width: 1.5
+      x_axis:
+        labels:
+          styles:
+            font-size: 0.5em
+      y_axis:
+        labels:
+          styles:
+            font-size: 0.5em
+      series:
+        - id: today
+          entity_index: 0
+          name: Today
+          color: '#42a5f5'
+        - id: yesterday
+          entity_index: 0
+          name: Yesterday
+          color: '#f9a825'
+          period:
+            rolling_window:
+              offset: -1

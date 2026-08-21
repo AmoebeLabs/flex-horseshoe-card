@@ -483,3 +483,51 @@ test('radial barcode geometry does not consume cartesian configuration', () => {
     height: 100,
   });
 });
+
+
+test('full-day calendar comparisons use the fixed end of the visible day', () => {
+  const NativeDate = globalThis.Date;
+  const fixedNow = new NativeDate('2026-08-14T12:30:00.000Z');
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow.getTime()] : args));
+    }
+  };
+
+  try {
+    const graph = Object.create(SparklineGraph.prototype);
+    graph.points = 1;
+    graph.config = {
+      period: {
+        type: 'calendar',
+        calendar: { period: 'day', offset: 0, full_day: true, duration: { hour: 24 } },
+      },
+    };
+
+    graph._updateEndTime();
+
+    assert.equal(graph._endTime.toISOString(), '2026-08-15T00:00:00.000Z');
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+});
+
+
+test('active data on a full-day calendar axis stops at its projected current bucket', () => {
+  const graph = Object.create(SparklineGraph.prototype);
+  Object.assign(graph, {
+    drawArea: { x: 0, width: 230 },
+    hours: 24,
+    points: 1,
+    visibleBucketCount: 13,
+    aggregateFuncName: 'avg',
+    _calcPoint: (items) => Number(items[items.length - 1].state),
+  });
+  const history = Array(24);
+  history[0] = [{ state: '10' }];
+
+  const coords = graph._calcPoints(history);
+
+  assert.equal(coords.length, 13);
+  assert.equal(coords.at(-1)[0], 120);
+});

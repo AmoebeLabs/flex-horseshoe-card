@@ -107,19 +107,34 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
   );
 });
 
-test('allows cartesian line, area, dots and bar series while period overrides remain unavailable', () => {
+test('allows cartesian line, area, dots and bar series with an offset-only period override', () => {
   const bars = new SparklineSeries({
     ...graphConfig,
-    series: [{ id: 'bars', entity_index: 0, sparkline: { show: { chart_type: 'bar' } } }],
+    period: {
+      type: 'rolling_window',
+      rolling_window: { offset: 0, duration: { hour: 24 }, bins: { per_hour: 1 } },
+    },
+    series: [
+      { id: 'bars', entity_index: 0, sparkline: { show: { chart_type: 'bar' } } },
+      {
+        id: 'yesterday',
+        entity_index: 1,
+        period: {
+          rolling_window: { offset: -1 },
+          calendar: { offset: -1 },
+        },
+      },
+    ],
   });
 
   assert.equal(bars.defaultItem.config.sparkline.show.chart_type, 'bar');
+  assert.equal(bars.items[1].config.period.rolling_window.offset, -1);
 
   assert.throws(
     () => new SparklineSeries({
       ...graphConfig,
-      series: [{ id: 'yesterday', entity_index: 0, period: { type: 'calendar' } }],
+      series: [{ id: 'different-duration', entity_index: 0, period: { real_time: { duration: { hour: 12 } } } }],
     }),
-    /cannot override period/,
+    /period may only override real_time.offset/,
   );
 });
