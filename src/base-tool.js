@@ -152,6 +152,25 @@ export default class BaseTool {
     this.entityConfig = entityConfig;
   }
 
+  /**
+   * Receives all card entities through the common tool lifecycle. Ordinary
+   * tools select their configured entity_index; composite tools can override
+   * this method and bind their own child items.
+   *
+   * @param {Array<object>} entityConfigs - Active entity configurations.
+   * @param {Array<object>} entities - Current Home Assistant entity states.
+   */
+  setEntities(entityConfigs, entities) {
+    if (this.entity_index === undefined) {
+      this.setStaticState();
+      return;
+    }
+
+    const entityConfig = entityConfigs[this.entity_index];
+    const entity = entities[this.entity_index];
+    if (entity && entityConfig) this.setState(entity, entityConfig);
+  }
+
   /** Activates configuration that does not depend on an entity state. */
   setStaticState() {}
 

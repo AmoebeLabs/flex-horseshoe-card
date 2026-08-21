@@ -108,15 +108,7 @@ export default class CardTools {
    * below uses the same path for normal top-level tools.
    */
   setToolEntityState(tool, entityConfigs, entities) {
-    const entityIndex = tool.entity_index;
-    if (entityIndex === undefined) {
-      tool.setStaticState();
-      return;
-    }
-
-    const entityConfig = entityConfigs[entityIndex];
-    const entity = entities[entityIndex];
-    if (entity && entityConfig) tool.setState(entity, entityConfig);
+    tool.setEntities(entityConfigs, entities);
   }
 
   /** Assigns entity data to every tool in the requested sections. */

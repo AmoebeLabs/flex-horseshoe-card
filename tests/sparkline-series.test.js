@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import SparklineSeries from '../src/sparkline-series.js';
 
 const graphConfig = {
+  entity_index: 0,
   geometry: { line_width: 0, column_spacing: 4 },
   period: {
     type: 'real_time',
@@ -32,11 +33,12 @@ test('normalizes existing sparkline config into one coordinator-owned default se
 
   assert.equal(series.items.length, 1);
   assert.equal(series.defaultItem.id, 'default');
-  assert.equal(series.defaultItem.config, graphConfig);
+  assert.deepEqual(series.defaultItem.config, graphConfig);
   assert.deepEqual(series.defaultItem.rows, []);
   assert.equal(series.defaultItem.graph, undefined);
 
   series.createGraph(
+    series.defaultItem,
     120,
     100,
     { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 },
@@ -46,13 +48,79 @@ test('normalizes existing sparkline config into one coordinator-owned default se
     [],
     {},
   );
-  series.setRows([{ state: 12 }]);
+  series.setRows(series.defaultItem, [{ state: 12 }]);
 
+  assert.deepEqual(series.defaultItem.config, graphConfig);
   assert.equal(series.defaultItem.graph.config, graphConfig);
   assert.deepEqual(series.defaultItem.rows, [{ state: 12 }]);
-  assert.equal(series.updateGraph(), true);
+  assert.equal(series.updateGraphs()[0], true);
 
-  series.clearGraph();
+  series.clearGraphs();
 
   assert.equal(series.defaultItem.graph, undefined);
+});
+
+
+test('normalizes explicit series in declaration order with independent graph settings', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    series: [
+      { id: 'temperature', entity_index: 0, color: '#42a5f5' },
+      {
+        id: 'humidity',
+        entity_index: 1,
+        sparkline: {
+          show: { chart_type: 'dots' },
+          state_values: { aggregate_func: 'max' },
+        },
+      },
+    ],
+  });
+
+  assert.deepEqual(series.items.map((item) => item.id), ['temperature', 'humidity']);
+  assert.deepEqual(series.items.map((item) => item.entity_index), [0, 1]);
+  assert.equal(series.items[0].config.color, '#42a5f5');
+  assert.equal(series.items[1].config.sparkline.show.chart_type, 'dots');
+  assert.equal(series.items[1].config.sparkline.state_values.aggregate_func, 'max');
+  assert.equal(series.items[0].config.series, undefined);
+  assert.equal(series.items[1].config.series, undefined);
+});
+
+test('rejects explicit series without stable unique entity-bound ids', () => {
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [
+        { id: 'temperature', entity_index: 0 },
+        { id: 'temperature', entity_index: 1 },
+      ],
+    }),
+    /series ids must be unique/,
+  );
+
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'temperature' }],
+    }),
+    /requires entity_index/,
+  );
+});
+
+test('limits explicit phase 4 series to cartesian line, area and dots without period overrides', () => {
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'bars', entity_index: 0, sparkline: { show: { chart_type: 'bar' } } }],
+    }),
+    /chart_type must be line, area or dots/,
+  );
+
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'yesterday', entity_index: 0, period: { type: 'calendar' } }],
+    }),
+    /cannot override period/,
+  );
 });

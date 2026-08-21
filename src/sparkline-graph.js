@@ -84,6 +84,7 @@ export default class SparklineGraph {
     this.yAxis = {};
     this._max = 0;
     this._min = 0;
+    this.sharedYAxisBounds = undefined;
     // Real-time retains the original one-value graph contract and has no
     // duration or bins. Historical period types use their configured range.
     if (this.config.period.type === 'real_time') {
@@ -117,9 +118,10 @@ export default class SparklineGraph {
    * @param {object} axisMargin - Space occupied by visible axes and labels.
    * @param {object} configuredMargin - User-configured margin inside the axes.
    * @param {number} bucketCount - Number of visible data coordinates.
+   * @param {object|undefined} sharedChartGeometryMargin - Series-wide visual extent.
    * @returns {boolean} Whether axisArea or dataArea changed.
    */
-  setGraphAreas(axisMargin, configuredMargin, bucketCount) {
+  setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin = undefined) {
     const previousAxisArea = this.axisArea;
     const previousDataArea = this.dataArea;
     const chartType = this.config.sparkline.show.chart_type;
@@ -154,6 +156,13 @@ export default class SparklineGraph {
       const finalBarWidth = Math.max(1, (configuredDataWidth + this.config.geometry.column_spacing) / bucketCount - this.config.geometry.column_spacing);
       chartLeft = finalBarWidth / 2;
       chartRight = finalBarWidth / 2;
+    }
+
+    if (sharedChartGeometryMargin !== undefined) {
+      chartTop = sharedChartGeometryMargin.t;
+      chartRight = sharedChartGeometryMargin.r;
+      chartBottom = sharedChartGeometryMargin.b;
+      chartLeft = sharedChartGeometryMargin.l;
     }
 
     const effectiveMargin = {
@@ -248,6 +257,23 @@ export default class SparklineGraph {
    */
   set min(min) {
     this._min = min;
+  }
+
+  /**
+   * Pins this graph to the y-range shared by the owning SparklineSeries
+   * coordinator. The engine still calculates its own ticks and paths, but all
+   * series convert values into the same SVG y coordinates.
+   *
+   * @param {number} lowerBound - Shared visible minimum.
+   * @param {number} upperBound - Shared visible maximum.
+   */
+  setSharedYAxisBounds(lowerBound, upperBound) {
+    this.sharedYAxisBounds = { lowerBound, upperBound };
+  }
+
+  /** Clears the shared bounds before the next automatic range measurement. */
+  clearSharedYAxisBounds() {
+    this.sharedYAxisBounds = undefined;
   }
 
   /**
@@ -729,10 +755,10 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateYAxisGeometry(fontHeightPixels) {
-    const fixedLowerBound = this.config.y_axis.lower_bound !== undefined;
-    const fixedUpperBound = this.config.y_axis.upper_bound !== undefined;
-    let dataMin = fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
-    let dataMax = fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
+    const fixedLowerBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.lower_bound !== undefined;
+    const fixedUpperBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.upper_bound !== undefined;
+    let dataMin = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.lowerBound : fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
+    let dataMax = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.upperBound : fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
 
     if (dataMin === dataMax) {
       if (!fixedLowerBound) dataMin -= 1;

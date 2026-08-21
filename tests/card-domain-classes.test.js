@@ -544,7 +544,7 @@ test('CardTools assigns entity state and forwards every shared lifecycle phase',
   const calls = [];
   const tool = {
     entity_index: 0,
-    setState: (entity, config) => calls.push(['state', entity.state, config.entity]),
+    setEntities: (configs, entities) => calls.push(['state', entities[0].state, configs[0].entity]),
     hassAvailable: () => calls.push('hassAvailable'),
     hassConnected: () => calls.push('hassConnected'),
     connected: () => calls.push('connected'),
@@ -573,8 +573,7 @@ test('CardTools assigns entity state to nested control tools through the same li
   const calls = [];
   const childTool = {
     entity_index: 1,
-    setState: (entity, config) => calls.push([entity.state, config.entity]),
-    setStaticState: () => calls.push(['static']),
+    setEntities: (configs, entities) => calls.push([entities[1].state, configs[1].entity]),
   };
 
   cardTools.setToolEntityState(
@@ -585,14 +584,7 @@ test('CardTools assigns entity state to nested control tools through the same li
 
   assert.deepEqual(calls, [['20', 'sensor.second']]);
 
-  childTool.entity_index = undefined;
-  cardTools.setToolEntityState(
-    childTool,
-    [{ entity: 'sensor.first' }, { entity: 'sensor.second' }],
-    [{ state: '10' }, { state: '20' }],
-  );
-
-  assert.deepEqual(calls, [['20', 'sensor.second'], ['static']]);
+  assert.deepEqual(calls, [['20', 'sensor.second']]);
 });
 
 test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
