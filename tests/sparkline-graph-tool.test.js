@@ -253,3 +253,50 @@ test('calendar history request spans complete calendar days', () => {
     globalThis.Date = NativeDate;
   }
 });
+
+test('completed calendar history is not fetched again while its fixed range is represented', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const range = {
+    start: new Date('2026-08-12T00:00:00.000Z'),
+    end: new Date('2026-08-13T00:00:00.000Z'),
+  };
+  let apiCalls = 0;
+
+  Object.assign(tool, {
+    config: {
+      id: 'closed-history',
+      period: {
+        type: 'calendar',
+        calendar: {
+          period: 'day',
+          offset: -1,
+          duration: { hour: 24 },
+        },
+      },
+      history: {},
+    },
+    historyDurationReady: true,
+    historyPromise: undefined,
+    historySeries: [{ state: '12' }],
+    historyRangeStart: range.start.getTime(),
+    historyRangeEnd: range.end.getTime(),
+    historyResynchronizationRequested: false,
+    getHistoryRange: () => range,
+    card: {
+      dev: { debug: false },
+      _hass: {
+        callApi() {
+          apiCalls += 1;
+        },
+      },
+    },
+  });
+
+  tool.fetchHistoryIfNeeded({
+    entity_id: 'sensor.closed',
+    state: '12',
+  });
+
+  assert.equal(apiCalls, 0);
+  assert.equal(tool.historyPromise, undefined);
+});
