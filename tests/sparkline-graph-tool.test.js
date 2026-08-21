@@ -452,6 +452,7 @@ test('explicit series use the most restrictive automatic bin density for every g
     svg: { width: 90, height: 40, line_width: 1, column_spacing: 0.2 },
     xAxisLabelLength: 10,
     stateBandsStateMap: {},
+    config: line.config,
     sparklineSeries: { items: [line, dots] },
   });
 
@@ -555,4 +556,130 @@ test("multiple series wait for every graph before building shared geometry", () 
   assert.equal(tool.graphReady, false);
   assert.deepEqual(tool.stats, {});
   assert.equal(pathRead, false);
+});
+
+
+test('calendar offset history is fetched from its source day and projected onto the reference day', () => {
+  const NativeDate = globalThis.Date;
+  const fixedNow = new NativeDate('2026-08-14T12:30:00');
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow.getTime()] : args));
+    }
+
+    static now() {
+      return fixedNow.getTime();
+    }
+  };
+
+  try {
+    const tool = Object.create(SparklineGraphTool.prototype);
+    tool.config = {
+      period: {
+        type: 'calendar',
+        calendar: { period: 'day', offset: 0, duration: { hour: 24 } },
+      },
+    };
+    const item = {
+      config: {
+        period: {
+          type: 'calendar',
+          calendar: { period: 'day', offset: -1, duration: { hour: 24 } },
+        },
+        sparkline: { show: { chart_type: 'line' } },
+      },
+    };
+    const range = tool.getHistoryRange(item);
+    const rows = tool.buildHistorySeries(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], { state: '13' }, range);
+
+    assert.equal(range.sourceRangeIsActive, false);
+    assert.equal(range.sourceStart.getTime(), new NativeDate('2026-08-13T00:00:00').getTime());
+    assert.equal(range.plotStart.getTime(), new NativeDate('2026-08-14T00:00:00').getTime());
+    assert.equal(rows[0].source_time, '2026-08-13T09:30:00.000Z');
+    assert.equal(rows[0].plot_time, '2026-08-14T09:30:00.000Z');
+    assert.equal(rows[0].last_changed, rows[0].plot_time);
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+});
+
+test('rolling window offset uses days and projects the source range forward', () => {
+  const NativeDate = globalThis.Date;
+  const fixedNow = new NativeDate('2026-08-14T12:30:00.000Z');
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow.getTime()] : args));
+    }
+
+    static now() {
+      return fixedNow.getTime();
+    }
+  };
+
+  try {
+    const tool = Object.create(SparklineGraphTool.prototype);
+    tool.config = {
+      period: {
+        type: 'rolling_window',
+        rolling_window: { offset: 0, duration: { hour: 24 } },
+      },
+    };
+    const item = {
+      config: {
+        period: {
+          type: 'rolling_window',
+          rolling_window: { offset: -1, duration: { hour: 24 } },
+        },
+        sparkline: { show: { chart_type: 'line' } },
+      },
+    };
+    const range = tool.getHistoryRange(item);
+    const rows = tool.buildHistorySeries(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], { state: '13' }, range);
+
+    assert.equal(range.sourceRangeIsActive, false);
+    assert.equal(range.sourceStart.toISOString(), '2026-08-12T12:30:00.000Z');
+    assert.equal(range.sourceEnd.toISOString(), '2026-08-13T12:30:00.000Z');
+    assert.equal(range.plotStart.toISOString(), '2026-08-13T12:30:00.000Z');
+    assert.equal(range.plotEnd.toISOString(), '2026-08-14T12:30:00.000Z');
+    assert.equal(rows[0].source_time, '2026-08-13T09:30:00.000Z');
+    assert.equal(rows[0].plot_time, '2026-08-14T09:30:00.000Z');
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+});
+
+
+
+
+test('calendar series comparisons use one complete shared visible day', () => {
+  const parentPeriod = {
+    type: 'calendar',
+    calendar: { period: 'day', offset: 0, duration: { hour: 24 }, bins: { per_hour: 1 } },
+  };
+  const seriesConfig = {
+    period: {
+      type: 'calendar',
+      calendar: { period: 'day', offset: -1, duration: { hour: 24 }, bins: { per_hour: 1 } },
+    },
+    sparkline: { show: { chart_type: 'line' } },
+    x_axis: { labels: {} },
+    y_axis: {},
+  };
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    config: { period: parentPeriod, series: [{}, {}] },
+    sparklineSeries: {
+      items: [
+        { config: { ...seriesConfig, period: parentPeriod } },
+        { config: seriesConfig },
+      ],
+    },
+    svg: { width: 100, height: 50, line_width: 0, column_spacing: 0 },
+    xAxisLabelLength: 5,
+  });
+
+  const graphConfig = tool.buildGraphConfig(seriesConfig, 1);
+
+  assert.equal(graphConfig.period.calendar.offset, 0);
+  assert.equal(graphConfig.period.calendar.full_day, true);
 });

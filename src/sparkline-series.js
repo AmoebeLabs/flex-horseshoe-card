@@ -31,7 +31,17 @@ export default class SparklineSeries {
         throw new Error(`[sparklines] series '${seriesConfig.id}' requires entity_index`);
       }
       if (config.series !== undefined && seriesConfig.period !== undefined) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' cannot override period before offset support is added`);
+        const periodType = config.period.type;
+        const periodOverride = seriesConfig.period[periodType];
+
+        // A series may carry offsets for calendar and rolling windows together.
+        // Only the parent-selected period branch is active for this sparkline.
+        if (periodOverride === undefined || Object.keys(periodOverride).some((key) => key !== 'offset')) {
+          throw new Error(`[sparklines] series '${seriesConfig.id}' period may only override ${periodType}.offset`);
+        }
+        if (!Number.isFinite(Number(periodOverride.offset))) {
+          throw new Error(`[sparklines] series '${seriesConfig.id}' period ${periodType}.offset must be numeric`);
+        }
       }
       const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
       if (config.series !== undefined && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
@@ -62,6 +72,7 @@ export default class SparklineSeries {
         historyRefreshAt: 0,
         historyResynchronizationRequested: false,
         preserveGraphWhileHistoryLoads: false,
+        historyPeriodSignature: JSON.stringify(effectiveConfig.period),
       };
     });
   }
