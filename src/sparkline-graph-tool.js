@@ -1565,6 +1565,11 @@ export default class SparklineGraphTool extends BaseTool {
       return item.historyRangeStart <= range.start.getTime();
     }
 
+    // An offset rolling window is a completed comparison snapshot. Its API
+    // boundaries move with the reference clock, but the accepted source rows
+    // remain the selected historical window until the period or entity changes.
+    if (item.config.period.type === 'rolling_window') return true;
+
     return item.historyRangeStart <= range.start.getTime() && item.historyRangeEnd >= range.end.getTime();
   }
 
@@ -1616,7 +1621,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (item.historyPromise) return;
-    if (sourceRangeIsClosed && representedRange) return;
+    if (sourceRangeIsClosed && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
     if (item.historySeries && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
 
     // Only missing ranges show a loading indicator. Periodic refreshes and

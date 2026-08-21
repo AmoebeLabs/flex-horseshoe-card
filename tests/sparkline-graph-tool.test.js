@@ -559,6 +559,23 @@ test("multiple series wait for every graph before building shared geometry", () 
 });
 
 
+test('offset rolling history stays cached while its moving reference range advances', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const item = {
+    config: { period: { type: 'rolling_window' } },
+    historySeries: [{ state: '12' }],
+    historyRangeStart: new Date('2026-08-20T12:00:00.000Z').getTime(),
+    historyRangeEnd: new Date('2026-08-21T12:00:00.000Z').getTime(),
+  };
+  const range = {
+    start: new Date('2026-08-20T12:01:00.000Z'),
+    end: new Date('2026-08-21T12:01:00.000Z'),
+    sourceRangeIsActive: false,
+  };
+
+  assert.equal(tool.acceptedHistoryContainsRange(item, range), true);
+});
+
 test('calendar offset history is fetched from its source day and projected onto the reference day', () => {
   const NativeDate = globalThis.Date;
   const fixedNow = new NativeDate('2026-08-14T12:30:00');
