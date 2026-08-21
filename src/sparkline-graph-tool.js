@@ -10,12 +10,13 @@ import Utils from './utils.js';
 import { X, Y, V } from './sparkline-graph.js';
 import SparklineSeries from './sparkline-series.js';
 import StateTool from './state-tool.js';
+import TextTool from './text-tool.js';
 import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
 import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
 import { formatDateTime } from './frontend_mods/common/datetime/format_date_time.ts';
 import { formatNumericDuration } from './frontend_mods/common/datetime/format_duration.ts';
 import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
-import { FONT_SIZE } from './const.js';
+import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
  * Starting from the given index, increment the index until an array element with
@@ -398,6 +399,20 @@ export default class SparklineGraphTool extends BaseTool {
             'font-size': '0.9em',
           },
         },
+        legend: {
+          position: 'top',
+          width: 25,
+          rows: 1,
+          gap: 1,
+          item_gap: 1,
+          line_height: 1.2,
+          marker_size: 1.5,
+          styles: {
+            fill: 'var(--primary-text-color)',
+            'font-size': '0.55em',
+            opacity: 0.8,
+          },
+        },
         show: {
           chart_type: 'line',
           points: false,
@@ -419,6 +434,7 @@ export default class SparklineGraphTool extends BaseTool {
             x: false,
             y: false,
           },
+          legend: false,
           xlabels_at: 'ticks_major',
           ylabels_at: 'ticks_major',
         },
@@ -603,6 +619,14 @@ export default class SparklineGraphTool extends BaseTool {
     });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
 
+    // The legend position determines its orientation. Top and bottom reserve a
+    // horizontal row; left and right reserve a vertical column.
+    if (sparklineConfig.sparkline.legend.position === 'left' || sparklineConfig.sparkline.legend.position === 'right') {
+      sparklineConfig.sparkline.legend.orientation = 'vertical';
+    } else {
+      sparklineConfig.sparkline.legend.orientation = 'horizontal';
+    }
+
     // Both historical period types expose the same automatic bin interface.
     // Keep 'auto' in the tool config; only buildGraphConfig resolves it for the engine.
     ['calendar', 'rolling_window'].forEach((periodType) => {
@@ -634,6 +658,13 @@ export default class SparklineGraphTool extends BaseTool {
     this.sparklineSeries = new SparklineSeries(this.config);
 
     this.svg = this.calculateSvgDimensions();
+    this.legendMeasuredFontSize = undefined;
+    this.legendMeasuredRowHeight = undefined;
+    this.legendMeasuredSignature = undefined;
+    this.legendLayout = this.calculateLegendLayout();
+    this.graphArea = this.legendLayout.graphArea;
+    this.legendTextTools = [];
+    this.legendTextSignature = undefined;
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
     this.axisGraphs = { primary: undefined, secondary: undefined };
@@ -657,8 +688,8 @@ export default class SparklineGraphTool extends BaseTool {
         const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
         this.sparklineSeries.createGraph(
           item,
-          this.svg.width,
-          this.svg.height,
+          this.graphArea.width,
+          this.graphArea.height,
           this.axisMargin,
           this.configuredGraphMargin,
           graphConfig,
@@ -742,6 +773,81 @@ export default class SparklineGraphTool extends BaseTool {
       column_spacing,
       row_spacing,
     };
+  }
+
+  /**
+   * Reserves a sibling legend area and leaves the remaining rectangle to
+   * SparklineGraph. Series count only divides the reserved area into slots.
+   *
+   * @returns {object} Legend and graph rectangles in the outer SVG viewBox.
+   */
+  calculateLegendLayout() {
+    const legend = this.config.sparkline.legend;
+    const horizontal = legend.orientation === 'horizontal';
+    const gap = this.config.sparkline.show.legend ? Utils.calculateSvgDimension(legend.gap) : 0;
+    const legendWidth = horizontal ? this.svg.width : Utils.calculateSvgDimension(legend.width);
+    const legendFontSize = this.legendMeasuredFontSize ?? this.resolveLegendFontSize();
+    const legendRowHeight = this.legendMeasuredRowHeight ?? legendFontSize * Number(legend.line_height);
+    const markerRadius = Math.min(
+      Utils.calculateSvgDimension(legend.marker_size),
+      legendFontSize / 2,
+    );
+    const legendRows = Number(legend.rows);
+    const legendHeight = horizontal
+      ? (legend.height === undefined ? legendRowHeight * legendRows : Utils.calculateSvgDimension(legend.height))
+      : this.svg.height;
+    const legendArea = { x: 0, y: 0, width: 0, height: 0 };
+    const graphArea = { x: 0, y: 0, width: this.svg.width, height: this.svg.height };
+
+    if (this.config.sparkline.show.legend) {
+      legendArea.width = legendWidth;
+      legendArea.height = legendHeight;
+
+      if (legend.position === 'top') {
+        graphArea.y = legendHeight + gap;
+        graphArea.height = this.svg.height - legendHeight - gap;
+      } else if (legend.position === 'bottom') {
+        graphArea.height = this.svg.height - legendHeight - gap;
+        legendArea.y = graphArea.height + gap;
+      } else if (legend.position === 'left') {
+        graphArea.x = legendWidth + gap;
+        graphArea.width = this.svg.width - legendWidth - gap;
+      } else if (legend.position === 'right') {
+        graphArea.width = this.svg.width - legendWidth - gap;
+        legendArea.x = graphArea.width + gap;
+      }
+    }
+
+    return {
+      orientation: legend.orientation,
+      markerRadius,
+      legendArea,
+      graphArea,
+    };
+  }
+
+  /**
+   * Converts the legend's CSS-like font-size into SVG viewBox units.
+   * The same 12px base used by the card text tools keeps automatic legend
+   * height aligned with the visible label font rather than with raw CSS pixels.
+   *
+   * @returns {number} Legend font size in SVG viewBox units.
+   */
+  resolveLegendFontSize() {
+    const styles = ConfigHelper.toStyleDict(this.config.sparkline.legend.styles);
+    const fontSize = styles['font-size'];
+    const value = Number.parseFloat(fontSize);
+    const fontSizePixels = typeof fontSize === 'number'
+      ? value
+      : fontSize.endsWith('em') || fontSize.endsWith('rem')
+        ? value * FONT_SIZE
+        : fontSize.endsWith('px')
+          ? value
+          : fontSize.endsWith('%')
+            ? (value / 100) * FONT_SIZE
+            : value;
+
+    return fontSizePixels * (100 / SVG_DEFAULT_DIMENSIONS);
   }
 
   /**
@@ -950,8 +1056,8 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     return {
-      width: this.svg.width,
-      height: this.svg.height,
+      width: this.graphArea.width,
+      height: this.graphArea.height,
       geometry: {
         line_width: this.svg.line_width,
         column_spacing: this.svg.column_spacing,
@@ -1108,6 +1214,13 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     this.svg = this.calculateSvgDimensions(this.config);
+    if (this.configChanged) {
+      this.legendMeasuredFontSize = undefined;
+      this.legendMeasuredRowHeight = undefined;
+      this.legendMeasuredSignature = undefined;
+    }
+    this.legendLayout = this.calculateLegendLayout();
+    this.graphArea = this.legendLayout.graphArea;
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
     this.axisGraphs = { primary: undefined, secondary: undefined };
@@ -1203,8 +1316,8 @@ export default class SparklineGraphTool extends BaseTool {
       const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
       this.sparklineSeries.createGraph(
         item,
-        this.svg.width,
-        this.svg.height,
+        this.graphArea.width,
+        this.graphArea.height,
         this.axisMargin,
         this.configuredGraphMargin,
         graphConfig,
@@ -1234,6 +1347,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.sparklineSeries.defaultItem.entityConfig,
     );
     this.sparklineSeries.items.slice(1).forEach((item) => this.setSeriesState(item));
+    this.updateLegendTextTools();
   }
 
   /**
@@ -1919,7 +2033,10 @@ export default class SparklineGraphTool extends BaseTool {
     const graph = this.Graph;
     const zeroY = graph._calcY([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
-    this.stats = this.calculateStatistics(this.series);
+    this.sparklineSeries.items.forEach((item) => {
+      item.stats = this.calculateStatistics(item.rows);
+    });
+    this.stats = this.sparklineSeries.defaultItem.stats;
   }
 
   /**
@@ -2161,9 +2278,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Clamped x coordinate inside the graph.
    */
   pointToGraphX(point) {
-    const x = point.x;
+    const x = point.x - this.graphArea.x;
 
-    return Math.max(0, Math.min(x, this.svg.width));
+    return Math.max(0, Math.min(x, this.graphArea.width));
   }
 
   /**
@@ -2457,8 +2574,8 @@ export default class SparklineGraphTool extends BaseTool {
       const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
       const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
       const pointer = event?.touches ? event.touches[0] : event;
-      const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + point[X] * scaleX : point[X];
-      const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + point[Y] * scaleY : point[Y];
+      const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + (this.graphArea.x + point[X]) * scaleX : point[X];
+      const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + (this.graphArea.y + point[Y]) * scaleY : point[Y];
       this.tooltip = {
         entity: this.entity_index,
         index: pointIndex,
@@ -2478,8 +2595,8 @@ export default class SparklineGraphTool extends BaseTool {
     const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
     const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
     const pointer = event?.touches ? event.touches[0] : event;
-    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + point[X] * scaleX : point[X];
-    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + point[Y] * scaleY : point[Y];
+    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + (this.graphArea.x + point[X]) * scaleX : point[X];
+    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + (this.graphArea.y + point[Y]) * scaleY : point[Y];
 
     this.tooltip = {
       entity: this.entity_index,
@@ -2511,10 +2628,10 @@ export default class SparklineGraphTool extends BaseTool {
     const scaleX = svgBox.width / this.svg.width;
     const scaleY = svgBox.height / this.svg.height;
     this.elements.tooltipBounds = {
-      left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
-      top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
-      right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
-      bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+      left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
+      top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+      right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+      bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
     };
     this.updateRadialActiveBinDom(pointIndex);
     this.updateActiveIndicatorDom();
@@ -2812,10 +2929,10 @@ export default class SparklineGraphTool extends BaseTool {
     const scaleX = svgBox.width / this.svg.width;
     const scaleY = svgBox.height / this.svg.height;
     this.elements.tooltipBounds = {
-      left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX,
-      top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
-      right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
-      bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+      left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
+      top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+      right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
+      bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
     };
     this.updateTooltipFromRadialBarcode(pointIndex, e);
   }
@@ -2894,10 +3011,10 @@ export default class SparklineGraphTool extends BaseTool {
           // Half a bucket extends hover hit testing to both chart edges.
           const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
           this.elements.tooltipBounds = {
-            left: svgBox.left - this.elements.containerRect.left + this.Graph.drawArea.x * scaleX - hoverPaddingX,
-            top: svgBox.top - this.elements.containerRect.top + this.Graph.drawArea.y * scaleY,
-            right: svgBox.left - this.elements.containerRect.left + (this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
-            bottom: svgBox.top - this.elements.containerRect.top + (this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+            left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX - hoverPaddingX,
+            top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+            right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
+            bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
           };
         }
 
@@ -3101,8 +3218,8 @@ export default class SparklineGraphTool extends BaseTool {
         class="sparkline-area-rect"
         x="0"
         y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
+        width="${this.graphArea.width}"
+        height="${this.graphArea.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
         mask="url(#fill-${this.cardId}-${this.index}-${i})"
       ></rect>
@@ -3155,8 +3272,8 @@ export default class SparklineGraphTool extends BaseTool {
         class="sparkline-area-rect"
         x="0"
         y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
+        width="${this.graphArea.width}"
+        height="${this.graphArea.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
         mask="url(#fillMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
@@ -3218,8 +3335,8 @@ export default class SparklineGraphTool extends BaseTool {
         class="sparkline-line-rect"
         x="0"
         y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
+        width="${this.graphArea.width}"
+        height="${this.graphArea.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
         mask="url(#sparkline-line-${this.cardId}-${this.index}-${i})"
       ></rect>
@@ -3281,8 +3398,8 @@ export default class SparklineGraphTool extends BaseTool {
         class="sparkline-line-rect"
         x="0"
         y="0"
-        width="${this.svg.width}"
-        height="${this.svg.height}"
+        width="${this.graphArea.width}"
+        height="${this.graphArea.height}"
         style=${styleMap(this.getRenderStyles(backgroundStyles))}
         mask="url(#sparkline-lineMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
@@ -4997,7 +5114,7 @@ export default class SparklineGraphTool extends BaseTool {
     const renderDayNight = () => {
       return this.config.sparkline.radial_barcode.face?.show_day_night === true
         ? svg`
-        <circle pathLength="1" r="${dayNightRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
+        <circle pathLength="1" r="${dayNightRadius}" cx=${this.graphArea.width / 2} cy="${this.graphArea.height / 2}"></circle>
       `
         : '';
     };
@@ -5005,7 +5122,7 @@ export default class SparklineGraphTool extends BaseTool {
     const renderHourMarks = () => {
       return this.config.sparkline.radial_barcode.face?.show_hour_marks === true
         ? svg`
-        <circle pathLength=${this.config.sparkline.radial_barcode.face.hour_marks_count} r="${hourMarksRadius}" cx=${this.svg.width / 2} cy="${this.svg.height / 2}"></circle>
+        <circle pathLength=${this.config.sparkline.radial_barcode.face.hour_marks_count} r="${hourMarksRadius}" cx=${this.graphArea.width / 2} cy="${this.graphArea.height / 2}"></circle>
       `
         : '';
     };
@@ -5014,10 +5131,10 @@ export default class SparklineGraphTool extends BaseTool {
       return this.config.sparkline.radial_barcode.face?.show_hour_numbers === 'absolute'
         ? svg`
         <g>
-          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">24</text>
-          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">12</text>
-          <text x="${this.svg.width / 2 + hourNumbersRadius}" y="${this.svg.height / 2}">6</text>
-          <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">18</text>
+          <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 - hourNumbersRadius}">24</text>
+          <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 + hourNumbersRadius}">12</text>
+          <text x="${this.graphArea.width / 2 + hourNumbersRadius}" y="${this.graphArea.height / 2}">6</text>
+          <text x="${this.graphArea.width / 2 - hourNumbersRadius}" y="${this.graphArea.height / 2}">18</text>
         </g>
       `
         : '';
@@ -5027,10 +5144,10 @@ export default class SparklineGraphTool extends BaseTool {
       return this.config.sparkline.radial_barcode.face?.show_hour_numbers === 'relative'
         ? svg`
         <g>
-          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 - hourNumbersRadius}">0</text>
-          <text x="${this.svg.width / 2}" y="${this.svg.height / 2 + hourNumbersRadius}">-12</text>
-          <text x="${this.svg.width / 2 + hourNumbersRadius}" y="${this.svg.height / 2}">-18</text>
-          <text x="${this.svg.width / 2 - hourNumbersRadius}" y="${this.svg.height / 2}">-6</text>
+          <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 - hourNumbersRadius}">0</text>
+          <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 + hourNumbersRadius}">-12</text>
+          <text x="${this.graphArea.width / 2 + hourNumbersRadius}" y="${this.graphArea.height / 2}">-18</text>
+          <text x="${this.graphArea.width / 2 - hourNumbersRadius}" y="${this.graphArea.height / 2}">-6</text>
         </g>
       `
         : '';
@@ -5068,7 +5185,7 @@ export default class SparklineGraphTool extends BaseTool {
       >
         ${this.radialBarcodeChartBackground[index].map((bin, i) => this.renderSvgRadialBarcodeBackgroundBin(bin, radialBarcodeBackgroundPaths[i], i))}
         ${radialBarcode.map((bin, i) => this.renderSvgRadialBarcodeBin(bin, radialBarcodePaths[i], i))}
-        ${this.renderSvgRadialBarcodeFace(this.svg.width / 2 - 40)}
+        ${this.renderSvgRadialBarcodeFace(this.graphArea.width / 2 - 40)}
       </g>
     `;
   }
@@ -5334,6 +5451,150 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Creates one TextTool per legend label after slot geometry is known.
+   * The labels stay at the configured font size; TextTool receives the slot
+   * width as a measured ellipsis limit rather than shrinking the font.
+   */
+  updateLegendTextTools() {
+    const legend = this.config.sparkline.legend;
+    if (!this.config.sparkline.show.legend) {
+      this.legendItems = [];
+      this.legendTextTools = [];
+      this.legendTextSignature = undefined;
+      return;
+    }
+
+    const items = this.sparklineSeries.items;
+    const area = this.legendLayout.legendArea;
+    const horizontal = this.legendLayout.orientation === 'horizontal';
+    const rows = Number(legend.rows);
+    const columns = horizontal ? Math.ceil(items.length / rows) : 1;
+    const slotWidth = area.width / columns;
+    const slotHeight = area.height / (horizontal ? rows : items.length);
+    const markerSize = this.legendLayout.markerRadius;
+    const markerGap = Utils.calculateSvgDimension(legend.item_gap);
+    const textStyles = {
+      ...ConfigHelper.toStyleDict(legend.styles),
+      'text-anchor': 'start',
+      'dominant-baseline': 'central',
+      'pointer-events': 'none',
+    };
+
+    const legendItems = items.map((item, index) => {
+      const label = item.config.name ?? item.entity?.attributes?.friendly_name ?? item.id;
+      const color = item.config.color ?? item.entityConfig?.color ?? item.config.sparkline.line_color[index];
+      const row = horizontal ? Math.floor(index / columns) : index;
+      const column = horizontal ? index % columns : 0;
+      const slotX = area.x + column * slotWidth;
+      const slotY = area.y + row * slotHeight;
+      const markerX = slotX + markerGap + markerSize;
+      const markerY = slotY + slotHeight / 2;
+      const textX = markerX + markerSize + markerGap;
+      const textWidth = slotWidth - (markerGap * 3) - (markerSize * 2);
+      const textY = markerY;
+      const textConfig = {
+        id: this.id + '-legend-' + item.id,
+        xpos: (this.svg.x + textX) / 2,
+        ypos: (this.svg.y + textY) / 2,
+        text: label,
+        text_overflow: {
+          mode: 'ellipsis',
+          ellipsis: {
+            max_width: textWidth / 2,
+          },
+        },
+        styles: textStyles,
+        tap_action: { action: 'none' },
+      };
+
+      return {
+        label,
+        color,
+        markerX,
+        markerY,
+        textX,
+        textY,
+        textTool: new TextTool(textConfig, index, this.templates, this.cardId, this.card),
+      };
+    });
+    const textSignature = JSON.stringify(legendItems.map((item) => ({
+      label: item.label,
+      color: item.color,
+      markerX: item.markerX,
+      markerY: item.markerY,
+      textX: item.textX,
+      textY: item.textY,
+      styles: textStyles,
+    })));
+
+    if (textSignature === this.legendTextSignature) return;
+
+    legendItems.forEach((item) => {
+      item.textTool.updateRuntimeConfig();
+      item.textTool.setStaticState();
+    });
+    this.legendItems = legendItems;
+    this.legendTextTools = legendItems.map((item) => item.textTool);
+    this.legendTextSignature = textSignature;
+  }
+
+  /**
+   * Forwards Lit's post-render measurement pass to legend TextTool instances.
+   * Width-based ellipsis is resolved only after SVG has measured each label.
+   */
+  updated() {
+    this.legendTextTools.forEach((textTool) => textTool.updated());
+
+    if (!this.config.sparkline.show.legend || this.legendTextTools.length === 0) return;
+
+    // TextTool and the legend share the same nested SVG. Its bounding box is
+    // already expressed in the local viewBox, so no CSS-pixel conversion is needed.
+    const textElement = this.legendTextTools[0].textElement;
+    const measuredTextHeight = textElement.getBBox().height;
+    const lineHeight = Number(this.config.sparkline.legend.line_height);
+    const measuredRowHeight = measuredTextHeight * lineHeight;
+    const measuredSignature = measuredTextHeight + '|' + measuredRowHeight;
+
+    if (measuredSignature === this.legendMeasuredSignature) return;
+
+    const graphWasReady = this.graphReady;
+    this.legendMeasuredSignature = measuredSignature;
+    this.legendMeasuredFontSize = measuredTextHeight;
+    this.legendMeasuredRowHeight = measuredRowHeight;
+    this.legendLayout = this.calculateLegendLayout();
+    this.graphArea = this.legendLayout.graphArea;
+    this.updateRuntimeConfig();
+    if (graphWasReady) this.updateGraphFromSeries();
+    this.card.requestUpdate();
+  }
+
+  /**
+   * Renders one aligned color marker and label for every declared series.
+   * The slots are equal; the graph engine never needs to know legend text.
+   *
+   * @returns {TemplateResult|string} Legend SVG or an empty template.
+   */
+  renderLegend() {
+    if (!this.config.sparkline.show.legend) return svg``;
+
+    return svg`
+      <g class="sparkline-legend" pointer-events="none">
+        <g transform="translate(${-this.svg.x} ${-this.svg.y})">
+          ${this.legendTextTools.map((textTool) => textTool.render())}
+        </g>
+        ${this.legendItems.map((item) => svg`
+          <circle
+            class="sparkline-legend__marker"
+            cx="${item.markerX}"
+            cy="${item.markerY}"
+            r="${this.legendLayout.markerRadius}"
+            fill="${item.color}"
+          ></circle>
+        `)}
+      </g>
+    `;
+  }
+  /**
    * Renders one sparkline layout item.
    *
    * @returns {TemplateResult} SVG template for the sparkline.
@@ -5361,7 +5622,10 @@ export default class SparklineGraphTool extends BaseTool {
             @pointerdown=${(event) => event.stopPropagation()}
             @click=${(event) => event.stopPropagation()}
           >
-            ${this.historyDurationReady ? this.renderHistoryLoadingSpinner() : svg``}
+            <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
+              ${this.historyDurationReady ? this.renderHistoryLoadingSpinner() : svg``}
+            </g>
+            ${this.renderLegend()}
           </svg>
         </g>
       `;
@@ -5395,7 +5659,8 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
             ${this.renderSvgStateBandsMask()}
           </defs>
-          <g
+          <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
+            <g
             opacity=${this.historyLoading ? 0.2 : 1}
             style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
           >
@@ -5452,8 +5717,10 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
           ${this.renderAxisLabels()}
+            </g>
+            ${this.renderHistoryLoadingSpinner()}
           </g>
-          ${this.renderHistoryLoadingSpinner()}
+          ${this.renderLegend()}
         </svg>
       </g>
     `;

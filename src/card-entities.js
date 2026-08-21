@@ -74,7 +74,11 @@ export default class CardEntities {
     return resolvedEntityConfigs.map((entityConfig) => {
       if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
       let matchedSparkline;
+      let matchedSeries;
       let matchedType;
+
+      // Derived IDs are matched from the declared configuration instead of
+      // splitting underscores, so series IDs may contain underscores safely.
       sparklineConfigs.forEach((sparklineConfig) => {
         sparklineEntityTypes.forEach((entityType) => {
           if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${entityType}`) {
@@ -82,17 +86,31 @@ export default class CardEntities {
             matchedType = entityType;
           }
         });
+
+        if (sparklineConfig.series !== undefined) {
+          sparklineConfig.series.forEach((seriesConfig) => {
+            sparklineEntityTypes.forEach((entityType) => {
+              if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${seriesConfig.id}_${entityType}`) {
+                matchedSparkline = sparklineConfig;
+                matchedSeries = seriesConfig;
+                matchedType = entityType;
+              }
+            });
+          });
+        }
       });
       if (!matchedSparkline) throw new Error(`[entities] Unknown sparkline entity: ${entityConfig.entity}`);
 
+      const sourceEntityIndex = matchedSeries === undefined ? matchedSparkline.entity_index : matchedSeries.entity_index;
       const localEntityConfig = {
-        ...resolvedEntityConfigs[matchedSparkline.entity_index],
+        ...resolvedEntityConfigs[sourceEntityIndex],
         ...entityConfig,
         local: true,
-        source_entity_index: matchedSparkline.entity_index,
+        source_entity_index: sourceEntityIndex,
         sparkline_id: matchedSparkline.id,
         sparkline_entity_type: matchedType,
       };
+      if (matchedSeries !== undefined) localEntityConfig.sparkline_series_id = matchedSeries.id;
       delete localEntityConfig.attribute;
       if (entityConfig.name === undefined) delete localEntityConfig.name;
       if (matchedType === 'min_time' || matchedType === 'max_time') {
@@ -109,7 +127,11 @@ export default class CardEntities {
   updateSparklineEntities(resolvedEntityConfigs, entities, sparklineGraphTools) {
     resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
       if (!entityConfig.sparkline_entity_type) return;
-      const graph = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
+      const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
+      const seriesItem = entityConfig.sparkline_series_id === undefined
+        ? graphTool.sparklineSeries.defaultItem
+        : graphTool.sparklineSeries.items.find((item) => item.id === entityConfig.sparkline_series_id);
+      const graph = seriesItem.graph;
       const sourceEntity = entities[entityConfig.source_entity_index];
       const sourceConfig = resolvedEntityConfigs[entityConfig.source_entity_index];
       const entityType = entityConfig.sparkline_entity_type;
@@ -122,7 +144,8 @@ export default class CardEntities {
       let deviceClass = sourceEntity.attributes.device_class;
 
       if (['min', 'avg', 'max', 'min_time', 'max_time'].includes(entityType)) {
-        state = Object.hasOwn(graph.stats, entityType) ? graph.stats[entityType] : 'unavailable';
+        const statistics = entityConfig.sparkline_series_id === undefined ? graphTool.stats : seriesItem.stats;
+        state = Object.hasOwn(statistics, entityType) ? statistics[entityType] : 'unavailable';
         if (entityType === 'avg' && Number.isFinite(Number(state))) {
           const sourceDecimals = sourceConfig.decimals !== undefined
             ? Number(sourceConfig.decimals)
@@ -183,6 +206,7 @@ export default class CardEntities {
           device_class: deviceClass,
           sparkline_id: entityConfig.sparkline_id,
           sparkline_entity_type: entityType,
+          sparkline_series_id: entityConfig.sparkline_series_id,
         },
       });
       this.stateChanged = true;

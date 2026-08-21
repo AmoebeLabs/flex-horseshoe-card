@@ -122,6 +122,8 @@ Margins reserve space within the configured graph area. Cartesian labels and tic
 | `color_stops`                 | Defines value-based graph colors.                                        |
 | `colorstops_transition`       | Uses hard or smooth transitions between color stops.                     |
 | `tooltip.styles`              | Adjusts the appearance of the interactive tooltip.                       |
+| `show.legend`                 | Shows one color marker and label for every declared series.                |
+| `legend`                      | Positions and styles the separate legend area.                            |
 | `line` and `area`             | Control the styling of line and area charts.                             |
 | `state_map` and `state_bands` | Map named states and control the appearance of a state bands chart.      |
 

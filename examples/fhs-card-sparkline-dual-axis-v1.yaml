@@ -61,10 +61,15 @@ layout:
           axis: true
           tickmarks: true
           labels: true
+          legend: true
           xlabels_at: ticks_major
           ylabels_at: ticks_major
         line:
           line_width: 1.5
+        legend:
+          position: top
+          rows: 2
+          gap: 1
       x_axis:
         labels:
           styles:

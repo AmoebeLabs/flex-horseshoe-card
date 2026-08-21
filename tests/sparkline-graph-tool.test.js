@@ -90,12 +90,79 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
   }
 });
 
+
+
+test('legend position reserves a sibling area with matching orientation', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  tool.svg = { width: 200, height: 100 };
+  tool.legendMeasuredFontSize = undefined;
+  tool.legendMeasuredRowHeight = undefined;
+  tool.legendMeasuredFontSize = undefined;
+  tool.legendMeasuredRowHeight = undefined;
+
+  const cases = [
+    ['top', 'horizontal', { x: 0, y: 18, width: 200, height: 82 }, { x: 0, y: 0, width: 200, height: 16 }],
+    ['bottom', 'horizontal', { x: 0, y: 0, width: 200, height: 82 }, { x: 0, y: 84, width: 200, height: 16 }],
+    ['left', 'vertical', { x: 52, y: 0, width: 148, height: 100 }, { x: 0, y: 0, width: 50, height: 100 }],
+    ['right', 'vertical', { x: 0, y: 0, width: 148, height: 100 }, { x: 150, y: 0, width: 50, height: 100 }],
+  ];
+
+  cases.forEach(([position, orientation, graphArea, legendArea]) => {
+    tool.config = {
+      sparkline: {
+        show: { legend: true },
+        legend: {
+          position,
+          orientation,
+          width: 25,
+          height: 8,
+          gap: 1,
+          marker_size: 1.5,
+          line_height: 1.2,
+          styles: { 'font-size': '0.55em' },
+        },
+      },
+    };
+    const layout = tool.calculateLegendLayout();
+    assert.equal(layout.orientation, orientation);
+    assert.deepEqual(layout.graphArea, graphArea);
+    assert.deepEqual(layout.legendArea, legendArea);
+  });
+});
+
+test('legend height follows fixed label font size and row count', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  tool.svg = { width: 200, height: 100 };
+  tool.config = {
+    sparkline: {
+      show: { legend: true },
+      legend: {
+        position: 'top',
+        orientation: 'horizontal',
+        rows: 2,
+        gap: 1,
+        item_gap: 1,
+        line_height: 1.2,
+        marker_size: 1.5,
+        styles: { 'font-size': '0.55em' },
+      },
+    },
+  };
+
+  const layout = tool.calculateLegendLayout();
+
+  assert.equal(layout.legendArea.height, 7.92);
+  assert.equal(layout.graphArea.y, 9.92);
+  assert.equal(layout.graphArea.height, 90.08);
+  assert.ok(Math.abs(layout.markerRadius - 1.65) < 1e-12);
+});
 test('area chart omits its line layers when show.line is false', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
     cardId: 'test-card',
     index: 0,
     svg: { width: 100, height: 50 },
+    graphArea: { width: 100, height: 50 },
     config: {
       sparkline: {
         show: { chart_type: 'area', line: false },
@@ -494,6 +561,7 @@ test('explicit series use the most restrictive automatic bin density for every g
   const dots = { id: 'dots', config: makeConfig('dots') };
   Object.assign(tool, {
     svg: { width: 90, height: 40, line_width: 1, column_spacing: 0.2 },
+    graphArea: { width: 90, height: 40 },
     xAxisLabelLength: 10,
     stateBandsStateMap: {},
     config: line.config,
@@ -737,6 +805,7 @@ test('calendar series comparisons use one complete shared visible day', () => {
       ],
     },
     svg: { width: 100, height: 50, line_width: 0, column_spacing: 0 },
+    graphArea: { width: 100, height: 50 },
     xAxisLabelLength: 5,
   });
 

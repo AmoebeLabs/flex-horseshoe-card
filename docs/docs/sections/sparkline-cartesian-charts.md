@@ -262,6 +262,48 @@ Bar colors can come from the configured line colors, the entity color, or color 
 | Labels                | X and Y.        |
 | Tooltip and indicator | Yes.            |
 
+## :material-horseshoe: Multiple series and legends
+
+Use `series:` when one sparkline should compare multiple entities or chart types. Each series gets one color marker and one label in the declaration order.
+
+Enable the legend through the sparkline visibility settings. The legend is a separate sibling area, so it reduces the graph area instead of covering the graph:
+
+```yaml linenums="1"
+sparklines:
+  - id: climate-comparison
+    entity_index: 0
+    width: 88
+    height: 78
+    sparkline:
+      show:
+        chart_type: line
+        legend: true
+      legend:
+        position: top
+        rows: 2
+        gap: 1
+    series:
+      - id: livingroom
+        entity_index: 0
+        color: var(--primary-color)
+      - id: bedroom
+        entity_index: 1
+        color: var(--accent-color)
+```
+
+The legend position determines its layout direction:
+
+| Position | Layout | Reserved dimension |
+| :------- | :----- | :----------------- |
+| `top` | Horizontal | Automatic from `rows`, font size and line height |
+| `bottom` | Horizontal | Automatic from `rows`, font size and line height |
+| `left` | Vertical | `legend.width` |
+| `right` | Vertical | `legend.width` |
+
+`legend.gap` reserves the space between the legend and graph. Use `legend.marker_size` and `legend.styles` to adjust the marker and label appearance. Use `legend.rows` to split a horizontal legend across multiple rows. The default is one row. The legend height is calculated from the row count, the active label font size and line height. Markers are constrained to that row height. Each label keeps that font size; `TextTool` applies width-based ellipsis inside its calculated slot.
+
+All series use the same X-axis and graph area. A multi-series tooltip shows one row per series, using the same declaration order and colors as the legend.
+
 ## :material-horseshoe: Showing the grid, axes, tick marks, and labels
 
 Use `show` to choose which automatically calculated display elements are visible:
