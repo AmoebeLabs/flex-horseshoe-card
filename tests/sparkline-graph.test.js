@@ -400,6 +400,9 @@ test("grouped bars divide every bucket without crossing the shared axis boundari
   assert.equal(groups[1][0].x + groups[1][0].width <= groups[2][0].x, true);
   assert.equal(rounded(groups[0][0].y), rounded(groups[0][2].y + groups[0][2].height));
   assert.equal(groups[1][1].height, 0);
+
+  const firstBucketCenters = groups.map((group) => group[0].x + group[0].width / 2);
+  assert.equal(rounded((firstBucketCenters[0] + firstBucketCenters[2]) / 2), rounded(graph.coords[0][0]));
 });
 
 test('dot geometry reserves radius plus half the inherited stroke width', () => {

@@ -91,6 +91,7 @@ layout:
           entity_index: 2
           color: "#66bb6a"
           y_axis_id: secondary
-          line:
-            styles:
-              stroke-dasharray: "4 2"
+          sparkline:
+            line:
+              styles:
+                stroke-dasharray: "4 2"

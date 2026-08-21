@@ -301,6 +301,7 @@ The legend position determines its layout direction:
 | `right` | Vertical | `legend.width` |
 
 `legend.gap` reserves the space between the legend and graph. Use `legend.marker_size` and `legend.styles` to adjust the marker and label appearance. Use `legend.rows` to split a horizontal legend across multiple rows. The default is one row. The legend height is calculated from the row count, the active label font size and line height. Markers are constrained to that row height. Each label keeps that font size; `TextTool` applies width-based ellipsis inside its calculated slot.
+Each series inherits the parent `sparkline` configuration. Override a line inside the series with `series[].sparkline.line`, keeping `show`, `line`, `area`, `dots`, and `bar` under the same `sparkline` hierarchy.
 
 All series use the same X-axis and graph area. A multi-series tooltip shows one row per series, using the same declaration order and colors as the legend.
 

@@ -1676,7 +1676,7 @@ export default class SparklineGraph {
 
     const width = Math.max(1, barSlotWidth - columnSpacing);
     return coords.map((coord, i) => ({
-      x: coord[X] + barSlotWidth * position - width / 2,
+      x: coord[X] - bucketWidth / 2 + barSlotWidth * (position + 0.5) - width / 2,
       y: this._min > 0 ? coord[Y] : coord[Y2],
       height: coord[V] > 0 ? (this._min < 0 ? coord[V] / yRatio : (coord[V] - this._min) / yRatio) : coord[Y] - coord[Y2],
       width,

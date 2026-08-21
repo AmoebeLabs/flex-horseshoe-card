@@ -228,13 +228,20 @@ test('bar fade reverses at zero for positive and negative values', () => {
     ],
     0,
   );
-  const positiveBar = rendered.values[1][0];
-  const negativeBar = rendered.values[1][1];
+  const gradients = tool.renderBarFadeGradients(
+    [
+      { value: 5 },
+      { value: -5 },
+    ],
+    0,
+    tool.config,
+    0,
+  );
 
-  assert.deepEqual(positiveBar.values[0].values.slice(1, 3), ['0%', '100%']);
-  assert.equal(positiveBar.values[7], 'url(#bar-fill-fade-test-card-3-0-0)');
-  assert.deepEqual(negativeBar.values[0].values.slice(1, 3), ['100%', '0%']);
-  assert.equal(negativeBar.values[7], 'url(#bar-fill-fade-test-card-3-0-1)');
+  assert.deepEqual(gradients[0].values.slice(1, 3), ['0%', '100%']);
+  assert.equal(gradients[0].values[0], 'bar-fill-fade-test-card-3-0-0');
+  assert.deepEqual(gradients[1].values.slice(1, 3), ['100%', '0%']);
+  assert.equal(gradients[1].values[0], 'bar-fill-fade-test-card-3-0-1');
   assert.equal(tool.renderSvgBarsBackground([{ value: 5 }], 0), '');
 });
 
@@ -468,9 +475,35 @@ test('axis margin contains labels and tickmarks independently from data margin',
   });
 });
 
+test('per-series line_width reaches the graph geometry', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const config = {
+    line: { styles: { 'stroke-width': 1 } },
+    sparkline: {
+      show: { chart_type: 'line' },
+      line: { line_width: 2.5, styles: {} },
+    },
+  };
+
+  assert.equal(tool.getConfiguredLineWidth(config), 5);
+});
+
+test('series line_width overrides the shared sparkline line_width', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const config = {
+    sparkline: {
+      show: { chart_type: 'line' },
+      line: { line_width: 1, styles: {} },
+    },
+  };
+
+  assert.equal(tool.getConfiguredLineWidth(config), 2);
+});
+
 test('explicit series use independent primary and secondary y-axis ranges', () => {
   const calls = [];
   const makeGraph = (min, max) => ({
+    config: { geometry: { line_width: 1 } },
     min,
     max,
     coords: [[0, 0, min], [100, 0, max]],

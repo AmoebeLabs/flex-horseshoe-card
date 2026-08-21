@@ -757,8 +757,7 @@ export default class SparklineGraphTool extends BaseTool {
     const width = Utils.calculateSvgDimension(config.width);
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);
-    const line_width = Utils.calculateSvgDimension(config.sparkline?.[config.sparkline.show.chart_type]?.styles?.['stroke-width'] || config.sparkline?.line?.styles?.['stroke-width'] || config.line_width || 0);
-    // this.svg.line_width = Utils.calculateSvgDimension(this.config.sparkline[this.config.sparkline.show.chart_type]?.line_width || this.config.line_width || 0);
+    const line_width = this.getConfiguredLineWidth(config);
     const column_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.column_spacing || this.config.bar_spacing || 1);
     const row_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.row_spacing || this.config.bar_spacing || 1);
 
@@ -773,6 +772,29 @@ export default class SparklineGraphTool extends BaseTool {
       column_spacing,
       row_spacing,
     };
+  }
+
+  /**
+   * Reads the active graph's line width from the same per-series config that
+   * controls its chart type. The value is shared with the engine geometry and
+   * the SVG mask so a wider line also reserves the correct visual extent.
+   *
+   * @param {object} config - Complete sparkline or per-series configuration.
+   * @returns {number} Line width in SVG viewBox units.
+   */
+  getConfiguredLineWidth(config) {
+    const chartType = config.sparkline.show.chart_type;
+    const chartConfig = config.sparkline[chartType];
+    const lineConfig = config.sparkline.line;
+    const configuredLineWidth = chartConfig?.line_width !== undefined
+      ? chartConfig.line_width
+      : lineConfig?.line_width !== undefined
+        ? lineConfig.line_width
+        : chartConfig?.styles?.['stroke-width'] !== undefined
+          ? chartConfig.styles['stroke-width']
+          : lineConfig?.styles?.['stroke-width'];
+
+    return configuredLineWidth === undefined ? 0 : Utils.calculateSvgDimension(configuredLineWidth);
   }
 
   /**
@@ -1059,7 +1081,7 @@ export default class SparklineGraphTool extends BaseTool {
       width: this.graphArea.width,
       height: this.graphArea.height,
       geometry: {
-        line_width: this.svg.line_width,
+        line_width: this.getConfiguredLineWidth(config),
         column_spacing: this.svg.column_spacing,
       },
       period,
@@ -1981,7 +2003,7 @@ export default class SparklineGraphTool extends BaseTool {
       const chartType = item.config.sparkline.show.chart_type;
       const rendersDots = chartType === "dots" || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
-        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + this.svg.line_width / 4;
+        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
         sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
         sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, dotExtent);
         sharedChartGeometryMargin.b = Math.max(sharedChartGeometryMargin.b, dotExtent);
@@ -3156,24 +3178,24 @@ export default class SparklineGraphTool extends BaseTool {
     const yZero = this.Graph.min >= 0 ? 0 : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
 
     return svg`
-      <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+      <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2=${this.graphArea.height}>
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-pos-${this.cardId}-${this.index}-${i}`}>
-        <rect width="100%" height="${100 - yZero}%" fill=${`url(#fill-grad-pos-${this.cardId}-${this.index}-${i})`}
+      <mask id=${`fill-grad-mask-pos-${this.cardId}-${this.index}-${i}`} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width=${this.graphArea.width} height=${this.graphArea.height}>
+        <rect x="0" y="0" width=${this.graphArea.width} height=${this.graphArea.height * (1 - yZero / 100)} fill=${`url(#fill-grad-pos-${this.cardId}-${this.index}-${i})`}
          />
       </mask>
-      <linearGradient id=${`fill-grad-neg-${this.cardId}-${this.index}-${i}`} x1="0%" y1="100%" x2="0%" y2="0%">
+      <linearGradient id=${`fill-grad-neg-${this.cardId}-${this.index}-${i}`} gradientUnits="userSpaceOnUse" x1="0" y1=${this.graphArea.height} x2="0" y2="0">
         <stop stop-color='white' offset='0%' stop-opacity='1'/>
         <stop stop-color='white' offset='100%' stop-opacity='0.1'/>
       </linearGradient>
-      <mask id=${`fill-grad-mask-neg-${this.cardId}-${this.index}-${i}`}>
-        <rect width="100%" y=${100 - yZero}% height="${yZero}%" fill=${`url(#fill-grad-neg-${this.cardId}-${this.index}-${i})`}
+      <mask id=${`fill-grad-mask-neg-${this.cardId}-${this.index}-${i}`} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width=${this.graphArea.width} height=${this.graphArea.height}>
+        <rect x="0" y=${this.graphArea.height * (1 - yZero / 100)} width=${this.graphArea.width} height=${this.graphArea.height * (yZero / 100)} fill=${`url(#fill-grad-neg-${this.cardId}-${this.index}-${i})`}
          />
       </mask>
 
-    <mask id=${`fill-${this.cardId}-${this.index}-${i}`}>
+    <mask id=${`fill-${this.cardId}-${this.index}-${i}`} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width=${this.graphArea.width} height=${this.graphArea.height}>
       <path class='fill'
         type=${this.config.sparkline.show.fill}
         .id=${i} anim=${this.config.sparkline.animate} ?init=${init}
@@ -3466,7 +3488,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Line style dictionary before render filters.
    */
   getLineStyles() {
-    return Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.config.line?.styles));
+    const styles = Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.config.sparkline.line?.styles));
+    styles['stroke-width'] = this.getConfiguredLineWidth(this.config);
+    return styles;
   }
 
   /**
@@ -4923,27 +4947,12 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class='bars' ?anim=${this.config.sparkline.animate}>
+        <defs>${this.renderBarFadeGradients(bars, index, this.config, index)}</defs>
         ${bars.map((bar, i) => {
           const color = this.computeColor(bar.value, index);
           const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${index}-${i}`;
           const fill = fade ? `url(#${gradientId})` : color;
           return svg`
-            ${
-              fade
-              ? svg`
-                <linearGradient
-                  id=${gradientId}
-                  x1='0%'
-                  y1=${bar.value >= 0 ? '0%' : '100%'}
-                  x2='0%'
-                  y2=${bar.value >= 0 ? '100%' : '0%'}
-                >
-                  <stop stop-color=${color} offset='0%' stop-opacity='1'></stop>
-                  <stop stop-color=${color} offset='100%' stop-opacity='0.1'></stop>
-                </linearGradient>
-              `
-                : ''
-            }
             <rect
               class='bar'
               x=${bar.x}
@@ -5340,24 +5349,11 @@ export default class SparklineGraphTool extends BaseTool {
 
         return svg`
           <g class="bars" ?anim=${config.sparkline.animate}>
+            <defs>${this.renderBarFadeGradients(item.bars, index, config, item.id, color)}</defs>
             ${item.bars.map((bar, barIndex) => {
               const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${item.id}-${barIndex}`;
               const fill = fade ? `url(#${gradientId})` : color;
               return svg`
-                ${fade
-                  ? svg`
-                    <linearGradient
-                      id=${gradientId}
-                      x1="0%"
-                      y1=${bar.value >= 0 ? "0%" : "100%"}
-                      x2="0%"
-                      y2=${bar.value >= 0 ? "100%" : "0%"}
-                    >
-                      <stop stop-color=${color} offset="0%" stop-opacity="1"></stop>
-                      <stop stop-color=${color} offset="100%" stop-opacity="0.1"></stop>
-                    </linearGradient>
-                  `
-                  : ""}
                 <rect
                   class="bar"
                   x=${bar.x}
@@ -5417,6 +5413,60 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Creates per-bar fade gradients in defs so SVG paint-server references work
+   * consistently for single and explicit multi-series bar charts.
+   *
+   * @param {Array<object>} bars - Bar geometry.
+   * @param {number} index - Entity or series index.
+   * @param {object} config - Single-series or per-series configuration.
+   * @param {string|number} seriesId - Stable identifier used in gradient ids.
+   * @param {string|undefined} seriesColor - Explicit color for a multi-series item.
+   * @returns {TemplateResult|string} Gradient definitions.
+   */
+  renderBarFadeGradients(bars, index, config, seriesId, seriesColor = undefined) {
+    if (config.sparkline.show.fill !== 'fade') return '';
+
+    return bars.map((bar, barIndex) => {
+      const color = seriesColor ?? this.computeColor(bar.value, index);
+      const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${seriesId}-${barIndex}`;
+      return svg`
+        <linearGradient
+          id=${gradientId}
+          x1="0%"
+          y1=${bar.value >= 0 ? '0%' : '100%'}
+          x2="0%"
+          y2=${bar.value >= 0 ? '100%' : '0%'}
+        >
+          <stop stop-color=${color} offset="0%" stop-opacity="1"></stop>
+          <stop stop-color=${color} offset="100%" stop-opacity="0.1"></stop>
+        </linearGradient>
+      `;
+    });
+  }
+
+  /**
+   * Creates the simple vertical fade paint used by explicit area series.
+   * Single-series areas use the legacy positive/negative masks below; explicit
+   * series need their own definitions because every graph owns its own path.
+   *
+   * @returns {TemplateResult|string} Area fade gradients.
+   */
+  renderMultipleSeriesAreaGradients() {
+    return this.sparklineSeries.items.map((item) => {
+      const { config, graph } = item;
+      if (config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+
+      const gradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
+      return svg`
+        <linearGradient id=${gradientId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2=${graph.drawArea.height}>
+          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[0]} offset="0%" stop-opacity="1"></stop>
+          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[0]} offset="100%" stop-opacity="0.1"></stop>
+        </linearGradient>
+      `;
+    });
+  }
+
+  /**
    * Draws explicit series from their own graph engines. The engines already
    * share one y-range, while every series uses one configured color.
    *
@@ -5428,7 +5478,10 @@ export default class SparklineGraphTool extends BaseTool {
         const { config, graph } = item;
         const chartType = config.sparkline.show.chart_type;
         const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
-        const lineStyles = ConfigHelper.toStyleDict(config.line.styles);
+        const lineStyles = {
+          ...ConfigHelper.toStyleDict(config.sparkline.line.styles),
+          'stroke-width': this.getConfiguredLineWidth(config),
+        };
         const areaStyles = ConfigHelper.toStyleDict(config.area.styles);
         const path = ['line', 'area'].includes(chartType) ? graph.getPath() : undefined;
         const areaPath = chartType === 'area' ? graph.getArea(path) : undefined;
@@ -5437,9 +5490,12 @@ export default class SparklineGraphTool extends BaseTool {
           : [];
         const pointRadius = Utils.calculateSvgDimension(config.sparkline.dots.radius);
 
+        const areaFade = config.sparkline.show.fill === 'fade';
+        const areaGradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
+
         return svg`
           ${areaPath
-            ? svg`<path class="sparkline-series-area" d="${areaPath}" fill="${color}" stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: color }))}></path>`
+            ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFade ? `url(#${areaGradientId})` : color} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFade ? `url(#${areaGradientId})` : color }))}></path>`
             : ''}
           ${path && config.sparkline.show.line !== false
             ? svg`<path class="sparkline-series-line" d="${path}" fill="none" stroke="${color}" style=${styleMap(this.getRenderStyles({ ...lineStyles, fill: 'none', stroke: color }))}></path>`
@@ -5654,6 +5710,7 @@ export default class SparklineGraphTool extends BaseTool {
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
+            ${this.sparklineSeries.items.length > 1 ? this.renderMultipleSeriesAreaGradients() : ''}
             ${this.area.map((fill, i) => this.renderSvgAreaMask(fill, i))}
             ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxMask(fill, i))}
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
