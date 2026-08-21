@@ -367,6 +367,41 @@ test('bar geometry keeps both outer half-bands inside axisArea', () => {
   assert.equal(rounded(bars[2].x + bars[2].width), graph.axisArea.x + graph.axisArea.width);
 });
 
+test("grouped bars divide every bucket without crossing the shared axis boundaries", () => {
+  const axisMargin = { t: 10, r: 10, b: 10, l: 10, x: 10, y: 10 };
+  const configuredMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
+  const graph = new SparklineGraph(120, 100, axisMargin, configuredMargin, createGraphConfig({ chartType: "bar" }));
+
+  graph.setGraphAreas(axisMargin, configuredMargin, 3, { t: 0, r: 0, b: 0, l: 0 });
+  graph.coords = [
+    [graph.drawArea.x, 0, -10],
+    [60, 0, 0],
+    [graph.drawArea.x + graph.drawArea.width, 0, 10],
+  ];
+  graph.min = -10;
+  graph.max = 10;
+
+  const provisionalGroups = [0, 1, 2].map((position) => graph.getBars(position, 3, 4));
+  const groupedOuterMargin = Math.max(
+    graph.axisArea.x - provisionalGroups[0][0].x,
+    provisionalGroups[2][2].x + provisionalGroups[2][2].width - (graph.axisArea.x + graph.axisArea.width),
+  );
+  graph.setGraphAreas(axisMargin, configuredMargin, 3, { t: 0, r: groupedOuterMargin, b: 0, l: groupedOuterMargin });
+  graph.coords = [
+    [graph.drawArea.x, 0, -10],
+    [60, 0, 0],
+    [graph.drawArea.x + graph.drawArea.width, 0, 10],
+  ];
+  const groups = [0, 1, 2].map((position) => graph.getBars(position, 3, 4));
+
+  assert.equal(groups[0][0].x >= graph.axisArea.x, true);
+  assert.equal(groups[2][2].x + groups[2][2].width <= graph.axisArea.x + graph.axisArea.width, true);
+  assert.equal(groups[0][0].x + groups[0][0].width <= groups[1][0].x, true);
+  assert.equal(groups[1][0].x + groups[1][0].width <= groups[2][0].x, true);
+  assert.equal(rounded(groups[0][0].y), rounded(groups[0][2].y + groups[0][2].height));
+  assert.equal(groups[1][1].height, 0);
+});
+
 test('dot geometry reserves radius plus half the inherited stroke width', () => {
   const axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
   const configuredMargin = { t: 1, r: 2, b: 3, l: 4, x: 4, y: 1 };

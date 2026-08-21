@@ -34,8 +34,8 @@ export default class SparklineSeries {
         throw new Error(`[sparklines] series '${seriesConfig.id}' cannot override period before offset support is added`);
       }
       const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
-      if (config.series !== undefined && !['line', 'area', 'dots'].includes(chartType)) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area or dots`);
+      if (config.series !== undefined && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
+        throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots or bar`);
       }
       ids.add(seriesConfig.id);
     });

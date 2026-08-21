@@ -464,6 +464,67 @@ test('explicit series use the most restrictive automatic bin density for every g
   assert.equal(dotsGraphConfig.period.rolling_window.bins.per_hour, 1);
 });
 
+test("multiple bar series receive grouped slots and one shared outer margin", () => {
+  const calls = [];
+  const makeGraph = () => ({
+    min: 0,
+    max: 10,
+    coords: [[0, 0, 0], [100, 0, 10]],
+    drawArea: { x: 0, y: 0, width: 100, height: 50 },
+    clearSharedYAxisBounds() {},
+    update() {},
+    setSharedYAxisBounds(lowerBound, upperBound) {
+      this.min = lowerBound;
+      this.max = upperBound;
+    },
+    setGraphAreas(...args) {
+      calls.push(args);
+      this.axisArea = { x: 0, width: 100 };
+    },
+    getBars(position, total) {
+      return [{ x: position === 0 ? -10 : 90, y: 20, width: 20, height: 10, value: 10, position, total }];
+    },
+    _calcY: (points) => points.map((point) => [point[0], 25, point[2]]),
+    getPath: () => 'M 0 0 L 100 50',
+  });
+  const makeConfig = (chartType = 'bar') => ({
+    period: { type: "real_time" },
+    sparkline: {
+      show: { chart_type: chartType, points: false },
+      line: { show_dots: false },
+      area: { show_dots: false },
+      dots: { radius: 1 },
+    },
+  });
+  const first = { id: "first", config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }] };
+  const line = { id: "line", config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }] };
+  const second = { id: "second", config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }] };
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    sparklineSeries: { items: [first, line, second], defaultItem: first },
+    card: { dev: { debug: false } },
+    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+    calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    calculateStatistics: () => ({}),
+    area: [],
+    areaMinMax: [],
+    line: [],
+    points: [],
+    gradient: [],
+  });
+
+  tool.updateMultipleSeriesGraphs();
+
+  assert.deepEqual([first.barPosition, second.barPosition], [0, 1]);
+  assert.equal(line.barPosition, undefined);
+  assert.deepEqual([first.barTotal, second.barTotal], [2, 2]);
+  assert.deepEqual([first.bars[0].position, second.bars[0].position], [0, 1]);
+  assert.deepEqual([first.bars[0].total, second.bars[0].total], [2, 2]);
+  assert.equal(calls.at(-1)[3].l, 10);
+  assert.equal(calls.at(-1)[3].r, 10);
+});
+
 test("multiple series wait for every graph before building shared geometry", () => {
   let pathRead = false;
   const readyGraph = {

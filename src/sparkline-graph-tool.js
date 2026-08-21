@@ -1787,10 +1787,20 @@ export default class SparklineGraphTool extends BaseTool {
     });
 
     const axisMargin = this.calculateAxisMargin();
+    const barItems = readyItems.filter((item) => item.config.sparkline.show.chart_type === "bar");
+
+    // Give every graph its provisional axis area before measuring the complete
+    // visible bar group. SparklineGraph remains the only owner of bar widths;
+    // this coordinator only carries the shared outer extent back to every engine.
+    readyItems.forEach((item) => {
+      item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
+      item.graph.update(item.rows);
+    });
+
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
     this.sparklineSeries.items.forEach((item) => {
       const chartType = item.config.sparkline.show.chart_type;
-      const rendersDots = chartType === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
+      const rendersDots = chartType === "dots" || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
         const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + this.svg.line_width / 4;
         sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
@@ -1799,9 +1809,27 @@ export default class SparklineGraphTool extends BaseTool {
         sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, dotExtent);
       }
     });
+
+    // Only bars divide a bucket horizontally. Lines, areas and dots never
+    // consume a bar slot, so their presence cannot shrink the bar group.
+    barItems.forEach((item, position) => {
+      item.barPosition = position;
+      item.barTotal = barItems.length;
+      const bars = item.graph.getBars(position, barItems.length, this.svg.column_spacing, this.svg.row_spacing);
+      const firstBar = bars[0];
+      const lastBar = bars[bars.length - 1];
+      const leftOverflow = item.graph.axisArea.x - firstBar.x;
+      const rightOverflow = lastBar.x + lastBar.width - (item.graph.axisArea.x + item.graph.axisArea.width);
+      sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, leftOverflow);
+      sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, rightOverflow);
+    });
+
     readyItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, sharedChartGeometryMargin);
       item.graph.update(item.rows);
+    });
+    barItems.forEach((item) => {
+      item.bars = item.graph.getBars(item.barPosition, item.barTotal, this.svg.column_spacing, this.svg.row_spacing);
     });
     this.axisMargin = axisMargin;
 
@@ -5038,6 +5066,104 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Renders bar series before lines, areas and dots. Each series supplies a
+   * stable color, while SparklineGraph has already calculated its grouped bars.
+   *
+   * @returns {TemplateResult} Grouped bar layers in declaration order.
+   */
+  renderMultipleSeriesBars() {
+    return svg`
+      ${this.sparklineSeries.items.map((item, index) => {
+        if (item.config.sparkline.show.chart_type !== "bar") return "";
+
+        const { config } = item;
+        const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
+        const foregroundStyles = { ...config.sparkline.bar.foreground.styles };
+        const fade = config.sparkline.show.fill === "fade";
+        const animate = config.sparkline.animate && (config.period.type === "real_time" || item.historySeries);
+        const realTimeBarTransition = config.sparkline.animate && config.period.type === "real_time" ? "y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)" : undefined;
+        delete foregroundStyles.fill;
+        delete foregroundStyles.stroke;
+
+        return svg`
+          <g class="bars" ?anim=${config.sparkline.animate}>
+            ${item.bars.map((bar, barIndex) => {
+              const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${item.id}-${barIndex}`;
+              const fill = fade ? `url(#${gradientId})` : color;
+              return svg`
+                ${fade
+                  ? svg`
+                    <linearGradient
+                      id=${gradientId}
+                      x1="0%"
+                      y1=${bar.value >= 0 ? "0%" : "100%"}
+                      x2="0%"
+                      y2=${bar.value >= 0 ? "100%" : "0%"}
+                    >
+                      <stop stop-color=${color} offset="0%" stop-opacity="1"></stop>
+                      <stop stop-color=${color} offset="100%" stop-opacity="0.1"></stop>
+                    </linearGradient>
+                  `
+                  : ""}
+                <rect
+                  class="bar"
+                  x=${bar.x}
+                  y=${bar.y}
+                  height=${Math.max(1, bar.height)}
+                  width=${Math.max(1, bar.width)}
+                  rx=${foregroundStyles.rx}
+                  ry=${foregroundStyles.ry}
+                  fill=${fill}
+                  stroke=${color}
+                  style=${styleMap(
+                    this.getRenderStyles({
+                      y: realTimeBarTransition ? `${bar.y}px` : undefined,
+                      height: realTimeBarTransition ? `${Math.max(1, bar.height)}px` : undefined,
+                      transition: realTimeBarTransition,
+                      ...foregroundStyles,
+                    }),
+                  )}
+                >
+                  ${animate
+                    ? svg`
+                      <animate
+                        attributeName="y"
+                        from=${bar.value > 0 ? bar.y + Math.max(1, bar.height) : bar.y}
+                        to=${bar.y}
+                        begin="0s"
+                        dur="2s"
+                        fill="remove"
+                        restart="whenNotActive"
+                        repeatCount="1"
+                        calcMode="spline"
+                        keyTimes="0; 1"
+                        keySplines="0.215 0.61 0.355 1"
+                      ></animate>
+                      <animate
+                        attributeName="height"
+                        from="0"
+                        to=${Math.max(1, bar.height)}
+                        begin="0s"
+                        dur="2s"
+                        fill="remove"
+                        restart="whenNotActive"
+                        repeatCount="1"
+                        calcMode="spline"
+                        keyTimes="0; 1"
+                        keySplines="0.215 0.61 0.355 1"
+                      ></animate>
+                    `
+                    : ""}
+                </rect>
+              `;
+            })}
+          </g>
+        `;
+      })}
+    `;
+  }
+
+  /**
    * Draws explicit series from their own graph engines. The engines already
    * share one y-range, while every series uses one configured color.
    *
@@ -5138,6 +5264,7 @@ export default class SparklineGraphTool extends BaseTool {
             style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
           >
           ${this.renderCartesianHitArea()}
+          ${this.sparklineSeries.items.length > 1 ? this.renderMultipleSeriesBars() : ""}
           <g transform="translate(0 ${this.animationBaselineY})">
             <g>
               ${

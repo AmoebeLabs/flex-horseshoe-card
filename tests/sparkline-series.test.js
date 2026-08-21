@@ -107,14 +107,13 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
   );
 });
 
-test('limits explicit phase 4 series to cartesian line, area and dots without period overrides', () => {
-  assert.throws(
-    () => new SparklineSeries({
-      ...graphConfig,
-      series: [{ id: 'bars', entity_index: 0, sparkline: { show: { chart_type: 'bar' } } }],
-    }),
-    /chart_type must be line, area or dots/,
-  );
+test('allows cartesian line, area, dots and bar series while period overrides remain unavailable', () => {
+  const bars = new SparklineSeries({
+    ...graphConfig,
+    series: [{ id: 'bars', entity_index: 0, sparkline: { show: { chart_type: 'bar' } } }],
+  });
+
+  assert.equal(bars.defaultItem.config.sparkline.show.chart_type, 'bar');
 
   assert.throws(
     () => new SparklineSeries({
