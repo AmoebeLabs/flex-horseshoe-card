@@ -438,6 +438,28 @@ The same division applies to `bottom`, `left` and `right` positions.
 Top and bottom legends normally lay out items horizontally; left and right
 legends normally lay them out vertically.
 
+The public visibility switch belongs to the existing sparkline `show` map. The
+legend map contains only presentation settings:
+
+```yaml
+sparkline:
+  show:
+    legend: true
+  legend:
+    position: top
+    rows: 1
+    gap: 1
+    marker_size: 1.5
+    styles:
+      font-size: 0.55em
+```
+
+Position determines orientation rather than series count. Horizontal legends
+use `rows` (one by default); their height is calculated from the active font
+size, line height and row count. Markers are constrained to that row height. Vertical legends reserve `width`. Each label
+keeps the configured font size and uses the existing `TextTool` width-based
+ellipsis within its equal slot.
+
 | Layout concern | Owner |
 | --- | --- |
 | Divide outer bounds into legendArea and graphArea | `SparklineGraphTool` |

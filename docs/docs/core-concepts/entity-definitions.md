@@ -99,6 +99,33 @@ The available values are:
 | `bin_duration` | Actual duration of each bin, shown in minutes, hours, or days |
 | `aggregate_func` | Function used for each bin, such as `avg`, `min`, `max`, or `median` |
 
+
+When a sparkline declares explicit series, insert the series ID before the
+value suffix. The default single-series names above remain unchanged:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature
+  - entity: sensor.humidity
+  - entity: fhs_sparkline.climate_today_avg
+  - entity: fhs_sparkline.climate_yesterday_room_avg
+
+layout:
+  sparklines:
+    - id: climate
+      entity_index: 0
+      series:
+        - id: today
+          entity_index: 0
+        - id: yesterday_room
+          entity_index: 1
+```
+
+The resulting names are `fhs_sparkline.<sparkline_id>_<series_id>_<value>`.
+The series ID is matched against the declared configuration, so underscores in
+that ID remain unambiguous. Each derived value uses the source entity and the
+statistics of its own series.
+
 A direct `entity:` reference is independent of list order. Card templates can place these entries in `default_entities` so every template instance receives the local values without changing the indices of entities supplied by the card.
 
 FHS automatically connects these values to the source entity used by the matching sparkline. Units, number formatting, and More info actions therefore continue to use that source sensor. You do not configure a separate source index.
