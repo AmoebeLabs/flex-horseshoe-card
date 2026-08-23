@@ -29,7 +29,7 @@ Unlike cards with a fixed layout, the Flexible Horseshoe Card lets you position 
 
 ### Card gallery
 
-Below some of the possibilities of the Flexible Horseshoe Card. These images show a mix of the enhanced Horseshow Card and the Sparkline history functionalities.
+Below are some examples of what the Flexible Horseshoe Card can do. The gallery shows a mix of enhanced horseshoe visualizations and Sparkline history functionality.
 
 <table>
   <tr>
