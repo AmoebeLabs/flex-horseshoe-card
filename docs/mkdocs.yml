@@ -169,7 +169,7 @@ nav:
       - Introduction: getting-started/introduction.md
       - Install with HACS: getting-started/installation.md
   - Examples:
-      - Overview: examples/overview.md
+      - Examples Overview: examples/overview.md
       # - Start Here:
       #     - My First Card: examples/getting-started/my-first-card.md
       #     - Extend Your First Card: examples/getting-started/extend-your-first-card.md
@@ -226,17 +226,17 @@ nav:
       - CSS Styling: core-concepts/css-styling.md
       - Templating: core-concepts/templating.md
   - Card Layout Sections:
-      - Overview: sections/layout-overview.md
+      - Layout Overview: sections/layout-overview.md
       - Groups: sections/groups-section.md
       - Text: sections/texts-section.md
       - Visual Shapes: sections/visual-shapes-section.md
       - Entity Parts: sections/entities-section.md
       - Horseshoes:
-          - Overview: sections/horseshoes-section.md
+          - Horeshoe Overview: sections/horseshoes-section.md
           - Scale and State: sections/horseshoe-scale-and-state.md
           - Tick Marks and Labels: sections/horseshoe-ticks-and-labels.md
       - Sparkline Graphs:
-          - Overview: sections/sparklines-section.md
+          - Sparkline Overview: sections/sparklines-section.md
           - History Periods and Bins: sections/sparkline-history-periods.md
           - Cartesian Charts and Axes: sections/sparkline-cartesian-charts.md
           - Specialized Charts: sections/sparkline-specialized-charts.md
