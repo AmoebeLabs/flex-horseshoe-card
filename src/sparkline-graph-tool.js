@@ -1,22 +1,22 @@
 /* eslint-disable arrow-body-style */
 /* eslint-disable no-useless-concat */
-import { html, svg } from 'lit';
-import { styleMap } from 'lit/directives/style-map.js';
-import BaseTool from './base-tool.js';
-import Colors from './colors';
-import ConfigHelper from './config-helper.js';
-import Merge from './merge.js';
-import Utils from './utils.js';
-import { X, Y, V } from './sparkline-graph.js';
-import SparklineSeries from './sparkline-series.js';
-import StateTool from './state-tool.js';
-import TextTool from './text-tool.js';
-import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
-import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
-import { formatDateTime } from './frontend_mods/common/datetime/format_date_time.ts';
-import { formatNumericDuration } from './frontend_mods/common/datetime/format_duration.ts';
-import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
-import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
+import { html, svg } from "lit";
+import { styleMap } from "lit/directives/style-map.js";
+import BaseTool from "./base-tool.js";
+import Colors from "./colors";
+import ConfigHelper from "./config-helper.js";
+import Merge from "./merge.js";
+import Utils from "./utils.js";
+import { X, Y, V } from "./sparkline-graph.js";
+import SparklineSeries from "./sparkline-series.js";
+import StateTool from "./state-tool.js";
+import TextTool from "./text-tool.js";
+import { formatDateVeryShort } from "./frontend_mods/common/datetime/format_date.ts";
+import { formatTime } from "./frontend_mods/common/datetime/format_time.ts";
+import { formatDateTime } from "./frontend_mods/common/datetime/format_date_time.ts";
+import { formatNumericDuration } from "./frontend_mods/common/datetime/format_duration.ts";
+import { computeStateDisplay } from "./frontend_mods/common/entity/compute_state_display.ts";
+import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from "./const.js";
 
 /**
  * Starting from the given index, increment the index until an array element with
@@ -33,7 +33,10 @@ const findFirstValuedIndex = (stops, startIndex) => {
       return i;
     }
   }
-  throw new Error('Error in threshold interpolation: could not find right-nearest valued stop. ' + 'Do the first and last thresholds have a set "value"?');
+  throw new Error(
+    "Error in threshold interpolation: could not find right-nearest valued stop. " +
+      'Do the first and last thresholds have a set "value"?',
+  );
 };
 
 /**
@@ -49,7 +52,9 @@ const interpolateStops = (stops) => {
     return stops;
   }
   if (stops[0].value == null || stops[stops.length - 1].value == null) {
-    throw new Error('The first and last thresholds must have a set "value".\n See xyz manual');
+    throw new Error(
+      'The first and last thresholds must have a set "value".\n See xyz manual',
+    );
   }
 
   let leftValuedIndex = 0;
@@ -72,7 +77,7 @@ const interpolateStops = (stops) => {
     const rightValue = stops[rightValuedIndex].value;
     const m = (rightValue - leftValue) / (rightValuedIndex - leftValuedIndex);
     return {
-      color: typeof stop === 'string' ? stop : stop.color,
+      color: typeof stop === "string" ? stop : stop.color,
       value: leftValue + m * (stopIndex - leftValuedIndex),
     };
   });
@@ -86,7 +91,21 @@ const interpolateStops = (stops) => {
  * @param {string} type - Transition type.
  * @returns {Array<object>} Threshold list for SparklineGraph.computeGradient().
  */
-const DEFAULT_COLORS = ['var(--theme-sys-color-primary)', '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', '#2ecc71', '#1abc9c', '#34495e', '#e67e22', '#7f8c8d', '#27ae60', '#2980b9', '#8e44ad'];
+const DEFAULT_COLORS = [
+  "var(--theme-sys-color-primary)",
+  "#3498db",
+  "#e74c3c",
+  "#9b59b6",
+  "#f1c40f",
+  "#2ecc71",
+  "#1abc9c",
+  "#34495e",
+  "#e67e22",
+  "#7f8c8d",
+  "#27ae60",
+  "#2980b9",
+  "#8e44ad",
+];
 
 // Available automatic axes per chart type. Visibility settings can hide an
 // available axis, but cannot add an axis that has no meaning for that chart.
@@ -107,10 +126,10 @@ const computeThresholds = (stops, type) => {
   try {
     valuedStops.sort((a, b) => b.value - a.value);
   } catch (error) {
-    console.log('computeThresholds, error', error, valuedStops);
+    console.log("computeThresholds, error", error, valuedStops);
   }
 
-  if (type === 'smooth') {
+  if (type === "smooth") {
     return valuedStops;
   }
 
@@ -149,7 +168,6 @@ export default class SparklineGraphTool extends BaseTool {
   set series(rows) {
     this.sparklineSeries.setRows(this.sparklineSeries.defaultItem, rows);
   }
-
 
   /**
    * Keeps existing single-series lifecycle code on the coordinator-owned item.
@@ -240,7 +258,10 @@ export default class SparklineGraphTool extends BaseTool {
   static setConfig(config, templates, cardId, card) {
     const sparklines = config.layout?.sparklines ?? [];
 
-    return sparklines.map((sparklineConfig, index) => new SparklineGraphTool(sparklineConfig, index, templates, cardId, card));
+    return sparklines.map(
+      (sparklineConfig, index) =>
+        new SparklineGraphTool(sparklineConfig, index, templates, cardId, card),
+    );
   }
 
   /**
@@ -260,20 +281,20 @@ export default class SparklineGraphTool extends BaseTool {
       height: 25,
       margin: 0,
       history: {
-        period: 'rolling_window',
+        period: "rolling_window",
       },
       period: {
-        type: 'calendar',
-        group_by: 'interval',
+        type: "calendar",
+        group_by: "interval",
         calendar: {
-          period: 'day',
+          period: "day",
           offset: 0,
           duration: {
             hour: 24,
           },
           bins: {
-            per_hour: 'auto',
-            density: 'medium',
+            per_hour: "auto",
+            density: "medium",
           },
         },
         rolling_window: {
@@ -284,14 +305,14 @@ export default class SparklineGraphTool extends BaseTool {
         state_values: {
           logarithmic: false,
           value_factor: 0,
-          aggregate_func: 'avg',
+          aggregate_func: "avg",
           smoothing: true,
         },
         line_color: [...DEFAULT_COLORS],
         colorstops: {
           colors: [],
         },
-        colorstops_transition: 'smooth',
+        colorstops_transition: "smooth",
         dots: {
           radius: 2,
         },
@@ -304,9 +325,9 @@ export default class SparklineGraphTool extends BaseTool {
         bar: {
           background: {
             show: {
-              item_style: 'none',
+              item_style: "none",
             },
-            color: 'var(--divider-color)',
+            color: "var(--divider-color)",
             colorstopsegments: {
               fill: true,
               stroke: false,
@@ -334,9 +355,9 @@ export default class SparklineGraphTool extends BaseTool {
           square: false,
           background: {
             show: {
-              item_style: 'none',
+              item_style: "none",
             },
-            color: 'var(--divider-color)',
+            color: "var(--divider-color)",
             colorstopsegments: {
               fill: true,
               stroke: false,
@@ -367,9 +388,9 @@ export default class SparklineGraphTool extends BaseTool {
         },
         state_bands: {
           radius: 0.5,
-          update_interval: '5min',
+          update_interval: "5min",
           styles: {
-            'stroke-width': 0,
+            "stroke-width": 0,
           },
           background: {
             padding: 0.75,
@@ -396,25 +417,25 @@ export default class SparklineGraphTool extends BaseTool {
         },
         tooltip: {
           styles: {
-            'font-size': '0.9em',
+            "font-size": "0.9em",
           },
         },
         legend: {
-          position: 'top',
+          position: "top",
           width: 25,
           rows: 1,
-          gap: 1,
-          item_gap: 1,
+          gap: 4,
+          item_gap: 2,
           line_height: 1.2,
           marker_size: 1.5,
           styles: {
-            fill: 'var(--primary-text-color)',
-            'font-size': '0.55em',
+            fill: "var(--primary-text-color)",
+            "font-size": "0.55em",
             opacity: 0.8,
           },
         },
         show: {
-          chart_type: 'line',
+          chart_type: "line",
           points: false,
           line: true,
           area: false,
@@ -435,61 +456,61 @@ export default class SparklineGraphTool extends BaseTool {
             y: false,
           },
           legend: false,
-          xlabels_at: 'ticks_major',
-          ylabels_at: 'ticks_major',
+          xlabels_at: "ticks_major",
+          ylabels_at: "ticks_major",
         },
       },
       x_axis: {
         axis: {
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.45,
           },
         },
         ticks_major: {
-          ticksize: 'auto',
+          ticksize: "auto",
         },
         ticks_minor: {
-          ticksize: 'auto',
+          ticksize: "auto",
         },
         grid_major: {
           styles: {
-            stroke: 'var(--divider-color)',
-            'stroke-width': 1,
+            stroke: "var(--divider-color)",
+            "stroke-width": 1,
             opacity: 0.35,
           },
         },
         grid_minor: {
           styles: {
-            stroke: 'var(--divider-color)',
-            'stroke-width': 1,
+            stroke: "var(--divider-color)",
+            "stroke-width": 1,
             opacity: 0.15,
           },
         },
         tickmarks_major: {
           size: 1,
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.45,
           },
         },
         tickmarks_minor: {
           size: 0.5,
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.25,
           },
         },
         labels: {
           offset: 2,
           styles: {
-            fill: 'var(--primary-text-color)',
-            'font-size': '0.5em',
-            'text-anchor': 'middle',
-            'dominant-baseline': 'hanging',
+            fill: "var(--primary-text-color)",
+            "font-size": "0.5em",
+            "text-anchor": "middle",
+            "dominant-baseline": "hanging",
             opacity: 0.7,
           },
         },
@@ -497,70 +518,70 @@ export default class SparklineGraphTool extends BaseTool {
       y_axis: {
         axis: {
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.45,
           },
         },
         ticks_major: {
-          ticksize: 'auto',
+          ticksize: "auto",
         },
         ticks_minor: {
-          ticksize: 'auto',
+          ticksize: "auto",
         },
         grid_major: {
           styles: {
-            stroke: 'var(--divider-color)',
-            'stroke-width': 1,
+            stroke: "var(--divider-color)",
+            "stroke-width": 1,
             opacity: 0.35,
           },
         },
         grid_minor: {
           styles: {
-            stroke: 'var(--divider-color)',
-            'stroke-width': 1,
+            stroke: "var(--divider-color)",
+            "stroke-width": 1,
             opacity: 0.15,
           },
         },
         tickmarks_major: {
           size: 1,
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.45,
           },
         },
         tickmarks_minor: {
           size: 0.5,
           styles: {
-            stroke: 'var(--primary-text-color)',
-            'stroke-width': 1,
+            stroke: "var(--primary-text-color)",
+            "stroke-width": 1,
             opacity: 0.25,
           },
         },
         labels: {
           offset: 2,
           styles: {
-            fill: 'var(--primary-text-color)',
-            'font-size': '0.5em',
-            'text-anchor': 'end',
-            'dominant-baseline': 'middle',
+            fill: "var(--primary-text-color)",
+            "font-size": "0.5em",
+            "text-anchor": "end",
+            "dominant-baseline": "middle",
             opacity: 0.7,
           },
         },
       },
       line: {
         styles: {
-          fill: 'none',
-          stroke: 'var(--primary-text-color)',
-          'stroke-width': 1,
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
+          fill: "none",
+          stroke: "var(--primary-text-color)",
+          "stroke-width": 1,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
         },
       },
       area: {
         styles: {
-          fill: 'var(--primary-color)',
+          fill: "var(--primary-color)",
           opacity: 0.25,
         },
       },
@@ -569,23 +590,32 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Preserve the original real-time boolean while selecting its graph mode.
     if (normalizedConfig.period?.real_time === true) {
-      normalizedConfig.period.type = 'real_time';
+      normalizedConfig.period.type = "real_time";
     }
     // Normalize supplied background style maps. Visibility and paint always
     // remain controlled by the explicit runtime show.item_style selector.
-    ['bar', 'equalizer'].forEach((chartType) => {
-      if (normalizedConfig.sparkline?.[chartType]?.background?.styles !== undefined) {
-        normalizedConfig.sparkline[chartType].background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline[chartType].background.styles);
+    ["bar", "equalizer"].forEach((chartType) => {
+      if (
+        normalizedConfig.sparkline?.[chartType]?.background?.styles !==
+        undefined
+      ) {
+        normalizedConfig.sparkline[chartType].background.styles =
+          ConfigHelper.toStyleDict(
+            normalizedConfig.sparkline[chartType].background.styles,
+          );
       }
     });
     if (normalizedConfig.sparkline?.bar?.foreground?.styles !== undefined) {
-      normalizedConfig.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.bar.foreground.styles);
+      normalizedConfig.sparkline.bar.foreground.styles =
+        ConfigHelper.toStyleDict(
+          normalizedConfig.sparkline.bar.foreground.styles,
+        );
     }
     // Legacy booleans enabled or disabled both axes. Convert them once in the
     // configuration layer so rendering always receives explicit x/y values.
-    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
+    ["grid", "axis", "tickmarks", "labels"].forEach((layerName) => {
       const layerVisibility = normalizedConfig.sparkline?.show?.[layerName];
-      if (typeof layerVisibility === 'boolean') {
+      if (typeof layerVisibility === "boolean") {
         normalizedConfig.sparkline.show[layerName] = {
           x: layerVisibility,
           y: layerVisibility,
@@ -593,27 +623,54 @@ export default class SparklineGraphTool extends BaseTool {
       }
     });
     if (normalizedConfig.line?.styles !== undefined) {
-      normalizedConfig.line.styles = ConfigHelper.toStyleDict(normalizedConfig.line.styles);
+      normalizedConfig.line.styles = ConfigHelper.toStyleDict(
+        normalizedConfig.line.styles,
+      );
     }
     if (normalizedConfig.area?.styles !== undefined) {
-      normalizedConfig.area.styles = ConfigHelper.toStyleDict(normalizedConfig.area.styles);
+      normalizedConfig.area.styles = ConfigHelper.toStyleDict(
+        normalizedConfig.area.styles,
+      );
     }
     if (normalizedConfig.sparkline?.state_bands?.styles !== undefined) {
-      normalizedConfig.sparkline.state_bands.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.styles);
+      normalizedConfig.sparkline.state_bands.styles = ConfigHelper.toStyleDict(
+        normalizedConfig.sparkline.state_bands.styles,
+      );
     }
-    if (normalizedConfig.sparkline?.state_bands?.background?.styles !== undefined) {
-      normalizedConfig.sparkline.state_bands.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.background.styles);
+    if (
+      normalizedConfig.sparkline?.state_bands?.background?.styles !== undefined
+    ) {
+      normalizedConfig.sparkline.state_bands.background.styles =
+        ConfigHelper.toStyleDict(
+          normalizedConfig.sparkline.state_bands.background.styles,
+        );
     }
     if (normalizedConfig.sparkline?.graded?.background?.styles !== undefined) {
-      normalizedConfig.sparkline.graded.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.graded.background.styles);
+      normalizedConfig.sparkline.graded.background.styles =
+        ConfigHelper.toStyleDict(
+          normalizedConfig.sparkline.graded.background.styles,
+        );
     }
     if (normalizedConfig.sparkline?.graded?.foreground?.styles !== undefined) {
-      normalizedConfig.sparkline.graded.foreground.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.graded.foreground.styles);
+      normalizedConfig.sparkline.graded.foreground.styles =
+        ConfigHelper.toStyleDict(
+          normalizedConfig.sparkline.graded.foreground.styles,
+        );
     }
-    ['x_axis', 'y_axis'].forEach((axisName) => {
-      ['axis', 'grid_major', 'grid_minor', 'tickmarks_major', 'tickmarks_minor', 'labels'].forEach((layerName) => {
+    ["x_axis", "y_axis"].forEach((axisName) => {
+      [
+        "axis",
+        "grid_major",
+        "grid_minor",
+        "tickmarks_major",
+        "tickmarks_minor",
+        "labels",
+      ].forEach((layerName) => {
         if (normalizedConfig[axisName]?.[layerName]?.styles !== undefined) {
-          normalizedConfig[axisName][layerName].styles = ConfigHelper.toStyleDict(normalizedConfig[axisName][layerName].styles);
+          normalizedConfig[axisName][layerName].styles =
+            ConfigHelper.toStyleDict(
+              normalizedConfig[axisName][layerName].styles,
+            );
         }
       });
     });
@@ -621,38 +678,57 @@ export default class SparklineGraphTool extends BaseTool {
 
     // The legend position determines its orientation. Top and bottom reserve a
     // horizontal row; left and right reserve a vertical column.
-    if (sparklineConfig.sparkline.legend.position === 'left' || sparklineConfig.sparkline.legend.position === 'right') {
-      sparklineConfig.sparkline.legend.orientation = 'vertical';
+    if (
+      sparklineConfig.sparkline.legend.position === "left" ||
+      sparklineConfig.sparkline.legend.position === "right"
+    ) {
+      sparklineConfig.sparkline.legend.orientation = "vertical";
     } else {
-      sparklineConfig.sparkline.legend.orientation = 'horizontal';
+      sparklineConfig.sparkline.legend.orientation = "horizontal";
     }
 
     // Both historical period types expose the same automatic bin interface.
     // Keep 'auto' in the tool config; only buildGraphConfig resolves it for the engine.
-    ['calendar', 'rolling_window'].forEach((periodType) => {
+    ["calendar", "rolling_window"].forEach((periodType) => {
       if (sparklineConfig.period[periodType] === undefined) return;
 
       sparklineConfig.period[periodType].bins ??= {};
-      sparklineConfig.period[periodType].bins.per_hour ??= 'auto';
-      sparklineConfig.period[periodType].bins.density ??= 'medium';
+      sparklineConfig.period[periodType].bins.per_hour ??= "auto";
+      sparklineConfig.period[periodType].bins.density ??= "medium";
       sparklineConfig.period[periodType].offset ??= 0;
     });
 
     // State-band labels live inside each categorical row. Apply their natural
     // left/top alignment and use hard color stops because each band is a discrete state.
-    if (sparklineConfig.sparkline.show.chart_type === 'state_bands') {
-      sparklineConfig.sparkline.colorstops_transition = 'hard';
-      if (normalizedConfig.y_axis?.labels?.styles?.['text-anchor'] === undefined) {
-        sparklineConfig.y_axis.labels.styles['text-anchor'] = 'start';
+    if (sparklineConfig.sparkline.show.chart_type === "state_bands") {
+      sparklineConfig.sparkline.colorstops_transition = "hard";
+      if (
+        normalizedConfig.y_axis?.labels?.styles?.["text-anchor"] === undefined
+      ) {
+        sparklineConfig.y_axis.labels.styles["text-anchor"] = "start";
       }
-      if (normalizedConfig.y_axis?.labels?.styles?.['dominant-baseline'] === undefined) {
-        sparklineConfig.y_axis.labels.styles['dominant-baseline'] = 'hanging';
+      if (
+        normalizedConfig.y_axis?.labels?.styles?.["dominant-baseline"] ===
+        undefined
+      ) {
+        sparklineConfig.y_axis.labels.styles["dominant-baseline"] = "hanging";
       }
     }
     // console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
 
-    const periodUsesJavascript = templates.hasJavascriptTemplates(sparklineConfig.period);
-    super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
+    const periodUsesJavascript = templates.hasJavascriptTemplates(
+      sparklineConfig.period,
+    );
+    super(
+      sparklineConfig,
+      index,
+      templates,
+      cardId,
+      card,
+      "sparklines",
+      "sparklines",
+      0,
+    );
 
     // Existing YAML becomes one internal default series before any graph exists.
     this.sparklineSeries = new SparklineSeries(this.config);
@@ -677,15 +753,25 @@ export default class SparklineGraphTool extends BaseTool {
     // Static periods can create their graph immediately from the source config.
     this.historyDurationReady = false;
     if (!periodUsesJavascript) {
-      const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-      this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
+      const initialHistoryDuration =
+        this.config.period.type === "real_time"
+          ? 1
+          : Number(this.config.period[this.config.period.type].duration.hour);
+      this.historyDurationReady =
+        this.config.period.type === "real_time" ||
+        (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
 
     const sharedBinsPerHour = this.calculateSharedBinsPerHour();
-    this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
+    this.graphConfig = this.historyDurationReady
+      ? this.buildGraphConfig(this.config, sharedBinsPerHour)
+      : undefined;
     if (this.historyDurationReady) {
       this.sparklineSeries.items.forEach((item) => {
-        const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
+        const graphConfig = this.buildGraphConfig(
+          item.config,
+          sharedBinsPerHour,
+        );
         this.sparklineSeries.createGraph(
           item,
           this.graphArea.width,
@@ -716,7 +802,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.radialBarcodeChartBackground = [];
     this.graded = [];
     this.stateBands = [];
-    this.radialBarcodeChartWidth = Utils.calculateSvgDimension(this.config?.sparkline?.radial_barcode?.size || 5);
+    this.radialBarcodeChartWidth = Utils.calculateSvgDimension(
+      this.config?.sparkline?.radial_barcode?.size || 5,
+    );
     this.linePath = undefined;
     this.lineMinPath = undefined;
     this.lineMaxPath = undefined;
@@ -735,12 +823,15 @@ export default class SparklineGraphTool extends BaseTool {
     this.calendarRangeTimer = undefined;
     this.historyRangeStart = undefined;
     this.historyRangeEnd = undefined;
-    this.historyPeriodSignature = this.sparklineSeries.defaultItem.historyPeriodSignature;
+    this.historyPeriodSignature =
+      this.sparklineSeries.defaultItem.historyPeriodSignature;
     this.historyEntityId = undefined;
     this.historyResynchronizationRequested = false;
     this.historyLoading = false;
     this.preserveGraphWhileHistoryLoads = false;
-    this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
   }
@@ -753,13 +844,22 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} SVG dimensions for the outer placement and graph engine.
    */
   calculateSvgDimensions(config = this.config) {
-    const coordinates = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
+    const coordinates =
+      this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const width = Utils.calculateSvgDimension(config.width);
     const height = Utils.calculateSvgDimension(config.height);
     const margin = this.calculateSparklineMargin(config.margin);
     const line_width = this.getConfiguredLineWidth(config);
-    const column_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.column_spacing || this.config.bar_spacing || 1);
-    const row_spacing = Utils.calculateSvgDimension(config.sparkline[config.sparkline.show.chart_type]?.row_spacing || this.config.bar_spacing || 1);
+    const column_spacing = Utils.calculateSvgDimension(
+      config.sparkline[config.sparkline.show.chart_type]?.column_spacing ||
+        this.config.bar_spacing ||
+        1,
+    );
+    const row_spacing = Utils.calculateSvgDimension(
+      config.sparkline[config.sparkline.show.chart_type]?.row_spacing ||
+        this.config.bar_spacing ||
+        1,
+    );
 
     return {
       ...coordinates,
@@ -786,15 +886,18 @@ export default class SparklineGraphTool extends BaseTool {
     const chartType = config.sparkline.show.chart_type;
     const chartConfig = config.sparkline[chartType];
     const lineConfig = config.sparkline.line;
-    const configuredLineWidth = chartConfig?.line_width !== undefined
-      ? chartConfig.line_width
-      : lineConfig?.line_width !== undefined
-        ? lineConfig.line_width
-        : chartConfig?.styles?.['stroke-width'] !== undefined
-          ? chartConfig.styles['stroke-width']
-          : lineConfig?.styles?.['stroke-width'];
+    const configuredLineWidth =
+      chartConfig?.line_width !== undefined
+        ? chartConfig.line_width
+        : lineConfig?.line_width !== undefined
+          ? lineConfig.line_width
+          : chartConfig?.styles?.["stroke-width"] !== undefined
+            ? chartConfig.styles["stroke-width"]
+            : lineConfig?.styles?.["stroke-width"];
 
-    return configuredLineWidth === undefined ? 0 : Utils.calculateSvgDimension(configuredLineWidth);
+    return configuredLineWidth === undefined
+      ? 0
+      : Utils.calculateSvgDimension(configuredLineWidth);
   }
 
   /**
@@ -805,36 +908,50 @@ export default class SparklineGraphTool extends BaseTool {
    */
   calculateLegendLayout() {
     const legend = this.config.sparkline.legend;
-    const horizontal = legend.orientation === 'horizontal';
-    const gap = this.config.sparkline.show.legend ? Utils.calculateSvgDimension(legend.gap) : 0;
-    const legendWidth = horizontal ? this.svg.width : Utils.calculateSvgDimension(legend.width);
-    const legendFontSize = this.legendMeasuredFontSize ?? this.resolveLegendFontSize();
-    const legendRowHeight = this.legendMeasuredRowHeight ?? legendFontSize * Number(legend.line_height);
+    const horizontal = legend.orientation === "horizontal";
+    const gap = this.config.sparkline.show.legend
+      ? Utils.calculateSvgDimension(legend.gap)
+      : 0;
+    const legendWidth = horizontal
+      ? this.svg.width
+      : Utils.calculateSvgDimension(legend.width);
+    const legendFontSize =
+      this.legendMeasuredFontSize ?? this.resolveLegendFontSize();
+    const legendRowHeight =
+      this.legendMeasuredRowHeight ??
+      legendFontSize * Number(legend.line_height);
     const markerRadius = Math.min(
       Utils.calculateSvgDimension(legend.marker_size),
       legendFontSize / 2,
     );
     const legendRows = Number(legend.rows);
     const legendHeight = horizontal
-      ? (legend.height === undefined ? legendRowHeight * legendRows : Utils.calculateSvgDimension(legend.height))
+      ? legend.height === undefined
+        ? legendRowHeight * legendRows
+        : Utils.calculateSvgDimension(legend.height)
       : this.svg.height;
     const legendArea = { x: 0, y: 0, width: 0, height: 0 };
-    const graphArea = { x: 0, y: 0, width: this.svg.width, height: this.svg.height };
+    const graphArea = {
+      x: 0,
+      y: 0,
+      width: this.svg.width,
+      height: this.svg.height,
+    };
 
     if (this.config.sparkline.show.legend) {
       legendArea.width = legendWidth;
       legendArea.height = legendHeight;
 
-      if (legend.position === 'top') {
+      if (legend.position === "top") {
         graphArea.y = legendHeight + gap;
         graphArea.height = this.svg.height - legendHeight - gap;
-      } else if (legend.position === 'bottom') {
+      } else if (legend.position === "bottom") {
         graphArea.height = this.svg.height - legendHeight - gap;
         legendArea.y = graphArea.height + gap;
-      } else if (legend.position === 'left') {
+      } else if (legend.position === "left") {
         graphArea.x = legendWidth + gap;
         graphArea.width = this.svg.width - legendWidth - gap;
-      } else if (legend.position === 'right') {
+      } else if (legend.position === "right") {
         graphArea.width = this.svg.width - legendWidth - gap;
         legendArea.x = graphArea.width + gap;
       }
@@ -856,18 +973,21 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Legend font size in SVG viewBox units.
    */
   resolveLegendFontSize() {
-    const styles = ConfigHelper.toStyleDict(this.config.sparkline.legend.styles);
-    const fontSize = styles['font-size'];
+    const styles = ConfigHelper.toStyleDict(
+      this.config.sparkline.legend.styles,
+    );
+    const fontSize = styles["font-size"];
     const value = Number.parseFloat(fontSize);
-    const fontSizePixels = typeof fontSize === 'number'
-      ? value
-      : fontSize.endsWith('em') || fontSize.endsWith('rem')
-        ? value * FONT_SIZE
-        : fontSize.endsWith('px')
-          ? value
-          : fontSize.endsWith('%')
-            ? (value / 100) * FONT_SIZE
-            : value;
+    const fontSizePixels =
+      typeof fontSize === "number"
+        ? value
+        : fontSize.endsWith("em") || fontSize.endsWith("rem")
+          ? value * FONT_SIZE
+          : fontSize.endsWith("px")
+            ? value
+            : fontSize.endsWith("%")
+              ? (value / 100) * FONT_SIZE
+              : value;
 
     return fontSizePixels * (100 / SVG_DEFAULT_DIMENSIONS);
   }
@@ -881,11 +1001,23 @@ export default class SparklineGraphTool extends BaseTool {
   calculateSparklineMargin(marginConfig) {
     const margin = {};
 
-    if (typeof marginConfig === 'object') {
-      margin.t = Utils.calculateSvgDimension(marginConfig.t) || Utils.calculateSvgDimension(marginConfig.y) || 0;
-      margin.b = Utils.calculateSvgDimension(marginConfig.b) || Utils.calculateSvgDimension(marginConfig.y) || 0;
-      margin.r = Utils.calculateSvgDimension(marginConfig.r) || Utils.calculateSvgDimension(marginConfig.x) || 0;
-      margin.l = Utils.calculateSvgDimension(marginConfig.l) || Utils.calculateSvgDimension(marginConfig.x) || 0;
+    if (typeof marginConfig === "object") {
+      margin.t =
+        Utils.calculateSvgDimension(marginConfig.t) ||
+        Utils.calculateSvgDimension(marginConfig.y) ||
+        0;
+      margin.b =
+        Utils.calculateSvgDimension(marginConfig.b) ||
+        Utils.calculateSvgDimension(marginConfig.y) ||
+        0;
+      margin.r =
+        Utils.calculateSvgDimension(marginConfig.r) ||
+        Utils.calculateSvgDimension(marginConfig.x) ||
+        0;
+      margin.l =
+        Utils.calculateSvgDimension(marginConfig.l) ||
+        Utils.calculateSvgDimension(marginConfig.x) ||
+        0;
       margin.x = margin.l;
       margin.y = margin.t;
     } else {
@@ -909,30 +1041,81 @@ export default class SparklineGraphTool extends BaseTool {
    */
   calculateAxisMargin() {
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
-    const showXTickmarks = chartAxes.x && this.config.sparkline.show.tickmarks.x;
+    const showXTickmarks =
+      chartAxes.x && this.config.sparkline.show.tickmarks.x;
     const showXLabels = chartAxes.x && this.config.sparkline.show.labels.x;
-    const xTickSize = showXTickmarks ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
-    const xLabelOffset = showXLabels ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset) : 0;
-    const xFontSize = this.resolveAxisFontSizePixels('x', FONT_SIZE);
-    const yFontSize = this.resolveAxisFontSizePixels('y', FONT_SIZE);
+    const xTickSize = showXTickmarks
+      ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size)
+      : 0;
+    const xLabelOffset = showXLabels
+      ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset)
+      : 0;
+    const xFontSize = this.resolveAxisFontSizePixels("x", FONT_SIZE);
+    const yFontSize = this.resolveAxisFontSizePixels("y", FONT_SIZE);
     const xFontHeight = xFontSize;
     const yFontHeight = yFontSize * 0.85;
     const primaryGraph = this.axisGraphs.primary;
     const secondaryGraph = this.axisGraphs.secondary;
-    const primaryChartAxes = primaryGraph !== undefined ? CHART_AXES[primaryGraph.config.sparkline.show.chart_type] : undefined;
-    const secondaryChartAxes = secondaryGraph !== undefined ? CHART_AXES[secondaryGraph.config.sparkline.show.chart_type] : undefined;
-    const primaryShowYTickmarks = primaryGraph !== undefined && primaryChartAxes.y && primaryGraph.config.sparkline.show.tickmarks.y;
-    const secondaryShowYTickmarks = secondaryGraph !== undefined && secondaryChartAxes.y && secondaryGraph.config.sparkline.show.tickmarks.y;
-    const primaryShowYLabels = primaryGraph !== undefined && primaryChartAxes.y && primaryGraph.config.sparkline.show.labels.y;
-    const secondaryShowYLabels = secondaryGraph !== undefined && secondaryChartAxes.y && secondaryGraph.config.sparkline.show.labels.y;
-    const primaryYTickSize = primaryShowYTickmarks ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const secondaryYTickSize = secondaryShowYTickmarks ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const primaryYLabelOffset = primaryShowYLabels ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset) : 0;
-    const secondaryYLabelOffset = secondaryShowYLabels ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.labels.offset) : 0;
-    const primaryYLabels = primaryShowYLabels ? this.buildYAxisTicks('major', primaryGraph).map((tick) => tick.label) : [];
-    const secondaryYLabels = secondaryShowYLabels ? this.buildYAxisTicks('major', secondaryGraph).map((tick) => tick.label) : [];
-    const primaryYLabelWidth = primaryYLabels.reduce((length, label) => Math.max(length, label.length), 0) * yFontSize * 0.5;
-    const secondaryYLabelWidth = secondaryYLabels.reduce((length, label) => Math.max(length, label.length), 0) * yFontSize * 0.5;
+    const primaryChartAxes =
+      primaryGraph !== undefined
+        ? CHART_AXES[primaryGraph.config.sparkline.show.chart_type]
+        : undefined;
+    const secondaryChartAxes =
+      secondaryGraph !== undefined
+        ? CHART_AXES[secondaryGraph.config.sparkline.show.chart_type]
+        : undefined;
+    const primaryShowYTickmarks =
+      primaryGraph !== undefined &&
+      primaryChartAxes.y &&
+      primaryGraph.config.sparkline.show.tickmarks.y;
+    const secondaryShowYTickmarks =
+      secondaryGraph !== undefined &&
+      secondaryChartAxes.y &&
+      secondaryGraph.config.sparkline.show.tickmarks.y;
+    const primaryShowYLabels =
+      primaryGraph !== undefined &&
+      primaryChartAxes.y &&
+      primaryGraph.config.sparkline.show.labels.y;
+    const secondaryShowYLabels =
+      secondaryGraph !== undefined &&
+      secondaryChartAxes.y &&
+      secondaryGraph.config.sparkline.show.labels.y;
+    const primaryYTickSize = primaryShowYTickmarks
+      ? Utils.calculateSvgDimension(
+          primaryGraph.config.y_axis.tickmarks_major.size,
+        )
+      : 0;
+    const secondaryYTickSize = secondaryShowYTickmarks
+      ? Utils.calculateSvgDimension(
+          secondaryGraph.config.y_axis.tickmarks_major.size,
+        )
+      : 0;
+    const primaryYLabelOffset = primaryShowYLabels
+      ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset)
+      : 0;
+    const secondaryYLabelOffset = secondaryShowYLabels
+      ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.labels.offset)
+      : 0;
+    const primaryYLabels = primaryShowYLabels
+      ? this.buildYAxisTicks("major", primaryGraph).map((tick) => tick.label)
+      : [];
+    const secondaryYLabels = secondaryShowYLabels
+      ? this.buildYAxisTicks("major", secondaryGraph).map((tick) => tick.label)
+      : [];
+    const primaryYLabelWidth =
+      primaryYLabels.reduce(
+        (length, label) => Math.max(length, label.length),
+        0,
+      ) *
+      yFontSize *
+      0.5;
+    const secondaryYLabelWidth =
+      secondaryYLabels.reduce(
+        (length, label) => Math.max(length, label.length),
+        0,
+      ) *
+      yFontSize *
+      0.5;
     let t = 0;
     let r = 0;
     let b = xTickSize;
@@ -941,12 +1124,23 @@ export default class SparklineGraphTool extends BaseTool {
     // X labels are outside axisArea. Endpoint label extents reserve outer
     // viewport space independently from both y-axis groups.
     if (showXLabels) {
-      const xTicks = this.buildXAxisTicks('major');
+      const xTicks = this.buildXAxisTicks("major");
       const firstLabelWidth = xTicks[0].label.length * xFontSize * 0.6;
-      const lastLabelWidth = xTicks[xTicks.length - 1].label.length * xFontSize * 0.6;
-      const xTextAnchor = this.config.x_axis.labels.styles['text-anchor'];
-      const firstLabelLeftExtent = xTextAnchor === 'end' ? firstLabelWidth : xTextAnchor === 'start' ? 0 : firstLabelWidth / 2;
-      const lastLabelRightExtent = xTextAnchor === 'start' ? lastLabelWidth : xTextAnchor === 'end' ? 0 : lastLabelWidth / 2;
+      const lastLabelWidth =
+        xTicks[xTicks.length - 1].label.length * xFontSize * 0.6;
+      const xTextAnchor = this.config.x_axis.labels.styles["text-anchor"];
+      const firstLabelLeftExtent =
+        xTextAnchor === "end"
+          ? firstLabelWidth
+          : xTextAnchor === "start"
+            ? 0
+            : firstLabelWidth / 2;
+      const lastLabelRightExtent =
+        xTextAnchor === "start"
+          ? lastLabelWidth
+          : xTextAnchor === "end"
+            ? 0
+            : lastLabelWidth / 2;
 
       b = Math.max(b, xTickSize + xLabelOffset + xFontHeight);
       l = Math.max(l, firstLabelLeftExtent);
@@ -955,15 +1149,27 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Primary labels/ticks reserve the left side; secondary labels/ticks
     // reserve the right side. Both groups use the same axisArea.
-    if (primaryShowYLabels && primaryGraph.config.sparkline.show.chart_type !== 'state_bands') {
-      l = Math.max(l, primaryYTickSize + primaryYLabelOffset + primaryYLabelWidth);
+    if (
+      primaryShowYLabels &&
+      primaryGraph.config.sparkline.show.chart_type !== "state_bands"
+    ) {
+      l = Math.max(
+        l,
+        primaryYTickSize + primaryYLabelOffset + primaryYLabelWidth,
+      );
       t = Math.max(t, yFontHeight / 2);
       b = Math.max(b, yFontHeight / 2);
     } else if (primaryShowYTickmarks) {
       l = Math.max(l, primaryYTickSize);
     }
-    if (secondaryShowYLabels && secondaryGraph.config.sparkline.show.chart_type !== 'state_bands') {
-      r = Math.max(r, secondaryYTickSize + secondaryYLabelOffset + secondaryYLabelWidth);
+    if (
+      secondaryShowYLabels &&
+      secondaryGraph.config.sparkline.show.chart_type !== "state_bands"
+    ) {
+      r = Math.max(
+        r,
+        secondaryYTickSize + secondaryYLabelOffset + secondaryYLabelWidth,
+      );
       t = Math.max(t, yFontHeight / 2);
       b = Math.max(b, yFontHeight / 2);
     } else if (secondaryShowYTickmarks) {
@@ -988,9 +1194,22 @@ export default class SparklineGraphTool extends BaseTool {
     const binsPerHour = periodConfig.bins.per_hour;
 
     // A manually configured value always takes precedence over density.
-    if (binsPerHour !== 'auto') return binsPerHour;
+    if (binsPerHour !== "auto") return binsPerHour;
 
-    const binsPerHourOptions = [1 / 24, 1 / 12, 0.125, 1 / 6, 0.25, 0.5, 1, 2, 3, 4, 6, 12];
+    const binsPerHourOptions = [
+      1 / 24,
+      1 / 12,
+      0.125,
+      1 / 6,
+      0.25,
+      0.5,
+      1,
+      2,
+      3,
+      4,
+      6,
+      12,
+    ];
     const widthUnitsPerBinByGraphType = {
       line: 1,
       area: 1,
@@ -1007,13 +1226,18 @@ export default class SparklineGraphTool extends BaseTool {
       high: 0.5,
     };
     const graphType = config.sparkline.show.chart_type;
-    const availableWidth = graphType === 'radial_barcode' ? Math.PI * config.width : config.width;
-    const widthUnitsPerBin = widthUnitsPerBinByGraphType[graphType] * densityFactor[periodConfig.bins.density];
-    const maximumBinsPerHour = availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
+    const availableWidth =
+      graphType === "radial_barcode" ? Math.PI * config.width : config.width;
+    const widthUnitsPerBin =
+      widthUnitsPerBinByGraphType[graphType] *
+      densityFactor[periodConfig.bins.density];
+    const maximumBinsPerHour =
+      availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
 
     // Walk from highest to lowest to avoid requiring Array.findLast support.
     for (let index = binsPerHourOptions.length - 1; index >= 0; index -= 1) {
-      if (binsPerHourOptions[index] <= maximumBinsPerHour) return binsPerHourOptions[index];
+      if (binsPerHourOptions[index] <= maximumBinsPerHour)
+        return binsPerHourOptions[index];
     }
 
     return binsPerHourOptions[0];
@@ -1029,7 +1253,11 @@ export default class SparklineGraphTool extends BaseTool {
   calculateSharedBinsPerHour() {
     if (this.sparklineSeries.items.length === 1) return undefined;
 
-    return Math.min(...this.sparklineSeries.items.map((item) => this.calculateBinsPerHour(item.config)));
+    return Math.min(
+      ...this.sparklineSeries.items.map((item) =>
+        this.calculateBinsPerHour(item.config),
+      ),
+    );
   }
 
   /**
@@ -1046,15 +1274,20 @@ export default class SparklineGraphTool extends BaseTool {
     // plot-time boundaries so all series share the x-axis exactly.
     const period = Merge.mergeDeep({}, this.config.period);
     const graphType = config.sparkline.show.chart_type;
-    const comparesCalendarDays = period.type === 'calendar'
-      && this.config.series !== undefined
-      && this.sparklineSeries.items.some((item) => Number(item.config.period.calendar.offset) !== Number(this.config.period.calendar.offset));
+    const comparesCalendarDays =
+      period.type === "calendar" &&
+      this.config.series !== undefined &&
+      this.sparklineSeries.items.some(
+        (item) =>
+          Number(item.config.period.calendar.offset) !==
+          Number(this.config.period.calendar.offset),
+      );
 
     // A comparison needs one complete shared day. Without it, an offset series
     // is correctly projected but is clipped at the current time of day.
     if (comparesCalendarDays) period.calendar.full_day = true;
     const sparkline =
-      graphType === 'state_bands'
+      graphType === "state_bands"
         ? {
             ...config.sparkline,
             state_map: this.stateBandsStateMap,
@@ -1066,15 +1299,22 @@ export default class SparklineGraphTool extends BaseTool {
     // owned by their color stops. Pass those concrete bounds to the graph
     // engine before it calculates coordinates, ticks, and labels.
     const defaultColorStopScale = config.sparkline.colorstops?.scales?.default;
-    if (period.type === 'real_time' && ['bar', 'equalizer'].includes(graphType) && defaultColorStopScale !== undefined) {
+    if (
+      period.type === "real_time" &&
+      ["bar", "equalizer"].includes(graphType) &&
+      defaultColorStopScale !== undefined
+    ) {
       yAxis.lower_bound = Number(defaultColorStopScale.min);
       yAxis.upper_bound = Number(defaultColorStopScale.max);
     }
 
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
-    if (period.type !== 'real_time') {
-      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : sharedBinsPerHour ?? this.calculateBinsPerHour(config);
+    if (period.type !== "real_time") {
+      period[period.type].bins.per_hour =
+        graphType === "state_bands"
+          ? 1
+          : (sharedBinsPerHour ?? this.calculateBinsPerHour(config));
     }
 
     return {
@@ -1104,17 +1344,24 @@ export default class SparklineGraphTool extends BaseTool {
     // A calendar day always spans at least one complete day. A duration can
     // still contain 6 or 12 hours after switching from a rolling window, so
     // normalize that transition before history and graph geometry consume it.
-    if (this.configChanged && this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' && Number(this.config.period.calendar.duration.hour) < 24) {
+    if (
+      this.configChanged &&
+      this.config.period.type === "calendar" &&
+      this.config.period.calendar.period === "day" &&
+      Number(this.config.period.calendar.duration.hour) < 24
+    ) {
       const requestedDuration = this.config.period.calendar.duration.hour;
       this.config.period.calendar.duration.hour = 24;
-      console.warn(`[FHS sparkline] calendar day duration '${requestedDuration}' hours is shorter than one day; using 24 hours`);
+      console.warn(
+        `[FHS sparkline] calendar day duration '${requestedDuration}' hours is shorter than one day; using 24 hours`,
+      );
     }
 
     // Dynamic JavaScript templates can return a boolean again after the initial
     // config pass. Normalize it to the x/y shape consumed by the graph renderer.
-    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
+    ["grid", "axis", "tickmarks", "labels"].forEach((layerName) => {
       const layerVisibility = this.config.sparkline.show[layerName];
-      if (typeof layerVisibility === 'boolean') {
+      if (typeof layerVisibility === "boolean") {
         this.config.sparkline.show[layerName] = {
           x: layerVisibility,
           y: layerVisibility,
@@ -1124,21 +1371,42 @@ export default class SparklineGraphTool extends BaseTool {
     // Bar and equalizer backgrounds use the same explicit item-style selector
     // and color-stop paint dictionaries as the other FHS layout items.
     if (this.configChanged) {
-      ['bar', 'equalizer'].forEach((chartType) => {
+      ["bar", "equalizer"].forEach((chartType) => {
         const background = this.config.sparkline[chartType].background;
         const itemStyle = background.show.item_style;
 
         background.styles = ConfigHelper.toStyleDict(background.styles);
-        if (!['none', 'fixed', 'colorstopsegments', 'lineargradient', 'colorstopgradient'].includes(itemStyle)) {
-          throw new Error(`[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments, lineargradient or colorstopgradient`);
+        if (
+          ![
+            "none",
+            "fixed",
+            "colorstopsegments",
+            "lineargradient",
+            "colorstopgradient",
+          ].includes(itemStyle)
+        ) {
+          throw new Error(
+            `[sparklines] sparkline.${chartType}.background.show.item_style must be none, fixed, colorstopsegments, lineargradient or colorstopgradient`,
+          );
         }
-        if (itemStyle === 'colorstopsegments' || itemStyle === 'lineargradient' || itemStyle === 'colorstopgradient') {
-          if (typeof background[itemStyle].fill !== 'boolean' || typeof background[itemStyle].stroke !== 'boolean') {
-            throw new Error(`[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`);
+        if (
+          itemStyle === "colorstopsegments" ||
+          itemStyle === "lineargradient" ||
+          itemStyle === "colorstopgradient"
+        ) {
+          if (
+            typeof background[itemStyle].fill !== "boolean" ||
+            typeof background[itemStyle].stroke !== "boolean"
+          ) {
+            throw new Error(
+              `[sparklines] sparkline.${chartType}.background.${itemStyle}.fill and stroke must be boolean`,
+            );
           }
         }
       });
-      this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
+      this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(
+        this.config.sparkline.bar.foreground.styles,
+      );
     }
 
     // Fixed graph bounds form one explicit range. Validate them here so the
@@ -1148,40 +1416,74 @@ export default class SparklineGraphTool extends BaseTool {
       const hasUpperBound = this.config.y_axis.upper_bound !== undefined;
 
       if (hasLowerBound !== hasUpperBound) {
-        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be configured together');
+        throw new Error(
+          "[sparklines] y_axis.lower_bound and y_axis.upper_bound must be configured together",
+        );
       }
-      if (hasLowerBound && (!Number.isFinite(Number(this.config.y_axis.lower_bound)) || !Number.isFinite(Number(this.config.y_axis.upper_bound)))) {
-        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be numeric');
+      if (
+        hasLowerBound &&
+        (!Number.isFinite(Number(this.config.y_axis.lower_bound)) ||
+          !Number.isFinite(Number(this.config.y_axis.upper_bound)))
+      ) {
+        throw new Error(
+          "[sparklines] y_axis.lower_bound and y_axis.upper_bound must be numeric",
+        );
       }
-      if (hasLowerBound && Number(this.config.y_axis.lower_bound) >= Number(this.config.y_axis.upper_bound)) {
-        throw new Error('[sparklines] y_axis.lower_bound must be smaller than y_axis.upper_bound');
+      if (
+        hasLowerBound &&
+        Number(this.config.y_axis.lower_bound) >=
+          Number(this.config.y_axis.upper_bound)
+      ) {
+        throw new Error(
+          "[sparklines] y_axis.lower_bound must be smaller than y_axis.upper_bound",
+        );
       }
     }
 
     // A single real-time value cannot produce a meaningful automatic range.
     // Bar and equalizer therefore require the active color-stop template to
     // publish the numeric scale used to render their current-value height.
-    if (this.configChanged && this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(this.config.sparkline.show.chart_type)) {
+    if (
+      this.configChanged &&
+      this.config.period.type === "real_time" &&
+      ["bar", "equalizer"].includes(this.config.sparkline.show.chart_type)
+    ) {
       if (this.config.sparkline.colorstops.scales?.default === undefined) {
-        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default`);
+        throw new Error(
+          `[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default`,
+        );
       }
-      if (this.config.sparkline.colorstops.scales.default.min === undefined || this.config.sparkline.colorstops.scales.default.max === undefined) {
-        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default.min and max`);
+      if (
+        this.config.sparkline.colorstops.scales.default.min === undefined ||
+        this.config.sparkline.colorstops.scales.default.max === undefined
+      ) {
+        throw new Error(
+          `[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default.min and max`,
+        );
       }
     }
 
     // Historical tools remain inactive until a dynamic duration provides a
     // finite positive range. Real-time tools have no history duration.
-    const historyDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
+    const historyDuration =
+      this.config.period.type === "real_time"
+        ? 1
+        : Number(this.config.period[this.config.period.type].duration.hour);
+    this.historyDurationReady =
+      this.config.period.type === "real_time" ||
+      (Number.isFinite(historyDuration) && historyDuration > 0);
 
     if (this.card.dev.debug && this.configChanged) {
-      console.log('[FHS sparkline runtime period]', {
+      console.log("[FHS sparkline runtime period]", {
         cardId: this.cardId,
         sparklineId: this.config.id,
         periodType: this.config.period.type,
-        durationHours: this.config.period.type === 'rolling_window' ? this.config.period.rolling_window.duration.hour : this.config.period.calendar.duration.hour,
-        historyResynchronizationRequested: this.historyResynchronizationRequested,
+        durationHours:
+          this.config.period.type === "rolling_window"
+            ? this.config.period.rolling_window.duration.hour
+            : this.config.period.calendar.duration.hour,
+        historyResynchronizationRequested:
+          this.historyResynchronizationRequested,
       });
     }
 
@@ -1191,7 +1493,10 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.preserveGraphWhileHistoryLoads) return;
 
     // Determine the longest label produced by Home Assistant for the active locale.
-    const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
+    const localeKey = JSON.stringify([
+      this.card._hass.locale,
+      this.card._hass.config.time_zone,
+    ]);
 
     if (this.xAxisLabelLocaleKey !== localeKey) {
       const locale = this.card._hass.locale;
@@ -1200,19 +1505,24 @@ export default class SparklineGraphTool extends BaseTool {
 
       for (let month = 0; month < 12; month += 1) {
         const date = new Date(Date.UTC(2025, month, 21, 12, 21));
-        labelLengths.push(formatDateVeryShort(date, locale, hassConfig).replace(/\s/g, '').length);
+        labelLengths.push(
+          formatDateVeryShort(date, locale, hassConfig).replace(/\s/g, "")
+            .length,
+        );
       }
 
       for (let hour = 0; hour < 24; hour += 1) {
         const time = new Date(Date.UTC(2025, 6, 21, hour, 21));
-        labelLengths.push(formatTime(time, locale, hassConfig).replace(/\s/g, '').length);
+        labelLengths.push(
+          formatTime(time, locale, hassConfig).replace(/\s/g, "").length,
+        );
       }
 
       this.xAxisLabelLength = Math.max(...labelLengths);
       this.xAxisLabelLocaleKey = localeKey;
     }
 
-    if (this.config.sparkline.show.chart_type === 'state_bands') {
+    if (this.config.sparkline.show.chart_type === "state_bands") {
       const entity = this.card.entities[this.entity_index];
       this.stateBandsStateMap = {
         ...this.config.sparkline.state_map,
@@ -1222,10 +1532,27 @@ export default class SparklineGraphTool extends BaseTool {
             ...entity,
             state,
           };
-          const formattedState = this.card._hass.formatEntityState?.(entity, state);
-          const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
-          const computedState = computeStateDisplay(this.card._hass.localize, stateEntity, this.card._hass.locale, [], this.card._hass.config, this.card._hass.entities);
-          const displayLabel = [formattedState, formattedStateEntity, computedState].find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
+          const formattedState = this.card._hass.formatEntityState?.(
+            entity,
+            state,
+          );
+          const formattedStateEntity =
+            this.card._hass.formatEntityState?.(stateEntity);
+          const computedState = computeStateDisplay(
+            this.card._hass.localize,
+            stateEntity,
+            this.card._hass.locale,
+            [],
+            this.card._hass.config,
+            this.card._hass.entities,
+          );
+          const displayLabel =
+            [formattedState, formattedStateEntity, computedState].find(
+              (label) => label !== undefined && label !== state,
+            ) ??
+            formattedState ??
+            formattedStateEntity ??
+            computedState;
 
           return {
             ...entry,
@@ -1251,13 +1578,18 @@ export default class SparklineGraphTool extends BaseTool {
     // Runtime templates can change shared sparkline settings. Each existing
     // series receives the same resolved base config plus its declared override.
     this.sparklineSeries.items.forEach((item, index) => {
-      const seriesConfig = this.config.series === undefined ? {} : this.config.series[index];
+      const seriesConfig =
+        this.config.series === undefined ? {} : this.config.series[index];
       item.config = Merge.mergeDeep({}, this.config, seriesConfig);
       delete item.config.id;
       delete item.config.series;
       if (item.config.y_axis_id !== undefined) {
-        if (!['primary', 'secondary'].includes(item.config.y_axis_id)) {
-          throw new Error('[sparklines] series ' + item.id + ' y_axis_id must be primary or secondary');
+        if (!["primary", "secondary"].includes(item.config.y_axis_id)) {
+          throw new Error(
+            "[sparklines] series " +
+              item.id +
+              " y_axis_id must be primary or secondary",
+          );
         }
         item.y_axis_id = item.config.y_axis_id;
       }
@@ -1271,15 +1603,23 @@ export default class SparklineGraphTool extends BaseTool {
 
       this.sparklineSeries.items.forEach((item) => {
         const activeHistoryPeriodSignature = JSON.stringify(item.config.period);
-        const historyPeriodChanged = activeHistoryPeriodSignature !== item.historyPeriodSignature;
+        const historyPeriodChanged =
+          activeHistoryPeriodSignature !== item.historyPeriodSignature;
         if (historyPeriodChanged) anyHistoryPeriodChanged = true;
 
-        if (historyPeriodChanged && (item.historySeries || item.historyPromise)) {
+        if (
+          historyPeriodChanged &&
+          (item.historySeries || item.historyPromise)
+        ) {
           item.historyResynchronizationRequested = true;
 
-          if (this.historyDurationReady && !this.acceptedHistoryContainsRange(item, this.getHistoryRange(item))) {
+          if (
+            this.historyDurationReady &&
+            !this.acceptedHistoryContainsRange(item, this.getHistoryRange(item))
+          ) {
             item.historyLoading = true;
-            item.preserveGraphWhileHistoryLoads = item.historySeries !== undefined;
+            item.preserveGraphWhileHistoryLoads =
+              item.historySeries !== undefined;
             this.clearTooltip();
           } else {
             item.historyLoading = false;
@@ -1288,7 +1628,8 @@ export default class SparklineGraphTool extends BaseTool {
         }
         item.historyPeriodSignature = activeHistoryPeriodSignature;
       });
-      this.historyPeriodSignature = this.sparklineSeries.defaultItem.historyPeriodSignature;
+      this.historyPeriodSignature =
+        this.sparklineSeries.defaultItem.historyPeriodSignature;
       if (anyHistoryPeriodChanged) {
         window.clearTimeout(this.binBoundaryTimer);
         window.clearTimeout(this.calendarRangeTimer);
@@ -1311,11 +1652,17 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Graded charts use color-stop ranks as their fixed vertical buckets.
     this.gradeValues = [];
-    this.config.sparkline.colorstops.colors.map((value, index) => (this.gradeValues[index] = value.value));
+    this.config.sparkline.colorstops.colors.map(
+      (value, index) => (this.gradeValues[index] = value.value),
+    );
 
     this.gradeRanks = [];
     this.config.sparkline.colorstops.colors.map((value, index) => {
-      const rankIndex = this.config.sparkline.show.chart_variant === 'rank_order' && value.rank !== undefined ? value.rank : index;
+      const rankIndex =
+        this.config.sparkline.show.chart_variant === "rank_order" &&
+        value.rank !== undefined
+          ? value.rank
+          : index;
 
       if (!this.gradeRanks[rankIndex]) {
         this.gradeRanks[rankIndex] = {
@@ -1329,7 +1676,9 @@ export default class SparklineGraphTool extends BaseTool {
       this.gradeRanks[rankIndex].color = value.color;
       this.gradeRanks[rankIndex].value.push(value.value);
       this.gradeRanks[rankIndex].rangeMin.push(value.value);
-      this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value || Infinity);
+      this.gradeRanks[rankIndex].rangeMax.push(
+        this.config.sparkline.colorstops.colors[index + 1]?.value || Infinity,
+      );
       return true;
     });
     const sharedBinsPerHour = this.calculateSharedBinsPerHour();
@@ -1368,7 +1717,9 @@ export default class SparklineGraphTool extends BaseTool {
       this.sparklineSeries.defaultItem.entity,
       this.sparklineSeries.defaultItem.entityConfig,
     );
-    this.sparklineSeries.items.slice(1).forEach((item) => this.setSeriesState(item));
+    this.sparklineSeries.items
+      .slice(1)
+      .forEach((item) => this.setSeriesState(item));
     this.updateLegendTextTools();
   }
 
@@ -1381,8 +1732,10 @@ export default class SparklineGraphTool extends BaseTool {
    */
   setSeriesState(item) {
     const { config, entity } = item;
-    const realTime = config.period.type === 'real_time';
-    const historyEntityChanged = item.historyEntityId !== undefined && item.historyEntityId !== entity.entity_id;
+    const realTime = config.period.type === "real_time";
+    const historyEntityChanged =
+      item.historyEntityId !== undefined &&
+      item.historyEntityId !== entity.entity_id;
 
     item.historyEntityId = entity.entity_id;
 
@@ -1428,8 +1781,10 @@ export default class SparklineGraphTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    const realTime = this.config.period.type === 'real_time';
-    const historyEntityChanged = this.historyEntityId !== undefined && this.historyEntityId !== entity.entity_id;
+    const realTime = this.config.period.type === "real_time";
+    const historyEntityChanged =
+      this.historyEntityId !== undefined &&
+      this.historyEntityId !== entity.entity_id;
 
     this.historyEntityId = entity.entity_id;
 
@@ -1456,7 +1811,10 @@ export default class SparklineGraphTool extends BaseTool {
     if (realTime) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
-      const histState = this.getEntityNumericState(this.sparklineSeries.defaultItem, entity);
+      const histState = this.getEntityNumericState(
+        this.sparklineSeries.defaultItem,
+        entity,
+      );
       this.series = [{ state: histState }];
       this.updateGraphFromSeries();
       return;
@@ -1497,14 +1855,27 @@ export default class SparklineGraphTool extends BaseTool {
   pruneLiveHistoryToActiveWindow() {
     const bucketMs = (60 / this.Graph.points) * 60 * 1000;
     const now = Date.now();
-    const periodHours = this.config.period.type === 'rolling_window' ? this.config.period.rolling_window.duration.hour : this.config.period.calendar.duration.hour;
+    const periodHours =
+      this.config.period.type === "rolling_window"
+        ? this.config.period.rolling_window.duration.hour
+        : this.config.period.calendar.duration.hour;
     const rangeStart =
-      this.config.sparkline.show.chart_type === 'state_bands'
+      this.config.sparkline.show.chart_type === "state_bands"
         ? this.getHistoryRange(this.sparklineSeries.defaultItem).start.getTime()
-        : this.config.period.type === 'rolling_window'
-          ? Math.floor(now / bucketMs) * bucketMs + bucketMs - periodHours * 60 * 60 * 1000
-          : this.getHistoryRange(this.sparklineSeries.defaultItem).start.getTime();
-    const sortedSeries = this.historySeries.concat().sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+        : this.config.period.type === "rolling_window"
+          ? Math.floor(now / bucketMs) * bucketMs +
+            bucketMs -
+            periodHours * 60 * 60 * 1000
+          : this.getHistoryRange(
+              this.sparklineSeries.defaultItem,
+            ).start.getTime();
+    const sortedSeries = this.historySeries
+      .concat()
+      .sort(
+        (a, b) =>
+          new Date(a.last_changed).getTime() -
+          new Date(b.last_changed).getTime(),
+      );
     let precedingRow;
     const activeRows = [];
 
@@ -1516,7 +1887,9 @@ export default class SparklineGraphTool extends BaseTool {
       }
     });
 
-    this.historySeries = precedingRow ? [precedingRow, ...activeRows] : activeRows;
+    this.historySeries = precedingRow
+      ? [precedingRow, ...activeRows]
+      : activeRows;
     this.series = this.historySeries;
 
     return {
@@ -1533,7 +1906,11 @@ export default class SparklineGraphTool extends BaseTool {
    */
   scheduleBinBoundaryRefresh() {
     window.clearTimeout(this.binBoundaryTimer);
-    const sourceRangeIsActive = this.sparklineSeries.items.some((item) => item.config.period.type !== 'real_time' && this.getHistoryRange(item).sourceRangeIsActive);
+    const sourceRangeIsActive = this.sparklineSeries.items.some(
+      (item) =>
+        item.config.period.type !== "real_time" &&
+        this.getHistoryRange(item).sourceRangeIsActive,
+    );
 
     // Only an active source range needs an advancing visible bucket. Offset
     // sources are complete comparison data and remain unchanged between fetches.
@@ -1543,7 +1920,12 @@ export default class SparklineGraphTool extends BaseTool {
 
     // State bands have no buckets. Their timer only advances the exact current
     // data end; all other chart types retain their normal bin-boundary timing.
-    const bucketMs = this.config.sparkline.show.chart_type === 'state_bands' ? this.getRefreshIntervalMs(this.config.sparkline.state_bands.update_interval) : (60 / this.Graph.points) * 60 * 1000;
+    const bucketMs =
+      this.config.sparkline.show.chart_type === "state_bands"
+        ? this.getRefreshIntervalMs(
+            this.config.sparkline.state_bands.update_interval,
+          )
+        : (60 / this.Graph.points) * 60 * 1000;
     const now = Date.now();
     const delay = bucketMs - (now % bucketMs) + 10;
 
@@ -1558,7 +1940,11 @@ export default class SparklineGraphTool extends BaseTool {
       }
       // A bin boundary advances the in-memory graph without fetching history.
       // Refresh local statistics and their bound tools from the recalculated series.
-      this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
+      this.card.cardEntities.updateSparklineEntities(
+        this.card.resolvedEntityConfigs,
+        this.card.entities,
+        this.card.cardTools.getBySection("sparklines"),
+      );
       this.card.setHass(this.card._hass);
       this.scheduleBinBoundaryRefresh();
     }, delay);
@@ -1572,7 +1958,7 @@ export default class SparklineGraphTool extends BaseTool {
   scheduleCalendarRangeRefresh() {
     window.clearTimeout(this.calendarRangeTimer);
 
-    if (this.config.period.type !== 'calendar') return;
+    if (this.config.period.type !== "calendar") return;
 
     const now = new Date();
     const nextMidnight = new Date(now);
@@ -1582,7 +1968,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.calendarRangeTimer = window.setTimeout(() => {
       this.sparklineSeries.items.forEach((item) => {
         const range = this.getHistoryRange(item);
-        const rangeChanged = range.start.getTime() !== item.historyRangeStart || range.end.getTime() !== item.historyRangeEnd;
+        const rangeChanged =
+          range.start.getTime() !== item.historyRangeStart ||
+          range.end.getTime() !== item.historyRangeEnd;
 
         if (rangeChanged && item.historyPromise) {
           item.historyPromise.finally(() => this.fetchHistoryIfNeeded(item));
@@ -1608,8 +1996,11 @@ export default class SparklineGraphTool extends BaseTool {
    */
   connected() {
     this.sparklineSeries.items.forEach((item) => {
-      const sourceRangeIsActive = item.config.period.type !== 'real_time' && this.getHistoryRange(item).sourceRangeIsActive;
-      if (item.historySeries && sourceRangeIsActive) item.historyResynchronizationRequested = true;
+      const sourceRangeIsActive =
+        item.config.period.type !== "real_time" &&
+        this.getHistoryRange(item).sourceRangeIsActive;
+      if (item.historySeries && sourceRangeIsActive)
+        item.historyResynchronizationRequested = true;
     });
   }
 
@@ -1624,7 +2015,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} True when existing history must be fetched again.
    */
   requiresHassUpdate() {
-    return this.sparklineSeries.items.some((item) => item.historyResynchronizationRequested);
+    return this.sparklineSeries.items.some(
+      (item) => item.historyResynchronizationRequested,
+    );
   }
 
   /**
@@ -1634,15 +2027,15 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Refresh interval in milliseconds.
    */
   getRefreshIntervalMs(interval) {
-    if (typeof interval === 'number') return interval * 1000;
+    if (typeof interval === "number") return interval * 1000;
 
     const match = interval.match(/^(\d+(?:\.\d+)?)(ms|s|sec|m|min|h|hour)$/);
     const value = Number(match[1]);
     const unit = match[2];
 
-    if (unit === 'ms') return value;
-    if (unit === 's' || unit === 'sec') return value * 1000;
-    if (unit === 'm' || unit === 'min') return value * 60 * 1000;
+    if (unit === "ms") return value;
+    if (unit === "s" || unit === "sec") return value * 1000;
+    if (unit === "m" || unit === "min") return value * 60 * 1000;
     return value * 60 * 60 * 1000;
   }
 
@@ -1657,15 +2050,29 @@ export default class SparklineGraphTool extends BaseTool {
   getHistoryRange(item) {
     const plotPeriod = this.config.period;
     const sourcePeriod = item.config.period;
-    const periodHours = plotPeriod.type === 'rolling_window' ? plotPeriod.rolling_window.duration.hour : plotPeriod.calendar.duration.hour;
+    const periodHours =
+      plotPeriod.type === "rolling_window"
+        ? plotPeriod.rolling_window.duration.hour
+        : plotPeriod.calendar.duration.hour;
     const now = new Date();
 
-    if (plotPeriod.type === 'calendar' && plotPeriod.calendar.period === 'day') {
+    if (
+      plotPeriod.type === "calendar" &&
+      plotPeriod.calendar.period === "day"
+    ) {
       const plotStart = new Date(now);
       plotStart.setHours(0, 0, 0, 0);
-      plotStart.setDate(plotStart.getDate() + plotPeriod.calendar.offset - (periodHours - 24) / 24);
-      const plotEnd = new Date(plotStart.getTime() + periodHours * 60 * 60 * 1000);
-      const calendarOffsetDays = Number(sourcePeriod.calendar.offset) - Number(plotPeriod.calendar.offset);
+      plotStart.setDate(
+        plotStart.getDate() +
+          plotPeriod.calendar.offset -
+          (periodHours - 24) / 24,
+      );
+      const plotEnd = new Date(
+        plotStart.getTime() + periodHours * 60 * 60 * 1000,
+      );
+      const calendarOffsetDays =
+        Number(sourcePeriod.calendar.offset) -
+        Number(plotPeriod.calendar.offset);
       const sourceStart = new Date(plotStart);
       const sourceEnd = new Date(plotEnd);
       const plotActiveEnd = new Date(now);
@@ -1691,10 +2098,18 @@ export default class SparklineGraphTool extends BaseTool {
 
     const plotEnd = now;
     const plotStart = new Date(now.getTime() - periodHours * 60 * 60 * 1000);
-    const rollingOffsetDays = Number(sourcePeriod.rolling_window.offset) - Number(plotPeriod.rolling_window.offset);
-    const sourceStart = new Date(plotStart.getTime() + rollingOffsetDays * 24 * 60 * 60 * 1000);
-    const sourceEnd = new Date(plotEnd.getTime() + rollingOffsetDays * 24 * 60 * 60 * 1000);
-    const plotActiveEnd = new Date(now.getTime() - rollingOffsetDays * 24 * 60 * 60 * 1000);
+    const rollingOffsetDays =
+      Number(sourcePeriod.rolling_window.offset) -
+      Number(plotPeriod.rolling_window.offset);
+    const sourceStart = new Date(
+      plotStart.getTime() + rollingOffsetDays * 24 * 60 * 60 * 1000,
+    );
+    const sourceEnd = new Date(
+      plotEnd.getTime() + rollingOffsetDays * 24 * 60 * 60 * 1000,
+    );
+    const plotActiveEnd = new Date(
+      now.getTime() - rollingOffsetDays * 24 * 60 * 60 * 1000,
+    );
 
     return {
       start: sourceStart,
@@ -1730,9 +2145,12 @@ export default class SparklineGraphTool extends BaseTool {
     // An offset rolling window is a completed comparison snapshot. Its API
     // boundaries move with the reference clock, but the accepted source rows
     // remain the selected historical window until the period or entity changes.
-    if (item.config.period.type === 'rolling_window') return true;
+    if (item.config.period.type === "rolling_window") return true;
 
-    return item.historyRangeStart <= range.start.getTime() && item.historyRangeEnd >= range.end.getTime();
+    return (
+      item.historyRangeStart <= range.start.getTime() &&
+      item.historyRangeEnd >= range.end.getTime()
+    );
   }
 
   /**
@@ -1766,16 +2184,22 @@ export default class SparklineGraphTool extends BaseTool {
     const range = this.getHistoryRange(item);
     const sourceRangeIsClosed = !range.sourceRangeIsActive;
     const representedRange = this.acceptedHistoryContainsRange(item, range);
-    const periodicResynchronizationDue = config.history.refresh_interval !== undefined && now >= item.historyRefreshAt;
+    const periodicResynchronizationDue =
+      config.history.refresh_interval !== undefined &&
+      now >= item.historyRefreshAt;
 
     if (this.card.dev.debug) {
-      console.log('[FHS sparkline history decision]', {
+      console.log("[FHS sparkline history decision]", {
         cardId: this.cardId,
         sparklineId: config.id,
-        durationHours: config.period.type === 'rolling_window' ? config.period.rolling_window.duration.hour : config.period.calendar.duration.hour,
+        durationHours:
+          config.period.type === "rolling_window"
+            ? config.period.rolling_window.duration.hour
+            : config.period.calendar.duration.hour,
         historyPromiseActive: item.historyPromise !== undefined,
         historySeriesRows: item.historySeries?.length,
-        historyResynchronizationRequested: item.historyResynchronizationRequested,
+        historyResynchronizationRequested:
+          item.historyResynchronizationRequested,
         representedRange,
         rangeStart: range.start.toISOString(),
         rangeEnd: range.end.toISOString(),
@@ -1783,8 +2207,20 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (item.historyPromise) return;
-    if (sourceRangeIsClosed && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
-    if (item.historySeries && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
+    if (
+      sourceRangeIsClosed &&
+      representedRange &&
+      !item.historyResynchronizationRequested &&
+      !periodicResynchronizationDue
+    )
+      return;
+    if (
+      item.historySeries &&
+      representedRange &&
+      !item.historyResynchronizationRequested &&
+      !periodicResynchronizationDue
+    )
+      return;
 
     // Only missing ranges show a loading indicator. Periodic refreshes and
     // reductions already have complete visible data and remain undimmed.
@@ -1795,18 +2231,24 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     const requestedHistoryEntityId = entity.entity_id;
-    const path = this.buildHistoryPath(requestedHistoryEntityId, range.start, range.end);
+    const path = this.buildHistoryPath(
+      requestedHistoryEntityId,
+      range.start,
+      range.end,
+    );
     const requestedHistoryPeriodSignature = item.historyPeriodSignature;
     // console.log('[fetchHistoryIfNeeded] range', range);
     item.historyPromise = this.card._hass
-      .callApi('GET', path)
+      .callApi("GET", path)
       .then((history) => {
         const historyRows = history.length === 0 ? [] : history[0];
-        const requestMatchesActivePeriod = requestedHistoryPeriodSignature === item.historyPeriodSignature;
-        const requestMatchesActiveEntity = requestedHistoryEntityId === item.historyEntityId;
+        const requestMatchesActivePeriod =
+          requestedHistoryPeriodSignature === item.historyPeriodSignature;
+        const requestMatchesActiveEntity =
+          requestedHistoryEntityId === item.historyEntityId;
 
         if (this.card.dev.debug) {
-          console.log('[FHS sparkline history response]', {
+          console.log("[FHS sparkline history response]", {
             cardId: this.cardId,
             sparklineId: config.id,
             requestedRangeStart: range.start.toISOString(),
@@ -1823,7 +2265,12 @@ export default class SparklineGraphTool extends BaseTool {
         // the currently active entity and represented period.
         if (!requestMatchesActivePeriod || !requestMatchesActiveEntity) return;
 
-        item.historySeries = this.buildHistorySeries(item, historyRows, entity, range);
+        item.historySeries = this.buildHistorySeries(
+          item,
+          historyRows,
+          entity,
+          range,
+        );
         item.historyRangeStart = range.start.getTime();
         item.historyRangeEnd = range.end.getTime();
         item.historyLoading = false;
@@ -1837,8 +2284,15 @@ export default class SparklineGraphTool extends BaseTool {
 
         item.rows = item.historySeries;
         this.updateGraphFromSeries();
-        this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
-        if (config.history.refresh_interval !== undefined) item.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(config.history.refresh_interval);
+        this.card.cardEntities.updateSparklineEntities(
+          this.card.resolvedEntityConfigs,
+          this.card.entities,
+          this.card.cardTools.getBySection("sparklines"),
+        );
+        if (config.history.refresh_interval !== undefined)
+          item.historyRefreshAt =
+            Date.now() +
+            this.getRefreshIntervalMs(config.history.refresh_interval);
 
         item.historyResynchronizationRequested = true;
         // Keep the history flag active during the synchronous card pipeline so
@@ -1858,7 +2312,8 @@ export default class SparklineGraphTool extends BaseTool {
 
         // A period or source entity may change while an earlier request is in
         // flight. Fetch the active combination after that request has completed.
-        if (item.historyResynchronizationRequested) this.fetchHistoryIfNeeded(item);
+        if (item.historyResynchronizationRequested)
+          this.fetchHistoryIfNeeded(item);
       });
   }
 
@@ -1886,7 +2341,9 @@ export default class SparklineGraphTool extends BaseTool {
       if (range.calendarOffsetDays !== undefined) {
         plotTime.setDate(plotTime.getDate() - range.calendarOffsetDays);
       } else {
-        plotTime.setTime(plotTime.getTime() - range.rollingOffsetDays * 24 * 60 * 60 * 1000);
+        plotTime.setTime(
+          plotTime.getTime() - range.rollingOffsetDays * 24 * 60 * 60 * 1000,
+        );
       }
 
       return {
@@ -1896,9 +2353,11 @@ export default class SparklineGraphTool extends BaseTool {
       };
     };
 
-    if (item.config.sparkline.show.chart_type === 'state_bands') {
+    if (item.config.sparkline.show.chart_type === "state_bands") {
       return rows.map((row) => {
-        const mappedState = this.stateBandsStateMap.map.find((entry) => String(entry.state) === String(row.state));
+        const mappedState = this.stateBandsStateMap.map.find(
+          (entry) => String(entry.state) === String(row.state),
+        );
 
         return {
           ...row,
@@ -1911,11 +2370,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     return rows
       .filter((row) => row && Number.isFinite(Number(row.state)))
-      .map((row) => Merge.mergeDeep(row, {
-        ...projectRowTime(row),
-        state: Number(row.state),
-        haState: row.state,
-      }));
+      .map((row) =>
+        Merge.mergeDeep(row, {
+          ...projectRowTime(row),
+          state: Number(row.state),
+          haState: row.state,
+        }),
+      );
   }
 
   /**
@@ -1940,17 +2401,23 @@ export default class SparklineGraphTool extends BaseTool {
   updateMultipleSeriesGraphs() {
     this.sparklineSeries.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      if (item.config.period.type !== 'real_time') {
+      if (item.config.period.type !== "real_time") {
         const range = this.getHistoryRange(item);
-        item.graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
-        item.graph.activeDataEnd = range.sourceRangeIsActive ? range.plotActiveEnd : undefined;
+        item.graph.hours =
+          (range.plotEnd.getTime() - range.plotStart.getTime()) /
+          (60 * 60 * 1000);
+        item.graph.activeDataEnd = range.sourceRangeIsActive
+          ? range.plotActiveEnd
+          : undefined;
       } else {
         item.graph.activeDataEnd = undefined;
       }
       item.graph.update(item.rows);
     });
 
-    const readyItems = this.sparklineSeries.items.filter((item) => item.graph.coords.length > 0);
+    const readyItems = this.sparklineSeries.items.filter(
+      (item) => item.graph.coords.length > 0,
+    );
     // A shared y-axis is only meaningful after every declared source has its
     // first graph geometry. Until then render the normal loading state rather
     // than mixing ready paths with an engine that has no coordinates yet.
@@ -1960,17 +2427,30 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
-    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
+    const primaryItems = readyItems.filter(
+      (item) => item.y_axis_id === "primary",
+    );
+    const secondaryItems = readyItems.filter(
+      (item) => item.y_axis_id === "secondary",
+    );
     this.axisGraphs = {
       primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
-      secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
+      secondary:
+        secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
     };
 
     if (primaryItems.length > 0) {
-      const configuredBoundsItem = primaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
-      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...primaryItems.map((item) => item.graph.min));
-      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...primaryItems.map((item) => item.graph.max));
+      const configuredBoundsItem = primaryItems.find(
+        (item) => item.config.y_axis.lower_bound !== undefined,
+      );
+      const lowerBound =
+        configuredBoundsItem !== undefined
+          ? Number(configuredBoundsItem.config.y_axis.lower_bound)
+          : Math.min(...primaryItems.map((item) => item.graph.min));
+      const upperBound =
+        configuredBoundsItem !== undefined
+          ? Number(configuredBoundsItem.config.y_axis.upper_bound)
+          : Math.max(...primaryItems.map((item) => item.graph.max));
       primaryItems.forEach((item) => {
         item.graph.setSharedYAxisBounds(lowerBound, upperBound);
         item.graph.update(item.rows);
@@ -1978,9 +2458,17 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (secondaryItems.length > 0) {
-      const configuredBoundsItem = secondaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
-      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...secondaryItems.map((item) => item.graph.min));
-      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...secondaryItems.map((item) => item.graph.max));
+      const configuredBoundsItem = secondaryItems.find(
+        (item) => item.config.y_axis.lower_bound !== undefined,
+      );
+      const lowerBound =
+        configuredBoundsItem !== undefined
+          ? Number(configuredBoundsItem.config.y_axis.lower_bound)
+          : Math.min(...secondaryItems.map((item) => item.graph.min));
+      const upperBound =
+        configuredBoundsItem !== undefined
+          ? Number(configuredBoundsItem.config.y_axis.upper_bound)
+          : Math.max(...secondaryItems.map((item) => item.graph.max));
       secondaryItems.forEach((item) => {
         item.graph.setSharedYAxisBounds(lowerBound, upperBound);
         item.graph.update(item.rows);
@@ -1988,26 +2476,51 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     const axisMargin = this.calculateAxisMargin();
-    const barItems = readyItems.filter((item) => item.config.sparkline.show.chart_type === "bar");
+    const barItems = readyItems.filter(
+      (item) => item.config.sparkline.show.chart_type === "bar",
+    );
 
     // Give every graph its provisional axis area before measuring the complete
     // visible bar group. SparklineGraph remains the only owner of bar widths;
     // this coordinator only carries the shared outer extent back to every engine.
     readyItems.forEach((item) => {
-      item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
+      item.graph.setGraphAreas(
+        axisMargin,
+        this.configuredGraphMargin,
+        item.graph.coords.length,
+        { t: 0, r: 0, b: 0, l: 0 },
+      );
       item.graph.update(item.rows);
     });
 
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
     this.sparklineSeries.items.forEach((item) => {
       const chartType = item.config.sparkline.show.chart_type;
-      const rendersDots = chartType === "dots" || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
+      const rendersDots =
+        chartType === "dots" ||
+        item.config.sparkline.show.points === true ||
+        item.config.sparkline.line.show_dots === true ||
+        item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
-        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
-        sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
-        sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, dotExtent);
-        sharedChartGeometryMargin.b = Math.max(sharedChartGeometryMargin.b, dotExtent);
-        sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, dotExtent);
+        const dotExtent =
+          Utils.calculateSvgDimension(item.config.sparkline.dots.radius) +
+          item.graph.config.geometry.line_width / 4;
+        sharedChartGeometryMargin.t = Math.max(
+          sharedChartGeometryMargin.t,
+          dotExtent,
+        );
+        sharedChartGeometryMargin.r = Math.max(
+          sharedChartGeometryMargin.r,
+          dotExtent,
+        );
+        sharedChartGeometryMargin.b = Math.max(
+          sharedChartGeometryMargin.b,
+          dotExtent,
+        );
+        sharedChartGeometryMargin.l = Math.max(
+          sharedChartGeometryMargin.l,
+          dotExtent,
+        );
       }
     });
 
@@ -2016,21 +2529,45 @@ export default class SparklineGraphTool extends BaseTool {
     barItems.forEach((item, position) => {
       item.barPosition = position;
       item.barTotal = barItems.length;
-      const bars = item.graph.getBars(position, barItems.length, this.svg.column_spacing, this.svg.row_spacing);
+      const bars = item.graph.getBars(
+        position,
+        barItems.length,
+        this.svg.column_spacing,
+        this.svg.row_spacing,
+      );
       const firstBar = bars[0];
       const lastBar = bars[bars.length - 1];
       const leftOverflow = item.graph.axisArea.x - firstBar.x;
-      const rightOverflow = lastBar.x + lastBar.width - (item.graph.axisArea.x + item.graph.axisArea.width);
-      sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, leftOverflow);
-      sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, rightOverflow);
+      const rightOverflow =
+        lastBar.x +
+        lastBar.width -
+        (item.graph.axisArea.x + item.graph.axisArea.width);
+      sharedChartGeometryMargin.l = Math.max(
+        sharedChartGeometryMargin.l,
+        leftOverflow,
+      );
+      sharedChartGeometryMargin.r = Math.max(
+        sharedChartGeometryMargin.r,
+        rightOverflow,
+      );
     });
 
     readyItems.forEach((item) => {
-      item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, sharedChartGeometryMargin);
+      item.graph.setGraphAreas(
+        axisMargin,
+        this.configuredGraphMargin,
+        item.graph.coords.length,
+        sharedChartGeometryMargin,
+      );
       item.graph.update(item.rows);
     });
     barItems.forEach((item) => {
-      item.bars = item.graph.getBars(item.barPosition, item.barTotal, this.svg.column_spacing, this.svg.row_spacing);
+      item.bars = item.graph.getBars(
+        item.barPosition,
+        item.barTotal,
+        this.svg.column_spacing,
+        this.svg.row_spacing,
+      );
     });
     this.axisMargin = axisMargin;
 
@@ -2042,19 +2579,34 @@ export default class SparklineGraphTool extends BaseTool {
     this.sparklineSeries.items.forEach((item, index) => {
       const { graph, config } = item;
       const chartType = config.sparkline.show.chart_type;
-      if (['line', 'area'].includes(chartType)) {
+      if (["line", "area"].includes(chartType)) {
         const path = graph.getPath();
         if (config.sparkline.show.line !== false) this.line[index] = path;
-        if (chartType === 'area') this.area[index] = graph.getArea(path);
+        if (chartType === "area") this.area[index] = graph.getArea(path);
       }
-      if (chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true) {
-        this.points[index] = graph._calcY(graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
+      if (
+        chartType === "dots" ||
+        config.sparkline.show.points === true ||
+        config.sparkline.line.show_dots === true ||
+        config.sparkline.area.show_dots === true
+      ) {
+        this.points[index] = graph
+          ._calcY(graph.coords)
+          .map((point, pointIndex) => [
+            point[X],
+            point[Y],
+            point[V],
+            pointIndex,
+          ]);
       }
     });
 
     const graph = this.Graph;
     const zeroY = graph._calcY([[graph.drawArea.x, 0, 0]])[0][Y];
-    this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
+    this.animationBaselineY = Math.min(
+      graph.drawArea.y + graph.drawArea.height,
+      Math.max(graph.drawArea.y, zeroY),
+    );
     this.sparklineSeries.items.forEach((item) => {
       item.stats = this.calculateStatistics(item.rows);
     });
@@ -2075,25 +2627,34 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Development mode replaces only the values with the deterministic example
     // sequence. Source timestamps remain intact so normal bucketing is exercised.
-    if (this.card.dev.fakeData && chartType !== 'state_bands') {
+    if (this.card.dev.fakeData && chartType !== "state_bands") {
       let generatedState = 40;
 
       this.series.forEach((seriesItem, seriesIndex) => {
-        if (seriesIndex < this.series.length / 2) generatedState -= 4 * seriesIndex;
-        if (seriesIndex > this.series.length / 2) generatedState += 3 * seriesIndex;
+        if (seriesIndex < this.series.length / 2)
+          generatedState -= 4 * seriesIndex;
+        if (seriesIndex > this.series.length / 2)
+          generatedState += 3 * seriesIndex;
         seriesItem.state = generatedState;
         seriesItem.haState = generatedState;
       });
     }
 
-    const sourceRangeIsActive = this.getHistoryRange(this.sparklineSeries.defaultItem).sourceRangeIsActive;
-    const statisticsRange = sourceRangeIsActive && this.historySeries ? this.pruneLiveHistoryToActiveWindow() : undefined;
+    const sourceRangeIsActive = this.getHistoryRange(
+      this.sparklineSeries.defaultItem,
+    ).sourceRangeIsActive;
+    const statisticsRange =
+      sourceRangeIsActive && this.historySeries
+        ? this.pruneLiveHistoryToActiveWindow()
+        : undefined;
 
     // Real-time uses the graph engine's existing one-hour/one-point calculation.
     // Only history-backed modes calculate and apply a requested history range.
-    if (this.config.period.type !== 'real_time') {
+    if (this.config.period.type !== "real_time") {
       const range = this.getHistoryRange(this.sparklineSeries.defaultItem);
-      this.Graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
+      this.Graph.hours =
+        (range.plotEnd.getTime() - range.plotStart.getTime()) /
+        (60 * 60 * 1000);
     }
 
     this.axisGraphs = { primary: this.Graph, secondary: undefined };
@@ -2110,18 +2671,26 @@ export default class SparklineGraphTool extends BaseTool {
     // count. The tool measures outer axis space; the graph engine then owns
     // the final axisArea and chart-specific dataArea.
     const axisMargin = this.calculateAxisMargin();
-    const graphAreasChanged = this.Graph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.Graph.coords.length);
+    const graphAreasChanged = this.Graph.setGraphAreas(
+      axisMargin,
+      this.configuredGraphMargin,
+      this.Graph.coords.length,
+    );
     if (graphAreasChanged) {
       this.axisMargin = axisMargin;
       this.graphReady = this.sparklineSeries.updateGraphs()[0];
     }
     // Use the graph engine y-scale for every vertical introduction animation.
     // Clamp value zero to the draw area for positive-only and negative-only scales.
-    if (chartType === 'state_bands') {
-      this.animationBaselineY = this.Graph.drawArea.y + this.Graph.drawArea.height;
+    if (chartType === "state_bands") {
+      this.animationBaselineY =
+        this.Graph.drawArea.y + this.Graph.drawArea.height;
     } else {
       const zeroY = this.Graph._calcY([[this.Graph.drawArea.x, 0, 0]])[0][Y];
-      this.animationBaselineY = Math.min(this.Graph.drawArea.y + this.Graph.drawArea.height, Math.max(this.Graph.drawArea.y, zeroY));
+      this.animationBaselineY = Math.min(
+        this.Graph.drawArea.y + this.Graph.drawArea.height,
+        Math.max(this.Graph.drawArea.y, zeroY),
+      );
     }
 
     this.area = [];
@@ -2135,27 +2704,36 @@ export default class SparklineGraphTool extends BaseTool {
     this.radialBarcodeChart = [];
     this.radialBarcodeChartBackground = [];
     this.graded = [];
-    this.stateBands = chartType === 'state_bands' && this.historySeries ? this.Graph.getStateBands() : [];
+    this.stateBands =
+      chartType === "state_bands" && this.historySeries
+        ? this.Graph.getStateBands()
+        : [];
 
     if (this.Graph.coords.length > 0) {
-      if (['area', 'line'].includes(chartType)) {
+      if (["area", "line"].includes(chartType)) {
         this.linePath = this.Graph.getPath();
         if (this.entityConfig?.show_line !== false) {
           this.line[index] = this.linePath;
         }
-        if (chartType === 'area') {
+        if (chartType === "area") {
           this.areaPath = this.Graph.getArea(this.linePath);
           this.area[index] = this.areaPath;
         } else {
           this.areaPath = undefined;
         }
 
-        const showMinMax = chartType === 'line' ? this.config.sparkline?.line?.show_minmax === true : this.config.sparkline?.area?.show_minmax === true;
+        const showMinMax =
+          chartType === "line"
+            ? this.config.sparkline?.line?.show_minmax === true
+            : this.config.sparkline?.area?.show_minmax === true;
 
         if (showMinMax) {
           this.lineMinPath = this.Graph.getPathMin();
           this.lineMaxPath = this.Graph.getPathMax();
-          this.areaMinMaxPath = this.Graph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
+          this.areaMinMaxPath = this.Graph.getAreaMinMax(
+            this.lineMinPath,
+            this.lineMaxPath,
+          );
           this.areaMinMax[index] = this.areaMinMaxPath;
         } else {
           this.lineMinPath = undefined;
@@ -2170,43 +2748,95 @@ export default class SparklineGraphTool extends BaseTool {
         this.areaMinMaxPath = undefined;
       }
 
-      if (chartType === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline?.line?.show_dots === true || this.config.sparkline?.area?.show_dots === true) {
+      if (
+        chartType === "dots" ||
+        this.config.sparkline.show.points === true ||
+        this.config.sparkline?.line?.show_dots === true ||
+        this.config.sparkline?.area?.show_dots === true
+      ) {
         this.points[index] = this.Graph.getPoints();
       }
 
-      if (chartType === 'bar') {
-        this.bar[index] = this.Graph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        if (this.config.period.type === 'real_time') {
+      if (chartType === "bar") {
+        this.bar[index] = this.Graph.getBars(
+          index,
+          total,
+          this.svg.column_spacing,
+          this.svg.row_spacing,
+        );
+        if (this.config.period.type === "real_time") {
           // The engine places a one-point bar around its left-edge coordinate.
           // Center that single bar inside the complete real-time draw area.
-          this.bar[index][0].x = this.Graph.drawArea.x + (this.Graph.drawArea.width - this.bar[index][0].width) / 2;
+          this.bar[index][0].x =
+            this.Graph.drawArea.x +
+            (this.Graph.drawArea.width - this.bar[index][0].width) / 2;
         }
-      } else if (chartType === 'equalizer') {
+      } else if (chartType === "equalizer") {
         this.Graph.levelCount = this.config.sparkline.equalizer.value_buckets;
-        this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.config.sparkline.equalizer.value_buckets;
-        this.equalizer[index] = this.Graph.getEqualizer(index, total, this.svg.column_spacing, this.svg.row_spacing);
-      } else if (chartType === 'graded') {
+        this.Graph.valuesPerBucket =
+          (this.Graph.max - this.Graph.min) /
+          this.config.sparkline.equalizer.value_buckets;
+        this.equalizer[index] = this.Graph.getEqualizer(
+          index,
+          total,
+          this.svg.column_spacing,
+          this.svg.row_spacing,
+        );
+      } else if (chartType === "graded") {
         this.Graph.levelCount = this.config.sparkline.equalizer.value_buckets;
-        this.Graph.valuesPerBucket = (this.Graph.max - this.Graph.min) / this.config.sparkline.equalizer.value_buckets;
-        this.graded[index] = this.Graph.getGrades(index, total, this.svg.column_spacing, this.svg.row_spacing);
-      } else if (chartType === 'radial_barcode') {
-        this.radialBarcodeChartBackground[index] = this.Graph.getRadialBarcodeBackground(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        this.radialBarcodeChart[index] = this.Graph.getRadialBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        this.Graph.radialBarcodeBackground = this.radialBarcodeChartBackground[index];
+        this.Graph.valuesPerBucket =
+          (this.Graph.max - this.Graph.min) /
+          this.config.sparkline.equalizer.value_buckets;
+        this.graded[index] = this.Graph.getGrades(
+          index,
+          total,
+          this.svg.column_spacing,
+          this.svg.row_spacing,
+        );
+      } else if (chartType === "radial_barcode") {
+        this.radialBarcodeChartBackground[index] =
+          this.Graph.getRadialBarcodeBackground(
+            index,
+            total,
+            this.svg.column_spacing,
+            this.svg.row_spacing,
+          );
+        this.radialBarcodeChart[index] = this.Graph.getRadialBarcode(
+          index,
+          total,
+          this.svg.column_spacing,
+          this.svg.row_spacing,
+        );
+        this.Graph.radialBarcodeBackground =
+          this.radialBarcodeChartBackground[index];
         this.Graph.radialBarcode = this.radialBarcodeChart[index];
-      } else if (chartType === 'barcode') {
-        this.barcodeChart[index] = this.Graph.getBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
+      } else if (chartType === "barcode") {
+        this.barcodeChart[index] = this.Graph.getBarcode(
+          index,
+          total,
+          this.svg.column_spacing,
+          this.svg.row_spacing,
+        );
       }
     }
 
-    if (this.config.sparkline.colorstops.colors.length > 0 && !this.entityConfig?.color) {
-      this.gradient[0] = this.Graph.computeGradient(computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition), this.config.sparkline.state_values.logarithmic);
+    if (
+      this.config.sparkline.colorstops.colors.length > 0 &&
+      !this.entityConfig?.color
+    ) {
+      this.gradient[0] = this.Graph.computeGradient(
+        computeThresholds(
+          this.config.sparkline.colorstops.colors,
+          this.config.sparkline.colorstops_transition,
+        ),
+        this.config.sparkline.state_values.logarithmic,
+      );
     } else {
       this.gradient = [];
     }
     // Real-time has one current value and no timestamped history series. Keep
     // the local statistics entities complete using the source entity timestamp.
-    if (this.config.period.type === 'real_time') {
+    if (this.config.period.type === "real_time") {
       const state = Number(this.series[0].state);
       this.stats = {
         min: state,
@@ -2234,15 +2864,23 @@ export default class SparklineGraphTool extends BaseTool {
     const sortedSeries = series
       .filter((item) => item && Number.isFinite(Number(item.state)))
       .concat()
-      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+      .sort(
+        (a, b) =>
+          new Date(a.last_changed).getTime() -
+          new Date(b.last_changed).getTime(),
+      );
 
     if (sortedSeries.length === 0) {
       return {};
     }
 
-    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
+    const rangeStart = statisticsRange
+      ? statisticsRange.start
+      : new Date(sortedSeries[0].last_changed).getTime();
     const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
-    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
+    const visibleSeries = sortedSeries.filter(
+      (item) => new Date(item.last_changed).getTime() <= rangeEnd,
+    );
     const values = visibleSeries.map((item) => Number(item.state));
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -2250,15 +2888,24 @@ export default class SparklineGraphTool extends BaseTool {
     const maxItem = visibleSeries.find((item) => Number(item.state) === max);
     const minItemTime = new Date(minItem.last_changed).getTime();
     const maxItemTime = new Date(maxItem.last_changed).getTime();
-    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
-    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
+    const min_time =
+      minItemTime < rangeStart
+        ? new Date(rangeStart).toISOString()
+        : minItem.last_changed;
+    const max_time =
+      maxItemTime < rangeStart
+        ? new Date(rangeStart).toISOString()
+        : maxItem.last_changed;
     let weightedValue = 0;
     let weightedDuration = 0;
 
     visibleSeries.forEach((item, index) => {
       const value = Number(item.state);
       const itemStart = new Date(item.last_changed).getTime();
-      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
+      const nextItemStart =
+        index < visibleSeries.length - 1
+          ? new Date(visibleSeries[index + 1].last_changed).getTime()
+          : rangeEnd;
       const startTime = Math.max(itemStart, rangeStart);
       const endTime = Math.min(nextItemStart, rangeEnd);
       const duration = Math.max(0, endTime - startTime);
@@ -2350,12 +2997,21 @@ export default class SparklineGraphTool extends BaseTool {
     // still works through the component's shadow root.
     if (point?.clientX !== undefined && point?.clientY !== undefined) {
       const shadowContainer = this.elements.svg.getRootNode();
-      const hitTestScope = shadowContainer instanceof ShadowRoot ? shadowContainer : document;
-      const elementStack = Array.from(hitTestScope.elementsFromPoint(point.clientX, point.clientY));
+      const hitTestScope =
+        shadowContainer instanceof ShadowRoot ? shadowContainer : document;
+      const elementStack = Array.from(
+        hitTestScope.elementsFromPoint(point.clientX, point.clientY),
+      );
 
-      const matchedElement = elementStack.find((el) => el?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin'));
+      const matchedElement = elementStack.find((el) =>
+        el?.closest?.(
+          ".sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin",
+        ),
+      );
 
-      const bin = matchedElement?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+      const bin = matchedElement?.closest?.(
+        ".sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin",
+      );
 
       if (bin) {
         return Number(bin.dataset.pointIndex);
@@ -2363,19 +3019,26 @@ export default class SparklineGraphTool extends BaseTool {
 
       // Safari can stop returning the path after a finger leaves its hit area.
       // Continue around the same center by translating angle to bin index.
-      const radialContainer = this.elements.svg.querySelector('.sparkline-radial-barcode__bg-bin')?.parentNode ?? this.elements.svg;
+      const radialContainer =
+        this.elements.svg.querySelector(".sparkline-radial-barcode__bg-bin")
+          ?.parentNode ?? this.elements.svg;
       const svgRect = radialContainer.getBoundingClientRect();
       const centerX = svgRect.left + svgRect.width / 2;
       const centerY = svgRect.top + svgRect.height / 2;
 
-      const radians = Math.atan2(point.clientY - centerY, point.clientX - centerX);
+      const radians = Math.atan2(
+        point.clientY - centerY,
+        point.clientX - centerX,
+      );
 
       // SVG angles start on the right. History starts at 12 o'clock and
       // advances clockwise, hence the quarter-turn offset.
       const degrees = (radians * (180 / Math.PI) + 360 + 90) % 360;
 
       // Background bins are complete even when history has foreground gaps.
-      const binsList = this.elements.svg.querySelectorAll('.sparkline-radial-barcode__bg-bin');
+      const binsList = this.elements.svg.querySelectorAll(
+        ".sparkline-radial-barcode__bg-bin",
+      );
       const totalBins = binsList.length;
 
       if (totalBins === 0) return NaN;
@@ -2388,7 +3051,9 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Keyboard and synthetic events may only identify their direct DOM target.
     const target = e?.target ?? e?.currentTarget;
-    const bin = target?.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    const bin = target?.closest?.(
+      ".sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin",
+    );
     return bin ? Number(bin.dataset.pointIndex) : NaN;
   }
 
@@ -2424,7 +3089,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {string} Localized label with an initial capital.
    */
   getTooltipLabel(stat) {
-    const localized = this.card._hass.localize(`ui.panel.developer-tools.statistics.${stat === 'avg' ? 'mean' : stat}`);
+    const localized = this.card._hass.localize(
+      `ui.panel.developer-tools.statistics.${stat === "avg" ? "mean" : stat}`,
+    );
 
     if (!localized) return stat;
 
@@ -2442,10 +3109,11 @@ export default class SparklineGraphTool extends BaseTool {
   formatTooltipStat(stat, rawValue) {
     const label = this.getTooltipLabel(stat);
 
-    if (rawValue === undefined) return { label, value: '', uom: '' };
+    if (rawValue === undefined) return { label, value: "", uom: "" };
 
     const sourceEntity = this.card.entities[this.entity_index];
-    const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
+    const sourceEntityConfig =
+      this.card.resolvedEntityConfigs[this.entity_index];
     const sourceFormatter = Object.create(StateTool.prototype);
 
     // Read precision and unit from the source entity's normal StateTool output.
@@ -2453,14 +3121,17 @@ export default class SparklineGraphTool extends BaseTool {
     sourceFormatter.entityConfig = sourceEntityConfig;
     sourceFormatter.config = sourceEntityConfig;
     sourceFormatter.card = this.card;
-    sourceFormatter.state = '';
-    sourceFormatter.uom = '';
+    sourceFormatter.state = "";
+    sourceFormatter.uom = "";
     sourceFormatter.buildStateAndUom();
 
     const activeLocale = this.card._hass.locale.language;
-    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+    const decimalSeparator = new Intl.NumberFormat(activeLocale)
+      .formatToParts(1.1)
+      .find((part) => part.type === "decimal").value;
     const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
+    const decimals =
+      decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
     const formattedValue = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
@@ -2478,21 +3149,24 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Formatted value and unit.
    */
   formatSeriesTooltipValue(item, rawValue) {
-    if (rawValue === undefined) return { value: '', uom: '' };
+    if (rawValue === undefined) return { value: "", uom: "" };
 
     const sourceFormatter = Object.create(StateTool.prototype);
     sourceFormatter.entity = item.entity;
     sourceFormatter.entityConfig = item.entityConfig;
     sourceFormatter.config = item.entityConfig;
-    sourceFormatter.state = '';
-    sourceFormatter.uom = '';
+    sourceFormatter.state = "";
+    sourceFormatter.uom = "";
     sourceFormatter.card = this.card;
     sourceFormatter.buildStateAndUom();
 
     const activeLocale = this.card._hass.locale.language;
-    const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
+    const decimalSeparator = new Intl.NumberFormat(activeLocale)
+      .formatToParts(1.1)
+      .find((part) => part.type === "decimal").value;
     const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
+    const decimals =
+      decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
     const value = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
@@ -2510,7 +3184,9 @@ export default class SparklineGraphTool extends BaseTool {
   updateTooltipFromStateBandSegment(segment) {
     const locale = this.card._hass.locale;
     const config = this.card._hass.config;
-    const containerBox = this.elements.containerRect || this.elements.container.getBoundingClientRect();
+    const containerBox =
+      this.elements.containerRect ||
+      this.elements.container.getBoundingClientRect();
     const durationMs = segment.end.getTime() - segment.start.getTime();
     let remainingSeconds = Math.floor(durationMs / 1000);
     const days = Math.floor(remainingSeconds / 86400);
@@ -2526,19 +3202,19 @@ export default class SparklineGraphTool extends BaseTool {
       index: this.Graph.stateBandSegments.indexOf(segment),
       title: segment.label,
       min: {
-        label: 'Start',
+        label: "Start",
         value: formatDateTime(segment.start, locale, config),
-        uom: '',
+        uom: "",
       },
       avg: {
-        label: 'End',
+        label: "End",
         value: formatDateTime(segment.end, locale, config),
-        uom: '',
+        uom: "",
       },
       max: {
-        label: 'Duration',
+        label: "Duration",
         value: formatNumericDuration(locale, { days, hours, minutes, seconds }),
-        uom: '',
+        uom: "",
       },
       containerWidth: containerBox.width,
       containerHeight: containerBox.height,
@@ -2559,7 +3235,9 @@ export default class SparklineGraphTool extends BaseTool {
     const locale = this.card._hass.locale;
     const config = this.card._hass.config;
     const svgBox = this.elements.svg?.getBoundingClientRect();
-    const containerBox = this.card.shadowRoot.getElementById('container')?.getBoundingClientRect();
+    const containerBox = this.card.shadowRoot
+      .getElementById("container")
+      ?.getBoundingClientRect();
     const pointBox = event?.currentTarget?.getBoundingClientRect();
 
     if (!bucket || !point || !containerBox) {
@@ -2569,7 +3247,10 @@ export default class SparklineGraphTool extends BaseTool {
 
     const titleDate = bucket.start;
     const title =
-      titleDate.getHours() === 0 && titleDate.getMinutes() === 0 && titleDate.getSeconds() === 0 && titleDate.getMilliseconds() === 0
+      titleDate.getHours() === 0 &&
+      titleDate.getMinutes() === 0 &&
+      titleDate.getSeconds() === 0 &&
+      titleDate.getMilliseconds() === 0
         ? formatDateVeryShort(titleDate, locale, config)
         : formatTime(titleDate, locale, config);
 
@@ -2578,26 +3259,48 @@ export default class SparklineGraphTool extends BaseTool {
         // Each engine owns its own bucket list. Match the selected primary x
         // coordinate so a series can have a different number of visible bins.
         const seriesPointIndex = item.graph.coords.reduce(
-          (nearestIndex, candidate, candidateIndex) => (
-            Math.abs(candidate[X] - point[X]) < Math.abs(item.graph.coords[nearestIndex][X] - point[X])
+          (nearestIndex, candidate, candidateIndex) =>
+            Math.abs(candidate[X] - point[X]) <
+            Math.abs(item.graph.coords[nearestIndex][X] - point[X])
               ? candidateIndex
-              : nearestIndex
-          ),
+              : nearestIndex,
           0,
         );
         const seriesBucket = item.graph.bucketMeta[seriesPointIndex];
         const formatted = this.formatSeriesTooltipValue(item, seriesBucket.avg);
         return {
-          label: item.config.name ?? item.entity.attributes.friendly_name ?? item.id,
-          color: item.config.color ?? item.entityConfig.color ?? item.config.sparkline.line_color[seriesIndex],
+          label:
+            item.config.name ?? item.entity.attributes.friendly_name ?? item.id,
+          color:
+            item.config.color ??
+            item.entityConfig.color ??
+            item.config.sparkline.line_color[seriesIndex],
           ...formatted,
         };
       });
       const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
       const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
       const pointer = event?.touches ? event.touches[0] : event;
-      const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + (this.graphArea.x + point[X]) * scaleX : point[X];
-      const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + (this.graphArea.y + point[Y]) * scaleY : point[Y];
+      const centerX =
+        pointer?.clientX !== undefined
+          ? pointer.clientX - containerBox.left
+          : this.tooltip.x !== undefined
+            ? this.tooltip.x
+            : svgBox
+              ? svgBox.left -
+                containerBox.left +
+                (this.graphArea.x + point[X]) * scaleX
+              : point[X];
+      const centerY =
+        pointer?.clientY !== undefined
+          ? pointer.clientY - containerBox.top
+          : this.tooltip.y !== undefined
+            ? this.tooltip.y
+            : svgBox
+              ? svgBox.top -
+                containerBox.top +
+                (this.graphArea.y + point[Y]) * scaleY
+              : point[Y];
       this.tooltip = {
         entity: this.entity_index,
         index: pointIndex,
@@ -2611,14 +3314,32 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    const min = this.formatTooltipStat('min', bucket.min);
-    const avg = this.formatTooltipStat('avg', bucket.avg);
-    const max = this.formatTooltipStat('max', bucket.max);
+    const min = this.formatTooltipStat("min", bucket.min);
+    const avg = this.formatTooltipStat("avg", bucket.avg);
+    const max = this.formatTooltipStat("max", bucket.max);
     const scaleX = svgBox ? svgBox.width / this.svg.width : 1;
     const scaleY = svgBox ? svgBox.height / this.svg.height : 1;
     const pointer = event?.touches ? event.touches[0] : event;
-    const centerX = pointer?.clientX !== undefined ? pointer.clientX - containerBox.left : this.tooltip.x !== undefined ? this.tooltip.x : svgBox ? svgBox.left - containerBox.left + (this.graphArea.x + point[X]) * scaleX : point[X];
-    const centerY = pointer?.clientY !== undefined ? pointer.clientY - containerBox.top : this.tooltip.y !== undefined ? this.tooltip.y : svgBox ? svgBox.top - containerBox.top + (this.graphArea.y + point[Y]) * scaleY : point[Y];
+    const centerX =
+      pointer?.clientX !== undefined
+        ? pointer.clientX - containerBox.left
+        : this.tooltip.x !== undefined
+          ? this.tooltip.x
+          : svgBox
+            ? svgBox.left -
+              containerBox.left +
+              (this.graphArea.x + point[X]) * scaleX
+            : point[X];
+    const centerY =
+      pointer?.clientY !== undefined
+        ? pointer.clientY - containerBox.top
+        : this.tooltip.y !== undefined
+          ? this.tooltip.y
+          : svgBox
+            ? svgBox.top -
+              containerBox.top +
+              (this.graphArea.y + point[Y]) * scaleY
+            : point[Y];
 
     this.tooltip = {
       entity: this.entity_index,
@@ -2645,15 +3366,32 @@ export default class SparklineGraphTool extends BaseTool {
    */
   updateTooltipFromRadialBarcode(pointIndex, event) {
     this.activeX = undefined;
-    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    this.elements.containerRect =
+      this.elements.container.getBoundingClientRect();
     const svgBox = this.elements.svg.getBoundingClientRect();
     const scaleX = svgBox.width / this.svg.width;
     const scaleY = svgBox.height / this.svg.height;
     this.elements.tooltipBounds = {
-      left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
-      top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
-      right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
-      bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+      left:
+        svgBox.left -
+        this.elements.containerRect.left +
+        (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
+      top:
+        svgBox.top -
+        this.elements.containerRect.top +
+        (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+      right:
+        svgBox.left -
+        this.elements.containerRect.left +
+        (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) *
+          scaleX,
+      bottom:
+        svgBox.top -
+        this.elements.containerRect.top +
+        (this.graphArea.y +
+          this.Graph.drawArea.y +
+          this.Graph.drawArea.height) *
+          scaleY,
     };
     this.updateRadialActiveBinDom(pointIndex);
     this.updateActiveIndicatorDom();
@@ -2715,23 +3453,25 @@ export default class SparklineGraphTool extends BaseTool {
    * Restores radial segment styles captured before pointer highlighting.
    */
   restoreRadialActiveBinDom() {
-    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    const bins = this.elements.svg?.querySelectorAll(
+      ".sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin",
+    );
     if (!bins) return;
 
     bins.forEach((bin) => {
       if (!bin.__fhsRadialOriginalStyle) return;
 
       const restoreStyle = (prop, value) => {
-        if (value === '') {
+        if (value === "") {
           bin.style.removeProperty(prop);
         } else {
           bin.style.setProperty(prop, value);
         }
       };
 
-      restoreStyle('opacity', bin.__fhsRadialOriginalStyle.opacity);
-      restoreStyle('filter', bin.__fhsRadialOriginalStyle.filter);
-      restoreStyle('stroke-width', bin.__fhsRadialOriginalStyle.strokeWidth);
+      restoreStyle("opacity", bin.__fhsRadialOriginalStyle.opacity);
+      restoreStyle("filter", bin.__fhsRadialOriginalStyle.filter);
+      restoreStyle("stroke-width", bin.__fhsRadialOriginalStyle.strokeWidth);
     });
   }
 
@@ -2743,7 +3483,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {number} pointIndex - Foreground bin to emphasize.
    */
   updateRadialActiveBinDom(pointIndex) {
-    const bins = this.elements.svg?.querySelectorAll('.sparkline-radial-barcode__bin');
+    const bins = this.elements.svg?.querySelectorAll(
+      ".sparkline-radial-barcode__bin",
+    );
     if (!bins) return;
 
     bins.forEach((bin) => {
@@ -2755,10 +3497,11 @@ export default class SparklineGraphTool extends BaseTool {
         };
       }
 
-      const isActive = pointIndex >= 0 && Number(bin.dataset.pointIndex) === pointIndex;
-      bin.style.setProperty('opacity', isActive ? '1' : '0.35');
-      bin.style.setProperty('filter', isActive ? 'brightness(1.15)' : 'none');
-      bin.style.setProperty('stroke-width', isActive ? '2' : '1');
+      const isActive =
+        pointIndex >= 0 && Number(bin.dataset.pointIndex) === pointIndex;
+      bin.style.setProperty("opacity", isActive ? "1" : "0.35");
+      bin.style.setProperty("filter", isActive ? "brightness(1.15)" : "none");
+      bin.style.setProperty("stroke-width", isActive ? "2" : "1");
     });
   }
 
@@ -2771,13 +3514,13 @@ export default class SparklineGraphTool extends BaseTool {
     if (!activeIndicator) return;
 
     if (this.activeX === undefined) {
-      activeIndicator.style.visibility = 'hidden';
+      activeIndicator.style.visibility = "hidden";
       return;
     }
 
-    activeIndicator.setAttribute('x1', `${this.activeX}`);
-    activeIndicator.setAttribute('x2', `${this.activeX}`);
-    activeIndicator.style.visibility = 'visible';
+    activeIndicator.setAttribute("x1", `${this.activeX}`);
+    activeIndicator.setAttribute("x2", `${this.activeX}`);
+    activeIndicator.style.visibility = "visible";
   }
 
   /**
@@ -2791,7 +3534,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!tooltip) return;
 
-    tooltip.style.display = show ? 'block' : 'none';
+    tooltip.style.display = show ? "block" : "none";
   }
 
   /**
@@ -2802,7 +3545,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   updateTooltipPositionDom(e) {
     const tooltip = this.elements.tooltip;
-    const containerBox = this.elements.containerRect || this.elements.container.getBoundingClientRect();
+    const containerBox =
+      this.elements.containerRect ||
+      this.elements.container.getBoundingClientRect();
     const touch = e?.touches?.[0] ?? e?.changedTouches?.[0] ?? e;
 
     if (!tooltip || !containerBox) return;
@@ -2812,7 +3557,7 @@ export default class SparklineGraphTool extends BaseTool {
     let left = touch.clientX - containerBox.left;
     let top = touch.clientY - containerBox.top;
     const isTouch = e?.touches?.length > 0 || e?.changedTouches?.length > 0;
-    if (isTouch && this.config.sparkline.show.chart_type === 'radial_barcode') {
+    if (isTouch && this.config.sparkline.show.chart_type === "radial_barcode") {
       left += 18;
       top -= 28;
     }
@@ -2842,25 +3587,33 @@ export default class SparklineGraphTool extends BaseTool {
     const title = this.elements.tooltipTitle;
     const rows = this.elements.tooltipRows;
 
-    title.textContent = this.tooltip.title ?? '';
+    title.textContent = this.tooltip.title ?? "";
     if (this.sparklineSeries.items.length > 1) {
       rows.forEach((row, index) => {
         const series = this.tooltip.series[index];
         row.children[0].children[1].textContent = series.label;
         row.children[1].children[0].textContent = series.value;
-        row.children[1].children[1].textContent = series.uom ? ` ${series.uom}` : '';
+        row.children[1].children[1].textContent = series.uom
+          ? ` ${series.uom}`
+          : "";
       });
       return;
     }
-    rows[0].children[0].textContent = this.tooltip.min?.label ?? '';
-    rows[0].children[1].children[0].textContent = this.tooltip.min?.value ?? '';
-    rows[0].children[1].children[1].textContent = this.tooltip.min?.uom ? ` ${this.tooltip.min.uom}` : '';
-    rows[1].children[0].textContent = this.tooltip.avg?.label ?? '';
-    rows[1].children[1].children[0].textContent = this.tooltip.avg?.value ?? '';
-    rows[1].children[1].children[1].textContent = this.tooltip.avg?.uom ? ` ${this.tooltip.avg.uom}` : '';
-    rows[2].children[0].textContent = this.tooltip.max?.label ?? '';
-    rows[2].children[1].children[0].textContent = this.tooltip.max?.value ?? '';
-    rows[2].children[1].children[1].textContent = this.tooltip.max?.uom ? ` ${this.tooltip.max.uom}` : '';
+    rows[0].children[0].textContent = this.tooltip.min?.label ?? "";
+    rows[0].children[1].children[0].textContent = this.tooltip.min?.value ?? "";
+    rows[0].children[1].children[1].textContent = this.tooltip.min?.uom
+      ? ` ${this.tooltip.min.uom}`
+      : "";
+    rows[1].children[0].textContent = this.tooltip.avg?.label ?? "";
+    rows[1].children[1].children[0].textContent = this.tooltip.avg?.value ?? "";
+    rows[1].children[1].children[1].textContent = this.tooltip.avg?.uom
+      ? ` ${this.tooltip.avg.uom}`
+      : "";
+    rows[2].children[0].textContent = this.tooltip.max?.label ?? "";
+    rows[2].children[1].children[0].textContent = this.tooltip.max?.value ?? "";
+    rows[2].children[1].children[1].textContent = this.tooltip.max?.uom
+      ? ` ${this.tooltip.max.uom}`
+      : "";
   }
 
   /**
@@ -2873,9 +3626,12 @@ export default class SparklineGraphTool extends BaseTool {
   updateActivePointer(e) {
     this.pointerEvent = e;
 
-    if (this.config.sparkline.show.chart_type === 'state_bands') {
+    if (this.config.sparkline.show.chart_type === "state_bands") {
       const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
-      const segment = this.Graph.stateBandSegments.find((stateBand) => pointerX >= stateBand.x && pointerX <= stateBand.x + stateBand.width);
+      const segment = this.Graph.stateBandSegments.find(
+        (stateBand) =>
+          pointerX >= stateBand.x && pointerX <= stateBand.x + stateBand.width,
+      );
 
       if (!segment) {
         this.clearTooltip();
@@ -2946,15 +3702,32 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    this.elements.containerRect =
+      this.elements.container.getBoundingClientRect();
     const svgBox = this.elements.svg.getBoundingClientRect();
     const scaleX = svgBox.width / this.svg.width;
     const scaleY = svgBox.height / this.svg.height;
     this.elements.tooltipBounds = {
-      left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
-      top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
-      right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX,
-      bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+      left:
+        svgBox.left -
+        this.elements.containerRect.left +
+        (this.graphArea.x + this.Graph.drawArea.x) * scaleX,
+      top:
+        svgBox.top -
+        this.elements.containerRect.top +
+        (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+      right:
+        svgBox.left -
+        this.elements.containerRect.left +
+        (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) *
+          scaleX,
+      bottom:
+        svgBox.top -
+        this.elements.containerRect.top +
+        (this.graphArea.y +
+          this.Graph.drawArea.y +
+          this.Graph.drawArea.height) *
+          scaleY,
     };
     this.updateTooltipFromRadialBarcode(pointIndex, e);
   }
@@ -2965,19 +3738,32 @@ export default class SparklineGraphTool extends BaseTool {
    * tracking continues outside the graph and through Safari touch behavior.
    */
   attachPointerHandlers() {
-    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
-    this.elements.container = this.card.shadowRoot.getElementById('container');
-    this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
-    this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
-    this.elements.tooltipTitle = this.elements.tooltip.querySelector('.sparkline-tooltip__title');
-    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
-    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    this.elements.svg = this.card.shadowRoot.getElementById(
+      `sparkline-${this.cardId}-${this.index}`,
+    );
+    this.elements.container = this.card.shadowRoot.getElementById("container");
+    this.elements.activeIndicator = this.card.shadowRoot.getElementById(
+      `sparkline-active-indicator-${this.cardId}-${this.index}`,
+    );
+    this.elements.tooltip = this.card.shadowRoot.getElementById(
+      `sparkline-tooltip-${this.cardId}-${this.index}`,
+    );
+    this.elements.tooltipTitle = this.elements.tooltip.querySelector(
+      ".sparkline-tooltip__title",
+    );
+    this.elements.tooltipRows = this.elements.tooltip.querySelectorAll(
+      ".sparkline-tooltip__row",
+    );
+    this.elements.containerRect =
+      this.elements.container.getBoundingClientRect();
 
-    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === "true")
+      return;
 
-    const isRadialBarcode = this.config.sparkline.show.chart_type === 'radial_barcode';
+    const isRadialBarcode =
+      this.config.sparkline.show.chart_type === "radial_barcode";
 
-    this.elements.svg.dataset.pointerReady = 'true';
+    this.elements.svg.dataset.pointerReady = "true";
 
     // Handler identity must remain stable: window listeners are removed with
     // the exact function object that was registered during pointer-down.
@@ -3026,17 +3812,43 @@ export default class SparklineGraphTool extends BaseTool {
 
         if (!this.hovering) {
           this.hovering = true;
-          this.elements.containerRect = this.elements.container.getBoundingClientRect();
+          this.elements.containerRect =
+            this.elements.container.getBoundingClientRect();
           const svgBox = this.elements.svg.getBoundingClientRect();
           const scaleX = svgBox.width / this.svg.width;
           const scaleY = svgBox.height / this.svg.height;
           // Half a bucket extends hover hit testing to both chart edges.
-          const hoverPaddingX = isRadialBarcode ? 0 : this.Graph.coords.length > 1 ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) / 2 : 12;
+          const hoverPaddingX = isRadialBarcode
+            ? 0
+            : this.Graph.coords.length > 1
+              ? ((this.Graph.coords[1][0] - this.Graph.coords[0][0]) * scaleX) /
+                2
+              : 12;
           this.elements.tooltipBounds = {
-            left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x) * scaleX - hoverPaddingX,
-            top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
-            right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.Graph.drawArea.x + this.Graph.drawArea.width) * scaleX + hoverPaddingX,
-            bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.Graph.drawArea.y + this.Graph.drawArea.height) * scaleY,
+            left:
+              svgBox.left -
+              this.elements.containerRect.left +
+              (this.graphArea.x + this.Graph.drawArea.x) * scaleX -
+              hoverPaddingX,
+            top:
+              svgBox.top -
+              this.elements.containerRect.top +
+              (this.graphArea.y + this.Graph.drawArea.y) * scaleY,
+            right:
+              svgBox.left -
+              this.elements.containerRect.left +
+              (this.graphArea.x +
+                this.Graph.drawArea.x +
+                this.Graph.drawArea.width) *
+                scaleX +
+              hoverPaddingX,
+            bottom:
+              svgBox.top -
+              this.elements.containerRect.top +
+              (this.graphArea.y +
+                this.Graph.drawArea.y +
+                this.Graph.drawArea.height) *
+                scaleY,
           };
         }
 
@@ -3081,12 +3893,13 @@ export default class SparklineGraphTool extends BaseTool {
         e.preventDefault();
         // console.log('[pointerDown]', e);
 
-        window.addEventListener('pointermove', this.pointerMove, false);
-        window.addEventListener('pointerup', this.pointerUp, false);
+        window.addEventListener("pointermove", this.pointerMove, false);
+        window.addEventListener("pointerup", this.pointerUp, false);
 
         this.dragging = true;
         this.pointerEvent = e;
-        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        this.elements.containerRect =
+          this.elements.container.getBoundingClientRect();
         if (isRadialBarcode) {
           this.updateRadialActivePointer(e);
         } else {
@@ -3103,8 +3916,8 @@ export default class SparklineGraphTool extends BaseTool {
         e.preventDefault();
         // console.log('[pointerUp]', e);
 
-        window.removeEventListener('pointermove', this.pointerMove, false);
-        window.removeEventListener('pointerup', this.pointerUp, false);
+        window.removeEventListener("pointermove", this.pointerMove, false);
+        window.removeEventListener("pointerup", this.pointerUp, false);
 
         if (!this.dragging) return;
 
@@ -3130,12 +3943,13 @@ export default class SparklineGraphTool extends BaseTool {
         e.preventDefault();
         // console.log('[touchStart]', e);
 
-        window.addEventListener('pointermove', this.pointerMove, false);
-        window.addEventListener('pointerup', this.pointerUp, false);
+        window.addEventListener("pointermove", this.pointerMove, false);
+        window.addEventListener("pointerup", this.pointerUp, false);
 
         this.dragging = true;
         this.pointerEvent = e;
-        this.elements.containerRect = this.elements.container.getBoundingClientRect();
+        this.elements.containerRect =
+          this.elements.container.getBoundingClientRect();
 
         if (isRadialBarcode) {
           this.updateRadialActivePointer(e);
@@ -3154,13 +3968,15 @@ export default class SparklineGraphTool extends BaseTool {
       }.bind(this);
 
     // 2. CORE REGISTRATIONS (Clean and highly scannable)
-    this.elements.svg.addEventListener('mousedown', this.mouseDown, false);
-    this.elements.svg.addEventListener('touchstart', this.touchStart, { passive: false });
+    this.elements.svg.addEventListener("mousedown", this.mouseDown, false);
+    this.elements.svg.addEventListener("touchstart", this.touchStart, {
+      passive: false,
+    });
 
-    this.elements.svg.addEventListener('mousemove', this.hoverMove, false);
-    this.elements.svg.addEventListener('mouseenter', this.hoverEnter, false);
-    this.elements.svg.addEventListener('mouseleave', this.barCodeLeave, false);
-    this.elements.svg.addEventListener('mouseleave', this.hoverLeave, false);
+    this.elements.svg.addEventListener("mousemove", this.hoverMove, false);
+    this.elements.svg.addEventListener("mouseenter", this.hoverEnter, false);
+    this.elements.svg.addEventListener("mouseleave", this.barCodeLeave, false);
+    this.elements.svg.addEventListener("mouseleave", this.hoverLeave, false);
   }
 
   /**
@@ -3171,11 +3987,15 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area mask definition.
    */
   renderSvgAreaMask(fill, i) {
-    if (this.config.sparkline.show.chart_type !== 'area') return '';
-    if (!fill) return '';
-    const fade = this.config.sparkline.show.fill === 'fade';
-    const init = this.length[i] || this.card.config.entities[i].show_line === false;
-    const yZero = this.Graph.min >= 0 ? 0 : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
+    if (this.config.sparkline.show.chart_type !== "area") return "";
+    if (!fill) return "";
+    const fade = this.config.sparkline.show.fill === "fade";
+    const init =
+      this.length[i] || this.card.config.entities[i].show_line === false;
+    const yZero =
+      this.Graph.min >= 0
+        ? 0
+        : (Math.abs(this.Graph.min) / (this.Graph.max - this.Graph.min)) * 100;
 
     return svg`
       <linearGradient id=${`fill-grad-pos-${this.cardId}-${this.index}-${i}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2=${this.graphArea.height}>
@@ -3199,9 +4019,9 @@ export default class SparklineGraphTool extends BaseTool {
       <path class='fill'
         type=${this.config.sparkline.show.fill}
         .id=${i} anim=${this.config.sparkline.animate} ?init=${init}
-        style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+        style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : "0s"}"
         fill='white'
-        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${this.index}-${i})` : ''}
+        mask=${fade ? `url(#fill-grad-mask-pos-${this.cardId}-${this.index}-${i})` : ""}
         d=${fill}
       />
       ${
@@ -3209,12 +4029,12 @@ export default class SparklineGraphTool extends BaseTool {
           ? svg`<path class='fill'
             type=${this.config.sparkline.show.fill}
             .id=${i} anim=${this.config.sparkline.animate} ?init=${init}
-            style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+            style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : "0s"}"
             fill='white'
-            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${this.index}-${i})` : ''}
+            mask=${fade ? `url(#fill-grad-mask-neg-${this.cardId}-${this.index}-${i})` : ""}
             d=${fill}
           />`
-          : ''
+          : ""
       }
     </mask>`;
   }
@@ -3227,13 +4047,13 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area background SVG.
    */
   renderSvgAreaBackground(fill, i) {
-    if (this.config.sparkline.show.chart_type !== 'area') return '';
-    if (!fill) return '';
+    if (this.config.sparkline.show.chart_type !== "area") return "";
+    if (!fill) return "";
 
     const areaStyles = this.getAreaStyles();
     const backgroundStyles = areaStyles;
     backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
-    backgroundStyles.stroke = 'none';
+    backgroundStyles.stroke = "none";
 
     return svg`
       <rect
@@ -3256,8 +4076,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area min/max background SVG.
    */
   renderSvgAreaMinMaxMask(fill, i) {
-    if (!['area', 'line'].includes(this.config.sparkline.show.chart_type)) return '';
-    if (!fill) return '';
+    if (!["area", "line"].includes(this.config.sparkline.show.chart_type))
+      return "";
+    if (!fill) return "";
 
     return svg`
       <mask id=${`fillMinMax-${this.cardId}-${this.index}-${i}`}>
@@ -3265,7 +4086,7 @@ export default class SparklineGraphTool extends BaseTool {
           class='fill'
           type=${this.config.sparkline.show.fill}
           .id=${i} anim=${this.config.sparkline.animate} ?init=${this.length[i]}
-          style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : '0s'}"
+          style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5}s` : "0s"}"
           fill='white'
           d=${fill}
         />
@@ -3281,13 +4102,14 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area min/max background SVG.
    */
   renderSvgAreaMinMaxBackground(fill, i) {
-    if (!['area', 'line'].includes(this.config.sparkline.show.chart_type)) return '';
-    if (!fill) return '';
+    if (!["area", "line"].includes(this.config.sparkline.show.chart_type))
+      return "";
+    if (!fill) return "";
 
     const areaStyles = this.getAreaStyles();
     const backgroundStyles = areaStyles;
     backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
-    backgroundStyles.stroke = 'none';
+    backgroundStyles.stroke = "none";
 
     return svg`
       <rect
@@ -3310,8 +4132,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line mask definition.
    */
   renderSvgLineMask(line, i) {
-    if (this.config.sparkline.show.line !== true) return '';
-    if (!line) return '';
+    if (this.config.sparkline.show.line !== true) return "";
+    if (!line) return "";
 
     const lineStyles = this.getLineStyles();
 
@@ -3321,11 +4143,11 @@ export default class SparklineGraphTool extends BaseTool {
           class="sparkline-line-mask"
           fill="none"
           stroke="white"
-          stroke-width="${lineStyles['stroke-width']}"
-          stroke-linecap="${lineStyles['stroke-linecap']}"
-          stroke-linejoin="${lineStyles['stroke-linejoin']}"
-          stroke-dasharray="${lineStyles['stroke-dasharray']}"
-          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
+          stroke-width="${lineStyles["stroke-width"]}"
+          stroke-linecap="${lineStyles["stroke-linecap"]}"
+          stroke-linejoin="${lineStyles["stroke-linejoin"]}"
+          stroke-dasharray="${lineStyles["stroke-dasharray"]}"
+          stroke-dashoffset="${lineStyles["stroke-dashoffset"]}"
           d="${line}"
         ></path>
       </mask>
@@ -3340,17 +4162,17 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line background SVG.
    */
   renderSvgLineBackground(line, i) {
-    if (this.config.sparkline.show.line !== true) return '';
-    if (!line) return '';
+    if (this.config.sparkline.show.line !== true) return "";
+    if (!line) return "";
 
     const lineStyles = this.getLineStyles();
     const backgroundStyles = lineStyles;
     backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles);
-    backgroundStyles.stroke = 'none';
+    backgroundStyles.stroke = "none";
 
-    delete backgroundStyles['stroke-width'];
-    delete backgroundStyles['stroke-linecap'];
-    delete backgroundStyles['stroke-linejoin'];
+    delete backgroundStyles["stroke-width"];
+    delete backgroundStyles["stroke-linecap"];
+    delete backgroundStyles["stroke-linejoin"];
 
     return svg`
       <rect
@@ -3373,8 +4195,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line min/max background SVG.
    */
   renderSvgLineMinMaxMask(line, i) {
-    if (this.config.sparkline.show.chart_type !== 'line') return '';
-    if (!line) return '';
+    if (this.config.sparkline.show.chart_type !== "line") return "";
+    if (!line) return "";
 
     const lineStyles = this.getLineStyles();
 
@@ -3384,11 +4206,11 @@ export default class SparklineGraphTool extends BaseTool {
           class="sparkline-line-mask"
           fill="none"
           stroke="white"
-          stroke-width="${lineStyles['stroke-width']}"
-          stroke-linecap="${lineStyles['stroke-linecap']}"
-          stroke-linejoin="${lineStyles['stroke-linejoin']}"
-          stroke-dasharray="${lineStyles['stroke-dasharray']}"
-          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
+          stroke-width="${lineStyles["stroke-width"]}"
+          stroke-linecap="${lineStyles["stroke-linecap"]}"
+          stroke-linejoin="${lineStyles["stroke-linejoin"]}"
+          stroke-dasharray="${lineStyles["stroke-dasharray"]}"
+          stroke-dashoffset="${lineStyles["stroke-dashoffset"]}"
           d="${line}"
         ></path>
       </mask>
@@ -3403,17 +4225,17 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line min/max background SVG.
    */
   renderSvgLineMinMaxBackground(line, i) {
-    if (this.config.sparkline.show.chart_type !== 'line') return '';
-    if (!line) return '';
+    if (this.config.sparkline.show.chart_type !== "line") return "";
+    if (!line) return "";
 
     const lineStyles = this.getLineStyles();
     const backgroundStyles = lineStyles;
     backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles);
-    backgroundStyles.stroke = 'none';
+    backgroundStyles.stroke = "none";
 
-    delete backgroundStyles['stroke-width'];
-    delete backgroundStyles['stroke-linecap'];
-    delete backgroundStyles['stroke-linejoin'];
+    delete backgroundStyles["stroke-width"];
+    delete backgroundStyles["stroke-linecap"];
+    delete backgroundStyles["stroke-linejoin"];
 
     return svg`
       <rect
@@ -3434,7 +4256,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Line mask definition.
    */
   renderLineMask() {
-    if (!this.linePath) return '';
+    if (!this.linePath) return "";
 
     const lineStyles = this.getLineStyles();
 
@@ -3444,11 +4266,11 @@ export default class SparklineGraphTool extends BaseTool {
           class="sparkline-line-mask"
           fill="none"
           stroke="white"
-          stroke-width="${lineStyles['stroke-width']}"
-          stroke-linecap="${lineStyles['stroke-linecap']}"
-          stroke-linejoin="${lineStyles['stroke-linejoin']}"
-          stroke-dasharray="${lineStyles['stroke-dasharray']}"
-          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
+          stroke-width="${lineStyles["stroke-width"]}"
+          stroke-linecap="${lineStyles["stroke-linecap"]}"
+          stroke-linejoin="${lineStyles["stroke-linejoin"]}"
+          stroke-dasharray="${lineStyles["stroke-dasharray"]}"
+          stroke-dashoffset="${lineStyles["stroke-dashoffset"]}"
           d="${this.linePath}"
         ></path>
       </mask>
@@ -3462,10 +4284,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} SVG gradient definitions.
    */
   renderSvgGradient(gradients) {
-    if (!gradients) return '';
+    if (!gradients) return "";
 
     const items = gradients.map((gradient, i) => {
-      if (!gradient) return '';
+      if (!gradient) return "";
 
       return svg`
         <linearGradient id=${`grad-${this.cardId}-${this.index}-${i}`} gradientTransform="rotate(90)">
@@ -3488,8 +4310,11 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Line style dictionary before render filters.
    */
   getLineStyles() {
-    const styles = Merge.mergeDeep(this.getStyles({ fill: 'none' }), ConfigHelper.toStyleDict(this.config.sparkline.line?.styles));
-    styles['stroke-width'] = this.getConfiguredLineWidth(this.config);
+    const styles = Merge.mergeDeep(
+      this.getStyles({ fill: "none" }),
+      ConfigHelper.toStyleDict(this.config.sparkline.line?.styles),
+    );
+    styles["stroke-width"] = this.getConfiguredLineWidth(this.config);
     return styles;
   }
 
@@ -3503,11 +4328,21 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {string} CSS color for the rendered item.
    */
   computeColor(inState, i) {
-    const { colorstops, line_color, colorstops_transition } = this.config.sparkline;
+    const { colorstops, line_color, colorstops_transition } =
+      this.config.sparkline;
     const state = Number(inState) || 0;
-    const thresholdColor = Colors.calculateStrokeColor(state, colorstops, colorstops_transition === 'smooth');
+    const thresholdColor = Colors.calculateStrokeColor(
+      state,
+      colorstops,
+      colorstops_transition === "smooth",
+    );
 
-    return this.card.config.entities[i].color || thresholdColor || line_color[i] || line_color[0];
+    return (
+      this.card.config.entities[i].color ||
+      thresholdColor ||
+      line_color[i] ||
+      line_color[0]
+    );
   }
 
   /**
@@ -3518,13 +4353,13 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Tick interval in hours.
    */
   xTicksizeToHours(ticksize) {
-    if (typeof ticksize === 'number') return ticksize;
+    if (typeof ticksize === "number") return ticksize;
 
     const match = ticksize.match(/^(\d+(?:\.\d+)?)(m|min|h|hour)$/);
     const value = Number(match[1]);
     const unit = match[2];
 
-    if (unit === 'm' || unit === 'min') return value / 60;
+    if (unit === "m" || unit === "min") return value / 60;
     return value;
   }
 
@@ -3537,13 +4372,13 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Font size in pixels.
    */
   resolveAxisFontSizePixels(axis, fallback = FONT_SIZE) {
-    const fontSize = this.config[`${axis}_axis`]?.labels?.styles?.['font-size'];
+    const fontSize = this.config[`${axis}_axis`]?.labels?.styles?.["font-size"];
 
-    if (typeof fontSize === 'number') {
+    if (typeof fontSize === "number") {
       return fontSize;
     }
 
-    if (typeof fontSize !== 'string') {
+    if (typeof fontSize !== "string") {
       return fallback;
     }
 
@@ -3553,15 +4388,15 @@ export default class SparklineGraphTool extends BaseTool {
       return fallback;
     }
 
-    if (fontSize.endsWith('px')) {
+    if (fontSize.endsWith("px")) {
       return value;
     }
 
-    if (fontSize.endsWith('em') || fontSize.endsWith('rem')) {
+    if (fontSize.endsWith("em") || fontSize.endsWith("rem")) {
       return value * FONT_SIZE;
     }
 
-    if (fontSize.endsWith('%')) {
+    if (fontSize.endsWith("%")) {
       return (value / 100) * FONT_SIZE;
     }
 
@@ -3577,9 +4412,17 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Tick interval in hours.
    */
   getAutoXAxisTicksize(level, range) {
-    const fontSizePixels = this.resolveAxisFontSizePixels('x', FONT_SIZE);
-    const fontWidthPixels = Math.max(3, fontSizePixels * (level === 'minor' ? 0.35 : 0.45));
-    const perfect = this.calculatePerfectXAxis(range.start, range.end, this.Graph.drawArea.width, fontWidthPixels);
+    const fontSizePixels = this.resolveAxisFontSizePixels("x", FONT_SIZE);
+    const fontWidthPixels = Math.max(
+      3,
+      fontSizePixels * (level === "minor" ? 0.35 : 0.45),
+    );
+    const perfect = this.calculatePerfectXAxis(
+      range.start,
+      range.end,
+      this.Graph.drawArea.width,
+      fontWidthPixels,
+    );
 
     return perfect.ticksize / (60 * 60 * 1000);
   }
@@ -3592,11 +4435,21 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Tick interval in data units.
    */
   getAutoYAxisTicksize(level) {
-    const fontSizePixels = this.resolveAxisFontSizePixels('y', FONT_SIZE);
-    const fontHeightPixels = Math.max(6, fontSizePixels * (level === 'minor' ? 0.65 : 0.85));
-    const perfect = this.calculatePerfectYAxis(this.Graph.min, this.Graph.max, this.Graph.drawArea.height, fontHeightPixels);
+    const fontSizePixels = this.resolveAxisFontSizePixels("y", FONT_SIZE);
+    const fontHeightPixels = Math.max(
+      6,
+      fontSizePixels * (level === "minor" ? 0.65 : 0.85),
+    );
+    const perfect = this.calculatePerfectYAxis(
+      this.Graph.min,
+      this.Graph.max,
+      this.Graph.drawArea.height,
+      fontHeightPixels,
+    );
 
-    return level === 'minor' ? Math.max(perfect.interval / 2, 0.5) : Math.max(perfect.interval, 0.5);
+    return level === "minor"
+      ? Math.max(perfect.interval / 2, 0.5)
+      : Math.max(perfect.interval, 0.5);
   }
 
   /**
@@ -3608,7 +4461,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {number} fontHeightPixels - The size of the font used for labels (default: 12).
    * @returns {object} An object containing grid limits, interval, and an array of tick values.
    */
-  calculatePerfectYAxis(dataMin, dataMax, chartHeightPixels, fontHeightPixels = FONT_SIZE) {
+  calculatePerfectYAxis(
+    dataMin,
+    dataMax,
+    chartHeightPixels,
+    fontHeightPixels = FONT_SIZE,
+  ) {
     // 1. Prevent crash if min and max are identical (e.g., a flat line of a constant value)
     if (dataMin === dataMax) {
       dataMin -= 1;
@@ -3678,7 +4536,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {number} fontWidthPixels - Average pixel width of a character (default: 7).
    * @returns {array} Array of tick objects containing value, x-coordinate, and string label.
    */
-  calculatePerfectXAxis(minTime, maxTime, chartWidthPixels, fontWidthPixels = FONT_SIZE * 0.6) {
+  calculatePerfectXAxis(
+    minTime,
+    maxTime,
+    chartWidthPixels,
+    fontWidthPixels = FONT_SIZE * 0.6,
+  ) {
     const minMs = new Date(minTime).getTime();
     const maxMs = new Date(maxTime).getTime();
     const totalDuration = maxMs - minMs;
@@ -3690,14 +4553,23 @@ export default class SparklineGraphTool extends BaseTool {
     const effectiveMaxLabels = Math.max(maxLabels, 4);
     const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
 
-    const timeIntervals = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000, 7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000, 2629800000];
+    const timeIntervals = [
+      1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000,
+      7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000,
+      2629800000,
+    ];
 
-    let selectedIndex = timeIntervals.findIndex((interval) => interval >= minTimeStep);
+    let selectedIndex = timeIntervals.findIndex(
+      (interval) => interval >= minTimeStep,
+    );
     if (selectedIndex < 0) {
       selectedIndex = timeIntervals.length - 1;
     }
 
-    while (selectedIndex > 0 && totalDuration / timeIntervals[selectedIndex] < 2) {
+    while (
+      selectedIndex > 0 &&
+      totalDuration / timeIntervals[selectedIndex] < 2
+    ) {
       selectedIndex -= 1;
     }
 
@@ -3712,8 +4584,21 @@ export default class SparklineGraphTool extends BaseTool {
       const percentage = (currentTickMs - minMs) / totalDuration;
       const xPixel = percentage * chartWidthPixels;
       const tickDay = tickDate.toDateString();
-      const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
-      const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
+      const previousTickDay = previousTickDate
+        ? previousTickDate.toDateString()
+        : null;
+      const label =
+        !previousTickDate || tickDay !== previousTickDay
+          ? formatDateVeryShort(
+              tickDate,
+              this.card._hass.locale,
+              this.card._hass.config,
+            )
+          : formatTime(
+              tickDate,
+              this.card._hass.locale,
+              this.card._hass.config,
+            );
 
       ticks.push({
         value: currentTickMs,
@@ -3749,10 +4634,16 @@ export default class SparklineGraphTool extends BaseTool {
     const ticks = [];
 
     this.Graph.xAxis.ticks.forEach((tick) => {
-      const label = tick.isMidnight ? formatDateVeryShort(tick.time, this.card._hass.locale, this.card._hass.config) : formatTime(tick.time, this.card._hass.locale, this.card._hass.config);
+      const label = tick.isMidnight
+        ? formatDateVeryShort(
+            tick.time,
+            this.card._hass.locale,
+            this.card._hass.config,
+          )
+        : formatTime(tick.time, this.card._hass.locale, this.card._hass.config);
 
       ticks.push({
-        axis: 'x',
+        axis: "x",
         level,
         value: tick.timestamp,
         x: tick.x,
@@ -3772,9 +4663,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} Y-axis ticks.
    */
   buildYAxisTicks(level, graph) {
-    if (graph.config.sparkline.show.chart_type === 'state_bands') {
+    if (graph.config.sparkline.show.chart_type === "state_bands") {
       return graph.yAxis.ticks.map((tick) => ({
-        axis: 'y',
+        axis: "y",
         level,
         value: tick.value,
         y: tick.y,
@@ -3784,12 +4675,14 @@ export default class SparklineGraphTool extends BaseTool {
       }));
     }
 
-    const formatter = new Intl.NumberFormat(this.card._hass.locale?.language || this.card._hass.language);
+    const formatter = new Intl.NumberFormat(
+      this.card._hass.locale?.language || this.card._hass.language,
+    );
     const ticks = [];
 
     graph.yAxis.ticks.forEach((tick) => {
       ticks.push({
-        axis: 'y',
+        axis: "y",
         level,
         value: tick.value,
         y: tick.y,
@@ -3808,10 +4701,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {Array<object>} Label ticks.
    */
   buildLabelTicks(axis, graph) {
-    const labelsAt = graph.config.sparkline.show[axis + 'labels_at'];
+    const labelsAt = graph.config.sparkline.show[axis + "labels_at"];
 
-    if (labelsAt === 'none') return [];
-    return axis === 'x' ? this.buildXAxisTicks('major') : this.buildYAxisTicks('major', graph);
+    if (labelsAt === "none") return [];
+    return axis === "x"
+      ? this.buildXAxisTicks("major")
+      : this.buildYAxisTicks("major", graph);
   }
 
   /**
@@ -3826,16 +4721,33 @@ export default class SparklineGraphTool extends BaseTool {
     const primaryGraph = this.axisGraphs.primary;
     const secondaryGraph = this.axisGraphs.secondary;
     const yGraph = primaryGraph !== undefined ? primaryGraph : secondaryGraph;
-    const showY = yGraph !== undefined && yGraph.config.sparkline.show.grid.y && CHART_AXES[yGraph.config.sparkline.show.chart_type].y;
-    if (!showX && !showY) return '';
+    const showY =
+      yGraph !== undefined &&
+      yGraph.config.sparkline.show.grid.y &&
+      CHART_AXES[yGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showY) return "";
 
-    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.grid_major.styles));
+    const xStyles = this.getRenderStyles(
+      ConfigHelper.toStyleDict(this.config.x_axis.grid_major.styles),
+    );
     let yStyles;
-    if (yGraph !== undefined) yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(yGraph.config.y_axis.grid_major.styles));
-    const xTicks = this.buildXAxisTicks('major');
-    const yTicks = yGraph !== undefined && yGraph.config.sparkline.show.chart_type === 'state_bands'
-      ? yGraph.yAxis.gridTicks.map((tick) => ({ axis: 'y', level: 'major', value: tick.value, y: tick.y }))
-      : yGraph !== undefined ? this.buildYAxisTicks('major', yGraph) : [];
+    if (yGraph !== undefined)
+      yStyles = this.getRenderStyles(
+        ConfigHelper.toStyleDict(yGraph.config.y_axis.grid_major.styles),
+      );
+    const xTicks = this.buildXAxisTicks("major");
+    const yTicks =
+      yGraph !== undefined &&
+      yGraph.config.sparkline.show.chart_type === "state_bands"
+        ? yGraph.yAxis.gridTicks.map((tick) => ({
+            axis: "y",
+            level: "major",
+            value: tick.value,
+            y: tick.y,
+          }))
+        : yGraph !== undefined
+          ? this.buildYAxisTicks("major", yGraph)
+          : [];
 
     return svg`
       ${
@@ -3854,7 +4766,7 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
       ${
         showY
@@ -3872,7 +4784,7 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
     `;
   }
@@ -3888,14 +4800,35 @@ export default class SparklineGraphTool extends BaseTool {
     const showX = this.config.sparkline.show.axis.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
     const secondaryGraph = this.axisGraphs.secondary;
-    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.axis.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
-    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.axis.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
-    if (!showX && !showPrimaryY && !showSecondaryY) return '';
+    const showPrimaryY =
+      primaryGraph !== undefined &&
+      primaryGraph.config.sparkline.show.axis.y &&
+      CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY =
+      secondaryGraph !== undefined &&
+      secondaryGraph.config.sparkline.show.axis.y &&
+      CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return "";
 
-    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.axis.styles));
-    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.axis.styles)) : undefined;
-    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.axis.styles)) : undefined;
-    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
+    const xStyles = this.getRenderStyles(
+      ConfigHelper.toStyleDict(this.config.x_axis.axis.styles),
+    );
+    const primaryYStyles =
+      primaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(primaryGraph.config.y_axis.axis.styles),
+          )
+        : undefined;
+    const secondaryYStyles =
+      secondaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.axis.styles),
+          )
+        : undefined;
+    const rightX =
+      secondaryGraph !== undefined
+        ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width
+        : 0;
 
     return svg`
       <g class="sparkline-axis" style="pointer-events:none;">
@@ -3909,7 +4842,7 @@ export default class SparklineGraphTool extends BaseTool {
           y2="${this.Graph.axisArea.y + this.Graph.axisArea.height}"
           style=${styleMap(xStyles)}
         ></line>`
-            : ''
+            : ""
         }
         ${
           showPrimaryY
@@ -3921,7 +4854,7 @@ export default class SparklineGraphTool extends BaseTool {
           y2="${primaryGraph.axisArea.y + primaryGraph.axisArea.height}"
           style=${styleMap(primaryYStyles)}
         ></line>`
-            : ''
+            : ""
         }
         ${
           showSecondaryY
@@ -3949,21 +4882,62 @@ export default class SparklineGraphTool extends BaseTool {
     const showX = this.config.sparkline.show.tickmarks.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
     const secondaryGraph = this.axisGraphs.secondary;
-    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
-    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
-    if (!showX && !showPrimaryY && !showSecondaryY) return '';
+    const showPrimaryY =
+      primaryGraph !== undefined &&
+      primaryGraph.config.sparkline.show.tickmarks.y &&
+      CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY =
+      secondaryGraph !== undefined &&
+      secondaryGraph.config.sparkline.show.tickmarks.y &&
+      CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return "";
 
     const xTickConfig = this.config.x_axis.tickmarks_major;
-    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(xTickConfig.styles));
-    const xTicks = this.buildXAxisTicks('major');
+    const xStyles = this.getRenderStyles(
+      ConfigHelper.toStyleDict(xTickConfig.styles),
+    );
+    const xTicks = this.buildXAxisTicks("major");
     const xTickSize = Utils.calculateSvgDimension(xTickConfig.size);
-    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.tickmarks_major.styles)) : undefined;
-    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.tickmarks_major.styles)) : undefined;
-    const primaryYTicks = primaryGraph !== undefined ? this.buildYAxisTicks('major', primaryGraph) : [];
-    const secondaryYTicks = secondaryGraph !== undefined ? this.buildYAxisTicks('major', secondaryGraph) : [];
-    const primaryYTickSize = primaryGraph !== undefined ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const secondaryYTickSize = secondaryGraph !== undefined ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
+    const primaryYStyles =
+      primaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(
+              primaryGraph.config.y_axis.tickmarks_major.styles,
+            ),
+          )
+        : undefined;
+    const secondaryYStyles =
+      secondaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(
+              secondaryGraph.config.y_axis.tickmarks_major.styles,
+            ),
+          )
+        : undefined;
+    const primaryYTicks =
+      primaryGraph !== undefined
+        ? this.buildYAxisTicks("major", primaryGraph)
+        : [];
+    const secondaryYTicks =
+      secondaryGraph !== undefined
+        ? this.buildYAxisTicks("major", secondaryGraph)
+        : [];
+    const primaryYTickSize =
+      primaryGraph !== undefined
+        ? Utils.calculateSvgDimension(
+            primaryGraph.config.y_axis.tickmarks_major.size,
+          )
+        : 0;
+    const secondaryYTickSize =
+      secondaryGraph !== undefined
+        ? Utils.calculateSvgDimension(
+            secondaryGraph.config.y_axis.tickmarks_major.size,
+          )
+        : 0;
+    const rightX =
+      secondaryGraph !== undefined
+        ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width
+        : 0;
 
     return svg`
       ${
@@ -3982,7 +4956,7 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
       ${
         showPrimaryY
@@ -4000,7 +4974,7 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
       ${
         showSecondaryY
@@ -4034,23 +5008,77 @@ export default class SparklineGraphTool extends BaseTool {
     const showX = this.config.sparkline.show.labels.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
     const secondaryGraph = this.axisGraphs.secondary;
-    const showPrimaryY = primaryGraph !== undefined && primaryGraph.config.sparkline.show.labels.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
-    const showSecondaryY = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.labels.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
-    if (!showX && !showPrimaryY && !showSecondaryY) return '';
+    const showPrimaryY =
+      primaryGraph !== undefined &&
+      primaryGraph.config.sparkline.show.labels.y &&
+      CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y;
+    const showSecondaryY =
+      secondaryGraph !== undefined &&
+      secondaryGraph.config.sparkline.show.labels.y &&
+      CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y;
+    if (!showX && !showPrimaryY && !showSecondaryY) return "";
 
-    const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.labels.styles));
-    const primaryYStyles = primaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(primaryGraph.config.y_axis.labels.styles)) : undefined;
-    const secondaryYStyles = secondaryGraph !== undefined ? this.getRenderStyles(ConfigHelper.toStyleDict(secondaryGraph.config.y_axis.labels.styles)) : undefined;
-    const xTicks = this.buildLabelTicks('x', this.Graph);
-    const primaryYTicks = primaryGraph !== undefined ? this.buildLabelTicks('y', primaryGraph) : [];
-    const secondaryYTicks = secondaryGraph !== undefined ? this.buildLabelTicks('y', secondaryGraph) : [];
-    const xTickSize = this.config.sparkline.show.tickmarks.x && chartAxes.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
-    const primaryYTickSize = primaryGraph !== undefined && primaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const secondaryYTickSize = secondaryGraph !== undefined && secondaryGraph.config.sparkline.show.tickmarks.y && CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.tickmarks_major.size) : 0;
-    const primaryYLabelOffset = primaryGraph !== undefined ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset) : 0;
-    const secondaryYLabelOffset = secondaryGraph !== undefined ? Utils.calculateSvgDimension(secondaryGraph.config.y_axis.labels.offset) : 0;
-    const stateBands = primaryGraph !== undefined && primaryGraph.config.sparkline.show.chart_type === 'state_bands';
-    const rightX = secondaryGraph !== undefined ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width : 0;
+    const xStyles = this.getRenderStyles(
+      ConfigHelper.toStyleDict(this.config.x_axis.labels.styles),
+    );
+    const primaryYStyles =
+      primaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(primaryGraph.config.y_axis.labels.styles),
+          )
+        : undefined;
+    const secondaryYStyles =
+      secondaryGraph !== undefined
+        ? this.getRenderStyles(
+            ConfigHelper.toStyleDict(
+              secondaryGraph.config.y_axis.labels.styles,
+            ),
+          )
+        : undefined;
+    const xTicks = this.buildLabelTicks("x", this.Graph);
+    const primaryYTicks =
+      primaryGraph !== undefined ? this.buildLabelTicks("y", primaryGraph) : [];
+    const secondaryYTicks =
+      secondaryGraph !== undefined
+        ? this.buildLabelTicks("y", secondaryGraph)
+        : [];
+    const xTickSize =
+      this.config.sparkline.show.tickmarks.x && chartAxes.x
+        ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size)
+        : 0;
+    const primaryYTickSize =
+      primaryGraph !== undefined &&
+      primaryGraph.config.sparkline.show.tickmarks.y &&
+      CHART_AXES[primaryGraph.config.sparkline.show.chart_type].y
+        ? Utils.calculateSvgDimension(
+            primaryGraph.config.y_axis.tickmarks_major.size,
+          )
+        : 0;
+    const secondaryYTickSize =
+      secondaryGraph !== undefined &&
+      secondaryGraph.config.sparkline.show.tickmarks.y &&
+      CHART_AXES[secondaryGraph.config.sparkline.show.chart_type].y
+        ? Utils.calculateSvgDimension(
+            secondaryGraph.config.y_axis.tickmarks_major.size,
+          )
+        : 0;
+    const primaryYLabelOffset =
+      primaryGraph !== undefined
+        ? Utils.calculateSvgDimension(primaryGraph.config.y_axis.labels.offset)
+        : 0;
+    const secondaryYLabelOffset =
+      secondaryGraph !== undefined
+        ? Utils.calculateSvgDimension(
+            secondaryGraph.config.y_axis.labels.offset,
+          )
+        : 0;
+    const stateBands =
+      primaryGraph !== undefined &&
+      primaryGraph.config.sparkline.show.chart_type === "state_bands";
+    const rightX =
+      secondaryGraph !== undefined
+        ? secondaryGraph.axisArea.x + secondaryGraph.axisArea.width
+        : 0;
 
     return svg`
       ${
@@ -4067,7 +5095,7 @@ export default class SparklineGraphTool extends BaseTool {
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
       ${
         showPrimaryY
@@ -4078,12 +5106,12 @@ export default class SparklineGraphTool extends BaseTool {
             class="sparkline-label sparkline-label--y"
             x="${stateBands ? primaryGraph.drawArea.x + primaryYLabelOffset : primaryGraph.axisArea.x - primaryYTickSize - primaryYLabelOffset}"
             y="${stateBands ? tick.labelY : tick.y}"
-            style=${styleMap(stateBands ? { ...primaryYStyles, 'font-size': `${tick.fontSize}px` } : primaryYStyles)}
+            style=${styleMap(stateBands ? { ...primaryYStyles, "font-size": `${tick.fontSize}px` } : primaryYStyles)}
           >${tick.label}</text>
         `,
         )}
       </g>`
-          : ''
+          : ""
       }
       ${
         showSecondaryY
@@ -4111,7 +5139,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Area style dictionary before render filters.
    */
   getAreaStyles() {
-    return Merge.mergeDeep(this.getStyles({}), ConfigHelper.toStyleDict(this.config.area?.styles));
+    return Merge.mergeDeep(
+      this.getStyles({}),
+      ConfigHelper.toStyleDict(this.config.area?.styles),
+    );
   }
 
   /**
@@ -4160,7 +5191,9 @@ export default class SparklineGraphTool extends BaseTool {
 
   renderSvgPoint(point, i, bucketStart) {
     const color = this.computeColor(point[V], i);
-    const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
+    const radius = Utils.calculateSvgDimension(
+      this.config.sparkline.dots.radius,
+    );
     return svg`
     <circle
       class='line--point'
@@ -4175,7 +5208,8 @@ export default class SparklineGraphTool extends BaseTool {
       cx=${point[X]} cy=${point[Y]} r=${radius}
     >
       ${
-        this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries)
+        this.config.sparkline.animate &&
+        (this.config.period.type === "real_time" || this.historySeries)
           ? svg`
         <animate
           attributeName='cy'
@@ -4191,7 +5225,7 @@ export default class SparklineGraphTool extends BaseTool {
           keySplines='0.215 0.61 0.355 1'
         ></animate>
       `
-          : ''
+          : ""
       }
     </circle>
   `;
@@ -4216,8 +5250,8 @@ export default class SparklineGraphTool extends BaseTool {
       ?tooltip=${this.tooltip.entity === i}
       ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== i}
       ?init=${this.length[i]}
-      anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== 'hover'}
-      style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5 + 0.5}s` : '0s'}"
+      anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== "hover"}
+      style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5 + 0.5}s` : "0s"}"
       stroke-width=${this.svg.line_width / 2}
       fill=${color}
       stroke=${color}
@@ -4233,9 +5267,17 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG template or an empty result.
    */
   renderPoints() {
-    if (this.config.sparkline.show.chart_type !== 'dots' && this.config.sparkline.show.points !== true && this.config.sparkline.line?.show_dots !== true && this.config.sparkline.area?.show_dots !== true) return '';
+    if (
+      this.config.sparkline.show.chart_type !== "dots" &&
+      this.config.sparkline.show.points !== true &&
+      this.config.sparkline.line?.show_dots !== true &&
+      this.config.sparkline.area?.show_dots !== true
+    )
+      return "";
 
-    const points = this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
+    const points = this.Graph._calcY(this.Graph.coords).map(
+      (point, pointIndex) => [point[X], point[Y], point[V], pointIndex],
+    );
 
     return this.renderSvgPoints(points, 0);
   }
@@ -4248,50 +5290,92 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Lit HTML template for the tooltip.
    */
   renderTooltip() {
-    const tooltipStyles = ConfigHelper.toStyleDict(this.config.sparkline.tooltip?.styles);
+    const tooltipStyles = ConfigHelper.toStyleDict(
+      this.config.sparkline.tooltip?.styles,
+    );
     const styles = {
-      left: this.tooltip.x !== undefined ? `${this.tooltip.x}px` : '0px',
-      top: this.tooltip.y !== undefined ? `${this.tooltip.y}px` : '0px',
-      transform: 'translate(-50%, calc(-100% - 6px))',
-      'font-size': tooltipStyles['font-size'] ?? '0.5em',
-      'max-width': 'calc(100% - 24px)',
-      'pointer-events': 'none',
-      display: this.tooltipVisible ? 'block' : 'none',
+      left: this.tooltip.x !== undefined ? `${this.tooltip.x}px` : "0px",
+      top: this.tooltip.y !== undefined ? `${this.tooltip.y}px` : "0px",
+      transform: "translate(-50%, calc(-100% - 6px))",
+      "font-size": tooltipStyles["font-size"] ?? "0.5em",
+      "max-width": "calc(100% - 24px)",
+      "pointer-events": "none",
+      display: this.tooltipVisible ? "block" : "none",
     };
     const valueCellStyles = {
-      display: 'inline-flex',
-      'align-items': 'baseline',
-      'justify-content': 'flex-end',
-      'text-align': 'right',
-      'white-space': 'nowrap',
+      display: "inline-flex",
+      "align-items": "baseline",
+      "justify-content": "flex-end",
+      "text-align": "right",
+      "white-space": "nowrap",
     };
     const unitStyles = {
-      'font-size': '0.72em',
-      transform: 'translateY(-0.32em)',
-      opacity: '0.8',
+      "font-size": "0.72em",
+      transform: "translateY(-0.32em)",
+      opacity: "0.8",
     };
 
     return html`
-      <div id="sparkline-tooltip-${this.cardId}-${this.index}" class="sparkline-tooltip" style=${styleMap(styles)}>
+      <div
+        id="sparkline-tooltip-${this.cardId}-${this.index}"
+        class="sparkline-tooltip"
+        style=${styleMap(styles)}
+      >
         <div class="sparkline-tooltip__title"></div>
         ${this.sparklineSeries.items.length > 1
-          ? this.sparklineSeries.items.map((item, index) => html`
-            <div class="sparkline-tooltip__row sparkline-tooltip__row--series">
-              <span style=${styleMap({ display: 'inline-flex', alignItems: 'center', gap: '0.35em' })}>
-                <span class="sparkline-tooltip__series-color" style=${styleMap({ width: '0.7em', height: '0.7em', background: item.config.color ?? item.entityConfig.color ?? item.config.sparkline.line_color[index], borderRadius: '50%' })}></span>
-                <span></span>
-              </span>
-              <span style=${styleMap(valueCellStyles)}>
-                <span></span>
-                <span style=${styleMap(unitStyles)}></span>
-              </span>
-            </div>
-          `)
+          ? this.sparklineSeries.items.map(
+              (item, index) => html`
+                <div
+                  class="sparkline-tooltip__row sparkline-tooltip__row--series"
+                >
+                  <span
+                    style=${styleMap({
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35em",
+                    })}
+                  >
+                    <span
+                      class="sparkline-tooltip__series-color"
+                      style=${styleMap({
+                        width: "0.7em",
+                        height: "0.7em",
+                        background:
+                          item.config.color ??
+                          item.entityConfig.color ??
+                          item.config.sparkline.line_color[index],
+                        borderRadius: "50%",
+                      })}
+                    ></span>
+                    <span></span>
+                  </span>
+                  <span style=${styleMap(valueCellStyles)}>
+                    <span></span>
+                    <span style=${styleMap(unitStyles)}></span>
+                  </span>
+                </div>
+              `,
+            )
           : html`
-            <div class="sparkline-tooltip__row"><span></span><span style=${styleMap(valueCellStyles)}><span></span><span style=${styleMap(unitStyles)}></span></span></div>
-            <div class="sparkline-tooltip__row"><span></span><span style=${styleMap(valueCellStyles)}><span></span><span style=${styleMap(unitStyles)}></span></span></div>
-            <div class="sparkline-tooltip__row"><span></span><span style=${styleMap(valueCellStyles)}><span></span><span style=${styleMap(unitStyles)}></span></span></div>
-          `}
+              <div class="sparkline-tooltip__row">
+                <span></span
+                ><span style=${styleMap(valueCellStyles)}
+                  ><span></span><span style=${styleMap(unitStyles)}></span
+                ></span>
+              </div>
+              <div class="sparkline-tooltip__row">
+                <span></span
+                ><span style=${styleMap(valueCellStyles)}
+                  ><span></span><span style=${styleMap(unitStyles)}></span
+                ></span>
+              </div>
+              <div class="sparkline-tooltip__row">
+                <span></span
+                ><span style=${styleMap(valueCellStyles)}
+                  ><span></span><span style=${styleMap(unitStyles)}></span
+                ></span>
+              </div>
+            `}
       </div>
     `;
   }
@@ -4304,7 +5388,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Cartesian interaction surface.
    */
   renderCartesianHitArea() {
-    if (['radial_barcode', 'graded', 'state_bands'].includes(this.config.sparkline.show.chart_type)) return svg``;
+    if (
+      ["radial_barcode", "graded", "state_bands"].includes(
+        this.config.sparkline.show.chart_type,
+      )
+    )
+      return svg``;
 
     return svg`
       <rect
@@ -4327,7 +5416,11 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
-    if (this.config.sparkline.show.chart_type === 'radial_barcode' || this.config.sparkline.show.chart_type === 'graded') return '';
+    if (
+      this.config.sparkline.show.chart_type === "radial_barcode" ||
+      this.config.sparkline.show.chart_type === "graded"
+    )
+      return "";
 
     return svg`
       <line
@@ -4337,7 +5430,7 @@ export default class SparklineGraphTool extends BaseTool {
         y1="${this.Graph.drawArea.y}"
         x2="${this.activeX ?? 0}"
         y2="${this.Graph.drawArea.y + this.Graph.drawArea.height}"
-        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;visibility:${this.activeX === undefined ? 'hidden' : 'visible'};pointer-events:none;"
+        style="stroke:var(--primary-text-color);stroke-width:1;opacity:0.45;visibility:${this.activeX === undefined ? "hidden" : "visible"};pointer-events:none;"
       ></line>
     `;
   }
@@ -4350,12 +5443,20 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} State-band background mask definition.
    */
   renderSvgStateBandsMask() {
-    if (this.config.sparkline.show.chart_type !== 'state_bands') return '';
+    if (this.config.sparkline.show.chart_type !== "state_bands") return "";
 
-    const padding = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.padding);
-    const connectionWidth = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.connection_width);
-    const radius = Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius) + padding;
-    const rows = this.Graph.yAxis.rows.concat().sort((left, right) => left.y - right.y);
+    const padding = Utils.calculateSvgDimension(
+      this.config.sparkline.state_bands.background.padding,
+    );
+    const connectionWidth = Utils.calculateSvgDimension(
+      this.config.sparkline.state_bands.background.connection_width,
+    );
+    const radius =
+      Utils.calculateSvgDimension(this.config.sparkline.state_bands.radius) +
+      padding;
+    const rows = this.Graph.yAxis.rows
+      .concat()
+      .sort((left, right) => left.y - right.y);
     const gradientStartY = rows[0].y;
     const gradientEndY = rows[rows.length - 1].y;
 
@@ -4418,10 +5519,16 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} State-band background SVG layer.
    */
   renderSvgStateBandsBackground() {
-    if (this.config.sparkline.show.chart_type !== 'state_bands') return '';
+    if (this.config.sparkline.show.chart_type !== "state_bands") return "";
 
-    const backgroundStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.sparkline.state_bands.background.styles));
-    const padding = Utils.calculateSvgDimension(this.config.sparkline.state_bands.background.padding);
+    const backgroundStyles = this.getRenderStyles(
+      ConfigHelper.toStyleDict(
+        this.config.sparkline.state_bands.background.styles,
+      ),
+    );
+    const padding = Utils.calculateSvgDimension(
+      this.config.sparkline.state_bands.background.padding,
+    );
 
     return svg`
       <rect
@@ -4444,10 +5551,15 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} State-band SVG layer.
    */
   renderSvgStateBands() {
-    if (this.config.sparkline.show.chart_type !== 'state_bands') return '';
+    if (this.config.sparkline.show.chart_type !== "state_bands") return "";
 
     const animate = this.config.sparkline.animate && this.historySeries;
-    const configuredStyles = this.getRenderStyles(Merge.mergeDeep(this.getStyles({}), ConfigHelper.toStyleDict(this.config.sparkline.state_bands.styles)));
+    const configuredStyles = this.getRenderStyles(
+      Merge.mergeDeep(
+        this.getStyles({}),
+        ConfigHelper.toStyleDict(this.config.sparkline.state_bands.styles),
+      ),
+    );
 
     return svg`
       <g class='state-bands'>
@@ -4502,7 +5614,7 @@ export default class SparklineGraphTool extends BaseTool {
                       keySplines='0.215 0.61 0.355 1'
                     ></animate>
                   `
-                    : ''
+                    : ""
                 }
               </rect>
             `;
@@ -4521,9 +5633,13 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} Graded rectangle SVG.
    */
   renderSvgTrafficLight(trafficLight, i) {
-    const backgroundStyles = { ...this.config.sparkline.graded.background.styles };
-    const foregroundStyles = { ...this.config.sparkline.graded.foreground.styles };
-    const backgroundColor = 'var(--theme-sys-elevation-surface-neutral4)';
+    const backgroundStyles = {
+      ...this.config.sparkline.graded.background.styles,
+    };
+    const foregroundStyles = {
+      ...this.config.sparkline.graded.foreground.styles,
+    };
+    const backgroundColor = "var(--theme-sys-elevation-surface-neutral4)";
 
     // Graded colors are calculated per rectangle and cannot be overridden by styles.
     delete backgroundStyles.fill;
@@ -4534,10 +5650,17 @@ export default class SparklineGraphTool extends BaseTool {
     return svg`
       ${this.gradeRanks.map((grade, k) => {
         const value = trafficLight.value[k];
-        const hasValue = typeof value !== 'undefined';
-        const foregroundColor = hasValue ? this.computeColor(value + 0.001, 0) : 'transparent';
-        const rectY = Array.isArray(trafficLight.y) ? trafficLight.y[k] : trafficLight.y;
-        const rectHeight = Math.max(1, trafficLight.height - this.svg.line_width);
+        const hasValue = typeof value !== "undefined";
+        const foregroundColor = hasValue
+          ? this.computeColor(value + 0.001, 0)
+          : "transparent";
+        const rectY = Array.isArray(trafficLight.y)
+          ? trafficLight.y[k]
+          : trafficLight.y;
+        const rectHeight = Math.max(
+          1,
+          trafficLight.height - this.svg.line_width,
+        );
         const rectWidth = Math.max(1, trafficLight.width - this.svg.line_width);
 
         return svg`
@@ -4578,7 +5701,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG template or an empty result.
    */
   renderSvgGraded(trafficLights, i) {
-    if (!trafficLights) return '';
+    if (!trafficLights) return "";
     const color = this.computeColor(this.card.entities[i].state, i);
 
     return svg`
@@ -4586,8 +5709,8 @@ export default class SparklineGraphTool extends BaseTool {
         ?tooltip=${this.tooltip.entity === i}
         ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== i}
         ?init=${this.length[i]}
-        anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== 'hover'}
-        style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5 + 0.5}s` : '0s'}"
+        anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== "hover"}
+        style="animation-delay: ${this.config.sparkline.animate ? `${i * 0.5 + 0.5}s` : "0s"}"
         fill=${color}
         stroke=${color}
         stroke-width=${this.svg.line_width / 2}
@@ -4607,18 +5730,20 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG mask template or an empty result.
    */
   renderSvgEqualizerMask(equalizer, index) {
-    if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
-    if (!equalizer) return '';
+    if (this.config.sparkline.show.chart_type !== "equalizer") return "";
+    if (!equalizer) return "";
 
     // History-backed graphs first render a temporary current-state series.
     // Start the SVG animation only when the requested history is available.
-    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
+    const animate =
+      this.config.sparkline.animate &&
+      (this.config.period.type === "real_time" || this.historySeries);
     const animationStartY = this.animationBaselineY;
 
     // Real-time keeps every bucket in the mask so state updates only change
     // opacity. Stable SVG nodes can fade in and out; historical equalizers
     // retain their existing value-sized masks and introduction animation.
-    if (this.config.period.type === 'real_time') {
+    if (this.config.period.type === "real_time") {
       equalizer = equalizer.map((equalizerPart) => {
         const realTimePart = {
           ...equalizerPart,
@@ -4627,9 +5752,17 @@ export default class SparklineGraphTool extends BaseTool {
           y: [],
         };
 
-        for (let levelIndex = 0; levelIndex < this.config.sparkline.equalizer.value_buckets; levelIndex += 1) {
-          realTimePart.value[levelIndex] = this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
-          realTimePart.y[levelIndex] = this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (equalizerPart.height + this.svg.row_spacing);
+        for (
+          let levelIndex = 0;
+          levelIndex < this.config.sparkline.equalizer.value_buckets;
+          levelIndex += 1
+        ) {
+          realTimePart.value[levelIndex] =
+            this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
+          realTimePart.y[levelIndex] =
+            this.Graph.drawArea.y +
+            this.Graph.drawArea.height -
+            levelIndex * (equalizerPart.height + this.svg.row_spacing);
         }
 
         return realTimePart;
@@ -4640,12 +5773,22 @@ export default class SparklineGraphTool extends BaseTool {
     // the level height shrinks, redistribute all levels over the graph area.
     if (this.config.sparkline.equalizer.square === true) {
       const size = Math.min(equalizer[0].width, equalizer[0].height);
-      const levelSpacing = size < equalizer[0].height ? (this.Graph.drawArea.height - this.config.sparkline.equalizer.value_buckets * size) / (this.config.sparkline.equalizer.value_buckets - 1) : 0;
+      const levelSpacing =
+        size < equalizer[0].height
+          ? (this.Graph.drawArea.height -
+              this.config.sparkline.equalizer.value_buckets * size) /
+            (this.config.sparkline.equalizer.value_buckets - 1)
+          : 0;
 
       equalizer = equalizer.map((equalizerPart) => {
         const squarePart = { ...equalizerPart };
         if (size < equalizerPart.height) {
-          squarePart.y = equalizerPart.y.map((level, levelIndex) => this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (size + levelSpacing));
+          squarePart.y = equalizerPart.y.map(
+            (level, levelIndex) =>
+              this.Graph.drawArea.y +
+              this.Graph.drawArea.height -
+              levelIndex * (size + levelSpacing),
+          );
         }
         squarePart.width = size;
         squarePart.height = size;
@@ -4665,8 +5808,17 @@ export default class SparklineGraphTool extends BaseTool {
             width=${Math.max(1, equalizerPart.width)}
             fill='white'
             style=${styleMap({
-              opacity: this.config.period.type === 'real_time' ? (j < equalizerPart.activeLevelCount ? 1 : 0) : undefined,
-              transition: this.config.period.type === 'real_time' && this.config.sparkline.animate ? 'opacity 0.5s ease' : undefined,
+              opacity:
+                this.config.period.type === "real_time"
+                  ? j < equalizerPart.activeLevelCount
+                    ? 1
+                    : 0
+                  : undefined,
+              transition:
+                this.config.period.type === "real_time" &&
+                this.config.sparkline.animate
+                  ? "opacity 0.5s ease"
+                  : undefined,
             })}
           >
             ${
@@ -4686,7 +5838,7 @@ export default class SparklineGraphTool extends BaseTool {
                 keySplines='0.215 0.61 0.355 1'
               ></animate>
             `
-                : ''
+                : ""
             }
           </rect>
         `,
@@ -4705,9 +5857,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG mask template or an empty result.
    */
   renderSvgBarsMask(bars, index) {
-    if (this.config.sparkline.show.chart_type !== 'bar') return '';
-    if (this.config.period.type === 'real_time') return '';
-    if (!bars) return '';
+    if (this.config.sparkline.show.chart_type !== "bar") return "";
+    if (this.config.period.type === "real_time") return "";
+    if (!bars) return "";
 
     // Keep the mask and visible bars synchronized during their introduction.
     const animate = this.config.sparkline.animate && this.historySeries;
@@ -4753,7 +5905,7 @@ export default class SparklineGraphTool extends BaseTool {
                 keySplines='0.215 0.61 0.355 1'
               ></animate>
             `
-                : ''
+                : ""
             }
           </rect>
         `,
@@ -4766,12 +5918,14 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvgEqualizerTrack(equalizer) {
     const background = this.config.sparkline.equalizer.background;
     const itemStyle = background.show.item_style;
-    if (itemStyle === 'none') return '';
+    if (itemStyle === "none") return "";
     const linearGradientColorStops = {
-      colors: this.config.sparkline.colorstops.colors.map((colorStop, index) => ({
-        value: index / (this.config.sparkline.colorstops.colors.length - 1),
-        color: colorStop.color,
-      })),
+      colors: this.config.sparkline.colorstops.colors.map(
+        (colorStop, index) => ({
+          value: index / (this.config.sparkline.colorstops.colors.length - 1),
+          color: colorStop.color,
+        }),
+      ),
     };
     return svg`
       <g class='equalizer-track'>
@@ -4781,25 +5935,50 @@ export default class SparklineGraphTool extends BaseTool {
           let levelSpacing = this.svg.row_spacing;
           if (this.config.sparkline.equalizer.square === true) {
             const size = Math.min(width, height);
-            levelSpacing = size < height ? (this.Graph.drawArea.height - this.config.sparkline.equalizer.value_buckets * size) / (this.config.sparkline.equalizer.value_buckets - 1) : levelSpacing;
+            levelSpacing =
+              size < height
+                ? (this.Graph.drawArea.height -
+                    this.config.sparkline.equalizer.value_buckets * size) /
+                  (this.config.sparkline.equalizer.value_buckets - 1)
+                : levelSpacing;
             width = size;
             height = size;
           }
-          return Array.from({ length: this.config.sparkline.equalizer.value_buckets }, (unused, levelIndex) => {
-            const value = this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
-            let backgroundStyles = { ...background.styles };
-            if (itemStyle === 'fixed') {
-              backgroundStyles = { fill: background.color, ...backgroundStyles };
-            } else {
-              const color =
-                itemStyle === 'lineargradient'
-                ? Colors.calculateStrokeColor(levelIndex / (this.config.sparkline.equalizer.value_buckets - 1), linearGradientColorStops, true)
-                : Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
-              if (background[itemStyle].fill) backgroundStyles.fill = color;
-              if (background[itemStyle].stroke) backgroundStyles.stroke = color;
-            }
-            const y = this.Graph.drawArea.y + this.Graph.drawArea.height - levelIndex * (height + levelSpacing) - height;
-            return svg`
+          return Array.from(
+            { length: this.config.sparkline.equalizer.value_buckets },
+            (unused, levelIndex) => {
+              const value =
+                this.Graph.min + levelIndex * this.Graph.valuesPerBucket;
+              let backgroundStyles = { ...background.styles };
+              if (itemStyle === "fixed") {
+                backgroundStyles = {
+                  fill: background.color,
+                  ...backgroundStyles,
+                };
+              } else {
+                const color =
+                  itemStyle === "lineargradient"
+                    ? Colors.calculateStrokeColor(
+                        levelIndex /
+                          (this.config.sparkline.equalizer.value_buckets - 1),
+                        linearGradientColorStops,
+                        true,
+                      )
+                    : Colors.calculateStrokeColor(
+                        value,
+                        this.config.sparkline.colorstops,
+                        itemStyle === "colorstopgradient",
+                      );
+                if (background[itemStyle].fill) backgroundStyles.fill = color;
+                if (background[itemStyle].stroke)
+                  backgroundStyles.stroke = color;
+              }
+              const y =
+                this.Graph.drawArea.y +
+                this.Graph.drawArea.height -
+                levelIndex * (height + levelSpacing) -
+                height;
+              return svg`
               <rect
                 class='equalizer-track__bucket'
                 x=${equalizerPart.x}
@@ -4809,7 +5988,8 @@ export default class SparklineGraphTool extends BaseTool {
                 style=${styleMap(this.getRenderStyles(backgroundStyles))}
               ></rect>
             `;
-          });
+            },
+          );
         })}
       </g>
     `;
@@ -4819,26 +5999,35 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvgBarTrack(index) {
     const background = this.config.sparkline.bar.background;
     const itemStyle = background.show.item_style;
-    if (itemStyle === 'none') return '';
+    if (itemStyle === "none") return "";
     let backgroundStyles = { ...background.styles };
-    let gradientDefinition = '';
-    if (itemStyle === 'fixed') {
+    let gradientDefinition = "";
+    if (itemStyle === "fixed") {
       backgroundStyles = { fill: background.color, ...backgroundStyles };
     } else {
       let gradient;
-      if (itemStyle === 'lineargradient') {
-        gradient = [...this.config.sparkline.colorstops.colors].reverse().map((colorStop, colorIndex, colorStops) => ({
-          color: colorStop.color,
-          offset: (colorIndex / (colorStops.length - 1)) * 100,
-        }));
+      if (itemStyle === "lineargradient") {
+        gradient = [...this.config.sparkline.colorstops.colors]
+          .reverse()
+          .map((colorStop, colorIndex, colorStops) => ({
+            color: colorStop.color,
+            offset: (colorIndex / (colorStops.length - 1)) * 100,
+          }));
       } else {
-        const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopsegments' ? 'hard' : 'smooth');
-        gradient = this.Graph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+        const thresholds = computeThresholds(
+          this.config.sparkline.colorstops.colors,
+          itemStyle === "colorstopsegments" ? "hard" : "smooth",
+        );
+        gradient = this.Graph.computeGradient(
+          thresholds,
+          this.config.sparkline.state_values.logarithmic,
+        );
       }
       const gradientId = `bar-track-gradient-${this.cardId}-${this.index}-${index}`;
       const gradientReference = `url(#${gradientId})`;
       if (background[itemStyle].fill) backgroundStyles.fill = gradientReference;
-      if (background[itemStyle].stroke) backgroundStyles.stroke = gradientReference;
+      if (background[itemStyle].stroke)
+        backgroundStyles.stroke = gradientReference;
       gradientDefinition = svg`
         <defs>
           <linearGradient id=${gradientId} gradientTransform='rotate(90)'>
@@ -4851,7 +6040,10 @@ export default class SparklineGraphTool extends BaseTool {
         </defs>
       `;
     }
-    const width = Math.max(1, this.Graph.drawArea.width - this.svg.column_spacing);
+    const width = Math.max(
+      1,
+      this.Graph.drawArea.width - this.svg.column_spacing,
+    );
     const x = this.Graph.drawArea.x + (this.Graph.drawArea.width - width) / 2;
     return svg`
       ${gradientDefinition}
@@ -4876,10 +6068,12 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG background template or an empty result.
    */
   renderSvgEqualizerBackground(equalizer, index) {
-    if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
-    if (!equalizer) return '';
+    if (this.config.sparkline.show.chart_type !== "equalizer") return "";
+    if (!equalizer) return "";
 
-    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);
+    const fill = this.gradient[0]
+      ? `url(#grad-${this.cardId}-${this.index}-0)`
+      : this.computeColor(this.card.entities[index].state, index);
     return svg`
       <rect
         class='equalizer--bg'
@@ -4901,14 +6095,16 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG background template or an empty result.
    */
   renderSvgBarsBackground(bars, index) {
-    if (this.config.sparkline.show.chart_type !== 'bar') return '';
+    if (this.config.sparkline.show.chart_type !== "bar") return "";
     // Fade belongs to each value-colored bar. The shared color-stop layer
     // would otherwise remain visible through its transparent end.
-    if (this.config.sparkline.show.fill === 'fade') return '';
-    if (this.config.period.type === 'real_time') return '';
-    if (!bars) return '';
+    if (this.config.sparkline.show.fill === "fade") return "";
+    if (this.config.period.type === "real_time") return "";
+    if (!bars) return "";
 
-    const fill = this.gradient[0] ? `url(#grad-${this.cardId}-${this.index}-0)` : this.computeColor(this.card.entities[index].state, index);
+    const fill = this.gradient[0]
+      ? `url(#grad-${this.cardId}-${this.index}-0)`
+      : this.computeColor(this.card.entities[index].state, index);
     return svg`
       <rect
         class='bars--bg'
@@ -4931,14 +6127,19 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG bar template or an empty result.
    */
   renderSvgBars(bars, index) {
-    if (!bars) return '';
+    if (!bars) return "";
 
     // Existing animate nodes are retained by Lit. State updates therefore do
     // not restart the graph, while a newly inserted calendar bar animates once.
-    const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries);
-    const realTimeBarTransition = this.config.sparkline.animate && this.config.period.type === 'real_time' ? 'y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)' : undefined;
+    const animate =
+      this.config.sparkline.animate &&
+      (this.config.period.type === "real_time" || this.historySeries);
+    const realTimeBarTransition =
+      this.config.sparkline.animate && this.config.period.type === "real_time"
+        ? "y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)"
+        : undefined;
     const foregroundStyles = { ...this.config.sparkline.bar.foreground.styles };
-    const fade = this.config.sparkline.show.fill === 'fade';
+    const fade = this.config.sparkline.show.fill === "fade";
 
     // The graph color remains authoritative; foreground styles control shape,
     // transforms, opacity and other presentation properties.
@@ -4965,10 +6166,12 @@ export default class SparklineGraphTool extends BaseTool {
               stroke=${color}
               style=${styleMap(
                 this.getRenderStyles({
-                y: realTimeBarTransition ? `${bar.y}px` : undefined,
-                height: realTimeBarTransition ? `${Math.max(1, bar.height)}px` : undefined,
-                transition: realTimeBarTransition,
-                ...foregroundStyles,
+                  y: realTimeBarTransition ? `${bar.y}px` : undefined,
+                  height: realTimeBarTransition
+                    ? `${Math.max(1, bar.height)}px`
+                    : undefined,
+                  transition: realTimeBarTransition,
+                  ...foregroundStyles,
                 }),
               )}
             >
@@ -5002,7 +6205,7 @@ export default class SparklineGraphTool extends BaseTool {
                   keySplines='0.215 0.61 0.355 1'
                 ></animate>
               `
-                  : ''
+                  : ""
               }
             </rect>
           `;
@@ -5024,7 +6227,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   renderSvgRadialBarcodeBin(bin, path, index) {
     const color = this.computeColor(bin.value, this.entity_index);
-    const foregroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.foreground?.styles);
+    const foregroundStyles = ConfigHelper.toStyleDict(
+      this.config.sparkline.radial_barcode?.foreground?.styles,
+    );
     delete foregroundStyles.fill;
     delete foregroundStyles.stroke;
 
@@ -5049,7 +6254,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Lit SVG path template.
    */
   renderSvgRadialBarcodeBackgroundBin(bin, path, index) {
-    const backgroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.background?.styles);
+    const backgroundStyles = ConfigHelper.toStyleDict(
+      this.config.sparkline.radial_barcode?.background?.styles,
+    );
     delete backgroundStyles.fill;
     delete backgroundStyles.stroke;
 
@@ -5071,15 +6278,28 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Lit SVG path template.
    */
   renderSvgRadialBarcodeBackground(radius) {
-    const { start, end, start2, end2, largeArcFlag, sweepFlag } = this.Graph._calcRadialBarcodeCoords(0, 359.9, true, radius, radius, this.radialBarcodeChartWidth);
-    const radius2 = { x: radius - this.radialBarcodeChartWidth, y: radius - this.radialBarcodeChartWidth };
-    const backgroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.background?.styles);
+    const { start, end, start2, end2, largeArcFlag, sweepFlag } =
+      this.Graph._calcRadialBarcodeCoords(
+        0,
+        359.9,
+        true,
+        radius,
+        radius,
+        this.radialBarcodeChartWidth,
+      );
+    const radius2 = {
+      x: radius - this.radialBarcodeChartWidth,
+      y: radius - this.radialBarcodeChartWidth,
+    };
+    const backgroundStyles = ConfigHelper.toStyleDict(
+      this.config.sparkline.radial_barcode?.background?.styles,
+    );
 
     const d = [
-      'M',
+      "M",
       start.x,
       start.y,
-      'A',
+      "A",
       radius,
       radius,
       0,
@@ -5087,19 +6307,19 @@ export default class SparklineGraphTool extends BaseTool {
       sweepFlag,
       end.x,
       end.y,
-      'L',
+      "L",
       end2.x,
       end2.y,
-      'A',
+      "A",
       radius2.x,
       radius2.y,
       0,
       largeArcFlag,
-      sweepFlag === '0' ? '1' : '0',
+      sweepFlag === "0" ? "1" : "0",
       start2.x,
       start2.y,
-      'Z',
-    ].join(' ');
+      "Z",
+    ].join(" ");
 
     return svg`
       <path fill="lightgray" d="${d}" style=${styleMap(this.getRenderStyles(backgroundStyles))}></path>
@@ -5125,7 +6345,7 @@ export default class SparklineGraphTool extends BaseTool {
         ? svg`
         <circle pathLength="1" r="${dayNightRadius}" cx=${this.graphArea.width / 2} cy="${this.graphArea.height / 2}"></circle>
       `
-        : '';
+        : "";
     };
 
     const renderHourMarks = () => {
@@ -5133,11 +6353,12 @@ export default class SparklineGraphTool extends BaseTool {
         ? svg`
         <circle pathLength=${this.config.sparkline.radial_barcode.face.hour_marks_count} r="${hourMarksRadius}" cx=${this.graphArea.width / 2} cy="${this.graphArea.height / 2}"></circle>
       `
-        : '';
+        : "";
     };
 
     const renderAbsoluteHourNumbers = () => {
-      return this.config.sparkline.radial_barcode.face?.show_hour_numbers === 'absolute'
+      return this.config.sparkline.radial_barcode.face?.show_hour_numbers ===
+        "absolute"
         ? svg`
         <g>
           <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 - hourNumbersRadius}">24</text>
@@ -5146,11 +6367,12 @@ export default class SparklineGraphTool extends BaseTool {
           <text x="${this.graphArea.width / 2 - hourNumbersRadius}" y="${this.graphArea.height / 2}">18</text>
         </g>
       `
-        : '';
+        : "";
     };
 
     const renderRelativeHourNumbers = () => {
-      return this.config.sparkline.radial_barcode.face?.show_hour_numbers === 'relative'
+      return this.config.sparkline.radial_barcode.face?.show_hour_numbers ===
+        "relative"
         ? svg`
         <g>
           <text x="${this.graphArea.width / 2}" y="${this.graphArea.height / 2 - hourNumbersRadius}">0</text>
@@ -5159,7 +6381,7 @@ export default class SparklineGraphTool extends BaseTool {
           <text x="${this.graphArea.width / 2 - hourNumbersRadius}" y="${this.graphArea.height / 2}">-6</text>
         </g>
       `
-        : '';
+        : "";
     };
 
     return svg`
@@ -5179,17 +6401,18 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG radial template or an empty result.
    */
   renderSvgRadialBarcode(radialBarcode, index) {
-    if (!radialBarcode) return '';
+    if (!radialBarcode) return "";
     const radialBarcodePaths = this.Graph.getRadialBarcodePaths();
-    const radialBarcodeBackgroundPaths = this.Graph.getRadialBarcodeBackgroundPaths();
+    const radialBarcodeBackgroundPaths =
+      this.Graph.getRadialBarcodeBackgroundPaths();
 
     return svg`
       <g class='graph-clock'
         ?tooltip=${this.tooltip.entity === index}
         ?inactive=${this.tooltip.entity !== undefined && this.tooltip.entity !== index}
         ?init=${this.length[index]}
-        anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== 'hover'}
-        style="animation-delay: ${this.config.sparkline.animate ? `${index * 0.5 + 0.5}s` : '0s'}"
+        anim=${this.config.sparkline.animate && this.config.sparkline.show.points !== "hover"}
+        style="animation-delay: ${this.config.sparkline.animate ? `${index * 0.5 + 0.5}s` : "0s"}"
         stroke-width=${this.svg.line_width / 2}
       >
         ${this.radialBarcodeChartBackground[index].map((bin, i) => this.renderSvgRadialBarcodeBackgroundBin(bin, radialBarcodeBackgroundPaths[i], i))}
@@ -5207,9 +6430,11 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG barcode template or an empty result.
    */
   renderSvgBarcode(barcode, index) {
-    if (!barcode) return '';
+    if (!barcode) return "";
 
-    const barcodeStyles = ConfigHelper.toStyleDict(this.config.sparkline.barcode?.styles);
+    const barcodeStyles = ConfigHelper.toStyleDict(
+      this.config.sparkline.barcode?.styles,
+    );
     delete barcodeStyles.fill;
     delete barcodeStyles.stroke;
 
@@ -5229,7 +6454,8 @@ export default class SparklineGraphTool extends BaseTool {
               style=${styleMap(this.getRenderStyles(barcodeStyles))}
             >
               ${
-                this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.historySeries)
+                this.config.sparkline.animate &&
+                (this.config.period.type === "real_time" || this.historySeries)
                   ? svg`
                 <animate
                   attributeName='x'
@@ -5245,7 +6471,7 @@ export default class SparklineGraphTool extends BaseTool {
                   keySplines='0.215 0.61 0.355 1'
                 ></animate>
               `
-                  : ''
+                  : ""
               }
             </rect>
           `;
@@ -5269,7 +6495,8 @@ export default class SparklineGraphTool extends BaseTool {
 
     const centerX = this.Graph.drawArea.x + this.Graph.drawArea.width / 2;
     const centerY = this.Graph.drawArea.y + this.Graph.drawArea.height / 2;
-    const radius = Math.min(this.Graph.drawArea.width, this.Graph.drawArea.height) * 0.08;
+    const radius =
+      Math.min(this.Graph.drawArea.width, this.Graph.drawArea.height) * 0.08;
     const strokeWidth = radius * 0.2;
     const circumference = 2 * Math.PI * radius;
     const shortArc = circumference * 0.15;
@@ -5339,11 +6566,19 @@ export default class SparklineGraphTool extends BaseTool {
         if (item.config.sparkline.show.chart_type !== "bar") return "";
 
         const { config } = item;
-        const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
+        const color =
+          config.color ??
+          item.entityConfig.color ??
+          config.sparkline.line_color[index];
         const foregroundStyles = { ...config.sparkline.bar.foreground.styles };
         const fade = config.sparkline.show.fill === "fade";
-        const animate = config.sparkline.animate && (config.period.type === "real_time" || item.historySeries);
-        const realTimeBarTransition = config.sparkline.animate && config.period.type === "real_time" ? "y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)" : undefined;
+        const animate =
+          config.sparkline.animate &&
+          (config.period.type === "real_time" || item.historySeries);
+        const realTimeBarTransition =
+          config.sparkline.animate && config.period.type === "real_time"
+            ? "y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)"
+            : undefined;
         delete foregroundStyles.fill;
         delete foregroundStyles.stroke;
 
@@ -5367,14 +6602,17 @@ export default class SparklineGraphTool extends BaseTool {
                   style=${styleMap(
                     this.getRenderStyles({
                       y: realTimeBarTransition ? `${bar.y}px` : undefined,
-                      height: realTimeBarTransition ? `${Math.max(1, bar.height)}px` : undefined,
+                      height: realTimeBarTransition
+                        ? `${Math.max(1, bar.height)}px`
+                        : undefined,
                       transition: realTimeBarTransition,
                       ...foregroundStyles,
                     }),
                   )}
                 >
-                  ${animate
-                    ? svg`
+                  ${
+                    animate
+                      ? svg`
                       <animate
                         attributeName="y"
                         from=${bar.value > 0 ? bar.y + Math.max(1, bar.height) : bar.y}
@@ -5402,7 +6640,8 @@ export default class SparklineGraphTool extends BaseTool {
                         keySplines="0.215 0.61 0.355 1"
                       ></animate>
                     `
-                    : ""}
+                      : ""
+                  }
                 </rect>
               `;
             })}
@@ -5423,8 +6662,14 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {string|undefined} seriesColor - Explicit color for a multi-series item.
    * @returns {TemplateResult|string} Gradient definitions.
    */
-  renderBarFadeGradients(bars, index, config, seriesId, seriesColor = undefined) {
-    if (config.sparkline.show.fill !== 'fade') return '';
+  renderBarFadeGradients(
+    bars,
+    index,
+    config,
+    seriesId,
+    seriesColor = undefined,
+  ) {
+    if (config.sparkline.show.fill !== "fade") return "";
 
     return bars.map((bar, barIndex) => {
       const color = seriesColor ?? this.computeColor(bar.value, index);
@@ -5433,9 +6678,9 @@ export default class SparklineGraphTool extends BaseTool {
         <linearGradient
           id=${gradientId}
           x1="0%"
-          y1=${bar.value >= 0 ? '0%' : '100%'}
+          y1=${bar.value >= 0 ? "0%" : "100%"}
           x2="0%"
-          y2=${bar.value >= 0 ? '100%' : '0%'}
+          y2=${bar.value >= 0 ? "100%" : "0%"}
         >
           <stop stop-color=${color} offset="0%" stop-opacity="1"></stop>
           <stop stop-color=${color} offset="100%" stop-opacity="0.1"></stop>
@@ -5454,7 +6699,11 @@ export default class SparklineGraphTool extends BaseTool {
   renderMultipleSeriesAreaGradients() {
     return this.sparklineSeries.items.map((item) => {
       const { config, graph } = item;
-      if (config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+      if (
+        config.sparkline.show.chart_type !== "area" ||
+        config.sparkline.show.fill !== "fade"
+      )
+        return "";
 
       const gradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
       return svg`
@@ -5477,29 +6726,44 @@ export default class SparklineGraphTool extends BaseTool {
       ${this.sparklineSeries.items.map((item, index) => {
         const { config, graph } = item;
         const chartType = config.sparkline.show.chart_type;
-        const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
+        const color =
+          config.color ??
+          item.entityConfig.color ??
+          config.sparkline.line_color[index];
         const lineStyles = {
           ...ConfigHelper.toStyleDict(config.sparkline.line.styles),
-          'stroke-width': this.getConfiguredLineWidth(config),
+          "stroke-width": this.getConfiguredLineWidth(config),
         };
         const areaStyles = ConfigHelper.toStyleDict(config.area.styles);
-        const path = ['line', 'area'].includes(chartType) ? graph.getPath() : undefined;
-        const areaPath = chartType === 'area' ? graph.getArea(path) : undefined;
-        const points = chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true
-          ? graph._calcY(graph.coords)
-          : [];
-        const pointRadius = Utils.calculateSvgDimension(config.sparkline.dots.radius);
+        const path = ["line", "area"].includes(chartType)
+          ? graph.getPath()
+          : undefined;
+        const areaPath = chartType === "area" ? graph.getArea(path) : undefined;
+        const points =
+          chartType === "dots" ||
+          config.sparkline.show.points === true ||
+          config.sparkline.line.show_dots === true ||
+          config.sparkline.area.show_dots === true
+            ? graph._calcY(graph.coords)
+            : [];
+        const pointRadius = Utils.calculateSvgDimension(
+          config.sparkline.dots.radius,
+        );
 
-        const areaFade = config.sparkline.show.fill === 'fade';
+        const areaFade = config.sparkline.show.fill === "fade";
         const areaGradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
 
         return svg`
-          ${areaPath
-            ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFade ? `url(#${areaGradientId})` : color} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFade ? `url(#${areaGradientId})` : color }))}></path>`
-            : ''}
-          ${path && config.sparkline.show.line !== false
-            ? svg`<path class="sparkline-series-line" d="${path}" fill="none" stroke="${color}" style=${styleMap(this.getRenderStyles({ ...lineStyles, fill: 'none', stroke: color }))}></path>`
-            : ''}
+          ${
+            areaPath
+              ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFade ? `url(#${areaGradientId})` : color} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFade ? `url(#${areaGradientId})` : color }))}></path>`
+              : ""
+          }
+          ${
+            path && config.sparkline.show.line !== false
+              ? svg`<path class="sparkline-series-line" d="${path}" fill="none" stroke="${color}" style=${styleMap(this.getRenderStyles({ ...lineStyles, fill: "none", stroke: color }))}></path>`
+              : ""
+          }
           ${points.map((point) => svg`<circle class="sparkline-series-point" cx="${point[X]}" cy="${point[Y]}" r="${pointRadius}" fill="${color}" stroke="${color}"></circle>`)}
         `;
       })}
@@ -5522,7 +6786,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     const items = this.sparklineSeries.items;
     const area = this.legendLayout.legendArea;
-    const horizontal = this.legendLayout.orientation === 'horizontal';
+    const horizontal = this.legendLayout.orientation === "horizontal";
     const rows = Number(legend.rows);
     const columns = horizontal ? Math.ceil(items.length / rows) : 1;
     const slotWidth = area.width / columns;
@@ -5531,14 +6795,18 @@ export default class SparklineGraphTool extends BaseTool {
     const markerGap = Utils.calculateSvgDimension(legend.item_gap);
     const textStyles = {
       ...ConfigHelper.toStyleDict(legend.styles),
-      'text-anchor': 'start',
-      'dominant-baseline': 'central',
-      'pointer-events': 'none',
+      "text-anchor": "start",
+      "dominant-baseline": "central",
+      "pointer-events": "none",
     };
 
     const legendItems = items.map((item, index) => {
-      const label = item.config.name ?? item.entity?.attributes?.friendly_name ?? item.id;
-      const color = item.config.color ?? item.entityConfig?.color ?? item.config.sparkline.line_color[index];
+      const label =
+        item.config.name ?? item.entity?.attributes?.friendly_name ?? item.id;
+      const color =
+        item.config.color ??
+        item.entityConfig?.color ??
+        item.config.sparkline.line_color[index];
       const row = horizontal ? Math.floor(index / columns) : index;
       const column = horizontal ? index % columns : 0;
       const slotX = area.x + column * slotWidth;
@@ -5546,21 +6814,21 @@ export default class SparklineGraphTool extends BaseTool {
       const markerX = slotX + markerGap + markerSize;
       const markerY = slotY + slotHeight / 2;
       const textX = markerX + markerSize + markerGap;
-      const textWidth = slotWidth - (markerGap * 3) - (markerSize * 2);
+      const textWidth = slotWidth - markerGap * 3 - markerSize * 2;
       const textY = markerY;
       const textConfig = {
-        id: this.id + '-legend-' + item.id,
+        id: this.id + "-legend-" + item.id,
         xpos: (this.svg.x + textX) / 2,
         ypos: (this.svg.y + textY) / 2,
         text: label,
         text_overflow: {
-          mode: 'ellipsis',
+          mode: "ellipsis",
           ellipsis: {
             max_width: textWidth / 2,
           },
         },
         styles: textStyles,
-        tap_action: { action: 'none' },
+        tap_action: { action: "none" },
       };
 
       return {
@@ -5570,18 +6838,26 @@ export default class SparklineGraphTool extends BaseTool {
         markerY,
         textX,
         textY,
-        textTool: new TextTool(textConfig, index, this.templates, this.cardId, this.card),
+        textTool: new TextTool(
+          textConfig,
+          index,
+          this.templates,
+          this.cardId,
+          this.card,
+        ),
       };
     });
-    const textSignature = JSON.stringify(legendItems.map((item) => ({
-      label: item.label,
-      color: item.color,
-      markerX: item.markerX,
-      markerY: item.markerY,
-      textX: item.textX,
-      textY: item.textY,
-      styles: textStyles,
-    })));
+    const textSignature = JSON.stringify(
+      legendItems.map((item) => ({
+        label: item.label,
+        color: item.color,
+        markerX: item.markerX,
+        markerY: item.markerY,
+        textX: item.textX,
+        textY: item.textY,
+        styles: textStyles,
+      })),
+    );
 
     if (textSignature === this.legendTextSignature) return;
 
@@ -5601,7 +6877,8 @@ export default class SparklineGraphTool extends BaseTool {
   updated() {
     this.legendTextTools.forEach((textTool) => textTool.updated());
 
-    if (!this.config.sparkline.show.legend || this.legendTextTools.length === 0) return;
+    if (!this.config.sparkline.show.legend || this.legendTextTools.length === 0)
+      return;
 
     // TextTool and the legend share the same nested SVG. Its bounding box is
     // already expressed in the local viewBox, so no CSS-pixel conversion is needed.
@@ -5609,7 +6886,7 @@ export default class SparklineGraphTool extends BaseTool {
     const measuredTextHeight = textElement.getBBox().height;
     const lineHeight = Number(this.config.sparkline.legend.line_height);
     const measuredRowHeight = measuredTextHeight * lineHeight;
-    const measuredSignature = measuredTextHeight + '|' + measuredRowHeight;
+    const measuredSignature = measuredTextHeight + "|" + measuredRowHeight;
 
     if (measuredSignature === this.legendMeasuredSignature) return;
 
@@ -5638,7 +6915,8 @@ export default class SparklineGraphTool extends BaseTool {
         <g transform="translate(${-this.svg.x} ${-this.svg.y})">
           ${this.legendTextTools.map((textTool) => textTool.render())}
         </g>
-        ${this.legendItems.map((item) => svg`
+        ${this.legendItems.map(
+          (item) => svg`
           <circle
             class="sparkline-legend__marker"
             cx="${item.markerX}"
@@ -5646,7 +6924,8 @@ export default class SparklineGraphTool extends BaseTool {
             r="${this.legendLayout.markerRadius}"
             fill="${item.color}"
           ></circle>
-        `)}
+        `,
+        )}
       </g>
     `;
   }
@@ -5702,7 +6981,7 @@ export default class SparklineGraphTool extends BaseTool {
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
           overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
+          style="touch-action:none; pointer-events:${this.historyLoading ? "none" : "auto"}; overflow:visible;"
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
           @pointerdown=${(event) => event.stopPropagation()}
@@ -5710,7 +6989,7 @@ export default class SparklineGraphTool extends BaseTool {
         >
           <defs>
             ${this.renderSvgGradient(this.gradient)}
-            ${this.sparklineSeries.items.length > 1 ? this.renderMultipleSeriesAreaGradients() : ''}
+            ${this.sparklineSeries.items.length > 1 ? this.renderMultipleSeriesAreaGradients() : ""}
             ${this.area.map((fill, i) => this.renderSvgAreaMask(fill, i))}
             ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxMask(fill, i))}
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
@@ -5719,14 +6998,18 @@ export default class SparklineGraphTool extends BaseTool {
           <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
             <g
             opacity=${this.historyLoading ? 0.2 : 1}
-            style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
+            style="pointer-events:${this.historyLoading ? "none" : "auto"}"
           >
           ${this.renderCartesianHitArea()}
           ${this.sparklineSeries.items.length > 1 ? this.renderMultipleSeriesBars() : ""}
           <g transform="translate(0 ${this.animationBaselineY})">
             <g>
               ${
-                this.config.sparkline.animate && ['line', 'area'].includes(this.config.sparkline.show.chart_type) && (this.config.period.type === 'real_time' || this.historySeries)
+                this.config.sparkline.animate &&
+                ["line", "area"].includes(
+                  this.config.sparkline.show.chart_type,
+                ) &&
+                (this.config.period.type === "real_time" || this.historySeries)
                   ? svg`
                 <animateTransform
                   attributeName='transform'
@@ -5743,16 +7026,18 @@ export default class SparklineGraphTool extends BaseTool {
                   keySplines='0.215 0.61 0.355 1'
                 ></animateTransform>
               `
-                  : ''
+                  : ""
               }
               <g transform="translate(0 ${-this.animationBaselineY})">
-                ${this.sparklineSeries.items.length > 1
-                  ? this.renderMultipleSeriesCartesian()
-                  : svg`
+                ${
+                  this.sparklineSeries.items.length > 1
+                    ? this.renderMultipleSeriesCartesian()
+                    : svg`
                     ${this.area.map((fill, i) => this.renderSvgAreaBackground(fill, i))}
                     ${this.areaMinMax.map((fill, i) => this.renderSvgAreaMinMaxBackground(fill, i))}
                     ${this.line.map((line, i) => this.renderSvgLineBackground(line, i))}
-                  `}
+                  `
+                }
               </g>
             </g>
           </g>
@@ -5770,7 +7055,7 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.renderSvgStateBands()}
           ${this.renderGrid()}
           ${this.renderAxis()}
-          ${this.sparklineSeries.items.length === 1 ? this.renderPoints() : ''}
+          ${this.sparklineSeries.items.length === 1 ? this.renderPoints() : ""}
           ${this.renderActiveIndicator()}
           ${this.renderTickmarks()}
           ${this.renderAxisLabels()}
