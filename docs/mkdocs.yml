@@ -232,7 +232,7 @@ nav:
       - Visual Shapes: sections/visual-shapes-section.md
       - Entity Parts: sections/entities-section.md
       - Horseshoes:
-          - Horeshoe Overview: sections/horseshoes-section.md
+          - Horseshoe Overview: sections/horseshoes-section.md
           - Scale and State: sections/horseshoe-scale-and-state.md
           - Tick Marks and Labels: sections/horseshoe-ticks-and-labels.md
       - Sparkline Graphs:
