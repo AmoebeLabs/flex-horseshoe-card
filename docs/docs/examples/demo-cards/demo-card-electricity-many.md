@@ -30,15 +30,15 @@ The examples focus on:
 
 Cards 20 through 26 use regular horseshoe arcs. Cards 27, 30, and 33 use smaller arcs that are still clearly curved. Card 32 uses an arc of only `0.3` degrees, making the horseshoe appear as a straight vertical bar.
 
-![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="210"}
 
 | Description                                                                        | Aspect ratio |
 | :--------------------------------------------------------------------------------- | :----------- |
