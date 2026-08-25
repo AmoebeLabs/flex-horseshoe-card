@@ -285,20 +285,15 @@ Example definition to use within view
 - type: custom:flex-horseshoe-card
   entities:
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
       name: 'Total'
       area: ':24:'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l1
-      decimals: 2
       name: 'L1'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l2
-      decimals: 2
       name: 'L2'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l3
-      decimals: 2
       name: 'L3'
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
   template:
     name: fhs_card_023_horseshoe_power
 ```
@@ -315,20 +310,15 @@ Example definition to use within view
 - type: custom:flex-horseshoe-card
   entities:
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
       name: 'Total'
       area: ':26:'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l1
-      decimals: 2
       name: 'L1'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l2
-      decimals: 2
       name: 'L2'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l3
-      decimals: 2
       name: 'L3'
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
   template:
     name: fhs_card_026_horseshoe_power
 ```
@@ -344,20 +334,15 @@ Example definition to use within view
 - type: custom:flex-horseshoe-card
   entities:
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
       name: 'Total'
       area: ':27:'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l1
-      decimals: 2
       name: 'L1'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l2
-      decimals: 2
       name: 'L2'
     - entity: sensor.dsmr_reading_phase_currently_delivered_l3
-      decimals: 2
       name: 'L3'
     - entity: sensor.dsmr_reading_electricity_currently_delivered
-      decimals: 2
   template:
     name: fhs_card_027_horseshoe_power
 ```
