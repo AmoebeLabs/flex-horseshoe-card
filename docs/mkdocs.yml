@@ -88,6 +88,7 @@ plugins:
         "card-configuration/groups-section.md": "sections/groups-section.md"
         "card-configuration/positioning-and-groups.md": "core-concepts/positioning-and-groups.md"
         "card-configuration/entities-definition.md": "core-concepts/entity-definitions.md"
+        "core-concepts/actions-and-local-controls.md": "core-concepts/actions-and-interactive-controls.md"
   - minify:
       minify_html: true
 
@@ -215,7 +216,7 @@ nav:
       # - Overview: core-concepts/overview.md
       - Card Structure: core-concepts/card-structure.md
       - Entity Definitions: core-concepts/entity-definitions.md
-      - Actions and Interactive Controls: core-concepts/actions-and-local-controls.md
+      - Actions and Interactive Controls: core-concepts/actions-and-interactive-controls.md
       - External Palettes: core-concepts/external-palettes.md
       # - Template Variables: core-concepts/template-variables.md
       - Positioning and Groups: core-concepts/positioning-and-groups.md

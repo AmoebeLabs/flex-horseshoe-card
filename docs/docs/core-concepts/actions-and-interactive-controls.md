@@ -18,14 +18,13 @@ Actions make entities and individual layout items interactive. FHS uses the curr
 
 ## :material-horseshoe: At a glance
 
-Actions define what happens when someone interacts with the card. Interactive
-controls give you ready-made controls for common dashboard tasks.
+Actions define what happens when someone interacts with the card.
+Interactive controls give you ready-made controls for common dashboard tasks.
 
 
-### Available actions
+### Available Tap actions
 
-!!! success "The supported actions should be compatible with the Home Assistant actions"
-
+The Flexible Horseshoe Card supports the following Home Assistant dashboard actions:
 
 | Action           | Result                                                     |
 | :--------------- | :--------------------------------------------------------- |
@@ -37,6 +36,8 @@ controls give you ready-made controls for common dashboard tasks.
 | `assist`         | Starts Home Assistant Assist                               |
 | `none`           | Disables the configured gesture                            |
 
+!!! warning "Older FHS configurations that use `call-service`, `service`, `service_data`, or `fire-dom-event` are still supported, but should not be used anymore for new cards"
+
 ### Available gestures: Tap, hold, and double tap
 
 Each shape or entity supports three gestures:
@@ -47,12 +48,10 @@ Each shape or entity supports three gestures:
 | Hold       | `hold_action`       | None        |
 | Double tap | `double_tap_action` | None        |
 
-!!! warning "Double tap delays the single tap action with 250msec"
+!!! info "A single-tap action is delayed by 250 ms to allow detection of a double tap."
     This is the time frame the double tap needs to detect double tap.
 
 ### Interactive controls
-
-!!! info "The interactive controls are specifically made for the Flexible Horseshoe to support user interactions."
 
 | Control  | Use it to                                           |
 | :------- | :-------------------------------------------------- |
@@ -73,90 +72,67 @@ Each shape or entity supports three gestures:
 
 
 
-## :material-horseshoe: Actions
+## :material-horseshoe: Tap Actions
+Tap actions can be defined on the entity and item level. You can define multiple tap actions and multiple actions per tap action.
 
-### Where actions can be configured
+=== "On the Entity Level"
+    Configure an action on an entity when every item using that entity should behave alike:
 
-Configure an action on an entity when every item using that entity should behave alike:
+    ```yaml linenums="1"
+    entities:
+      - entity: light.hall
+        tap_action:
+          action: toggle
+    ```
+=== "On the Item Level"
+    An action on the item takes priority over the action on its entity.
+    ```yaml linenums="1"
+    layout:
+      icons:
+        - id: hall-light
+          entity_index: 0
+          xpos: 50
+          ypos: 50
+          tap_action:
+            action: perform-action
+            perform_action: light.turn_on
+            target:
+              entity_id: light.hall
+            data:
+              brightness_pct: 50
+    ```
 
-```yaml linenums="1"
-entities:
-  - entity: light.hall
-    tap_action:
-      action: toggle
-```
+=== "Multiple Tap Actions"
+    You can define multiple tap actions on any item or entity
+    ```yaml linenums="1"
+    entities:
+      - entity: light.hall
+        tap_action:
+          action: toggle
+        hold_action:
+          action: more-info
+        double_tap_action:
+          action: perform-action
+          perform_action: light.turn_on
+          target:
+            entity_id: light.hall
+          data:
+            brightness_pct: 100
+    ```
 
-Configure the action on a layout item when only that item should behave differently:
+=== "Multiple actions per Tap Action"
+    FHS can run multiple actions in sequence. They run in the order listed. Each entry inside `actions` is a normal Home Assistant action:
 
-```yaml linenums="1"
-layout:
-  icons:
-    - id: hall-light
-      entity_index: 0
-      xpos: 50
-      ypos: 50
-      tap_action:
-        action: perform-action
-        perform_action: light.turn_on
-        target:
-          entity_id: light.hall
-        data:
-          brightness_pct: 50
-```
-
-An action on the item takes priority over the action on its entity. An item connected to an entity opens more-info on tap when neither defines a tap action. Items without an entity respond only to actions configured on the item. When the same Home Assistant entity appears more than once in the `entities` list, the clicked item uses its exact `entity_index`.
-
-Actions are available on horseshoes, entity parts, text items, icons, lines, circles, arcs, and rectangles. Standalone text defaults to `none`, while sparklines keep their pointer interaction for graph tooltips.
-
-
-```yaml linenums="1"
-entities:
-  - entity: light.hall
-    tap_action:
-      action: toggle
-    hold_action:
-      action: more-info
-    double_tap_action:
-      action: perform-action
-      perform_action: light.turn_on
-      target:
-        entity_id: light.hall
-      data:
-        brightness_pct: 100
-```
-
-### Performing a Home Assistant action
-
-Use `perform-action` when you want to call a Home Assistant action:
-
-```yaml linenums="1"
-tap_action:
-  action: perform-action
-  perform_action: light.turn_on
-  target:
-    entity_id: light.hall
-  data:
-    brightness_pct: 50
-```
-
-Older FHS configurations that use `call-service`, `service`, `service_data`, or `fire-dom-event` are still supported.
-
-### Multiple actions
-
-FHS can run multiple actions in sequence. They run in the order listed. Each entry inside `actions` is a normal Home Assistant action:
-
-```yaml linenums="1"
-tap_action:
-  actions:
-    - action: perform-action
-      perform_action: light.turn_on
-      target:
-        entity_id: light.hall
-    - action: navigate
-      navigation_path: /lovelace/lights
-```
-
-You can also use an `actions` list inside `hold_action` and `double_tap_action`.
+    ```yaml linenums="1"
+    tap_action:
+      actions:
+        - action: perform-action
+          perform_action: light.turn_on
+          target:
+            entity_id: light.hall
+        - action: navigate
+          navigation_path: /lovelace/lights
+    ```
 
 ### Haptic feedback
 
@@ -177,22 +153,18 @@ Available values are `success`, `warning`, `failure`, `light`, `medium`, `heavy`
 ## :material-horseshoe: Interactive controls
 
 Interactive controls give you ready-made buttons, toggles, selectors, number
-steppers, and sliders. Connect a control to an entity when you want to show or
-change its value. For commands, configure an action instead, for example to open
-details or perform a Home Assistant action.
+steppers, and sliders. 
+
+The controls can interact with Home Assistant entities, or used to control specific FHS Card behavior. Entities that start with "fhs_" can be used to interact with the local card, or when the scope is global, to interact with other FHS cards in the current App or Browser.
 
 | Control  | Common entity source                                                  |
 | :------- | :-------------------------------------------------------------------- |
 | `button` | Any entity, or an explicit action target                              |
 | `toggle` | Home Assistant on/off entity, `input_boolean`, or `fhs_input_boolean` |
-| `select` | `select`, `input_select`, or `fhs_input_select`                       |
-| `number` | `input_number` or `fhs_input_number`                                  |
+| `select` | Multi state Entity, `input_select` helper, or `fhs_input_select`      |
+| `number` | Entity, `input_number` helper or `fhs_input_number`                   |
 | `slider` | A numeric entity or numeric entity attribute                          |
-
-Use a Home Assistant entity when the state is part of your home, is used by
-automations, or needs to be shared across devices. Use an FHS browser-local
-helper when the value only affects how FHS cards look or behave in the current
-browser.
+| `dual slider` | Two entities like min/max or HVAC values                         |
 
 ### Button control
 
