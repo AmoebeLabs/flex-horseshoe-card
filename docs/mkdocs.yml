@@ -165,86 +165,176 @@ markdown_extensions:
 # Page tree
 nav:
   - Home: index.md
+
   - Getting started:
       - Introduction: getting-started/introduction.md
-      - Install with HACS: getting-started/installation.md
+      - Installation: getting-started/installation.md
+      - Your first card: getting-started/your-first-card.md
+
+  - Card basics:
+      - Overview: card-basics/card-overview.md
+      - Entities: card-basics/entities.md
+      - Positioning and sizing: card-basics/positioning-and-sizing.md
+      - Groups: card-basics/groups.md
+
+  - Card tools:
+      - Overview: tools/tools-overview.md
+
+      - Entities:
+          - Entity State: tools/entities/entity-state-tool.md
+          - Entity Name: tools/entities/entity-name-tool.md
+          - Entity Area: tools/entities/entity-area-tool.md
+          - Entity Icon: tools/entities/entity-icon-tool.md
+
+      - Shapes:
+          - Overview: tools/shapes/shapes-overview.md
+          - Arc: tools/shapes/arc-tool.md
+          - Circle: tools/shapes/circle-tool.md
+          - Line: tools/shapes/line-tool.md
+          - Rectangle: tools/shapes/rectangle-tool.md
+          - Text: tools/shapes/text-tool.md
+
+      - Horseshoe:
+          - Overview: tools/horseshoe/horseshoe-overview.md
+          - Scale and state: tools/horseshoe/horseshoe-scale-and-state.md
+          - Tick marks and labels: tools/horseshoe/horseshoe-tick-marks-and-labels.md
+
+      - Sparkline graphs:
+          - Overview: tools/sparkline/overview.md
+          - Line, area, dots and bars: tools/sparkline/line-area-dots-and-bar-charts.md
+          - Equalizer and graded: tools/sparkline/equalizer-and-graded.md
+          - State bands: tools/sparkline/state-bands.md
+          - Barcode and radial barcode: tools/sparkline/barcode-and-radial-barcode.md
+          - History periods and bins: tools/sparkline/history-periods-and-bins.md
+          - Axes and grid: tools/sparkline/axes-and-grid.md
+
+      - Interactive controls:
+          - Overview: tools/controls/controls-overview.md
+          - Button: tools/controls/button-tool.md
+          - Toggle: tools/controls/toggle-tool.md
+          - Select: tools/controls/select-tool.md
+          - Number: tools/controls/number-tool.md
+          - Slider: tools/controls/slider-tool.md
+
+  - Interaction and behavior:
+      - Overview: interaction/interaction-overview.md
+      - Actions: interaction/actions.md
+      - Local values: interaction/local-values.md
+      - Visibility: interaction/visibility.md
+      - Animations: interaction/animations.md
+
+  - Appearance:
+      - Overview: appearance/appearance-overview.md
+      - Styling: appearance/styling.md
+      - Color stops: appearance/color-stops.md
+      - Palettes: appearance/palettes.md
+      - Color filters: appearance/color-filters.md
+
+  - Reuse:
+      - Overview: reuse/reuse-introduction.md
+      - Reusing items with same_as: reuse/reuse-with-same_as.md
+
+  - Dynamic configuration:
+      - Overview: dynamic/overview.md
+      - Constants and ref(): dynamic/constants-and-ref.md
+      - Calculations with calc(): dynamic/calculations-with-calc.md
+      - JavaScript templates: dynamic/javascript-templates.md
+
+  - Card templates:
+      - Overview: templates/templates-overview.md
+      - Using card templates: templates/card-templates.md
+      - Template variables: templates/template-variables.md
+
+  - Localization and formatting:
+      - Overview: localization/overview.md
+
   - Examples:
-      - Examples Overview: examples/overview.md
-      # - Start Here:
-      #     - My First Card: examples/getting-started/my-first-card.md
-      #     - Extend Your First Card: examples/getting-started/extend-your-first-card.md
-      #     - Your First History Card: examples/getting-started/first-history-card.md
-      # - Horseshoe Cards:
-      #     - Basic Horseshoe: examples/horseshoe-cards/basic-horseshoe.md
-      #     - Horseshoe Color Stops: examples/horseshoe-cards/horseshoe-color-stops.md
-      #     - Multiple Horseshoes: examples/horseshoe-cards/multiple-horseshoes.md
-      # - Cartesian History Charts:
-      #     - Line and Area Charts: examples/history-charts/line-and-area.md
-      #     - Bar and Dots Charts: examples/history-charts/bar-and-dots.md
-      #     - Minimum and Maximum Range: examples/history-charts/minimum-maximum-range.md
-      # - Specialized History Charts:
-      #     - Equalizer and Graded Charts: examples/specialized-charts/equalizer-and-graded.md
-      #     - Barcode Charts: examples/specialized-charts/barcode.md
-      #     - Radial Barcode Charts: examples/specialized-charts/radial-barcode.md
-      # - Layouts:
-      #     - Multiple Entities and Groups: examples/layouts/multiple-entities-and-groups.md
-      #     - Fitted State Backgrounds: examples/layouts/fitted-state-backgrounds.md
-      #     - Embedded Child Cards: examples/layouts/embedded-child-cards.md
-      # - Reusable and Dynamic Cards:
-      #     - Reusable Card Template: examples/reusable-dynamic/reusable-card-template.md
-      #     - Dynamic Styling: examples/reusable-dynamic/dynamic-styling.md
-      - Demo Cards:
-          # - AirVisual Card: examples/demo-cards/airvisual-card.md
-          # - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
-          # - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
-          # - Environment Card: examples/demo-cards/environment-card.md
-          - Kleenex Pollen Cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
-          - Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
-          - Awair Cards: examples/demo-cards/demo-card-awair-many.md
-          # NOT YET ACTIVATED
-          # - Generated YAML Card Catalog: examples/generated-card-catalog.md
+      - Overview: examples/overview.md
+      - Pollen: examples/pollen-examples.md
+      - Electricity: examples/electricity-examples.md
+      - Awair: examples/awair-examples.md
 
-          # - Light Card: examples/demo-cards/light-card.md
-          # - Person Card: examples/demo-cards/person-card.md
-          # - Power Outlet Card: examples/demo-cards/power-outlet-card.md
-          # - Scene Card: examples/demo-cards/scene-card.md
-          # - Sensor Card: examples/demo-cards/sensor-card.md
-          # - Server Statistics Card: examples/demo-cards/server-statistics-card.md
-          # - Switch Card: examples/demo-cards/switch-card.md
-  - Core Concepts:
-      # - Overview: core-concepts/overview.md
-      - Card Structure: core-concepts/card-structure.md
-      - Entity Definitions: core-concepts/entity-definitions.md
-      - Actions and Interactive Controls: core-concepts/actions-and-local-controls.md
-      - External Palettes: core-concepts/external-palettes.md
-      # - Template Variables: core-concepts/template-variables.md
-      - Positioning and Groups: core-concepts/positioning-and-groups.md
-      - Localization: core-concepts/localization.md
-      - Animations: core-concepts/animations.md
-      - Color Stops: core-concepts/color-stops.md
-      - Color Filters: core-concepts/color-filters.md
-      - CSS Styling: core-concepts/css-styling.md
-      - Templating: core-concepts/templating.md
-  - Card Layout Sections:
-      - Layout Overview: sections/layout-overview.md
-      - Groups: sections/groups-section.md
-      - Text: sections/texts-section.md
-      - Visual Shapes: sections/visual-shapes-section.md
-      - Entity Parts: sections/entities-section.md
-      - Horseshoes:
-          - Horseshoe Overview: sections/horseshoes-section.md
-          - Scale and State: sections/horseshoe-scale-and-state.md
-          - Tick Marks and Labels: sections/horseshoe-ticks-and-labels.md
-      - Sparkline Graphs:
-          - Sparkline Overview: sections/sparklines-section.md
-          - History Periods and Bins: sections/sparkline-history-periods.md
-          - Cartesian Charts and Axes: sections/sparkline-cartesian-charts.md
-          - Specialized Charts: sections/sparkline-specialized-charts.md
-  - Reuse - Better/Easier/Less YAML:
-      - An Introduction: reuse/reuse-introduction.md
-      - Reuse Card Examples: reuse/reuse-card-examples.md
-      - Reuse Reference: reuse/reuse-reference.md
+  - Reference:
+      - Configuration reference: reference/configuration-reference.md
 
-      # - ...Reuse of Section Items: reuse/reuse-with-same_as.md
-      # - ...Reuse with calc() and ref(): reuse/reuse-with-calc-and-ref.md
-      # - ...Combining them all: reuse/reuse-combined.md
+# nav:
+#   - Home: index.md
+#   - Getting started:
+#       - Introduction: getting-started/introduction.md
+#       - Install with HACS: getting-started/installation.md
+#   - Examples:
+#       - Examples Overview: examples/overview.md
+#       # - Start Here:
+#       #     - My First Card: examples/getting-started/my-first-card.md
+#       #     - Extend Your First Card: examples/getting-started/extend-your-first-card.md
+#       #     - Your First History Card: examples/getting-started/first-history-card.md
+#       # - Horseshoe Cards:
+#       #     - Basic Horseshoe: examples/horseshoe-cards/basic-horseshoe.md
+#       #     - Horseshoe Color Stops: examples/horseshoe-cards/horseshoe-color-stops.md
+#       #     - Multiple Horseshoes: examples/horseshoe-cards/multiple-horseshoes.md
+#       # - Cartesian History Charts:
+#       #     - Line and Area Charts: examples/history-charts/line-and-area.md
+#       #     - Bar and Dots Charts: examples/history-charts/bar-and-dots.md
+#       #     - Minimum and Maximum Range: examples/history-charts/minimum-maximum-range.md
+#       # - Specialized History Charts:
+#       #     - Equalizer and Graded Charts: examples/specialized-charts/equalizer-and-graded.md
+#       #     - Barcode Charts: examples/specialized-charts/barcode.md
+#       #     - Radial Barcode Charts: examples/specialized-charts/radial-barcode.md
+#       # - Layouts:
+#       #     - Multiple Entities and Groups: examples/layouts/multiple-entities-and-groups.md
+#       #     - Fitted State Backgrounds: examples/layouts/fitted-state-backgrounds.md
+#       #     - Embedded Child Cards: examples/layouts/embedded-child-cards.md
+#       # - Reusable and Dynamic Cards:
+#       #     - Reusable Card Template: examples/reusable-dynamic/reusable-card-template.md
+#       #     - Dynamic Styling: examples/reusable-dynamic/dynamic-styling.md
+#       - Demo Cards:
+#           # - AirVisual Card: examples/demo-cards/airvisual-card.md
+#           # - Battery Sensor Card: examples/demo-cards/battery-sensor-card.md
+#           # - Binary Sensor Card: examples/demo-cards/binary-sensor-card.md
+#           # - Environment Card: examples/demo-cards/environment-card.md
+#           - Kleenex Pollen Cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
+#           - Electricity Cards: examples/demo-cards/demo-card-electricity-many.md
+#           - Awair Cards: examples/demo-cards/demo-card-awair-many.md
+#           # NOT YET ACTIVATED
+#           # - Generated YAML Card Catalog: examples/generated-card-catalog.md
+
+#           # - Light Card: examples/demo-cards/light-card.md
+#           # - Person Card: examples/demo-cards/person-card.md
+#           # - Power Outlet Card: examples/demo-cards/power-outlet-card.md
+#           # - Scene Card: examples/demo-cards/scene-card.md
+#           # - Sensor Card: examples/demo-cards/sensor-card.md
+#           # - Server Statistics Card: examples/demo-cards/server-statistics-card.md
+#           # - Switch Card: examples/demo-cards/switch-card.md
+#   - Core Concepts:
+#       # - Overview: core-concepts/overview.md
+#       - Card Structure: core-concepts/card-structure.md
+#       - Entity Definitions: core-concepts/entity-definitions.md
+#       - Actions and Interactive Controls: core-concepts/actions-and-local-controls.md
+#       - External Palettes: core-concepts/external-palettes.md
+#       # - Template Variables: core-concepts/template-variables.md
+#       - Positioning and Groups: core-concepts/positioning-and-groups.md
+#       - Localization: core-concepts/localization.md
+#       - Animations: core-concepts/animations.md
+#       - Color Stops: core-concepts/color-stops.md
+#       - Color Filters: core-concepts/color-filters.md
+#       - CSS Styling: core-concepts/css-styling.md
+#       - Templating: core-concepts/templating.md
+#   - Card Layout Sections:
+#       - Layout Overview: sections/layout-overview.md
+#       - Groups: sections/groups-section.md
+#       - Text: sections/texts-section.md
+#       - Visual Shapes: sections/visual-shapes-section.md
+#       - Entity Parts: sections/entities-section.md
+#       - Horseshoes:
+#           - Horseshoe Overview: sections/horseshoes-section.md
+#           - Scale and State: sections/horseshoe-scale-and-state.md
+#           - Tick Marks and Labels: sections/horseshoe-ticks-and-labels.md
+#       - Sparkline Graphs:
+#           - Sparkline Overview: sections/sparklines-section.md
+#           - History Periods and Bins: sections/sparkline-history-periods.md
+#           - Cartesian Charts and Axes: sections/sparkline-cartesian-charts.md
+#           - Specialized Charts: sections/sparkline-specialized-charts.md
+#   - Reuse - Better/Easier/Less YAML:
+#       - An Introduction: reuse/reuse-introduction.md
+#       - Reuse Card Examples: reuse/reuse-card-examples.md
+#       - Reuse Reference: reuse/reuse-reference.md
