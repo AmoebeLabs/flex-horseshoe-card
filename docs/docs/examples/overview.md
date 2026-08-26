@@ -1,18 +1,32 @@
 ---
 template: main.html
-title: Card Examples
-description: Explore basic Flexible Horseshoe Card examples and learn how to extend them with entities, visual elements, actions, and animations.
+title: Examples
+description: Explore complete Flexible Horseshoe Card examples and the features they demonstrate.
 tags:
   - Examples
 ---
 
-# Flexible Horseshoe Card Examples
+# Examples
 
-Explore the available demo cards:
+Use the examples to compare visual results and find a card close to what you want to build.
 
-- [Pollen Radar Card Examples](demo-cards/demo-card-kleenex-pollen-many.md) demonstrate state maps, icons, color stops, and reusable layout elements.
-- [Electricity Card Examples](demo-cards/demo-card-electricity-many.md) demonstrate horseshoe geometry, scales, tick marks, labels, palettes, and multi-entity layouts.
-- [Awair Card Examples](demo-cards/demo-card-awair-many.md) demonstrate specific Awair compatible visualizations.
+## :material-horseshoe: Featured examples
 
+| Example | What it demonstrates |
+| --- | --- |
+| [Pollen](pollen-examples.md) | State-based horseshoes, labels, icons, and reusable layouts |
+| [Electricity](electricity-examples.md) | Horseshoe geometry, scales, ticks, groups, and palettes |
+| [Awair](awair-examples.md) | Select controls, browser-local inputs, dynamic entities, and history |
 
-Before building your own card, read about the [card structure](../core-concepts/card-structure.md), [entity definitions](../core-concepts/entity-definitions.md), [positioning and groups](../core-concepts/positioning-and-groups.md), and [color stops](../core-concepts/color-stops.md).
+The complete demo pages include the required entities or integrations and links to their YAML definitions.
+
+## :material-horseshoe: Showcases
+
+Showcase cards let you change options directly on the card. Use them to compare horseshoe styles, chart types, controls, periods, bins, axes, colors, and other settings before adding them to your own YAML.
+
+## :material-horseshoe: Start your own card
+
+- [Your first card](../getting-started/your-first-card.md)
+- [Card tools](../tools/tools-overview.md)
+- [Appearance](../appearance/appearance-overview.md)
+- [Reuse](../reuse/reuse-introduction.md)

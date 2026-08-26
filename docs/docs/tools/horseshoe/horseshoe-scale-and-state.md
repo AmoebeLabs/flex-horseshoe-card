@@ -163,11 +163,6 @@ horseshoe_background:
 
 Use `show.horseshoe_style` to control how the horseshoe is colored.
 
-!!! warning "Style names changed in v5.4.7-dev.22"
-    Existing cards may require updated color-style names. See
-    [Migrating from v5.4.7](../core-concepts/color-stops.md#migrating-from-v547)
-    for the complete old-to-new table.
-
 | Style                    | What it does                                                      |
 | :----------------------- | :---------------------------------------------------------------- |
 | `fixed`                  | Uses a single fixed color.                                        |
@@ -205,17 +200,17 @@ color_stops:
 In this example, negative values use a gray-to-red gradient, while positive values use a gray-to-green gradient. When the scale extends below or above zero, define at least one color stop on each side that should display a gradient.
 
 
-The same color stops can also be reused by backgrounds and tick marks. See [Color Stops](../core-concepts/color-stops.md) for the complete syntax.
+The same color stops can also be reused by backgrounds and tick marks. See [Color Stops](../../appearance/color-stops.md) for the complete syntax.
 
 ## :material-horseshoe: Animation
 
-State changes can animate from the previous value to the new one. Configure this behavior under `horseshoe_state.animation`. General animation concepts and reusable definitions are covered in [Animations](../core-concepts/animations.md).
+State changes can animate from the previous value to the new one. Configure this behavior under `horseshoe_state.animation`. General animation concepts and reusable definitions are covered in [Animations](../../interaction/animations.md).
 
 Animation affects only the transition between valid states. The scale range, state map, and color-stop settings still determine the final geometry and color.
 
 ## :material-horseshoe: Related documentation
 
-* [Horseshoe Gauges](horseshoes-section.md)
-* [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md)
-* [Color Stops](../core-concepts/color-stops.md)
-* [Color Filters](../core-concepts/color-filters.md)
+* [Horseshoe Gauges](horseshoe-overview.md)
+* [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md)
+* [Color Stops](../../appearance/color-stops.md)
+* [Color Filters](../../appearance/color-filters.md)

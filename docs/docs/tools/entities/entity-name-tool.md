@@ -89,7 +89,7 @@ Use `text-anchor` to control horizontal alignment:
 * `middle` — text is centered on `xpos`
 * `end` — text ends at `xpos`
 
-See [Positioning and sizing](../card-basics/positioning-and-sizing.md) for the card coordinate system.
+See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
 
 ## :material-horseshoe: Text appearance
 
@@ -120,7 +120,7 @@ Common styles include:
 | `fill`           | Text color           |
 | `opacity`        | Text opacity         |
 
-See [Styling](../appearance/styling.md) for the complete styling guide.
+See [Styling](../../appearance/styling.md) for the complete styling guide.
 
 ## :material-horseshoe: Shorten long names
 
@@ -160,7 +160,7 @@ layout:
 
 Color stops are applied to the text.
 
-See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
 
 ## :material-horseshoe: Configuration
 
@@ -173,27 +173,14 @@ See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes,
 | `styles`       |    No    | Text styling                          |
 | `color_stops`  |    No    | Colors the name from the entity state |
 
-### Shared tool options
-
-Names can also use shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* animations
-
-These are documented in their respective guides rather than repeated here.
-
 ## :material-horseshoe: Related
 
-* [Area](area.md)
-* [State](state.md)
-* [Text](text.md)
-* [Entities](../card-basics/entities.md)
-* [Positioning and sizing](../card-basics/positioning-and-sizing.md)
-* [Styling](../appearance/styling.md)
-* [Color stops](../appearance/color-stops.md)
-* [Actions](../interaction/actions.md)
-* [Animations](../interaction/animations.md)
+* [Area](entity-area-tool.md)
+* [State](entity-state-tool.md)
+* [Text](../shapes/text-tool.md)
+* [Entities](../../card-basics/entities.md)
+* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
+* [Styling](../../appearance/styling.md)
+* [Color stops](../../appearance/color-stops.md)
+* [Actions](../../interaction/actions.md)
+* [Animations](../../interaction/animations.md)

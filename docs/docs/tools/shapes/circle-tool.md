@@ -9,15 +9,11 @@ tags:
 
 # Circle
 
-Use circles as indicators, backgrounds, outlines, status markers, or decorative elements anywhere on the card.
+Use circles as indicators, backgrounds, outlines, status markers, or decorative elements.
 
-A circle is positioned by its center point and can use either a fixed radius or a radius that scales with the card.
+<!-- Add circle examples here. -->
 
-<!-- Circle examples image -->
-
-## :material-horseshoe: Basic use
-
-Add circles under `layout.circles`:
+## :material-horseshoe: Basic circle
 
 ```yaml linenums="1"
 layout:
@@ -27,18 +23,16 @@ layout:
       ypos: 50
       radius: 25
       styles:
+        fill: none
+        stroke: var(--primary-color)
         stroke-width: 2
 ```
 
-`xpos` and `ypos` position the center of the circle.
+`xpos` and `ypos` position the center.
 
-Use either `radius` or `radius_percent` to define its size.
-
-## :material-horseshoe: Size and position
+## :material-horseshoe: Choose the radius
 
 === "Fixed radius"
-
-    Use `radius` for a radius in SVG units:
 
     ```yaml linenums="1"
     - xpos: 50
@@ -47,7 +41,6 @@ Use either `radius` or `radius_percent` to define its size.
     ```
 
 === "Percentage radius"
-    Use `radius_percent` when the circle should scale relative to the card:
 
     ```yaml linenums="1"
     - xpos: 50
@@ -55,123 +48,87 @@ Use either `radius` or `radius_percent` to define its size.
       radius_percent: 25
     ```
 
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for more about the card coordinate system.
+Use `radius_percent` when the circle should scale with the card.
 
 ## :material-horseshoe: Fill and outline
 
-Circles are SVG elements and can use standard fill and outline styling:
-
-```yaml linenums="1"
-styles:
-  fill: none
-  stroke: var(--primary-color)
-  stroke-width: 2
-  opacity: 0.8
-```
-
-Common styles include:
-
-| Property         | Use                            |
-| ---------------- | ------------------------------ |
-| `fill`           | Inside color                   |
-| `stroke`         | Outline color                  |
-| `stroke-width`   | Outline width                  |
-| `opacity`        | Opacity of the complete circle |
-| `fill-opacity`   | Opacity of the fill            |
-| `stroke-opacity` | Opacity of the outline         |
-
-See [Styling](../../appearance/styling.md) for the complete styling guide.
+| Style | Use |
+| --- | --- |
+| `fill` | Inside color |
+| `stroke` | Outline color |
+| `stroke-width` | Outline width |
+| `opacity` | Opacity of the complete circle |
+| `fill-opacity` | Opacity of the fill |
+| `stroke-opacity` | Opacity of the outline |
 
 ## :material-horseshoe: Color from an entity
 
-Connect a circle to an entity with `entity_index` when its color should respond to the entity state.
-
-By default, circle color stops are applied to the outline.
+Connect the circle to an entity and select a color-stop style:
 
 === "Outline color"
 
-````
-```yaml linenums="1"
-- xpos: 50
-  ypos: 50
-  radius: 20
-  entity_index: 0
+    ```yaml linenums="1"
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+      radius: 20
 
-  show:
-    item_style: colorstop
+      show:
+        item_style: colorstop
 
-  color_stops:
-    colors:
-      0: green
-      50: orange
-      100: red
-```
-````
+      color_stops:
+        colors:
+          - value: 0
+            color: green
+          - value: 50
+            color: orange
+          - value: 100
+            color: red
+    ```
 
 === "Filled circle"
 
-````
-Color the inside instead by enabling `fill` and disabling `stroke`:
+    ```yaml linenums="1"
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+      radius: 20
 
-```yaml linenums="1"
-- xpos: 50
-  ypos: 50
-  radius: 20
-  entity_index: 0
+      show:
+        item_style: colorstopinterpolated
 
-  show:
-    item_style: colorstopgradient
+      colorstopinterpolated:
+        fill: true
+        stroke: false
 
-  colorstopgradient:
-    fill: true
-    stroke: false
-
-  color_stops:
-    colors:
-      0: green
-      50: orange
-      100: red
-```
-````
-
-Use `colorstop` for distinct color ranges or `colorstopgradient` for blended colors.
-
-See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+      color_stops:
+        colors:
+          - value: 0
+            color: green
+          - value: 50
+            color: orange
+          - value: 100
+            color: red
+    ```
 
 ## :material-horseshoe: Configuration
 
-| Field            |   Required   | Default | Description                               |
-| ---------------- | :----------: | ------- | ----------------------------------------- |
-| `xpos`           |      Yes     |         | Horizontal position of the circle center  |
-| `ypos`           |      Yes     |         | Vertical position of the circle center    |
-| `radius`         | One required | `0`     | Radius in SVG units                       |
-| `radius_percent` | One required | Not set | Radius based on the card percentage scale |
-| `entity_index`   |      No      | Not set | Entity used by state-dependent features   |
-| `styles`         |      No      | `{}`    | SVG and CSS styling                       |
-| `color_stops`    |      No      | Not set | Colors the circle from its entity value   |
+| Field | Required | Description |
+| --- | :---: | --- |
+| `xpos` | Yes | Horizontal position of the center |
+| `ypos` | Yes | Vertical position of the center |
+| `radius` | One radius | Radius in SVG units |
+| `radius_percent` | One radius | Radius relative to the card |
+| `entity_index` | No | Entity used by state-dependent colors and actions |
+| `styles` | No | Fill, outline, and opacity |
+| `color_stops` | No | Value- or state-based colors |
 
-!!! note
 Use either `radius` or `radius_percent`.
-
-### :material-horseshoe: Shared tool options
-
-Circles also support shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* color stops
-* animations
-* haptics
-
-These are documented in their respective guides rather than repeated for every tool.
 
 ## :material-horseshoe: Related
 
-* [Rectangle](rectangle.md)
-* [Line](line.md)
-* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
-* [Styling](../../appearance/styling.md)
-* [Color stops](../../appearance/color-stops.md)
-* [Animations](../../interaction/animations.md)
-* [Reusing items with same_as](../../reuse/same-as.md)
+- [Arc](arc-tool.md)
+- [Line](line-tool.md)
+- [Rectangle](rectangle-tool.md)
+- [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
+- [Color stops](../../appearance/color-stops.md)

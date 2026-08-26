@@ -181,7 +181,7 @@ Keep the state map with the horseshoe state configuration, and use the label set
 
 ## :material-horseshoe: Related documentation
 
-* [Horseshoe Gauges](horseshoes-section.md)
+* [Horseshoe Gauges](horseshoe-overview.md)
 * [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-* [Color Stops](../core-concepts/color-stops.md)
-* [CSS Styling](../core-concepts/css-styling.md)
+* [Color Stops](../../appearance/color-stops.md)
+* [CSS Styling](../../appearance/styling.md)

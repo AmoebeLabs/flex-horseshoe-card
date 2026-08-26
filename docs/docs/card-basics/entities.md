@@ -369,7 +369,7 @@ You can override it with an MDI icon, external image, external SVG, or JavaScrip
 
 Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. FHS also supports ordered action lists, Companion-app haptic feedback, and browser-local number, select, and boolean inputs.
 
-See [Actions and Local Controls](actions-and-local-controls.md) for the available actions and complete examples.
+See [Actions and Local Controls](../interaction/actions.md) for the available actions and complete examples.
 
 ## :material-horseshoe: Entity layout elements
 
@@ -384,7 +384,7 @@ Defining an entity does not automatically display every part of it. The `entitie
 
 For detailed configuration of `areas`, `names`, `states`, and `icons`, see [Home Assistant Entity Elements](../sections/entities-section.md).
 
-For translated names and states, localized units, state colors, and number formatting, see [Localization](localization.md).
+For translated names and states, localized units, state colors, and number formatting, see [Localization](../localization/overview.md).
 
 <!--- External References... --->
 [github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/

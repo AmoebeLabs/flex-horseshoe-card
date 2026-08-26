@@ -14,9 +14,9 @@ The sparkline section displays Home Assistant state history as a compact graph w
 
 |                                                          Area                                                         |                                                           Barcode - Audio                                                          |                                                                Bars                                                                |
 | :-------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
-|   ![Flexible Horseshoe Card - Sparkline Area Chart](../assets/screenshots/fhs-demo-card-area-study-score--dark.webp)  |    ![Flexible Horseshoe Card - Sparkline Barcode Chart](../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp)    |          ![Flexible Horseshoe Card - Sparkline Bars Chart](../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp)          |
+|   ![Flexible Horseshoe Card - Sparkline Area Chart](../../assets/screenshots/fhs-demo-card-area-study-score--dark.webp)  |    ![Flexible Horseshoe Card - Sparkline Barcode Chart](../../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp)    |          ![Flexible Horseshoe Card - Sparkline Bars Chart](../../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp)          |
 |                                                          Dots                                                         |                                                              Equalizer                                                             |                                                             State band                                                             |
-| ![Flexible Horseshoe Card - Sparkline Dots Chart](../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp) | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp) | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp) |
+| ![Flexible Horseshoe Card - Sparkline Dots Chart](../../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp) | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp) | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp) |
 
 ## :material-horseshoe: Basic usage
 
@@ -95,7 +95,7 @@ For the current calendar period, the X-axis spans the full period while the grap
 
 Points can be added to line and area charts. Choose the standalone `dots` chart when every time bin should appear as an individual point without a connecting line.
 
-Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and Axes](sparkline-cartesian-charts.md). Equalizer, graded, state bands, barcode, and radial barcode charts are covered in [Specialized Charts](sparkline-specialized-charts.md).
+Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and Axes](axes-and-grid.md). Equalizer, graded, state bands, barcode, and radial barcode charts are covered in [Specialized Charts](sparkline-overview.md#chart-types).
 
 ## :material-horseshoe: Position and size
 
@@ -111,7 +111,7 @@ Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and 
 
 Margins reserve space within the configured graph area. Cartesian labels and tick marks use this space. Increasing the graph’s outer size does not change the requested history period or number of bins.
 
-## :material-horseshoe: Common sparkline fields
+## :material-horseshoe: Configure the graph
 
 | Field                         | Description                                                              |
 | :---------------------------- | :----------------------------------------------------------------------- |
@@ -149,16 +149,16 @@ Existing configurations that use a boolean value, such as `axis: true`, continue
 
 Each bin keeps the values needed to calculate its aggregate and statistics. The tooltip can display the bin’s date or time together with its minimum, average, and maximum values. Number formatting and units come from the connected entity.
 
-Statistics and active graph settings can also be added to the card's `entities` list. This makes values such as the displayed minimum, selected history duration, automatically calculated bin size, and aggregation function available to ordinary states and texts. See [Sparkline values as entities](../core-concepts/entity-definitions.md#sparkline-values-as-entities) for the available names and a complete example.
+Statistics and active graph settings can also be added to the card's `entities` list. This makes values such as the displayed minimum, selected history duration, automatically calculated bin size, and aggregation function available to ordinary states and texts. See [Sparkline values as entities](../../card-basics/entities.md) for the available names and a complete example.
 
 Color stops may apply to an entire path or to individual bins, depending on the chart type. Barcode and radial barcode charts calculate a color for each bin, while line and area charts can use a gradient across the visible value range.
 
-See [Color Stops](../core-concepts/color-stops.md) for reusable color definitions and transition modes.
+See [Color Stops](../../appearance/color-stops.md) for reusable color definitions and transition modes.
 
 ## :material-horseshoe: Related documentation
 
-* [Sparkline History Periods and Bins](sparkline-history-periods.md)
-* [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
-* [Sparkline Specialized Charts](sparkline-specialized-charts.md)
-* [Entity Definitions](../core-concepts/entity-definitions.md)
-* [Color Stops](../core-concepts/color-stops.md)
+* [Sparkline History Periods and Bins](sparkline-history-periods-and-bins.md)
+* [Sparkline Cartesian Charts and Axes](axes-and-grid.md)
+* [Sparkline Specialized Charts](sparkline-overview.md#chart-types)
+* [Entity Definitions](../../card-basics/entities.md)
+* [Color Stops](../../appearance/color-stops.md)

@@ -67,7 +67,7 @@ entities:
     unit: °F
 ```
 
-See [Entities](../card-basics/entities.md) for selecting attributes and overriding entity values such as units and decimals.
+See [Entities](../../card-basics/entities.md) for selecting attributes and overriding entity values such as units and decimals.
 
 ## :material-horseshoe: Unit position
 
@@ -149,7 +149,7 @@ Use `text-anchor` to control horizontal alignment:
 * `middle`
 * `end`
 
-See [Positioning and sizing](../card-basics/positioning-and-sizing.md) for the card coordinate system.
+See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
 
 ## :material-horseshoe: State appearance
 
@@ -178,7 +178,7 @@ Common styles include:
 | `fill`        | Text color           |
 | `opacity`     | Text opacity         |
 
-See [Styling](../appearance/styling.md) for the complete styling guide.
+See [Styling](../../appearance/styling.md) for the complete styling guide.
 
 ## :material-horseshoe: Limit long states
 
@@ -211,7 +211,7 @@ entities:
 
 More advanced formatting belongs in the shared formatting configuration rather than the State tool itself.
 
-See [Localization and formatting](../localization/overview.md).
+See [Localization and formatting](../../localization/overview.md).
 
 ## :material-horseshoe: Color from the entity
 
@@ -236,7 +236,7 @@ layout:
 
 Color stops are applied to the state text.
 
-See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
 
 ## :material-horseshoe: Configuration
 
@@ -253,28 +253,15 @@ See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes,
 | `styles`         |    No    | Default state style | SVG and CSS styling                          |
 | `color_stops`    |    No    | Not set             | Colors the state from the entity value       |
 
-### Shared tool options
-
-States can also use shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* animations
-
-These are documented in their respective guides rather than repeated here.
-
 ## :material-horseshoe: Related
 
-* [Name](name.md)
-* [Area](area.md)
-* [Icon](icon.md)
-* [Entities](../card-basics/entities.md)
-* [Localization and formatting](../localization/overview.md)
-* [Positioning and sizing](../card-basics/positioning-and-sizing.md)
-* [Styling](../appearance/styling.md)
-* [Color stops](../appearance/color-stops.md)
-* [Actions](../interaction/actions.md)
-* [Animations](../interaction/animations.md)
+* [Name](entity-name-tool.md)
+* [Area](entity-area-tool.md)
+* [Icon](entity-icon-tool.md)
+* [Entities](../../card-basics/entities.md)
+* [Localization and formatting](../../localization/overview.md)
+* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
+* [Styling](../../appearance/styling.md)
+* [Color stops](../../appearance/color-stops.md)
+* [Actions](../../interaction/actions.md)
+* [Animations](../../interaction/animations.md)

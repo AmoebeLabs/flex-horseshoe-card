@@ -157,26 +157,13 @@ See [Color stops](../../appearance/color-stops.md) for configuring ranges, gradi
 
 Use either fixed `xpos`, `ypos`, `width`, and `height`, or `fit`.
 
-###:material-horseshoe: Shared tool options
-
-Rectangles also support shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* animations
-
-These are documented once in their respective guides rather than repeated for every tool.
-
 ## :material-horseshoe: Related
 
-* [Circle](circle.md)
-* [Line](line.md)
+* [Circle](circle-tool.md)
+* [Line](line-tool.md)
 * [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
 * [Styling](../../appearance/styling.md)
 * [Color stops](../../appearance/color-stops.md)
 * [Actions](../../interaction/actions.md)
 * [Animations](../../interaction/animations.md)
-* [Reusing items with same_as](../../reuse/same-as.md)
+* [Reusing items with same_as](../../reuse/reuse-with-same_as.md)

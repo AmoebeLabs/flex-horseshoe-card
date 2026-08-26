@@ -149,7 +149,7 @@ layout:
       icon_size_percent: 20
 ```
 
-See [Positioning and sizing](../card-basics/positioning-and-sizing.md) for more about the card coordinate system.
+See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for more about the card coordinate system.
 
 ## :material-horseshoe: Alignment
 
@@ -253,7 +253,7 @@ layout:
         opacity: 0.8
 ```
 
-See [Styling](../appearance/styling.md) for the complete styling guide.
+See [Styling](../../appearance/styling.md) for the complete styling guide.
 
 ## :material-horseshoe: Color from an entity
 
@@ -277,7 +277,7 @@ layout:
           100: red
 ```
 
-See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
 
 ## Configuration
 
@@ -295,30 +295,16 @@ See [Color stops](../appearance/color-stops.md) for ranges, gradients, palettes,
 | `styles`            |    No    | Default icon style | SVG and CSS styling                     |
 | `color_stops`       |    No    | Not set            | Colors the icon from the entity state   |
 
-### Shared tool options
-
-Icons can also use shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* color filters
-* animations
-
-These are documented in their respective guides rather than repeated here.
-
 ## :material-horseshoe: Related
 
-* [State](state.md)
-* [Name](name.md)
-* [Area](area.md)
-* [Entities](../card-basics/entities.md)
-* [Positioning and sizing](../card-basics/positioning-and-sizing.md)
-* [Styling](../appearance/styling.md)
-* [Color stops](../appearance/color-stops.md)
-* [Color filters](../appearance/color-filters.md)
-* [Actions](../interaction/actions.md)
-* [Animations](../interaction/animations.md)
-* [Reusing items with same_as](../reuse/same-as.md)
+* [State](entity-state-tool.md)
+* [Name](entity-name-tool.md)
+* [Area](entity-area-tool.md)
+* [Entities](../../card-basics/entities.md)
+* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
+* [Styling](../../appearance/styling.md)
+* [Color stops](../../appearance/color-stops.md)
+* [Color filters](../../appearance/color-filters.md)
+* [Actions](../../interaction/actions.md)
+* [Animations](../../interaction/animations.md)
+* [Reusing items with same_as](../../reuse/reuse-with-same_as.md)

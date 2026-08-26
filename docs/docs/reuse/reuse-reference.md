@@ -26,7 +26,7 @@ Reuse features are processed once while the card configuration is prepared.
 
 These features are static and are not reevaluated when entity states change.
 
-Components that contain JavaScript templates are evaluated later through the dynamic configuration lifecycle described in [Templates](../core-concepts/templating.md#dynamic-configuration-lifecycle).
+Use [JavaScript templates](../dynamic/javascript-templates.md) when a reused value should follow an entity state.
 
 ## :material-horseshoe: Supported sections
 

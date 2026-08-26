@@ -1,24 +1,19 @@
 ---
 template: main.html
 title: Line
-description: Draw horizontal, vertical, and point-to-point lines in a Flexible Horseshoe Card.
+description: Add horizontal, vertical, or point-to-point lines to a Flexible Horseshoe Card.
 tags:
   - Line
   - Card tools
-  - Shapes
 ---
 
 # Line
 
-Use lines as dividers, borders, connectors, indicators, or other simple visual elements.
+Use lines as dividers, status indicators, scale marks, connectors, or decorative elements.
 
-Lines can be horizontal, vertical, or drawn between two points.
+<!-- Add horizontal, vertical, and point-to-point line examples here. -->
 
-<!-- Line examples image -->
-
-## :material-horseshoe: Basic use
-
-Add lines under `layout.lines`:
+## :material-horseshoe: Basic line
 
 ```yaml linenums="1"
 layout:
@@ -26,182 +21,98 @@ layout:
     - id: divider
       xpos: 50
       ypos: 50
-      length: 60
+      length: 70
       orientation: horizontal
+      styles:
+        stroke: var(--divider-color)
+        stroke-width: 1
 ```
 
-`xpos` and `ypos` position the center of the line and `length` determines its size.
-
-The default orientation is `horizontal`.
-
-## :material-horseshoe: Orientation
-
-Choose how the line is drawn with `orientation`.
+## :material-horseshoe: Choose the direction
 
 === "Horizontal"
 
     ```yaml linenums="1"
     - xpos: 50
       ypos: 50
-      length: 60
+      length: 70
       orientation: horizontal
     ```
-
-    The line extends equally to the left and right of `xpos`.
 
 === "Vertical"
 
     ```yaml linenums="1"
     - xpos: 50
       ypos: 50
-      length: 60
+      length: 70
       orientation: vertical
     ```
 
-    The line extends equally above and below `ypos`.
-
-=== "From point to point"
-    Use `fromto` to draw a line between any two positions:
+=== "Point to point"
 
     ```yaml linenums="1"
     - orientation: fromto
       start:
         xpos: 20
-        ypos: 25
+        ypos: 30
       end:
         xpos: 80
-        ypos: 75
+        ypos: 70
     ```
 
-    This can be used for diagonal lines or to connect two arbitrary positions.
+## :material-horseshoe: Line ends
 
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for more about the card coordinate system.
-
-## :material-horseshoe: Line appearance
-
-Lines use SVG stroke styling:
+Use `stroke-linecap` to choose the line ends:
 
 ```yaml linenums="1"
-layout:
-  lines:
-    - xpos: 50
-      ypos: 50
-      length: 60
-      styles:
-        stroke: var(--primary-color)
-        stroke-width: 3
-        stroke-linecap: round
-        opacity: 0.8
+styles:
+  stroke: var(--primary-color)
+  stroke-width: 2
+  stroke-linecap: round
 ```
 
-By default, a line uses the primary text color, a width of `2`, and rounded ends.
-
-| Property         | Use                    |
-| ---------------- | ---------------------- |
-| `stroke`         | Line color             |
-| `stroke-width`   | Line thickness         |
-| `stroke-linecap` | Shape of the line ends |
-| `opacity`        | Line opacity           |
-
-See [Styling](../../appearance/styling.md) for the complete styling guide.
-
-##:material-horseshoe:  Color from an entity
-
-Connect a line to an entity with `entity_index` when its color should respond to the entity state:
+## :material-horseshoe: Color from an entity
 
 ```yaml linenums="1"
-layout:
-  lines:
-    - xpos: 50
-      ypos: 50
-      length: 60
-      entity_index: 0
+- entity_index: 0
+  xpos: 50
+  ypos: 50
+  length: 70
+  orientation: horizontal
 
-      show:
-        item_style: colorstop
+  show:
+    item_style: colorstopinterpolated
 
-      color_stops:
-        colors:
-          0: green
-          50: orange
-          100: red
+  colorstopinterpolated:
+    stroke: true
+    fill: false
+
+  color_stops:
+    colors:
+      - value: 0
+        color: green
+      - value: 50
+        color: orange
+      - value: 100
+        color: red
 ```
 
-Color stops are applied to the line stroke.
+## :material-horseshoe: Configuration
 
-See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-##:material-horseshoe:  Configuration
-
-### Horizontal and vertical lines
-
-| Field          | Required | Default            | Description                             |
-| -------------- | :------: | ------------------ | --------------------------------------- |
-| `orientation`  |    No    | `horizontal`       | `horizontal` or `vertical`              |
-| `xpos`         |    No    | `50`               | Horizontal position of the line center  |
-| `ypos`         |    No    | `50`               | Vertical position of the line center    |
-| `length`       |    No    | `10`               | Length of the line                      |
-| `entity_index` |    No    | Not set            | Entity used by state-dependent features |
-| `styles`       |    No    | Default line style | SVG and CSS styling                     |
-| `color_stops`  |    No    | Not set            | Colors the line from its entity value   |
-
-### Point-to-point lines
-
-| Field         | Required | Description                            |
-| ------------- | :------: | -------------------------------------- |
-| `orientation` |    Yes   | Set to `fromto`                        |
-| `start.xpos`  |    Yes   | Horizontal position of the start point |
-| `start.ypos`  |    Yes   | Vertical position of the start point   |
-| `end.xpos`    |    Yes   | Horizontal position of the end point   |
-| `end.ypos`    |    Yes   | Vertical position of the end point     |
-
-### Shared tool options
-
-Lines can also use shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* animations
-
-These are documented in their respective guides rather than repeated for every tool.
-
-## :material-horseshoe: Legacy horizontal and vertical lines
-
-Older cards can use separate `hlines` and `vlines` sections.
-
-=== "hlines"
-
-    ```yaml linenums="1"
-    layout:
-      hlines:
-        - xpos: 50
-          ypos: 50
-          length: 60
-    ```
-
-=== "vlines"
-
-    ```yaml linenums="1"
-    layout:
-      vlines:
-        - xpos: 50
-          ypos: 50
-          length: 60
-    ```
-
-These remain supported for existing configurations. Use `layout.lines` with `orientation` for new cards.
+| Field | Required | Description |
+| --- | :---: | --- |
+| `orientation` | Yes | `horizontal`, `vertical`, or `fromto` |
+| `xpos`, `ypos` | Horizontal or vertical | Position of the line center |
+| `length` | Horizontal or vertical | Total line length |
+| `start`, `end` | Point to point | Coordinates of both ends |
+| `entity_index` | No | Entity used by colors and actions |
+| `styles` | No | Stroke, width, opacity, and line ends |
+| `color_stops` | No | Value- or state-based colors |
 
 ## :material-horseshoe: Related
 
-* [Rectangle](rectangle.md)
-* [Circle](circle.md)
-* [Arc](arc.md)
-* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
-* [Styling](../../appearance/styling.md)
-* [Color stops](../../appearance/color-stops.md)
-* [Actions](../../interaction/actions.md)
-* [Animations](../../interaction/animations.md)
-* [Reusing items with same_as](../../reuse/same-as.md)
+- [Circle](circle-tool.md)
+- [Arc](arc-tool.md)
+- [Rectangle](rectangle-tool.md)
+- [Styling](../../appearance/styling.md)
+- [Color stops](../../appearance/color-stops.md)

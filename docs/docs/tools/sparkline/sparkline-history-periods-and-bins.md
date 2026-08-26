@@ -179,6 +179,6 @@ Returning to a view after it has been inactive also refreshes the graph when the
 
 ## :material-horseshoe: Related documentation
 
-* [Sparkline Graphs](sparklines-section.md)
-* [Sparkline Cartesian Charts and Axes](sparkline-cartesian-charts.md)
-* [Sparkline Specialized Charts](sparkline-specialized-charts.md)
+* [Sparkline Graphs](sparkline-overview.md)
+* [Sparkline Cartesian Charts and Axes](axes-and-grid.md)
+* [Sparkline Specialized Charts](sparkline-overview.md#chart-types)

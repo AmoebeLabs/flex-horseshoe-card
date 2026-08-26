@@ -200,26 +200,39 @@ nav:
           - Tick marks and labels: tools/horseshoe/horseshoe-tick-marks-and-labels.md
 
       - Sparkline graphs:
-          - Overview: tools/sparkline/overview.md
-          - Line, area, dots and bars: tools/sparkline/line-area-dots-and-bar-charts.md
-          - Equalizer and graded: tools/sparkline/equalizer-and-graded.md
-          - State bands: tools/sparkline/state-bands.md
-          - Barcode and radial barcode: tools/sparkline/barcode-and-radial-barcode.md
-          - History periods and bins: tools/sparkline/history-periods-and-bins.md
-          - Axes and grid: tools/sparkline/axes-and-grid.md
+          - Overview: tools/sparkline/sparkline-overview.md
+          - Chart types:
+              - Area: tools/sparkline/area-chart.md
+              - Bar: tools/sparkline/bar-chart.md
+              - Barcode: tools/sparkline/barcode.md
+              - Dots: tools/sparkline/dots-chart.md
+              - Equalizer: tools/sparkline/equalizer.md
+              - Graded: tools/sparkline/graded.md
+              - Line: tools/sparkline/line-chart.md
+              - Radial barcode: tools/sparkline/radial-barcode.md
+              - State bands: tools/sparkline/state-bands.md
+          - Graph configuration:
+              - History periods and bins: tools/sparkline/sparkline-history-periods-and-bins.md
+              - Multiple series: tools/sparkline/multiple-series.md
+              - Axes and grid: tools/sparkline/axes-and-grid.md
 
       - Interactive controls:
           - Overview: tools/controls/controls-overview.md
           - Button: tools/controls/button-tool.md
-          - Toggle: tools/controls/toggle-tool.md
-          - Select: tools/controls/select-tool.md
           - Number: tools/controls/number-tool.md
+          - Select: tools/controls/select-tool.md
           - Slider: tools/controls/slider-tool.md
+          - Toggle: tools/controls/toggle-tool.md
+
+      - Browser-local inputs:
+          - Overview: tools/controls/browser-local-inputs.md
+          - Boolean: tools/controls/fhs-input-boolean.md
+          - Number: tools/controls/fhs-input-number.md
+          - Select: tools/controls/fhs-input-select.md
 
   - Interaction and behavior:
       - Overview: interaction/interaction-overview.md
       - Actions: interaction/actions.md
-      - Local values: interaction/local-values.md
       - Visibility: interaction/visibility.md
       - Animations: interaction/animations.md
 
@@ -241,9 +254,9 @@ nav:
       - JavaScript templates: dynamic/javascript-templates.md
 
   - Card templates:
-      - Overview: templates/templates-overview.md
-      - Using card templates: templates/card-templates.md
-      - Template variables: templates/template-variables.md
+      - Overview: card-templates/card-templates-overview.md
+      - Using card templates: card-templates/using-card-templates.md
+      - Template variables: card-templates/template-variables.md
 
   - Localization and formatting:
       - Overview: localization/overview.md

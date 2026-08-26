@@ -263,18 +263,9 @@ The required fields depend on the shape type. Rectangles use either fixed dimens
     | `styles` | :material-close: | `stroke: var(--primary-text-color); stroke-width: 2; opacity: 1; stroke-linecap: round` | CSS and SVG style definitions |
     | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the line color |
 
-### Shared fields
+### Reuse a shape
 
-The following fields are available for rectangles, circles, horizontal lines, and vertical lines.
-
-| Field      |     Required     | Default | Description                                                                                   |
-| :--------- | :--------------: | :------ | :-------------------------------------------------------------------------------------------- |
-| `id`       | :material-close: | Not set | Optional identifier that must be unique within the section and can be referenced by `same_as` |
-| `group`    | :material-close: | `card`  | Assigns the visual shape to a group                                                           |
-| `same_as*` | :material-close: | Not set | Reuses another item from the same section. See the `same_as` documentation.                   |
-| `show.item_style` | :material-close: | `colorstop` | Selects `colorstop` or `colorstopgradient` when `color_stops` is configured. |
-| `colorstop.fill` / `.stroke` | :material-close: | Shape default | Selects which properties receive a hard color-stop color. |
-| `colorstopgradient.fill` / `.stroke` | :material-close: | Shape default | Selects which properties receive a blended color-stop color. |
+Give a shape an `id` when another shape should start from the same configuration. Use `same_as` on the next shape and change only the values that differ. See [Reusing items with same_as](../../reuse/reuse-with-same_as.md).
 
 ## :material-horseshoe: Styling
 

@@ -145,23 +145,10 @@ See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palett
 | `styles`       |    No    | Default arc style | SVG and CSS styling                     |
 | `color_stops`  |    No    | Not set           | Colors the arc from its entity value    |
 
-### :material-horseshoe: Shared tool options
-
-Arcs can also use shared card-tool features such as:
-
-* `id`
-* `group`
-* `same_as`
-* actions
-* color stops
-* animations
-
-These are documented in their respective guides rather than repeated for every tool.
-
 ## :material-horseshoe: Related
 
-* [Circle](circle.md)
-* [Rectangle](rectangle.md)
+* [Circle](circle-tool.md)
+* [Rectangle](rectangle-tool.md)
 * [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
 * [Styling](../../appearance/styling.md)
 * [Color stops](../../appearance/color-stops.md)

@@ -49,7 +49,7 @@ layout:
         width: 12
 ```
 
-The entity index refers to the matching item in the card-level `entities` list. See [Entity Definitions](../core-concepts/entity-definitions.md) for details on configuring entities.
+The entity index refers to the matching item in the card-level `entities` list. See [Entity Definitions](../../card-basics/entities.md) for details on configuring entities.
 
 ## :material-horseshoe: Horseshoe anatomy
 
@@ -65,7 +65,7 @@ A horseshoe consists of several layers that can be shown, hidden, and styled ind
 | Label background     | `horseshoe_labels.background`                       | Adds an optional background behind the labels.                 |
 | Labels               | `horseshoe_labels`                                  | Places numeric values or mapped-state text around the scale.   |
 
-Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-scale-and-state.md). For tick marks and labels, see [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md).
+Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-scale-and-state.md). For tick marks and labels, see [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md).
 
 ## :material-horseshoe: Position and geometry
 
@@ -83,7 +83,7 @@ Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-sc
 | `flip`             |                               | Flips the rendered layout along the selected axis.        |
 | `same_as`          |                               | Reuses another horseshoe definition.                      |
 
-A horseshoe can also inherit its position from a group. See [Positioning and Groups](../core-concepts/positioning-and-groups.md) and [Groups Section](groups-section.md).
+A horseshoe can also inherit its position from a group. See [Positioning and Groups](../../card-basics/positioning-and-sizing.md) and [Groups Section](../../card-basics/groups.md).
 
 ## :material-horseshoe: Show options
 
@@ -118,7 +118,7 @@ color_stops:
     100: '#e74c3c'
 ```
 
-Reusable definitions, light and dark mode colors, and transition behavior are explained in [Color Stops](../core-concepts/color-stops.md).
+Reusable definitions, light and dark mode colors, and transition behavior are explained in [Color Stops](../../appearance/color-stops.md).
 
 ## :material-horseshoe: Styling
 
@@ -135,12 +135,12 @@ horseshoe_state:
     - filter: drop-shadow(0 0 1px var(--primary-color))
 ```
 
-Common SVG properties include `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, and `stroke-opacity`. See [CSS Styling](../core-concepts/css-styling.md) and [Color Filters](../core-concepts/color-filters.md) for shared styling behavior.
+Common SVG properties include `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, and `stroke-opacity`. See [CSS Styling](../../appearance/styling.md) and [Color Filters](../../appearance/color-filters.md) for shared styling behavior.
 
 ## :material-horseshoe: Related documentation
 
 * [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-* [Horseshoe Tick Marks and Labels](horseshoe-ticks-and-labels.md)
-* [Color Stops](../core-concepts/color-stops.md)
-* [Animations](../core-concepts/animations.md)
-* [Reusable YAML Card Examples](../reuse/reuse-card-examples.md)
+* [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md)
+* [Color Stops](../../appearance/color-stops.md)
+* [Animations](../../interaction/animations.md)
+* [Reusable YAML Card Examples](../../reuse/reuse-introduction.md)
