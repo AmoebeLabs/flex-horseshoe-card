@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: JavaScript templates
-description: Change Flexible Horseshoe Card values and styles from Home Assistant entity states.
+description: Use JavaScript templates to change Flexible Horseshoe Card values, labels, colors, and styles from Home Assistant entity states and attributes.
 tags:
   - Dynamic configuration
   - JavaScript

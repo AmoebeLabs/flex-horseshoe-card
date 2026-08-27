@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: External Palettes
-description: Load reusable color palettes from external JSON files and provide separate colors for Home Assistant light and dark modes.
+description: Create reusable Flexible Horseshoe Card color palettes in external JSON files, with separate colors for Home Assistant light and dark themes.
 tags:
   - Themes
   - Palettes
