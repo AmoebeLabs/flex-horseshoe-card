@@ -11,6 +11,21 @@ tags:
 The Flexible Horseshoe Card turns Home Assistant entities into compact visual dashboard cards. Start with a horseshoe gauge, then add the values, icons, history, controls, and styling needed for your dashboard.
 
 <!-- Add a representative card gallery here. -->
+The card started with the horseshoe gauge shown in the second image below.
+
+Horseshoes can have different sizes and radii, with detailed tick marks and labels.
+
+![Flexible Horseshoe Examples Overview](../assets/screenshots/fhs-horseshoe-examples-overview.png)
+
+More specialized horseshoes can also show non-numerical states, as in this Kleenex Pollen Radar example:
+
+![](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
+
+Sparkline graphs show current and historical values over time. [Several graph types](../tools/sparkline/sparkline-overview.md) are available.
+
+![](../assets/screenshots/fhs-demo-card-study-temperature-area-day--dark.webp)
+
+The card also supports [`tap actions`](../interaction/interaction-overview.md) for interactions such as switching a light or opening more information about a value. [Predefined controls](../tools/controls/controls-overview.md) let people make choices or change values directly in the card.
 
 ## :material-horseshoe: What you can create
 
