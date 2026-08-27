@@ -423,9 +423,9 @@ Example definition to use within view
 
 ## :material-horseshoe: Related documentation
 
-* Configure arcs, scales, states, tick marks, and labels with [Horseshoe Gauges](../../sections/horseshoes-section.md).
-* Learn how the card coordinate system and grouped layouts work in [Positioning and Groups](../../core-concepts/positioning-and-groups.md).
-* Configure threshold colors and gradients with [Color Stops](../../core-concepts/color-stops.md).
+* Configure arcs, scales, states, tick marks, and labels with [Horseshoe gauges](../../tools/horseshoe/horseshoe-overview.md).
+* Learn how grouped layouts work in [Groups](../../card-basics/groups.md).
+* Configure threshold colors and gradients with [Color stops](../../appearance/color-stops.md).
 * Study the reduced YAML for cards 30 and 32 in [Reusable YAML Card Examples](../../reuse/reuse-card-examples.md).
 
 <!-- Image references -->

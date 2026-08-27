@@ -112,7 +112,7 @@ layout:
 
 Both room summaries keep the same internal arrangement. Their groups determine where they appear on the card.
 
-See [Reusing items with same_as](../reuse/reuse-with-same_as.md) when more parts of the arrangement should be reused.
+See [Reuse™](../reuse/reuse-introduction.md) when more parts of the arrangement should be reused.
 
 ## Show content when it is needed
 

@@ -382,7 +382,7 @@ Defining an entity does not automatically display every part of it. The `entitie
 | State | `states` | Displays the entity state, including its unit and decimals |
 | Icon | `icons` | Displays the entity icon or a standalone icon |
 
-For detailed configuration of `areas`, `names`, `states`, and `icons`, see [Home Assistant Entity Elements](../sections/entities-section.md).
+For detailed configuration of `areas`, `names`, `states`, and `icons`, see [Tools](../tools/tools-overview.md).
 
 For translated names and states, localized units, state colors, and number formatting, see [Localization](../localization/overview.md).
 

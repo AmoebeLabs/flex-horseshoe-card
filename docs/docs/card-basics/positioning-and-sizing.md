@@ -101,4 +101,4 @@ See [Groups](groups.md) for complete examples.
 - [Card overview](card-overview.md)
 - [Groups](groups.md)
 - [Card tools](../tools/tools-overview.md)
-- [Calculations with calc()](../dynamic/calculations-with-calc.md)
+- [Dynamic configuration](../dynamic/overview.md)

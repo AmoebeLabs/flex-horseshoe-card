@@ -15,10 +15,10 @@ Most cards can start with normal YAML. Use dynamic configuration when several se
 
 | You want to | Use |
 | --- | --- |
-| Reuse a fixed value or configuration block | [`constants` and `ref()`](constants-and-ref.md) |
-| Calculate a position, size, or spacing value | [`calc()`](calculations-with-calc.md) |
+| Reuse a fixed value or configuration block | `constants` and `ref()` |
+| Calculate a position, size, or spacing value | `calc()` |
 | Change a value when an entity changes | [JavaScript templates](javascript-templates.md) |
-| Reuse a complete tool definition | [`same_as`](../reuse/reuse-with-same_as.md) |
+| Reuse a complete tool definition | [`same_as`](../reuse/reuse-introduction.md) |
 | Reuse a complete card design | [Card templates](../card-templates/card-templates-overview.md) |
 
 Start with normal YAML and add only the feature needed for the result.

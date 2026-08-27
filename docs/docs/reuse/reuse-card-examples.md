@@ -545,6 +545,6 @@ This avoids repeating the full horseshoe definition three more times.
 ## :material-horseshoe: Related documentation
 
 * Check syntax, processing order, and constraints in the [Reuse Reference](reuse-reference.md).
-* Design repeated layouts with [Positioning and Groups](../core-concepts/positioning-and-groups.md).
-* Configure reusable gradients with [Color Stops](../core-concepts/color-stops.md).
-* Configure scales and state arcs with [Horseshoe Gauges](../sections/horseshoes-section.md).
+* Design repeated layouts with [Groups](../card-basics/groups.md).
+* Configure reusable gradients with [Color stops](../appearance/color-stops.md).
+* Configure scales and state arcs with [Horseshoe gauges](../tools/horseshoe/horseshoe-overview.md).

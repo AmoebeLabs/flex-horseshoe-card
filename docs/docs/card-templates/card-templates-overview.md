@@ -11,7 +11,7 @@ tags:
 
 Card templates let you define a card design once and use it with different entities, labels, scales, or other values.
 
-Use a template when several cards share the same structure. Use [`same_as`](../reuse/reuse-with-same_as.md) when repetition only occurs inside one card.
+Use a template when several cards share the same structure. Use [`same_as`](../reuse/reuse-introduction.md) when repetition only occurs inside one card.
 
 ## :material-horseshoe: Template catalogs
 

@@ -265,7 +265,7 @@ The required fields depend on the shape type. Rectangles use either fixed dimens
 
 ### Reuse a shape
 
-Give a shape an `id` when another shape should start from the same configuration. Use `same_as` on the next shape and change only the values that differ. See [Reusing items with same_as](../../reuse/reuse-with-same_as.md).
+Give a shape an `id` when another shape should start from the same configuration. Use `same_as` on the next shape and change only the values that differ. See [Reuse™](../../reuse/reuse-introduction.md).
 
 ## :material-horseshoe: Styling
 
@@ -312,8 +312,6 @@ Visual shapes are rendered as SVG elements and can therefore be styled with CSS 
     | `stroke-width` | Controls the line width | `stroke-width: 2em` |
     | `opacity` | Controls the line opacity | `opacity: 0.7` |
     | `stroke-linecap` | Chooses the line ending | `round`, `butt`, or `square` |
-
---8<-- "docs/sections/default-haptics.md"
 
 ## :material-horseshoe: Color stops and animations
 

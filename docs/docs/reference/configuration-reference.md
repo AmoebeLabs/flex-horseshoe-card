@@ -18,7 +18,7 @@ Use this page to find the detailed configuration for a card area. The product gu
 | `type` | Selects `custom:flex-horseshoe-card`. | [Your first card](../getting-started/your-first-card.md) |
 | `entities` | Defines Home Assistant entities, attributes, slots, and FHS inputs. | [Entities](../card-basics/entities.md) |
 | `layout` | Sets the card ratio and contains tools, groups, and controls. | [Card overview](../card-basics/card-overview.md) |
-| `constants` | Stores shared fixed values and configuration. | [Constants and ref()](../dynamic/constants-and-ref.md) |
+| `constants` | Stores shared fixed values and configuration. | [Dynamic configuration](../dynamic/overview.md) |
 | `animations` | Applies styles and animations for matching states. | [Animations](../interaction/animations.md) |
 | `template` | Loads a reusable card template. | [Card templates](../card-templates/using-card-templates.md) |
 | `styles` | Applies card-level styling. | [Styling](../appearance/styling.md) |
@@ -53,4 +53,3 @@ Use this page to find the detailed configuration for a card area. The product gu
 | Reuse | [Reuse](../reuse/reuse-introduction.md) |
 | Dynamic values | [Dynamic configuration](../dynamic/overview.md) |
 | Localization and state formatting | [Localization and formatting](../localization/overview.md) |
-

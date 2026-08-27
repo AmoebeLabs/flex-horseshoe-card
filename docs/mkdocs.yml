@@ -110,6 +110,7 @@ plugins:
         "core-concepts/entity-definitions.md": "card-basics/entities.md"
         "core-concepts/positioning-and-groups.md": "card-basics/groups.md"
         "core-concepts/actions-and-local-controls.md": "interaction/interaction-overview.md"
+        "core-concepts/actions-and-interactive-controls.md": "interaction/interaction-overview.md"
         "core-concepts/animations.md": "interaction/animations.md"
         "core-concepts/color-stops.md": "appearance/color-stops.md"
         "core-concepts/color-filters.md": "appearance/color-filters.md"
@@ -117,6 +118,11 @@ plugins:
         "core-concepts/external-palettes.md": "appearance/palettes.md"
         "core-concepts/localization.md": "localization/overview.md"
         "core-concepts/templating.md": "dynamic/javascript-templates.md"
+
+        # Former Reuse™ pages
+        "reuse/reuse-with-same_as.md": "reuse/reuse-introduction.md"
+        "reuse/reuse-with-calc-and-ref.md": "reuse/reuse-introduction.md"
+        "reuse/reuse-combined.md": "reuse/reuse-introduction.md"
 
         # Former example indexes
         "examples/awair-examples.md": "examples/demo-cards/demo-card-awair-many.md"
