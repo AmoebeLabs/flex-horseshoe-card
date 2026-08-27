@@ -1,36 +1,31 @@
 ---
 template: main.html
-title: Reuse Reference
+title: Reuse™ Reference
 description: Reference the processing order, supported sections, syntax, and constraints for `same_as`, `calc()`, constants, and `ref()`.
 tags:
 - Reuse
 - Reference
 ---
 
-# Reuse reference
+# Reuse™ reference
 
-This page provides a compact reference for the static Reuse™ features.
+Use this page when a Reuse™ overview example shows a feature you want to adjust for your own layout.
 
-For a practical introduction with complete examples, see [Less YAML with Reuse](reuse-introduction.md).
+For the practical starting points, see the [Reuse overview](reuse-introduction.md). For complete cards, see [Reusable YAML card examples](reuse-card-examples.md).
 
-## :material-horseshoe: Processing order
+## :material-horseshoe: Choose the setting that matches the result
 
-Reuse features are processed once while the card configuration is prepared.
-
-1. FHS templates and placeholders are expanded.
-2. Item IDs and `constants` are recorded.
-3. `ref()` values are copied from `constants`.
-4. `calc()` expressions are evaluated.
-5. `same_as` items are expanded.
-6. JavaScript templates are detected in the resolved components.
-
-These features are static and are not reevaluated when entity states change.
-
-Components that contain JavaScript templates are evaluated later through the dynamic configuration lifecycle described in [Templates](../core-concepts/templating.md#dynamic-configuration-lifecycle).
+| You want to... | Use |
+| --- | --- |
+| Show another item with the same appearance | `same_as` |
+| Move, resize, or use the next entity for a copied item | `same_as_d...` |
+| Remove a copied list or block before adding a new one | `same_as_replace` |
+| Use the same number, style, or configuration block several times | `constants` with `ref()` |
+| Keep positions, sizes, and spacing visibly related | `calc()` |
 
 ## :material-horseshoe: Supported sections
 
-`same_as` can be used in the following layout item sections:
+Use `same_as` in these layout item sections:
 
 | Section      | Typical use                                            |
 | :----------- | :----------------------------------------------------- |
@@ -47,23 +42,23 @@ Components that contain JavaScript templates are evaluated later through the dyn
 
 Use `same_as` to inherit an earlier item from the same section.
 
-```yaml
+`same_as` combines the copied item's configuration with the settings written on the new item. That is why a copied item can keep the same styling and only change its position or entity.
+
+```yaml linenums="1"
 same_as: <id>
 ```
 
-| Rule               | Description                                                     |
-| :----------------- | :-------------------------------------------------------------- |
-| Same section only  | The referenced item must belong to the same section.            |
-| Earlier items only | The referenced item must appear earlier in the same list.       |
-| ID-based lookup    | `same_as` resolves an item by its `id`.                         |
-| Automatic IDs      | When no `id` is defined, the item index is used as a string ID. |
-| Overrides allowed  | Fields on the reused item replace matching inherited fields.    |
+| Setting | What it does |
+| :------ | :----------- |
+| `same_as` | Uses an earlier item from the same tool list as the starting point. |
+| Normal fields, such as `xpos` or `styles` | Give the copied item its own position, size, text, or style. |
+| Named `id` values | Keep larger layouts readable when items are reordered. |
 
-### Automatic IDs
+### Use named IDs
 
-When an item does not define an `id`, the card assigns one from its list index.
+You can use the item number when a list is very small, but named IDs make repeated layouts easier to read.
 
-```yaml
+```yaml linenums="1"
 hlines:
   - xpos: 50      # id: "0"
     ypos: 64
@@ -72,41 +67,62 @@ hlines:
     ypos: 75
 ```
 
-Both `same_as: 0` and `same_as: "0"` refer to the item with the generated ID `"0"`.
-
-Named IDs are usually easier to follow in larger configurations, especially when items may be reordered.
-
-### Delta fields
+### Move or resize a copied item
 
 Use a delta field to add a numeric offset to an inherited value.
 
-```yaml
+```yaml linenums="1"
 same_as_d<field>: <number>
 ```
 
-The card adds the delta to the inherited value of the matching field.
+| Delta field | Use it to... |
+| :--- | :--- |
+| `same_as_dxpos` | Move the copied item horizontally. |
+| `same_as_dypos` | Move the copied item vertically. |
+| `same_as_dwidth` | Make the copied item wider or narrower. |
+| `same_as_dheight` | Make the copied item taller or shorter. |
+| `same_as_dlength` | Change the length of a copied line. |
+| `same_as_dradius` | Change the radius of a copied circle, arc, or horseshoe. |
+| `same_as_dentity_index` | Make the copied item use the next entity. |
 
-| Delta field       | Target field | Effect                          |
-| :---------------- | :----------- | :------------------------------ |
-| `same_as_dxpos`   | `xpos`       | Adds to the inherited `xpos`.   |
-| `same_as_dypos`   | `ypos`       | Adds to the inherited `ypos`.   |
-| `same_as_dlength` | `length`     | Adds to the inherited `length`. |
-| `same_as_dradius` | `radius`     | Adds to the inherited `radius`. |
+Use `calc()` in a delta when the distance should use a named spacing value or another visible relationship.
 
-The pattern is generic and can be used with any supported inherited numeric field.
+### Replace a copied list or block
 
-| Rule                    | Description                                                               |
-| :---------------------- | :------------------------------------------------------------------------ |
-| Numeric values required | Both the inherited value and the delta must be numeric.                   |
-| Static evaluation       | Delta fields are resolved during card setup.                              |
-| `calc()` supported      | A delta value may use a static `calc()` expression.                       |
-| No runtime templates    | JavaScript templates such as `[[[ ... ]]]` are not valid in delta fields. |
+`same_as_replace` replaces a copied list or block. In this configuration, `humidity.color_stops` replaces `temperature.color_stops`:
+
+```yaml linenums="1"
+horseshoes:
+  - id: temperature
+    entity_index: 0
+    xpos: 35
+    ypos: 50
+    radius: 20
+    color_stops:
+      colors:
+        0: '#42a5f5'
+        25: '#ef5350'
+
+  - id: humidity
+    entity_index: 1
+    same_as: temperature
+    same_as_replace:
+      - color_stops
+    color_stops:
+      colors:
+        0: '#66bb6a'
+        70: '#ffca28'
+```
+
+The humidity horseshoe keeps `xpos`, `ypos`, and `radius` from temperature. `humidity.color_stops` replaces `temperature.color_stops`.
+
+Use this for a complete nested setting, not for one ordinary value such as `xpos`, `radius`, or `entity_index`. Those values can be written directly on the copied item.
 
 ## :material-horseshoe: `constants`
 
-Use `constants` to store shared static values or reusable configuration fragments.
+Use `constants` to give a shared number, style, or configuration block a readable name.
 
-```yaml
+```yaml linenums="1"
 constants:
   centerX: 50
   lineStep: 11
@@ -115,23 +131,21 @@ constants:
     stroke-width: 2
 ```
 
-Constants can be inserted with `ref()` or used inside supported `calc()` expressions.
+Use `ref()` to place that named value or block in an item. Use the name directly in `calc()` when it describes a position, size, or spacing relationship.
 
 ## :material-horseshoe: `calc()`
 
-Use `calc()` when a numeric value should be calculated during configuration setup.
+Use `calc()` when a position, size, or spacing is easier to understand as a relationship than as a final number.
 
-```yaml
+```yaml linenums="1"
 xpos: calc(50 - 4)
 ```
 
-| Rule                    | Description                                                             |
-| :---------------------- | :---------------------------------------------------------------------- |
-| Static evaluation       | `calc()` is evaluated once during card setup.                           |
-| Numeric result required | The result must be a finite number.                                     |
-| No runtime templates    | JavaScript templates cannot be used inside `calc()`.                    |
-| No CSS values           | Values such as `10px`, `1em`, and `var(--color)` are not valid results. |
-| Constants supported     | Static constants may be used inside `calc()`.                           |
+| You can use | Example |
+| :--- | :--- |
+| Numbers and named constants | `calc(center_x + column_gap)` |
+| Arithmetic and parentheses | `calc((50 - 4) / 2)` |
+| The functions listed below | `calc(sin(PI / 2))` |
 
 ### Supported operators
 
@@ -164,7 +178,7 @@ xpos: calc(50 - 4)
 
 Use `ref()` to insert a value or configuration fragment from `constants`.
 
-```yaml
+```yaml linenums="1"
 constants:
   lineStyle:
     stroke: var(--disabled-text-color)
@@ -177,30 +191,10 @@ hlines:
     styles: ref(lineStyle)
 ```
 
-`ref()` is useful for shared styles, color stops, dimensions, positions, and other fixed configuration values.
-
-Because the referenced value is copied during configuration setup, later changes to runtime state do not alter it.
-
-## :material-horseshoe: Static reuse and dynamic templates
-
-Static reuse features are resolved while the card is being configured. JavaScript templates are evaluated later when runtime values are updated.
-
-| Feature        | Evaluation time | Typical use                                     |
-| :------------- | :-------------- | :---------------------------------------------- |
-| `same_as`      | Card setup      | Reusing section items.                          |
-| `same_as_d...` | Card setup      | Applying static numeric offsets.                |
-| `calc()`       | Card setup      | Performing static numeric calculations.         |
-| `constants`    | Card setup      | Storing shared static values and fragments.     |
-| `ref()`        | Card setup      | Inserting values from `constants`.              |
-| `[[[ ... ]]]`  | Runtime updates | Producing dynamic values based on entity state. |
-
-Use the static reuse features for layout structure and shared configuration. Use JavaScript templates only when a value must respond to runtime state.
+`ref()` is useful for shared styles, color stops, dimensions, positions, and other fixed card settings.
 
 ## :material-horseshoe: Related documentation
 
-* [Less YAML with Reuse](reuse-introduction.md)
-* [Reusing Section Items](reuse-with-same_as.md)
-* [YAML Calculations](reuse-with-calc-and-ref.md)
-* [Combining `calc()` with `same_as`](reuse-combined.md)
-* [Reusable YAML Card Examples](reuse-card-examples.md)
-* [Templates](../core-concepts/templating.md)
+* [Reuse overview](reuse-introduction.md)
+* [Reusable YAML card examples](reuse-card-examples.md)
+* [JavaScript templates](../dynamic/javascript-templates.md)
