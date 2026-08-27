@@ -48,25 +48,31 @@ A typical card follows this structure:
       <group definitions>
 
     areas:
-      - <area layout items>
+      - <entity area layout items>
 
     circles:
       - <circle layout items>
 
+    controls:
+      - <control layout items>
+
     horseshoes:
       - <horseshoe layout items>
-
-    icons:
-      - <icon layout items>
 
     hlines:
       - <horizontal line layout items>
 
+    icons:
+      - <entity icon layout items>
+
+    lines:
+      - <uniform line (horizontal, vertical, fromto) layout items>
+
     names:
-      - <name layout items>
+      - <entity name layout items>
 
     states:
-      - <state layout items>
+      - <entity state layout items>
 
     vlines:
       - <vertical line layout items>
@@ -282,13 +288,13 @@ Use this page as a map of the available card sections.
 
 Continue with the documentation for:
 
-- entity definitions;
-- layout overview;
-- visual shapes;
-- entity elements;
-- horseshoes;
-- groups and positioning;
-- CSS styling;
-- templating;
+- [entity definitions](../core-concepts/entity-definitions.md);
+- [layout overview](../sections/layout-overview.md);
+- [visual shapes](../sections/visual-shapes-section.md);
+- [entity elements](../sections/entities-section.md);
+- [horseshoes](../sections/horseshoes-section.md);
+- [groups and positioning](../core-concepts/positioning-and-groups.md);
+- [CSS styling](../core-concepts/css-styling.md);
+- [templating](../core-concepts/templating.md);
 - composed cards;
-- reuse.
+- [reuse](../reuse/reuse-introduction.md).
