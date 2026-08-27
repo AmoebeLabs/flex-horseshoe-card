@@ -2,16 +2,16 @@
 
 ## Goal
 
-Add one central entity-level place where FHS can derive a visual runtime state from the original Home Assistant state.
+Add one central entity-level place where Flexible Horseshoe Card can derive a visual runtime state from the original Home Assistant state.
 
 This avoids repeating the same `state_map`, conversion, rank mapping, or JavaScript template on every shape/tool that needs a numeric or transformed value.
 
 ## Core Idea
 
-Each configured entity can have two states inside FHS:
+Each configured entity can have two states inside Flexible Horseshoe Card:
 
 - `raw_state`: the original Home Assistant state or configured attribute value.
-- `derived_state`: an optional FHS-only visual state derived from the raw state.
+- `derived_state`: an optional Flexible Horseshoe Card-only visual state derived from the raw state.
 
 The Home Assistant entity is never changed. This is only card-internal runtime data.
 
@@ -22,17 +22,13 @@ Without entity-level derived state, every visual item needs its own conversion:
 ```yaml
 arcs:
   - entity_index: 0
-    color_stops:
-      ...
-    state_map:
-      ...
+    color_stops: ...
+    state_map: ...
 
 rectangles:
   - entity_index: 0
-    color_stops:
-      ...
-    state_map:
-      ...
+    color_stops: ...
+    state_map: ...
 ```
 
 With entity-level derived state, the entity is converted once during `set hass`, and all visual tools use that value:
@@ -69,7 +65,7 @@ arcs:
 
 ## Runtime Model
 
-During `set hass`, FHS builds an entity runtime context.
+During `set hass`, Flexible Horseshoe Card builds an entity runtime context.
 
 Proposed runtime fields:
 
@@ -101,7 +97,6 @@ Meaning:
 
 If no `derived_state` is configured, `state` equals `rawState` and `unit` equals `rawUnit`.
 
-
 ## Naming Rules
 
 YAML/config uses lowercase names with underscores where needed:
@@ -116,13 +111,13 @@ stops_start:
 JavaScript/runtime objects use camelCase:
 
 ```js
-fhsEntityState.rawState
-fhsEntityState.rawUnit
-fhsEntityState.colorStops
-fhsEntityState.hasDerivedState
+fhsEntityState.rawState;
+fhsEntityState.rawUnit;
+fhsEntityState.colorStops;
+fhsEntityState.hasDerivedState;
 ```
 
-Do not name the runtime object `entityObj`, because that can be confused with the original Home Assistant entity/state object. Use `fhsEntityState` for the FHS runtime state context.
+Do not name the runtime object `entityObj`, because that can be confused with the original Home Assistant entity/state object. Use `fhsEntityState` for the Flexible Horseshoe Card runtime state context.
 
 ## Config Forms
 
@@ -189,7 +184,7 @@ or:
 ```js
 return {
   state: 42,
-  unit: 'kWh'
+  unit: "kWh",
 };
 ```
 
@@ -227,7 +222,6 @@ color_stops:
 ```
 
 The color stop code receives a numeric visual state, regardless of whether it came from a raw numeric state, a state map, or a conversion.
-
 
 ## Entity-Level Color Stops
 
@@ -287,7 +281,6 @@ show:
 
 This follows the existing horseshoe pattern where config can exist independently from `show` options. It also keeps templates useful: a template can provide entity defaults and color stops, while each item can override `show.item_style`.
 
-
 ## Default Behavior
 
 Entity-level derived state and color stops are reusable data. They must not automatically restyle every item.
@@ -301,7 +294,7 @@ show:
 
 This preserves existing behavior:
 
-- FHS applies no automatic item color;
+- Flexible Horseshoe Card applies no automatic item color;
 - existing cards keep using their configured `styles`;
 - animations remain free to style the item;
 - tool defaults remain active;

@@ -11,7 +11,7 @@ tags:
 
 A toggle gives the user a switch for changing an entity between on and off. Use it for lights, switches, Home Assistant [Input booleans](https://www.home-assistant.io/integrations/input_boolean/), and other entities that support a toggle action.
 
-Use an [FHS input boolean](fhs-input-boolean.md) when the switch controls something inside FHS itself, such as labels, a grid, an extra layer, or another display option in the current browser.
+Use an [Flexible Horseshoe Card input boolean](fhs-input-boolean.md) when the switch controls something inside Flexible Horseshoe Card itself, such as labels, a grid, an extra layer, or another display option in the current browser.
 
 <!-- Add Home Assistant, iOS, and industrial toggle screenshots here. -->
 
@@ -42,14 +42,14 @@ Selecting the toggle changes the connected entity between `on` and `off`.
 
 !!! info "Entity settings"
 
-    `entity_index: 0` connects the toggle to the first entry in `entities`. See [Entities](../../card-basics/entities.md) for entity indexes and optional slots. For a browser-local on/off value, see [FHS input boolean](fhs-input-boolean.md).
+    `entity_index: 0` connects the toggle to the first entry in `entities`. See [Entities](../../card-basics/entities.md) for entity indexes and optional slots. For a browser-local on/off value, see [Flexible Horseshoe Card input boolean](fhs-input-boolean.md).
 
 ## :material-horseshoe: Configuration options
 
 | Option | Description |
 | --- | --- |
 | `type: toggle` | Adds a toggle control. |
-| `entity_index` | On/off entity or FHS input changed by the toggle. |
+| `entity_index` | On/off entity or Flexible Horseshoe Card input changed by the toggle. |
 | `xpos`, `ypos` | Position of the toggle in the card. |
 | `width` | Width of the toggle. Its height follows the selected style. |
 | `orientation` | Displays the toggle horizontally or vertically. |
@@ -123,7 +123,7 @@ Set `orientation: vertical` when the switch should move from bottom to top:
 
 ## :material-horseshoe: Use a browser-local setting
 
-This toggle changes an FHS display setting without creating a Home Assistant helper:
+This toggle changes an Flexible Horseshoe Card display setting without creating a Home Assistant helper:
 
 ```yaml linenums="1"
 entities:
@@ -141,10 +141,10 @@ layout:
       width: 24
 ```
 
-See [FHS input boolean](fhs-input-boolean.md) for using the `on` and `off` state elsewhere in the card.
+See [Flexible Horseshoe Card input boolean](fhs-input-boolean.md) for using the `on` and `off` state elsewhere in the card.
 
 ## :material-horseshoe: Related
 
-- [FHS input boolean](fhs-input-boolean.md)
+- [Flexible Horseshoe Card input boolean](fhs-input-boolean.md)
 - [Home Assistant Input boolean](https://www.home-assistant.io/integrations/input_boolean/)
 - [Visibility](../../interaction/visibility.md)

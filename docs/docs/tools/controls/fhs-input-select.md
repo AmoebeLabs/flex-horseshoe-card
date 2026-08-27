@@ -1,20 +1,20 @@
 ---
 template: main.html
-title: FHS input select
+title: Flexible Horseshoe Card input select
 description: Add a browser-local choice from a list of options to a Flexible Horseshoe Card.
 tags:
   - Controls
-  - FHS inputs
+  - Flexible Horseshoe Card inputs
   - Select
 ---
 
-# FHS input select
+# Flexible Horseshoe Card input select
 
-An FHS input select adds a list of choices directly to a Flexible Horseshoe Card. Use it to choose a room, sensor, chart type, display style, history period, or any other named option used by the card.
+An Flexible Horseshoe Card input select adds a list of choices directly to a Flexible Horseshoe Card. Use it to choose a room, sensor, chart type, display style, history period, or any other named option used by the card.
 
 The selected option is stored in the current browser and does not require a Home Assistant helper. Use a Home Assistant [Input select](https://www.home-assistant.io/integrations/input_select/) instead when automations, other dashboards, or other devices need the same selection.
 
-An FHS input select can hold a single data item, of hold rich content such as icons, states, shapes, horseshoes and sparkline graphs.
+An Flexible Horseshoe Card input select can hold a single data item, of hold rich content such as icons, states, shapes, horseshoes and sparkline graphs.
 
 Single item example:
 
@@ -77,7 +77,7 @@ The control displays the options from the input and stores the selected option a
 | `options` | The list of values the user can choose from. |
 | `initial` | Option selected when the input is created. The first option is used when omitted. |
 | `scope: card` | Keeps a separate selection for this card. |
-| `scope: global` | Shares the selection with FHS cards in the current browser. |
+| `scope: global` | Shares the selection with Flexible Horseshoe Card cards in the current browser. |
 | `persist: true` | Restores a global selection after the browser reloads. |
 | `name` | Name shown by tools that display the entity name. |
 | `icon` | Icon shown by tools that display the entity icon. |
@@ -138,7 +138,7 @@ entities:
     persist: true
 ```
 
-Every FHS card in the current browser that defines `fhs_input_select.chart_type` receives the same selection. Other browsers and devices keep their own selection.
+Every Flexible Horseshoe Card card in the current browser that defines `fhs_input_select.chart_type` receives the same selection. Other browsers and devices keep their own selection.
 
 ## :material-horseshoe: Related
 

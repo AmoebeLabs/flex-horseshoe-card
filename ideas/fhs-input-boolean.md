@@ -1,8 +1,8 @@
-# FHS Input Boolean
+# Flexible Horseshoe Card Input Boolean
 
 ## Doel
 
-Voeg een lokale FHS-entity toe die hetzelfde model gebruikt als Home
+Voeg een lokale Flexible Horseshoe Card-entity toe die hetzelfde model gebruikt als Home
 Assistant's `input_boolean`. Hiermee kunnen dashboardinstellingen zoals
 axis, labels, grid, visibility en andere boolean-opties lokaal worden bediend.
 
@@ -69,7 +69,7 @@ lokale `fhs_input_boolean` is. Legacy `call-service` blijft ondersteund.
 
 ## Impact en compatibiliteit
 
-De wijziging blijft beperkt tot de lokale FHS-inputlaag, configuratievalidatie,
+De wijziging blijft beperkt tot de lokale Flexible Horseshoe Card-inputlaag, configuratievalidatie,
 action-routing en documentatie. De graph engine, entity slots, layout-tools en
 bestaande number-inputfunctionaliteit hoeven inhoudelijk niet te wijzigen.
 

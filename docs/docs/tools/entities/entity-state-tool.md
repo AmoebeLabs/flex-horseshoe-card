@@ -10,9 +10,9 @@ tags:
 
 # State
 
-The State tool shows the current value of a Home Assistant entity or attribute. Use it for a measurement, status, date, or other entity value.
+The State tool shows the current value of a Home Assistant entity or attribute.
 
-FHS uses Home Assistant formatting for the value and unit by default.
+By default, the Flexible Horseshoe Card uses Home Assistant formatting for the value and unit.
 
 <!-- State examples image -->
 
@@ -38,6 +38,29 @@ layout:
 
 `xpos` and `ypos` position the state on the card.
 
+## :material-horseshoe: Position and alignment
+
+Position the complete state with `xpos` and `ypos`.
+
+```yaml linenums="1"
+layout:
+  states:
+    - entity_index: 0
+      xpos: 10
+      ypos: 50
+      styles:
+        font-size: 2em
+        text-anchor: start
+```
+
+Use `text-anchor` to control horizontal alignment:
+
+* `start`
+* `middle`
+* `end`
+
+See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
+
 ## :material-horseshoe: Configuration options
 
 | Field            | Required | Default             | Description                                  |
@@ -47,15 +70,14 @@ layout:
 | `ypos`           |    Yes   |                     | Vertical position                            |
 | `show.uom`       |    No    | `end`               | Places the unit at `end`, `top`, or `bottom` |
 | `uom`            |    No    |                     | Unit positioning and styling                 |
-| `max_characters` |    No    |                     | Maximum displayed state length               |
-| `ellipsis`       |    No    |                     | Legacy alias for limiting state length       |
+| `ellipsis`       |    No    |                     | Maximum number of displayed state characters |
 | `format`         |    No    | Home Assistant      | Overrides state formatting                   |
 | `styles`         |    No    | Default state style | SVG and CSS styling                          |
 | `color_stops`    |    No    | Not set             | Colors the state from the entity value       |
 
 ## :material-horseshoe: State and unit
 
-For entities with a unit of measurement, FHS displays the value and unit together.
+For entities with a unit of measurement, Flexible Horseshoe Card displays the value and unit together.
 
 ```yaml linenums="1"
 entities:
@@ -143,29 +165,6 @@ layout:
           opacity: 0.6
 ```
 
-## :material-horseshoe: Position and alignment
-
-Position the complete state with `xpos` and `ypos`.
-
-```yaml linenums="1"
-layout:
-  states:
-    - entity_index: 0
-      xpos: 10
-      ypos: 50
-      styles:
-        font-size: 2em
-        text-anchor: start
-```
-
-Use `text-anchor` to control horizontal alignment:
-
-* `start`
-* `middle`
-* `end`
-
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
-
 ## :material-horseshoe: State appearance
 
 Use `styles` to change the appearance of the state:
@@ -195,9 +194,9 @@ Common styles include:
 
 See [Styling](../../appearance/styling.md) for the complete styling guide.
 
-## :material-horseshoe: Limit long states
+## :material-horseshoe: Keep long values readable
 
-Use `max_characters` to shorten long state values:
+Use `ellipsis` when a state value must fit within a fixed space:
 
 ```yaml linenums="1"
 layout:
@@ -205,12 +204,11 @@ layout:
     - entity_index: 0
       xpos: 50
       ypos: 50
-      max_characters: 12
+      ellipsis: 12
 ```
 
-Only the state value is shortened. The unit remains separate.
+The value is shortened after the configured number of characters. Its unit remains visible.
 
-`ellipsis` is also supported for existing configurations.
 
 ## :material-horseshoe: Formatting values
 
@@ -224,13 +222,13 @@ entities:
     decimals: 1
 ```
 
-More advanced formatting belongs in the shared formatting configuration rather than the State tool itself.
+Configure decimals, units, locale, and other formatting options on the entity in the card's `entities` list. The same formatting is then used wherever that entity is shown in the card.
 
 See [Localization and formatting](../../localization/overview.md).
 
-## :material-horseshoe: Color from the entity
+## :material-horseshoe: Show values in color
 
-A state can change color according to its value:
+Use color stops when the displayed value should also show whether it is low, moderate, or high:
 
 ```yaml linenums="1"
 layout:
@@ -249,7 +247,7 @@ layout:
           100: red
 ```
 
-Color stops are applied to the state text.
+The State tool applies the matching color to the displayed value.
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
 

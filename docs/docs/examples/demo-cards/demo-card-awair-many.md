@@ -44,7 +44,7 @@ The current value, horseshoe, colors, name, unit, and history graph follow the s
 
 
 !!! warning "Be aware that this is an advanced card"
-    It uses almost all of the specific functionality of the Flexible Horseshoe Card like `JavaScript` templates, `entity slots` for easier entity index access, `same_as, ref() and calc()` functions to reduce YAML and enhance maintenance, the `sparkline` tool, card local `FHS entities` for storing input selects, the rich content `input select control`, and of course the `Horseshoe` itself!
+    It uses almost all of the specific functionality of the Flexible Horseshoe Card like `JavaScript` templates, `entity slots` for easier entity index access, `same_as, ref() and calc()` functions to reduce YAML and enhance maintenance, the `sparkline` tool, card local `Flexible Horseshoe Card entities` for storing input selects, the rich content `input select control`, and of course the `Horseshoe` itself!
 
 ### Available controls
 
@@ -54,7 +54,7 @@ The current value, horseshoe, colors, name, unit, and history graph follow the s
 | Measurement | select | Awair score, temperature, humidity, CO2, VOC, or PM2.5. |
 | History     | select | 1 hour, 12 hours, 1 day, 2 days, 1 week, or 2 weeks.    |
 
-Selections can be shared by multiple FHS cards on the same dashboard. Changing a control can therefore update several related cards at once and keep their displayed room, measurement, or history period synchronized.
+Selections can be shared by multiple Flexible Horseshoe Card cards on the same dashboard. Changing a control can therefore update several related cards at once and keep their displayed room, measurement, or history period synchronized.
 
 ### Demonstrated functionality
 

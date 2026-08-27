@@ -11,7 +11,7 @@ tags:
 
 A slider lets the user choose a numeric value by dragging a thumb along a visible range. Use it when position within the range is more useful than repeatedly pressing minus and plus, such as for brightness, volume, temperature, scale limits, or history duration.
 
-Connect a single slider to a Home Assistant [Number](https://www.home-assistant.io/integrations/number/), [Input number](https://www.home-assistant.io/integrations/input_number/), or an [FHS input number](fhs-input-number.md). A range slider connects two numeric entities and lets the user choose both a lower and an upper value.
+Connect a single slider to a Home Assistant [Number](https://www.home-assistant.io/integrations/number/), [Input number](https://www.home-assistant.io/integrations/input_number/), or an [Flexible Horseshoe Card input number](fhs-input-number.md). A range slider connects two numeric entities and lets the user choose both a lower and an upper value.
 
 <!-- Add linear, circular, single-value, and range slider screenshots here. -->
 
@@ -52,7 +52,7 @@ The slider uses the minimum, maximum, step, value, and unit from the connected e
 
 !!! info "Entity and input settings"
 
-    `entity_index: 0` connects the slider to the first entry in `entities`. The `initial`, `min`, `max`, `step`, `unit`, and `scope` settings configure the FHS input, not the Slider control. See [FHS input number](fhs-input-number.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
+    `entity_index: 0` connects the slider to the first entry in `entities`. The `initial`, `min`, `max`, `step`, `unit`, and `scope` settings configure the Flexible Horseshoe Card input, not the Slider control. See [Flexible Horseshoe Card input number](fhs-input-number.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
 
 ## :material-horseshoe: Configuration options
 
@@ -70,7 +70,7 @@ The slider uses the minimum, maximum, step, value, and unit from the connected e
 | `label` | Optional text positioned beside or above the slider. |
 | `visibility` | Shows, hides, or disables the slider. |
 
-The value range and step belong to the connected entity or FHS input.
+The value range and step belong to the connected entity or Flexible Horseshoe Card input.
 
 ## :material-horseshoe: Select a lower and upper value
 
@@ -156,6 +156,6 @@ The value is always sent when the drag ends.
 
 ## :material-horseshoe: Related
 
-- [FHS input number](fhs-input-number.md)
+- [Flexible Horseshoe Card input number](fhs-input-number.md)
 - [Number control](number-tool.md)
 - [Home Assistant Input number](https://www.home-assistant.io/integrations/input_number/)

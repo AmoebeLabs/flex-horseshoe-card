@@ -74,7 +74,7 @@ layout:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. FHS then uses the available circumference, duration, and density to choose a suitable number of radial segments.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then uses the available circumference, duration, and density to choose a suitable number of radial segments.
 
 ## :material-horseshoe: Basic radial barcode
 

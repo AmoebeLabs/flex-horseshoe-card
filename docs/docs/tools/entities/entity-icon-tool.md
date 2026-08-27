@@ -12,7 +12,7 @@ tags:
 
 An icon gives an entity a recognizable visual place on the card. Use it to show an entity icon, a custom MDI icon, or an image anywhere in the layout.
 
-FHS can use a Home Assistant entity icon, a configured MDI icon, or an SVG, PNG, JPG, or other supported image.
+Flexible Horseshoe Card can use a Home Assistant entity icon, a configured MDI icon, or an SVG, PNG, JPG, or other supported image.
 
 <!-- Icon examples image -->
 
@@ -35,7 +35,7 @@ Add icons under `layout.icons`:
           icon_size: 3
     ```
 
-    Without an explicit `icon`, FHS uses the icon of the selected Home Assistant entity.
+    Without an explicit `icon`, Flexible Horseshoe Card uses the icon of the selected Home Assistant entity.
 
 === "MDI icon"
 

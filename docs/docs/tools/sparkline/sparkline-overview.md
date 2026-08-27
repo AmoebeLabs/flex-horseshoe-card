@@ -56,7 +56,7 @@ layout:
 
 The entity index refers to the card-level `entities` list. Statistics and tooltip values use the formatting settings of the connected entity.
 
-This example shows the average temperature for the latest 24 hours. FHS chooses a readable number of time bins for the available graph width.
+This example shows the average temperature for the latest 24 hours. Flexible Horseshoe Card chooses a readable number of time bins for the available graph width.
 
 When the entity does not have a slot, use its numeric position in the card's entity list:
 
@@ -119,10 +119,10 @@ Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and 
 | Field          | Default | Description                                                                                               |
 | :------------- | :------ | :-------------------------------------------------------------------------------------------------------- |
 | `entity_index` |         | Selects the entity used by the graph.                                                                     |
-| `xpos`         | `50`    | Positions the horizontal center in FHS card coordinates.                                                  |
-| `ypos`         | `50`    | Positions the vertical center in FHS card coordinates.                                                    |
-| `width`        | `25`    | Defines the graph width in FHS card coordinates.                                                          |
-| `height`       | `25`    | Defines the graph height in FHS card coordinates.                                                         |
+| `xpos`         | `50`    | Positions the horizontal center in Flexible Horseshoe Card card coordinates.                                                  |
+| `ypos`         | `50`    | Positions the vertical center in Flexible Horseshoe Card card coordinates.                                                    |
+| `width`        | `25`    | Defines the graph width in Flexible Horseshoe Card card coordinates.                                                          |
+| `height`       | `25`    | Defines the graph height in Flexible Horseshoe Card card coordinates.                                                         |
 | `margin`       | `0`     | Reserves inner space around the graph; accepts one value or separate top, right, bottom, and left values. |
 | `same_as`      |         | Reuses another sparkline definition.                                                                      |
 

@@ -16,7 +16,7 @@ Use this page to find the detailed configuration for a card area. The product gu
 | Field | Use | Details |
 | --- | --- | --- |
 | `type` | Selects `custom:flex-horseshoe-card`. | [Your first card](../getting-started/your-first-card.md) |
-| `entities` | Defines Home Assistant entities, attributes, slots, and FHS inputs. | [Entities](../card-basics/entities.md) |
+| `entities` | Defines Home Assistant entities, attributes, slots, and Flexible Horseshoe Card inputs. | [Entities](../card-basics/entities.md) |
 | `layout` | Sets the card ratio and contains tools, groups, and controls. | [Card overview](../card-basics/card-overview.md) |
 | `constants` | Stores shared fixed values and configuration. | [Dynamic configuration](../dynamic/overview.md) |
 | `animations` | Applies styles and animations for matching states. | [Animations](../interaction/animations.md) |

@@ -30,6 +30,6 @@ Controls are extra visible tools for changing a value or making a choice directl
 | [Number](../tools/controls/number-tool.md) | Increase or decrease a numeric value. |
 | [Select](../tools/controls/select-tool.md) | Choose one option from a visible list. |
 | [Slider](../tools/controls/slider-tool.md) | Set one numeric value or a lower and upper value. |
-| [Toggle](../tools/controls/toggle-tool.md) | Change an entity or FHS input between on and off. |
+| [Toggle](../tools/controls/toggle-tool.md) | Change an entity or Flexible Horseshoe Card input between on and off. |
 
-Use [Actions](actions.md) to configure what a button or actionable tool does. Use [browser-local FHS inputs](../tools/controls/browser-local-inputs.md) when a control should change only FHS cards in the current browser.
+Use [Actions](actions.md) to configure what a button or actionable tool does. Use [browser-local Flexible Horseshoe Card inputs](../tools/controls/browser-local-inputs.md) when a control should change only Flexible Horseshoe Card cards in the current browser.

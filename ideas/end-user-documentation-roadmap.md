@@ -36,7 +36,7 @@ Every practical example should follow the same structure:
 5. A small number of useful variations.
 6. Links to the detailed reference pages for the fields being used.
 
-Examples should use automatic behavior where FHS already provides it. Users should not be taught to calculate graph axes, dynamic text dimensions, localized label widths, or other values that the card determines automatically.
+Examples should use automatic behavior where Flexible Horseshoe Card already provides it. Users should not be taught to calculate graph axes, dynamic text dimensions, localized label widths, or other values that the card determines automatically.
 
 ## Proposed Learning Path
 
@@ -80,7 +80,7 @@ Provide a complete line or area chart using one sensor and a straightforward his
 - the tooltip with minimum, average, and maximum values;
 - optional minimum and maximum range display.
 
-The page should emphasize that FHS selects suitable axes and labels automatically. Users should only select the sensor, period, number of bins, chart type, and visible chart elements.
+The page should emphasize that Flexible Horseshoe Card selects suitable axes and labels automatically. Users should only select the sensor, period, number of bins, chart type, and visible chart elements.
 
 ### 4. Intermediate Examples
 

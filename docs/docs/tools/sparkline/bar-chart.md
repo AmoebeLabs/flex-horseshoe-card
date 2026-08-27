@@ -60,7 +60,7 @@ layout:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. FHS then chooses a suitable bar interval automatically. Set a number only when you deliberately need a fixed number of bars per hour.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then chooses a suitable bar interval automatically. Set a number only when you deliberately need a fixed number of bars per hour.
 
 ## :material-horseshoe: Basic bar chart
 

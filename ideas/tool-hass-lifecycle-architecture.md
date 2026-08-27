@@ -2,20 +2,20 @@
 
 ## Purpose
 
-FHS tools use separate phases for Home Assistant availability, runtime configuration, entity data, and DOM updates. `main.js` owns the order so configuration processing is not hidden inside `setState()`.
+Flexible Horseshoe Card tools use separate phases for Home Assistant availability, runtime configuration, entity data, and DOM updates. `main.js` owns the order so configuration processing is not hidden inside `setState()`.
 
 ## Lifecycle contract
 
-| Hook | Meaning |
-| --- | --- |
-| `connected()` | The parent card is attached to the DOM. |
-| `hassAvailable()` | A usable `hass` object has become available to this tool for the first time. |
+| Hook                    | Meaning                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `connected()`           | The parent card is attached to the DOM.                                               |
+| `hassAvailable()`       | A usable `hass` object has become available to this tool for the first time.          |
 | `updateRuntimeConfig()` | The active configuration is evaluated and normalized for the current relevant update. |
-| `setState()` | Entity data is assigned and converted into display data. |
-| `hassConnected()` | The Home Assistant connection reports `ready`, normally after reconnecting. |
-| `firstUpdated()` | The first Lit DOM update has completed. |
-| `updated()` | A Lit DOM update has completed. |
-| `disconnected()` | The parent card is removed from the DOM. |
+| `setState()`            | Entity data is assigned and converted into display data.                              |
+| `hassConnected()`       | The Home Assistant connection reports `ready`, normally after reconnecting.           |
+| `firstUpdated()`        | The first Lit DOM update has completed.                                               |
+| `updated()`             | A Lit DOM update has completed.                                                       |
+| `disconnected()`        | The parent card is removed from the DOM.                                              |
 
 ## Main orchestration
 

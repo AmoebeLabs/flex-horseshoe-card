@@ -12,7 +12,7 @@ tags:
 
 A name shows the name of a Home Assistant entity anywhere on the card. Use it for a clear label beside a value, icon, graph, or control.
 
-By default, FHS uses the entity name from Home Assistant. You can provide your own name in the entity configuration.
+By default, Flexible Horseshoe Card uses the entity name from Home Assistant. You can provide your own name in the entity configuration.
 
 <!-- Name examples image -->
 

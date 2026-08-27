@@ -15,11 +15,11 @@ Use a template when several cards share the same structure. Use [`same_as`](../r
 
 ## :material-horseshoe: Template catalogs
 
-FHS reads two Lovelace template catalogs:
+Flexible Horseshoe Card reads two Lovelace template catalogs:
 
 | Catalog | Use |
 | --- | --- |
-| `fhs_sys_templates` | Templates supplied and maintained with your FHS setup |
+| `fhs_sys_templates` | Templates supplied and maintained with your Flexible Horseshoe Card setup |
 | `fhs_user_templates` | Your own templates and overrides |
 
 A user template with the same name takes priority over a system template.

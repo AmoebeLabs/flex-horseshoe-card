@@ -101,7 +101,7 @@ The available values are:
 
 A direct `entity:` reference is independent of list order. Card templates can place these entries in `default_entities` so every template instance receives the local values without changing the indices of entities supplied by the card.
 
-FHS automatically connects these values to the source entity used by the matching sparkline. Units, number formatting, and More info actions therefore continue to use that source sensor. You do not configure a separate source index.
+Flexible Horseshoe Card automatically connects these values to the source entity used by the matching sparkline. Units, number formatting, and More info actions therefore continue to use that source sensor. You do not configure a separate source index.
 
 Duration and bin size use Home Assistant duration formatting. For example, a bin duration of `0.5` hours is displayed as a localized duration with zero hours and thirty minutes. A setting that does not apply to the active graph type is shown using Home Assistant's translated **Unavailable** state.
 
@@ -331,12 +331,12 @@ For details about JavaScript templates, available variables, and reusable templa
 | `tap_action` | object | :material-close: | Action performed when the entity is clicked or tapped |
 | `hold_action` | object | :material-close: | Action performed when the entity is held |
 | `double_tap_action` | object | :material-close: | Action performed when the entity is double tapped |
-| `initial` | number/string/boolean | :material-close: | Initial value for a local FHS input; a select defaults to its first option and a boolean defaults to `off` |
+| `initial` | number/string/boolean | :material-close: | Initial value for a local Flexible Horseshoe Card input; a select defaults to its first option and a boolean defaults to `off` |
 | `options` | list | :material-check: select only | Non-empty list of unique strings available to an `fhs_input_select` |
 | `min` | number | :material-close: | Lowest value accepted by a local `fhs_input_number` |
 | `max` | number | :material-close: | Highest value accepted by a local `fhs_input_number` |
 | `step` | number | :material-close: | Increment/decrement amount for a local `fhs_input_number`; default: `1` |
-| `scope` | string | :material-close: | Keeps a local input in one card or shares it with all FHS cards in the current browser tab; default: `card` |
+| `scope` | string | :material-close: | Keeps a local input in one card or shares it with all Flexible Horseshoe Card cards in the current browser tab; default: `card` |
 | `persist` | boolean | :material-close: | Restores a global local input after a page reload; default: `false` |
 
 ## :material-horseshoe: Available entity format options
@@ -367,7 +367,7 @@ You can override it with an MDI icon, external image, external SVG, or JavaScrip
 
 ## :material-horseshoe: Actions and local controls
 
-Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. FHS also supports ordered action lists, Companion-app haptic feedback, and browser-local number, select, and boolean inputs.
+Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. Flexible Horseshoe Card also supports ordered action lists, Companion-app haptic feedback, and browser-local number, select, and boolean inputs.
 
 See [Actions and Local Controls](../interaction/actions.md) for the available actions and complete examples.
 

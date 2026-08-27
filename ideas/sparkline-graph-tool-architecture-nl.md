@@ -1,4 +1,4 @@
-# FHS Sparkline Graph -- Ontwerp en implementatierichtlijnen
+# Flexible Horseshoe Card Sparkline Graph -- Ontwerp en implementatierichtlijnen
 
 ## Hoofddoel
 
@@ -307,7 +307,7 @@ Open ontwerpkeuze.
 
 # Architectuurregels
 
-Deze implementatie moet de bestaande FHS-architectuur volgen.
+Deze implementatie moet de bestaande Flexible Horseshoe Card-architectuur volgen.
 
 Belangrijk:
 
@@ -322,4 +322,4 @@ Belangrijk:
 - alleen functionaliteit toevoegen.
 
 Het doel is dat de nieuwe grafiek aanvoelt alsof deze altijd onderdeel
-van FHS is geweest, en niet als een aparte implementatie.
+van Flexible Horseshoe Card is geweest, en niet als een aparte implementatie.

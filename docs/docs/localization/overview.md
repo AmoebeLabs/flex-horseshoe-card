@@ -9,7 +9,7 @@ tags:
 
 # Localization and formatting
 
-FHS uses the name, state, unit, precision, icon, area, and locale known by Home Assistant. In many cards, defining the entity is enough.
+Flexible Horseshoe Card uses the name, state, unit, precision, icon, area, and locale known by Home Assistant. In many cards, defining the entity is enough.
 
 ## :material-horseshoe: Start with the entity
 

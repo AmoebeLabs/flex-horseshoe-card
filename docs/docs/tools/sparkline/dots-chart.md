@@ -18,7 +18,7 @@ Use it when individual observations matter more than a continuous trend or when 
 
 ## :material-horseshoe: Basic configuration
 
-This example shows the latest day and lets FHS choose a suitable number of points:
+This example shows the latest day and lets Flexible Horseshoe Card choose a suitable number of points:
 
 ```yaml linenums="1"
 layout:
@@ -62,7 +62,7 @@ layout:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. FHS then chooses a suitable interval from the graph width, duration, chart type, and `bins.density`. Set a number only when you deliberately need a fixed number of points per hour.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then chooses a suitable interval from the graph width, duration, chart type, and `bins.density`. Set a number only when you deliberately need a fixed number of points per hour.
 
 ## :material-horseshoe: Basic dots chart
 

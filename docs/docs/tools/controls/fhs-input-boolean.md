@@ -1,16 +1,16 @@
 ---
 template: main.html
-title: FHS input boolean
+title: Flexible Horseshoe Card input boolean
 description: Add a browser-local on/off setting to a Flexible Horseshoe Card.
 tags:
   - Controls
-  - FHS inputs
+  - Flexible Horseshoe Card inputs
   - Boolean
 ---
 
-# FHS input boolean
+# Flexible Horseshoe Card input boolean
 
-An FHS input boolean adds an on/off setting directly to a Flexible Horseshoe Card. Use it for choices that belong to the card, such as showing labels, displaying a grid, enabling an extra layer, or switching part of the card on and off.
+An Flexible Horseshoe Card input boolean adds an on/off setting directly to a Flexible Horseshoe Card. Use it for choices that belong to the card, such as showing labels, displaying a grid, enabling an extra layer, or switching part of the card on and off.
 
 The value is stored in the current browser and does not require a Home Assistant helper. Use a Home Assistant [Input boolean](https://www.home-assistant.io/integrations/input_boolean/) instead when automations, other dashboards, or other devices need the same setting.
 
@@ -51,7 +51,7 @@ The toggle now changes the value between `on` and `off`.
 | `entity` | A unique entity ID starting with `fhs_input_boolean.`. |
 | `initial` | Initial value: `true` or `false`. |
 | `scope: card` | Keeps a separate value for this card. |
-| `scope: global` | Shares the value with FHS cards in the current browser. |
+| `scope: global` | Shares the value with Flexible Horseshoe Card cards in the current browser. |
 | `persist: true` | Restores a global value after the browser reloads. |
 | `name` | Name shown by tools that display the entity name. |
 | `icon` | Icon shown by tools that display the entity icon. |
@@ -60,7 +60,7 @@ See [Entities](../../card-basics/entities.md) for slots and other entity setting
 
 ## :material-horseshoe: Use the value in a card
 
-FHS exposes the value as the state `on` or `off`. A JavaScript template can use that state to change what the card displays.
+Flexible Horseshoe Card exposes the value as the state `on` or `off`. A JavaScript template can use that state to change what the card displays.
 
 This example shows a text label only while the input is on:
 
@@ -110,7 +110,7 @@ entities:
     persist: true
 ```
 
-Every FHS card in the current browser that defines `fhs_input_boolean.compact_view` receives the same value. Other browsers and devices keep their own value.
+Every Flexible Horseshoe Card card in the current browser that defines `fhs_input_boolean.compact_view` receives the same value. Other browsers and devices keep their own value.
 
 ## :material-horseshoe: Related
 

@@ -46,7 +46,7 @@ The chart supports `calendar` and `rolling_window`. It uses the existing `color_
 
 The tool maps every raw history state through `state_map` before numeric graph processing. It keeps the raw state, mapped value, and timestamp available for segment construction.
 
-The Home Assistant history request already includes the state active at the requested start time because FHS does not send `skip_initial_state`. An older returned state is clipped to the exact visible range start. If Home Assistant has no state from before the first returned transition, the unknown interval remains empty; the first state is never extended backwards without supporting data.
+The Home Assistant history request already includes the state active at the requested start time because Flexible Horseshoe Card does not send `skip_initial_state`. An older returned state is clipped to the exact visible range start. If Home Assistant has no state from before the first returned transition, the unknown interval remains empty; the first state is never extended backwards without supporting data.
 
 Consecutive records with the same mapped state form one segment. A segment ends at the next state transition. The last state continues to the current data end for an active period or to the range end for a closed calendar period. Segment geometry is clipped to the existing X-axis range.
 

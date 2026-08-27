@@ -49,7 +49,7 @@ layout:
 
 ## :material-horseshoe: Where the area comes from
 
-FHS uses the Home Assistant area assigned to the entity.
+Flexible Horseshoe Card uses the Home Assistant area assigned to the entity.
 
 If the entity itself has no area, the area assigned to its device is used.
 

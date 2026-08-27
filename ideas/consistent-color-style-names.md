@@ -2,7 +2,7 @@
 
 ## Goal
 
-FHS currently uses some color style names for different visual results. In
+Flexible Horseshoe Card currently uses some color style names for different visual results. In
 particular, `colorstopgradient` can mean either one interpolated color or an
 actual gradient, while `colorstop` can mean either one threshold color or a
 complete set of hard color-stop segments.
@@ -15,16 +15,16 @@ styles have been verified visually.
 
 ## Final color families
 
-| Style | Visual result |
-| --- | --- |
-| `fixed` | One configured color |
-| `autominmax` | One automatically interpolated color between the minimum and maximum colors |
-| `minmaxgradient` | A continuous min/zero/max gradient over the active range |
-| `colorstop` | One hard color-stop color for the current value |
-| `colorstopinterpolated` | One interpolated color for the current value |
-| `colorstopsegments` | Separate solid sections at the color-stop positions |
-| `lineargradient` | All configured colors distributed evenly over the rendered range |
-| `colorstopgradient` | A continuous gradient using the numeric color-stop positions |
+| Style                   | Visual result                                                               |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `fixed`                 | One configured color                                                        |
+| `autominmax`            | One automatically interpolated color between the minimum and maximum colors |
+| `minmaxgradient`        | A continuous min/zero/max gradient over the active range                    |
+| `colorstop`             | One hard color-stop color for the current value                             |
+| `colorstopinterpolated` | One interpolated color for the current value                                |
+| `colorstopsegments`     | Separate solid sections at the color-stop positions                         |
+| `lineargradient`        | All configured colors distributed evenly over the rendered range            |
+| `colorstopgradient`     | A continuous gradient using the numeric color-stop positions                |
 
 Not every renderer supports every style. Individual SVG items use the
 single-color styles. Full scale bands and tracks use the spatial segment and
@@ -35,17 +35,17 @@ gradient styles.
 The following changes are configuration migrations only. The implementation
 behind every renamed selector remains unchanged.
 
-| Configuration context | Before | After | Behavior |
-| --- | --- | --- | --- |
-| Horseshoe state | `horseshoe_style: lineargradient` | `horseshoe_style: minmaxgradient` | Existing active min/zero/max gradient |
-| Horseshoe state | `horseshoe_style: autominmax` | `horseshoe_style: autominmax` | No migration; existing single interpolated min/max color |
-| Layout items and multipart text | `item_style: colorstopgradient` | `item_style: colorstopinterpolated` | Existing single interpolated color |
-| Layout item paint dictionary | `colorstopgradient:` | `colorstopinterpolated:` | Existing fill/stroke selection |
-| Tick colors | `color_mode: colorstopgradient` | `color_mode: colorstopinterpolated` | Existing interpolated tick color |
-| Horseshoe scale | `scale_style: colorstop` | `scale_style: colorstopsegments` | Existing hard scale sections |
-| Horseshoe, tick, and label background | `*_background: colorstop` | `*_background: colorstopsegments` | Existing hard background sections |
-| Bar/equalizer track | `item_style: colorstop` | `item_style: colorstopsegments` | Existing hard full-scale track |
-| Bar/equalizer track paint dictionary | `colorstop:` | `colorstopsegments:` | Existing fill/stroke selection |
+| Configuration context                 | Before                            | After                               | Behavior                                                 |
+| ------------------------------------- | --------------------------------- | ----------------------------------- | -------------------------------------------------------- |
+| Horseshoe state                       | `horseshoe_style: lineargradient` | `horseshoe_style: minmaxgradient`   | Existing active min/zero/max gradient                    |
+| Horseshoe state                       | `horseshoe_style: autominmax`     | `horseshoe_style: autominmax`       | No migration; existing single interpolated min/max color |
+| Layout items and multipart text       | `item_style: colorstopgradient`   | `item_style: colorstopinterpolated` | Existing single interpolated color                       |
+| Layout item paint dictionary          | `colorstopgradient:`              | `colorstopinterpolated:`            | Existing fill/stroke selection                           |
+| Tick colors                           | `color_mode: colorstopgradient`   | `color_mode: colorstopinterpolated` | Existing interpolated tick color                         |
+| Horseshoe scale                       | `scale_style: colorstop`          | `scale_style: colorstopsegments`    | Existing hard scale sections                             |
+| Horseshoe, tick, and label background | `*_background: colorstop`         | `*_background: colorstopsegments`   | Existing hard background sections                        |
+| Bar/equalizer track                   | `item_style: colorstop`           | `item_style: colorstopsegments`     | Existing hard full-scale track                           |
+| Bar/equalizer track paint dictionary  | `colorstop:`                      | `colorstopsegments:`                | Existing fill/stroke selection                           |
 
 These configurations keep their existing names and behavior:
 
@@ -132,7 +132,7 @@ background:
     stroke: false
 ```
 
-After implementing step 1, build and lint FHS. Update test card configurations
+After implementing step 1, build and lint Flexible Horseshoe Card. Update test card configurations
 using this table and verify that their output is visually identical before any
 new style is introduced.
 
@@ -193,10 +193,10 @@ the same paired bounds; omitting both retains the automatic data range.
 setting intentionally produces different representations for different graph
 elements:
 
-| Renderer | `hard` | `smooth` |
-| --- | --- | --- |
+| Renderer                                 | `hard`                | `smooth`                          |
+| ---------------------------------------- | --------------------- | --------------------------------- |
 | Individual dot, bar, or equalizer bucket | One `colorstop` color | One `colorstopinterpolated` color |
-| Gradient over a complete scale | `colorstopsegments` | `colorstopgradient` |
+| Gradient over a complete scale           | `colorstopsegments`   | `colorstopgradient`               |
 
 This translation belongs to `sparkline-graph-tool.js`. The graph engine only
 receives normalized colors and offsets and does not need color-style knowledge.

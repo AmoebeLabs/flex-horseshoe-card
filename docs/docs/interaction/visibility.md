@@ -59,6 +59,6 @@ Set visibility on a group to affect all tools placed inside it. See [Groups](../
 
 ## :material-horseshoe: Related
 
-- [FHS input boolean](../tools/controls/fhs-input-boolean.md)
+- [Flexible Horseshoe Card input boolean](../tools/controls/fhs-input-boolean.md)
 - [JavaScript templates](../dynamic/javascript-templates.md)
 - [Animations](animations.md)

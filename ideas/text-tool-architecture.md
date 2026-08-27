@@ -88,7 +88,7 @@ it does not become a separate tool instance.
 
 ## Ellipsis
 
-SVG tspans do not provide usable CSS text overflow. FHS applies ellipsis before
+SVG tspans do not provide usable CSS text overflow. Flexible Horseshoe Card applies ellipsis before
 rendering:
 
 - item-level `ellipsis` is a character limit per visual line;
@@ -256,7 +256,7 @@ It remains fully active for state updates, formatting, colors and measurement,
 while only the composed TextTool output is visible. `disabled: true` cannot be
 used for a source because a disabled item has no runtime tool instance.
 
-FHS icons remain separate layout items. SVG `<tspan>` cannot contain an FHS
+Flexible Horseshoe Card icons remain separate layout items. SVG `<tspan>` cannot contain an Flexible Horseshoe Card
 icon path, image, injected SVG or `ha-icon`; mixed icon/text content would need
 a separate layout and measurement engine. Icons and text can already be placed
 together through a shared group.

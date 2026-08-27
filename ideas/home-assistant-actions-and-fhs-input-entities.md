@@ -1,8 +1,8 @@
-# Home Assistant Actions and FHS Input Entities
+# Home Assistant Actions and Flexible Horseshoe Card Input Entities
 
 ## Problem
 
-FHS currently resolves a clicked entity configuration by entity id. That is
+Flexible Horseshoe Card currently resolves a clicked entity configuration by entity id. That is
 ambiguous when the same Home Assistant entity appears more than once, and a
 layout item cannot override the action of its configured entity. The existing
 handler also uses the older `call-service` format and handles only a single tap
@@ -15,7 +15,7 @@ Home Assistant helper for browser-local presentation state is unnecessary.
 
 ## Public configuration
 
-An FHS number input uses the same entity model as a Home Assistant
+An Flexible Horseshoe Card number input uses the same entity model as a Home Assistant
 `input_number` helper:
 
 ```yaml
@@ -27,7 +27,7 @@ entities:
 ```
 
 `scope: card` keeps the value in one card. `scope: global` shares it between
-FHS cards in the loaded frontend, including while navigating between
+Flexible Horseshoe Card cards in the loaded frontend, including while navigating between
 dashboards. `persist: true` restores that global value after a full page
 reload.
 
@@ -43,7 +43,7 @@ tap_action:
     value: 7
 ```
 
-FHS additionally accepts an ordered action list while every list entry remains
+Flexible Horseshoe Card additionally accepts an ordered action list while every list entry remains
 a normal Home Assistant action object:
 
 ```yaml
@@ -74,7 +74,7 @@ tap_action:
   action: more-info
 ```
 
-The same `haptic` option can wrap an ordered `actions:` list. FHS emits
+The same `haptic` option can wrap an ordered `actions:` list. Flexible Horseshoe Card emits
 Home Assistant's normal haptic event, so this does not require `browser_mod`.
 
 ## Architecture
@@ -86,13 +86,13 @@ Home Assistant's normal haptic event, so this does not require `browser_mod`.
 3. The execution layer handles Home Assistant action objects. Modern
    `perform-action` uses `perform_action`, `target`, and `data`; legacy
    `call-service` remains supported for existing cards.
-4. The FHS input layer intercepts only
+4. The Flexible Horseshoe Card input layer intercepts only
    `perform_action: fhs_input_number.set_value`. Every other action remains a
    Home Assistant action.
-5. Changing an FHS input replaces its HA-shaped entity state and enters the
+5. Changing an Flexible Horseshoe Card input replaces its HA-shaped entity state and enters the
    existing configured-entity update pipeline exactly once. Tools, templates,
    styles, graph runtime configuration, and history code do not receive a
-   special FHS-input path.
+   special Flexible Horseshoe Card-input path.
 
 Global values live in a static map on the card class. A namespaced window event
 notifies mounted cards containing the same global entity. Cards subscribe in
@@ -100,7 +100,7 @@ notifies mounted cards containing the same global entity. Cards subscribe in
 
 ## Persistent global inputs
 
-A global FHS input may use `persist: true`. Its HA-shaped state record is then
+A global Flexible Horseshoe Card input may use `persist: true`. Its HA-shaped state record is then
 stored in namespaced `localStorage` under its entity id. The static map remains
 the active source while the frontend is loaded; storage is read only when the
 map does not contain that entity after a full page reload.
@@ -108,7 +108,7 @@ map does not contain that entity after a full page reload.
 Scope and persistence remain separate:
 
 - `scope: card` keeps independent state in one card instance;
-- `scope: global` shares one state through the loaded FHS class;
+- `scope: global` shares one state through the loaded Flexible Horseshoe Card class;
 - `persist: true` retains that global state across a full page reload.
 
 Persistence is restricted to global inputs. Card templates commonly create
@@ -120,7 +120,7 @@ real Home Assistant helper.
 
 ## Action behavior
 
-FHS supports the current Home Assistant action types: `more-info`, `toggle`,
+Flexible Horseshoe Card supports the current Home Assistant action types: `more-info`, `toggle`,
 `perform-action`, `navigate`, `url`, `assist`, and `none`. Existing
 `call-service` and `fire-dom-event` configurations remain compatible.
 
@@ -141,7 +141,7 @@ not part of this implementation.
 
 ## Compatibility and testing
 
-Cards without item actions or FHS inputs retain their existing behavior.
+Cards without item actions or Flexible Horseshoe Card inputs retain their existing behavior.
 Testing must cover duplicate entity ids, item overrides, singular and ordered
 actions, all supported action types, mouse and touch gestures, local inputs,
 global synchronization, active-button styling, listener cleanup, existing

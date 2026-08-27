@@ -11,7 +11,7 @@ tags:
 
 Interactive controls add buttons, toggles, selectors, number steppers, and sliders to a card. Use them to operate an entity, change a card setting, or run a Home Assistant action where it is useful.
 
-Use controls with Home Assistant entities when the value belongs to Home Assistant and may also be used by automations, dashboards, or other devices. Use [browser-local FHS inputs](browser-local-inputs.md) for choices that only affect FHS cards in the current browser.
+Use controls with Home Assistant entities when the value belongs to Home Assistant and may also be used by automations, dashboards, or other devices. Use [browser-local Flexible Horseshoe Card inputs](browser-local-inputs.md) for choices that only affect Flexible Horseshoe Card cards in the current browser.
 
 {{ loop_video(
   "2026.08.13-fhs-showcase-controls.mp4",
@@ -57,14 +57,14 @@ Use the individual control pages for complete examples and the options available
 A control can work with:
 
 - a Home Assistant entity such as a light, switch, number, select, or input helper;
-- a [browser-local FHS input](browser-local-inputs.md);
+- a [browser-local Flexible Horseshoe Card input](browser-local-inputs.md);
 - an action that already names its own target, navigation path, or URL.
 
-Use a Home Assistant entity when its state needs to be available outside the card. FHS inputs are useful for display modes, chart periods, visible layers, and other settings that belong to the card itself.
+Use a Home Assistant entity when its state needs to be available outside the card. Flexible Horseshoe Card inputs are useful for display modes, chart periods, visible layers, and other settings that belong to the card itself.
 
 ## :material-horseshoe: Actions and availability
 
-Buttons can define their own tap, hold, and double-tap actions. Other controls normally change their connected entity or FHS input directly.
+Buttons can define their own tap, hold, and double-tap actions. Other controls normally change their connected entity or Flexible Horseshoe Card input directly.
 
 Set `visibility: unavailable` when a control should remain visible but cannot be used in the current situation. The control becomes visually subdued and does not respond to interaction.
 

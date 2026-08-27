@@ -204,7 +204,7 @@ text_overflow:
 
 ### Keep the text size within a fixed width
 
-Use this when the label must stay within a known width while keeping its font size. Unlike `ellipsis: 40`, `max_width: 40` is a width in the card layout, not a character count. FHS shortens the ending only when the complete label is wider than `max_width`.
+Use this when the label must stay within a known width while keeping its font size. Unlike `ellipsis: 40`, `max_width: 40` is a width in the card layout, not a character count. Flexible Horseshoe Card shortens the ending only when the complete label is wider than `max_width`.
 
 ```yaml linenums="1"
 text_overflow:
@@ -215,7 +215,7 @@ text_overflow:
 
 ### Keep the complete label visible
 
-FHS uses the configured text size while it fits and makes the label smaller only when necessary. Set `min_font_size` to the smallest size that is still readable in your card.
+Flexible Horseshoe Card uses the configured text size while it fits and makes the label smaller only when necessary. Set `min_font_size` to the smallest size that is still readable in your card.
 
 ```yaml linenums="1"
 text_overflow:

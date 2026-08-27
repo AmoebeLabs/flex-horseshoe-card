@@ -178,7 +178,7 @@ Use `show.horseshoe_style` to control how the horseshoe is colored.
 
 For a normal bar, `lineargradient` distributes every configured color evenly over the active horseshoe. The numeric distance between color-stop values does not affect their visual spacing.
 
-For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. Each side distributes its applicable colors evenly between the outer scale value and zero. Add a color stop at `0` to control the center color, or let FHS calculate it from the surrounding stops.
+For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. Each side distributes its applicable colors evenly between the outer scale value and zero. Add a color stop at `0` to control the center color, or let Flexible Horseshoe Card calculate it from the surrounding stops.
 
 ```yaml linenums="1"
 bar_mode: bidirectional

@@ -1,16 +1,16 @@
 ---
 template: main.html
-title: FHS input number
+title: Flexible Horseshoe Card input number
 description: Add a browser-local adjustable number to a Flexible Horseshoe Card.
 tags:
   - Controls
-  - FHS inputs
+  - Flexible Horseshoe Card inputs
   - Number
 ---
 
-# FHS input number
+# Flexible Horseshoe Card input number
 
-An FHS input number adds an adjustable numeric setting directly to a Flexible Horseshoe Card. Use it for a history duration, scale boundary, threshold, offset, width, or any other number used by the card.
+An Flexible Horseshoe Card input number adds an adjustable numeric setting directly to a Flexible Horseshoe Card. Use it for a history duration, scale boundary, threshold, offset, width, or any other number used by the card.
 
 The value is stored in the current browser and does not require a Home Assistant helper. Use a Home Assistant [Input number](https://www.home-assistant.io/integrations/input_number/) instead when automations, other dashboards, or other devices need the same value.
 
@@ -61,7 +61,7 @@ Use a [slider control](slider-tool.md) instead when the user should adjust the v
 | `unit` | Unit shown with the value. |
 | `decimals` | Number of decimal places shown for the value. |
 | `scope: card` | Keeps a separate value for this card. |
-| `scope: global` | Shares the value with FHS cards in the current browser. |
+| `scope: global` | Shares the value with Flexible Horseshoe Card cards in the current browser. |
 | `persist: true` | Restores a global value after the browser reloads. |
 | `name` | Name shown by tools that display the entity name. |
 | `icon` | Icon shown by tools that display the entity icon. |
@@ -123,7 +123,7 @@ entities:
     persist: true
 ```
 
-Every FHS card in the current browser that defines `fhs_input_number.history_days` receives the same value. Other browsers and devices keep their own value.
+Every Flexible Horseshoe Card card in the current browser that defines `fhs_input_number.history_days` receives the same value. Other browsers and devices keep their own value.
 
 ## :material-horseshoe: Related
 

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Flexible Horseshoe Card currently has several configuration representations and several independent JavaScript-template evaluation paths. A tool can receive static YAML, configuration expanded by an FHS template, values copied through `ref()`, values inherited through `same_as`, a partially normalized object, or a newly evaluated runtime object. The names `config` and `runtimeConfig` do not consistently explain which representation is being used.
+Flexible Horseshoe Card currently has several configuration representations and several independent JavaScript-template evaluation paths. A tool can receive static YAML, configuration expanded by an Flexible Horseshoe Card template, values copied through `ref()`, values inherited through `same_as`, a partially normalized object, or a newly evaluated runtime object. The names `config` and `runtimeConfig` do not consistently explain which representation is being used.
 
 This document records the current behavior and defines a target architecture. It is an investigation and design document only. It does not change production behavior.
 
@@ -23,7 +23,7 @@ The current card-level flow starts in `main.js` and is approximately:
 ```text
 raw Lovelace YAML
 -> JSON clone
--> FHS card/part template expansion
+-> Flexible Horseshoe Card card/part template expansion
 -> assign layout ids
 -> build constants and static calc constants
 -> replace ref(...) throughout the config
@@ -48,7 +48,7 @@ The object passed to `setConfig()` is the user's Lovelace configuration. `setCon
 
 ### Statically compiled card configuration
 
-FHS reusable templates, IDs, constants, `ref()`, `calc()` and `same_as` mutate or replace parts of the cloned configuration. The resulting object is then merged with card defaults and assigned to `this.config` in the card.
+Flexible Horseshoe Card reusable templates, IDs, constants, `ref()`, `calc()` and `same_as` mutate or replace parts of the cloned configuration. The resulting object is then merged with card defaults and assigned to `this.config` in the card.
 
 This card configuration is mostly static, but it can still contain unresolved `[[[ ... ]]]` strings. Consequently, `this.config` at card level does not mean either completely static or completely runtime-ready.
 
@@ -73,9 +73,9 @@ These paths can evaluate the same source at different times and do not share a c
 
 ## Current Static Features
 
-### FHS reusable templates
+### Flexible Horseshoe Card reusable templates
 
-FHS templates run first. Their output is normal card configuration and continues through the remaining static compiler. They do not perform runtime JavaScript evaluation.
+Flexible Horseshoe Card templates run first. Their output is normal card configuration and continues through the remaining static compiler. They do not perform runtime JavaScript evaluation.
 
 ### Constants
 
@@ -142,15 +142,15 @@ Constants must remain source values. Globally resolving all constants would be w
 
 ## Practical End-User Template Pattern
 
-A common existing pattern uses `config-template-card` variables as card-wide calculations and injects their results into entity icons, animation icons, animation styles and normal layout styles. The wrapper reevaluates those variables when an entity in its dependency list changes and then supplies the completed FHS config.
+A common existing pattern uses `config-template-card` variables as card-wide calculations and injects their results into entity icons, animation icons, animation styles and normal layout styles. The wrapper reevaluates those variables when an entity in its dependency list changes and then supplies the completed Flexible Horseshoe Card config.
 
-A direct FHS equivalent must list every entity read through `states[...]` in the FHS `entities` section, including supporting entities that have no visible layout item. Adding a dependency entity does not require rendering it. It only makes the update dependency explicit.
+A direct Flexible Horseshoe Card equivalent must list every entity read through `states[...]` in the Flexible Horseshoe Card `entities` section, including supporting entities that have no visible layout item. Adding a dependency entity does not require rendering it. It only makes the update dependency explicit.
 
-FHS constants are reusable source values rather than one globally evaluated result. A JavaScript-template constant can be copied into multiple consumers with `ref(name)`. Because JavaScript detection runs after references and `same_as`, every resulting entity, animation or layout item receives its own `hasJavascript` flag.
+Flexible Horseshoe Card constants are reusable source values rather than one globally evaluated result. A JavaScript-template constant can be copied into multiple consumers with `ref(name)`. Because JavaScript detection runs after references and `same_as`, every resulting entity, animation or layout item receives its own `hasJavascript` flag.
 
 This preserves item context: the same constant can use `state`, `entity` or `item` differently in each consumer. The JavaScript function itself can be compiled once and cached, but its result is evaluated in the context of each marked consumer after a configured entity state changes.
 
-For constants that only read `states[...]`, this produces the same visible behavior as card-wide variables. FHS must not assume that every constant is card-wide, because arbitrary constants can also depend on the consuming item.
+For constants that only read `states[...]`, this produces the same visible behavior as card-wide variables. Flexible Horseshoe Card must not assume that every constant is card-wide, because arbitrary constants can also depend on the consuming item.
 
 ## Current JavaScript Evaluation
 
@@ -160,37 +160,37 @@ Every evaluation currently constructs a new `Function`. There is no function cac
 
 Templates receive this public context:
 
-| Variable | Current meaning |
-| --- | --- |
-| `hass` | Current Home Assistant object |
-| `config` | Card-level compiled configuration, potentially still containing expressions |
-| `entity` | Entity selected by the current item's `entity_index` |
-| `entities` | Current FHS entity-state list |
-| `states` | `hass.states` |
-| `state` | Selected entity state or configured attribute |
-| `constants` | `config.constants` |
-| `item` | Item supplied as evaluation context |
-| `user` | Current Home Assistant user |
+| Variable    | Current meaning                                                             |
+| ----------- | --------------------------------------------------------------------------- |
+| `hass`      | Current Home Assistant object                                               |
+| `config`    | Card-level compiled configuration, potentially still containing expressions |
+| `entity`    | Entity selected by the current item's `entity_index`                        |
+| `entities`  | Current Flexible Horseshoe Card entity-state list                           |
+| `states`    | `hass.states`                                                               |
+| `state`     | Selected entity state or configured attribute                               |
+| `constants` | `config.constants`                                                          |
+| `item`      | Item supplied as evaluation context                                         |
+| `user`      | Current Home Assistant user                                                 |
 
 The public JavaScript variable `config` must continue to mean the statically compiled card configuration. Changing it to a partially evaluated runtime object would make templates order-dependent: a template could observe an earlier item after evaluation but a later item before evaluation. There is no generally correct order for arbitrary user JavaScript.
 
 ## Current Evaluation Locations And Impact
 
-| Component | Current evaluation location | Current impact |
-| --- | --- | --- |
-| Entity definitions | `_resolveEntityConfigs()` in `main.js` | The complete entity config is evaluated, currently more than once in a state pass |
-| Ordinary visible tools | `BaseTool.setState()` | Every tool config is recursively scanned and cloned on each tool state update |
-| Horseshoes | Horseshoe-specific state/config path | Evaluation and color-stop normalization differ from other tools |
-| Sparklines | `BaseTool.setState()`, `_prepareItemColorStops()` and graph update code | Most rendering uses runtime config, but color stops and some fields follow separate paths |
-| Item styles | Usually part of BaseTool evaluation; selected paths also evaluate separately | Support depends on the tool and callsite |
-| Card-level styles | `main.js::render()` | JavaScript executes during Lit rendering |
-| Color stops | `_prepareItemColorStops()` plus horseshoe-specific normalization | JavaScript evaluation and data-shape normalization are coupled |
-| Animations | Animation handling in `main.js` | Only selected fields such as styles and icons are evaluated ad hoc |
-| Icons | BaseTool plus icon render/update paths | Some values can be evaluated more than once or during rendering |
-| Groups | `GroupManager` construction only | Group values are static and resolved groups are cached |
-| Gradients | `MasksClips` construction only | Static and normalized once |
-| Clips and masks | `MasksClips` construction only | Static and normalized once |
-| Child cards | Child card's own `setConfig()` and Home Assistant lifecycle | Parent only creates, positions and forwards `hass` |
+| Component              | Current evaluation location                                                  | Current impact                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Entity definitions     | `_resolveEntityConfigs()` in `main.js`                                       | The complete entity config is evaluated, currently more than once in a state pass         |
+| Ordinary visible tools | `BaseTool.setState()`                                                        | Every tool config is recursively scanned and cloned on each tool state update             |
+| Horseshoes             | Horseshoe-specific state/config path                                         | Evaluation and color-stop normalization differ from other tools                           |
+| Sparklines             | `BaseTool.setState()`, `_prepareItemColorStops()` and graph update code      | Most rendering uses runtime config, but color stops and some fields follow separate paths |
+| Item styles            | Usually part of BaseTool evaluation; selected paths also evaluate separately | Support depends on the tool and callsite                                                  |
+| Card-level styles      | `main.js::render()`                                                          | JavaScript executes during Lit rendering                                                  |
+| Color stops            | `_prepareItemColorStops()` plus horseshoe-specific normalization             | JavaScript evaluation and data-shape normalization are coupled                            |
+| Animations             | Animation handling in `main.js`                                              | Only selected fields such as styles and icons are evaluated ad hoc                        |
+| Icons                  | BaseTool plus icon render/update paths                                       | Some values can be evaluated more than once or during rendering                           |
+| Groups                 | `GroupManager` construction only                                             | Group values are static and resolved groups are cached                                    |
+| Gradients              | `MasksClips` construction only                                               | Static and normalized once                                                                |
+| Clips and masks        | `MasksClips` construction only                                               | Static and normalized once                                                                |
+| Child cards            | Child card's own `setConfig()` and Home Assistant lifecycle                  | Parent only creates, positions and forwards `hass`                                        |
 
 ## Entity Dependencies For JavaScript Templates
 
@@ -198,7 +198,7 @@ The card's `setHass()` path first decides whether an entity has changed. That de
 
 A JavaScript template can read another Home Assistant entity through `states['sensor.example']`. Every entity used this way must also be present in the card-level `entities` list. This makes the dependency explicit and ensures that a change passes the existing entity-change gate.
 
-FHS does not attempt to parse arbitrary JavaScript to discover entity dependencies. A template that references an entity which is absent from `entities` is outside the supported update contract and is not guaranteed to refresh when that entity changes.
+Flexible Horseshoe Card does not attempt to parse arbitrary JavaScript to discover entity dependencies. A template that references an entity which is absent from `entities` is outside the supported update contract and is not guaranteed to refresh when that entity changes.
 
 ## Target Configuration Layers
 
@@ -213,7 +213,7 @@ The unchanged Lovelace input. It exists only for diagnostics and error reporting
 The static card result after:
 
 ```text
-FHS reusable templates
+Flexible Horseshoe Card reusable templates
 -> ids
 -> constants
 -> ref(...)
@@ -232,8 +232,8 @@ The statically compiled source belonging to one runtime component, such as an en
 For a tool:
 
 ```js
-this.sourceConfig // expression-bearing compiled item
-this.config       // active evaluated and normalized item
+this.sourceConfig; // expression-bearing compiled item
+this.config; // active evaluated and normalized item
 ```
 
 ### Active `config`
@@ -316,18 +316,18 @@ Coordinates, sizes, paths, scales and labels are derived only after the active c
 
 JavaScript support should be consistent for complete user-facing components rather than selected individual fields.
 
-| Configuration area | Target JavaScript support | Reason |
-| --- | --- | --- |
-| Entity definitions | Complete entity item | Names, icons, units, formatting and actions form one entity config |
-| Visible layout tools | Complete item | Avoid field-by-field support differences |
-| Horseshoes | Complete item | Same contract as other visible tools |
-| Sparklines | Complete item, including nested sparkline config | Same contract as other visible tools |
-| Card-level styles | Complete styles block | Already documented and currently supported |
-| Animation items | Complete animation item | Avoid separate style/icon rules |
-| Groups | Complete group config | Allows dynamic position, scale and group-level styling/filtering |
-| Gradients | Static | SVG definition infrastructure is constructed once |
-| Clips and masks | Static | SVG definition infrastructure is constructed once |
-| Child-card config and placement | Child lifecycle | The child card owns its configuration and runtime behavior |
+| Configuration area              | Target JavaScript support                        | Reason                                                             |
+| ------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| Entity definitions              | Complete entity item                             | Names, icons, units, formatting and actions form one entity config |
+| Visible layout tools            | Complete item                                    | Avoid field-by-field support differences                           |
+| Horseshoes                      | Complete item                                    | Same contract as other visible tools                               |
+| Sparklines                      | Complete item, including nested sparkline config | Same contract as other visible tools                               |
+| Card-level styles               | Complete styles block                            | Already documented and currently supported                         |
+| Animation items                 | Complete animation item                          | Avoid separate style/icon rules                                    |
+| Groups                          | Complete group config                            | Allows dynamic position, scale and group-level styling/filtering   |
+| Gradients                       | Static                                           | SVG definition infrastructure is constructed once                  |
+| Clips and masks                 | Static                                           | SVG definition infrastructure is constructed once                  |
+| Child-card config and placement | Child lifecycle                                  | The child card owns its configuration and runtime behavior         |
 
 Groups without an entity binding can use `hass`, `states`, `constants`, `config` and `user`. `state` and `entity` only have meaning when the evaluated component has an `entity_index`.
 
@@ -377,14 +377,14 @@ These remain static and continue to be normalized at card construction. Their re
 
 ### Child cards
 
-The parent does not recursively evaluate child-card configuration. Each child remains a normal Home Assistant card with its own `setConfig()`, `hass` and render lifecycle. Parent placement remains static FHS configuration.
+The parent does not recursively evaluate child-card configuration. Each child remains a normal Home Assistant card with its own `setConfig()`, `hass` and render lifecycle. Parent placement remains static Flexible Horseshoe Card configuration.
 
 ## Central Section Registry
 
 The later implementation should define one authoritative list of visible layout sections and reuse it for:
 
 - ID assignment.
-- FHS part-template traversal.
+- Flexible Horseshoe Card part-template traversal.
 - `same_as` compilation.
 - Entity-id to `entity_index` resolution.
 - JavaScript detection.

@@ -20,7 +20,7 @@ Use a rolling window to follow the latest measurements, a calendar period to sho
 
 ## :material-horseshoe: Basic configuration
 
-This example follows the latest 24 hours and lets FHS choose a suitable level of detail:
+This example follows the latest 24 hours and lets Flexible Horseshoe Card choose a suitable level of detail:
 
 ```yaml linenums="1"
 period:
@@ -44,7 +44,7 @@ sparkline:
 | `period.type` | string | No | `calendar` | Uses `real_time`, `rolling_window`, or `calendar`. |
 | `duration` | duration | No | `hour: 24` | Chooses how much history the graph displays. |
 | `offset` | number | No | `0` | Moves a rolling or calendar period back by a number of days. Negative values select earlier periods. |
-| `bins.per_hour` | number or `auto` | No | `auto` | Uses an exact number of bins per hour or lets FHS choose the interval. |
+| `bins.per_hour` | number or `auto` | No | `auto` | Uses an exact number of bins per hour or lets Flexible Horseshoe Card choose the interval. |
 | `bins.density` | string | No | `medium` | Chooses `low`, `medium`, or `high` detail when `bins.per_hour` is `auto`. |
 | `state_values.aggregate_func` | string | No | `avg` | Chooses the value represented by each interval. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections for line and area charts. |
@@ -52,7 +52,7 @@ sparkline:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. FHS then adapts the interval to the graph width, duration, chart type, and selected density. Configure a number only when the graph must use a fixed interval.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then adapts the interval to the graph width, duration, chart type, and selected density. Configure a number only when the graph must use a fixed interval.
 
 ## :material-horseshoe: Period types
 
@@ -130,11 +130,11 @@ A completed calendar period remains unchanged throughout the day. When the local
 
 Duration determines how much time the graph covers. Hours work well for compact daily and multi-day history graphs.
 
-Changing the graph’s width or height does not affect the selected time range. In automatic mode, the configured width helps FHS choose how many bins fit comfortably. A manually configured `bins.per_hour` remains unchanged when the graph size changes.
+Changing the graph’s width or height does not affect the selected time range. In automatic mode, the configured width helps Flexible Horseshoe Card choose how many bins fit comfortably. A manually configured `bins.per_hour` remains unchanged when the graph size changes.
 
 ## :material-horseshoe: Bins per hour
 
-By default, FHS chooses `bins.per_hour` automatically from the duration, configured graph width, chart type, and selected density:
+By default, Flexible Horseshoe Card chooses `bins.per_hour` automatically from the duration, configured graph width, chart type, and selected density:
 
 ```yaml linenums="1"
 bins:
@@ -195,7 +195,7 @@ sparkline:
     logarithmic: false
 ```
 
-The tooltip and derived FHS entities use the minimum, average, and maximum values from the selected time interval.
+The tooltip and derived Flexible Horseshoe Card entities use the minimum, average, and maximum values from the selected time interval.
 
 ## :material-horseshoe: Empty and active bins
 

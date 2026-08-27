@@ -29,7 +29,7 @@ The card also supports [`tap actions`](../interaction/interaction-overview.md) f
 
 ## :material-horseshoe: What you can create
 
-Use FHS for cards such as:
+Use Flexible Horseshoe Card for cards such as:
 
 - temperature, humidity, and air-quality gauges;
 - electricity consumption and production;
@@ -54,7 +54,7 @@ Use groups to move related tools together.
 
 ## :material-horseshoe: Use Home Assistant data
 
-FHS uses Home Assistant entity names, units, precision, icons, areas, locale, themes, and actions. Start with the entity's existing values and override only what needs to look different in this card.
+Flexible Horseshoe Card uses Home Assistant entity names, units, precision, icons, areas, locale, themes, and actions. Start with the entity's existing values and override only what needs to look different in this card.
 
 ## :material-horseshoe: Add colors and behavior
 

@@ -72,8 +72,8 @@ Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-sc
 | Field              | Default                       | Description                                               |
 | :----------------- | :---------------------------- | :-------------------------------------------------------- |
 | `entity_index`     |                               | Selects an entity from the card-level `entities` list.    |
-| `xpos`             | `50`                          | Positions the horizontal center in FHS card coordinates.  |
-| `ypos`             | `50`                          | Positions the vertical center in FHS card coordinates.    |
+| `xpos`             | `50`                          | Positions the horizontal center in Flexible Horseshoe Card card coordinates.  |
+| `ypos`             | `50`                          | Positions the vertical center in Flexible Horseshoe Card card coordinates.    |
 | `radius`           | `45`                          | Defines the radius used by the scale and state layers.    |
 | `tickmarks_radius` | `43`                          | Defines the base radius used for tick marks.              |
 | `arc_degrees`      | `260`                         | Controls the total visible arc in degrees.                |

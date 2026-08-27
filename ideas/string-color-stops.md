@@ -25,10 +25,10 @@ String color stops use exact state matching:
 ```yaml
 color_stops:
   colors:
-    - state: 'off'
+    - state: "off"
       rank: 0
       color: var(--secondary-text-color)
-    - state: 'on'
+    - state: "on"
       rank: 1
       color: var(--state-icon-color)
 ```
@@ -41,7 +41,7 @@ Home Assistant entity states are received as strings. A state color stop must
 therefore compare values as strings:
 
 ```js
-String(entity.state) === String(stop.state)
+String(entity.state) === String(stop.state);
 ```
 
 This means `off` is matched as `off`, and a state such as `"1"` remains a
@@ -59,7 +59,7 @@ of truth for:
 - optional per-state paint styles.
 
 The user no longer needs to configure a second horseshoe `state_map`. At the
-configuration boundary FHS translates the public state order or rank into the
+configuration boundary Flexible Horseshoe Card translates the public state order or rank into the
 existing numeric runtime state-map contract, so downstream geometry and
 rendering receive exactly the same shape as before.
 
@@ -122,7 +122,6 @@ replaced.
    shared tool paint path.
 5. Add tests for `on`/`off`, arbitrary named states, numeric-looking strings,
    rank ordering, missing matches, and reuse by shapes and icons.
-
 
 ## Paint Style Resolution
 

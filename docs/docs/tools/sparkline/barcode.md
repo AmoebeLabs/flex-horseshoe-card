@@ -70,7 +70,7 @@ layout:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. FHS then fits the barcode columns to the available width and selected history period.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then fits the barcode columns to the available width and selected history period.
 
 ## :material-horseshoe: Basic barcode
 

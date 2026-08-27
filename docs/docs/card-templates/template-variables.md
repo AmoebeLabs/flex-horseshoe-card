@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Template variables
-description: Pass entities, labels, scale values, and other settings into reusable FHS card templates.
+description: Pass entities, labels, scale values, and other settings into reusable Flexible Horseshoe Card card templates.
 tags:
   - Card templates
   - Variables

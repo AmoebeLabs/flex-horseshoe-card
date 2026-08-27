@@ -11,7 +11,7 @@ tags:
 
 A select control shows a list of options directly inside the card and lets the user choose one. Use it for a room, sensor, operating mode, history period, chart type, or another named choice.
 
-Connect it to a Home Assistant [Select](https://www.home-assistant.io/integrations/select/) or [Input select](https://www.home-assistant.io/integrations/input_select/) when the selected value is used elsewhere in Home Assistant. Use an [FHS input select](fhs-input-select.md) for a choice that only changes FHS cards in the current browser.
+Connect it to a Home Assistant [Select](https://www.home-assistant.io/integrations/select/) or [Input select](https://www.home-assistant.io/integrations/input_select/) when the selected value is used elsewhere in Home Assistant. Use an [Flexible Horseshoe Card input select](fhs-input-select.md) for a choice that only changes Flexible Horseshoe Card cards in the current browser.
 
 <!-- Add horizontal and vertical select control screenshots here. -->
 
@@ -50,14 +50,14 @@ The control displays the options supplied by the connected entity. An `option_ma
 
 !!! info "Entity and input settings"
 
-    `entity_index: 0` connects the control to the first entry in `entities`. The `options`, `initial`, and `scope` settings configure the FHS input, not the Select control. See [FHS input select](fhs-input-select.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
+    `entity_index: 0` connects the control to the first entry in `entities`. The `options`, `initial`, and `scope` settings configure the Flexible Horseshoe Card input, not the Select control. See [Flexible Horseshoe Card input select](fhs-input-select.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
 
 ## :material-horseshoe: Configuration options
 
 | Option | Description |
 | --- | --- |
 | `type: select` | Adds a select control. |
-| `entity_index` | Select entity or FHS input changed by the control. |
+| `entity_index` | Select entity or Flexible Horseshoe Card input changed by the control. |
 | `xpos`, `ypos` | Position of the control in the card. |
 | `width`, `height` | Size available to all options together. |
 | `orientation` | Arranges the options horizontally or vertically. |
@@ -146,6 +146,6 @@ tap_action:
 
 ## :material-horseshoe: Related
 
-- [FHS input select](fhs-input-select.md)
+- [Flexible Horseshoe Card input select](fhs-input-select.md)
 - [Home Assistant Input select](https://www.home-assistant.io/integrations/input_select/)
 - [Actions](../../interaction/actions.md)

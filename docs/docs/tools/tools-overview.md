@@ -9,11 +9,11 @@ tags:
 
 # Card tools
 
-Card tools are the visible parts of a Flexible Horseshoe Card. Add the tools that match what you want to show, then position and style each one independently.
+Card tools are the elements you add to a Flexible Horseshoe Card. Choose the tools you want to show, then position and style each one independently.
 
 <!-- Add a labeled overview image of the available tool families here. -->
 
-## :material-horseshoe: Choose a tool
+## :material-horseshoe: Available tools
 
 | You want to show | Use |
 | --- | --- |
@@ -43,6 +43,9 @@ layout:
     - xpos: 50
       ypos: 50
       radius: 30
+  #
+  # Etcetera
+  #
 ```
 
 Tools can share an entity, use different entities, or remain independent of entity data.
