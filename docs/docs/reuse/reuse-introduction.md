@@ -64,7 +64,7 @@ layout:
 
 `room_column_width` defines the spacing once. `same_as_dxpos` uses that shared value for every next icon, while `same_as_dentity_index` makes every icon use the next entity in the card’s entity list. The same pattern works for vertical spacing, size changes, radii, and line lengths.
 
-![](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
+![Electricity card with one total and three reused phase horseshoe gauges](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
 
 This card shows one fully configured Total horseshoe and three phase horseshoes that reuse it with calculated horizontal offsets. [Open the complete Card 32 example](reuse-card-examples.md#example-card-32) for the full configuration.
 

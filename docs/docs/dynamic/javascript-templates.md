@@ -72,7 +72,7 @@ Use a few linear statements and return the configured value. Put repeated templa
 
 ## :material-horseshoe: Related
 
-- [Constants and ref()](constants-and-ref.md)
+- [Dynamic configuration](overview.md)
 - [Visibility](../interaction/visibility.md)
 - [Animations](../interaction/animations.md)
 - [Template variables](../card-templates/template-variables.md)
