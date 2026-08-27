@@ -8,11 +8,13 @@ tags:
   - Reuse
 ---
 
-# Constants and ref()
+# Use the same values and styles
 
-Use `constants` when the same fixed value, style, color definition, or configuration block appears several times in one card. Insert it with `ref()`.
+Use this when several parts of a card need the same color stops, styling, dimensions, or other values. Define it once, give it a clear name, and use it wherever the card needs it.
 
-## :material-horseshoe: Reuse a style
+## :material-horseshoe: Give repeated styling one name
+
+Use one named style for items that should look the same.
 
 ```yaml linenums="1"
 constants:
@@ -35,7 +37,14 @@ layout:
 
 Changing `divider_style` updates both lines.
 
-## :material-horseshoe: Reuse a value
+## :material-horseshoe: Share a value or a complete block
+
+| Option | Use it when you want to... |
+| --- | --- |
+| `constants` | Give a shared fixed value or YAML block one readable name. |
+| `ref(name)` | Insert that named value or YAML block into an item. |
+
+## :material-horseshoe: Keep matching gauges the same size
 
 ```yaml linenums="1"
 constants:
@@ -46,7 +55,28 @@ layout:
     - radius: ref(gauge_radius)
 ```
 
-## :material-horseshoe: Combine constants with calculations
+## :material-horseshoe: Give several items the same color scale
+
+Use this for a repeated color scale, style, or another block that should stay identical.
+
+```yaml linenums="1"
+constants:
+  comfort_colors:
+    colors:
+      0: var(--info-color)
+      20: var(--success-color)
+      25: var(--warning-color)
+
+layout:
+  horseshoes:
+    - id: living-room
+      color_stops: ref(comfort_colors)
+
+    - id: bedroom
+      color_stops: ref(comfort_colors)
+```
+
+## :material-horseshoe: Name the measurements in a layout
 
 Constants can make calculated layouts easier to read:
 
@@ -66,9 +96,10 @@ layout:
       radius: 3
 ```
 
-See [Calculations with calc()](calculations-with-calc.md).
+See [Calculations with calc()](calculations-with-calc.md) when the shared values describe positions, dimensions, or regular spacing.
 
 ## :material-horseshoe: Related
 
-- [Reuse](../reuse/reuse-introduction.md)
-- [Card templates](../card-templates/card-templates-overview.md)
+- [Reuse overview](../reuse/reuse-introduction.md)
+- [Calculations with calc()](calculations-with-calc.md)
+- [Reuse reference](../reuse/reuse-reference.md)

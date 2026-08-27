@@ -8,11 +8,11 @@ tags:
   - Layout
 ---
 
-# Calculations with calc()
+# Keep a layout aligned
 
-Use `calc()` when a numeric setting is easier to understand as a relationship than as a final number.
+Use this when a card should stay visually balanced: items either side of the center, a regular row, or a set of items around a circle. Write the relationship in the YAML instead of working out every final number yourself.
 
-## :material-horseshoe: Position around the center
+## :material-horseshoe: Place two items either side of the center
 
 ```yaml linenums="1"
 layout:
@@ -26,7 +26,14 @@ layout:
 
 This shows directly that both icons are placed six units from the center.
 
-## :material-horseshoe: Create regular spacing
+## :material-horseshoe: Calculate a position or size
+
+| Option | Use it when you want to... |
+| --- | --- |
+| `calc(...)` | Calculate one numeric position, dimension, size, or spacing value. |
+| A value from `constants` | Use the same named number in several calculations. |
+
+## :material-horseshoe: Keep a row evenly spaced
 
 ```yaml linenums="1"
 constants:
@@ -46,7 +53,48 @@ layout:
       same_as_dypos: calc(2 * row_step)
 ```
 
-## :material-horseshoe: Available calculations
+## :material-horseshoe: Arrange items around a circle
+
+Use `sin()` and `cos()` when several items should follow the same circular layout.
+
+```yaml linenums="1"
+constants:
+  center_x: 50
+  center_y: 50
+  radius: 20
+
+layout:
+  circles:
+    - id: right
+      xpos: calc(center_x + cos(0) * radius)
+      ypos: calc(center_y + sin(0) * radius)
+      radius: 2
+
+    - id: bottom
+      xpos: calc(center_x + cos(PI / 2) * radius)
+      ypos: calc(center_y + sin(PI / 2) * radius)
+      radius: 2
+```
+
+## :material-horseshoe: Adjust a whole layout from named measurements
+
+Give the center and spacing a name when the same relationship appears in several places.
+
+```yaml linenums="1"
+constants:
+  center_x: 50
+  column_gap: 12
+
+layout:
+  icons:
+    - xpos: calc(center_x - column_gap)
+      ypos: 50
+
+    - xpos: calc(center_x + column_gap)
+      ypos: 50
+```
+
+## :material-horseshoe: Use the calculation you need
 
 `calc()` supports:
 
@@ -58,7 +106,38 @@ layout:
 - `PI`;
 - numeric values from `constants`.
 
-The result is a number used by the configured field. Use a [JavaScript template](javascript-templates.md) instead when the value must change with an entity state.
+### Operators
+
+| Operator | Example | Result |
+| --- | --- | --- |
+| `+` | `calc(50 + 4)` | `54` |
+| `-` | `calc(50 - 4)` | `46` |
+| `*` | `calc(4 * 20)` | `80` |
+| `/` | `calc(100 / 4)` | `25` |
+| `**` | `calc(2 ** 3)` | `8` |
+| `()` | `calc((50 - 4) / 2)` | `23` |
+
+### Functions and values
+
+| Function or value | Example | Result |
+| --- | --- | --- |
+| `sin()` | `calc(sin(PI / 2))` | `1` |
+| `cos()` | `calc(cos(0))` | `1` |
+| `tan()` | `calc(tan(0))` | `0` |
+| `abs()` | `calc(abs(-10))` | `10` |
+| `round()` | `calc(round(10.6))` | `11` |
+| `floor()` | `calc(floor(10.9))` | `10` |
+| `ceil()` | `calc(ceil(10.1))` | `11` |
+| `min()` | `calc(min(10, 20))` | `10` |
+| `max()` | `calc(max(10, 20))` | `20` |
+| `sqrt()` | `calc(sqrt(16))` | `4` |
+| `PI` | `calc(PI)` | `3.14159...` |
+
+Use radians with `sin()`, `cos()`, and `tan()`.
+
+## :material-horseshoe: Choose readable YAML
+
+Use `calc()` when the relationship is useful to see in the YAML. Use the final number directly when no relationship needs to be explained. Use a [JavaScript template](javascript-templates.md) only when a value should respond to an entity state.
 
 ## :material-horseshoe: Related
 

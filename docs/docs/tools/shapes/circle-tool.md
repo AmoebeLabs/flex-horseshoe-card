@@ -9,11 +9,11 @@ tags:
 
 # Circle
 
-Use circles as indicators, backgrounds, outlines, status markers, or decorative elements.
+A circle adds a round visual element to a card. Use it as an indicator, background, outline, status marker, or decorative element.
 
 <!-- Add circle examples here. -->
 
-## :material-horseshoe: Basic circle
+## :material-horseshoe: Basic configuration
 
 ```yaml linenums="1"
 layout:
@@ -29,6 +29,20 @@ layout:
 ```
 
 `xpos` and `ypos` position the center.
+
+## :material-horseshoe: Configuration options
+
+| Field | Required | Description |
+| --- | :---: | --- |
+| `xpos` | Yes | Horizontal position of the center |
+| `ypos` | Yes | Vertical position of the center |
+| `radius` | One radius | Radius in SVG units |
+| `radius_percent` | One radius | Radius relative to the card |
+| `entity_index` | No | Entity used by state-dependent colors and actions |
+| `styles` | No | Fill, outline, and opacity |
+| `color_stops` | No | Value- or state-based colors |
+
+Use either `radius` or `radius_percent`.
 
 ## :material-horseshoe: Choose the radius
 
@@ -110,20 +124,6 @@ Connect the circle to an entity and select a color-stop style:
           - value: 100
             color: red
     ```
-
-## :material-horseshoe: Configuration
-
-| Field | Required | Description |
-| --- | :---: | --- |
-| `xpos` | Yes | Horizontal position of the center |
-| `ypos` | Yes | Vertical position of the center |
-| `radius` | One radius | Radius in SVG units |
-| `radius_percent` | One radius | Radius relative to the card |
-| `entity_index` | No | Entity used by state-dependent colors and actions |
-| `styles` | No | Fill, outline, and opacity |
-| `color_stops` | No | Value- or state-based colors |
-
-Use either `radius` or `radius_percent`.
 
 ## :material-horseshoe: Related
 

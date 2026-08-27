@@ -10,13 +10,13 @@ tags:
 
 # Area
 
-Use an area to show the Home Assistant area assigned to an entity, such as `Living room`, `Kitchen`, or `Bedroom`.
+An area shows where an entity belongs in the home, such as `Living room`, `Kitchen`, or `Bedroom`. Use it to add that location to a card.
 
 The displayed area follows the entity selected with `entity_index`.
 
 <!-- Area examples image -->
 
-## :material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add areas under `layout.areas`:
 
@@ -35,6 +35,17 @@ layout:
 `entity_index` selects the entity whose area is displayed.
 
 `xpos` and `ypos` position the area text on the card.
+
+## :material-horseshoe: Configuration options
+
+| Field          | Required | Description                           |
+| -------------- | :------: | ------------------------------------- |
+| `entity_index` |    Yes   | Entity whose area is displayed        |
+| `xpos`         |    Yes   | Horizontal position on the card       |
+| `ypos`         |    Yes   | Vertical position on the card         |
+| `ellipsis`     |    No    | Maximum displayed text length         |
+| `styles`       |    No    | Text styling                          |
+| `color_stops`  |    No    | Colors the text from the entity state |
 
 ## :material-horseshoe: Where the area comes from
 
@@ -166,17 +177,6 @@ layout:
 Area color stops are applied to the text.
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-## Configuration
-
-| Field          | Required | Description                           |
-| -------------- | :------: | ------------------------------------- |
-| `entity_index` |    Yes   | Entity whose area is displayed        |
-| `xpos`         |    Yes   | Horizontal position on the card       |
-| `ypos`         |    Yes   | Vertical position on the card         |
-| `ellipsis`     |    No    | Maximum displayed text length         |
-| `styles`       |    No    | Text styling                          |
-| `color_stops`  |    No    | Colors the text from the entity state |
 
 ## :material-horseshoe: Related
 

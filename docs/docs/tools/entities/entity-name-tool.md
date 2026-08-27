@@ -10,13 +10,13 @@ tags:
 
 # Name
 
-Use a name to show the name of a Home Assistant entity anywhere on the card.
+A name shows the name of a Home Assistant entity anywhere on the card. Use it for a clear label beside a value, icon, graph, or control.
 
 By default, FHS uses the entity name from Home Assistant. You can provide your own name in the entity configuration.
 
 <!-- Name examples image -->
 
-## :material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add names under `layout.names`:
 
@@ -35,6 +35,17 @@ layout:
 `entity_index` selects the entity whose name is displayed.
 
 `xpos` and `ypos` position the name on the card.
+
+## :material-horseshoe: Configuration options
+
+| Field          | Required | Description                           |
+| -------------- | :------: | ------------------------------------- |
+| `entity_index` |    Yes   | Entity whose name is displayed        |
+| `xpos`         |    Yes   | Horizontal position on the card       |
+| `ypos`         |    Yes   | Vertical position on the card         |
+| `ellipsis`     |    No    | Maximum displayed name length         |
+| `styles`       |    No    | Text styling                          |
+| `color_stops`  |    No    | Colors the name from the entity state |
 
 ## :material-horseshoe: Use a custom name
 
@@ -161,17 +172,6 @@ layout:
 Color stops are applied to the text.
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-## :material-horseshoe: Configuration
-
-| Field          | Required | Description                           |
-| -------------- | :------: | ------------------------------------- |
-| `entity_index` |    Yes   | Entity whose name is displayed        |
-| `xpos`         |    Yes   | Horizontal position on the card       |
-| `ypos`         |    Yes   | Vertical position on the card         |
-| `ellipsis`     |    No    | Maximum displayed name length         |
-| `styles`       |    No    | Text styling                          |
-| `color_stops`  |    No    | Colors the name from the entity state |
 
 ## :material-horseshoe: Related
 

@@ -9,11 +9,11 @@ tags:
 
 # Line
 
-Use lines as dividers, status indicators, scale marks, connectors, or decorative elements.
+A line adds a simple visual connection or separation to a card. Use it as a divider, status indicator, scale mark, connector, or decorative element.
 
 <!-- Add horizontal, vertical, and point-to-point line examples here. -->
 
-## :material-horseshoe: Basic line
+## :material-horseshoe: Basic configuration
 
 ```yaml linenums="1"
 layout:
@@ -27,6 +27,18 @@ layout:
         stroke: var(--divider-color)
         stroke-width: 1
 ```
+
+## :material-horseshoe: Configuration options
+
+| Field | Required | Description |
+| --- | :---: | --- |
+| `orientation` | Yes | `horizontal`, `vertical`, or `fromto` |
+| `xpos`, `ypos` | Horizontal or vertical | Position of the line center |
+| `length` | Horizontal or vertical | Total line length |
+| `start`, `end` | Point to point | Coordinates of both ends |
+| `entity_index` | No | Entity used by colors and actions |
+| `styles` | No | Stroke, width, opacity, and line ends |
+| `color_stops` | No | Value- or state-based colors |
 
 ## :material-horseshoe: Choose the direction
 
@@ -96,18 +108,6 @@ styles:
       - value: 100
         color: red
 ```
-
-## :material-horseshoe: Configuration
-
-| Field | Required | Description |
-| --- | :---: | --- |
-| `orientation` | Yes | `horizontal`, `vertical`, or `fromto` |
-| `xpos`, `ypos` | Horizontal or vertical | Position of the line center |
-| `length` | Horizontal or vertical | Total line length |
-| `start`, `end` | Point to point | Coordinates of both ends |
-| `entity_index` | No | Entity used by colors and actions |
-| `styles` | No | Stroke, width, opacity, and line ends |
-| `color_stops` | No | Value- or state-based colors |
 
 ## :material-horseshoe: Related
 

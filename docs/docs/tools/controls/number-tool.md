@@ -9,11 +9,15 @@ tags:
 
 # Number control
 
-Use a number control when someone should change a value with minus and plus buttons.
+A number control gives the user minus and plus buttons for changing a numeric value in fixed steps. Use it for settings such as a history duration, target value, threshold, scale limit, or display size.
 
-<!-- Add filled and outlined number controls here. -->
+Connect it to a Home Assistant [Number](https://www.home-assistant.io/integrations/number/) or [Input number](https://www.home-assistant.io/integrations/input_number/) when the value is also used by Home Assistant. Use an [FHS input number](fhs-input-number.md) when the value only controls FHS cards in the current browser.
 
-## :material-horseshoe: Basic number stepper
+<!-- Add filled and outlined number control screenshots here. -->
+
+## :material-horseshoe: Basic configuration
+
+This example lets the user choose a history period between 1 and 14 days:
 
 ```yaml linenums="1"
 entities:
@@ -23,6 +27,7 @@ entities:
     max: 14
     step: 1
     unit: d
+    scope: card
 
 layout:
   controls:
@@ -40,20 +45,60 @@ layout:
         item_style: outlined_round
 ```
 
-The control uses the entity minimum, maximum, step, value, and unit.
+The control uses the current value, minimum, maximum, step, and unit from the connected entity.
+
+!!! info "Entity and input settings"
+
+    `entity_index: 0` connects the control to the first entry in `entities`. The `initial`, `min`, `max`, `step`, `unit`, and `scope` settings configure the FHS input, not the Number control. See [FHS input number](fhs-input-number.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
+
+## :material-horseshoe: Configuration options
+
+| Option | Description |
+| --- | --- |
+| `type: number` | Adds a number control. |
+| `entity_index` | Numeric entity or FHS input changed by the control. |
+| `xpos`, `ypos` | Position of the control in the card. |
+| `width`, `height` | Size of the complete control. |
+| `orientation` | Places the buttons horizontally or vertically. |
+| `show.item_style` | Uses `filled_round`, `filled_square`, `outlined_round`, or `outlined_square`. |
+| `content` | Changes the minus and plus symbols, icons, or value presentation. |
+| `label` | Optional text positioned beside or above the control. |
+| `visibility` | Shows, hides, or disables the control. |
+
+The number range and step belong to the connected entity or FHS input.
 
 ## :material-horseshoe: Choose an appearance
 
-Use one of these `item_style` values:
+=== "Filled and round"
 
-- `filled_round`
-- `filled_square`
-- `outlined_round`
-- `outlined_square`
+    ```yaml linenums="1"
+    show:
+      item_variant: stepper
+      item_viz: buttons
+      item_style: filled_round
+    ```
 
-The outlined styles keep the background quiet while preserving a clear control boundary.
+=== "Outlined and round"
+
+    ```yaml linenums="1"
+    show:
+      item_variant: stepper
+      item_viz: buttons
+      item_style: outlined_round
+    ```
+
+=== "Outlined and square"
+
+    ```yaml linenums="1"
+    show:
+      item_variant: stepper
+      item_viz: buttons
+      item_style: outlined_square
+    ```
 
 ## :material-horseshoe: Use icons for minus and plus
+
+The default buttons show minus and plus as text. Use icons when they fit the card better:
 
 ```yaml linenums="1"
 content:
@@ -65,8 +110,23 @@ content:
       mode: content_icon
 ```
 
+When icon mode is used, a vertical control uses directional icons appropriate for its orientation.
+
+## :material-horseshoe: Show a label
+
+Place a label beside the control when the value needs a short description:
+
+```yaml linenums="1"
+label:
+  position: top
+  gap: 3
+  text: History
+  styles:
+    font-size: 0.6em
+```
+
 ## :material-horseshoe: Related
 
 - [FHS input number](fhs-input-number.md)
-- [Slider](slider-tool.md)
-- [Styling](../../appearance/styling.md)
+- [Slider control](slider-tool.md)
+- [Home Assistant Input number](https://www.home-assistant.io/integrations/input_number/)

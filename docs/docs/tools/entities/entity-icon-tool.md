@@ -10,13 +10,13 @@ tags:
 
 # Icon
 
-Use icons to show an entity visually or add standalone icons and images anywhere on the card.
+An icon gives an entity a recognizable visual place on the card. Use it to show an entity icon, a custom MDI icon, or an image anywhere in the layout.
 
 FHS can use a Home Assistant entity icon, a configured MDI icon, or an SVG, PNG, JPG, or other supported image.
 
 <!-- Icon examples image -->
 
-## :material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add icons under `layout.icons`:
 
@@ -50,6 +50,22 @@ Add icons under `layout.icons`:
     ```
 
     A configured icon does not require an entity.
+
+## :material-horseshoe: Configuration options
+
+| Field               | Required | Default            | Description                             |
+| ------------------- | :------: | ------------------ | --------------------------------------- |
+| `xpos`              |    Yes   |                    | Horizontal icon position                |
+| `ypos`              |    Yes   |                    | Vertical icon position                  |
+| `entity_index`      |    No    | Not set            | Entity whose icon and state can be used |
+| `icon`              |    No    | Entity icon        | MDI icon or `url(...)` SVG/image        |
+| `icon_size`         |    No    |                    | Relative icon size                      |
+| `icon_size_percent` |    No    | Not set            | Icon size relative to the card          |
+| `align`             |    No    | `center`           | `start`, `center`, or `end`             |
+| `rotate`            |    No    | `0`                | Icon rotation in degrees                |
+| `state_map`         |    No    | Not set            | Selects an icon based on entity state   |
+| `styles`            |    No    | Default icon style | SVG and CSS styling                     |
+| `color_stops`       |    No    | Not set            | Colors the icon from the entity state   |
 
 ## :material-horseshoe: Choose the icon
 
@@ -184,7 +200,7 @@ Use `align` to control how the icon is positioned around `xpos`:
       align: end
     ```
 
-## Rotate an icon
+## :material-horseshoe: Rotate an icon
 
 Use `rotate` to rotate the icon:
 
@@ -278,22 +294,6 @@ layout:
 ```
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-## Configuration
-
-| Field               | Required | Default            | Description                             |
-| ------------------- | :------: | ------------------ | --------------------------------------- |
-| `xpos`              |    Yes   |                    | Horizontal icon position                |
-| `ypos`              |    Yes   |                    | Vertical icon position                  |
-| `entity_index`      |    No    | Not set            | Entity whose icon and state can be used |
-| `icon`              |    No    | Entity icon        | MDI icon or `url(...)` SVG/image        |
-| `icon_size`         |    No    |                    | Relative icon size                      |
-| `icon_size_percent` |    No    | Not set            | Icon size relative to the card          |
-| `align`             |    No    | `center`           | `start`, `center`, or `end`             |
-| `rotate`            |    No    | `0`                | Icon rotation in degrees                |
-| `state_map`         |    No    | Not set            | Selects an icon based on entity state   |
-| `styles`            |    No    | Default icon style | SVG and CSS styling                     |
-| `color_stops`       |    No    | Not set            | Colors the icon from the entity state   |
 
 ## :material-horseshoe: Related
 

@@ -9,13 +9,11 @@ tags:
 
 # Combining `calc()` with `same_as`
 
-`same_as` reuses an earlier item from the same section. Combine it with `calc()` when several items share the same configuration but need calculated differences in position, size, or another numeric field.
-
-This keeps the YAML compact while making repeated layout patterns easier to recognize and maintain.
+Use this pattern when a card needs a regular row, column, ring, or repeated group of items. `same_as` keeps the shared design in one place; `calc()` keeps the distance, size, or position relationship readable.
 
 ## :material-horseshoe: Basic example
 
-The example below defines one horizontal line and reuses it twice. Each reused line keeps the original length and style, but moves farther down the card.
+The example below creates three matching dividers with a clear vertical step.
 
 ```yaml linenums="1"
 hlines:
@@ -32,7 +30,7 @@ hlines:
     same_as_dypos: calc(2 * 11)
 ```
 
-The card resolves the configuration as follows:
+The three dividers appear at these positions:
 
 | Item | Source        | Calculation                | Result                   |
 | :--- | :------------ | :------------------------- | :----------------------- |
@@ -40,7 +38,7 @@ The card resolves the configuration as follows:
 | `1`  | `same_as: 0`  | `ypos: 64 + calc(1 * 11)`  | `ypos: 75`               |
 | `2`  | `same_as: 0`  | `ypos: 64 + calc(2 * 11)`  | `ypos: 86`               |
 
-Internally, the resolved items are equivalent to:
+The expanded configuration is equivalent to:
 
 ```yaml linenums="1"
 hlines:
@@ -66,11 +64,11 @@ hlines:
       - stroke: var(--disabled-text-color)
 ```
 
-The external configuration stays short, while the resolved configuration still contains all required values.
+The reusable form keeps the card YAML short while showing the intended spacing.
 
-## :material-horseshoe: Chaining `same_as`
+## :material-horseshoe: Continue from the previous item
 
-A reused item can build on the item before it.
+Use this for a sequence where every next item starts one step after the previous item.
 
 ```yaml linenums="1"
 hlines:
@@ -88,7 +86,7 @@ hlines:
     same_as_dypos: 11
 ```
 
-In this pattern, every item starts from the result of the previous one:
+Each item continues the row from the item before it:
 
 ```text
 second = first + 11
@@ -101,11 +99,11 @@ third  = second + 11
 | `second` | `75`             |
 | `third`  | `86`             |
 
-Chaining works well when each item should continue from the previous position.
+This works well when the sequence should grow one item at a time.
 
-## :material-horseshoe: Reusing the same base item
+## :material-horseshoe: Keep every offset relative to one base item
 
-You can also make every reused item refer directly to the first one.
+Use this when every copy should keep a fixed relationship to the first item.
 
 ```yaml linenums="1"
 hlines:
@@ -123,24 +121,24 @@ hlines:
     same_as_dypos: calc(2 * 11)
 ```
 
-This pattern means:
+The offsets are all measured from `first`:
 
 ```text
 second = first + 1 step
 third  = first + 2 steps
 ```
 
-Using the same base item can make fixed repetition patterns easier to understand. Each offset remains relative to one shared definition rather than depending on the previous item.
+This makes fixed repetition patterns easy to adjust because every offset remains relative to the same base item.
 
-## :material-horseshoe: Delta fields
+## :material-horseshoe: Change one value by a fixed amount
 
 Delta fields follow this pattern:
 
-```yaml
+```yaml linenums="1"
 same_as_d<field>: <number>
 ```
 
-The card adds the delta to the inherited value of the matching field.
+Use a delta field when the reused item needs a relative difference rather than a completely new value.
 
 | Delta field       | Target field | Meaning                         |
 | :---------------- | :----------- | :------------------------------ |
@@ -149,7 +147,7 @@ The card adds the delta to the inherited value of the matching field.
 | `same_as_dlength` | `length`     | Adds to the inherited `length`. |
 | `same_as_dradius` | `radius`     | Adds to the inherited `radius`. |
 
-The pattern is generic and can be used with any supported numeric field on the reused item.
+The pattern also works with another numeric field when that is the part of the item you want to change.
 
 For example, the inner circle below reuses the outer circle and reduces its radius by `5`:
 
@@ -165,7 +163,7 @@ circles:
     same_as_dradius: -5
 ```
 
-The resolved result is equivalent to:
+The resulting pair is equivalent to:
 
 ```yaml linenums="1"
 circles:
@@ -180,11 +178,11 @@ circles:
     radius: 35
 ```
 
-## :material-horseshoe: Positioning around the center
+## :material-horseshoe: Keep positions related to the center
 
 Many card layouts are designed around the center point `50, 50`.
 
-Using `calc()` keeps the intended offset visible in the configuration:
+Use `calc()` so the intended offset remains visible in the configuration:
 
 ```yaml linenums="1"
 icons:
@@ -210,24 +208,21 @@ icons:
     ypos: 50
 ```
 
-Both versions produce the same result. The calculated version makes it clearer that the two icons are positioned symmetrically around the center.
+Both versions show the same positions. The calculated version keeps the symmetric relationship visible when the layout changes.
 
-## :material-horseshoe: Important rules
+## :material-horseshoe: Keep repeated layouts predictable
 
-| Rule                            | Description                                                                  |
-| :------------------------------ | :--------------------------------------------------------------------------- |
-| YAML does not calculate values  | `calc()` is provided by the card, not by YAML itself.                        |
-| Static evaluation               | `calc()` is evaluated once while the configuration is processed.             |
-| Runtime templates are different | Templates such as `[[[ return ... ]]]` are evaluated during runtime updates. |
-| Numeric result required         | `calc()` must return a finite number.                                        |
-| `same_as` reuses an item        | It inherits another item from the same section.                              |
-| `same_as_d...` adds an offset   | It inherits another item and adds a numeric delta to one field.              |
-| List order matters              | `same_as` can only refer to an earlier item in the same list.                |
+| Rule | What to do |
+| :--- | :--------- |
+| Use numbers in `calc()` | Use it for a position, size, length, radius, or another numeric setting. |
+| Use `same_as` after its base item | Put the shared base item earlier in the same tool list. |
+| Use `same_as_d...` for relative changes | Keep repeated spacing and dimensions clear. |
+| Use JavaScript templates for changing entity values | Use `calc()` only for fixed card relationships. |
 
-## :material-horseshoe: Choosing a reuse pattern
+## :material-horseshoe: Choose the clearer repetition pattern
 
 Use chained `same_as` when each item should continue from the previous one.
 
 Use the same base item when every copy follows a fixed offset pattern from one shared definition.
 
-Both approaches reduce repeated YAML. The best choice is the one that makes the intended layout easiest to understand.
+Both approaches reduce repeated YAML. Use the one that makes the intended layout easiest to recognize when you read the card later.

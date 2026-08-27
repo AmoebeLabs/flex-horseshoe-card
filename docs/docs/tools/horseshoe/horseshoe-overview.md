@@ -10,7 +10,7 @@ tags:
 
 # Horseshoe gauges
 
-The horseshoe section adds one or more circular or partial-circle gauges to the card layout. Each gauge combines a value scale with an active state layer and can include backgrounds, color stops, tick marks, and labels that follow the same geometry.
+A horseshoe gauge displays an entity value around a circular or partial-circle scale. Use it to make a current value easy to read at a glance, with colors, tick marks, labels, and a background where needed.
 
 Horseshoes use the card coordinate system. On a `100 × 100` card, the position `50, 50` marks the center. Wider or taller cards can use coordinates above `100` along their longer dimension.
 
@@ -28,7 +28,7 @@ Horseshoes use the card coordinate system. On a `100 × 100` card, the position 
 | ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp) |
 | ![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp) |
 
-## :material-horseshoe: Basic usage
+## :material-horseshoe: Basic configuration
 
 Add gauges to `layout.horseshoes`, connect each one to an entity through `entity_index`, and define its numeric range under `horseshoe_scale`.
 

@@ -35,7 +35,7 @@ horseshoe_labels:
 Set tickmarks to false to hide both layers, or use an object to control
 the configured layers independently:
 
-```yaml
+```yaml linenums="1"
 show:
   tickmarks:
     major: true

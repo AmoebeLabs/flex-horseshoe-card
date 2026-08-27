@@ -9,11 +9,15 @@ tags:
 
 # Select control
 
-Use a select to choose a mode, room, sensor, time period, chart type, or another named option.
+A select control shows a list of options directly inside the card and lets the user choose one. Use it for a room, sensor, operating mode, history period, chart type, or another named choice.
 
-<!-- Add horizontal and vertical select examples here. -->
+Connect it to a Home Assistant [Select](https://www.home-assistant.io/integrations/select/) or [Input select](https://www.home-assistant.io/integrations/input_select/) when the selected value is used elsewhere in Home Assistant. Use an [FHS input select](fhs-input-select.md) for a choice that only changes FHS cards in the current browser.
 
-## :material-horseshoe: Basic select
+<!-- Add horizontal and vertical select control screenshots here. -->
+
+## :material-horseshoe: Basic configuration
+
+This example lets the user choose a sparkline chart type:
 
 ```yaml linenums="1"
 entities:
@@ -24,6 +28,7 @@ entities:
       - bar
       - dots
     initial: line
+    scope: card
 
 layout:
   controls:
@@ -41,11 +46,32 @@ layout:
         item_style: outlined_round
 ```
 
-When `option_map` is omitted, the select uses the options supplied by the connected entity. This works with `fhs_input_select`, Home Assistant Dropdown helpers, and Select entities.
+The control displays the options supplied by the connected entity. An `option_map` is only needed when the visible label, icon, content, or action value should be different.
 
-## :material-horseshoe: Labels and icons
+!!! info "Entity and input settings"
 
-Use `option_map` when an option needs a different label or icon:
+    `entity_index: 0` connects the control to the first entry in `entities`. The `options`, `initial`, and `scope` settings configure the FHS input, not the Select control. See [FHS input select](fhs-input-select.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
+
+## :material-horseshoe: Configuration options
+
+| Option | Description |
+| --- | --- |
+| `type: select` | Adds a select control. |
+| `entity_index` | Select entity or FHS input changed by the control. |
+| `xpos`, `ypos` | Position of the control in the card. |
+| `width`, `height` | Size available to all options together. |
+| `orientation` | Arranges the options horizontally or vertically. |
+| `option_map` | Changes the label, icon, content entity, or action value for individual options. |
+| `content` | Content arrangement repeated inside every option. |
+| `show.item_viz` | Shows complete option buttons with `viz_button` or an indicator with `viz_line`. |
+| `show.item_style` | Uses `filled_round`, `filled_square`, `outlined_round`, or `outlined_square`. |
+| `tap_action` | Optional action performed when an option is selected. |
+| `label` | Optional text positioned beside or above the select. |
+| `visibility` | Shows, hides, or disables the select. |
+
+## :material-horseshoe: Change labels and icons
+
+Use `option_map` when an option should have a clearer label or a recognizable icon:
 
 ```yaml linenums="1"
 option_map:
@@ -63,11 +89,11 @@ option_map:
     icon: mdi:fan-speed-3
 ```
 
-The `value` is the option selected on the entity. `text` and `icon` control what the segment shows.
+The `value` is written to the connected entity. The `text` and `icon` determine what the user sees.
 
-## :material-horseshoe: Select content
+## :material-horseshoe: Show entity information in every option
 
-Every segment can show the same content arrangement. Use an `items` list for rich content:
+Every option can display the same horizontal or vertical content arrangement. This example shows an icon, current value, and compact status line for each sensor:
 
 ```yaml linenums="1"
 content:
@@ -100,11 +126,11 @@ option_map:
     entity_index: room_sensors[2]
 ```
 
-Each option can select the entity shown inside its segment. This keeps icons, values, and status indicators aligned while the select still changes one chosen value.
+Each `entity_index` supplies the icon, value, and status shown inside that option. Selecting an option still changes the select entity connected to the complete control.
 
-## :material-horseshoe: Select another entity
+## :material-horseshoe: Perform an action with the selected option
 
-Use `option(value)` when each segment should supply a value to a Home Assistant action:
+A select can pass the selected value to a Home Assistant action. This example changes an HVAC mode:
 
 ```yaml linenums="1"
 tap_action:
@@ -116,8 +142,10 @@ tap_action:
     hvac_mode: option(value)
 ```
 
+`option(value)` inserts the value from the selected option.
+
 ## :material-horseshoe: Related
 
 - [FHS input select](fhs-input-select.md)
-- [Button content](button-tool.md#button-content)
+- [Home Assistant Input select](https://www.home-assistant.io/integrations/input_select/)
 - [Actions](../../interaction/actions.md)

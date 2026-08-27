@@ -9,17 +9,17 @@ tags:
 
 # Rectangle
 
-Use rectangles as backgrounds, borders, panels, highlights, or other visual elements anywhere on the card.
+A rectangle adds a four-sided visual element anywhere on the card. Use it as a background, border, panel, highlight, or other visual element.
 
 Rectangles can have a fixed size or automatically fit around a state, name, or area.
 
 <!-- Rectangle examples image -->
 
-## :material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add rectangles under `layout.rectangles`:
 
-```yaml
+```yaml linenums="1"
 layout:
   rectangles:
     - id: background
@@ -39,6 +39,25 @@ layout:
 
 For more about the card coordinate system, see [Positioning and sizing](../../card-basics/positioning-and-sizing.md).
 
+## :material-horseshoe: Configuration options
+
+| Field           | Required | Default                 | Description                                       |
+| --------------- | :------: | ----------------------- | ------------------------------------------------- |
+| `xpos`          |   Fixed  |                         | Horizontal position of the rectangle center       |
+| `ypos`          |   Fixed  |                         | Vertical position of the rectangle center         |
+| `width`         |   Fixed  |                         | Rectangle width                                   |
+| `height`        |   Fixed  |                         | Rectangle height                                  |
+| `fit.section`   |    Fit   |                         | Referenced section: `states`, `names`, or `areas` |
+| `fit.item_id`   |    Fit   |                         | `id` of the item to fit around                    |
+| `fit.padding.x` |    No    | `1.5`                   | Horizontal padding around the fitted item         |
+| `fit.padding.y` |    No    | `0.5`                   | Vertical padding around the fitted item           |
+| `radius`        |    No    | `0`                     | Corner radius                                     |
+| `entity_index`  |    No    | Not set                 | Entity used by state-dependent features           |
+| `styles`        |    No    | Default rectangle style | SVG and CSS styling                               |
+| `color_stops`   |    No    | Not set                 | Colors the rectangle from its entity value        |
+
+Use either fixed `xpos`, `ypos`, `width`, and `height`, or `fit`.
+
 ## :material-horseshoe: Fit around another item
 
 A rectangle can automatically follow the position and rendered size of a state, name, or area.
@@ -47,7 +66,7 @@ This is useful for backgrounds, borders, and highlights around text whose size c
 
 The referenced item needs an `id`:
 
-```yaml
+```yaml linenums="1"
 layout:
   states:
     - id: current-state
@@ -68,7 +87,7 @@ layout:
 
 Add extra space around the fitted item with `padding`:
 
-```yaml
+```yaml linenums="1"
 fit:
   section: states
   item_id: current-state
@@ -83,7 +102,7 @@ A fitted rectangle gets its position, width, and height from the referenced item
 
 Rectangles are SVG elements and can use standard SVG styling:
 
-```yaml
+```yaml linenums="1"
 styles:
   fill: var(--card-background-color)
   stroke: var(--divider-color)
@@ -108,7 +127,7 @@ See [Styling](../../appearance/styling.md) for the complete styling guide.
 
 Connect a rectangle to an entity with `entity_index` when its color should respond to the entity state:
 
-```yaml
+```yaml linenums="1"
 layout:
   rectangles:
     - xpos: 50
@@ -137,25 +156,6 @@ layout:
 Use `colorstop` for distinct color ranges or `colorstopgradient` for blended colors.
 
 See [Color stops](../../appearance/color-stops.md) for configuring ranges, gradients, palettes, and interpolation.
-
-## :material-horseshoe: Configuration
-
-| Field           | Required | Default                 | Description                                       |
-| --------------- | :------: | ----------------------- | ------------------------------------------------- |
-| `xpos`          |   Fixed  |                         | Horizontal position of the rectangle center       |
-| `ypos`          |   Fixed  |                         | Vertical position of the rectangle center         |
-| `width`         |   Fixed  |                         | Rectangle width                                   |
-| `height`        |   Fixed  |                         | Rectangle height                                  |
-| `fit.section`   |    Fit   |                         | Referenced section: `states`, `names`, or `areas` |
-| `fit.item_id`   |    Fit   |                         | `id` of the item to fit around                    |
-| `fit.padding.x` |    No    | `1.5`                   | Horizontal padding around the fitted item         |
-| `fit.padding.y` |    No    | `0.5`                   | Vertical padding around the fitted item           |
-| `radius`        |    No    | `0`                     | Corner radius                                     |
-| `entity_index`  |    No    | Not set                 | Entity used by state-dependent features           |
-| `styles`        |    No    | Default rectangle style | SVG and CSS styling                               |
-| `color_stops`   |    No    | Not set                 | Colors the rectangle from its entity value        |
-
-Use either fixed `xpos`, `ypos`, `width`, and `height`, or `fit`.
 
 ## :material-horseshoe: Related
 

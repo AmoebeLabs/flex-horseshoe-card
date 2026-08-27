@@ -10,13 +10,13 @@ tags:
 
 # Arc
 
-Use an arc to draw part of a circle, for example as a background shape, curved panel, highlight, or decorative element.
+An arc draws part of a circle on the card. Use it as a background shape, curved panel, highlight, or decorative element.
 
 An arc is defined by its center, radius, and the number of degrees it covers.
 
 <!-- Arc examples image -->
 
-## :material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add arcs under `layout.arcs`:
 
@@ -35,6 +35,20 @@ layout:
 `xpos` and `ypos` position the center of the arc.
 
 `radius` controls its size and `arc_degrees` controls how much of the circle is drawn.
+
+## :material-horseshoe: Configuration options
+
+| Field          | Required | Default           | Description                             |
+| -------------- | :------: | ----------------- | --------------------------------------- |
+| `xpos`         |    No    | `50`              | Horizontal position of the arc center   |
+| `ypos`         |    No    | `50`              | Vertical position of the arc center     |
+| `radius`       |    No    | `45`              | Radius of the arc                       |
+| `arc_degrees`  |    No    | `260`             | Number of degrees covered by the arc    |
+| `rotate`       |    No    | `0`               | Rotates the arc around its center       |
+| `flip`         |    No    | `none`            | Flips the arc                           |
+| `entity_index` |    No    | Not set           | Entity used by state-dependent features |
+| `styles`       |    No    | Default arc style | SVG and CSS styling                     |
+| `color_stops`  |    No    | Not set           | Colors the arc from its entity value    |
 
 ## :material-horseshoe: Arc size and direction
 
@@ -130,20 +144,6 @@ Arc color stops are applied to the fill by default:
 ```
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-## :material-horseshoe: Configuration
-
-| Field          | Required | Default           | Description                             |
-| -------------- | :------: | ----------------- | --------------------------------------- |
-| `xpos`         |    No    | `50`              | Horizontal position of the arc center   |
-| `ypos`         |    No    | `50`              | Vertical position of the arc center     |
-| `radius`       |    No    | `45`              | Radius of the arc                       |
-| `arc_degrees`  |    No    | `260`             | Number of degrees covered by the arc    |
-| `rotate`       |    No    | `0`               | Rotates the arc around its center       |
-| `flip`         |    No    | `none`            | Flips the arc                           |
-| `entity_index` |    No    | Not set           | Entity used by state-dependent features |
-| `styles`       |    No    | Default arc style | SVG and CSS styling                     |
-| `color_stops`  |    No    | Not set           | Colors the arc from its entity value    |
 
 ## :material-horseshoe: Related
 

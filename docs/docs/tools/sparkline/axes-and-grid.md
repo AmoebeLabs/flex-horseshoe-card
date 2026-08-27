@@ -12,6 +12,8 @@ tags:
 
 Line, area, dots, bar, equalizer, and state-bands charts can show automatic axes and grid lines.
 
+Show the X-axis when the user needs to identify times and the Y-axis when values or named states need a visible scale. Grid lines make it easier to compare a point with both axes.
+
 <!-- Add a chart with labeled X and Y display elements here. -->
 
 ## :material-horseshoe: Show both axes
@@ -34,6 +36,19 @@ sparkline:
 ```
 
 The X-axis represents time. The Y-axis represents values or mapped states.
+
+## :material-horseshoe: Configuration options
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `show.grid.x`, `show.grid.y` | boolean | No | `false` | Shows grid lines for either axis. |
+| `show.axis.x`, `show.axis.y` | boolean | No | `false` | Shows the X-axis or Y-axis. |
+| `show.tickmarks.x`, `show.tickmarks.y` | boolean | No | `false` | Shows tick marks along an axis. |
+| `show.labels.x`, `show.labels.y` | boolean | No | `false` | Shows calculated time or value labels. |
+| `x_axis` | mapping | No | default X-axis styling | Adjusts X-axis labels and appearance. |
+| `y_axis` | mapping | No | default Y-axis styling | Adjusts Y-axis labels and appearance. |
+| `margin` | number or mapping | No | `0` | Adds space around the plotted data. |
+| `series[].y_axis` | string | No | `primary` | Assigns a series to the `primary` or `secondary` Y-axis. |
 
 ## :material-horseshoe: Style labels
 

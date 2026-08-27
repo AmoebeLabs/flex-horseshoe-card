@@ -14,6 +14,46 @@ The period defines the time range shown by a sparkline. Bins divide that range i
 
 Set `period.type` to the range you want to display, then configure the corresponding settings block.
 
+Use a rolling window to follow the latest measurements, a calendar period to show today or an earlier day, and realtime when only the current state matters.
+
+<!-- Add rolling-window and calendar-period screenshots here. -->
+
+## :material-horseshoe: Basic configuration
+
+This example follows the latest 24 hours and lets FHS choose a suitable level of detail:
+
+```yaml linenums="1"
+period:
+  type: rolling_window
+  rolling_window:
+    duration:
+      hour: 24
+    bins:
+      per_hour: auto
+      density: medium
+
+sparkline:
+  state_values:
+    aggregate_func: avg
+```
+
+## :material-horseshoe: Configuration options
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `period.type` | string | No | `calendar` | Uses `real_time`, `rolling_window`, or `calendar`. |
+| `duration` | duration | No | `hour: 24` | Chooses how much history the graph displays. |
+| `offset` | number | No | `0` | Moves a rolling or calendar period back by a number of days. Negative values select earlier periods. |
+| `bins.per_hour` | number or `auto` | No | `auto` | Uses an exact number of bins per hour or lets FHS choose the interval. |
+| `bins.density` | string | No | `medium` | Chooses `low`, `medium`, or `high` detail when `bins.per_hour` is `auto`. |
+| `state_values.aggregate_func` | string | No | `avg` | Chooses the value represented by each interval. |
+| `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections for line and area charts. |
+| `state_values.logarithmic` | boolean | No | `false` | Uses a logarithmic value scale where supported. |
+
+!!! tip "Keep automatic bins"
+
+    Leave `bins.per_hour` set to `auto` for normal use. FHS then adapts the interval to the graph width, duration, chart type, and selected density. Configure a number only when the graph must use a fixed interval.
+
 ## :material-horseshoe: Period types
 
 | Type                              | Use                                         | What you see                                                                            |

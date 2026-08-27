@@ -65,29 +65,64 @@ plugins:
   # Preserve indexed URLs when documentation pages move or are combined.
   - redirects:
       redirect_maps:
-        "layout-overview/visual-shapes.md": "sections/visual-shapes-section.md"
-        "sections/layout-overview/visual-shapes.md": "sections/visual-shapes-section.md"
-        "sections/visual-shapes.md": "sections/visual-shapes-section.md"
-        "sections/areas-section.md": "sections/entities-section.md"
-        "sections/icons-section.md": "sections/entities-section.md"
-        "sections/names-section.md": "sections/entities-section.md"
-        "sections/states-section.md": "sections/entities-section.md"
-        "sections/horseshoe-ticks.md": "sections/horseshoe-ticks-and-labels.md"
-        "sections/horseshoe-labels.md": "sections/horseshoe-ticks-and-labels.md"
-        "core-concepts/size-of-card.md": "core-concepts/card-structure.md"
+        # Former section pages
+        "layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
+        "sections/layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
+        "sections/visual-shapes.md": "tools/shapes/shapes-overview.md"
+        "sections/visual-shapes-section.md": "tools/shapes/shapes-overview.md"
+        "sections/areas-section.md": "tools/entities/entity-area-tool.md"
+        "sections/icons-section.md": "tools/entities/entity-icon-tool.md"
+        "sections/names-section.md": "tools/entities/entity-name-tool.md"
+        "sections/states-section.md": "tools/entities/entity-state-tool.md"
+        "sections/entities-section.md": "tools/tools-overview.md"
+        "sections/groups-section.md": "card-basics/groups.md"
+        "sections/layout-overview.md": "card-basics/card-overview.md"
+        "sections/horseshoes-section.md": "tools/horseshoe/horseshoe-overview.md"
+        "sections/horseshoe-scale-and-state.md": "tools/horseshoe/horseshoe-scale-and-state.md"
+        "sections/horseshoe-ticks.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+        "sections/horseshoe-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+        "sections/horseshoe-ticks-and-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+        "sections/sparklines-section.md": "tools/sparkline/sparkline-overview.md"
+        "sections/sparkline-history-periods.md": "tools/sparkline/sparkline-history-periods-and-bins.md"
+        "sections/sparkline-cartesian-charts.md": "tools/sparkline/sparkline-overview.md"
+        "sections/sparkline-specialized-charts.md": "tools/sparkline/sparkline-overview.md"
+        "sections/texts-section.md": "tools/shapes/text-tool.md"
+        "sections/default-haptics.md": "interaction/actions.md"
+
+        # Former card-configuration pages
         "reuse/reuse-introduction2.md": "reuse/reuse-introduction.md"
-        "card-configuration/overview.md": "sections/layout-overview.md"
-        "card-configuration/sections/layout-overview.md": "sections/layout-overview.md"
-        "card-configuration/circles-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/hlines-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/vlines-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/sections/circles-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/sections/hlines-vlines-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/sections/hlines-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/sections/vlines-section.md": "sections/visual-shapes-section.md"
-        "card-configuration/groups-section.md": "sections/groups-section.md"
-        "card-configuration/positioning-and-groups.md": "core-concepts/positioning-and-groups.md"
-        "card-configuration/entities-definition.md": "core-concepts/entity-definitions.md"
+        "card-configuration/overview.md": "card-basics/card-overview.md"
+        "card-configuration/sections/layout-overview.md": "card-basics/card-overview.md"
+        "card-configuration/circles-section.md": "tools/shapes/circle-tool.md"
+        "card-configuration/hlines-section.md": "tools/shapes/line-tool.md"
+        "card-configuration/vlines-section.md": "tools/shapes/line-tool.md"
+        "card-configuration/sections/circles-section.md": "tools/shapes/circle-tool.md"
+        "card-configuration/sections/hlines-vlines-section.md": "tools/shapes/line-tool.md"
+        "card-configuration/sections/hlines-section.md": "tools/shapes/line-tool.md"
+        "card-configuration/sections/vlines-section.md": "tools/shapes/line-tool.md"
+        "card-configuration/groups-section.md": "card-basics/groups.md"
+        "card-configuration/positioning-and-groups.md": "card-basics/positioning-and-sizing.md"
+        "card-configuration/entities-definition.md": "card-basics/entities.md"
+
+        # Former core-concepts pages
+        "core-concepts/size-of-card.md": "card-basics/positioning-and-sizing.md"
+        "core-concepts/card-structure.md": "card-basics/card-overview.md"
+        "core-concepts/entity-definitions.md": "card-basics/entities.md"
+        "core-concepts/positioning-and-groups.md": "card-basics/groups.md"
+        "core-concepts/actions-and-local-controls.md": "interaction/interaction-overview.md"
+        "core-concepts/animations.md": "interaction/animations.md"
+        "core-concepts/color-stops.md": "appearance/color-stops.md"
+        "core-concepts/color-filters.md": "appearance/color-filters.md"
+        "core-concepts/css-styling.md": "appearance/styling.md"
+        "core-concepts/external-palettes.md": "appearance/palettes.md"
+        "core-concepts/localization.md": "localization/overview.md"
+        "core-concepts/templating.md": "dynamic/javascript-templates.md"
+
+        # Former example indexes
+        "examples/awair-examples.md": "examples/demo-cards/demo-card-awair-many.md"
+        "examples/electricity-examples.md": "examples/demo-cards/demo-card-electricity-many.md"
+        "examples/pollen-examples.md": "examples/demo-cards/demo-card-kleenex-pollen-many.md"
+        "examples/generated-card-catalog.md": "examples/overview.md"
   - minify:
       minify_html: true
 
@@ -245,12 +280,11 @@ nav:
 
   - Reuse:
       - Overview: reuse/reuse-introduction.md
-      - Reusing items with same_as: reuse/reuse-with-same_as.md
+      - Reusable YAML card examples: reuse/reuse-card-examples.md
+      - Reuse reference: reuse/reuse-reference.md
 
   - Dynamic configuration:
       - Overview: dynamic/overview.md
-      - Constants and ref(): dynamic/constants-and-ref.md
-      - Calculations with calc(): dynamic/calculations-with-calc.md
       - JavaScript templates: dynamic/javascript-templates.md
 
   - Card templates:
@@ -263,9 +297,9 @@ nav:
 
   - Examples:
       - Overview: examples/overview.md
-      - Pollen: examples/pollen-examples.md
-      - Electricity: examples/electricity-examples.md
-      - Awair: examples/awair-examples.md
+      - Pollen cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
+      - Electricity cards: examples/demo-cards/demo-card-electricity-many.md
+      - Awair card: examples/demo-cards/demo-card-awair-many.md
 
   - Reference:
       - Configuration reference: reference/configuration-reference.md

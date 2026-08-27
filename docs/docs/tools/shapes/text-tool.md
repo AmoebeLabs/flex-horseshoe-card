@@ -10,9 +10,11 @@ tags:
 
 # Text
 
-Use `layout.texts` for headings, captions, labels, and other text placed anywhere on a card. A text item can contain one value or several inline parts.
+A text item adds headings, captions, labels, and compact summaries anywhere on a card. Use it to build one readable label from fixed words and the name, state, or area already shown elsewhere on the card.
 
-## Basic text
+<!-- Text examples image -->
+
+## :material-horseshoe: Basic configuration
 
 Set `text` to the value you want to display.
 
@@ -20,7 +22,11 @@ Set `text` to the value you want to display.
 layout:
   texts:
     - id: history-title
-      text: History
+      text:
+        - value: 'History: '
+        - value: 7 days
+          styles:
+            font-weight: bold
       xpos: 50
       ypos: 15
       styles:
@@ -31,22 +37,41 @@ layout:
 
 Use `xpos` and `ypos` to position the text. Common SVG text styles such as `font-size`, `font-weight`, `fill`, `text-anchor`, and `dominant-baseline` control its appearance.
 
-## Translated text
+## :material-horseshoe: Configuration options
 
-Use `localize_tag` to display a Home Assistant label in the user's selected language.
+### Text item
 
-```yaml linenums="1"
-layout:
-  texts:
-    - id: duration-title
-      localize_tag: ui.dialogs.helper_settings.timer.duration
-      xpos: 50
-      ypos: 15
-```
+| Field | Description |
+| :-- | :-- |
+| `id` | Identifies the text item. |
+| `text` | A string or list of inline text parts. |
+| `localize_tag` | Home Assistant translation key used instead of `text`. |
+| `entity_index` | Entity available to JavaScript templates. |
+| `xpos`, `ypos` | Position of the text on the card. |
+| `styles` | Appearance and alignment shared by the text parts. |
+| `text_overflow` | Wraps, shortens, or fits long text. |
+| `group` | Places the text in a configured group. |
+| `tap_action` | Runs an action when the text is tapped. |
+| `hold_action` | Runs an action when the text is held. |
+| `double_tap_action` | Runs an action when the text is double-tapped. |
 
-The value must be an existing Home Assistant translation key.
+### Inline text part
 
-## Inline text parts
+| Field | Description |
+| :-- | :-- |
+| `value` | Literal text or a JavaScript template. |
+| `localize_tag` | Home Assistant translation key used as this part. |
+| `type` | Uses a configured `name`, `state`, or `area` item as this part. |
+| `id` | Identifies the configured Name, State, or Area item to show. |
+| `source_styles` | Set to `false` when the part should use only the source content, not its appearance. |
+| `show.uom`, `uom` | Changes the unit shown by a reused State part. |
+| `entity_index` | Entity used by this part when it has its own dynamic value. |
+| `new_line` | Starts this part on a new line. |
+| `dx`, `dy` | Adjust this part's position in em. |
+| `styles` | Appearance of this part. |
+| `ellipsis` | Character limit for this part. |
+
+## :material-horseshoe: Inline text parts
 
 Set `text` to a list when a label contains parts with different content or styling.
 
@@ -71,18 +96,57 @@ layout:
 
 Parts on the same line are placed directly after each other. Include spaces in the values where they are needed.
 
-Each part can use `value`, `localize_tag`, and its own `styles`.
+Each part uses `value` and can have its own `styles`.
+
+## :material-horseshoe: Combine entity information
+
+Use inline parts to make a single summary such as `Living room: 21.4 °C - Ground floor`. This is useful when the name, current value, and assigned area should stay together instead of being positioned as separate labels.
+
+First add the Name, State, and Area items that provide the information. They can stay hidden when the summary is the only place where they should appear. Then select each item by its `type` and `id` in the summary text.
 
 ```yaml linenums="1"
-text:
-  - localize_tag: ui.dialogs.helper_settings.timer.duration
-  - value: ': '
-  - value: 7 days
-    styles:
-      font-weight: bold
+layout:
+  names:
+    - id: room-name
+      entity_index: 0
+      visibility: hidden
+
+  states:
+    - id: room-temperature
+      entity_index: 0
+      visibility: hidden
+      show:
+        uom: end
+
+  areas:
+    - id: room-area
+      entity_index: 0
+      visibility: hidden
+
+  texts:
+    - id: room-summary
+      xpos: 50
+      ypos: 50
+      styles:
+        text-anchor: middle
+        dominant-baseline: middle
+      text:
+        - type: name
+          id: room-name
+        - value: ': '
+        - type: state
+          id: room-temperature
+          uom:
+            styles:
+              font-size: 0.75em
+        - value: ' - '
+        - type: area
+          id: room-area
 ```
 
-## Multiple lines
+The inline part uses the source item's formatted content and appearance. Add styles to the inline part when the summary needs a different appearance. Set `source_styles: false` when only the text or value should be reused.
+
+## :material-horseshoe: Multiple lines
 
 Add `new_line: true` to start a part on the next line.
 
@@ -99,36 +163,35 @@ text:
 
 Use `dx` and `dy` on an individual part to adjust its horizontal or vertical position.
 
-## Dynamic text
+## :material-horseshoe: Long text
 
-A text value can use a JavaScript template. When the text item has an `entity_index`, the template receives that entity's state.
+Decide what a label should do when it does not fit in the available space: continue on another line, keep its size and shorten the ending, or keep the complete label visible by using a smaller font.
+
+!!! info "Characters and width"
+
+    `ellipsis: 40` means at most 40 characters. Use `text_overflow.ellipsis.max_width` when the available width on the card should decide what fits.
+
+### Limit the number of characters
+
+Use direct `ellipsis` when a label may contain only a fixed number of characters. Place it on the complete text item to limit every line, or on one inline part to limit that part only.
 
 ```yaml linenums="1"
 layout:
   texts:
-    - id: active-period
-      entity_index: 0
+    - id: compact-label
       xpos: 50
       ypos: 50
+      ellipsis: 16
       text:
-        - value: 'Period: '
-        - value: |
-            [[[
-              return `${state} day${Number(state) === 1 ? '' : 's'}`;
-            ]]]
+        - value: 'History period: '
+        - value: 7 days
           styles:
             font-weight: bold
 ```
 
-See [JavaScript templates](../../dynamic/javascript-templates.md) for the shared template syntax.
+### Use more than one line
 
-## Long text
-
-Use `text_overflow` when text must stay within a fixed width.
-
-### Wrap
-
-Wrap text at spaces and optionally limit the number of lines.
+Show a longer label on multiple lines while keeping it inside the available width.
 
 ```yaml linenums="1"
 text_overflow:
@@ -139,9 +202,9 @@ text_overflow:
     dy: 1.4
 ```
 
-### Ellipsis
+### Keep the text size within a fixed width
 
-Shorten text to the available width.
+Use this when the label must stay within a known width while keeping its font size. Unlike `ellipsis: 40`, `max_width: 40` is a width in the card layout, not a character count. FHS shortens the ending only when the complete label is wider than `max_width`.
 
 ```yaml linenums="1"
 text_overflow:
@@ -150,9 +213,9 @@ text_overflow:
     max_width: 40
 ```
 
-### Fit
+### Keep the complete label visible
 
-Reduce the complete text item until it fits.
+FHS uses the configured text size while it fits and makes the label smaller only when necessary. Set `min_font_size` to the smallest size that is still readable in your card.
 
 ```yaml linenums="1"
 text_overflow:
@@ -162,33 +225,7 @@ text_overflow:
     min_font_size: 0.7em
 ```
 
-## Configuration
+## :material-horseshoe: Related
 
-### Text item
-
-| Field | Description |
-| :-- | :-- |
-| `id` | Identifies the text item. |
-| `text` | A string or list of inline text parts. |
-| `localize_tag` | Home Assistant translation key used instead of `text`. |
-| `entity_index` | Entity available to JavaScript templates. |
-| `xpos`, `ypos` | Position of the text on the card. |
-| `styles` | Appearance and alignment shared by the text parts. |
-| `text_overflow` | Wraps, shortens, or fits long text. |
-| `group` | Places the text in a configured group. |
-| `tap_action` | Runs an action when the text is tapped. |
-| `hold_action` | Runs an action when the text is held. |
-| `double_tap_action` | Runs an action when the text is double-tapped. |
-
-### Inline text part
-
-| Field | Description |
-| :-- | :-- |
-| `value` | Literal text or a JavaScript template. |
-| `localize_tag` | Home Assistant translation key used as this part. |
-| `new_line` | Starts this part on a new line. |
-| `dx`, `dy` | Adjust this part's position in em. |
-| `styles` | Appearance of this part. |
-| `ellipsis` | Character limit for this part. |
-
-Continue with [Actions](../../interaction/actions.md), [Styling](../../appearance/styling.md), or [Positioning and sizing](../../card-basics/positioning-and-sizing.md) when the text needs those features.
+* [Styling](../../appearance/styling.md)
+* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)

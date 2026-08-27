@@ -9,9 +9,9 @@ tags:
 
 # Interactive controls
 
-Controls let someone operate an entity, choose how a card is displayed, or run a Home Assistant action directly from the card.
+Interactive controls add buttons, toggles, selectors, number steppers, and sliders to a card. Use them to operate an entity, change a card setting, or run a Home Assistant action where it is useful.
 
-<!-- Add the controls showcase image here. -->
+Use controls with Home Assistant entities when the value belongs to Home Assistant and may also be used by automations, dashboards, or other devices. Use [browser-local FHS inputs](browser-local-inputs.md) for choices that only affect FHS cards in the current browser.
 
 {{ loop_video(
   "2026.08.13-fhs-showcase-controls.mp4",
@@ -22,22 +22,24 @@ Controls let someone operate an entity, choose how a card is displayed, or run a
   "PT0M45S",
   "400px") }}
 
-## :material-horseshoe: Choose a control
+## :material-horseshoe: Available controls
 
-| Control | Use it to |
+| Control | What it lets the user do |
 | --- | --- |
-| [Button](button-tool.md) | Run a tap, hold, or double-tap action. |
-| [Toggle](toggle-tool.md) | Show and change an on/off state. |
+| [Button](button-tool.md) | Open details, navigate, toggle an entity, or run an action. |
+| [Number](number-tool.md) | Increase or decrease a numeric value in fixed steps. |
 | [Select](select-tool.md) | Choose one option from a visible list. |
-| [Number](number-tool.md) | Increase or decrease a value in fixed steps. |
-| [Slider](slider-tool.md) | Set one value or a lower and upper range. |
+| [Slider](slider-tool.md) | Set a numeric value or choose a lower and upper value. |
+| [Toggle](toggle-tool.md) | Turn an on/off entity or browser-local setting on or off. |
 
-Add controls under `layout.controls`:
+## :material-horseshoe: Add a control
+
+Place controls under `layout.controls`. Every control has its own position and size inside the card:
 
 ```yaml linenums="1"
 layout:
   controls:
-    - id: details
+    - id: light-details
       type: button
       entity_index: 0
       xpos: 50
@@ -48,38 +50,22 @@ layout:
         action: more-info
 ```
 
-## :material-horseshoe: Connect a value
+Use the individual control pages for complete examples and the options available to that control.
 
-Controls can use:
+## :material-horseshoe: Choose where the value lives
 
-- a Home Assistant entity;
-- a Home Assistant helper such as `input_select`, `input_number`, or `input_boolean`;
-- a [browser-local FHS input](browser-local-inputs.md).
+A control can work with:
 
-Use a Home Assistant entity when the value should be shared with automations and other devices. Use an FHS input when the value only changes cards in the current browser.
+- a Home Assistant entity such as a light, switch, number, select, or input helper;
+- a [browser-local FHS input](browser-local-inputs.md);
+- an action that already names its own target, navigation path, or URL.
 
-## :material-horseshoe: Variants, visualizations, and styles
+Use a Home Assistant entity when its state needs to be available outside the card. FHS inputs are useful for display modes, chart periods, visible layers, and other settings that belong to the card itself.
 
-A control separates its function, visualization, and appearance:
+## :material-horseshoe: Actions and availability
 
-```yaml linenums="1"
-show:
-  item_variant: segmented
-  item_viz: viz_button
-  item_style: outlined_round
-```
+Buttons can define their own tap, hold, and double-tap actions. Other controls normally change their connected entity or FHS input directly.
 
-| Setting | Chooses |
-| --- | --- |
-| `item_variant` | The control form, such as a segmented select or number stepper. |
-| `item_viz` | How the active part is shown, such as a button or line. |
-| `item_style` | The visual preset, such as filled, outlined, round, or square. |
+Set `visibility: unavailable` when a control should remain visible but cannot be used in the current situation. The control becomes visually subdued and does not respond to interaction.
 
-Each control page lists the combinations intended for that control.
-
-## :material-horseshoe: Related
-
-- [Actions](../../interaction/actions.md)
-- [Browser-local inputs](browser-local-inputs.md)
-- [Visibility](../../interaction/visibility.md)
-- [Styling](../../appearance/styling.md)
+See [Actions](../../interaction/actions.md) for action types and [Visibility](../../interaction/visibility.md) for showing, hiding, or disabling controls.

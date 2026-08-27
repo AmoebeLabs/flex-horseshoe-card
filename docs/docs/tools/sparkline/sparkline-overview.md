@@ -10,7 +10,9 @@ tags:
 
 # Sparkline graphs
 
-The sparkline section displays Home Assistant state history as a compact graph within the card layout. Choose the time period, level of detail, and chart type that best fits the entity. You can then enable axes, grid lines, labels, points, colors, and an interactive tooltip as needed.
+A sparkline graph shows how an entity value changes over time. Use it to follow a recent trend, see today's progress, compare rooms or sensors, or show when a named state was active.
+
+Choose the time period, level of detail, and chart type that fit the information you want to see. A graph can remain compact and visual, or include axes, labels, statistics, a legend, and a tooltip for closer inspection.
 
 |                                                          Area                                                         |                                                           Barcode - Audio                                                          |                                                                Bars                                                                |
 | :-------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
@@ -23,9 +25,14 @@ The sparkline section displays Home Assistant state history as a compact graph w
 Add graphs to `layout.sparklines` and connect each one to an entity through `entity_index`.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature
+    slot: temperature
+
 layout:
   sparklines:
-    - entity_index: 0
+    - id: temperature-history
+      entity_index: temperature[0]
       xpos: 50
       ypos: 50
       width: 80
@@ -48,6 +55,16 @@ layout:
 ```
 
 The entity index refers to the card-level `entities` list. Statistics and tooltip values use the formatting settings of the connected entity.
+
+This example shows the average temperature for the latest 24 hours. FHS chooses a readable number of time bins for the available graph width.
+
+When the entity does not have a slot, use its numeric position in the card's entity list:
+
+```yaml linenums="1"
+layout:
+  sparklines:
+    - entity_index: 0
+```
 
 ## :material-horseshoe: Choose a setup
 

@@ -10,13 +10,13 @@ tags:
 
 # State
 
-Use a state to show the current value of a Home Assistant entity or one of its attributes.
+The State tool shows the current value of a Home Assistant entity or attribute. Use it for a measurement, status, date, or other entity value.
 
 FHS uses Home Assistant formatting for the value and unit by default.
 
 <!-- State examples image -->
 
-##:material-horseshoe: Basic use
+## :material-horseshoe: Basic configuration
 
 Add states under `layout.states`:
 
@@ -37,6 +37,21 @@ layout:
 `entity_index` selects the entity whose state is displayed.
 
 `xpos` and `ypos` position the state on the card.
+
+## :material-horseshoe: Configuration options
+
+| Field            | Required | Default             | Description                                  |
+| ---------------- | :------: | ------------------- | -------------------------------------------- |
+| `entity_index`   |    Yes   |                     | Entity whose state is displayed              |
+| `xpos`           |    Yes   |                     | Horizontal position                          |
+| `ypos`           |    Yes   |                     | Vertical position                            |
+| `show.uom`       |    No    | `end`               | Places the unit at `end`, `top`, or `bottom` |
+| `uom`            |    No    |                     | Unit positioning and styling                 |
+| `max_characters` |    No    |                     | Maximum displayed state length               |
+| `ellipsis`       |    No    |                     | Legacy alias for limiting state length       |
+| `format`         |    No    | Home Assistant      | Overrides state formatting                   |
+| `styles`         |    No    | Default state style | SVG and CSS styling                          |
+| `color_stops`    |    No    | Not set             | Colors the state from the entity value       |
 
 ## :material-horseshoe: State and unit
 
@@ -237,21 +252,6 @@ layout:
 Color stops are applied to the state text.
 
 See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
-
-## :material-horseshoe: Configuration
-
-| Field            | Required | Default             | Description                                  |
-| ---------------- | :------: | ------------------- | -------------------------------------------- |
-| `entity_index`   |    Yes   |                     | Entity whose state is displayed              |
-| `xpos`           |    Yes   |                     | Horizontal position                          |
-| `ypos`           |    Yes   |                     | Vertical position                            |
-| `show.uom`       |    No    | `end`               | Places the unit at `end`, `top`, or `bottom` |
-| `uom`            |    No    |                     | Unit positioning and styling                 |
-| `max_characters` |    No    |                     | Maximum displayed state length               |
-| `ellipsis`       |    No    |                     | Legacy alias for limiting state length       |
-| `format`         |    No    | Home Assistant      | Overrides state formatting                   |
-| `styles`         |    No    | Default state style | SVG and CSS styling                          |
-| `color_stops`    |    No    | Not set             | Colors the state from the entity value       |
 
 ## :material-horseshoe: Related
 

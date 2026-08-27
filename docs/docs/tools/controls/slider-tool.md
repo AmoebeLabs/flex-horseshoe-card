@@ -9,11 +9,15 @@ tags:
 
 # Slider control
 
-Use a slider for values that are easier to choose visually than with repeated minus and plus actions.
+A slider lets the user choose a numeric value by dragging a thumb along a visible range. Use it when position within the range is more useful than repeatedly pressing minus and plus, such as for brightness, volume, temperature, scale limits, or history duration.
 
-<!-- Add linear, circular, single, and range slider examples here. -->
+Connect a single slider to a Home Assistant [Number](https://www.home-assistant.io/integrations/number/), [Input number](https://www.home-assistant.io/integrations/input_number/), or an [FHS input number](fhs-input-number.md). A range slider connects two numeric entities and lets the user choose both a lower and an upper value.
 
-## :material-horseshoe: Single value
+<!-- Add linear, circular, single-value, and range slider screenshots here. -->
+
+## :material-horseshoe: Basic configuration
+
+This example creates a linear brightness slider:
 
 ```yaml linenums="1"
 entities:
@@ -22,6 +26,8 @@ entities:
     min: 0
     max: 100
     step: 1
+    unit: "%"
+    scope: card
 
 layout:
   controls:
@@ -42,53 +48,114 @@ layout:
         item_style: ha
 ```
 
-## :material-horseshoe: Lower and upper values
+The slider uses the minimum, maximum, step, value, and unit from the connected entity.
 
-A range slider connects two numeric entities:
+!!! info "Entity and input settings"
+
+    `entity_index: 0` connects the slider to the first entry in `entities`. The `initial`, `min`, `max`, `step`, `unit`, and `scope` settings configure the FHS input, not the Slider control. See [FHS input number](fhs-input-number.md) for all input settings and [Entities](../../card-basics/entities.md) for entity indexes and optional slots.
+
+## :material-horseshoe: Configuration options
+
+| Option | Description |
+| --- | --- |
+| `type: slider` | Adds a slider control. |
+| `entity_index` | Numeric entity used by a single-value slider. |
+| `values` | Two numeric entities used as the lower and upper values of a range slider. |
+| `xpos`, `ypos` | Position of the slider in the card. |
+| `width`, `height` | Size of the slider track and interaction area. |
+| `show.item_variant` | Selects a `single` value or a `range` with two values. |
+| `show.item_viz` | Displays a `linear` or `circular` slider. |
+| `value` | Shows and positions the current value beside the slider. |
+| `interaction.update_interval` | Controls how often a value is sent while the user drags. |
+| `label` | Optional text positioned beside or above the slider. |
+| `visibility` | Shows, hides, or disables the slider. |
+
+The value range and step belong to the connected entity or FHS input.
+
+## :material-horseshoe: Select a lower and upper value
+
+A range slider connects exactly two numeric entities:
 
 ```yaml linenums="1"
-- id: comfort-range
+entities:
+  - entity: fhs_input_number.scale_min
+    initial: -10
+    min: -20
+    max: 50
+    step: 1
+  - entity: fhs_input_number.scale_max
+    initial: 40
+    min: -20
+    max: 50
+    step: 1
+
+layout:
+  controls:
+    - id: scale-range
+      type: slider
+      values:
+        - entity_index: 0
+        - entity_index: 1
+      xpos: 50
+      ypos: 50
+      width: 70
+      height: 12
+
+      value:
+        position: top
+        range_spacing: 10
+
+      show:
+        item_variant: range
+        item_viz: linear
+        item_style: ha
+```
+
+The lower value cannot move above the upper value, and the upper value cannot move below the lower value.
+
+## :material-horseshoe: Use a circular slider
+
+A circular slider is useful when it fits the visual language of a gauge or horseshoe card. Give it equal width and height:
+
+```yaml linenums="1"
+- id: target-temperature
   type: slider
-  values:
-    - entity_index: lower[0]
-    - entity_index: upper[0]
+  entity_index: 0
   xpos: 50
   ypos: 50
-  width: 70
-  height: 12
-
-  value:
-    position: top
-    range_spacing: 10
-
+  width: 40
+  height: 40
   show:
-    item_variant: range
-    item_viz: linear
+    item_variant: single
+    item_viz: circular
     item_style: ha
 ```
 
-## :material-horseshoe: Circular slider
+## :material-horseshoe: Show the current value
 
-Change `item_viz` to `circular` and give the control equal width and height:
+Use `value.position` to place the value at `start`, `end`, `top`, `bottom`, or `center`:
 
 ```yaml linenums="1"
-show:
-  item_variant: single
-  item_viz: circular
-  item_style: ha
+value:
+  position: top
+  gap: 3
 ```
 
-## :material-horseshoe: Value updates
+For a range slider, `range_spacing` controls the distance between the two displayed values.
 
-Use `interaction.update_interval` to choose how often dragging sends an updated value:
+## :material-horseshoe: Control updates while dragging
+
+The slider sends updates while the user drags. Increase `interaction.update_interval` when the target should receive fewer updates:
 
 ```yaml linenums="1"
 interaction:
-  update_interval: 100
+  update_interval: 200
 ```
+
+The value is always sent when the drag ends.
 
 ## :material-horseshoe: Related
 
 - [FHS input number](fhs-input-number.md)
-- [Number](number-tool.md)
-- [Actions](../../interaction/actions.md)
+- [Number control](number-tool.md)
+- [Home Assistant Input number](https://www.home-assistant.io/integrations/input_number/)
