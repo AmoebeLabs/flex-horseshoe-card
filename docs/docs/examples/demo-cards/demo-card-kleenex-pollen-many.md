@@ -244,9 +244,9 @@ Example definition to use within view
 
 ## :material-horseshoe: Related documentation
 
-* Configure threshold colors and gradients with [Color Stops](../../core-concepts/color-stops.md).
-* Transform palette colors for alternate card designs with [Color Filters](../../core-concepts/color-filters.md).
-* Configure state arcs and mapped states with [Horseshoe Gauges](../../sections/horseshoes-section.md).
+* Configure threshold colors and gradients with [Color stops](../../appearance/color-stops.md).
+* Transform palette colors for alternate card designs with [Color filters](../../appearance/color-filters.md).
+* Configure state arcs and mapped states with [Horseshoe gauges](../../tools/horseshoe/horseshoe-overview.md).
 * Reduce repeated definitions with the [Reuse Reference](../../reuse/reuse-reference.md).
 
 <!-- Image references -->

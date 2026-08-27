@@ -307,4 +307,4 @@ See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palett
 * [Color filters](../../appearance/color-filters.md)
 * [Actions](../../interaction/actions.md)
 * [Animations](../../interaction/animations.md)
-* [Reusing items with same_as](../../reuse/reuse-with-same_as.md)
+* [Reuse™](../../reuse/reuse-introduction.md)

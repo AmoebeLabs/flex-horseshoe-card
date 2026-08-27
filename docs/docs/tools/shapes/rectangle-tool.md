@@ -166,4 +166,4 @@ See [Color stops](../../appearance/color-stops.md) for configuring ranges, gradi
 * [Color stops](../../appearance/color-stops.md)
 * [Actions](../../interaction/actions.md)
 * [Animations](../../interaction/animations.md)
-* [Reusing items with same_as](../../reuse/reuse-with-same_as.md)
+* [Reuse™](../../reuse/reuse-introduction.md)
