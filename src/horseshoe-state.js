@@ -16,14 +16,16 @@ const DEFAULT_STATE_ANIMATION = {
 /**
  * Applies the minimal base defaults needed before entity state is resolved.
  */
-export function normalizeBaseConfig(config, index, groupManager) {
+export function normalizeBaseConfig(config, index, groupManager, colorStopMode) {
   const entityIndex = config.entity_index ?? 0;
   const groupConfig = groupManager.getGroupForItem(config);
+  const colorStops = ColorStops.normalize(config.color_stops, colorStopMode);
 
   return {
     entity_index: entityIndex,
     bar_mode: "normal",
     ...config,
+    colorstops: colorStops,
     group_config: groupConfig,
     index,
     show: {
