@@ -10,7 +10,7 @@ Before this change, `colorstop` and `colorstopgradient` used the same single sta
 
 ## Proposed Approach
 
-PR #317 demonstrates the correct visual principle by approximating the curved gradient with multiple short SVG arcs. This implementation uses that approach as its foundation and integrates it with the existing FHS geometry, bidirectional modes, path caching, and direct DOM animation architecture.
+PR #317 demonstrates the correct visual principle by approximating the curved gradient with multiple short SVG arcs. This implementation uses that approach as its foundation and integrates it with the existing Flexible Horseshoe Card geometry, bidirectional modes, path caching, and direct DOM animation architecture.
 
 The scope also applies the same curved-gradient technique to `lineargradient`. This restores its original value-dependent behavior and gives both gradient styles the same smooth rendering quality, while preserving their different meaning.
 
@@ -81,7 +81,7 @@ arcLength = radius * abs(endAngle - startAngle) * PI / 180
 Subdivide an interval evenly until every resulting micro-arc has a maximum centerline length of six SVG units. This makes density follow the actual rendered geometry. Compressed spline intervals receive fewer arcs and expanded intervals receive more. A short ten-degree arc therefore uses only a few paths instead of a fixed sixty.
 A deliberately large radius also remains correct. With a radius of `5000` and an arc of `0.3` degrees, the centerline is approximately `26.2` SVG units long. Recursive subdivision therefore produces enough short paths to follow the visible curve, and the complete color-stop scale still runs across the visible arc.
 
-Do not add a public density setting. The user selects a gradient style and FHS determines the required drawing density automatically. A configurable override can be considered later only if visual testing demonstrates a real need.
+Do not add a public density setting. The user selects a gradient style and Flexible Horseshoe Card determines the required drawing density automatically. A configurable override can be considered later only if visual testing demonstrates a real need.
 
 Each micro-arc receives its own `linearGradient` in `userSpaceOnUse`. The gradient runs from the centerline point at the arc start to the centerline point at the arc end. Its stops use the exact interpolated colors at `startValue` and `endValue`. Because each arc is short, its chord closely follows the local curve while the joined gradients remain continuous.
 

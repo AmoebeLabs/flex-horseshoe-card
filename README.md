@@ -27,6 +27,71 @@ The card turns Home Assistant entity states and attributes into compact visual d
 
 Unlike cards with a fixed layout, the Flexible Horseshoe Card lets you position every item individually or organize related items into groups. SVG-based rendering keeps layouts scalable, while Home Assistant integration supplies entity names, units, icons, localization, state colors, actions, and theme variables.
 
+### Card gallery
+
+Below are some examples of what the Flexible Horseshoe Card can do. The gallery shows a mix of enhanced horseshoe visualizations and Sparkline history functionality.
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-2-weather--dark.webp" alt="Flexible Horseshoe Card weather with colorstop gradient example" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Horseshoe Examples</a>
+    </td>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-32c-electricity--dark.webp" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Electricity card examples</a>
+    </td>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-overview/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-4-negative-weather--dark.webp" alt="Flexible Horseshoe Card dual mode negative and positive" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-overview/">Horseshoes</a>
+    </td>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/">Cartesian history charts</a>
+    </td>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/radial-barcode/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-radial_barcode-sunburst_outward-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/radial-barcode/">Specialized history charts</a>
+    </td>
+
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
+    </td>
+    <td align="center">
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
+        <img src="docs/docs/assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
+      </a><br>
+      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
+    </td>
+  </tr>
+</table>
+
 ### ⚙️ Powerful and highly configurable
 
 Configure custom card dimensions and populate a layout with any number of entities, horseshoes, lines, circles, and other [visual shapes][visual-shapes]. Position items individually with the [layout overview][layout-overview], or use [positioning and groups][positioning-groups] to move, scale, and rotate related elements together.
@@ -105,76 +170,13 @@ layout:
         max: 40
 
       color_stops:
-        0: '#2196f3' # blue from 0..20
-        20: '#4caf50' # green from 20..30
-        30: '#ff9800' # orange from 30..40
-        40: '#f44336' # and red for anything above 40 degrees
+        0: "#2196f3" # blue from 0..20
+        20: "#4caf50" # green from 20..30
+        30: "#ff9800" # orange from 30..40
+        40: "#f44336" # and red for anything above 40 degrees
 ```
 
 Ready to go further? Continue with [Card Structure][card-structure], [Entity Definitions][entity-definitions], [Layout Overview][layout-overview], and [Horseshoe Gauges][horseshoes].
-
-## Card gallery
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-2-weather--dark.webp" alt="Flexible Horseshoe Card weather with colorstop gradient example" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Horseshoe Examples</a>
-    </td>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-32c-electricity--dark.webp" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Electricity card examples</a>
-    </td>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-4-negative-weather--dark.webp" alt="Flexible Horseshoe Card dual mode negative and positive" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">Horseshoes</a>
-    </td>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">Cartesian history charts</a>
-    </td>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-radial_barcode-sunburst_outward-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/">Specialized history charts</a>
-    </td>
-
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
-    </td>
-    <td align="center">
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
-      </a><br>
-      <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
-    </td>
-  </tr>
-</table>
 
 ## Documentation
 
@@ -258,36 +260,36 @@ Flexible Horseshoe Card is available under the MIT license.
 [examples]: https://flexible-horseshoe-card-manual.amoebelabs.com/examples/overview/
 [electricity-examples]: https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/
 [pollen-examples]: https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/
-[card-structure]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/card-structure/
-[entity-definitions]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/entity-definitions/
-[external-palettes]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/external-palettes/
-[positioning-groups]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/positioning-and-groups/
-[localization]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/localization/
-[animations]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/animations/
-[color-stops]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/color-stops/
-[color-filters]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/color-filters/
-[css-styling]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/css-styling/
-[templating]: https://flexible-horseshoe-card-manual.amoebelabs.com/core-concepts/templating/
-[layout-overview]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/layout-overview/
-[groups]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/groups-section/
-[visual-shapes]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/visual-shapes-section/
-[entity-parts]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/entities-section/
-[horseshoes]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/horseshoes-section/
-[horseshoe-scale-state]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/horseshoe-scale-and-state/
-[horseshoe-ticks-labels]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/horseshoe-ticks-and-labels/
-[sparklines]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparklines-section/
-[history-periods]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-history-periods/
-[cartesian-charts]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/
-[specialized-charts]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/
-[line-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/#line-chart
-[area-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/#area-chart
-[dots-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/#dots-chart
-[bar-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/#bar-chart
-[equalizer-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/#equalizer-chart
-[graded-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/#graded-chart
-[state-bands-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/#state-bands-chart
-[barcode-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/#barcode-chart
-[radial-barcode-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/#radial-barcode-chart
+[card-structure]: https://flexible-horseshoe-card-manual.amoebelabs.com/card-basics/card-overview/
+[entity-definitions]: https://flexible-horseshoe-card-manual.amoebelabs.com/card-basics/entities/
+[external-palettes]: https://flexible-horseshoe-card-manual.amoebelabs.com/appearance/palettes/
+[positioning-groups]: https://flexible-horseshoe-card-manual.amoebelabs.com/card-basics/positioning-and-sizing/
+[localization]: https://flexible-horseshoe-card-manual.amoebelabs.com/localization/overview/
+[animations]: https://flexible-horseshoe-card-manual.amoebelabs.com/interaction/animations/
+[color-stops]: https://flexible-horseshoe-card-manual.amoebelabs.com/appearance/color-stops/
+[color-filters]: https://flexible-horseshoe-card-manual.amoebelabs.com/appearance/color-filters/
+[css-styling]: https://flexible-horseshoe-card-manual.amoebelabs.com/appearance/styling/
+[templating]: https://flexible-horseshoe-card-manual.amoebelabs.com/dynamic/javascript-templates/
+[layout-overview]: https://flexible-horseshoe-card-manual.amoebelabs.com/card-basics/card-overview/
+[groups]: https://flexible-horseshoe-card-manual.amoebelabs.com/card-basics/groups/
+[visual-shapes]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/shapes/shapes-overview/
+[entity-parts]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/tools-overview/
+[horseshoes]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-overview/
+[horseshoe-scale-state]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-scale-and-state/
+[horseshoe-ticks-labels]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-tick-marks-and-labels/
+[sparklines]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/
+[history-periods]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-history-periods-and-bins/
+[cartesian-charts]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/
+[specialized-charts]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/
+[line-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/line-chart/
+[area-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/area-chart/
+[dots-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/dots-chart/
+[bar-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/bar-chart/
+[equalizer-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/equalizer/
+[graded-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/graded/
+[state-bands-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/state-bands/
+[barcode-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/barcode/
+[radial-barcode-chart]: https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/radial-barcode/
 [reuse]: https://flexible-horseshoe-card-manual.amoebelabs.com/reuse/reuse-introduction/
 [reuse-examples]: https://flexible-horseshoe-card-manual.amoebelabs.com/reuse/reuse-card-examples/
 [reuse-reference]: https://flexible-horseshoe-card-manual.amoebelabs.com/reuse/reuse-reference/

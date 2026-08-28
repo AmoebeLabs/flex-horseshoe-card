@@ -17,7 +17,7 @@ Each example includes the full YAML, making it easier to see which parts are def
 
 ## :material-horseshoe: Example Card 30
 
-![](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp)
+![Electricity card with total and per-phase horseshoe gauges](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp)
 
 Card 30 is an electricity card built with data from the DSMR Reader integration.
 
@@ -327,7 +327,7 @@ The main horseshoe uses the shared color-stop definition through `ref(defaultCol
 
 ## :material-horseshoe: Example Card 32
 
-![](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
+![Electricity card with one total and three reused phase horseshoe gauges](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
 
 Card 32 also uses the DSMR Reader integration.
 
@@ -545,6 +545,6 @@ This avoids repeating the full horseshoe definition three more times.
 ## :material-horseshoe: Related documentation
 
 * Check syntax, processing order, and constraints in the [Reuse Reference](reuse-reference.md).
-* Design repeated layouts with [Positioning and Groups](../core-concepts/positioning-and-groups.md).
-* Configure reusable gradients with [Color Stops](../core-concepts/color-stops.md).
-* Configure scales and state arcs with [Horseshoe Gauges](../sections/horseshoes-section.md).
+* Design repeated layouts with [Groups](../card-basics/groups.md).
+* Configure reusable gradients with [Color stops](../appearance/color-stops.md).
+* Configure scales and state arcs with [Horseshoe gauges](../tools/horseshoe/horseshoe-overview.md).

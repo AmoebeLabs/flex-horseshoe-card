@@ -57,8 +57,7 @@ Card 55 uses three horseshoes to display the current pollen level for trees, gra
 
 Card 54 is a variation of card 55. It applies a grayscale color filter to reduce the intensity of the horseshoe colors.
 
-!!! info
-Color filters do not affect external images or SVG files.
+!!! info "Color filters do not affect external images or SVG files."
 
 ![Flexible Horseshoe Card - Card 54 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-light)
 ![Flexible Horseshoe Card - Card 54 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp#only-dark)
@@ -102,11 +101,10 @@ Add the following SVG variants:
 * `/local/images/kleenex/pollen_weed_high.svg`
 * `/local/images/kleenex/pollen_weed_very_high.svg`
 
-!!! warning
-The Kleenex integration does not translate the `very_high` state. Override this label in the horseshoe label configuration when a translated or more readable label is needed.
+!!! warning "The Kleenex integration does not translate the `very_high` state"
+    Override this label in the horseshoe label configuration when a translated or more readable label is needed.
 
-!!! info
-The images and colors used by these cards are adapted from Isabella Alström’s pollen illustrations.
+!!! info "The images and colors used by these cards are adapted from Isabella Alström’s pollen illustrations."
 
 ## :material-horseshoe: Interaction
 
@@ -122,229 +120,25 @@ The images and colors used by these cards are adapted from Isabella Alström’s
 
 This configuration was created for version [:octicons-tag-24: 5.4.7][github-releases].
 
-??? info "YAML definition for card #34"
-    ```yaml linenums="1" hl_lines="1"
-            - type: custom:flex-horseshoe-card
-              # Entities Section
-              entities:
-                - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
-                  area: ':34:'
-                  name: 'Trees'
-                - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
-                  name: 'Grass'
-                  area: 'Kleenex Pollen'
-                - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
-                  name: 'Weed'
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+      area: ':34v2:'
+      name: 'Trees'
+      # format:
+      #   raw_state_keep: true
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+      name: 'Grass'
+      area: 'Kleenex Pollen'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+      name: 'Weed'
+  template:
+    name: fhs_card_034_horseshoe_pollen
+```
 
-              # Constants Section
-              constants:
-                radius0: 5000
-                xpos0: 15
-                dxPos1: 35
-                dxPos2: 35
-                pollen_tree_map:
-                  map:
-                    - state: 'low'
-                      icon: url(/local/images/kleenex/pollen_tree_low.svg)
-                    - state: 'moderate'
-                      icon: url(/local/images/kleenex/pollen_tree_moderate.svg)
-                    - state: 'high'
-                      icon: url(/local/images/kleenex/pollen_tree_high.svg)
-                    - state: 'very_high'
-                      icon: url(/local/images/kleenex/pollen_tree_very_high.svg)
-                pollen_grass_map:
-                  map:
-                    - state: 'low'
-                      icon: url(/local/images/kleenex/pollen_grass_low.svg)
-                    - state: 'moderate'
-                      icon: url(/local/images/kleenex/pollen_grass_moderate.svg)
-                    - state: 'high'
-                      icon: url(/local/images/kleenex/pollen_grass_high.svg)
-                    - state: 'very_high'
-                      icon: url(/local/images/kleenex/pollen_grass_very_high.svg)
-              layout:
-                areas:
-                  - entity_index: 0
-                    xpos: 0
-                    ypos: 100
-                    styles:
-                      - font-size: 0.75em
-                      - text-transform: none     
-                      - text-anchor: start                       
-                  - entity_index: 1
-                    xpos: 50
-                    ypos: 12
-                    styles:
-                      - font-size: 1.7em
-                      - text-transform: none     
-                icons:
-                  - entity_index: 0
-                    xpos: calc(xpos0)
-                    ypos: 70
-                    icon_size: 4.5
-                    state_map:
-                      ref(pollen_tree_map)
-
-                  - entity_index: 1
-                    same_as: 0
-                    same_as_dxpos: calc(dxPos1)
-                    same_as_replace:
-                      - state_map
-                    state_map:
-                      ref(pollen_grass_map)
-
-                  - entity_index: 2
-                    same_as: 1
-                    same_as_dxpos: calc(dxPos2)
-                    same_as_replace:
-                      - state_map
-                    state_map:
-                      map:
-                        - state: 'low'
-                          icon: url(/local/images/kleenex/pollen_weed_low.svg)
-                        - state: 'moderate'
-                          icon: url(/local/images/kleenex/pollen_weed_moderate.svg)
-                        - state: 'high'
-                          icon: url(/local/images/kleenex/pollen_weed_high.svg)
-                        - state: 'very_high'
-                          icon: url(/local/images/kleenex/pollen_weed_very_high.svg)
-
-                # hlines section
-                hlines:
-                  - xpos: 50
-                    ypos: 15
-                    length: 80
-                    styles:
-                      - stroke: var(--disabled-text-color);
-                  - same_as: 0
-                    same_as_dypos: 3        # Shift 3 downwards
-                    same_as_dlength: 7.5    # increase length by 7.5
-                  - same_as: 1
-                    same_as_dypos: 3        # Shift 3 downwards
-                    same_as_dlength: 7.5    # increase length by 7.5
-
-                # States section
-                states:
-                  - entity_index: 0
-                    xpos: calc(xpos0)
-                    ypos: 90
-                    styles:
-                      - font-size: 1.0em
-                  - entity_index: 1
-                    same_as: 0
-                    same_as_dxpos: calc(dxPos1)
-                  - entity_index: 2
-                    same_as: 1
-                    same_as_dxpos: calc(dxPos2)
-
-                # Names section
-                names:
-                  - entity_index: 0
-                    xpos: calc(xpos0)
-                    ypos: 45
-                    styles:
-                      - font-size: 1.0em
-                      - text-transform: none     
-                  - entity_index: 1
-                    same_as: 0
-                    same_as_dxpos: calc(dxPos1)
-                  - entity_index: 2
-                    same_as: 1
-                    same_as_dxpos: calc(dxPos2)
-
-                # Horseshoes section
-                horseshoes:
-                    # This horseshoe looks like a horizontal progress bar!
-                    # Use a big radius (5000) and extremely small arc (0.3)
-                  - entity_index: 0
-                    xpos: calc(xpos0)
-                    ypos: calc(-radius0 + xpos0 + 15)
-                    radius: calc(radius0)
-                    tickmarks_radius: calc(radius0)
-                    arc_degrees: .3
-                    flip: y
-                  
-                    show:
-                      horseshoe: true
-                      scale_tickmarks: false
-                      horseshoe_style: colorstop
-                      scale_style: colorstop
-                      labels_at: none
-                      ticks: false
-                      label_badges: false
-                      label_background: none
-                    # 
-                    horseshoe_scale:
-                      min: 0
-                      max: 4
-                      width: 6
-                      color: gray
-                      gap: 0
-                      styles:
-                        - opacity: 0.6;
-                    #
-                    horseshoe_tickmarks:
-                      ticks_major:
-                        ticksize: 1
-                        color_mode: colorstop
-                        width: 12
-                        offset: -3
-                        thickness: 3
-                        styles:
-                          - stroke: var(--primary-text-color);
-                          - fill: var(--primary-text-color);
-                          - opacity: 0.7;
-                    #
-                    horseshoe_labels:
-                      distance_min: 0.3
-                      ticksize_min: 0.3
-                      orientation: horizontal
-                      offset: -34
-                      badges:
-                        radius: 6
-                        color: var(--card-background-color)
-                        border_color: var(--divider-color)
-                        padding: 0
-                        height: 10    # 12 is same as font-size of 1em    
-                      styles:
-                        - font-size: 0.7em
-                    #
-                    horseshoe_state:
-                      width: 12
-                      state_map:
-                        map:
-                          - state: 'low'
-                            value: 0.99
-                          - state: 'moderate'
-                            value: 1.99
-                          - state: 'high'
-                            value: 2.99
-                          - state: 'very_high'
-                            value: 3.99
-                      styles:
-                        - stroke-linecap: butt
-                    #
-                    color_stops:
-                      gap: 0.01 # Needs very small gap as arc is 0.3 degrees
-                      colors:
-                        0: '#838383'
-                        1: '#fcc449'
-                        2: '#ed8003'
-                        3: 'red'
-
-                  # The full `same_as` functionality at its best:
-                  # repeated horseshoe takes only a few lines of YAML
-                  #
-                  # Saving around 60-70 lines of YAML per horseshoe config!
-                  - entity_index: 1
-                    same_as: 0
-                    same_as_dxpos: calc(dxPos1)
-                    show:
-                      labels_at: none
-                  - entity_index: 2
-                    same_as: 1
-                    same_as_dxpos: calc(dxPos2)
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/030-039/fhs-card-034-horseshoe-pollen.yaml)"
 
 ### Card 55
 
@@ -352,277 +146,107 @@ This configuration was created for version [:octicons-tag-24: 5.4.7][github-rele
 
 This configuration was created for version [:octicons-tag-24: 5.4.7-dev.12][github-releases].
 
-??? info "YAML definition for card #55"
-    ```yaml linenums="1" hl_lines="1"
-    - type: custom:flex-horseshoe-card
-      entities:
-        - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
-        # - entity: input_select.fake_pollen_trees
-          area: ':55v2:'
-          name: 'Trees'
-        - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
-          name: 'Grass'
-          area: 'Kleenex Pollen'
-        - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
-          name: 'Weed'
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+    # - entity: input_select.fake_pollen_trees
+      area: ':55:'
+      name: 'Trees'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+      name: 'Grass'
+      area: 'Kleenex Pollen'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+      name: 'Weed'
+  template:
+    name: fhs_card_055_horseshoe_pollen
+```
 
-      aspectratio: 3/1.2
-      constants:
-        radius0: 38 #36
-        xpos0: 50
-        dxPos1: 100
-        dxPos2: 100
-        arcsUpperArcDegrees: 210
-        pollen_tree_map:
-          map:
-            - state: 'low'
-              value: 0
-              icon: url(/local/images/kleenex/pollen_tree_low.svg)
-            - state: 'moderate'
-              value: 1
-              icon: url(/local/images/kleenex/pollen_tree_moderate.svg)
-            - state: 'high'
-              value: 2
-              icon: url(/local/images/kleenex/pollen_tree_high.svg)
-            - state: 'very_high'
-              value: 3
-              icon: url(/local/images/kleenex/pollen_tree_very_high.svg)
-        pollen_grass_map:
-          map:
-            - state: 'low'
-              value: 0
-              icon: url(/local/images/kleenex/pollen_grass_low.svg)
-            - state: 'moderate'
-              value: 1
-              icon: url(/local/images/kleenex/pollen_grass_moderate.svg)
-            - state: 'high'
-              value: 2
-              icon: url(/local/images/kleenex/pollen_grass_high.svg)
-            - state: 'very_high'
-              value: 3
-              icon: url(/local/images/kleenex/pollen_grass_very_high.svg)
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/050-059/fhs-card-055-horseshoe-pollen.yaml)"
 
-      layout:
-        arcs:
-          - id: upperhalf_0
-            xpos: calc(xpos0)
-            ypos: 70
-            radius: calc(radius0 - 10)
-            arc_degrees: calc(arcsUpperArcDegrees)
-            styles:
-              fill: var(--disabled-text-color)
-              fill-opacity: 0.3
-              stroke-opacity: 0.3
-              stroke-width: 1
-              stroke: gray
-          - id: upperhalf_1
-            same_as: upperhalf_0
-            same_as_dxpos: calc(dxPos1)
-          - same_as: upperhalf_1
-            same_as_dxpos: calc(dxPos2)
 
-          - id: lowerhalf_0
-            xpos: calc(xpos0)
-            ypos: 70
-            radius: calc(radius0 - 10)
-            arc_degrees: calc(360 - arcsUpperArcDegrees - 10)
-            flip: y
-            styles:
-              stroke-opacity: 0.3
-              stroke-width: 1
-              stroke: gray
-          - id: lowerhalf_1
-            same_as: lowerhalf_0
-            same_as_dxpos: calc(dxPos1)
-          - same_as: lowerhalf_1
-            same_as_dxpos: calc(dxPos2)
-        areas:
-          - entity_index: 0
-            xpos: 0
-            ypos: 120
-            styles:
-              - font-size: 0.75em
-              - text-transform: none     
-              - text-anchor: start                       
-          - entity_index: 1
-            xpos: 150
-            ypos: 10
-            styles:
-              - font-size: 1.7em
-              - text-transform: none     
-        icons:
-          - entity_index: 0
-            xpos: calc(xpos0)
-            yposc: 60
-            size: 4.5
-            state_map:
-              ref(pollen_tree_map)
+### Card 54
 
-          - entity_index: 1
-            xpos: calc(xpos0)
-            same_as: 0
-            same_as_dxpos: calc(dxPos1)
-            same_as_replace:
-              - state_map
-            state_map:
-              ref(pollen_grass_map)
+![Flexible Horseshoe Card - Card 54 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp)
 
-          - entity_index: 2
-            same_as: 1
-            same_as_dxpos: calc(dxPos2)
-            same_as_replace:
-              - state_map
-            state_map:
-              map:
-                - state: 'low'
-                  value: 0
-                  icon: url(/local/images/kleenex/pollen_weed_low.svg)
-                - state: 'moderate'
-                  value: 1
-                  icon: url(/local/images/kleenex/pollen_weed_moderate.svg)
-                - state: 'high'
-                  value: 2
-                  icon: url(/local/images/kleenex/pollen_weed_high.svg)
-                - state: 'very_high'
-                  value: 3
-                  icon: url(/local/images/kleenex/pollen_weed_very_high.svg)
-        hlines:
-          - xpos: 150
-            ypos: 15
-            length: 80
-            styles:
-              - stroke: var(--disabled-text-color);
+This configuration was created for version [:octicons-tag-24: 5.4.7-dev.12][github-releases].
 
-        names:
-          - entity_index: 0
-            xpos: calc(xpos0)
-            ypos: 90
-            styles:
-              - font-size: 1.5em
-              - text-transform: none     
-          - entity_index: 1
-            same_as: 0
-            same_as_dxpos: calc(dxPos1)
-          - entity_index: 2
-            same_as: 1
-            same_as_dxpos: calc(dxPos2)
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+    # - entity: input_select.fake_pollen_trees
+      area: ':54:'
+      name: 'Trees'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+      name: 'Grass'
+      area: 'Kleenex Pollen'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+      name: 'Weed'
+  template:
+    name: fhs_card_054_horseshoe_pollen
+```
 
-        horseshoes:
-          - entity_index: 0
-            debug_state_map: false
-            xpos: calc(xpos0)
-            ypos: 70
-            radius: calc(radius0)
-            tickmarks_radius: calc(radius0)
-            arc_degrees: 360
-            flip: both
-            
-            show:
-              horseshoe: true
-              scale_tickmarks: false
-              horseshoe_style: colorstop
-              scale_style: colorstop
-              labels_at: stringstate
-              ticks: false
-              label_badges: false
-              label_background: none
-            # 
-            horseshoe_scale:
-              min: 0
-              max: 4
-              width: 27 #25
-              gap: 0
-              linecap: butt
-              color_filter:
-                grayscale:
-                  min: 0.2
-                  max: 0.6
-            
-              styles:
-                opacity: 0.3
-            #
-            horseshoe_tickmarks:
-              ticks_major:
-                ticksize: 1
-                color_mode: colorstop
-                width: 12
-                offset: -9
-                thickness: 3
-                styles:
-                  - stroke: var(--primary-text-color)
-                  - fill: var(--primary-text-color)
-                  - opacity: 0.7
-            #
-            horseshoe_labels:
-              debug_labels: true
-              distance_min: 0.3
-              ticksize_min: 0.3
-              orientation: arc
-              offset: 0
-              stringstate_level:
-                  before:
-                    styles:
-                      - fill: var(--primary-background-color)
-                      - opacity: 0.6
-                  current:
-                    styles:
-                      - fill: var(--primary-background-color)
-                      - font-weight: bold
-                  after:
-                    styles:
-                      - opacity: 0.35
-                  state_map:
-                    map:
-                      - state: very_high
-                        label: Very High #Zeer Hoog
-                        current:
-                          styles:
-                            - fill: var(--primary-text-color)
-              styles:
-                - font-size: 1.2em
-                - opacity: 1
-                - color: var(--primary-text-color)
-                - font-weight: normal
-            #
-            horseshoe_state:
-              mode: stringstate_level
-              debug_state_map: false
-              width: 27
-              linecap: butt
-              state_map:
-                map:
-                  - state: 'low'
-                    value: 0.99
-                  - state: 'moderate'
-                    value: 1.99
-                  - state: 'high'
-                    value: 2.99
-                  - state: 'very_high'
-                    value: 3.99
-              styles:
-                - stroke-linecap: butt
-            #
-            color_stops:
-              gap: 2
-              colors:
-                0: '#838383'
-                1: '#fcc449'
-                2: '#ed8003'
-                3: '#e73f10'
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/050-059/fhs-card-054-horseshoe-pollen.yaml)"
 
-          - entity_index: 1
-            same_as: 0
-            same_as_dxpos: calc(dxPos1)
-          - entity_index: 2
-            same_as: 1
-            same_as_dxpos: calc(dxPos2)
-    ```
+### Card 53
+
+![Flexible Horseshoe Card - Card 53 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp)
+
+This configuration was created for version [:octicons-tag-24: 5.4.7-dev.12][github-releases].
+
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+    # - entity: input_select.fake_pollen_trees
+      area: ':53:'
+      name: 'Trees'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+      name: 'Grass'
+      area: 'Kleenex Pollen'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+      name: 'Weed'
+  template:
+    name: fhs_card_053_horseshoe_pollen
+```
+
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/050-059/fhs-card-053-horseshoe-pollen.yaml)"
+
+
+### Card 52
+
+![Flexible Horseshoe Card - Card 52 for Kleenex Pollen](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp)
+
+This configuration was created for version [:octicons-tag-24: 5.4.7-dev.12][github-releases].
+
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_bomen_niveau
+    # - entity: input_select.fake_pollen_trees
+      area: ':52:'
+      name: 'Trees'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_gras_niveau
+      name: 'Grass'
+      area: 'Kleenex Pollen'
+    - entity: sensor.kleenex_pollen_radar_zoefdehaas_kruiden_niveau
+      name: 'Weed'
+  template:
+    name: fhs_card_055_horseshoe_pollen
+```
+
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/050-059/fhs-card-052-horseshoe-pollen.yaml)"
 
 ## :material-horseshoe: Related documentation
 
-* Configure threshold colors and gradients with [Color Stops](../../core-concepts/color-stops.md).
-* Transform palette colors for alternate card designs with [Color Filters](../../core-concepts/color-filters.md).
-* Configure state arcs and mapped states with [Horseshoe Gauges](../../sections/horseshoes-section.md).
+* Configure threshold colors and gradients with [Color stops](../../appearance/color-stops.md).
+* Transform palette colors for alternate card designs with [Color filters](../../appearance/color-filters.md).
+* Configure state arcs and mapped states with [Horseshoe gauges](../../tools/horseshoe/horseshoe-overview.md).
 * Reduce repeated definitions with the [Reuse Reference](../../reuse/reuse-reference.md).
 
 <!-- Image references -->

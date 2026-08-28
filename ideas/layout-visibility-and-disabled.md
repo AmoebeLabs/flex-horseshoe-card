@@ -36,7 +36,7 @@ change therefore reaches every descendant in the same card update cycle.
 
 ### Dashboard tabs
 
-A local FHS input or Home Assistant helper can select one visible group:
+A local Flexible Horseshoe Card input or Home Assistant helper can select one visible group:
 
 ```yaml
 entities:
@@ -96,7 +96,7 @@ Entity disabled templates may use finalized constants and must resolve to a
 boolean or numeric/string 0/1. This makes template-controlled entity lists possible without turning
 entity structure into a runtime state change:
 
-~~~yaml
+```yaml
 constants:
   rooms:
     - livingroom
@@ -110,7 +110,7 @@ entities:
   - entity: sensor.study_temperature
   - entity: sensor.bedroom_temperature
     disabled: ref(bedroom_disabled)
-~~~
+```
 
 `disabled: false` keeps the item or entity active. A disabled base definition
 can therefore still be reused when a copy explicitly sets `disabled: false`.
@@ -131,7 +131,7 @@ states:
 texts:
   - id: summary
     text:
-      - value: 'Temperature: '
+      - value: "Temperature: "
       - type: state
         id: room-temperature
 ```
@@ -151,4 +151,3 @@ content work; visibility itself does not depend on that work.
 - Disabled items are absent before entity resolution and construction.
 - A disabled `same_as` base can produce an enabled copy.
 - Chromium and Safari return usable geometry for hidden SVG text.
-

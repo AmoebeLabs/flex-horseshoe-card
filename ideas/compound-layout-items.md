@@ -52,7 +52,7 @@ may therefore use the same local id.
 
 ## References
 
-References inside the same compound may use a local child id. FHS adds the
+References inside the same compound may use a local child id. Flexible Horseshoe Card adds the
 compound id when the referenced child exists in the indicated section:
 
 ```yaml

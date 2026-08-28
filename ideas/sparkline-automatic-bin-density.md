@@ -4,11 +4,11 @@
 
 The useful number of sparkline bins depends on the displayed duration, graph
 width, and chart type. A fixed `bins.per_hour` works for one duration but
-becomes too dense or too coarse when a JavaScript template or local FHS input
+becomes too dense or too coarse when a JavaScript template or local Flexible Horseshoe Card input
 changes that duration.
 
 Users should not have to calculate and update `bins.per_hour` for every
-duration themselves. FHS can select a logical time interval while still
+duration themselves. Flexible Horseshoe Card can select a logical time interval while still
 allowing an explicitly configured value to take precedence.
 
 ## Public configuration
@@ -44,10 +44,10 @@ chart type, or density.
 `SparklineGraphTool.buildGraphConfig()` creates the graph-engine config and
 replaces `auto` in that clone with one numeric `per_hour` value.
 `SparklineGraph` therefore continues to receive only validated numbers and
-does not gain knowledge of automatic config, density profiles, or FHS layout
+does not gain knowledge of automatic config, density profiles, or Flexible Horseshoe Card layout
 width.
 
-The calculation uses the configured FHS sparkline `width`. It does not use
+The calculation uses the configured Flexible Horseshoe Card sparkline `width`. It does not use
 physical browser pixels, the converted SVG width, the remaining draw area,
 axis margins, labels, or device scale.
 
@@ -57,34 +57,34 @@ The automatic choices represent logical time intervals:
 
 | Bins per hour | Bin duration |
 | :------------ | :----------- |
-| `1 / 24` | 24 hours |
-| `1 / 12` | 12 hours |
-| `0.125` | 8 hours |
-| `1 / 6` | 6 hours |
-| `0.25` | 4 hours |
-| `0.5` | 2 hours |
-| `1` | 1 hour |
-| `2` | 30 minutes |
-| `3` | 20 minutes |
-| `4` | 15 minutes |
-| `6` | 10 minutes |
-| `12` | 5 minutes |
+| `1 / 24`      | 24 hours     |
+| `1 / 12`      | 12 hours     |
+| `0.125`       | 8 hours      |
+| `1 / 6`       | 6 hours      |
+| `0.25`        | 4 hours      |
+| `0.5`         | 2 hours      |
+| `1`           | 1 hour       |
+| `2`           | 30 minutes   |
+| `3`           | 20 minutes   |
+| `4`           | 15 minutes   |
+| `6`           | 10 minutes   |
+| `12`          | 5 minutes    |
 
 Each chart type receives a width-units-per-bin target:
 
-| Chart type | Width units per bin |
-| :--------- | ------------------: |
-| `line`, `area` | 1 |
-| `dots`, `bar`, `barcode`, `equalizer`, `graded` | 2 |
-| `radial_barcode` | 5.6 |
+| Chart type                                      | Width units per bin |
+| :---------------------------------------------- | ------------------: |
+| `line`, `area`                                  |                   1 |
+| `dots`, `bar`, `barcode`, `equalizer`, `graded` |                   2 |
+| `radial_barcode`                                |                 5.6 |
 
 Density adjusts that target:
 
-| Density | Factor |
-| :------ | -----: |
-| `low` | 2 |
-| `medium` | 1 |
-| `high` | 0.5 |
+| Density  | Factor |
+| :------- | -----: |
+| `low`    |      2 |
+| `medium` |      1 |
+| `high`   |    0.5 |
 
 For cartesian graphs, available width is the configured graph width. A radial
 barcode treats that width as its diameter and uses `Math.PI * width` as its
@@ -169,12 +169,12 @@ config receives the existing neutral numeric value rather than `auto`.
 For `width: 90`, `density: medium`, and a line or area chart, expected
 results include:
 
-| Duration | Bins per hour |
-| :------- | ------------: |
-| 12 hours | 6 |
-| 24 hours | 3 |
-| 48 hours | 1 |
-| 168 hours | 0.5 |
+| Duration  | Bins per hour |
+| :-------- | ------------: |
+| 12 hours  |             6 |
+| 24 hours  |             3 |
+| 48 hours  |             1 |
+| 168 hours |           0.5 |
 
 ## Documentation impact
 

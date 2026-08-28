@@ -64,5 +64,5 @@ state and read card-wide values through that card-specific Templates instance.
 - Rollup builds `dist/flex-horseshoe-card.js`.
 - Home Assistant language changes update existing cards.
 - Light/dark theme changes update existing cards.
-- Existing FHS cards, including cards without horseshoes, render normally after
+- Existing Flexible Horseshoe Card cards, including cards without horseshoes, render normally after
   removing horseshoe defaults from card-level configuration.

@@ -3,7 +3,7 @@
 ## PR 1: Historical data readiness
 
 A dynamically evaluated period can temporarily have no usable duration. This
-is not specific to FHS inputs: a Home Assistant helper or sensor can also be
+is not specific to Flexible Horseshoe Card inputs: a Home Assistant helper or sensor can also be
 `unknown` or `unavailable`, and arbitrary JavaScript can produce `undefined` or
 `NaN`.
 

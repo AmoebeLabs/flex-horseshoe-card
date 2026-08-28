@@ -4,7 +4,7 @@
 
 Card templates should remove repeated YAML without introducing a second render model.
 
-A template is reusable FHS configuration. After template expansion the card must look like a normal FHS config and continue through the existing pipeline:
+A template is reusable Flexible Horseshoe Card configuration. After template expansion the card must look like a normal Flexible Horseshoe Card config and continue through the existing pipeline:
 
 ```text
 input config
@@ -39,7 +39,7 @@ entities:
   - entity: sensor.awair_score
 ```
 
-Child card inside another FHS card:
+Child card inside another Flexible Horseshoe Card card:
 
 ```yaml
 type: custom:flex-horseshoe-card
@@ -56,7 +56,7 @@ cards:
 
 The child card receives its own config and runs its own normal lifecycle. Its `template` is handled by that child card exactly the same way as a standalone card handles `template`.
 
-The parent does not expand a child FHS card into its own root layout. The parent only creates and positions child cards.
+The parent does not expand a child Flexible Horseshoe Card card into its own root layout. The parent only creates and positions child cards.
 
 The parent must not become a pass-through layer for child internals. It should not remap child entities, rewrite child layout sections, compile child `same_as`, or calculate child refs/calc values. The child card owns that work through its own `setConfig()` pipeline.
 
@@ -76,7 +76,7 @@ Those fields belong to `cards[]` only. They do not belong to a normal root-level
 
 `cards[]` always means create a child card.
 
-The child card can be FHS or any other Lovelace card. The parent should use the Home Assistant card helper for all child cards:
+The child card can be Flexible Horseshoe Card or any other Lovelace card. The parent should use the Home Assistant card helper for all child cards:
 
 ```js
 const helpers = await window.loadCardHelpers();
@@ -84,7 +84,7 @@ const cardElement = await helpers.createCardElement(childConfig);
 cardElement.hass = hass;
 ```
 
-This keeps FHS child cards and external child cards on the same architecture:
+This keeps Flexible Horseshoe Card child cards and external child cards on the same architecture:
 
 ```text
 parent cards[] item
@@ -94,7 +94,7 @@ parent cards[] item
 -> child card handles its own setConfig(), template, hass and render
 ```
 
-For FHS child cards, the only extra thing the parent may add is an embedded/frameless flag in the child config before creating it, so the child does not render a second visible card shell.
+For Flexible Horseshoe Card child cards, the only extra thing the parent may add is an embedded/frameless flag in the child config before creating it, so the child does not render a second visible card shell.
 
 ## Template Scope
 
@@ -107,12 +107,12 @@ fhs_templates:
       template:
         type: card
       card:
-        # normal FHS card config
+        # normal Flexible Horseshoe Card card config
 ```
 
 The card looks up templates from the Lovelace config and rawConfig, including their views. The syntax of one template is the same regardless of where Home Assistant exposes that dictionary.
 
-No separate template syntax should be introduced for different scopes. A template named `awair_tile` must be reusable by a root FHS card and by an FHS child card.
+No separate template syntax should be introduced for different scopes. A template named `awair_tile` must be reusable by a root Flexible Horseshoe Card card and by an Flexible Horseshoe Card child card.
 
 ## Template Definition
 
@@ -131,8 +131,8 @@ fhs_templates:
           - max: 100
       card:
         constants:
-          max: '[[max]]'
-          label: '[[label]]'
+          max: "[[max]]"
+          label: "[[label]]"
           state_y: 55
           name_y: 68
 
@@ -166,7 +166,7 @@ fhs_templates:
               ypos: calc(name_y)
 ```
 
-Use that card template from a normal FHS card instance. The instance supplies concrete entities and any template variables that differ per use:
+Use that card template from a normal Flexible Horseshoe Card card instance. The instance supplies concrete entities and any template variables that differ per use:
 
 ```yaml
 type: custom:flex-horseshoe-card
@@ -204,10 +204,10 @@ fhs_templates:
       color_stops:
         colors:
           - value: 0
-            color: '#7e39d6'
+            color: "#7e39d6"
             rank: 4
           - value: 79.5
-            color: '#49ce4b'
+            color: "#49ce4b"
             rank: 0
 ```
 
@@ -231,7 +231,7 @@ horseshoes:
 
 ## Template Input
 
-FHS must understand `template:` before the normal config pipeline continues.
+Flexible Horseshoe Card must understand `template:` before the normal config pipeline continues.
 
 `variables` is only template input for `[[...]]` replacement. The old use of root-level `variables` as JavaScript-template storage is removed. Fixed/reused values inside a card use `constants`.
 
@@ -250,8 +250,8 @@ Inside the template body:
 
 ```yaml
 constants:
-  max: '[[max]]'
-  label: '[[label]]'
+  max: "[[max]]"
+  label: "[[label]]"
 ```
 
 The concrete `entities:` list normally stays in the card instance. Put entities in a template only when that template is intentionally bound to those exact entities.
@@ -267,14 +267,14 @@ JavaScript templates receive `constants`, not `variables`.
 
 ## Child Card Composition Does Not Use Groups
 
-`cards[]` does not expand child content into the parent FHS layout. A child card is a real Lovelace card instance created by the Home Assistant card helper.
+`cards[]` does not expand child content into the parent Flexible Horseshoe Card layout. A child card is a real Lovelace card instance created by the Home Assistant card helper.
 
-That means child placement is HTML wrapper placement, not SVG group placement. The parent FHS card does not create generated groups for child cards and does not move child tools into the parent SVG.
+That means child placement is HTML wrapper placement, not SVG group placement. The parent Flexible Horseshoe Card card does not create generated groups for child cards and does not move child tools into the parent SVG.
 
 Current model:
 
 ```text
-parent FHS
+parent Flexible Horseshoe Card
 -> own SVG/tools/groups/entities/templates
 -> child-card wrapper div
    -> real child card instance
@@ -325,7 +325,7 @@ The parent does not:
 
 Each child card runs its own normal `setConfig()` pipeline. Therefore ids, filters, SVG defs, groups, color stops, templates and entities remain unique by card instance.
 
-If a child card is FHS, it handles its own FHS config. If a child card is SAK, markdown, graph, or another custom card, it handles its own config. FHS parent only positions the created element and forwards `hass`.
+If a child card is Flexible Horseshoe Card, it handles its own Flexible Horseshoe Card config. If a child card is SAK, markdown, graph, or another custom card, it handles its own config. Flexible Horseshoe Card parent only positions the created element and forwards `hass`.
 
 ## Template Use Inside Child Cards
 
@@ -412,7 +412,7 @@ Current API:
 CardTemplates.compile(config, card);
 ```
 
-That function compiles templates for the current FHS card only. It does not create child cards and it does not expand `cards[]` into the parent layout.
+That function compiles templates for the current Flexible Horseshoe Card card only. It does not create child cards and it does not expand `cards[]` into the parent layout.
 
 Linear flow inside `CardTemplates.compile(config, card)`:
 
@@ -421,7 +421,7 @@ Linear flow inside `CardTemplates.compile(config, card)`:
 3. If the current card has root `template:`, compile that template into the current card config.
 4. Walk the current card config and compile nested template objects such as `color_stops.template`, `state_map.template`, or one layout item with `template`.
 5. Skip the `cards[]` section while walking nested templates. Child cards keep their own `template` keys and compile themselves.
-6. Return normal FHS config so the existing config pipeline can continue.
+6. Return normal Flexible Horseshoe Card config so the existing config pipeline can continue.
 
 The template engine is intentionally simple:
 
@@ -504,7 +504,7 @@ Direct `ref(...)` replacement remains handled by the existing ref/same_as behavi
 
 ## Processing Order
 
-The final FHS `setConfig()` order should become:
+The final Flexible Horseshoe Card `setConfig()` order should become:
 
 ```text
 clone config
@@ -519,7 +519,7 @@ entity config processing
 normal tool setup
 ```
 
-The current implementation already has most of this order. The new work is to compile the current card's `template` before ids, refs, calc and same_as. A child FHS card created through `cards[]` runs this same `setConfig()` flow for itself.
+The current implementation already has most of this order. The new work is to compile the current card's `template` before ids, refs, calc and same_as. A child Flexible Horseshoe Card card created through `cards[]` runs this same `setConfig()` flow for itself.
 
 That keeps templates able to contain:
 
@@ -557,7 +557,7 @@ cards:
       - entity: sensor.energy_today
 ```
 
-FHS should create external cards through the Home Assistant card helper, the same basic route Home Assistant uses for stack cards. FHS then forwards `hass` and positions the created card in a hard wrapper `div`.
+Flexible Horseshoe Card should create external cards through the Home Assistant card helper, the same basic route Home Assistant uses for stack cards. Flexible Horseshoe Card then forwards `hass` and positions the created card in a hard wrapper `div`.
 
 The wrapper is an absolutely positioned box inside the parent card. The same 0..100 coordinate model can be used:
 
@@ -569,7 +569,7 @@ height = height
 z-index = zpos
 ```
 
-So external card placement does not need SVG math. It is a normal positioned HTML layer over the FHS card.
+So external card placement does not need SVG math. It is a normal positioned HTML layer over the Flexible Horseshoe Card card.
 
 The parent can still use the same placement vocabulary:
 
@@ -595,13 +595,13 @@ const cardElement = await helpers.createCardElement(childConfig);
 cardElement.hass = hass;
 ```
 
-The created element is placed inside the positioned wrapper. On every parent `hass` update, FHS forwards the new `hass` object to each child card.
+The created element is placed inside the positioned wrapper. On every parent `hass` update, Flexible Horseshoe Card forwards the new `hass` object to each child card.
 
 ## External Card Shell
 
-Child cards should support a frameless mode controlled by FHS.
+Child cards should support a frameless mode controlled by Flexible Horseshoe Card.
 
-Default for child cards inside FHS should be frameless unless explicitly disabled. The wrapper can expose a class such as:
+Default for child cards inside Flexible Horseshoe Card should be frameless unless explicitly disabled. The wrapper can expose a class such as:
 
 ```html
 <div class="fhs-child-card fhs-child-card--frameless">
@@ -609,7 +609,7 @@ Default for child cards inside FHS should be frameless unless explicitly disable
 </div>
 ```
 
-After the helper-created card has rendered, FHS can look for the visible `ha-card` shell in the child card render tree and neutralize it. This is the same practical problem stack-like cards deal with: the child card exists as a real card, but the parent wants composition without another card box.
+After the helper-created card has rendered, Flexible Horseshoe Card can look for the visible `ha-card` shell in the child card render tree and neutralize it. This is the same practical problem stack-like cards deal with: the child card exists as a real card, but the parent wants composition without another card box.
 
 The frameless styling should remove the visible shell when reachable:
 
@@ -620,9 +620,9 @@ box-shadow: none;
 padding: 0;
 ```
 
-This is best-effort for external cards. Some cards hide their `ha-card` deeper in shadow DOM or do not use `ha-card`. In that case FHS still positions the card, but cannot guarantee the shell can be removed.
+This is best-effort for external cards. Some cards hide their `ha-card` deeper in shadow DOM or do not use `ha-card`. In that case Flexible Horseshoe Card still positions the card, but cannot guarantee the shell can be removed.
 
-FHS child cards can support this more cleanly because FHS can pass an embedded/frameless flag into its own config before `setConfig()`.
+Flexible Horseshoe Card child cards can support this more cleanly because Flexible Horseshoe Card can pass an embedded/frameless flag into its own config before `setConfig()`.
 
 # Implementation Plan
 
@@ -720,7 +720,7 @@ Rules:
 - `variables` is template input;
 - `constants` are fixed/reusable values;
 - user/card config wins over template config;
-- output is normal FHS config.
+- output is normal Flexible Horseshoe Card config.
 
 Pipeline:
 
@@ -861,9 +861,9 @@ box-shadow: none;
 padding: 0;
 ```
 
-This is best-effort for external cards. FHS child cards can handle this better by receiving an embedded/frameless flag in their own config.
+This is best-effort for external cards. Flexible Horseshoe Card child cards can handle this better by receiving an embedded/frameless flag in their own config.
 
-Build and test with FHS child cards, markdown cards and SAK cards.
+Build and test with Flexible Horseshoe Card child cards, markdown cards and SAK cards.
 
 ## Step 6 - Documentation And Examples
 
@@ -878,19 +878,19 @@ cards[]  = create and position cards
 
 Examples should show:
 
-- standalone FHS card with `template`;
-- FHS card containing multiple FHS child cards;
-- FHS card containing an external markdown card;
-- FHS card containing SAK;
+- standalone Flexible Horseshoe Card card with `template`;
+- Flexible Horseshoe Card card containing multiple Flexible Horseshoe Card child cards;
+- Flexible Horseshoe Card card containing an external markdown card;
+- Flexible Horseshoe Card card containing SAK;
 - `xpos/ypos/width/height/zpos` on `cards[]` only;
 - `variables` as template input;
 - `constants` as fixed/reusable values.
 
 ## Child Card Lifecycle
 
-Home Assistant sets `hass` on the parent FHS card because that card is part of the Lovelace view tree.
+Home Assistant sets `hass` on the parent Flexible Horseshoe Card card because that card is part of the Lovelace view tree.
 
-Child cards created inside FHS are created by FHS, so Home Assistant does not directly manage those child card instances. FHS must therefore forward the normal card property:
+Child cards created inside Flexible Horseshoe Card are created by Flexible Horseshoe Card, so Home Assistant does not directly manage those child card instances. Flexible Horseshoe Card must therefore forward the normal card property:
 
 ```js
 childCard.hass = hass;
@@ -898,7 +898,7 @@ childCard.hass = hass;
 
 That is the only normal runtime handoff.
 
-FHS should not call Lit lifecycle methods on child cards:
+Flexible Horseshoe Card should not call Lit lifecycle methods on child cards:
 
 ```js
 // Do not do this.
@@ -913,12 +913,12 @@ Lit and the child card handle their own lifecycle after the child card is in the
 The flow is:
 
 ```text
-Home Assistant -> parent FHS.hass
-parent FHS     -> childCard.hass
+Home Assistant -> parent Flexible Horseshoe Card.hass
+parent Flexible Horseshoe Card     -> childCard.hass
 child card     -> own update/render lifecycle
 ```
 
-When FHS needs to remove the child `ha-card` shell, it may wait for the child render to finish if the child exposes Lit's `updateComplete`:
+When Flexible Horseshoe Card needs to remove the child `ha-card` shell, it may wait for the child render to finish if the child exposes Lit's `updateComplete`:
 
 ```js
 await childCard.updateComplete;

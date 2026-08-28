@@ -30,15 +30,15 @@ The examples focus on:
 
 Cards 20 through 26 use regular horseshoe arcs. Cards 27, 30, and 33 use smaller arcs that are still clearly curved. Card 32 uses an arc of only `0.3` degrees, making the horseshoe appear as a straight vertical bar.
 
-![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="185"}
-![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="185"}
+![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="210"}
+![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="210"}
 
 | Description                                                                        | Aspect ratio |
 | :--------------------------------------------------------------------------------- | :----------- |
@@ -191,91 +191,241 @@ Cards 30, 32, and 33 use the external `rainbow-palette-new.json` palette.
 The examples below were created for version [:octicons-tag-24: 5.4.7][github-releases].
 
 ### Card 20
-
 ![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #20"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+      name: 'Total'
+      area: ':20:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      decimals: 2
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      decimals: 2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      decimals: 2
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+  template:
+    name: fhs_card_020_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-020-horseshoe-power.yaml)"
 
 ### Card 22
 
 ![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #22"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+      name: 'Total'
+      area: ':22:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      decimals: 2
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      decimals: 2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      decimals: 2
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+  template:
+    name: fhs_card_022_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-022-horseshoe-power.yaml)"
 
 ### Card 23
 
 ![](../../assets/screenshots/fhs-demo-card-23-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #23"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+      name: 'Total'
+      area: ':23:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      decimals: 2
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      decimals: 2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      decimals: 2
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      decimals: 2
+  template:
+    name: fhs_card_023_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-023-horseshoe-power.yaml)"
 
 ### Card 24
 
 ![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #24"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':24:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_023_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-023-horseshoe-power.yaml)"
+
 
 ### Card 26
 
 ![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #26"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':26:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_026_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-026-horseshoe-power.yaml)"
 
 ### Card 27
 
 ![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #27"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':27:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_027_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/020-029/fhs-card-027-horseshoe-power.yaml)"
 
 ### Card 30
 
 ![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #30"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':30:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_030_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/030-039/fhs-card-030-horseshoe-power.yaml)"
 
 ### Card 32
 
 ![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #32"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':32:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_032_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/030-039/fhs-card-032-horseshoe-power.yaml)"
 
 ### Card 33
 
 ![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp){width="300"}
 
-??? info "YAML definition for card #33"
-    ```yaml linenums="1" hl_lines="1"
+Example definition to use within view
+```yaml linenums="1"
+- type: custom:flex-horseshoe-card
+  entities:
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+      name: 'Total'
+      area: ':33:'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
+      name: 'L1'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
+      name: 'L2'
+    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
+      name: 'L3'
+    - entity: sensor.dsmr_reading_electricity_currently_delivered
+  template:
+    name: fhs_card_033_horseshoe_power
+```
 
-    ```
+!!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/030-039/fhs-card-033-horseshoe-power.yaml)"
 
 ## :material-horseshoe: Related documentation
 
-* Configure arcs, scales, states, tick marks, and labels with [Horseshoe Gauges](../../sections/horseshoes-section.md).
-* Learn how the card coordinate system and grouped layouts work in [Positioning and Groups](../../core-concepts/positioning-and-groups.md).
-* Configure threshold colors and gradients with [Color Stops](../../core-concepts/color-stops.md).
+* Configure arcs, scales, states, tick marks, and labels with [Horseshoe gauges](../../tools/horseshoe/horseshoe-overview.md).
+* Learn how grouped layouts work in [Groups](../../card-basics/groups.md).
+* Configure threshold colors and gradients with [Color stops](../../appearance/color-stops.md).
 * Study the reduced YAML for cards 30 and 32 in [Reusable YAML Card Examples](../../reuse/reuse-card-examples.md).
 
 <!-- Image references -->

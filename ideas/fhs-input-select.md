@@ -1,4 +1,4 @@
-# FHS input select
+# Flexible Horseshoe Card input select
 
 ## Goal
 

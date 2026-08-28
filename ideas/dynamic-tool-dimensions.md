@@ -2,7 +2,7 @@
 
 ## Summary
 
-Rectangles may derive their width and height from the rendered dimensions of a `state`, `name`, or `area` tool. Measurements remain in the normal FHS coordinate system.
+Rectangles may derive their width and height from the rendered dimensions of a `state`, `name`, or `area` tool. Measurements remain in the normal Flexible Horseshoe Card coordinate system.
 
 ## Configuration
 
@@ -16,7 +16,7 @@ fit:
 
 - `section`: initially `states`, `names`, or `areas`.
 - `item_id`: ID of the referenced tool.
-- `padding.x` and `padding.y`: FHS coordinate units added on both horizontal or vertical sides; defaults are `1.5` and `0.5`.
+- `padding.x` and `padding.y`: Flexible Horseshoe Card coordinate units added on both horizontal or vertical sides; defaults are `1.5` and `0.5`.
 - A fitted rectangle does not require `xpos`, `ypos`, `width`, or `height`.
 - Numeric rectangle geometry remains unchanged and backward compatible.
 - A dynamic `width` or `height` reference changes only that dimension and retains the configured rectangle position.
@@ -28,7 +28,7 @@ fit:
 3. State measurements include both the value and unit, including `top`, `bottom`, and `end` unit layouts.
 4. A Lit `ref` binding follows the currently rendered SVG text node without repeated DOM queries.
 5. `updated()` measures the complete rendered text node with `getBBox()`.
-6. The SVG measurement is converted to FHS coordinates and cached on the text tool.
+6. The SVG measurement is converted to Flexible Horseshoe Card coordinates and cached on the text tool.
 7. When text, unit, styles, or the rendered node change, the estimate is used for the first render and `updated()` replaces it with the exact measurement.
 8. A correction render is requested only when the measured width or height actually changes. The following unchanged measurement stops the cycle.
 9. The measured character-width factor is updated with `factor = factor * 0.8 + measuredFactor * 0.2`. This improves the estimate for subsequent content changes while the exact `getBBox()` result remains authoritative.
@@ -40,7 +40,7 @@ fit:
 - The existing parent `updated()` lifecycle lets text tools measure their current Lit-bound SVG node after rendering.
 - Rectangle fit calculation uses the referenced tool center, width, and height, adds the configured axis padding, and then uses the existing rectangle path and radius calculations.
 - No observers, repeated selectors, extra defaults, or defensive fallbacks are introduced.
-- Cross-group scale compensation is out of scope; referenced tools and rectangles use their local FHS dimensions.
+- Cross-group scale compensation is out of scope; referenced tools and rectangles use their local Flexible Horseshoe Card dimensions.
 
 ## Test Scenarios
 
@@ -54,5 +54,5 @@ fit:
 - Default fit padding applies `1.5` horizontally and `0.5` vertically; either value can be overridden independently.
 - Initial render uses an estimate and settles after one exact correction.
 - Later entity updates resize correctly without a render loop.
-- Card resizing preserves the normal FHS scaling behavior.
+- Card resizing preserves the normal Flexible Horseshoe Card scaling behavior.
 - `npm run build` completes successfully.

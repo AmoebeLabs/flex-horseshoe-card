@@ -1,8 +1,8 @@
-# Local FHS Entity Click Routing
+# Local Flexible Horseshoe Card Entity Click Routing
 
 ## Main Goal
 
-Route actions from local FHS entities to their real Home Assistant source
+Route actions from local Flexible Horseshoe Card entities to their real Home Assistant source
 entity without changing the action configured on the clicked item.
 
 Every entity id starting with `fhs_` is local to the card. It does not exist in

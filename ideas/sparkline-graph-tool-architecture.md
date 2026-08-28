@@ -1,4 +1,4 @@
-# FHS Sparkline Graph Tool - Architecture and Implementation Notes
+# Flexible Horseshoe Card Sparkline Graph Tool - Architecture and Implementation Notes
 
 ## Main Goal
 
@@ -7,11 +7,11 @@ The existing SAK implementation is the starting point.
 **`sparkline-graph.js` should be reused as close to 1:1 as possible.**
 
 This is not a redesign, optimization pass, or rewrite. The goal is to reuse the
-working graph calculation code and fit it into the existing FHS tool model.
+working graph calculation code and fit it into the existing Flexible Horseshoe Card tool model.
 
 ## Scope
 
-The FHS sparkline tool is intentionally small.
+The Flexible Horseshoe Card sparkline tool is intentionally small.
 
 Supported first display outcomes:
 
@@ -35,7 +35,7 @@ Out of scope for the first implementation:
 - multi-series charts
 - tooltips as a first implementation step
 
-This tool should add compact history context to FHS cards. It should not become
+This tool should add compact history context to Flexible Horseshoe Card cards. It should not become
 a replacement for Mini Graph Card or the full SAK graph tool.
 
 This scope is a first delivery boundary only. It must not block later reuse of
@@ -60,10 +60,10 @@ During implementation, do not replace or redesign these parts:
 
 The starting point is:
 
-**extend and adapt existing code only where FHS integration requires it.**
+**extend and adapt existing code only where Flexible Horseshoe Card integration requires it.**
 
 When a concept already exists in SAK, keep the SAK name unless there is a direct
-conflict with established FHS naming. Do not invent a parallel FHS concept for
+conflict with established Flexible Horseshoe Card naming. Do not invent a parallel Flexible Horseshoe Card concept for
 the same behavior.
 
 ## Reuse Strategy
@@ -85,9 +85,9 @@ Expected reusable responsibilities:
 
 The current file also contains methods for bars, equalizer, graded, barcode, and
 radial barcode output. Those methods can remain in the engine if that keeps the
-file close to the SAK source, but the first FHS tool should not expose them.
+file close to the SAK source, but the first Flexible Horseshoe Card tool should not expose them.
 
-Do not remove or rename unused engine methods just because the first FHS wrapper
+Do not remove or rename unused engine methods just because the first Flexible Horseshoe Card wrapper
 does not call them. Keeping the engine complete makes future graph modes easier
 to enable.
 
@@ -98,28 +98,28 @@ The SAK tool itself should not be ported 1:1.
 Reason: the SAK tool is a full renderer and contains SAK-specific concepts:
 
 - SAK classes and styles
-- chart types that FHS will not expose
+- chart types that Flexible Horseshoe Card will not expose
 - tooltip handling
 - barcode/equalizer/radial rendering
 - SAK-specific entity and graph visibility handling
 - SAK-specific color stop handling
 
-For FHS, create a small tool wrapper that follows the same setup as the existing
-FHS layout tools:
+For Flexible Horseshoe Card, create a small tool wrapper that follows the same setup as the existing
+Flexible Horseshoe Card layout tools:
 
 - extends `BaseTool`
 - has a static `setConfig()`
 - receives config through `layout.sparklines`
-- uses existing FHS coordinate helpers
-- uses existing FHS `styles` handling
-- uses existing FHS `gradient(...)` references
-- uses existing FHS mask/clip wrapping through `BaseTool.renderItemLayers()`
+- uses existing Flexible Horseshoe Card coordinate helpers
+- uses existing Flexible Horseshoe Card `styles` handling
+- uses existing Flexible Horseshoe Card `gradient(...)` references
+- uses existing Flexible Horseshoe Card mask/clip wrapping through `BaseTool.renderItemLayers()`
 - participates in normal zpos ordering
 
 The wrapper should call `SparklineGraph` for calculation and only render the
-selected FHS display mode.
+selected Flexible Horseshoe Card display mode.
 
-The wrapper should be thin. It may translate FHS layout position, zpos,
+The wrapper should be thin. It may translate Flexible Horseshoe Card layout position, zpos,
 templates, masks/clips, and style dictionaries, but it should not reinterpret
 graph semantics that already exist in SAK.
 
@@ -136,11 +136,11 @@ layout:
       y2: 100
       stops:
         - offset: 0
-          color: '#e53935'
+          color: "#e53935"
         - offset: 50
-          color: '#fdd835'
+          color: "#fdd835"
         - offset: 100
-          color: '#1e88e5'
+          color: "#1e88e5"
 
   sparklines:
     - entity_index: 0
@@ -195,12 +195,12 @@ the rendering path.
 
 ## Rendering Model
 
-The FHS renderer should use the same SVG idea as SAK:
+The Flexible Horseshoe Card renderer should use the same SVG idea as SAK:
 
 1. Use `SparklineGraph` to calculate the line and area paths.
 2. Render a mask from the graph path.
 3. Render a rectangle behind the mask.
-4. Fill that rectangle with normal FHS styles or `gradient(...)`.
+4. Fill that rectangle with normal Flexible Horseshoe Card styles or `gradient(...)`.
 
 Line rendering:
 
@@ -225,9 +225,9 @@ Area rendering:
 For a plain line, the tool can also render the path directly with normal stroke
 styles. The mask approach is useful when the line itself needs a gradient fill.
 
-## FHS Tool Requirements
+## Flexible Horseshoe Card Tool Requirements
 
-The tool must fit the same architecture as existing FHS tools:
+The tool must fit the same architecture as existing Flexible Horseshoe Card tools:
 
 - config section: `layout.sparklines`
 - class name: `SparklineTool` or `SparklineGraphTool`
@@ -242,7 +242,7 @@ The tool must fit the same architecture as existing FHS tools:
 - no custom mask/clip registry
 
 The tool may have internal SVG ids for path masks. Those ids must include the
-FHS `cardId` and item index to stay card-instance safe.
+Flexible Horseshoe Card `cardId` and item index to stay card-instance safe.
 
 ## Statistics As Derived Graph Entities
 
@@ -266,7 +266,7 @@ they are available as runtime values, existing `state`, `name`, `icon`, style,
 color, and template logic should be able to consume them just like normal
 entities.
 
-Access is consistent with the normal FHS entity pipeline. A graph value exists
+Access is consistent with the normal Flexible Horseshoe Card entity pipeline. A graph value exists
 as a local entity only when the user adds it explicitly to `entities`. It then
 has a normal, visible list index. A layout item can use that index or a fixed `entity:` reference, which configuration converts to
 `entity_index`. No entities are appended implicitly by the sparkline runtime.
@@ -314,22 +314,22 @@ Animation triggers may use `entity.fhs_sparkline.<sparkline_id>_<type>`. Configu
 
 This keeps rendering generic. Existing state, name, icon, text, style, and
 action code receives the same `entity_index` contract used by Home Assistant
-entities and FHS inputs.
+entities and Flexible Horseshoe Card inputs.
 
 The configured graph entities are runtime aliases, not static copied state
 objects. Configuration resolves the exact entity id against a sparkline id and
 known suffix, then derives `source_entity_index` from that sparkline. The final
-HA-like state object is rebuilt whenever FHS processes new `hass` data,
+HA-like state object is rebuilt whenever Flexible Horseshoe Card processes new `hass` data,
 refreshed history, or changed runtime graph settings.
 
 Config-time alias metadata:
 
 ```js
 resolvedEntityConfig = {
-  entity: 'fhs_sparkline.temperature_history_avg',
+  entity: "fhs_sparkline.temperature_history_avg",
   source_entity_index: 0,
-  sparkline_id: 'temperature_history',
-  sparkline_entity_type: 'avg',
+  sparkline_id: "temperature_history",
+  sparkline_entity_type: "avg",
 };
 ```
 
@@ -370,7 +370,9 @@ Use labels for translations:
 - min for min
 
 ```js
-localEntity.name = this.hass.localize(`ui.components.statistics_charts.statistic_types.${localEntity.label}`);
+localEntity.name = this.hass.localize(
+  `ui.components.statistics_charts.statistic_types.${localEntity.label}`,
+);
 ```
 
 This must be done after set hass() is set. Probably in the renderer, as it must follow the current localization setting in Home Assistant. That setting can be changed runtime.
@@ -437,7 +439,7 @@ If explicit lower/upper bounds are added later, those bounds should feed the sam
 be reused for sparkline interaction where possible.
 
 The following parts are especially relevant and should be copied as close to 1:1
-as the FHS sparkline wrapper allows:
+as the Flexible Horseshoe Card sparkline wrapper allows:
 
 - `mouseEventToPoint(e)` using `createSVGPoint()` and `getScreenCTM().inverse()`
   to translate browser client coordinates to SVG coordinates;
@@ -535,7 +537,7 @@ Graph.getPathSegmentByX(x1, x2);
 ```
 
 The implementation should prefer an engine-level segment method over rebuilding
-the spline in the FHS renderer. The renderer should receive a ready SVG path for
+the spline in the Flexible Horseshoe Card renderer. The renderer should receive a ready SVG path for
 the snake mask, just as it receives the normal full path.
 
 Example configuration direction:
@@ -558,16 +560,16 @@ Current state after reviewing the supplied SAK files:
 - It is not purely line/area internally; it also contains methods for other SAK
   graph types.
 - That is acceptable if the file is copied as an engine and only line/area APIs
-  are called by FHS.
-- `sparkline-graph-tool.js` is not suitable as a direct FHS tool because it
+  are called by Flexible Horseshoe Card.
+- `sparkline-graph-tool.js` is not suitable as a direct Flexible Horseshoe Card tool because it
   contains the full SAK rendering layer and many chart types that are out of
   scope.
 - The useful rendering pattern from the SAK tool is the mask-backed SVG approach
   for line and area coloring.
-- FHS should provide its own wrapper so the tool behaves like all other FHS
+- Flexible Horseshoe Card should provide its own wrapper so the tool behaves like all other Flexible Horseshoe Card
   layout tools.
 
-Minimum useful engine calls for the first FHS implementation:
+Minimum useful engine calls for the first Flexible Horseshoe Card implementation:
 
 - `new SparklineGraph(...)`
 - `Graph.update(history)`
@@ -578,18 +580,18 @@ Minimum useful engine calls for the first FHS implementation:
 Naming note:
 
 Prefer existing SAK names such as `sparkline.show.chart_type` over newly
-invented names such as `sparkline_type` when that does not conflict with FHS.
-The first FHS wrapper may support only `line`, `area`, and the combined
+invented names such as `sparkline_type` when that does not conflict with Flexible Horseshoe Card.
+The first Flexible Horseshoe Card wrapper may support only `line`, `area`, and the combined
 line-area rendering, but the config shape should stay close to the SAK graph
 tool so future modes do not require another breaking redesign.
 
 ## Implementation Phases
 
 1. Copy or import `sparkline-graph.js` as the calculation engine.
-2. Add a small FHS `SparklineGraphTool` wrapper for `layout.sparklines`.
+2. Add a small Flexible Horseshoe Card `SparklineGraphTool` wrapper for `layout.sparklines`.
 3. Support SAK-compatible `sparkline.show.chart_type` values for `line` and `area`, with line+area rendering controlled by the existing SAK-style line/area visibility settings.
 4. Fetch today history and feed it into the engine.
-5. Render line and area with FHS styles and gradients.
+5. Render line and area with Flexible Horseshoe Card styles and gradients.
 6. Add statistics from the same dataset.
 7. Add x/y ticks and grid if still needed.
 8. Add pointer/touch interaction.
@@ -597,7 +599,7 @@ tool so future modes do not require another breaking redesign.
 
 ## Architecture Rules
 
-The implementation must follow the existing FHS architecture:
+The implementation must follow the existing Flexible Horseshoe Card architecture:
 
 - keep the existing entity structure;
 - keep the existing render pipeline;
@@ -605,8 +607,8 @@ The implementation must follow the existing FHS architecture:
 - do not add duplicate render logic for statistics;
 - do not add special graph-only entity handling unless that is the explicit
   feature being implemented;
-- reuse FHS masks/clips/gradients;
+- reuse Flexible Horseshoe Card masks/clips/gradients;
 - only add functionality needed for the sparkline tool.
 
-The finished tool should feel like a normal FHS layout tool, not like an
+The finished tool should feel like a normal Flexible Horseshoe Card layout tool, not like an
 embedded SAK card.

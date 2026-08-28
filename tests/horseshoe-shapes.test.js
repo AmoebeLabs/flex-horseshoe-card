@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import Colors from '../src/colors.js';
 import { GaugeGeometry, GaugeScale } from '../src/horseshoe-geometry.js';
 import { buildColorStopGradientPathItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from '../src/horseshoe-shapes.js';
-import { normalizeRuntimeConfig } from '../src/horseshoe-state.js';
+import { normalizeBaseConfig, normalizeRuntimeConfig } from '../src/horseshoe-state.js';
 import buildTickPathItems from '../src/horseshoe-tickmarks.js';
 
 /** Builds the minimum normal horseshoe config needed to inspect its resolved state color. */
@@ -37,6 +37,30 @@ const geometry = {
     y: Math.sin(angle * Math.PI / 180) * radius,
   }),
 };
+
+test('minimal horseshoe config creates an empty color-stop configuration', () => {
+  const baseConfig = normalizeBaseConfig({
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    radius: 40,
+    horseshoe_scale: {
+      min: 0,
+      max: 40,
+    },
+  }, 0, {
+    getGroupForItem: () => undefined,
+  }, 'dark');
+
+  const config = normalizeRuntimeConfig(baseConfig, 'dark');
+
+  assert.deepEqual(config.colorstops, {
+    scales: {},
+    colors: [],
+  });
+  assert.equal(config.horseshoe_scale.min, 0);
+  assert.equal(config.horseshoe_scale.max, 40);
+});
 
 test('resolves discrete and interpolated horseshoe state colors independently', () => {
   const discrete = buildStatePathItems(createRuntimeConfig('colorstop'), geometry, 50);
@@ -383,4 +407,3 @@ test('absolute colorstopgradient follows negative colors from zero toward the sc
   assert.equal(paths[paths.length - 1].arc.endValue, -10);
   assert.equal(paths[paths.length - 1].arc.gradient.endColor, '#008000');
 });
-

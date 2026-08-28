@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Interactive showcases combine user documentation with visual regression testing. FHS input entities and controls let one card exercise related configuration combinations without maintaining a separate card for every result.
+Interactive showcases combine user documentation with visual regression testing. Flexible Horseshoe Card input entities and controls let one card exercise related configuration combinations without maintaining a separate card for every result.
 
 Each showcase should:
 

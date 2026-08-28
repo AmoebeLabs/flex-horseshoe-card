@@ -1,4 +1,4 @@
-# FHS Sparkline History Lifecycle
+# Flexible Horseshoe Card Sparkline History Lifecycle
 
 ## Main Goal
 
@@ -73,12 +73,12 @@ The reducer creates temporary bucket groups. It does not remove rows from `histo
 
 ## Behavior Matrix
 
-| Period | Initial history fetch | Realtime samples | Bin-boundary sample | Range refresh |
-| --- | --- | --- | --- | --- |
-| `real_time` | No | Replace current sample | No | Never |
-| `rolling_window` | Yes | Yes | Yes | Reconnect or explicit resync |
-| `calendar.offset === 0` | Yes | Yes | Yes | Local midnight, reconnect, or explicit resync |
-| `calendar.offset < 0` | Yes | No | No | Local midnight only |
+| Period                  | Initial history fetch | Realtime samples       | Bin-boundary sample | Range refresh                                 |
+| ----------------------- | --------------------- | ---------------------- | ------------------- | --------------------------------------------- |
+| `real_time`             | No                    | Replace current sample | No                  | Never                                         |
+| `rolling_window`        | Yes                   | Yes                    | Yes                 | Reconnect or explicit resync                  |
+| `calendar.offset === 0` | Yes                   | Yes                    | Yes                 | Local midnight, reconnect, or explicit resync |
+| `calendar.offset < 0`   | Yes                   | No                     | No                  | Local midnight only                           |
 
 ## Implementation Plan
 

@@ -1,4 +1,4 @@
-# FHS – masks en clips
+# Flexible Horseshoe Card – masks en clips
 
 ## Basisidee
 
@@ -51,7 +51,7 @@ Intern:
 
 ### SVG id-scope
 
-Clip- en mask-ids moeten per FHS kaartinstantie uniek zijn. Meerdere kaarten kunnen dezelfde configuratienaam gebruiken, dus het gegenereerde SVG id moet de card id bevatten.
+Clip- en mask-ids moeten per Flexible Horseshoe Card kaartinstantie uniek zijn. Meerdere kaarten kunnen dezelfde configuratienaam gebruiken, dus het gegenereerde SVG id moet de card id bevatten.
 
 Voorbeeld gegenereerde ids:
 
@@ -69,7 +69,7 @@ mask="url(#fhs-${cardId}-mask-avatar-fade)"
 
 ### SVG coordinate units
 
-Clips en masks moeten dezelfde 0..200 user-space coordinaten gebruiken als de rest van de FHS SVG. Zet de units expliciet zodat browser SVG defaults de coordinaten niet anders interpreteren.
+Clips en masks moeten dezelfde 0..200 user-space coordinaten gebruiken als de rest van de Flexible Horseshoe Card SVG. Zet de units expliciet zodat browser SVG defaults de coordinaten niet anders interpreteren.
 
 ```svg
 <clipPath id="fhs-${cardId}-clip-avatar-circle" clipPathUnits="userSpaceOnUse">

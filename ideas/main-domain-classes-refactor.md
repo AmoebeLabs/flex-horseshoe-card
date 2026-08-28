@@ -89,7 +89,7 @@ Keep all existing test scenarios and add regression coverage for:
 - Independent JavaScript template data for two simultaneous cards.
 - Theme state being current before dynamic configuration evaluation.
 - Full CardConfig compilation order.
-- CardActions precedence and HA/FHS execution.
+- CardActions precedence and HA/Flexible Horseshoe Card execution.
 - CardInputEntities scope, persistence, and events.
 - CardTools lifecycle forwarding, entity assignment, and z-position order.
 
@@ -125,4 +125,4 @@ card showcases in Home Assistant.
 - [x] Reduce `main.js` to the Lit shell and explicit domain call order.
 - [x] Run the final automated tests, Biome check, and Rollup build.
 - [ ] Manually check the Home Assistant control, horseshoe, cartesian, radial,
-  Awair, and child-card showcases.
+      Awair, and child-card showcases.

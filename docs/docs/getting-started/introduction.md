@@ -1,117 +1,74 @@
 ---
 template: main.html
 title: Introduction to the Flexible Horseshoe Card
-description: Learn how the Flexible Horseshoe Card combines flexible layouts, entity data, styling, animations, templates, and reusable YAML in Home Assistant.
+description: Create compact Home Assistant cards with horseshoes, entity values, history graphs, controls, and reusable layouts.
 tags:
-- Introduction
+  - Introduction
 ---
 
 # Introduction to the Flexible Horseshoe Card
 
-The Flexible Horseshoe Card is a highly configurable Lovelace card for Home Assistant. It turns entity states and attributes into compact, visual dashboard cards that you can arrange and style in detail.
+The Flexible Horseshoe Card is a highly customizable Home Assistant card for visualizing and controlling entity data. Cards can range from a simple horseshoe gauge to complete interactive displays with multiple entities, history graphs, controls, and other visual elements.
 
-At its core, the card can display one or more horseshoe gauges that fill according to an entity state. Each gauge can use fixed colors, color stops, or gradients based on its configured value range. Around the gauge, you can add names, states, icons, labels, circles, horizontal and vertical lines, areas, and other visual elements.
+Card size, layout, and the position and appearance of individual tools can all be configured. Reusable templates make it possible to create consistent cards without repeating the same configuration.
 
-The goal is simple: give you precise control over how Home Assistant data appears on your dashboard.
+## :material-horseshoe: From a simple gauge to advanced visualizations
 
-## :material-horseshoe: Why use this card?
+The card started with the horseshoe gauge shown in the second image below.
 
-Many Home Assistant cards are quick to configure but offer only limited control over layout. The Flexible Horseshoe Card takes a different approach by letting you decide which elements appear and where they are placed.
+!!! success "All cards are available as card templates in my Home Assistant repository"
+    Each card has a card number that you can use to find its template in my [Home Assistant Config repository](https://github.com/AmoebeLabs/home-assistant-config/tree/master/lovelace/fhs_sys_templates).
 
-You can build a simple card with one gauge and one value, or create a more detailed dashboard component with multiple entities, grouped values, icons, separators, dynamic styling, animations, and reusable configuration.
 
-This makes the card suitable for many types of dashboards, including:
+Horseshoes can have different sizes and radii, with detailed tick marks and labels.
 
-* energy consumption and production
-* battery levels
-* temperature and humidity
-* device or room status
-* network and system monitoring
-* sensor dashboards
-* any entity that benefits from a visual gauge
+![Flexible Horseshoe Examples Overview](../assets/screenshots/fhs-horseshoe-examples-overview.png)
 
-## :material-horseshoe: What can you add to a card?
+More specialized horseshoes can also show non-numerical states, as in this Kleenex Pollen Radar example:
 
-A card can contain much more than a single horseshoe. Available elements and features include:
+![Kleenex Pollen Radar card with horseshoe gauges for textual pollen states](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
 
-* entities and attributes
-* one or more horseshoe gauges
-* states, names, icons, and areas
-* circles, horizontal lines, and vertical lines
-* color stops and gradients
-* custom CSS and SVG styles
-* animations and state-based behavior
-* JavaScript templates
-* reusable YAML with `same_as`, `constants`, `ref()`, and `calc()`
+Sparkline graphs show current and historical values over time. [Several graph types](../tools/sparkline/sparkline-overview.md) are available.
 
-Each item can be positioned independently. For more complex layouts, related elements can also be placed in groups so they can move, scale, or rotate together.
+The example shows the full sparkline functionality, including axes, labels, and a grid. These elements are optional, so a graph can also be used as a simple sparkline to provide additional historical context.
 
-## :material-horseshoe: Flexible layout
+![Awair study temperature history shown as a daily area chart](../assets/screenshots/fhs-demo-card-study-temperature-area-day--dark.webp)
 
-Layout flexibility is one of the card’s main strengths.
+The card also supports [tap actions](../interaction/interaction-overview.md) and [predefined controls](../tools/controls/controls-overview.md), so values can be displayed and controlled from the same card.
 
-Instead of choosing from a fixed set of predefined designs, you control the position and appearance of each item. You decide where a state value appears, where an icon belongs, how large a horseshoe should be, where labels are placed, and how separators or decorative shapes are drawn.
+[Predefined controls](../tools/controls/controls-overview.md) make it possible to build interactive cards, such as the Awair card below that shows data from three Awair Elements. Check [this page](../examples/demo-cards/demo-card-awair-many.md) for this advanced card.
 
-This makes it possible to create cards that follow your dashboard design rather than adapting your dashboard to a fixed card layout.
+{{ loop_video(
+"fhs-demo-card-awair-selectable--dark.mp4",
+"Interactive Awair showcase built with Flexible Horseshoe Card in Home Assistant",
+"A complete demonstration of the Flexible Horseshoe Card using three Awair Elements. Select a room and sensor to explore their current values, history, and history duration.",
+"fhs-demo-card-awair-selectable--dark.png",
+"2026-08-15",
+"PT0M30S",
+"720px") }}
 
-## :material-horseshoe: Styling and color behavior
 
-The card supports several approaches to styling.
+## :material-horseshoe: Flexible layouts
 
-You can apply a single fixed color, use value-based color stops, or create smooth gradients across a range. Color stops are not limited to horseshoes; they can also affect icons, lines, circles, names, states, areas, and other supported elements.
+Each tool has its own position, size, and appearance. Tools can be combined freely, allowing the same card to be used for a compact gauge, a larger dashboard element, or a more detailed interactive display.
 
-The card works with Home Assistant themes and can also load external JSON palettes, including separate light and dark mode colors.
+Groups can be used to position related tools together.
 
-## :material-horseshoe: Dynamic cards with templates
+## :material-horseshoe: Built around Home Assistant
 
-Normal YAML is often enough for fixed layouts. When the card needs to react to entity states, JavaScript templates can provide dynamic behavior.
+Flexible Horseshoe Card uses Home Assistant entities and can follow their names, units, precision, icons, areas, locale, themes, and actions.
 
-Templates can change styles, icons, colors, entity settings, and other configuration values at runtime. This allows the card to respond visually as entity values change.
+This means a card can start with the information already available in Home Assistant and only override what needs to look or behave differently.
 
-For example, a template can:
+## :material-horseshoe: Reuse card designs
 
-* replace an icon
-* apply a CSS animation
-* highlight a value
-* change a color or style
-* adjust an element based on the current entity state
+Reusable templates and shared configuration help keep larger configurations manageable.
 
-## :material-horseshoe: Less YAML for larger cards
+A design can be created once and reused for different entities while keeping the same layout and appearance.
 
-Complex cards can quickly grow into long configurations. Repeated horseshoes, lines, labels, icons, states, and shared styles can all add significant duplication.
+## :material-horseshoe: Start here
 
-The card includes several static reuse features to keep larger configurations manageable:
-
-* use `same_as` to reuse an earlier item
-* use `same_as_d...` to apply a numeric offset
-* use `constants` for shared values and configuration fragments
-* use `ref()` to insert a constant elsewhere
-* use `calc()` to calculate static positions, sizes, and spacing
-
-These features reduce repeated YAML and make broad changes easier and safer to apply.
-
-## :material-horseshoe: Home Assistant integration
-
-The Flexible Horseshoe Card is designed specifically for Home Assistant.
-
-It can use entity names, units, icons, areas, attributes, localization, state colors, actions, and theme variables. Default Home Assistant values can be kept where they fit, or overridden in the card configuration when more control is needed.
-
-## :material-horseshoe: Backwards compatibility
-
-The refreshed horseshoe implementation remains compatible with the original horseshoe YAML configuration. Existing cards should continue to work without changes.
-
-Custom CSS or card-mod rules that target the previous internal HTML or SVG structure may need to be updated.
-
-## :material-horseshoe: Where to go next
-
-Start with the installation guide, then explore the basic examples and the feature pages that match the card you want to build:
-
-* [Installation](installation.md)
-* [Entity Definitions](../core-concepts/entity-definitions.md)
-* [Horseshoe Gauges](../sections/horseshoes-section.md)
-* [Layout Overview](../sections/layout-overview.md)
-* [Color Stops](../core-concepts/color-stops.md)
-* [CSS Styling](../core-concepts/css-styling.md)
-* [Templating](../core-concepts/templating.md)
-* [Reuse](../reuse/reuse-introduction.md)
-* [Examples](../examples/overview.md)
+1. [Install the card](installation.md).
+2. [Build your first horseshoe](your-first-card.md).
+3. [Choose card tools](../tools/tools-overview.md).
+4. Explore the [examples](../examples/overview.md).

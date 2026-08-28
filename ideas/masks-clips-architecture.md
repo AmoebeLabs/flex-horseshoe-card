@@ -1,4 +1,4 @@
-# FHS - Masks, Clips And Gradients
+# Flexible Horseshoe Card - Masks, Clips And Gradients
 
 ## Current Scope
 
@@ -117,11 +117,11 @@ layout:
       r: 65
       stops:
         - offset: 0
-          color: '#e3f2fd'
+          color: "#e3f2fd"
         - offset: 45
-          color: '#42a5f5'
+          color: "#42a5f5"
         - offset: 100
-          color: '#0d47a1'
+          color: "#0d47a1"
 
   rectangles:
     - id: clipped_square
@@ -134,7 +134,7 @@ layout:
         - fill: gradient(blue-radial)
 ```
 
-Numeric gradient coordinates and offsets use the same user-facing `0..100` style as the rest of FHS config. The renderer converts them to SVG percentages for `objectBoundingBox` gradients.
+Numeric gradient coordinates and offsets use the same user-facing `0..100` style as the rest of Flexible Horseshoe Card config. The renderer converts them to SVG percentages for `objectBoundingBox` gradients.
 
 ## Clips
 
@@ -194,7 +194,7 @@ rectangles:
     radius: 8
     mask: top-notch
     styles:
-      - fill: '#43a047'
+      - fill: "#43a047"
 ```
 
 ## Nested Masks

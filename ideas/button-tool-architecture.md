@@ -2,7 +2,7 @@
 
 ## Goal
 
-FHS controls provide reusable interactive buttons without requiring a rectangle,
+Flexible Horseshoe Card controls provide reusable interactive buttons without requiring a rectangle,
 text and icon item for every control. The first control is a standalone
 `ControlTool` in `layout.controls`; it is not a compound and does not replace
 existing layout sections.
@@ -12,7 +12,7 @@ existing layout sections.
 A control uses `type: button`, `toggle`, `select`, `number` and `slider`.
 
 - `button` uses the existing tap default for its entity.
-- `toggle` uses Home Assistant or FHS boolean toggle behavior.
+- `toggle` uses Home Assistant or Flexible Horseshoe Card boolean toggle behavior.
 - `select` maps the active `states[].value` to `input_select.select_option`
   or `fhs_input_number.set_value`.
 - `number` renders minus, value and plus content and uses the existing
@@ -21,7 +21,7 @@ A control uses `type: button`, `toggle`, `select`, `number` and `slider`.
   circular visualization and performs `set_value` actions while dragging or
   when the interaction finishes.
 
-FHS needs to be extended with a fhs_input_select service!
+Flexible Horseshoe Card needs to be extended with a fhs_input_select service!
 
 Explicit item, entity and card actions keep their existing precedence over mode
 defaults.
@@ -39,7 +39,7 @@ styles, animation styles and text measurement.
 
 Select indicators use the state-list index and animate their SVG translation.
 Toggle indicators use the current on/off state. Number controls use the existing
-FHS entity settings for min, max and step.
+Flexible Horseshoe Card entity settings for min, max and step.
 
 ## Integration
 
@@ -115,21 +115,21 @@ controls:
         on:
           track:
             styles:
-              fill: 'var(--switch-checked-track-color)'
+              fill: "var(--switch-checked-track-color)"
               pointer-events: auto
           thumb:
-            fill: 'var(--switch-checked-button-color)'
-            transform: 'translateX(4.5em)' # must be calculated in config
+            fill: "var(--switch-checked-button-color)"
+            transform: "translateX(4.5em)" # must be calculated in config
             pointer-events: auto
 
         off:
           styles:
             track:
-              fill: 'var(--switch-checked-track-color)'
+              fill: "var(--switch-checked-track-color)"
               pointer-events: auto
             thumb:
-              fill: 'var(--switch-checked-button-color)'
-              transform: 'translateX(4.5em)' # must be calculated in config
+              fill: "var(--switch-checked-button-color)"
+              transform: "translateX(4.5em)" # must be calculated in config
               pointer-events: auto
 
   - type: select
@@ -148,9 +148,9 @@ controls:
       # - input_select.set_options to set the options below into the entity
       # - input_select.select_option to select the option (clicked)
       option_map:
-        - value: 'off'
+        - value: "off"
           icon: mdi:fan-off
-          text: 'Off'
+          text: "Off"
         - value: low
           icon: mdi:fan-speed-1
           text: Low
@@ -197,7 +197,7 @@ controls:
           padding: 2 # space between calculated height/width and actual size
           radius: 2
           styles:
-            fill: 'var(--switch-checked-track-color)'
+            fill: "var(--switch-checked-track-color)"
         animation:
           duration: 250 # for all. select/unselect/indicator. so all change the same speed
           easing: ease-out
@@ -216,7 +216,7 @@ controls:
           minus:
             mode: content_text # content_icon
             content_text:
-              text: '-'
+              text: "-"
             content_icon:
               icon:
                 icon: mdi-arrow-down
@@ -230,7 +230,7 @@ controls:
           plus:
             mode: content_text # content_icon
             content_text:
-              text: '+'
+              text: "+"
             content_icon:
               icon:
                 icon: mdi-arrow-up
