@@ -103,6 +103,15 @@ sparkline:
 
 Choose the chart type, then how values should occupy its ring, and finally the visible form of every segment.
 
+{{ loop_video(
+  "fhs-demo-card-sparkline-radial-barcode-showcase.webm",
+  "Interactive Radial Barcode showcase build with Flexible Horseshoe Card in Home Assistant",
+  "A complete demonstration of the Sparkline Radial Barcode chart possibilities.",
+  "fhs-demo-card-awair-selectable--dark.png",
+  "2026-08-28",
+  "PT0M20S",
+  "720px") }}
+
 ### Chart
 
 | `chart_type` value | Visible result |
