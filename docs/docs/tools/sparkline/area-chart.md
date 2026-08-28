@@ -14,7 +14,12 @@ An area chart combines a trend line with a filled area. Use it when the magnitud
 It works well for temperature, humidity, power, air quality, and other continuous measurements where both direction and magnitude should be immediately visible.
 
 <!-- Add an area chart screenshot here. -->
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-area-study-score--dark.webp)
+![Flexible Horseshoe sparkline area example](../../assets/screenshots/fhs-demo-card-area-study-score--dark.webp)
+
+See: [Sparkline History Template Card #060]
+
+  [Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml
+
 
 ## :material-horseshoe: Basic configuration
 

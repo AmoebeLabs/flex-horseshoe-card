@@ -14,6 +14,11 @@ An equalizer shows the height of every time bin as a stack of levels. Use it whe
 <!-- Add an equalizer chart screenshot here. -->
 ![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-equalizer-study-temperature--dark.webp)
 
+See: [Sparkline History Template Card #060]
+
+  [Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml
+
+
 ## :material-horseshoe: Basic configuration
 
 This example displays the latest 24 hours as ten stacked value levels:

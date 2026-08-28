@@ -16,6 +16,11 @@ Use it when individual observations matter more than a continuous trend or when 
 <!-- Add a dots chart screenshot here. -->
 ![Flexible Horseshoe Sparkline dots chart example](../../assets/screenshots/fhs-demo-card-dots-study-humidity--dark.webp)
 
+See: [Sparkline History Template Card #060]
+
+  [Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml
+
+
 ## :material-horseshoe: Basic configuration
 
 This example shows the latest day and lets Flexible Horseshoe Card choose a suitable number of points:
