@@ -134,7 +134,7 @@ series:
         radius: 0.75
 ```
 
-The parent sparkline supplies the shared period, bins, axes, grid, and tooltip. A series only supplies settings that differ.
+The parent sparkline supplies the period, bins, axes, grid, and tooltip. A series can override some of the settings.
 
 ## :material-horseshoe: Compare today with yesterday
 
@@ -168,7 +168,7 @@ Both series use the same time-of-day X-axis. The tooltip identifies the series a
 
 ## :material-horseshoe: Show a legend
 
-Enable the legend with the shared show settings:
+Set `show.legend` to `true` to show the series names and colors:
 
 ```yaml linenums="1"
 sparkline:

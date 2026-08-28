@@ -56,6 +56,9 @@ theme:
     - search.suggest
     - search.highlight
     - content.tabs.link
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
 
 plugins:
   - search
