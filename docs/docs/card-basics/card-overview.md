@@ -9,7 +9,9 @@ tags:
 
 # Card overview
 
-A Flexible Horseshoe Card combines Home Assistant entities with visual tools that you position on the card.
+The Flexible Horseshoe Card is a highly customizable Home Assistant card for visualizing and controlling entity data. It combines values, icons, horseshoes, graphs, labels, and controls in a configurable card with flexible sizing and positioning. Reusable templates make it possible to build consistent cards without repeating the same configuration.
+
+
 
 <!-- Add an annotated card screenshot here. -->
 
