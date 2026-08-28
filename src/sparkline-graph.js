@@ -38,13 +38,14 @@ export default class SparklineGraph {
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
-   * @param {object} margin - Drawing margins with l, t, r and b values.
+   * @param {object} axisMargin - Space reserved outside the shared axis area.
+   * @param {object} configuredMargin - User-configured margin inside the axes.
    * @param {object} config - Validated sparkline configuration.
    * @param {Array<number>} gradeValues - Numeric grade boundaries.
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - Numeric mapping for categorical state bands.
    */
-  constructor(width, height, margin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
+  constructor(width, height, axisMargin, configuredMargin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
     this.aggregateFuncMap = {
       avg: this._average,
       median: this._median,
@@ -59,21 +60,20 @@ export default class SparklineGraph {
 
     this.config = config;
 
-    // graphArea describes the full SVG. drawArea subtracts label and axis
-    // margins and is the coordinate system used by every chart family.
+    this.width = width;
+    this.height = height;
+
+    // graphArea is the complete SVG viewport. The engine owns every area used
+    // for chart geometry; the tool only supplies the measured outer axis space.
     this.graphArea = {};
     this.graphArea.x = 0;
     this.graphArea.y = 0;
     this.graphArea.width = width - 2 * this.graphArea.x;
     this.graphArea.height = height - 2 * this.graphArea.y;
 
-    this.drawArea = {};
-    this.drawArea.x = margin.l;
-    this.drawArea.y = margin.t;
-    this.drawArea.top = margin.t;
-    this.drawArea.bottom = margin.b;
-    this.drawArea.width = width - (margin.l + margin.r);
-    this.drawArea.height = height - (margin.t + margin.b);
+    this.axisArea = {};
+    this.dataArea = {};
+    this.setGraphAreas(axisMargin, configuredMargin, 0);
 
     this._history = undefined;
     this.coords = [];
@@ -82,11 +82,9 @@ export default class SparklineGraph {
     this.stateBandTransitions = [];
     this.xAxis = {};
     this.yAxis = {};
-    this.width = width;
-    this.height = height;
-    this.margin = margin;
     this._max = 0;
     this._min = 0;
+    this.sharedYAxisBounds = undefined;
     // Real-time retains the original one-value graph contract and has no
     // duration or bins. Historical period types use their configured range.
     if (this.config.period.type === 'real_time') {
@@ -109,6 +107,120 @@ export default class SparklineGraph {
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
     this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
+  }
+
+  /**
+   * Applies outer axis space and calculates the inner paint extent owned by
+   * the active chart. Bars reserve half a final bar at both time endpoints;
+   * dots reserve their radius and inherited stroke around every coordinate.
+   * Other chart families use only the configured margin.
+   *
+   * @param {object} axisMargin - Space occupied by visible axes and labels.
+   * @param {object} configuredMargin - User-configured margin inside the axes.
+   * @param {number} bucketCount - Number of visible data coordinates.
+   * @param {object|undefined} sharedChartGeometryMargin - Series-wide visual extent.
+   * @returns {boolean} Whether axisArea or dataArea changed.
+   */
+  setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin = undefined) {
+    const previousAxisArea = this.axisArea;
+    const previousDataArea = this.dataArea;
+    const chartType = this.config.sparkline.show.chart_type;
+    let rendersDots = chartType === 'dots';
+    let chartTop = 0;
+    let chartRight = 0;
+    let chartBottom = 0;
+    let chartLeft = 0;
+
+    if (chartType === 'line') {
+      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true;
+    }
+    if (chartType === 'area') {
+      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.area.show_dots === true;
+    }
+
+    if (rendersDots) {
+      const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
+      const inheritedStrokeWidth = this.config.geometry.line_width / 2;
+      const dotExtent = radius + inheritedStrokeWidth / 2;
+      chartTop = dotExtent;
+      chartRight = dotExtent;
+      chartBottom = dotExtent;
+      chartLeft = dotExtent;
+    }
+
+    if (chartType === 'bar' && bucketCount > 1) {
+      const axisWidth = this.width - axisMargin.l - axisMargin.r;
+      const configuredDataWidth = axisWidth - configuredMargin.l - configuredMargin.r;
+      // N inclusive bucket centers span dataArea. Solving the final bar width
+      // here keeps the first and last half-bars exactly inside axisArea.
+      const finalBarWidth = Math.max(1, (configuredDataWidth + this.config.geometry.column_spacing) / bucketCount - this.config.geometry.column_spacing);
+      chartLeft = finalBarWidth / 2;
+      chartRight = finalBarWidth / 2;
+    }
+
+    if (sharedChartGeometryMargin !== undefined) {
+      chartTop = sharedChartGeometryMargin.t;
+      chartRight = sharedChartGeometryMargin.r;
+      chartBottom = sharedChartGeometryMargin.b;
+      chartLeft = sharedChartGeometryMargin.l;
+    }
+
+    const effectiveMargin = {
+      t: configuredMargin.t + chartTop,
+      r: configuredMargin.r + chartRight,
+      b: configuredMargin.b + chartBottom,
+      l: configuredMargin.l + chartLeft,
+    };
+
+    this.axisMargin = { ...axisMargin };
+    this.configuredMargin = { ...configuredMargin };
+    this.chartGeometryMargin = {
+      t: chartTop,
+      r: chartRight,
+      b: chartBottom,
+      l: chartLeft,
+      x: chartLeft,
+      y: chartTop,
+    };
+    this.effectiveMargin = {
+      ...effectiveMargin,
+      x: effectiveMargin.l,
+      y: effectiveMargin.t,
+    };
+    this.axisArea = {
+      x: axisMargin.l,
+      y: axisMargin.t,
+      width: this.width - axisMargin.l - axisMargin.r,
+      height: this.height - axisMargin.t - axisMargin.b,
+    };
+    this.dataArea = {
+      x: this.axisArea.x + effectiveMargin.l,
+      y: this.axisArea.y + effectiveMargin.t,
+      top: this.axisArea.y + effectiveMargin.t,
+      bottom: axisMargin.b + effectiveMargin.b,
+      width: this.axisArea.width - effectiveMargin.l - effectiveMargin.r,
+      height: this.axisArea.height - effectiveMargin.t - effectiveMargin.b,
+    };
+    this.drawArea = this.dataArea;
+    this.margin = {
+      t: axisMargin.t + effectiveMargin.t,
+      r: axisMargin.r + effectiveMargin.r,
+      b: axisMargin.b + effectiveMargin.b,
+      l: axisMargin.l + effectiveMargin.l,
+      x: axisMargin.l + effectiveMargin.l,
+      y: axisMargin.t + effectiveMargin.t,
+    };
+
+    return (
+      previousAxisArea.x !== this.axisArea.x ||
+      previousAxisArea.y !== this.axisArea.y ||
+      previousAxisArea.width !== this.axisArea.width ||
+      previousAxisArea.height !== this.axisArea.height ||
+      previousDataArea.x !== this.dataArea.x ||
+      previousDataArea.y !== this.dataArea.y ||
+      previousDataArea.width !== this.dataArea.width ||
+      previousDataArea.height !== this.dataArea.height
+    );
   }
 
   /**
@@ -145,6 +257,23 @@ export default class SparklineGraph {
    */
   set min(min) {
     this._min = min;
+  }
+
+  /**
+   * Pins this graph to the y-range shared by the owning SparklineSeries
+   * coordinator. The engine still calculates its own ticks and paths, but all
+   * series convert values into the same SVG y coordinates.
+   *
+   * @param {number} lowerBound - Shared visible minimum.
+   * @param {number} upperBound - Shared visible maximum.
+   */
+  setSharedYAxisBounds(lowerBound, upperBound) {
+    this.sharedYAxisBounds = { lowerBound, upperBound };
+  }
+
+  /** Clears the shared bounds before the next automatic range measurement. */
+  clearSharedYAxisBounds() {
+    this.sharedYAxisBounds = undefined;
   }
 
   /**
@@ -198,10 +327,12 @@ export default class SparklineGraph {
     const bucketMs = ONE_HOUR / this.points;
     this.calendarBucketStartMs = undefined;
     this.calendarBucketCount = undefined;
+    this.visibleBucketCount = undefined;
     this.offsetHours = 0;
     switch (this.config.period.type) {
       case 'real_time':
         requiredNumOfPoints = 1;
+        this.visibleBucketCount = requiredNumOfPoints;
         this.hours = 1;
         break;
       case 'calendar':
@@ -210,7 +341,7 @@ export default class SparklineGraph {
           calendarStart.setHours(0, 0, 0, 0);
           calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
 
-          if (this.config.period.calendar.offset === 0) {
+          if (this.config.period.calendar.offset === 0 && this.config.period.calendar.full_day !== true) {
             this.calendarBucketCount = Math.ceil((this._endTime.getTime() - calendarStart.getTime()) / bucketMs);
             this.calendarBucketStartMs = this._endTime.getTime() - this.calendarBucketCount * bucketMs;
           } else {
@@ -220,10 +351,18 @@ export default class SparklineGraph {
           }
 
           requiredNumOfPoints = this.calendarBucketCount;
+          this.visibleBucketCount = requiredNumOfPoints;
+
+          // A current series in a complete comparison day ends at its projected
+          // current time. Historical series retain every bucket through midnight.
+          if (this.activeDataEnd !== undefined) {
+            this.visibleBucketCount = Math.ceil((this.activeDataEnd.getTime() - this.calendarBucketStartMs) / bucketMs);
+          }
         }
         break;
       case 'rolling_window':
         requiredNumOfPoints = Math.ceil(this.hours * this.points);
+        this.visibleBucketCount = requiredNumOfPoints;
         break;
       default:
         break;
@@ -285,9 +424,7 @@ export default class SparklineGraph {
     // Calculate min/max samples only for the active graph family.
     // Line settings must not leak into area, and area settings must not leak into line.
     const chartType = this.config.sparkline.show.chart_type;
-    const showMinMax = chartType === 'line'
-      ? this.config.sparkline.line?.show_minmax === true
-      : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
+    const showMinMax = chartType === 'line' ? this.config.sparkline.line?.show_minmax === true : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
 
     if (['line', 'area'].includes(chartType) && showMinMax) {
       const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);
@@ -375,7 +512,7 @@ export default class SparklineGraph {
         axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
         axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR);
         dataStart = new Date(axisStart);
-        dataEnd = period.offset === 0 ? new Date(now) : new Date(axisEnd);
+        dataEnd = period.offset === 0 && period.full_day !== true ? new Date(now) : new Date(axisEnd);
       } else {
         axisEnd = new Date(now);
         axisStart = new Date(axisEnd.getTime() - period.duration.hour * ONE_HOUR);
@@ -388,7 +525,7 @@ export default class SparklineGraph {
       axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
       axisEnd = new Date(axisStart.getTime() + period.duration.hour * ONE_HOUR - bucketMs);
       dataStart = new Date(axisStart);
-      dataEnd = period.offset === 0 ? new Date(this._snapToBin(new Date())) : new Date(axisEnd);
+      dataEnd = period.offset === 0 && period.full_day !== true ? new Date(this._snapToBin(new Date())) : new Date(axisEnd);
     } else {
       axisStart = new Date(this.bucketMeta[0].start);
       axisEnd = new Date(this.bucketMeta[this.bucketMeta.length - 1].start);
@@ -628,10 +765,10 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateYAxisGeometry(fontHeightPixels) {
-    const fixedLowerBound = this.config.y_axis.lower_bound !== undefined;
-    const fixedUpperBound = this.config.y_axis.upper_bound !== undefined;
-    let dataMin = fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
-    let dataMax = fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
+    const fixedLowerBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.lower_bound !== undefined;
+    const fixedUpperBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.upper_bound !== undefined;
+    let dataMin = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.lowerBound : fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
+    let dataMax = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.upperBound : fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
 
     if (dataMin === dataMax) {
       if (!fixedLowerBound) dataMin -= 1;
@@ -747,12 +884,12 @@ export default class SparklineGraph {
       const now = new Date();
       const extraHours = period.duration.hour - 24;
 
-      hours = period.offset === 0 ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
+      hours = period.offset === 0 && period.full_day !== true ? now.getHours() + now.getMinutes() / 60 + extraHours : period.duration.hour;
     }
 
     let age = this._endTime - new Date(item.last_changed).getTime();
 
-    if (period.offset === 0 && age < 0) {
+    if (period.offset === 0 && period.full_day !== true && age < 0) {
       age = 0;
     }
 
@@ -800,7 +937,7 @@ export default class SparklineGraph {
       return coords.push([x, 0, item ? last[0] : last[1]]);
     };
 
-    for (let i = 0; i < history.length; i += 1) getCoords(history[i], i);
+    for (let i = 0; i < this.visibleBucketCount; i += 1) getCoords(history[i], i);
 
     return coords;
   }
@@ -1539,7 +1676,7 @@ export default class SparklineGraph {
 
     const width = Math.max(1, barSlotWidth - columnSpacing);
     return coords.map((coord, i) => ({
-      x: coord[X] + barSlotWidth * position - width / 2,
+      x: coord[X] - bucketWidth / 2 + barSlotWidth * (position + 0.5) - width / 2,
       y: this._min > 0 ? coord[Y] : coord[Y2],
       height: coord[V] > 0 ? (this._min < 0 ? coord[V] / yRatio : (coord[V] - this._min) / yRatio) : coord[Y] - coord[Y2],
       width,
@@ -1687,10 +1824,21 @@ export default class SparklineGraph {
   _updateEndTime() {
     this._endTime = new Date();
     if (this.config.period.type === 'calendar') {
-      if (this.config.period.calendar.period === 'day' && this.config.period.calendar.offset !== 0) {
-
-        this._endTime.setHours(-this.config.period.calendar.duration.hour);
-        this._endTime.setHours(0, 0, 0, 0);
+      if (
+        this.config.period.calendar.period === 'day'
+        && (this.config.period.calendar.offset !== 0 || this.config.period.calendar.full_day === true)
+      ) {
+        // Historical days and shared day comparisons have a fixed local end.
+        // The active day keeps its current-bin end unless a comparison needs
+        // the complete 24-hour reference axis.
+        const calendarStart = new Date(this._endTime);
+        calendarStart.setHours(0, 0, 0, 0);
+        calendarStart.setHours(
+          calendarStart.getHours()
+            + this.config.period.calendar.offset * 24
+            - (this.config.period.calendar.duration.hour - 24),
+        );
+        this._endTime = new Date(calendarStart.getTime() + this.config.period.calendar.duration.hour * ONE_HOUR);
       } else if (this.config.period.calendar.period === 'day') {
         this._endTime = this._snapToBin(this._endTime);
         this._endTime = new Date(this._endTime.getTime() + (60 / this.points) * 60 * 1000);

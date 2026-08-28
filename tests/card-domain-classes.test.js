@@ -428,6 +428,40 @@ test('CardEntities links derived sparkline configs to their source entity', () =
   assert.equal(resolved[1].attribute, undefined);
 });
 
+
+test('CardEntities links explicit series derived configs to their declared series', () => {
+  const cardEntities = new CardEntities(
+    { hasJavascriptTemplates: () => false },
+    { getActiveColorStopMode: () => 'light' },
+  );
+  const config = {
+    dev: { debug: false },
+    entities: [
+      { entity: 'sensor.temperature' },
+      { entity: 'sensor.humidity' },
+      { entity: 'fhs_sparkline.climate_yesterday_avg' },
+    ],
+    layout: {
+      sparklines: [{
+        id: 'climate',
+        entity_index: 0,
+        series: [
+          { id: 'today', entity_index: 0 },
+          { id: 'yesterday', entity_index: 1 },
+        ],
+      }],
+    },
+  };
+
+  const resolved = cardEntities.buildRuntimeEntityConfigs(config, false);
+
+  assert.equal(resolved[2].local, true);
+  assert.equal(resolved[2].source_entity_index, 1);
+  assert.equal(resolved[2].sparkline_id, 'climate');
+  assert.equal(resolved[2].sparkline_series_id, 'yesterday');
+  assert.equal(resolved[2].sparkline_entity_type, 'avg');
+});
+
 test('CardEntities retains configured decimals in derived sparkline averages', () => {
   const cardEntities = new CardEntities({}, {});
   const resolvedConfigs = [
@@ -445,9 +479,10 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
     state: '10.20',
     attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
   }];
-  const graph = { config: { id: 'history' }, stats: { avg: 10.2 } };
+  const graph = { config: { id: 'history' } };
+  const graphTool = { config: { id: 'history' }, stats: { avg: 10.2 }, sparklineSeries: { defaultItem: { graph, stats: { avg: 10.2 } } } };
 
-  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graph]);
+  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
   assert.equal(entities[1].state, '10.20');
   assert.equal(entities[1].attributes.source_entity_id, 'sensor.temperature');
@@ -455,6 +490,68 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
 
   cardEntities.markStateHandled();
   assert.equal(cardEntities.stateChanged, false);
+});
+
+
+test('CardEntities publishes unavailable derived values before graph statistics exist', () => {
+  const cardEntities = new CardEntities({}, {});
+  const resolvedConfigs = [
+    { entity: 'sensor.temperature' },
+    {
+      entity: 'fhs_sparkline.history_avg',
+      local: true,
+      source_entity_index: 0,
+      sparkline_id: 'history',
+      sparkline_entity_type: 'avg',
+    },
+  ];
+  const entities = [{
+    entity_id: 'sensor.temperature',
+    state: '10.2',
+    attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
+  }];
+  const graphTool = {
+    config: { id: 'history' },
+    stats: {},
+    sparklineSeries: { defaultItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: {} } },
+  };
+
+  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
+
+  assert.equal(entities[1].state, 'unavailable');
+});
+
+test('CardEntities updates explicit series derived values from the matching graph item', () => {
+  const cardEntities = new CardEntities({}, {});
+  const resolvedConfigs = [
+    { entity: 'sensor.temperature', decimals: 1 },
+    {
+      entity: 'fhs_sparkline.climate_yesterday_room_avg',
+      local: true,
+      source_entity_index: 0,
+      sparkline_id: 'climate',
+      sparkline_series_id: 'yesterday_room',
+      sparkline_entity_type: 'avg',
+    },
+  ];
+  const entities = [{
+    entity_id: 'sensor.temperature',
+    state: '10.2',
+    attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
+  }];
+  const graphTool = {
+    config: { id: 'climate' },
+    sparklineSeries: {
+      stats: { avg: 10.2 },
+      defaultItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 10.2 } },
+      items: [{ id: 'yesterday_room', graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 18.7 } }],
+    },
+  };
+
+  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
+
+  assert.equal(entities[1].state, '18.7');
+  assert.equal(entities[1].attributes.sparkline_series_id, 'yesterday_room');
 });
 
 test('CardAnimations matches entity state and preserves reused styles and icons', () => {
@@ -544,7 +641,7 @@ test('CardTools assigns entity state and forwards every shared lifecycle phase',
   const calls = [];
   const tool = {
     entity_index: 0,
-    setState: (entity, config) => calls.push(['state', entity.state, config.entity]),
+    setEntities: (configs, entities) => calls.push(['state', entities[0].state, configs[0].entity]),
     hassAvailable: () => calls.push('hassAvailable'),
     hassConnected: () => calls.push('hassConnected'),
     connected: () => calls.push('connected'),
@@ -573,8 +670,7 @@ test('CardTools assigns entity state to nested control tools through the same li
   const calls = [];
   const childTool = {
     entity_index: 1,
-    setState: (entity, config) => calls.push([entity.state, config.entity]),
-    setStaticState: () => calls.push(['static']),
+    setEntities: (configs, entities) => calls.push([entities[1].state, configs[1].entity]),
   };
 
   cardTools.setToolEntityState(
@@ -585,14 +681,7 @@ test('CardTools assigns entity state to nested control tools through the same li
 
   assert.deepEqual(calls, [['20', 'sensor.second']]);
 
-  childTool.entity_index = undefined;
-  cardTools.setToolEntityState(
-    childTool,
-    [{ entity: 'sensor.first' }, { entity: 'sensor.second' }],
-    [{ state: '10' }, { state: '20' }],
-  );
-
-  assert.deepEqual(calls, [['20', 'sensor.second'], ['static']]);
+  assert.deepEqual(calls, [['20', 'sensor.second']]);
 });
 
 test('BaseTool reads theme changes from CardTheme during runtime config updates', () => {
