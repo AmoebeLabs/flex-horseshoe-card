@@ -9,19 +9,19 @@ tags:
 
 # Graded chart
 
-A graded chart emphasizes an ordered category or severity for each time bin. Use it when labels such as low, moderate, high, and very high matter more than an exact numeric height.
+A graded chart divides numeric history into ordered color bands. Use it when threshold ranges, such as an Awair score from poor to excellent, matter more than an exact numeric height.
 
 <!-- Add a graded chart screenshot here. -->
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-graded-awair--dark.webp)
+![Flexible Horseshoe graded chart with ordered air-quality levels](../../assets/screenshots/fhs-demo-card-graded-awair--dark.webp)
 
 ## :material-horseshoe: Basic configuration
 
-This example displays ordered pollen levels over time:
+This example displays Awair score ranges over time:
 
 ```yaml linenums="1"
 layout:
   sparklines:
-    - id: pollen-levels
+    - id: awair-score
       entity_index: 0
       xpos: 50
       ypos: 50
@@ -44,29 +44,24 @@ layout:
           square: false
         color_stops:
           colors:
-            - state: low
-              color: "#66bb6a"
-              rank: 0
-            - state: moderate
-              color: "#f9a825"
-              rank: 1
-            - state: high
-              color: "#ed8003"
-              rank: 2
-            - state: very_high
+            - value: 0
               color: "#d32f2f"
-              rank: 3
+            - value: 50
+              color: "#ed8003"
+            - value: 70
+              color: "#f9a825"
+            - value: 90
+              color: "#66bb6a"
 ```
 
 ## :material-horseshoe: Configuration options
 
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `show.chart_type` | string | No | `line` | Set to `graded` to display ordered state levels. |
+| `show.chart_type` | string | No | `line` | Set to `graded` to display ordered value ranges. |
 | `graded.square` | boolean | No | `false` | Uses square or rounded grade shapes. |
-| `color_stops.colors[].state` | string | Yes | - | Matches a Home Assistant state. |
+| `color_stops.colors[].value` | number | Yes | - | Sets the lower bound of a value range. |
 | `color_stops.colors[].color` | color | Yes | - | Chooses the visible color for that state. |
-| `color_stops.colors[].rank` | number | No | list order | Defines the vertical order of the states. |
 | `bins.per_hour` | number or `auto` | No | `auto` | Chooses how much history each displayed grade represents. |
 
 !!! tip "Keep automatic bins"
@@ -85,25 +80,21 @@ sparkline:
 
   color_stops:
     colors:
-      - state: low
-        color: "#66bb6a"
-        rank: 0
-      - state: moderate
-        color: "#f9a825"
-        rank: 1
-      - state: high
-        color: "#ed8003"
-        rank: 2
-      - state: very_high
+      - value: 0
         color: "#d32f2f"
-        rank: 3
+      - value: 50
+        color: "#ed8003"
+      - value: 70
+        color: "#f9a825"
+      - value: 90
+        color: "#66bb6a"
 ```
 
-`rank` defines the visible order of the grades. The entity state selects the matching color-stop entry.
+Each `value` starts a new grade. List the values from low to high so the chart shows the ranges in the same order as the score.
 
 ## :material-horseshoe: When to use graded
 
-Use a graded chart for air quality, pollen, warnings, comfort levels, or another ordered state scale. Use an [equalizer](equalizer.md) when the graph should represent numeric height instead.
+Use a graded chart for air quality, pollen concentration, warnings, comfort levels, or another numeric scale with clear threshold ranges. Use an [equalizer](equalizer.md) when the graph should represent numeric height instead.
 
 ## :material-horseshoe: Related
 

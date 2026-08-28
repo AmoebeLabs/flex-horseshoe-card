@@ -12,7 +12,7 @@ tags:
 
 The State tool shows the current value of a Home Assistant entity or attribute.
 
-By default, the Flexible Horseshoe Card uses Home Assistant formatting for the value and unit.
+By default, the Flexible Horseshoe Card follows Home Assistant formatting for the value and unit, including locale, number formatting, and display precision.
 
 <!-- State examples image -->
 
@@ -38,136 +38,24 @@ layout:
 
 `xpos` and `ypos` position the state on the card.
 
-## :material-horseshoe: Position and alignment
-
-Position the complete state with `xpos` and `ypos`.
-
-```yaml linenums="1"
-layout:
-  states:
-    - entity_index: 0
-      xpos: 10
-      ypos: 50
-      styles:
-        font-size: 2em
-        text-anchor: start
-```
-
-Use `text-anchor` to control horizontal alignment:
-
-* `start`
-* `middle`
-* `end`
-
 See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
 
 ## :material-horseshoe: Configuration options
 
-| Field            | Required | Default             | Description                                  |
-| ---------------- | :------: | ------------------- | -------------------------------------------- |
-| `entity_index`   |    Yes   |                     | Entity whose state is displayed              |
-| `xpos`           |    Yes   |                     | Horizontal position                          |
-| `ypos`           |    Yes   |                     | Vertical position                            |
-| `show.uom`       |    No    | `end`               | Places the unit at `end`, `top`, or `bottom` |
-| `uom`            |    No    |                     | Unit positioning and styling                 |
-| `ellipsis`       |    No    |                     | Maximum number of displayed state characters |
-| `format`         |    No    | Home Assistant      | Overrides state formatting                   |
-| `styles`         |    No    | Default state style | SVG and CSS styling                          |
-| `color_stops`    |    No    | Not set             | Colors the state from the entity value       |
+| Field          | Required | Default             | Description                                  |
+| -------------- | :------: | ------------------- | -------------------------------------------- |
+| `entity_index` |    Yes   |                     | Entity whose state is displayed              |
+| `xpos`         |    Yes   |                     | Horizontal position                          |
+| `ypos`         |    Yes   |                     | Vertical position                            |
+| `show.uom`     |    No    | `end`               | Places the unit at `end`, `top`, or `bottom` |
+| `uom.styles`   |    No    |                     | Unit styling                                 |
+| `ellipsis`     |    No    |                     | Maximum number of displayed state characters |
+| `styles`       |    No    | Default state style | SVG and CSS styling                          |
+| `color_stops`  |    No    | Not set             | Colors the state from the entity value       |
 
-## :material-horseshoe: State and unit
+## :material-horseshoe: State and unit appearance
 
-For entities with a unit of measurement, Flexible Horseshoe Card displays the value and unit together.
-
-```yaml linenums="1"
-entities:
-  - entity: sensor.living_room_temperature
-
-layout:
-  states:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      styles:
-        font-size: 2em
-```
-
-For a temperature sensor this could display:
-
-**21.4 °C**
-
-The unit follows Home Assistant by default. Set `unit` on the entity when you want to override it:
-
-```yaml linenums="1"
-entities:
-  - entity: sensor.living_room_temperature
-    unit: °F
-```
-
-See [Entities](../../card-basics/entities.md) for selecting attributes and overriding entity values such as units and decimals.
-
-## :material-horseshoe: Unit position
-
-Use `show.uom` to place the unit beside, above, or below the state.
-
-=== "End"
-
-    ```yaml linenums="1"
-    layout:
-      states:
-        - entity_index: 0
-          xpos: 50
-          ypos: 50
-          show:
-            uom: end
-    ```
-
-    This is the default.
-
-=== "Top"
-
-    ```yaml linenums="1"
-    layout:
-      states:
-        - entity_index: 0
-          xpos: 50
-          ypos: 50
-          show:
-            uom: top
-    ```
-
-=== "Bottom"
-
-    ```yaml linenums="1"
-    layout:
-      states:
-        - entity_index: 0
-          xpos: 50
-          ypos: 50
-          show:
-            uom: bottom
-    ```
-
-The unit can be styled separately:
-
-```yaml linenums="1"
-layout:
-  states:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      styles:
-        font-size: 2em
-
-      uom:
-        styles:
-          font-size: 0.7em
-          opacity: 0.6
-```
-
-## :material-horseshoe: State appearance
-
-Use `styles` to change the appearance of the state:
+Use `styles` to change the appearance and alignment of the state.
 
 ```yaml linenums="1"
 layout:
@@ -178,25 +66,42 @@ layout:
       styles:
         font-size: 2.5em
         font-weight: bold
+        text-anchor: middle
         fill: var(--primary-text-color)
         opacity: 1
 ```
 
+The unit can be styled separately with `uom.styles`:
+
+```yaml linenums="1"
+layout:
+  states:
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+      styles:
+        font-size: 2em
+      uom:
+        styles:
+          font-size: 0.7em
+          opacity: 0.6
+```
+
 Common styles include:
 
-| Property      | Use                  |
-| ------------- | -------------------- |
-| `font-size`   | State text size      |
-| `font-weight` | Text weight          |
-| `text-anchor` | Horizontal alignment |
-| `fill`        | Text color           |
-| `opacity`     | Text opacity         |
+| Property      | Use                                                    |
+| ------------- | ------------------------------------------------------ |
+| `font-size`   | Text size                                              |
+| `font-weight` | Text weight                                            |
+| `text-anchor` | Horizontal alignment using `start`, `middle`, or `end` |
+| `fill`        | Text color                                             |
+| `opacity`     | Text opacity                                           |
 
 See [Styling](../../appearance/styling.md) for the complete styling guide.
 
 ## :material-horseshoe: Keep long values readable
 
-Use `ellipsis` when a state value must fit within a fixed space:
+Use `ellipsis` to limit the number of displayed characters:
 
 ```yaml linenums="1"
 layout:
@@ -209,12 +114,11 @@ layout:
 
 The value is shortened after the configured number of characters. Its unit remains visible.
 
-
 ## :material-horseshoe: Formatting values
 
 State values follow Home Assistant localization and formatting by default.
 
-You can override formatting when a card needs different decimals, number formatting, dates, times, durations, or raw state values.
+Configure decimals, units, locale, and other formatting options on the entity in the card's `entities` list. The same formatting is then used wherever that entity is shown in the card.
 
 ```yaml linenums="1"
 entities:
@@ -222,13 +126,11 @@ entities:
     decimals: 1
 ```
 
-Configure decimals, units, locale, and other formatting options on the entity in the card's `entities` list. The same formatting is then used wherever that entity is shown in the card.
-
-See [Localization and formatting](../../localization/overview.md).
+See [Entities](../../card-basics/entities.md) for entity configuration and [Localization and formatting](../../localization/overview.md) for formatting options.
 
 ## :material-horseshoe: Show values in color
 
-Use color stops when the displayed value should also show whether it is low, moderate, or high:
+Use color stops when the state should change color based on its value:
 
 ```yaml linenums="1"
 layout:
@@ -236,10 +138,8 @@ layout:
     - entity_index: 0
       xpos: 50
       ypos: 50
-
       show:
         item_style: colorstop
-
       color_stops:
         colors:
           0: green
