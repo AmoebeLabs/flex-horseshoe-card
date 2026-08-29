@@ -129,7 +129,7 @@ export default class CardEntities {
       if (!entityConfig.sparkline_entity_type) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
       const seriesItem = entityConfig.sparkline_series_id === undefined
-        ? graphTool.sparklineSeries.defaultItem
+        ? graphTool.sparklineSeries.primaryItem
         : graphTool.sparklineSeries.items.find((item) => item.id === entityConfig.sparkline_series_id);
       const graph = seriesItem.graph;
       const sourceEntity = entities[entityConfig.source_entity_index];
