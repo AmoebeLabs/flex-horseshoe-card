@@ -5,7 +5,7 @@ import SparklineGraph, { V } from '../src/sparkline-graph.js';
 const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinMax = false, showAreaMinMax = false, lowerBound, upperBound } = {}) => ({
   period: {
     type: 'rolling_window',
-    groupBy: 'interval',
+    group_by: 'interval',
     rolling_window: {
       offset: 0,
       duration: { hour: 4 },
@@ -17,6 +17,7 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     show: { chart_type: chartType, points: false },
     state_values: { aggregate_func: 'avg', smoothing, logarithmic: false },
     dots: { radius: 2 },
+    radial_barcode: { size: 5 },
     line: { show_minmax: showLineMinMax, show_dots: false },
     area: { show_minmax: showAreaMinMax, show_dots: false },
   },
@@ -439,7 +440,7 @@ test('radial barcode geometry does not consume cartesian configuration', () => {
     geometry: { line_width: 1, column_spacing: 4 },
     period: {
       type: 'rolling_window',
-      groupBy: 'interval',
+      group_by: 'interval',
       rolling_window: {
         offset: 0,
         duration: { hour: 24 },

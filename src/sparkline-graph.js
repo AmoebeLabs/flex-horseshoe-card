@@ -28,7 +28,7 @@ export const ONE_HOUR = 1000 * 3600;
  *   state_values: { aggregate_func: avg }
  *
  * SparklineGraphTool owns the lifecycle around this engine: it supplies rows,
- * stores the generated geometry, and renders that geometry with Lit.
+ * consumes the generated geometry, and renders that geometry with Lit.
  */
 export default class SparklineGraph {
   /**
@@ -92,21 +92,21 @@ export default class SparklineGraph {
       this.hours = 1;
     } else {
       const period = this.config.period[this.config.period.type];
-      this.points = period.bins.per_hour || 1;
-      this.hours = period.duration.hour || 24;
+      this.points = period.bins.per_hour;
+      this.hours = period.duration.hour;
     }
     this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
-    this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName] || this._average;
+    this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName];
     this._smoothing = this.config.sparkline.state_values?.smoothing;
     this._logarithmic = this.config.sparkline.state_values?.logarithmic;
-    this._groupBy = this.config.period.groupBy;
+    this._groupBy = this.config.period.group_by;
     this._endTime = 0;
     this.valuesPerBucket = 0;
     this.levelCount = 1;
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
-    this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
+    this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline.radial_barcode.size);
   }
 
   /**
@@ -975,6 +975,17 @@ export default class SparklineGraph {
   }
 
   /**
+   * Projects graph value tuples onto the current public drawing geometry.
+   * Consumers use this method after shared axis bounds and margins are set.
+   *
+   * @param {Array<Array<number>>} coords - X/value tuples.
+   * @returns {Array<Array<number>>} SVG coordinate tuples.
+   */
+  calculateYCoordinates(coords) {
+    return this._calcY(coords);
+  }
+
+  /**
    * Projects all levels of one equalizer column to rectangle top coordinates.
    *
    * @param {Array<Array<number>>} coord - Equalizer value tuple.
@@ -1226,6 +1237,21 @@ export default class SparklineGraph {
       largeArcFlag,
       sweepFlag,
     };
+  }
+
+  /**
+   * Returns the annular endpoints used to draw one radial barcode segment.
+   *
+   * @param {number} startAngle - Segment start angle.
+   * @param {number} endAngle - Segment end angle.
+   * @param {boolean} clockwise - Arc direction.
+   * @param {number} radiusX - Horizontal outer radius.
+   * @param {number} radiusY - Vertical outer radius.
+   * @param {number} width - Ring width.
+   * @returns {object} Outer and inner endpoints with SVG arc flags.
+   */
+  calculateRadialSegment(startAngle, endAngle, clockwise, radiusX, radiusY, width) {
+    return this._calcRadialBarcodeCoords(startAngle, endAngle, clockwise, radiusX, radiusY, width);
   }
 
   /**

@@ -94,12 +94,12 @@ layout:
 | `series[].color` | color | No | automatic palette | Sets a fixed color for the series. |
 | `series[].sparkline` | mapping | No | shared sparkline settings | Changes the chart type or chart-specific settings for this series. |
 | `series[].period` | mapping | No | shared period | Selects a supported period override, such as an earlier day. |
-| `series[].y_axis` | string | No | `primary` | Uses the `primary` or `secondary` Y-axis. |
+| `series[].y_axis_id` | string | No | `primary` | Uses the `primary` or `secondary` Y-axis. |
 | `sparkline.show.legend` | boolean | No | `false` | Shows or hides the legend. |
 | `legend.position` | string | No | `top` | Places the legend at the `top`, `bottom`, `left`, or `right`. |
 | `legend.rows` | number | No | `1` | Divides a top or bottom legend over this number of rows. |
 | `legend.gap` | number | No | `4` | Sets the space between the legend and graph. |
-| `legend.item_gap` | number | No | `2` | Sets the space between a marker and its label. |
+| `legend.item_gap` | number | No | `1` | Sets the space between a marker and its label. |
 
 ## :material-horseshoe: Compare several entities
 
@@ -193,12 +193,12 @@ series:
   - id: temperature
     entity_index: 0
     color: "#42a5f5"
-    y_axis: primary
+    y_axis_id: primary
 
   - id: humidity
     entity_index: 1
     color: "#66bb6a"
-    y_axis: secondary
+    y_axis_id: secondary
 ```
 
 Use two axes when the series have different units or ranges.

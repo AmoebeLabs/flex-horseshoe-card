@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
+import SparklineSeries from '../src/sparkline-series.js';
 import SparklineGraph from '../src/sparkline-graph.js';
 
-test('dynamic calendar period initializes and clamps a rolling duration to one day', () => {
+test('dynamic sparkline config preserves zero thresholds and clamps a calendar day', () => {
   const previousWindow = globalThis.window;
   const previousConsoleWarn = console.warn;
   const warnings = [];
@@ -71,19 +72,29 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
     const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
 
     assert.equal(tool.historyDurationReady, false);
-    assert.equal(tool.Graph, undefined);
+    assert.equal(tool.primaryGraph, undefined);
 
     tool.updateRuntimeConfig();
 
     assert.equal(tool.config.period.type, 'calendar');
     assert.equal(tool.config.period.calendar.duration.hour, 24);
     assert.equal(tool.historyDurationReady, true);
-    assert.notEqual(tool.Graph, undefined);
+    assert.notEqual(tool.primaryGraph, undefined);
     assert.deepEqual(warnings, ["[FHS sparkline] calendar day duration '6' hours is shorter than one day; using 24 hours"]);
 
     tool.updateRuntimeConfig();
 
     assert.equal(warnings.length, 1);
+
+    card.evaluateJavascriptTemplates = false;
+    card.cardTheme.modeChanged = true;
+    tool.config.sparkline.colorstops.colors = [
+      { value: -10, color: '#1565c0' },
+      { value: 0, color: '#d32f2f' },
+    ];
+    tool.updateRuntimeConfig();
+
+    assert.equal(tool.gradeRanks[0].rangeMax[0], 0);
   } finally {
     globalThis.window = previousWindow;
     console.warn = previousConsoleWarn;
@@ -91,6 +102,73 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
 });
 
 
+
+test('real-time graded creates one current-value graph without historical bins', (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const templates = {
+    hasJavascriptTemplates: () => false,
+  };
+  const card = {
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false },
+    entities: [],
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+    },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+    },
+  };
+  const config = {
+    id: 'awair-graded',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    width: 80,
+    height: 40,
+    period: { real_time: true },
+    sparkline: {
+      show: { chart_type: 'graded' },
+      colorstops: {
+        colors: [
+          { value: 0, color: '#66bb6a' },
+          { value: 50, color: '#f9a825' },
+        ],
+      },
+    },
+  };
+
+  const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
+
+  assert.equal(tool.config.period.type, 'real_time');
+  assert.equal(tool.primaryGraph.points, 1);
+  assert.equal(tool.primaryGraph.hours, 1);
+
+  const historicalConfig = structuredClone(config);
+  historicalConfig.id = 'awair-graded-history';
+  historicalConfig.period = {
+    type: 'rolling_window',
+    rolling_window: {
+      offset: 0,
+      duration: { hour: 24 },
+      bins: { per_hour: 2, density: 'medium' },
+    },
+  };
+
+  const historicalTool = new SparklineGraphTool(historicalConfig, 0, templates, 'test-card', card);
+
+  assert.equal(historicalTool.config.period.type, 'rolling_window');
+  assert.equal(historicalTool.primaryGraph.points, 2);
+  assert.equal(historicalTool.primaryGraph.hours, 24);
+});
 
 test('legend position reserves a sibling area with matching orientation', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
@@ -213,7 +291,7 @@ test('bar fade reverses at zero for positive and negative values', () => {
     },
     sparklineSeries: {
       items: [],
-      defaultItem: {
+      primaryItem: {
         graph: { width: 100, height: 50 },
       },
     },
@@ -243,6 +321,33 @@ test('bar fade reverses at zero for positive and negative values', () => {
   assert.deepEqual(gradients[1].values.slice(1, 3), ['100%', '0%']);
   assert.equal(gradients[1].values[0], 'bar-fill-fade-test-card-3-0-1');
   assert.equal(tool.renderSvgBarsBackground([{ value: 5 }], 0), '');
+});
+
+test('area fade uses the fixed color belonging to each series', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const lineColors = ['#1565c0', '#d32f2f'];
+  const makeItem = (id) => ({
+    id,
+    entityConfig: {},
+    graph: { drawArea: { height: 40 } },
+    config: {
+      sparkline: {
+        show: { chart_type: 'area', fill: 'fade' },
+        line_color: lineColors,
+      },
+    },
+  });
+
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 2,
+    sparklineSeries: { items: [makeItem('first'), makeItem('second')] },
+  });
+
+  const gradients = tool.renderSeriesAreaGradients();
+
+  assert.ok(gradients[0].values.includes('#1565c0'));
+  assert.ok(gradients[1].values.includes('#d32f2f'));
 });
 
 test('accepted history keeps its update flag active through the card pipeline', async () => {
@@ -276,7 +381,7 @@ test('accepted history keeps its update flag active through the card pipeline', 
     historyDurationReady: true,
     sparklineSeries: {
       items: [],
-      defaultItem: {
+      primaryItem: {
         graph: undefined,
         rows: [],
         historyPromise: undefined,
@@ -284,18 +389,13 @@ test('accepted history keeps its update flag active through the card pipeline', 
         historyRangeStart: undefined,
         historyRangeEnd: undefined,
         historyEntityId: entity.entity_id,
-        historyLoading: false,
         historyRefreshAt: 0,
         historyResynchronizationRequested: false,
-        preserveGraphWhileHistoryLoads: false,
       },
       setRows(item, rows) {
         item.rows = rows;
       },
     },
-    historyPeriodSignature: 'active-period',
-    historyLoading: false,
-    preserveGraphWhileHistoryLoads: false,
     card: {
       dev: { debug: false },
       _hass: hass,
@@ -316,14 +416,14 @@ test('accepted history keeps its update flag active through the card pipeline', 
     clearTooltip() {},
   });
 
-  tool.sparklineSeries.defaultItem.config = tool.config;
-  tool.sparklineSeries.defaultItem.entity = entity;
-  tool.sparklineSeries.items = [tool.sparklineSeries.defaultItem];
-  tool.fetchHistoryIfNeeded(tool.sparklineSeries.defaultItem);
-  await tool.historyPromise;
+  tool.sparklineSeries.primaryItem.config = tool.config;
+  tool.sparklineSeries.primaryItem.entity = entity;
+  tool.sparklineSeries.items = [tool.sparklineSeries.primaryItem];
+  tool.fetchHistoryIfNeeded(tool.sparklineSeries.primaryItem);
+  await tool.sparklineSeries.primaryItem.historyPromise;
 
   assert.deepEqual(updateFlagsSeenByCard, [true]);
-  assert.equal(tool.historyResynchronizationRequested, false);
+  assert.equal(tool.sparklineSeries.primaryItem.historyResynchronizationRequested, false);
   assert.equal(tool.historyLoading, false);
 });
 
@@ -387,16 +487,14 @@ test('completed calendar history is not fetched again while its fixed range is r
     historyDurationReady: true,
     sparklineSeries: {
       items: [],
-      defaultItem: {
+      primaryItem: {
         historyPromise: undefined,
         historySeries: [{ state: '12' }],
         historyRangeStart: range.start.getTime(),
         historyRangeEnd: range.end.getTime(),
         historyEntityId: undefined,
-        historyLoading: false,
         historyRefreshAt: 0,
         historyResynchronizationRequested: false,
-        preserveGraphWhileHistoryLoads: false,
       },
     },
     getHistoryRange: () => range,
@@ -410,13 +508,13 @@ test('completed calendar history is not fetched again while its fixed range is r
     },
   });
 
-  tool.sparklineSeries.defaultItem.config = tool.config;
-  tool.sparklineSeries.defaultItem.entity = {
+  tool.sparklineSeries.primaryItem.config = tool.config;
+  tool.sparklineSeries.primaryItem.entity = {
     entity_id: 'sensor.closed',
     state: '12',
   };
-  tool.sparklineSeries.items = [tool.sparklineSeries.defaultItem];
-  tool.fetchHistoryIfNeeded(tool.sparklineSeries.defaultItem);
+  tool.sparklineSeries.items = [tool.sparklineSeries.primaryItem];
+  tool.fetchHistoryIfNeeded(tool.sparklineSeries.primaryItem);
 
   assert.equal(apiCalls, 0);
   assert.equal(tool.historyPromise, undefined);
@@ -516,7 +614,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     },
     clearSharedYAxisBounds() {},
     setGraphAreas() {},
-    _calcY: (points) => points,
+    calculateYCoordinates: (points) => points,
     getPath: () => 'M 0 0 L 100 50',
     getArea: () => 'M 0 0 L 100 50 Z',
   });
@@ -532,11 +630,11 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     },
     y_axis: {},
   });
-  const first = { id: 'temperature', y_axis_id: 'primary', config: makeConfig('line'), graph: makeGraph(10, 20), rows: [{ state: 10 }] };
-  const second = { id: 'humidity', y_axis_id: 'secondary', config: makeConfig('dots'), graph: makeGraph(30, 40), rows: [{ state: 30 }] };
+  const first = { id: 'temperature', y_axis_id: 'primary', config: makeConfig('line'), graph: makeGraph(10, 20), rows: [{ state: 10 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const second = { id: 'humidity', y_axis_id: 'secondary', config: makeConfig('dots'), graph: makeGraph(30, 40), rows: [{ state: 30 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
 
   Object.assign(tool, {
-    sparklineSeries: { items: [first, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     card: { dev: { debug: false } },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1 },
@@ -549,7 +647,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     gradient: [],
   });
 
-  tool.updateMultipleSeriesGraphs();
+  tool.updateCartesianSeriesGraphs();
 
   assert.deepEqual(calls, [[10, 10, 20], [30, 30, 40]]);
   assert.equal(tool.axisGraphs.primary, first.graph);
@@ -566,9 +664,21 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   second.config.y_axis = { lower_bound: 0, upper_bound: 100 };
   calls.length = 0;
 
-  tool.updateMultipleSeriesGraphs();
+  tool.updateCartesianSeriesGraphs();
 
   assert.deepEqual(calls, [[10, -10, 50], [30, 0, 100]]);
+
+  first.graph.min = 10;
+  first.graph.max = 20;
+  second.graph.min = 30;
+  second.graph.max = 40;
+  first.config.y_axis = { lower_bound: -1 };
+  second.config.y_axis = { upper_bound: 100 };
+  calls.length = 0;
+
+  tool.updateCartesianSeriesGraphs();
+
+  assert.deepEqual(calls, [[10, -1, 20], [30, 30, 100]]);
 });
 
 
@@ -598,10 +708,10 @@ test('explicit series use the most restrictive automatic bin density for every g
     xAxisLabelLength: 10,
     stateBandsStateMap: {},
     config: line.config,
-    sparklineSeries: { items: [line, dots] },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [line, dots] }),
   });
 
-  const sharedBinsPerHour = tool.calculateSharedBinsPerHour();
+  const sharedBinsPerHour = tool.sparklineSeries.calculateSharedBinsPerHour();
   const lineGraphConfig = tool.buildGraphConfig(line.config, sharedBinsPerHour);
   const dotsGraphConfig = tool.buildGraphConfig(dots.config, sharedBinsPerHour);
 
@@ -630,7 +740,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     getBars(position, total) {
       return [{ x: position === 0 ? -10 : 90, y: 20, width: 20, height: 10, value: 10, position, total }];
     },
-    _calcY: (points) => points.map((point) => [point[0], 25, point[2]]),
+    calculateYCoordinates: (points) => points.map((point) => [point[0], 25, point[2]]),
     getPath: () => 'M 0 0 L 100 50',
   });
   const makeConfig = (chartType = 'bar') => ({
@@ -643,12 +753,12 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     },
     y_axis: {},
   });
-  const first = { id: "first", config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }] };
-  const line = { id: "line", config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }] };
-  const second = { id: "second", config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }] };
+  const first = { id: "first", config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const line = { id: "line", config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const second = { id: "second", config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
-    sparklineSeries: { items: [first, line, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, line, second] }),
     card: { dev: { debug: false } },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
@@ -661,7 +771,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     gradient: [],
   });
 
-  tool.updateMultipleSeriesGraphs();
+  tool.updateCartesianSeriesGraphs();
 
   assert.deepEqual([first.barPosition, second.barPosition], [0, 1]);
   assert.equal(line.barPosition, undefined);
@@ -689,15 +799,18 @@ test("multiple series wait for every graph before building shared geometry", () 
     period: { type: "real_time" },
     sparkline: { show: { chart_type: "line" } },
   };
-  const first = { id: "ready", config, graph: readyGraph, rows: [{ state: 10 }] };
+  const first = { id: "ready", config, graph: readyGraph, rows: [{ state: 10 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
   const second = { id: "loading", config, graph: loadingGraph, rows: [] };
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
-    sparklineSeries: { items: [first, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     stats: { stale: true },
+    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+    svg: { column_spacing: 4, row_spacing: 4 },
+    calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
   });
 
-  tool.updateMultipleSeriesGraphs();
+  tool.updateCartesianSeriesGraphs();
 
   assert.equal(tool.graphReady, false);
   assert.deepEqual(tool.stats, {});
@@ -846,4 +959,71 @@ test('calendar series comparisons use one complete shared visible day', () => {
 
   assert.equal(graphConfig.period.calendar.offset, 0);
   assert.equal(graphConfig.period.calendar.full_day, true);
+});
+
+test('implicit and explicit series share one entity lifecycle and one graph update', (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = { clearTimeout() {} };
+  context.after(() => { globalThis.window = previousWindow; });
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const makeConfig = () => ({ period: { type: 'real_time' } });
+  const first = { id: 'first', entity_index: 0, config: makeConfig(), rows: [], historyEntityId: undefined };
+  const second = { id: 'second', entity_index: 1, config: makeConfig(), rows: [], historyEntityId: undefined };
+  let graphUpdates = 0;
+
+  Object.assign(tool, {
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
+    historyDurationReady: true,
+    card: { dev: { fakeData: false } },
+    binBoundaryTimer: undefined,
+    calendarRangeTimer: undefined,
+    tooltipVisible: false,
+    updateGraphFromSeries() { graphUpdates += 1; },
+    updateLegendTextTools() {},
+    clearTooltip() {},
+    scheduleBinBoundaryRefresh() {},
+    scheduleCalendarRangeRefresh() {},
+  });
+
+  const entityConfigs = [{}, {}];
+  const entities = [
+    { entity_id: 'sensor.first', state: '10', last_changed: '2026-08-13T10:00:00.000Z' },
+    { entity_id: 'sensor.second', state: '20', last_changed: '2026-08-13T10:00:00.000Z' },
+  ];
+
+  tool.setEntities(entityConfigs, entities);
+
+  assert.equal(tool.entity, entities[0]);
+  assert.deepEqual(first.rows, [{ state: 10 }]);
+  assert.deepEqual(second.rows, [{ state: 20 }]);
+  assert.equal(graphUpdates, 1);
+});
+
+test('one implicit item enters the cartesian series coordinator', () => {
+  const config = {
+    entity_index: 0,
+    sparkline: { show: { chart_type: 'line' } },
+  };
+  const configurations = [
+    config,
+    { ...config, series: [{ id: 'temperature', entity_index: 0 }] },
+  ];
+
+  configurations.forEach((seriesConfig) => {
+    const tool = Object.create(SparklineGraphTool.prototype);
+    let coordinatorCalls = 0;
+    Object.assign(tool, {
+      config: seriesConfig,
+      sparklineSeries: new SparklineSeries(seriesConfig),
+      card: { dev: { fakeData: false } },
+      updateCartesianSeriesGraphs() {
+        coordinatorCalls += 1;
+        this.graphReady = false;
+      },
+    });
+
+    tool.updateGraphFromSeries();
+
+    assert.equal(coordinatorCalls, 1);
+  });
 });

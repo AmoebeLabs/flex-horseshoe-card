@@ -7,7 +7,7 @@ const graphConfig = {
   geometry: { line_width: 0, column_spacing: 4 },
   period: {
     type: 'real_time',
-    groupBy: 'interval',
+    group_by: 'interval',
   },
   sparkline: {
     show: { chart_type: 'line', points: false },
@@ -17,6 +17,7 @@ const graphConfig = {
       logarithmic: false,
     },
     dots: { radius: 2 },
+    radial_barcode: { size: 5 },
     line: { show_dots: false, show_minmax: false },
     area: { show_dots: false, show_minmax: false },
   },
@@ -32,13 +33,13 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   const series = new SparklineSeries(graphConfig);
 
   assert.equal(series.items.length, 1);
-  assert.equal(series.defaultItem.id, 'default');
-  assert.deepEqual(series.defaultItem.config, graphConfig);
-  assert.deepEqual(series.defaultItem.rows, []);
-  assert.equal(series.defaultItem.graph, undefined);
+  assert.equal(series.primaryItem.id, 'default');
+  assert.deepEqual(series.primaryItem.config, graphConfig);
+  assert.deepEqual(series.primaryItem.rows, []);
+  assert.equal(series.primaryItem.graph, undefined);
 
   series.createGraph(
-    series.defaultItem,
+    series.primaryItem,
     120,
     100,
     { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 },
@@ -48,16 +49,16 @@ test('normalizes existing sparkline config into one coordinator-owned default se
     [],
     {},
   );
-  series.setRows(series.defaultItem, [{ state: 12 }]);
+  series.setRows(series.primaryItem, [{ state: 12 }]);
 
-  assert.deepEqual(series.defaultItem.config, graphConfig);
-  assert.equal(series.defaultItem.graph.config, graphConfig);
-  assert.deepEqual(series.defaultItem.rows, [{ state: 12 }]);
+  assert.deepEqual(series.primaryItem.config, graphConfig);
+  assert.equal(series.primaryItem.graph.config, graphConfig);
+  assert.deepEqual(series.primaryItem.rows, [{ state: 12 }]);
   assert.equal(series.updateGraphs()[0], true);
 
   series.clearGraphs();
 
-  assert.equal(series.defaultItem.graph, undefined);
+  assert.equal(series.primaryItem.graph, undefined);
 });
 
 
@@ -89,6 +90,49 @@ test('normalizes explicit series in declaration order with independent graph set
   assert.equal(series.items[1].config.series, undefined);
 });
 
+test('implicit and explicit one-series configs produce the same effective graph config', () => {
+  const implicit = new SparklineSeries(graphConfig);
+  const explicit = new SparklineSeries({
+    ...graphConfig,
+    series: [{ id: 'temperature', entity_index: 0 }],
+  });
+
+  assert.deepEqual(implicit.items[0].config, explicit.items[0].config);
+  assert.equal(implicit.items[0].y_axis_id, 'primary');
+  assert.equal(explicit.items[0].y_axis_id, 'primary');
+  assert.equal(implicit.hasExplicitSeries, false);
+  assert.equal(explicit.hasExplicitSeries, true);
+});
+
+test('runtime config updates keep history and graph state on the same series item', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    series: [{ id: 'temperature', entity_index: 0, color: '#42a5f5' }],
+  });
+  const item = series.items[0];
+  const graph = { coords: [[1, 2, 3]] };
+  const history = [{ state: 12 }];
+  item.graph = graph;
+  item.historySeries = history;
+  item.rows = history;
+
+  series.updateConfig({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      line: { ...graphConfig.sparkline.line, line_width: 2 },
+    },
+    series: [{ id: 'temperature', entity_index: 0, color: '#f9a825' }],
+  });
+
+  assert.equal(series.items[0], item);
+  assert.equal(series.items[0].graph, graph);
+  assert.equal(series.items[0].historySeries, history);
+  assert.equal(series.items[0].rows, history);
+  assert.equal(series.items[0].config.color, '#f9a825');
+  assert.equal(series.items[0].config.sparkline.line.line_width, 2);
+});
+
 test('rejects explicit series without stable unique entity-bound ids', () => {
   assert.throws(
     () => new SparklineSeries({
@@ -116,6 +160,14 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
     }),
     /y_axis_id must be primary or secondary/,
   );
+
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'temperature', entity_index: 0, y_axis: 'secondary' }],
+    }),
+    /uses y_axis for axis configuration; assign the series with y_axis_id/,
+  );
 });
 
 test('allows cartesian line, area, dots and bar series with an offset-only period override', () => {
@@ -138,7 +190,7 @@ test('allows cartesian line, area, dots and bar series with an offset-only perio
     ],
   });
 
-  assert.equal(bars.defaultItem.config.sparkline.show.chart_type, 'bar');
+  assert.equal(bars.primaryItem.config.sparkline.show.chart_type, 'bar');
   assert.equal(bars.items[1].config.period.rolling_window.offset, -1);
 
   assert.throws(

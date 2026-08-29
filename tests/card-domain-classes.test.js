@@ -480,7 +480,7 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
     attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
   }];
   const graph = { config: { id: 'history' } };
-  const graphTool = { config: { id: 'history' }, stats: { avg: 10.2 }, sparklineSeries: { defaultItem: { graph, stats: { avg: 10.2 } } } };
+  const graphTool = { config: { id: 'history' }, stats: { avg: 10.2 }, sparklineSeries: { primaryItem: { graph, stats: { avg: 10.2 } } } };
 
   cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
@@ -513,7 +513,7 @@ test('CardEntities publishes unavailable derived values before graph statistics 
   const graphTool = {
     config: { id: 'history' },
     stats: {},
-    sparklineSeries: { defaultItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: {} } },
+    sparklineSeries: { primaryItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: {} } },
   };
 
   cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
@@ -543,7 +543,7 @@ test('CardEntities updates explicit series derived values from the matching grap
     config: { id: 'climate' },
     sparklineSeries: {
       stats: { avg: 10.2 },
-      defaultItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 10.2 } },
+      primaryItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 10.2 } },
       items: [{ id: 'yesterday_room', graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 18.7 } }],
     },
   };
