@@ -30,6 +30,9 @@ export default class SparklineSeries {
       if (!Number.isInteger(seriesConfig.entity_index)) {
         throw new Error(`[sparklines] series '${seriesConfig.id}' requires entity_index`);
       }
+      if (typeof seriesConfig.y_axis === 'string') {
+        throw new Error(`[sparklines] series '${seriesConfig.id}' uses y_axis for axis configuration; assign the series with y_axis_id`);
+      }
       if (config.series !== undefined && seriesConfig.period !== undefined) {
         const periodType = config.period.type;
         const periodOverride = seriesConfig.period[periodType];

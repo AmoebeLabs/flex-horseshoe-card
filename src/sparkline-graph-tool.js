@@ -403,7 +403,7 @@ export default class SparklineGraphTool extends BaseTool {
           position: 'top',
           width: 25,
           rows: 1,
-          gap: 1,
+          gap: 4,
           item_gap: 1,
           line_height: 1.2,
           marker_size: 1.5,

@@ -5,7 +5,7 @@ import SparklineGraph, { V } from '../src/sparkline-graph.js';
 const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinMax = false, showAreaMinMax = false, lowerBound, upperBound } = {}) => ({
   period: {
     type: 'rolling_window',
-    groupBy: 'interval',
+    group_by: 'interval',
     rolling_window: {
       offset: 0,
       duration: { hour: 4 },
@@ -439,7 +439,7 @@ test('radial barcode geometry does not consume cartesian configuration', () => {
     geometry: { line_width: 1, column_spacing: 4 },
     period: {
       type: 'rolling_window',
-      groupBy: 'interval',
+      group_by: 'interval',
       rolling_window: {
         offset: 0,
         duration: { hour: 24 },
