@@ -46,7 +46,7 @@ layout:
         item_style: outlined_round
 ```
 
-The control displays the options supplied by the connected entity. An `option_map` is only needed when the visible label, icon, content, or action value should be different.
+The control displays the options supplied by the connected entity. Home Assistant supplies the translated option labels. An `option_map` is only needed when the visible label, icon, content, or action value should be different.
 
 !!! info "Entity and input settings"
 
@@ -89,7 +89,7 @@ option_map:
     icon: mdi:fan-speed-3
 ```
 
-The `value` is written to the connected entity. The `text` and `icon` determine what the user sees.
+The `value` is written to the connected entity. The optional `text` replaces the Home Assistant label, and `icon` adds a recognizable symbol. Without `text`, the label follows the Home Assistant language setting.
 
 ## :material-horseshoe: Show entity information in every option
 

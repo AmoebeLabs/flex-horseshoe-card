@@ -16,7 +16,6 @@ import {
 } from './horseshoe-renderer.js';
 import { buildColorStopGradientPathItems, buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
 import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
-import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
 import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
 /**
@@ -341,31 +340,15 @@ export default class HorseshoeGauge extends BaseTool {
       ...stateMap,
       map: stateMap.map.map((entry) => {
         const state = String(entry.state ?? entry.value);
-        const stateEntity = {
-          ...entity,
-          state,
-        };
-        const formattedState = this.card._hass.formatEntityState?.(entity, state);
-        const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
-        const computedState = computeStateDisplay(
-          this.card._hass.localize,
-          stateEntity,
-          this.card._hass.locale,
-          [],
-          this.card._hass.config,
-          this.card._hass.entities,
-        );
-        const displayLabel = [formattedState, formattedStateEntity, computedState]
-          .find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
+        const displayLabel = this.entityConfig.attribute !== undefined
+          ? this.card._hass.formatEntityAttributeValue(entity, this.entityConfig.attribute, state)
+          : this.card._hass.formatEntityState(entity, state);
 
         if (this.config?.dev?.debug_state_map || this.config?.debug_state_map) {
           console.log('[horseshoe-state-map] display label', {
             entity_id: entity.entity_id,
             activeState: entity.state,
             state,
-            formattedState,
-            formattedStateEntity,
-            computedState,
             displayLabel,
             entry,
           });
@@ -373,7 +356,7 @@ export default class HorseshoeGauge extends BaseTool {
 
         return {
           ...entry,
-          display_label: displayLabel ?? entry.display_label,
+          display_label: entry.label ?? displayLabel,
         };
       }),
     };

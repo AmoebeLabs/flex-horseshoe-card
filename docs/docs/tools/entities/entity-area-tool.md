@@ -49,9 +49,7 @@ layout:
 
 ## :material-horseshoe: Where the area comes from
 
-Flexible Horseshoe Card uses the Home Assistant area assigned to the entity.
-
-If the entity itself has no area, the area assigned to its device is used.
+Flexible Horseshoe Card shows the area Home Assistant associates with the entity. This follows area and device assignments managed in Home Assistant.
 
 You can override the displayed area in the entity configuration:
 

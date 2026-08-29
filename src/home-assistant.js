@@ -10,6 +10,8 @@ export default class HomeAssistant {
     this.hass = undefined;
     this.localeSignature = undefined;
     this.localeChanged = false;
+    this.entityDisplayContext = undefined;
+    this.entityDisplayChanged = false;
     this.connection = undefined;
     this.connectedToDom = false;
     this.notifyToolsConnected = notifyToolsConnected;
@@ -27,6 +29,24 @@ export default class HomeAssistant {
     this.localeChanged = localeSignature !== this.localeSignature;
     this.localeSignature = localeSignature;
 
+    // Entity presentation depends on HA formatter implementations and registry
+    // objects as well as locale. Their references identify that display context.
+    const entityDisplayContext = [
+      hass.formatEntityName,
+      hass.formatEntityAttributeName,
+      hass.formatEntityState,
+      hass.formatEntityStateToParts,
+      hass.formatEntityAttributeValue,
+      hass.formatEntityAttributeValueToParts,
+      hass.entities,
+      hass.devices,
+      hass.areas,
+      hass.floors,
+    ];
+    this.entityDisplayChanged = this.entityDisplayContext === undefined
+      || entityDisplayContext.some((value, index) => value !== this.entityDisplayContext[index]);
+    this.entityDisplayContext = entityDisplayContext;
+
     if (this.connection !== hass.connection) {
       if (this.connection && this.connectedToDom) this.connection.removeEventListener('ready', this.connectionReadyHandler);
       this.connection = hass.connection;
@@ -38,6 +58,11 @@ export default class HomeAssistant {
   /** Clears the locale marker after every context-dependent card domain ran. */
   markLocaleHandled() {
     this.localeChanged = false;
+  }
+
+  /** Clears the entity-display marker after context-dependent tools ran. */
+  markEntityDisplayHandled() {
+    this.entityDisplayChanged = false;
   }
 
   /**

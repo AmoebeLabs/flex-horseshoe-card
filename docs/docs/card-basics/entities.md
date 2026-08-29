@@ -351,7 +351,7 @@ For details about JavaScript templates, available variables, and reusable templa
 | `attribute` | string | :material-close: | Attribute to display instead of the main entity state |
 | `unit` | string | :material-close: | Unit displayed for the entity or attribute; can use a JavaScript template where supported |
 | `decimals` | number | :material-close: | Number of decimals used to format the value |
-| `name` | string | :material-close: | Custom name that overrides the Home Assistant friendly name; can use a JavaScript template where supported |
+| `name` | string or Home Assistant name list | :material-close: | Custom name that overrides the automatic short entity or attribute name; can use a JavaScript template where supported |
 | `area` | string | :material-close: | Custom area that overrides the Home Assistant area for this card; can use a JavaScript template where supported |
 | `icon` | string | :material-close: | Custom icon, image, SVG, or JavaScript template |
 | `format` | object | :material-close: | Custom formatting options for the entity state |

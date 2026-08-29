@@ -53,7 +53,6 @@ export default class ControlSelect extends ControlBase {
       return Merge.mergeDeep(
         {
           state: option.value,
-          text: option.value,
           tap_action: selectConfig.tap_action,
           ...(selectConfig.hold_action !== undefined
             ? { hold_action: selectConfig.hold_action }
@@ -430,6 +429,10 @@ export default class ControlSelect extends ControlBase {
     this.optionTextTools = [];
     this.optionIconTools = [];
     this.optionContentVisuals = [];
+    this.optionDisplayTexts = this.optionsInitialized
+      ? this.config.option_map.map((option) => option.text ?? String(option.state))
+      : [];
+    this.optionDisplayTextSignature = undefined;
     this.optionActionConfigs = this.optionsInitialized
       ? this.config.option_map.map((option) =>
           ControlSelect.buildOptionActionConfig(option),
@@ -577,7 +580,7 @@ export default class ControlSelect extends ControlBase {
           entity_index: this.entity_index,
           xpos: textXpos,
           yposc: textYpos,
-          text: option.text,
+          text: this.optionDisplayTexts[optionIndex],
           text_overflow: {
             mode: "fit",
             fit: { max_width: hasIcon ? textMaximumWidth : contentWidth },
@@ -692,14 +695,14 @@ export default class ControlSelect extends ControlBase {
     super.setState(entity, entityConfig);
 
     // Entity-driven selects publish their segment definitions through the same
-    // attributes.options contract as Home Assistant select entities.
+    // attributes.options contract as Home Assistant select entities. Option and
+    // display-label changes rebuild the segment children once in this lifecycle.
+    let optionsChanged = false;
+
     if (this.usesEntityOptions) {
-      if (
-        !Array.isArray(entity.attributes.options) ||
-        entity.attributes.options.length === 0
-      ) {
+      if (!Array.isArray(entity.attributes.options) || entity.attributes.options.length === 0) {
         throw Error(
-          `[controls] Select '${this.id}' requires option_map or entity.attributes.options`,
+          "[controls] Select " + this.id + " requires option_map or entity.attributes.options",
         );
       }
 
@@ -708,32 +711,40 @@ export default class ControlSelect extends ControlBase {
         const entityOptionMap = entity.attributes.options.map((option) => ({
           value: option,
         }));
-        this.config.option_map = ControlSelect.normalizeOptionMap(
-          entityOptionMap,
-          this.config,
-        );
+        this.config.option_map = ControlSelect.normalizeOptionMap(entityOptionMap, this.config);
         this.entityOptionsSignature = entityOptionsSignature;
         this.optionsInitialized = true;
-        this.createOptionContentTools();
-        this.optionContentVisuals.forEach((contentVisual) =>
-          contentVisual.updateRuntimeConfig(),
-        );
-        this.optionTextTools.forEach((textTool) =>
-          textTool.updateRuntimeConfig(),
-        );
-        this.optionIconTools
-          .filter((iconTool) => iconTool !== undefined)
-          .forEach((iconTool) => iconTool.updateRuntimeConfig());
-        if (this.controlHassAvailable) {
-          this.optionContentVisuals.forEach((contentVisual) =>
-            contentVisual.hassAvailable(),
-          );
-        }
-        if (this.controlConnected) {
-          this.optionContentVisuals.forEach((contentVisual) =>
-            contentVisual.connected(),
-          );
-        }
+        optionsChanged = true;
+      }
+    }
+
+    const optionDisplayTexts = this.config.option_map.map((option) => {
+      if (option.text !== undefined) return option.text;
+
+      return entityConfig.attribute !== undefined
+        ? this.card._hass.formatEntityAttributeValue(entity, entityConfig.attribute, option.state)
+        : this.card._hass.formatEntityState(entity, option.state);
+    });
+    const optionDisplayTextSignature = JSON.stringify(optionDisplayTexts);
+
+    if (optionDisplayTextSignature !== this.optionDisplayTextSignature) {
+      this.optionDisplayTexts = optionDisplayTexts;
+      this.optionDisplayTextSignature = optionDisplayTextSignature;
+      optionsChanged = true;
+    }
+
+    if (optionsChanged) {
+      this.createOptionContentTools();
+      this.optionContentVisuals.forEach((contentVisual) => contentVisual.updateRuntimeConfig());
+      this.optionTextTools.forEach((textTool) => textTool.updateRuntimeConfig());
+      this.optionIconTools
+        .filter((iconTool) => iconTool !== undefined)
+        .forEach((iconTool) => iconTool.updateRuntimeConfig());
+      if (this.controlHassAvailable) {
+        this.optionContentVisuals.forEach((contentVisual) => contentVisual.hassAvailable());
+      }
+      if (this.controlConnected) {
+        this.optionContentVisuals.forEach((contentVisual) => contentVisual.connected());
       }
     }
 
