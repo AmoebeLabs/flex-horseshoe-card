@@ -89,6 +89,49 @@ test('normalizes explicit series in declaration order with independent graph set
   assert.equal(series.items[1].config.series, undefined);
 });
 
+test('implicit and explicit one-series configs produce the same effective graph config', () => {
+  const implicit = new SparklineSeries(graphConfig);
+  const explicit = new SparklineSeries({
+    ...graphConfig,
+    series: [{ id: 'temperature', entity_index: 0 }],
+  });
+
+  assert.deepEqual(implicit.items[0].config, explicit.items[0].config);
+  assert.equal(implicit.items[0].y_axis_id, 'primary');
+  assert.equal(explicit.items[0].y_axis_id, 'primary');
+  assert.equal(implicit.hasExplicitSeries, false);
+  assert.equal(explicit.hasExplicitSeries, true);
+});
+
+test('runtime config updates keep history and graph state on the same series item', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    series: [{ id: 'temperature', entity_index: 0, color: '#42a5f5' }],
+  });
+  const item = series.items[0];
+  const graph = { coords: [[1, 2, 3]] };
+  const history = [{ state: 12 }];
+  item.graph = graph;
+  item.historySeries = history;
+  item.rows = history;
+
+  series.updateConfig({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      line: { ...graphConfig.sparkline.line, line_width: 2 },
+    },
+    series: [{ id: 'temperature', entity_index: 0, color: '#f9a825' }],
+  });
+
+  assert.equal(series.items[0], item);
+  assert.equal(series.items[0].graph, graph);
+  assert.equal(series.items[0].historySeries, history);
+  assert.equal(series.items[0].rows, history);
+  assert.equal(series.items[0].config.color, '#f9a825');
+  assert.equal(series.items[0].config.sparkline.line.line_width, 2);
+});
+
 test('rejects explicit series without stable unique entity-bound ids', () => {
   assert.throws(
     () => new SparklineSeries({

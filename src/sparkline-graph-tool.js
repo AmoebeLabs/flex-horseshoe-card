@@ -1047,7 +1047,6 @@ export default class SparklineGraphTool extends BaseTool {
     const period = Merge.mergeDeep({}, this.config.period);
     const graphType = config.sparkline.show.chart_type;
     const comparesCalendarDays = period.type === 'calendar'
-      && this.config.series !== undefined
       && this.sparklineSeries.items.some((item) => Number(item.config.period.calendar.offset) !== Number(this.config.period.calendar.offset));
 
     // A comparison needs one complete shared day. Without it, an offset series
@@ -1249,19 +1248,8 @@ export default class SparklineGraphTool extends BaseTool {
     this.config.svg = this.svg;
 
     // Runtime templates can change shared sparkline settings. Each existing
-    // series receives the same resolved base config plus its declared override.
-    this.sparklineSeries.items.forEach((item, index) => {
-      const seriesConfig = this.config.series === undefined ? {} : this.config.series[index];
-      item.config = Merge.mergeDeep({}, this.config, seriesConfig);
-      delete item.config.id;
-      delete item.config.series;
-      if (item.config.y_axis_id !== undefined) {
-        if (!['primary', 'secondary'].includes(item.config.y_axis_id)) {
-          throw new Error('[sparklines] series ' + item.id + ' y_axis_id must be primary or secondary');
-        }
-        item.y_axis_id = item.config.y_axis_id;
-      }
-    });
+    // series receives one effective config while its runtime data stays intact.
+    this.sparklineSeries.updateConfig(this.config);
 
     // A period belongs to each history source. When a runtime template changes
     // one offset, only that source is invalidated; the shared plot period stays
