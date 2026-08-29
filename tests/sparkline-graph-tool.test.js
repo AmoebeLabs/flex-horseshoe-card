@@ -103,6 +103,73 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
 
 
 
+test('real-time graded creates one current-value graph without historical bins', (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const templates = {
+    hasJavascriptTemplates: () => false,
+  };
+  const card = {
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false },
+    entities: [],
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+    },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+    },
+  };
+  const config = {
+    id: 'awair-graded',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    width: 80,
+    height: 40,
+    period: { real_time: true },
+    sparkline: {
+      show: { chart_type: 'graded' },
+      colorstops: {
+        colors: [
+          { value: 0, color: '#66bb6a' },
+          { value: 50, color: '#f9a825' },
+        ],
+      },
+    },
+  };
+
+  const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
+
+  assert.equal(tool.config.period.type, 'real_time');
+  assert.equal(tool.primaryGraph.points, 1);
+  assert.equal(tool.primaryGraph.hours, 1);
+
+  const historicalConfig = structuredClone(config);
+  historicalConfig.id = 'awair-graded-history';
+  historicalConfig.period = {
+    type: 'rolling_window',
+    rolling_window: {
+      offset: 0,
+      duration: { hour: 24 },
+      bins: { per_hour: 2, density: 'medium' },
+    },
+  };
+
+  const historicalTool = new SparklineGraphTool(historicalConfig, 0, templates, 'test-card', card);
+
+  assert.equal(historicalTool.config.period.type, 'rolling_window');
+  assert.equal(historicalTool.primaryGraph.points, 2);
+  assert.equal(historicalTool.primaryGraph.hours, 24);
+});
+
 test('legend position reserves a sibling area with matching orientation', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   tool.svg = { width: 200, height: 100 };
