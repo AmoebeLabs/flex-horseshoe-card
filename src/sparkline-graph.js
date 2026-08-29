@@ -28,7 +28,7 @@ export const ONE_HOUR = 1000 * 3600;
  *   state_values: { aggregate_func: avg }
  *
  * SparklineGraphTool owns the lifecycle around this engine: it supplies rows,
- * stores the generated geometry, and renders that geometry with Lit.
+ * consumes the generated geometry, and renders that geometry with Lit.
  */
 export default class SparklineGraph {
   /**
