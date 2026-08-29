@@ -92,11 +92,11 @@ export default class SparklineGraph {
       this.hours = 1;
     } else {
       const period = this.config.period[this.config.period.type];
-      this.points = period.bins.per_hour || 1;
-      this.hours = period.duration.hour || 24;
+      this.points = period.bins.per_hour;
+      this.hours = period.duration.hour;
     }
     this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
-    this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName] || this._average;
+    this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName];
     this._smoothing = this.config.sparkline.state_values?.smoothing;
     this._logarithmic = this.config.sparkline.state_values?.logarithmic;
     this._groupBy = this.config.period.group_by;
@@ -106,7 +106,7 @@ export default class SparklineGraph {
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
-    this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline?.radial_barcode?.size || 5);
+    this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline.radial_barcode.size);
   }
 
   /**
