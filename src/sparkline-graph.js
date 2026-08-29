@@ -975,6 +975,17 @@ export default class SparklineGraph {
   }
 
   /**
+   * Projects graph value tuples onto the current public drawing geometry.
+   * Consumers use this method after shared axis bounds and margins are set.
+   *
+   * @param {Array<Array<number>>} coords - X/value tuples.
+   * @returns {Array<Array<number>>} SVG coordinate tuples.
+   */
+  calculateYCoordinates(coords) {
+    return this._calcY(coords);
+  }
+
+  /**
    * Projects all levels of one equalizer column to rectangle top coordinates.
    *
    * @param {Array<Array<number>>} coord - Equalizer value tuple.
@@ -1226,6 +1237,21 @@ export default class SparklineGraph {
       largeArcFlag,
       sweepFlag,
     };
+  }
+
+  /**
+   * Returns the annular endpoints used to draw one radial barcode segment.
+   *
+   * @param {number} startAngle - Segment start angle.
+   * @param {number} endAngle - Segment end angle.
+   * @param {boolean} clockwise - Arc direction.
+   * @param {number} radiusX - Horizontal outer radius.
+   * @param {number} radiusY - Vertical outer radius.
+   * @param {number} width - Ring width.
+   * @returns {object} Outer and inner endpoints with SVG arc flags.
+   */
+  calculateRadialSegment(startAngle, endAngle, clockwise, radiusX, radiusY, width) {
+    return this._calcRadialBarcodeCoords(startAngle, endAngle, clockwise, radiusX, radiusY, width);
   }
 
   /**

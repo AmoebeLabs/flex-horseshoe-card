@@ -681,7 +681,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
 
-    const sharedBinsPerHour = this.calculateSharedBinsPerHour();
+    const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
     this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
     if (this.historyDurationReady) {
       this.sparklineSeries.items.forEach((item) => {
@@ -973,64 +973,6 @@ export default class SparklineGraphTool extends BaseTool {
     return { t, r, b, l, x: l, y: t };
   }
 
-  /**
-   * Selects a logical numeric bin interval for the graph engine.
-   *
-   * Configured FHS width is used deliberately: automatic density describes the
-   * visual layout chosen by the user and remains independent of browser pixels,
-   * SVG conversion, axis margins, labels, and device scale.
-   *
-   * @param {object} config - Active sparkline tool configuration.
-   * @returns {number} Numeric bins per hour consumed by SparklineGraph.
-   */
-  calculateBinsPerHour(config) {
-    const periodConfig = config.period[config.period.type];
-    const binsPerHour = periodConfig.bins.per_hour;
-
-    // A manually configured value always takes precedence over density.
-    if (binsPerHour !== 'auto') return binsPerHour;
-
-    const binsPerHourOptions = [1 / 24, 1 / 12, 0.125, 1 / 6, 0.25, 0.5, 1, 2, 3, 4, 6, 12];
-    const widthUnitsPerBinByGraphType = {
-      line: 1,
-      area: 1,
-      dots: 2,
-      bar: 2,
-      barcode: 2,
-      equalizer: 2,
-      graded: 2,
-      radial_barcode: 5.6,
-    };
-    const densityFactor = {
-      low: 2,
-      medium: 1,
-      high: 0.5,
-    };
-    const graphType = config.sparkline.show.chart_type;
-    const availableWidth = graphType === 'radial_barcode' ? Math.PI * config.width : config.width;
-    const widthUnitsPerBin = widthUnitsPerBinByGraphType[graphType] * densityFactor[periodConfig.bins.density];
-    const maximumBinsPerHour = availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
-
-    // Walk from highest to lowest to avoid requiring Array.findLast support.
-    for (let index = binsPerHourOptions.length - 1; index >= 0; index -= 1) {
-      if (binsPerHourOptions[index] <= maximumBinsPerHour) return binsPerHourOptions[index];
-    }
-
-    return binsPerHourOptions[0];
-  }
-
-  /**
-   * Chooses one automatic bin density for every explicit series. The most
-   * space-demanding series limits the shared time axis, so all graph engines
-   * receive identical bucket boundaries.
-   *
-   * @returns {number|undefined} Shared bins per hour for explicit series.
-   */
-  calculateSharedBinsPerHour() {
-    if (this.sparklineSeries.items.length === 1) return undefined;
-
-    return Math.min(...this.sparklineSeries.items.map((item) => this.calculateBinsPerHour(item.config)));
-  }
 
   /**
    * Builds the config object consumed by SparklineGraph without changing the
@@ -1073,7 +1015,7 @@ export default class SparklineGraphTool extends BaseTool {
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
     if (period.type !== 'real_time') {
-      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : sharedBinsPerHour ?? this.calculateBinsPerHour(config);
+      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : sharedBinsPerHour ?? this.sparklineSeries.calculateBinsPerHour(config);
     }
 
     return {
@@ -1320,7 +1262,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value || Infinity);
       return true;
     });
-    const sharedBinsPerHour = this.calculateSharedBinsPerHour();
+    const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
     this.graphConfig = this.buildGraphConfig(this.config, sharedBinsPerHour);
     this.sparklineSeries.items.forEach((item) => {
       const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
@@ -1927,7 +1869,6 @@ export default class SparklineGraphTool extends BaseTool {
    */
   updateMultipleSeriesGraphs() {
     this.sparklineSeries.items.forEach((item) => {
-      item.graph.clearSharedYAxisBounds();
       if (item.config.period.type !== 'real_time') {
         const range = this.getHistoryRange(item);
         item.graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
@@ -1935,92 +1876,22 @@ export default class SparklineGraphTool extends BaseTool {
       } else {
         item.graph.activeDataEnd = undefined;
       }
-      item.graph.update(item.rows);
     });
 
-    const readyItems = this.sparklineSeries.items.filter((item) => item.graph.coords.length > 0);
-    // A shared y-axis is only meaningful after every declared source has its
-    // first graph geometry. Until then render the normal loading state rather
-    // than mixing ready paths with an engine that has no coordinates yet.
-    this.graphReady = readyItems.length === this.sparklineSeries.items.length;
+    const coordinatedGraphs = this.sparklineSeries.updateCartesianGraphs(
+      this.calculateAxisMargin(),
+      this.configuredGraphMargin,
+      this.svg.column_spacing,
+      this.svg.row_spacing,
+    );
+    this.graphReady = coordinatedGraphs.ready;
+    this.axisGraphs = coordinatedGraphs.axisGraphs;
+    this.axisMargin = coordinatedGraphs.axisMargin;
     if (!this.graphReady) {
       this.stats = {};
       return;
     }
 
-    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
-    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
-    this.axisGraphs = {
-      primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
-      secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
-    };
-
-    if (primaryItems.length > 0) {
-      const configuredBoundsItem = primaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
-      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...primaryItems.map((item) => item.graph.min));
-      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...primaryItems.map((item) => item.graph.max));
-      primaryItems.forEach((item) => {
-        item.graph.setSharedYAxisBounds(lowerBound, upperBound);
-        item.graph.update(item.rows);
-      });
-    }
-
-    if (secondaryItems.length > 0) {
-      const configuredBoundsItem = secondaryItems.find((item) => item.config.y_axis.lower_bound !== undefined);
-      const lowerBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.lower_bound) : Math.min(...secondaryItems.map((item) => item.graph.min));
-      const upperBound = configuredBoundsItem !== undefined ? Number(configuredBoundsItem.config.y_axis.upper_bound) : Math.max(...secondaryItems.map((item) => item.graph.max));
-      secondaryItems.forEach((item) => {
-        item.graph.setSharedYAxisBounds(lowerBound, upperBound);
-        item.graph.update(item.rows);
-      });
-    }
-
-    const axisMargin = this.calculateAxisMargin();
-    const barItems = readyItems.filter((item) => item.config.sparkline.show.chart_type === "bar");
-
-    // Give every graph its provisional axis area before measuring the complete
-    // visible bar group. SparklineGraph remains the only owner of bar widths;
-    // this coordinator only carries the shared outer extent back to every engine.
-    readyItems.forEach((item) => {
-      item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
-      item.graph.update(item.rows);
-    });
-
-    const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
-    this.sparklineSeries.items.forEach((item) => {
-      const chartType = item.config.sparkline.show.chart_type;
-      const rendersDots = chartType === "dots" || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
-      if (rendersDots) {
-        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
-        sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
-        sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, dotExtent);
-        sharedChartGeometryMargin.b = Math.max(sharedChartGeometryMargin.b, dotExtent);
-        sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, dotExtent);
-      }
-    });
-
-    // Only bars divide a bucket horizontally. Lines, areas and dots never
-    // consume a bar slot, so their presence cannot shrink the bar group.
-    barItems.forEach((item, position) => {
-      item.barPosition = position;
-      item.barTotal = barItems.length;
-      const bars = item.graph.getBars(position, barItems.length, this.svg.column_spacing, this.svg.row_spacing);
-      const firstBar = bars[0];
-      const lastBar = bars[bars.length - 1];
-      const leftOverflow = item.graph.axisArea.x - firstBar.x;
-      const rightOverflow = lastBar.x + lastBar.width - (item.graph.axisArea.x + item.graph.axisArea.width);
-      sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, leftOverflow);
-      sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, rightOverflow);
-    });
-
-    readyItems.forEach((item) => {
-      item.graph.setGraphAreas(axisMargin, this.configuredGraphMargin, item.graph.coords.length, sharedChartGeometryMargin);
-      item.graph.update(item.rows);
-    });
-    barItems.forEach((item) => {
-      item.bars = item.graph.getBars(item.barPosition, item.barTotal, this.svg.column_spacing, this.svg.row_spacing);
-    });
-    this.axisMargin = axisMargin;
 
     this.area = [];
     this.areaMinMax = [];
@@ -2036,12 +1907,12 @@ export default class SparklineGraphTool extends BaseTool {
         if (chartType === 'area') this.area[index] = graph.getArea(path);
       }
       if (chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true) {
-        this.points[index] = graph._calcY(graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
+        this.points[index] = graph.calculateYCoordinates(graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
       }
     });
 
     const graph = this.Graph;
-    const zeroY = graph._calcY([[graph.drawArea.x, 0, 0]])[0][Y];
+    const zeroY = graph.calculateYCoordinates([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
     this.sparklineSeries.items.forEach((item) => {
       item.stats = this.calculateStatistics(item.rows);
@@ -2108,7 +1979,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (chartType === 'state_bands') {
       this.animationBaselineY = this.Graph.drawArea.y + this.Graph.drawArea.height;
     } else {
-      const zeroY = this.Graph._calcY([[this.Graph.drawArea.x, 0, 0]])[0][Y];
+      const zeroY = this.Graph.calculateYCoordinates([[this.Graph.drawArea.x, 0, 0]])[0][Y];
       this.animationBaselineY = Math.min(this.Graph.drawArea.y + this.Graph.drawArea.height, Math.max(this.Graph.drawArea.y, zeroY));
     }
 
@@ -4223,7 +4094,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderPoints() {
     if (this.config.sparkline.show.chart_type !== 'dots' && this.config.sparkline.show.points !== true && this.config.sparkline.line?.show_dots !== true && this.config.sparkline.area?.show_dots !== true) return '';
 
-    const points = this.Graph._calcY(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
+    const points = this.Graph.calculateYCoordinates(this.Graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
 
     return this.renderSvgPoints(points, 0);
   }
@@ -5059,7 +4930,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object} Lit SVG path template.
    */
   renderSvgRadialBarcodeBackground(radius) {
-    const { start, end, start2, end2, largeArcFlag, sweepFlag } = this.Graph._calcRadialBarcodeCoords(0, 359.9, true, radius, radius, this.radialBarcodeChartWidth);
+    const { start, end, start2, end2, largeArcFlag, sweepFlag } = this.Graph.calculateRadialSegment(0, 359.9, true, radius, radius, this.radialBarcodeChartWidth);
     const radius2 = { x: radius - this.radialBarcodeChartWidth, y: radius - this.radialBarcodeChartWidth };
     const backgroundStyles = ConfigHelper.toStyleDict(this.config.sparkline.radial_barcode?.background?.styles);
 
@@ -5474,7 +5345,7 @@ export default class SparklineGraphTool extends BaseTool {
         const path = ['line', 'area'].includes(chartType) ? graph.getPath() : undefined;
         const areaPath = chartType === 'area' ? graph.getArea(path) : undefined;
         const points = chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true
-          ? graph._calcY(graph.coords)
+          ? graph.calculateYCoordinates(graph.coords)
           : [];
         const pointRadius = Utils.calculateSvgDimension(config.sparkline.dots.radius);
 

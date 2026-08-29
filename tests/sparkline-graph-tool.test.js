@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
+import SparklineSeries from '../src/sparkline-series.js';
 import SparklineGraph from '../src/sparkline-graph.js';
 
 test('dynamic calendar period initializes and clamps a rolling duration to one day', () => {
@@ -516,7 +517,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     },
     clearSharedYAxisBounds() {},
     setGraphAreas() {},
-    _calcY: (points) => points,
+    calculateYCoordinates: (points) => points,
     getPath: () => 'M 0 0 L 100 50',
     getArea: () => 'M 0 0 L 100 50 Z',
   });
@@ -536,7 +537,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   const second = { id: 'humidity', y_axis_id: 'secondary', config: makeConfig('dots'), graph: makeGraph(30, 40), rows: [{ state: 30 }] };
 
   Object.assign(tool, {
-    sparklineSeries: { items: [first, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     card: { dev: { debug: false } },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1 },
@@ -598,10 +599,10 @@ test('explicit series use the most restrictive automatic bin density for every g
     xAxisLabelLength: 10,
     stateBandsStateMap: {},
     config: line.config,
-    sparklineSeries: { items: [line, dots] },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [line, dots] }),
   });
 
-  const sharedBinsPerHour = tool.calculateSharedBinsPerHour();
+  const sharedBinsPerHour = tool.sparklineSeries.calculateSharedBinsPerHour();
   const lineGraphConfig = tool.buildGraphConfig(line.config, sharedBinsPerHour);
   const dotsGraphConfig = tool.buildGraphConfig(dots.config, sharedBinsPerHour);
 
@@ -630,7 +631,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     getBars(position, total) {
       return [{ x: position === 0 ? -10 : 90, y: 20, width: 20, height: 10, value: 10, position, total }];
     },
-    _calcY: (points) => points.map((point) => [point[0], 25, point[2]]),
+    calculateYCoordinates: (points) => points.map((point) => [point[0], 25, point[2]]),
     getPath: () => 'M 0 0 L 100 50',
   });
   const makeConfig = (chartType = 'bar') => ({
@@ -648,7 +649,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
   const second = { id: "second", config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }] };
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
-    sparklineSeries: { items: [first, line, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, line, second] }),
     card: { dev: { debug: false } },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
@@ -693,8 +694,11 @@ test("multiple series wait for every graph before building shared geometry", () 
   const second = { id: "loading", config, graph: loadingGraph, rows: [] };
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
-    sparklineSeries: { items: [first, second], defaultItem: first },
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     stats: { stale: true },
+    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+    svg: { column_spacing: 4, row_spacing: 4 },
+    calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
   });
 
   tool.updateMultipleSeriesGraphs();
