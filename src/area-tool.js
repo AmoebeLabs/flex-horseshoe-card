@@ -170,28 +170,11 @@ export default class AreaTool extends BaseTool {
    * @returns {string} Area text.
    */
   buildArea() {
-    if (this.entityConfig.area) {
-      return this.entityConfig.area;
+    if (this.entityConfig.area !== undefined) {
+      return this.card._hass.formatEntityName(this.entity, this.entityConfig.area);
     }
 
-    if (!this.card._hass || !this.card._hass.areas) return '';
-
-    // First check whether the entity itself has a direct area assignment.
-    const entityRegistry = this.card._hass.entities && this.card._hass.entities[this.entityConfig.entity];
-    let areaId = entityRegistry ? entityRegistry.area_id : null;
-
-    // If not, follow the device relation and use the device area assignment.
-    if (!areaId && entityRegistry && entityRegistry.device_id && this.card._hass.devices) {
-      const device = this.card._hass.devices[entityRegistry.device_id];
-      areaId = device ? device.area_id : null;
-    }
-
-    if (areaId) {
-      const area = this.card._hass.areas[areaId];
-      return area ? area.name : '';
-    }
-
-    return '?';
+    return this.card._hass.formatEntityName(this.entity, { type: 'area' });
   }
 
   /**

@@ -84,13 +84,15 @@ layout:
               radius: 0.75
 ```
 
+Without a configured `name`, legend and tooltip labels combine the Home Assistant area with the short entity or attribute name. Related sensors therefore remain distinguishable, for example `Living room Temperature` and `Bedroom Temperature`. A `series[].name` overrides that label and accepts the same [name choices](../entities/entity-name-tool.md#choose-what-the-name-shows).
+
 ## :material-horseshoe: Configuration options
 
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `series[].id` | string | Yes | - | Sets the unique name for the series inside the graph. |
 | `series[].entity_index` | entity index | Yes | - | Selects the entity whose history is displayed. |
-| `series[].name` | string | No | entity name | Sets the name shown in the legend and tooltip. |
+| `series[].name` | string or structured name | No | area and entity name | Sets the name shown in the legend and tooltip. |
 | `series[].color` | color | No | automatic palette | Sets a fixed color for the series. |
 | `series[].sparkline` | mapping | No | shared sparkline settings | Changes the chart type or chart-specific settings for this series. |
 | `series[].period` | mapping | No | shared period | Selects a supported period override, such as an earlier day. |

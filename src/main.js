@@ -146,6 +146,7 @@ class FlexHorseshoeCard extends LitElement {
     this.templates.setHass(hass);
     this.homeAssistant.setHass(hass);
     const localeChanged = this.homeAssistant.localeChanged;
+    const entityDisplayChanged = this.homeAssistant.entityDisplayChanged;
     const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
 
@@ -168,9 +169,9 @@ class FlexHorseshoeCard extends LitElement {
       this.entities[index] = entity;
     });
 
-    // Entity, locale and theme changes publish a new Hass context to every
-    // context-dependent card domain during this update pass.
-    const hassContextChanged = configuredEntityStateChanged || localeChanged || themeChanged;
+    // Entity state, display metadata, locale and theme changes publish a new
+    // Hass context to every context-dependent card domain during this pass.
+    const hassContextChanged = configuredEntityStateChanged || localeChanged || entityDisplayChanged || themeChanged;
 
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
@@ -310,6 +311,7 @@ class FlexHorseshoeCard extends LitElement {
     this.cardEntities.markStateHandled();
     this.cardLayout.markGroupsHandled();
     this.homeAssistant.markLocaleHandled();
+    this.homeAssistant.markEntityDisplayHandled();
 
     // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
     this.cardTheme.markModeHandled();

@@ -174,7 +174,15 @@ export default class NameTool extends BaseTool {
       return this.card._hass.localize(`ui.components.statistics_charts.statistic_types.${this.entity.label}`) || this.entity.label;
     }
 
-    return this.entityConfig.name ?? this.entity.name ?? this.entity.attributes.friendly_name ?? this.entity?.entity_id ?? '?';
+    if (this.entityConfig.name !== undefined) {
+      return this.card._hass.formatEntityName(this.entity, this.entityConfig.name);
+    }
+
+    if (this.entityConfig.attribute !== undefined) {
+      return this.card._hass.formatEntityAttributeName(this.entity, this.entityConfig.attribute);
+    }
+
+    return this.card._hass.formatEntityName(this.entity, { type: 'entity' });
   }
 
   /**

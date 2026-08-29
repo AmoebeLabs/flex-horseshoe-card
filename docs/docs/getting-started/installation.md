@@ -13,6 +13,10 @@ The recommended way to install the Flexible Horseshoe Card is through HACS. This
 
 Manual installation is also available when you prefer to manage the card files yourself.
 
+!!! info "Home Assistant version"
+
+    Flexible Horseshoe Card requires Home Assistant 2026.4 or newer so names, states, attributes, units, and translations follow Home Assistant consistently.
+
 ## :material-horseshoe: Install with HACS
 
 [![hacs\_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)

@@ -15,7 +15,6 @@ import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date
 import { formatTime } from './frontend_mods/common/datetime/format_time.ts';
 import { formatDateTime } from './frontend_mods/common/datetime/format_date_time.ts';
 import { formatNumericDuration } from './frontend_mods/common/datetime/format_duration.ts';
-import { computeStateDisplay } from './frontend_mods/common/entity/compute_state_display.ts';
 import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
@@ -1064,22 +1063,18 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.config.sparkline.show.chart_type === 'state_bands') {
       const entity = this.card.entities[this.entity_index];
+      const entityConfig = this.card.resolvedEntityConfigs[this.entity_index];
       this.stateBandsStateMap = {
         ...this.config.sparkline.state_map,
         map: this.config.sparkline.state_map.map.map((entry) => {
           const state = String(entry.state ?? entry.value);
-          const stateEntity = {
-            ...entity,
-            state,
-          };
-          const formattedState = this.card._hass.formatEntityState?.(entity, state);
-          const formattedStateEntity = this.card._hass.formatEntityState?.(stateEntity);
-          const computedState = computeStateDisplay(this.card._hass.localize, stateEntity, this.card._hass.locale, [], this.card._hass.config, this.card._hass.entities);
-          const displayLabel = [formattedState, formattedStateEntity, computedState].find((label) => label !== undefined && label !== state) ?? formattedState ?? formattedStateEntity ?? computedState;
+          const displayLabel = entityConfig.attribute !== undefined
+            ? this.card._hass.formatEntityAttributeValue(entity, entityConfig.attribute, state)
+            : this.card._hass.formatEntityState(entity, state);
 
           return {
             ...entry,
-            display_label: entry.label ?? displayLabel ?? entry.display_label,
+            display_label: entry.label ?? displayLabel,
           };
         }),
       };
@@ -2325,7 +2320,7 @@ export default class SparklineGraphTool extends BaseTool {
         const seriesBucket = item.graph.bucketMeta[seriesPointIndex];
         const formatted = this.formatSeriesTooltipValue(item, seriesBucket.avg);
         return {
-          label: item.config.name ?? item.entity.attributes.friendly_name ?? item.id,
+          label: this.formatSeriesName(item),
           color: item.config.color ?? item.entityConfig.color ?? item.config.sparkline.line_color[seriesIndex],
           ...formatted,
         };
@@ -5243,6 +5238,39 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
+   * Returns one compact series label for both legend and tooltip.
+   *
+   * Explicit series and entity names keep priority. Automatic names combine
+   * the registry area with the short entity or translated attribute name so
+   * equal measurements from different devices remain distinguishable.
+   *
+   * @param {object} item - Runtime sparkline series item.
+   * @returns {string} Home Assistant formatted series name.
+   */
+  formatSeriesName(item) {
+    if (item.config.name !== undefined) {
+      return this.card._hass.formatEntityName(item.entity, item.config.name);
+    }
+
+    if (item.entityConfig.name !== undefined) {
+      return this.card._hass.formatEntityName(item.entity, item.entityConfig.name);
+    }
+
+    if (item.entityConfig.attribute !== undefined) {
+      const attributeName = this.card._hass.formatEntityAttributeName(item.entity, item.entityConfig.attribute);
+      return this.card._hass.formatEntityName(item.entity, [
+        { type: 'area' },
+        { type: 'text', text: attributeName },
+      ]);
+    }
+
+    return this.card._hass.formatEntityName(item.entity, [
+      { type: 'area' },
+      { type: 'entity' },
+    ]);
+  }
+
+  /**
    * Creates one TextTool per legend label after slot geometry is known.
    * The labels stay at the configured font size; TextTool receives the slot
    * width as a measured ellipsis limit rather than shrinking the font.
@@ -5273,7 +5301,7 @@ export default class SparklineGraphTool extends BaseTool {
     };
 
     const legendItems = items.map((item, index) => {
-      const label = item.config.name ?? item.entity?.attributes?.friendly_name ?? item.id;
+      const label = this.formatSeriesName(item);
       const color = item.config.color ?? item.entityConfig?.color ?? item.config.sparkline.line_color[index];
       const row = horizontal ? Math.floor(index / columns) : index;
       const column = horizontal ? index % columns : 0;

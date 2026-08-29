@@ -10,6 +10,10 @@ const createContext = () => ({
     hasJavascriptTemplates: () => false,
   },
   card: {
+    _hass: {
+      formatEntityState: (_entity, state) => "State " + state,
+      formatEntityAttributeValue: (_entity, attribute, state) => attribute + " " + state,
+    },
     entities: [{ entity_id: 'sensor.test', state: '', attributes: {} }],
     resolvedEntityConfigs: [{}],
     cardLayout: {
@@ -395,6 +399,7 @@ test('select separates matching state, action value and translated presentation'
 
   assert.equal(select.selectedOptionIndex, 0);
   assert.equal(select.config.option_map[0].text, 'Verwarmen');
+  assert.deepEqual(select.optionDisplayTexts, ['Verwarmen', 'Koelen']);
   assert.equal(select.optionActionConfigs[0].tap_action.data.hvac_mode, 'heat');
   assert.equal(select.optionActionConfigs[0].tap_action.data.temperature, 21);
   assert.equal(select.optionActionConfigs[0].hold_action.actions[0].data.mode, 'heat');
@@ -430,11 +435,12 @@ test('select builds and refreshes an omitted option_map from entity attributes',
   assert.deepEqual(
     select.config.option_map.map(({ state, value, text }) => ({ state, value, text })),
     [
-      { state: 'line', value: 'line', text: 'line' },
-      { state: 'area', value: 'area', text: 'area' },
-      { state: 'bar', value: 'bar', text: 'bar' },
+      { state: 'line', value: 'line', text: undefined },
+      { state: 'area', value: 'area', text: undefined },
+      { state: 'bar', value: 'bar', text: undefined },
     ],
   );
+  assert.deepEqual(select.optionDisplayTexts, ['State line', 'State area', 'State bar']);
   assert.equal(select.selectedOptionIndex, 1);
   assert.equal(select.optionActionConfigs[2].tap_action.option, 'bar');
   const unchangedOptionTextTools = select.optionTextTools;
@@ -492,6 +498,7 @@ test('select matches a configured entity attribute and rejects invalid option re
     { attribute: 'preset_mode' },
   );
 
+  assert.deepEqual(select.optionDisplayTexts, ['preset_mode eco', 'preset_mode comfort']);
   assert.equal(select.selectedOptionIndex, 1);
   assert.throws(
     () => ControlSelect.buildOptionActionConfig({

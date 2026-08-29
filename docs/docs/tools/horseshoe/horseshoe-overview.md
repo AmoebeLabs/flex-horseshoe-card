@@ -14,14 +14,16 @@ A horseshoe gauge displays an entity value around a circular or partial-circle s
 
 Horseshoes use the card coordinate system. On a `100 × 100` card, the position `50, 50` marks the center. Wider or taller cards can use coordinates above `100` along their longer dimension.
 
-| The old and mighty Horseshoe | | |
-| - | - | - |
+| The old and mighty Horseshoe | |
+| - | - |
+| ![Flexible Horseshoe Card - Your First Horseshoe](../../assets/screenshots/fhs-your-first-card-horseshoe.png) | ![Flexible Horseshoe Card - Template Card #036 with Horseshoe and Sparkline](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)|
 
-| More advanced Horseshoes | | |
+
+| More Horseshoes | | |
 | - | - | - |
-| ![](../../assets/screenshots/fhs-card-20-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-20o-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-22-electricity--dark.webp) |
-| ![](../../assets/screenshots/fhs-card-24-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-26-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-27-electricity--dark.webp) |
-| ![](../../assets/screenshots/fhs-card-30b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-32b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-33-electricity--dark.webp) |
+| ![Flexible Horseshoe Card - Template Card #020 with Horseshoe Power](../../assets/screenshots/fhs-card-20-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #020v2 with Horseshoe Power](../../assets/screenshots/fhs-card-20o-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #022 with Horseshoe Power](../../assets/screenshots/fhs-card-22-electricity--dark.webp) |
+| ![Flexible Horseshoe Card - Template Card #024 with Horseshoe Power](../../assets/screenshots/fhs-card-24-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #026 with Horseshoe Power](../../assets/screenshots/fhs-card-26-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #027 with Horseshoe Power](../../assets/screenshots/fhs-card-27-electricity--dark.webp) |
+| ![Flexible Horseshoe Card - Template Card #030 with Horseshoe Power](../../assets/screenshots/fhs-card-30b-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #032 with Horseshoe Power](../../assets/screenshots/fhs-card-32b-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #033 with Horseshoe Power](../../assets/screenshots/fhs-card-33-electricity--dark.webp) |
 
 | Wide(r) cards showing textual states | |
 | - | - |

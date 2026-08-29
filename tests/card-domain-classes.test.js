@@ -14,6 +14,9 @@ import Templates from '../src/templates.js';
 import BaseTool from '../src/base-tool.js';
 import ChildCards from '../src/child-cards.js';
 import HorseshoeGauge from '../src/horseshoe-gauge.js';
+import NameTool from '../src/name-tool.js';
+import AreaTool from '../src/area-tool.js';
+import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import { normalizeBaseConfig } from '../src/horseshoe-state.js';
 
 class Connection {
@@ -68,6 +71,103 @@ test('HomeAssistant owns exactly one ready listener across connection changes', 
 
   homeAssistant.disconnected();
   assert.equal(secondConnection.listeners.size, 0);
+});
+
+test('HomeAssistant reports formatter and registry display-context changes', () => {
+  const connection = new Connection();
+  const formatEntityName = () => 'name';
+  const entities = {};
+  const devices = {};
+  const areas = {};
+  const floors = {};
+  const hass = {
+    connection,
+    locale: { language: 'en' },
+    formatEntityName,
+    formatEntityAttributeName: () => 'attribute',
+    formatEntityState: () => 'state',
+    formatEntityAttributeValue: () => 'value',
+    entities,
+    devices,
+    areas,
+    floors,
+  };
+  const homeAssistant = new HomeAssistant(() => {});
+
+  homeAssistant.setHass(hass);
+  assert.equal(homeAssistant.entityDisplayChanged, true);
+  homeAssistant.markEntityDisplayHandled();
+
+  homeAssistant.setHass({ ...hass });
+  assert.equal(homeAssistant.entityDisplayChanged, false);
+
+  homeAssistant.setHass({ ...hass, entities: {} });
+  assert.equal(homeAssistant.entityDisplayChanged, true);
+  homeAssistant.markEntityDisplayHandled();
+
+  homeAssistant.setHass({ ...hass, formatEntityName: () => 'changed' });
+  assert.equal(homeAssistant.entityDisplayChanged, true);
+  homeAssistant.markEntityDisplayHandled();
+
+  homeAssistant.setHass({ ...hass, formatEntityStateToParts: () => [] });
+  assert.equal(homeAssistant.entityDisplayChanged, true);
+});
+
+test('entity presentation tools use Home Assistant formatters and explicit names', () => {
+  const entity = { entity_id: 'sensor.awair_livingroom_temperature', state: '21', attributes: {} };
+  const nameCalls = [];
+  const hass = {
+    formatEntityName: (_entity, name) => {
+      nameCalls.push(name);
+      if (typeof name === 'string') return name;
+      if (Array.isArray(name)) {
+        return name.map((part) => {
+          if (part.type === 'area') return 'Living room';
+          if (part.type === 'entity') return 'Temperature';
+          return part.text;
+        }).join(' ');
+      }
+      return name.type === 'area' ? 'Living room' : 'Temperature';
+    },
+    formatEntityAttributeName: (_entity, attribute) => (attribute === 'current_temperature' ? 'Current temperature' : attribute),
+    formatEntityState: (_entity, state) => 'State ' + state,
+    formatEntityAttributeValue: (_entity, attribute, state) => attribute + ' ' + state,
+  };
+  const card = { _hass: hass };
+  const nameTool = Object.assign(Object.create(NameTool.prototype), { card, entity, entityConfig: {} });
+  const areaTool = Object.assign(Object.create(AreaTool.prototype), { card, entity, entityConfig: {} });
+  const horseshoe = Object.assign(Object.create(HorseshoeGauge.prototype), { card, entityConfig: {}, config: {} });
+  const sparkline = Object.assign(Object.create(SparklineGraphTool.prototype), { card });
+
+  assert.equal(nameTool.buildName(), 'Temperature');
+  nameTool.entityConfig = { attribute: 'current_temperature' };
+  assert.equal(nameTool.buildName(), 'Current temperature');
+  nameTool.entityConfig = { name: [{ type: 'area' }, { type: 'text', text: '-' }, { type: 'entity' }] };
+  assert.equal(nameTool.buildName(), 'Living room - Temperature');
+  assert.deepEqual(nameCalls.at(-1), [{ type: 'area' }, { type: 'text', text: '-' }, { type: 'entity' }]);
+
+  assert.equal(areaTool.buildArea(), 'Living room');
+  areaTool.entityConfig = { area: 'Downstairs' };
+  assert.equal(areaTool.buildArea(), 'Downstairs');
+
+  assert.equal(
+    horseshoe.buildStateMapDisplayLabels({ map: [{ state: 'on' }, { state: 'off', label: 'Disabled' }] }, entity).map[0].display_label,
+    'State on',
+  );
+  horseshoe.entityConfig = { attribute: 'preset_mode' };
+  assert.equal(
+    horseshoe.buildStateMapDisplayLabels({ map: [{ state: 'eco' }] }, entity).map[0].display_label,
+    'preset_mode eco',
+  );
+
+  const item = { config: {}, entityConfig: {}, entity };
+  assert.equal(sparkline.formatSeriesName(item), 'Living room Temperature');
+  item.entityConfig = { attribute: 'current_temperature' };
+  assert.equal(sparkline.formatSeriesName(item), 'Living room Current temperature');
+  item.entityConfig = { name: 'Indoor temperature' };
+  assert.equal(sparkline.formatSeriesName(item), 'Indoor temperature');
+  item.config = { name: 'Today' };
+  assert.equal(sparkline.formatSeriesName(item), 'Today');
 });
 
 test('CardActions preserves item, entity and entity-bound default tap precedence', () => {

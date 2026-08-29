@@ -12,7 +12,7 @@ tags:
 
 A name shows the name of a Home Assistant entity anywhere on the card. Use it for a clear label beside a value, icon, graph, or control.
 
-By default, Flexible Horseshoe Card uses the entity name from Home Assistant. You can provide your own name in the entity configuration.
+By default, Flexible Horseshoe Card uses the short entity name from Home Assistant. When the entity configuration selects an attribute, it uses the translated attribute name instead. You can provide your own name in the entity configuration.
 
 <!-- Name examples image -->
 
@@ -79,6 +79,48 @@ Set `name` on the entity when the card should display another name:
     ```
 
     The configured `name` takes priority over the name supplied by Home Assistant.
+
+## :material-horseshoe: Choose what the name shows
+
+A short name is useful when a card shows one entity. When several rooms or devices show the same measurement, add more context so each label remains recognizable.
+
+Put the following name parts in the order they should appear:
+
+| Type | What the user sees |
+| --- | --- |
+| `entity` | Short entity name, such as `Temperature` |
+| `device` | Device name, such as `Awair Element` |
+| `area` | Area name, such as `Living room` |
+| `floor` | Floor name, such as `Ground floor` |
+| `text` | Text supplied in the card configuration |
+
+This example distinguishes equal measurements from different rooms:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature
+    name:
+      - type: area
+      - type: text
+        text: "-"
+      - type: entity
+
+layout:
+  names:
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+```
+
+The resulting label can be `Living room - Temperature`. Home Assistant supplies the current area, floor, device, and entity names, so those parts follow changes made in Home Assistant. Literal `text` remains exactly as configured.
+
+A plain string is still the simplest choice when the complete label should be fixed:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature
+    name: Indoor temperature
+```
 
 ## :material-horseshoe: Position and alignment
 
