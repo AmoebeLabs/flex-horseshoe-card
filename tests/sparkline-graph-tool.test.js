@@ -4,7 +4,7 @@ import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import SparklineSeries from '../src/sparkline-series.js';
 import SparklineGraph from '../src/sparkline-graph.js';
 
-test('dynamic calendar period initializes and clamps a rolling duration to one day', () => {
+test('dynamic sparkline config preserves zero thresholds and clamps a calendar day', () => {
   const previousWindow = globalThis.window;
   const previousConsoleWarn = console.warn;
   const warnings = [];
@@ -85,6 +85,16 @@ test('dynamic calendar period initializes and clamps a rolling duration to one d
     tool.updateRuntimeConfig();
 
     assert.equal(warnings.length, 1);
+
+    card.evaluateJavascriptTemplates = false;
+    card.cardTheme.modeChanged = true;
+    tool.config.sparkline.colorstops.colors = [
+      { value: -10, color: '#1565c0' },
+      { value: 0, color: '#d32f2f' },
+    ];
+    tool.updateRuntimeConfig();
+
+    assert.equal(tool.gradeRanks[0].rangeMax[0], 0);
   } finally {
     globalThis.window = previousWindow;
     console.warn = previousConsoleWarn;
@@ -244,6 +254,33 @@ test('bar fade reverses at zero for positive and negative values', () => {
   assert.deepEqual(gradients[1].values.slice(1, 3), ['100%', '0%']);
   assert.equal(gradients[1].values[0], 'bar-fill-fade-test-card-3-0-1');
   assert.equal(tool.renderSvgBarsBackground([{ value: 5 }], 0), '');
+});
+
+test('area fade uses the fixed color belonging to each series', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const lineColors = ['#1565c0', '#d32f2f'];
+  const makeItem = (id) => ({
+    id,
+    entityConfig: {},
+    graph: { drawArea: { height: 40 } },
+    config: {
+      sparkline: {
+        show: { chart_type: 'area', fill: 'fade' },
+        line_color: lineColors,
+      },
+    },
+  });
+
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 2,
+    sparklineSeries: { items: [makeItem('first'), makeItem('second')] },
+  });
+
+  const gradients = tool.renderSeriesAreaGradients();
+
+  assert.ok(gradients[0].values.includes('#1565c0'));
+  assert.ok(gradients[1].values.includes('#d32f2f'));
 });
 
 test('accepted history keeps its update flag active through the card pipeline', async () => {

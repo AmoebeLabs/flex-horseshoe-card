@@ -17,6 +17,7 @@ const graphConfig = {
       logarithmic: false,
     },
     dots: { radius: 2 },
+    radial_barcode: { size: 5 },
     line: { show_dots: false, show_minmax: false },
     area: { show_dots: false, show_minmax: false },
   },

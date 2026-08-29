@@ -630,7 +630,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.radialBarcodeChartBackground = [];
     this.graded = [];
     this.stateBands = [];
-    this.radialBarcodeChartWidth = Utils.calculateSvgDimension(this.config?.sparkline?.radial_barcode?.size || 5);
+    this.radialBarcodeChartWidth = Utils.calculateSvgDimension(this.config.sparkline.radial_barcode.size);
     this.linePath = undefined;
     this.lineMinPath = undefined;
     this.lineMaxPath = undefined;
@@ -1165,7 +1165,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.gradeRanks[rankIndex].color = value.color;
       this.gradeRanks[rankIndex].value.push(value.value);
       this.gradeRanks[rankIndex].rangeMin.push(value.value);
-      this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value || Infinity);
+      this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value ?? Infinity);
       return true;
     });
     const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
@@ -5180,15 +5180,15 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Area fade gradients.
    */
   renderSeriesAreaGradients() {
-    return this.sparklineSeries.items.map((item) => {
+    return this.sparklineSeries.items.map((item, index) => {
       const { config, graph } = item;
       if (config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
 
       const gradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
       return svg`
         <linearGradient id=${gradientId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2=${graph.drawArea.height}>
-          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[0]} offset="0%" stop-opacity="1"></stop>
-          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[0]} offset="100%" stop-opacity="0.1"></stop>
+          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index]} offset="0%" stop-opacity="1"></stop>
+          <stop stop-color=${config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index]} offset="100%" stop-opacity="0.1"></stop>
         </linearGradient>
       `;
     });

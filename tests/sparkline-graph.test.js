@@ -17,6 +17,7 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     show: { chart_type: chartType, points: false },
     state_values: { aggregate_func: 'avg', smoothing, logarithmic: false },
     dots: { radius: 2 },
+    radial_barcode: { size: 5 },
     line: { show_minmax: showLineMinMax, show_dots: false },
     area: { show_minmax: showAreaMinMax, show_dots: false },
   },
