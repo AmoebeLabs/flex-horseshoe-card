@@ -99,7 +99,7 @@ export default class SparklineGraph {
     this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName] || this._average;
     this._smoothing = this.config.sparkline.state_values?.smoothing;
     this._logarithmic = this.config.sparkline.state_values?.logarithmic;
-    this._groupBy = this.config.period.groupBy;
+    this._groupBy = this.config.period.group_by;
     this._endTime = 0;
     this.valuesPerBucket = 0;
     this.levelCount = 1;

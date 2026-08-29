@@ -7,7 +7,7 @@ const graphConfig = {
   geometry: { line_width: 0, column_spacing: 4 },
   period: {
     type: 'real_time',
-    groupBy: 'interval',
+    group_by: 'interval',
   },
   sparkline: {
     show: { chart_type: 'line', points: false },
@@ -115,6 +115,14 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
       series: [{ id: 'temperature', entity_index: 0, y_axis_id: 'right' }],
     }),
     /y_axis_id must be primary or secondary/,
+  );
+
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'temperature', entity_index: 0, y_axis: 'secondary' }],
+    }),
+    /uses y_axis for axis configuration; assign the series with y_axis_id/,
   );
 });
 

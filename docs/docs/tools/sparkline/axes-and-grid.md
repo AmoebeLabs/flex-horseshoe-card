@@ -48,7 +48,7 @@ The X-axis represents time. The Y-axis represents values or mapped states.
 | `x_axis` | mapping | No | default X-axis styling | Adjusts X-axis labels and appearance. |
 | `y_axis` | mapping | No | default Y-axis styling | Adjusts Y-axis labels and appearance. |
 | `margin` | number or mapping | No | `0` | Adds space around the plotted data. |
-| `series[].y_axis` | string | No | `primary` | Assigns a series to the `primary` or `secondary` Y-axis. |
+| `series[].y_axis_id` | string | No | `primary` | Assigns a series to the `primary` or `secondary` Y-axis. |
 
 ## :material-horseshoe: Style labels
 
@@ -73,12 +73,12 @@ series:
   - id: temperature
     entity_index: 0
     color: "#42a5f5"
-    y_axis: primary
+    y_axis_id: primary
 
   - id: humidity
     entity_index: 1
     color: "#66bb6a"
-    y_axis: secondary
+    y_axis_id: secondary
 ```
 
 The primary axis is shown on the left and the secondary axis on the right.
