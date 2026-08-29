@@ -991,19 +991,19 @@ export default class SparklineGraphTool extends BaseTool {
       this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
     }
 
-    // Fixed graph bounds form one explicit range. Validate them here so the
-    // graph engine can use concrete numbers without runtime fallback logic.
+    // Each configured side fixes that edge of the visible range. The series
+    // coordinator calculates the omitted edge from the active graph data.
     if (this.configChanged) {
       const hasLowerBound = this.config.y_axis.lower_bound !== undefined;
       const hasUpperBound = this.config.y_axis.upper_bound !== undefined;
 
-      if (hasLowerBound !== hasUpperBound) {
-        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be configured together');
+      if (hasLowerBound && !Number.isFinite(Number(this.config.y_axis.lower_bound))) {
+        throw new Error('[sparklines] y_axis.lower_bound must be numeric');
       }
-      if (hasLowerBound && (!Number.isFinite(Number(this.config.y_axis.lower_bound)) || !Number.isFinite(Number(this.config.y_axis.upper_bound)))) {
-        throw new Error('[sparklines] y_axis.lower_bound and y_axis.upper_bound must be numeric');
+      if (hasUpperBound && !Number.isFinite(Number(this.config.y_axis.upper_bound))) {
+        throw new Error('[sparklines] y_axis.upper_bound must be numeric');
       }
-      if (hasLowerBound && Number(this.config.y_axis.lower_bound) >= Number(this.config.y_axis.upper_bound)) {
+      if (hasLowerBound && hasUpperBound && Number(this.config.y_axis.lower_bound) >= Number(this.config.y_axis.upper_bound)) {
         throw new Error('[sparklines] y_axis.lower_bound must be smaller than y_axis.upper_bound');
       }
     }

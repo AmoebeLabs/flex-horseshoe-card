@@ -667,6 +667,18 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   tool.updateCartesianSeriesGraphs();
 
   assert.deepEqual(calls, [[10, -10, 50], [30, 0, 100]]);
+
+  first.graph.min = 10;
+  first.graph.max = 20;
+  second.graph.min = 30;
+  second.graph.max = 40;
+  first.config.y_axis = { lower_bound: -1 };
+  second.config.y_axis = { upper_bound: 100 };
+  calls.length = 0;
+
+  tool.updateCartesianSeriesGraphs();
+
+  assert.deepEqual(calls, [[10, -1, 20], [30, 30, 100]]);
 });
 
 

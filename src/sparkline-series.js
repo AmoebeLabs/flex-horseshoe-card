@@ -204,12 +204,13 @@ export default class SparklineSeries {
     [primaryItems, secondaryItems].forEach((axisItems) => {
       if (axisItems.length === 0) return;
 
-      const configuredBoundsItem = axisItems.find((item) => item.config.y_axis.lower_bound !== undefined);
-      const lowerBound = configuredBoundsItem !== undefined
-        ? Number(configuredBoundsItem.config.y_axis.lower_bound)
+      const configuredLowerBoundItem = axisItems.find((item) => item.config.y_axis.lower_bound !== undefined);
+      const configuredUpperBoundItem = axisItems.find((item) => item.config.y_axis.upper_bound !== undefined);
+      const lowerBound = configuredLowerBoundItem !== undefined
+        ? Number(configuredLowerBoundItem.config.y_axis.lower_bound)
         : Math.min(...axisItems.map((item) => item.graph.min));
-      const upperBound = configuredBoundsItem !== undefined
-        ? Number(configuredBoundsItem.config.y_axis.upper_bound)
+      const upperBound = configuredUpperBoundItem !== undefined
+        ? Number(configuredUpperBoundItem.config.y_axis.upper_bound)
         : Math.max(...axisItems.map((item) => item.graph.max));
 
       axisItems.forEach((item) => {
