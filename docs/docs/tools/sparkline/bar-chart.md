@@ -14,7 +14,11 @@ A bar chart shows every time bin as a separate vertical bar. Positive and negati
 Use it for hourly energy, rainfall, production, counts, or another history where individual intervals should remain visually distinct.
 
 <!-- Add a bar chart screenshot here. -->
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-bars-study-co2--dark.webp)
+![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-card-bars-study-co2--dark.webp)
+
+See: [Sparkline History Template Card #060]
+
+  [Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml
 
 ## :material-horseshoe: Basic configuration
 

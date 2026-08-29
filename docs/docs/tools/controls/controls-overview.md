@@ -17,7 +17,7 @@ Use controls with Home Assistant entities when the value belongs to Home Assista
   "2026.08.13-fhs-showcase-controls.mp4",
   "Interactive controls in the Flexible Horseshoe Card",
   "Buttons, toggles, selectors, number steppers, and sliders shown in one card.",
-  "fhs-demo-card-awair-selectable--dark.png",
+  "fhs-card-awair-selectable--dark.png",
   "2026-08-13",
   "PT0M45S",
   "400px") }}

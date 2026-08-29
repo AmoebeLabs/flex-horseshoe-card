@@ -14,7 +14,7 @@ A barcode shows each time bin as a colored column. Use it when threshold changes
 It works well for temperature ranges, air quality, tariffs, occupancy, warnings, and other histories that can be understood from color alone.
 
 <!-- Add a barcode chart screenshot here. -->
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp)
+![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-card-barcode_audio-study-voc--dark.webp)
 
 ## :material-horseshoe: Basic configuration
 

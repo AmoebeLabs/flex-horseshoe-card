@@ -16,7 +16,7 @@ It works well for heating modes, occupancy, machine states, alarms, doors, or an
 The state band sparkline is inspired by the Sleep Cycle visualizations from Apple Health and others.
 
 <!-- Add a state-bands chart screenshot here. -->
-![Flexible Horseshoe sparkline state band example](../../assets/screenshots/fhs-demo-card-state_band-pollen-kruiden--dark.webp)
+![Flexible Horseshoe sparkline state band example](../../assets/screenshots/fhs-card-state_band-pollen-kruiden--dark.webp)
 
 ## :material-horseshoe: Basic configuration
 

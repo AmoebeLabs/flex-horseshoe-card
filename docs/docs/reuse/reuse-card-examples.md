@@ -17,7 +17,7 @@ Each example includes the full YAML, making it easier to see which parts are def
 
 ## :material-horseshoe: Example Card 30
 
-![Electricity card with total and per-phase horseshoe gauges](../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp)
+![Electricity card with total and per-phase horseshoe gauges](../assets/screenshots/fhs-card-30b-electricity--dark.webp)
 
 Card 30 is an electricity card built with data from the DSMR Reader integration.
 
@@ -327,7 +327,7 @@ The main horseshoe uses the shared color-stop definition through `ref(defaultCol
 
 ## :material-horseshoe: Example Card 32
 
-![Electricity card with one total and three reused phase horseshoe gauges](../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp)
+![Electricity card with one total and three reused phase horseshoe gauges](../assets/screenshots/fhs-card-32b-electricity--dark.webp)
 
 Card 32 also uses the DSMR Reader integration.
 

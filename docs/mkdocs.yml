@@ -188,7 +188,10 @@ markdown_extensions:
       options:
         custom_icons:
           - overrides/.icons
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.magiclink:
       repo_url_shorthand: true

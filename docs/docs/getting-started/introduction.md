@@ -26,13 +26,13 @@ Horseshoes can have different sizes and radii, with detailed tick marks and labe
 
 More specialized horseshoes can also show non-numerical states, as in this Kleenex Pollen Radar example:
 
-![Kleenex Pollen Radar card with horseshoe gauges for textual pollen states](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
+![Kleenex Pollen Radar card with horseshoe gauges for textual pollen states](../assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp)
 
 Sparkline graphs show current and historical values over time. [Several graph types](../tools/sparkline/sparkline-overview.md) are available.
 
 The example shows the full sparkline functionality, including axes, labels, and a grid. These elements are optional, so a graph can also be used as a simple sparkline to provide additional historical context.
 
-![Awair study temperature history shown as a daily area chart](../assets/screenshots/fhs-demo-card-study-temperature-area-day--dark.webp)
+![Awair study temperature history shown as a daily area chart](../assets/screenshots/fhs-card-study-temperature-area-day--dark.webp)
 
 The card also supports [tap actions](../interaction/interaction-overview.md) and [predefined controls](../tools/controls/controls-overview.md), so values can be displayed and controlled from the same card.
 
@@ -42,7 +42,7 @@ The card also supports [tap actions](../interaction/interaction-overview.md) and
 "fhs-demo-card-awair-selectable--dark.mp4",
 "Interactive Awair showcase built with Flexible Horseshoe Card in Home Assistant",
 "A complete demonstration of the Flexible Horseshoe Card using three Awair Elements. Select a room and sensor to explore their current values, history, and history duration.",
-"fhs-demo-card-awair-selectable--dark.png",
+"fhs-card-awair-selectable--dark.png",
 "2026-08-15",
 "PT0M30S",
 "720px") }}

@@ -82,13 +82,13 @@ Continue with [Card Structure][card-structure], [Entity Definitions][entity-defi
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-30a-electricity--dark.png" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-30a-electricity--dark.png" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Electricity card examples</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>
@@ -96,13 +96,13 @@ Continue with [Card Structure][card-structure], [Entity Definitions][entity-defi
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-study-temperature-area-minmax--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-study-temperature-area-minmax--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-cartesian-charts/">Cartesian history charts</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-study-temperature-week-radial_barcode-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-study-temperature-week-radial_barcode-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/sections/sparkline-specialized-charts/">Specialized history charts</a>
     </td>

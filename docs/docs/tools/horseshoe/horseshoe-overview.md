@@ -19,14 +19,14 @@ Horseshoes use the card coordinate system. On a `100 × 100` card, the position 
 
 | More advanced Horseshoes | | |
 | - | - | - |
-| ![](../../assets/screenshots/fhs-demo-card-20-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-22-electricity--dark.webp) |
-| ![](../../assets/screenshots/fhs-demo-card-24-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-26-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-27-electricity--dark.webp) |
-| ![](../../assets/screenshots/fhs-demo-card-30b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-32b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-33-electricity--dark.webp) |
+| ![](../../assets/screenshots/fhs-card-20-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-20o-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-22-electricity--dark.webp) |
+| ![](../../assets/screenshots/fhs-card-24-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-26-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-27-electricity--dark.webp) |
+| ![](../../assets/screenshots/fhs-card-30b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-32b-electricity--dark.webp) | ![](../../assets/screenshots/fhs-card-33-electricity--dark.webp) |
 
 | Wide(r) cards showing textual states | |
 | - | - |
-| ![](../../assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp) |
-| ![](../../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp) |
+| ![](../../assets/screenshots/fhs-card-52-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-card-53-kleenex-pollen-radar--dark.webp) |
+| ![](../../assets/screenshots/fhs-card-54-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp) |
 
 ## :material-horseshoe: Basic configuration
 

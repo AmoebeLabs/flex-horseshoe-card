@@ -35,19 +35,19 @@ Below are some examples of what the Flexible Horseshoe Card can do. The gallery 
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-2-weather--dark.webp" alt="Flexible Horseshoe Card weather with colorstop gradient example" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-2-weather--dark.webp" alt="Flexible Horseshoe Card weather with colorstop gradient example" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Horseshoe Examples</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-32c-electricity--dark.webp" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-32c-electricity--dark.webp" alt="Flexible Horseshoe Card electricity dashboard example" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">Electricity card examples</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-34-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card pollen radar example" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>
@@ -55,19 +55,19 @@ Below are some examples of what the Flexible Horseshoe Card can do. The gallery 
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-overview/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-4-negative-weather--dark.webp" alt="Flexible Horseshoe Card dual mode negative and positive" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-4-negative-weather--dark.webp" alt="Flexible Horseshoe Card dual mode negative and positive" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/horseshoe/horseshoe-overview/">Horseshoes</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-barcode_audio-study-voc--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-barcode_audio-study-voc--dark.webp" alt="Flexible Horseshoe Card area chart with minimum and maximum values" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/sparkline-overview/">Cartesian history charts</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/radial-barcode/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-radial_barcode-sunburst_outward-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
+        <img src="docs/docs/assets/screenshots/fhs-card-radial_barcode-sunburst_outward-flower--dark.webp" alt="Flexible Horseshoe Card radial barcode history chart" width="420">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/tools/sparkline/radial-barcode/">Specialized history charts</a>
     </td>
@@ -79,13 +79,13 @@ Below are some examples of what the Flexible Horseshoe Card can do. The gallery 
   <tr>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
+        <img src="docs/docs/assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>
     <td align="center">
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-electricity-many/">
-        <img src="docs/docs/assets/screenshots/fhs-demo-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
+        <img src="docs/docs/assets/screenshots/fhs-card-52-kleenex-pollen-radar--dark.webp" alt="Flexible Horseshoe Card weather with Pollen Radar information" width="390">
       </a><br>
       <a href="https://flexible-horseshoe-card-manual.amoebelabs.com/examples/demo-cards/demo-card-kleenex-pollen-many/">Pollen radar card examples</a>
     </td>

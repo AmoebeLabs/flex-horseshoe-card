@@ -15,7 +15,7 @@ Like a linear barcode, color carries the value or state. The radial layout also 
 
 <!-- Add radial barcode variant screenshots here. -->
 
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-demo-card-study-temperature-week-radial_barcode-flower--dark.webp)
+![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-card-study-temperature-week-radial_barcode-flower--dark.webp)
 
 
 ## :material-horseshoe: Basic configuration
@@ -107,7 +107,7 @@ Choose the chart type, then how values should occupy its ring, and finally the v
   "fhs-demo-card-sparkline-radial-barcode-showcase.webm",
   "Interactive Radial Barcode showcase build with Flexible Horseshoe Card in Home Assistant",
   "A complete demonstration of the Sparkline Radial Barcode chart possibilities.",
-  "fhs-demo-card-awair-selectable--dark.png",
+  "fhs-card-awair-selectable--dark.png",
   "2026-08-28",
   "PT0M20S",
   "720px") }}

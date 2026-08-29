@@ -12,7 +12,7 @@ tags:
 A graded chart divides numeric history into ordered color bands. Use it when threshold ranges, such as an Awair score from poor to excellent, matter more than an exact numeric height.
 
 <!-- Add a graded chart screenshot here. -->
-![Flexible Horseshoe graded chart with ordered air-quality levels](../../assets/screenshots/fhs-demo-card-graded-awair--dark.webp)
+![Flexible Horseshoe graded chart with ordered air-quality levels](../../assets/screenshots/fhs-card-graded-awair--dark.webp)
 
 ## :material-horseshoe: Basic configuration
 

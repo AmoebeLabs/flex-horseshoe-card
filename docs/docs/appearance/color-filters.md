@@ -24,7 +24,7 @@ The following cards demonstrate several ways to apply color filters.
 
 Card 55 keeps the original pollen colors for the active horseshoe state but applies a grayscale range to the horseshoe scale. The scale still uses color stops internally, while the filter converts the rendered scale colors to gray so the active segments stand out more clearly.
 
-![Pollen radar card with a grayscale horseshoe scale and colored active state](../assets/screenshots/fhs-demo-card-55-kleenex-pollen-radar--dark.webp)
+![Pollen radar card with a grayscale horseshoe scale and colored active state](../assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp)
 
 ```yaml linenums="1" hl_lines="6-9"
 horseshoe_scale:
@@ -40,7 +40,7 @@ horseshoe_scale:
 
 Card 54 applies grayscale and lightness filters at the card level.
 
-![Pollen radar card with card-level grayscale and lightness filters](../assets/screenshots/fhs-demo-card-54-kleenex-pollen-radar--dark.webp)
+![Pollen radar card with card-level grayscale and lightness filters](../assets/screenshots/fhs-card-54-kleenex-pollen-radar--dark.webp)
 
 ```yaml linenums="1" hl_lines="2-6"
 - type: custom:flex-horseshoe-card
@@ -65,7 +65,7 @@ Card 53 uses a similar card-level filter with a different grayscale and lightnes
       max: 0.7
 ```
 
-![Pollen radar card with a grayscale and lightness filter variation](../assets/screenshots/fhs-demo-card-53-kleenex-pollen-radar--dark.webp)
+![Pollen radar card with a grayscale and lightness filter variation](../assets/screenshots/fhs-card-53-kleenex-pollen-radar--dark.webp)
 
 The final comparison shows:
 
@@ -74,8 +74,8 @@ The final comparison shows:
 
 The central arc background keeps its original color because inheritance is disabled for that item.
 
-![Original electricity card colors](../assets/screenshots/fhs-demo-card-20o-electricity--dark.webp){width=300}
-![Electricity card with a teal monochrome filter](../assets/screenshots/fhs-demo-card-20t-electricity--dark.webp){width=300}
+![Original electricity card colors](../assets/screenshots/fhs-card-20o-electricity--dark.webp){width=300}
+![Electricity card with a teal monochrome filter](../assets/screenshots/fhs-card-20t-electricity--dark.webp){width=300}
 
 ```yaml linenums="1" hl_lines="2-9 18-19"
 - type: custom:flex-horseshoe-card
