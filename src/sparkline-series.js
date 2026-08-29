@@ -15,9 +15,22 @@ export default class SparklineSeries {
    * @param {object} config - Validated sparkline layout item configuration.
    */
   constructor(config) {
-    const configuredSeries = config.series === undefined
-      ? [{ id: 'default', entity_index: config.entity_index }]
-      : config.series;
+    this.items = [];
+    this.updateConfig(config);
+  }
+
+  /**
+   * Builds complete per-series configuration while retaining runtime history
+   * and graph state. Public YAML without series enters the same collection as
+   * one implicit item; explicit items override the normalized parent config.
+   *
+   * @param {object} config - Validated static or runtime sparkline configuration.
+   */
+  updateConfig(config) {
+    const hasExplicitSeries = config.series !== undefined;
+    const configuredSeries = hasExplicitSeries
+      ? config.series
+      : [{ id: 'default', entity_index: config.entity_index }];
     const ids = new Set();
 
     configuredSeries.forEach((seriesConfig) => {
@@ -33,7 +46,7 @@ export default class SparklineSeries {
       if (typeof seriesConfig.y_axis === 'string') {
         throw new Error(`[sparklines] series '${seriesConfig.id}' uses y_axis for axis configuration; assign the series with y_axis_id`);
       }
-      if (config.series !== undefined && seriesConfig.period !== undefined) {
+      if (hasExplicitSeries && seriesConfig.period !== undefined) {
         const periodType = config.period.type;
         const periodOverride = seriesConfig.period[periodType];
 
@@ -51,7 +64,7 @@ export default class SparklineSeries {
         throw new Error(`[sparklines] series '${seriesConfig.id}' y_axis_id must be primary or secondary`);
       }
       const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
-      if (config.series !== undefined && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
+      if (hasExplicitSeries && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
         throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots or bar`);
       }
       ids.add(seriesConfig.id);
@@ -59,8 +72,16 @@ export default class SparklineSeries {
 
     this.items = configuredSeries.map((seriesConfig) => {
       const effectiveConfig = Merge.mergeDeep({}, config, seriesConfig);
+      const existingItem = this.items.find((item) => item.id === seriesConfig.id);
       delete effectiveConfig.id;
       delete effectiveConfig.series;
+
+      if (existingItem !== undefined) {
+        existingItem.entity_index = seriesConfig.entity_index;
+        existingItem.y_axis_id = seriesConfig.y_axis_id ?? 'primary';
+        existingItem.config = effectiveConfig;
+        return existingItem;
+      }
 
       return {
         id: seriesConfig.id,
@@ -84,6 +105,7 @@ export default class SparklineSeries {
         historyPeriodSignature: JSON.stringify(effectiveConfig.period),
       };
     });
+    this.hasExplicitSeries = hasExplicitSeries;
   }
 
   /** Returns the established single-series item for existing renderer paths. */
