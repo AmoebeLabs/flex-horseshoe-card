@@ -3,7 +3,7 @@ import SparklineGraph from './sparkline-graph.js';
 import Utils from './utils.js';
 
 /**
- * Coordinates the graph engines belonging to one sparkline item.
+ * Coordinates the graph engines belonging to one sparkline layout item.
  *
  * Existing YAML produces one implicit default item. Explicit series inherit the
  * sparkline item config and override only their own source and graph settings.
@@ -109,8 +109,12 @@ export default class SparklineSeries {
     this.hasExplicitSeries = hasExplicitSeries;
   }
 
-  /** Returns the established single-series item for existing renderer paths. */
-  get defaultItem() {
+  /**
+   * Returns item zero of the normalized collection. It supplies shared
+   * presentation such as axes, pointer interaction, and existing statistics;
+   * its data, history, and graph lifecycle is identical to every other item.
+   */
+  get primaryItem() {
     return this.items[0];
   }
 
@@ -168,13 +172,13 @@ export default class SparklineSeries {
    * Axis margins are measured by the Lit tool; bounds, plot extents, and bar
    * slots are coordinated here before the tool builds its SVG presentation.
    *
-   * @param {object} axisMargin - Space measured for shared axes and labels.
+   * @param {Function} measureAxisMargin - Reads shared axes and labels after graph data exists.
    * @param {object} configuredMargin - User-configured plot margin.
    * @param {number} columnSpacing - Horizontal spacing between grouped bars.
    * @param {number} rowSpacing - Vertical spacing used by bar geometry.
    * @returns {object} Shared readiness, axes, and final margin state.
    */
-  updateCartesianGraphs(axisMargin, configuredMargin, columnSpacing, rowSpacing) {
+  updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
       item.graph.update(item.rows);
@@ -185,7 +189,6 @@ export default class SparklineSeries {
       return {
         ready: false,
         axisGraphs: { primary: undefined, secondary: undefined },
-        axisMargin,
       };
     }
 
@@ -195,6 +198,8 @@ export default class SparklineSeries {
       primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
       secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
     };
+
+    const axisMargin = measureAxisMargin(axisGraphs);
 
     [primaryItems, secondaryItems].forEach((axisItems) => {
       if (axisItems.length === 0) return;

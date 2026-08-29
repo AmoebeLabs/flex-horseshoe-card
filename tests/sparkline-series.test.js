@@ -32,13 +32,13 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   const series = new SparklineSeries(graphConfig);
 
   assert.equal(series.items.length, 1);
-  assert.equal(series.defaultItem.id, 'default');
-  assert.deepEqual(series.defaultItem.config, graphConfig);
-  assert.deepEqual(series.defaultItem.rows, []);
-  assert.equal(series.defaultItem.graph, undefined);
+  assert.equal(series.primaryItem.id, 'default');
+  assert.deepEqual(series.primaryItem.config, graphConfig);
+  assert.deepEqual(series.primaryItem.rows, []);
+  assert.equal(series.primaryItem.graph, undefined);
 
   series.createGraph(
-    series.defaultItem,
+    series.primaryItem,
     120,
     100,
     { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 },
@@ -48,16 +48,16 @@ test('normalizes existing sparkline config into one coordinator-owned default se
     [],
     {},
   );
-  series.setRows(series.defaultItem, [{ state: 12 }]);
+  series.setRows(series.primaryItem, [{ state: 12 }]);
 
-  assert.deepEqual(series.defaultItem.config, graphConfig);
-  assert.equal(series.defaultItem.graph.config, graphConfig);
-  assert.deepEqual(series.defaultItem.rows, [{ state: 12 }]);
+  assert.deepEqual(series.primaryItem.config, graphConfig);
+  assert.equal(series.primaryItem.graph.config, graphConfig);
+  assert.deepEqual(series.primaryItem.rows, [{ state: 12 }]);
   assert.equal(series.updateGraphs()[0], true);
 
   series.clearGraphs();
 
-  assert.equal(series.defaultItem.graph, undefined);
+  assert.equal(series.primaryItem.graph, undefined);
 });
 
 
@@ -189,7 +189,7 @@ test('allows cartesian line, area, dots and bar series with an offset-only perio
     ],
   });
 
-  assert.equal(bars.defaultItem.config.sparkline.show.chart_type, 'bar');
+  assert.equal(bars.primaryItem.config.sparkline.show.chart_type, 'bar');
   assert.equal(bars.items[1].config.period.rolling_window.offset, -1);
 
   assert.throws(
