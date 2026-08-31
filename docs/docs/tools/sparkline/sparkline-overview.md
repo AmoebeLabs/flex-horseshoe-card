@@ -10,7 +10,28 @@ tags:
 
 # Sparkline graphs
 
-A sparkline graph shows how an entity value changes over time. Use it to follow a recent trend, see today's progress, compare rooms or sensors, or show when a named state was active.
+According to the internet, a sparkline is a very small, simple data visualization designed to show a trend over time at a glance. Unlike traditional charts, it strips away all non-essential elements to maximize information density.
+
+A "true" sparkline therefore has no axes, no grid and no labels.
+
+### From basic sparklines...
+An example of such a true sparkline is shown in the next example: an extended horseshoe with a simple sparkline to show the trend over the last 24 hours.
+
+![](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)
+
+Another example (card #061) shows a minimal card with an icon, sensor, state and a sparkline for today:
+
+![](../../assets/screenshots/fhs-true-sparkline-example.png)
+![](../../assets/screenshots/fhs-card-061-sensor-icon-name-state-history-b.png)
+
+And last but not least, card #062 which is even more compact than card #061
+
+![](../../assets/screenshots/fhs-card-062-sensor-icon-name-state-history.png)
+
+### ...to more variations with axes, tick marks and labels
+The Flexible Horseshoe Sparkline implementation is not limited to these "true" sparklines: you can add a grid, tick marks and labels to the sparkline graph.
+
+This makes it easier in larger sparkline graphs to see how an entity value changes over time. Use it to follow a recent trend, see today's progress, compare rooms or sensors, or show when a named state was active.
 
 Choose the time period, level of detail, and chart type that fit the information you want to see. A graph can remain compact and visual, or include axes, labels, statistics, a legend, and a tooltip for closer inspection.
 
