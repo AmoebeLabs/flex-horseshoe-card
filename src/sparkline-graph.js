@@ -1016,9 +1016,14 @@ export default class SparklineGraph {
   getPoints() {
     let { coords } = this;
     if (coords.length === 1) {
-      coords[1] = [this.drawArea.x + this.drawArea.width, 0, coords[0][V]];
+      // Real-time charts represent one current value across their complete width.
+      // Historical charts retain the configured time axis and occupy one bin.
+      const singletonWidth = this.config.period.type === 'real_time'
+        ? this.drawArea.width
+        : this.drawArea.width / (this.hours * this.points - 1);
+      coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
     }
-    coords = this._calcY(this.coords);
+    coords = this._calcY(coords);
     let next;
     let Z;
     let last = coords[0];
@@ -1042,9 +1047,14 @@ export default class SparklineGraph {
   getPath() {
     let { coords } = this;
     if (coords.length === 1) {
-      coords[1] = [this.drawArea.x + this.drawArea.width, 0, coords[0][V]];
+      // Real-time charts represent one current value across their complete width.
+      // Historical charts retain the configured time axis and occupy one bin.
+      const singletonWidth = this.config.period.type === 'real_time'
+        ? this.drawArea.width
+        : this.drawArea.width / (this.hours * this.points - 1);
+      coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
     }
-    coords = this._calcY(this.coords);
+    coords = this._calcY(coords);
     let next;
     let Z;
     let path = '';
@@ -1070,9 +1080,12 @@ export default class SparklineGraph {
   getPathMin() {
     let { coordsMin } = this;
     if (coordsMin.length === 1) {
-      coordsMin[1] = [this.drawArea.x + this.drawArea.width, 0, coordsMin[0][V]];
+      const singletonWidth = this.config.period.type === 'real_time'
+        ? this.drawArea.width
+        : this.drawArea.width / (this.hours * this.points - 1);
+      coordsMin = [coordsMin[0], [coordsMin[0][X] + singletonWidth, 0, coordsMin[0][V]]];
     }
-    coordsMin = this._calcY(this.coordsMin);
+    coordsMin = this._calcY(coordsMin);
     let next;
     let Z;
     let path = '';
@@ -1099,9 +1112,12 @@ export default class SparklineGraph {
   getPathMax() {
     let { coordsMax } = this;
     if (coordsMax.length === 1) {
-      coordsMax[1] = [this.drawArea.x + this.drawArea.width, 0, coordsMax[0][V]];
+      const singletonWidth = this.config.period.type === 'real_time'
+        ? this.drawArea.width
+        : this.drawArea.width / (this.hours * this.points - 1);
+      coordsMax = [coordsMax[0], [coordsMax[0][X] + singletonWidth, 0, coordsMax[0][V]]];
     }
-    coordsMax = this._calcY(this.coordsMax);
+    coordsMax = this._calcY(coordsMax);
     let next;
     let Z;
     let path = '';

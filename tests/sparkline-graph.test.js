@@ -232,6 +232,43 @@ test('line points and paths preserve smoothing geometry', () => {
   assert.equal(graph.getPath(), 'M10,90 10,90 Q 10,90 35,70 Q 60,50 85,30 Q 110,10 110,10');
 });
 
+test('one real-time value retains the complete graph width', () => {
+  const config = createGraphConfig();
+  config.period = { type: 'real_time', group_by: 'interval' };
+  const graph = createGraph(config);
+  graph.min = 0;
+  graph.max = 20;
+  graph.coords = [[10, 0, 10]];
+
+  assert.equal(graph.getPath(), 'M10,50 10,50 Q 10,50 110,50 Q 110,50 110,50');
+});
+
+test('one calendar bucket occupies only its first interval', () => {
+  const config = createGraphConfig();
+  config.period = {
+    type: 'calendar',
+    group_by: 'interval',
+    calendar: {
+      period: 'day',
+      offset: 0,
+      full_day: true,
+      duration: { hour: 24 },
+      bins: { per_hour: 4 },
+    },
+  };
+  const graph = createGraph(config);
+  graph.min = 0;
+  graph.max = 20;
+  graph.coords = [[10, 0, 10]];
+
+  const firstIntervalEnd = 10 + graph.drawArea.width / (graph.hours * graph.points - 1);
+
+  assert.equal(
+    graph.getPath(),
+    `M10,50 10,50 Q 10,50 ${firstIntervalEnd},50 Q ${firstIntervalEnd},50 ${firstIntervalEnd},50`,
+  );
+});
+
 test('area closes against zero or the nearest visible boundary', () => {
   const graph = createGraph();
   graph.coords = [
