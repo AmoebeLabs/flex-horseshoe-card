@@ -468,7 +468,8 @@ class FlexHorseshoeCard extends LitElement {
 
     // The HA connection emits `ready` after websocket reconnects. Tools use that
     // signal to request fresh history for the reconnected session.
-    this.homeAssistant.connected();
+    // Temporarily disabled to isolate websocket-ready history resynchronization during tab-resume testing.
+    // this.homeAssistant.connected();
 
     // Visual tools may own timers or nested lifecycle-aware content. Forwarding
     // connection here keeps those resources tied to the parent card's DOM life.
