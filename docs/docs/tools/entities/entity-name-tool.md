@@ -12,7 +12,7 @@ tags:
 
 A name shows the name of a Home Assistant entity anywhere on the card. Use it for a clear label beside a value, icon, graph, or control.
 
-By default, Flexible Horseshoe Card uses the short entity name from Home Assistant. When the entity configuration selects an attribute, it uses the translated attribute name instead. You can provide your own name in the entity configuration.
+By default, Flexible Horseshoe Card uses the default (short) entity name from Home Assistant. When the entity configuration selects an attribute, it uses the translated attribute name instead. You can provide your own name in the entity configuration.
 
 <!-- Name examples image -->
 
@@ -52,7 +52,7 @@ layout:
 Set `name` on the entity when the card should display another name:
 
 === "Home Assistant name"
-
+    Home Assistant returns the entity name as the name by default
     ```yaml linenums="1"
     entities:
       - entity: sensor.living_room_temperature
@@ -82,17 +82,20 @@ Set `name` on the entity when the card should display another name:
 
 ## :material-horseshoe: Choose what the name shows
 
+!!! info ":octicons-tag-24: Available for custom cards since Home Assistant 2026.4!"
+    The Flexible Horseshoe Card therefore requires this version as the minimal version.
+
 A short name is useful when a card shows one entity. When several rooms or devices show the same measurement, add more context so each label remains recognizable.
 
 Put the following name parts in the order they should appear:
 
-| Type | What the user sees |
-| --- | --- |
-| `entity` | Short entity name, such as `Temperature` |
-| `device` | Device name, such as `Awair Element` |
-| `area` | Area name, such as `Living room` |
-| `floor` | Floor name, such as `Ground floor` |
-| `text` | Text supplied in the card configuration |
+| Type | default | What the user sees |
+| --- | --- |--- |
+| `entity` | Yes | Short entity name, such as `Temperature` |
+| `device` | No | Device name, such as `Awair Element` |
+| `area` | No | Area name, such as `Living room` |
+| `floor` | No | Floor name, such as `Ground floor` |
+| `text` | No | Text supplied in the card configuration |
 
 This example distinguishes equal measurements from different rooms:
 
