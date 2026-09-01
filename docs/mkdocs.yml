@@ -46,6 +46,7 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
+  favicon: assets/logo/fhs-favicon.svg
   logo: assets/logo/fhs-logo.svg
   custom_dir: overrides
   features:
@@ -65,73 +66,76 @@ plugins:
   - tags
   # - blog
   - macros
+  - sitemap:
+      changefreq: weekly
+      priority: 0.5
   # Preserve indexed URLs when documentation pages move or are combined.
-  - redirects:
-      redirect_maps:
-        # Former section pages
-        "layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
-        "sections/layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
-        "sections/visual-shapes.md": "tools/shapes/shapes-overview.md"
-        "sections/visual-shapes-section.md": "tools/shapes/shapes-overview.md"
-        "sections/areas-section.md": "tools/entities/entity-area-tool.md"
-        "sections/icons-section.md": "tools/entities/entity-icon-tool.md"
-        "sections/names-section.md": "tools/entities/entity-name-tool.md"
-        "sections/states-section.md": "tools/entities/entity-state-tool.md"
-        "sections/entities-section.md": "tools/tools-overview.md"
-        "sections/groups-section.md": "card-basics/groups.md"
-        "sections/layout-overview.md": "card-basics/card-overview.md"
-        "sections/horseshoes-section.md": "tools/horseshoe/horseshoe-overview.md"
-        "sections/horseshoe-scale-and-state.md": "tools/horseshoe/horseshoe-scale-and-state.md"
-        "sections/horseshoe-ticks.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
-        "sections/horseshoe-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
-        "sections/horseshoe-ticks-and-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
-        "sections/sparklines-section.md": "tools/sparkline/sparkline-overview.md"
-        "sections/sparkline-history-periods.md": "tools/sparkline/sparkline-history-periods-and-bins.md"
-        "sections/sparkline-cartesian-charts.md": "tools/sparkline/sparkline-overview.md"
-        "sections/sparkline-specialized-charts.md": "tools/sparkline/sparkline-overview.md"
-        "sections/texts-section.md": "tools/shapes/text-tool.md"
-        "sections/default-haptics.md": "interaction/actions.md"
+  # - redirects:
+  #     redirect_maps:
+  #       # Former section pages
+  #       "layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
+  #       "sections/layout-overview/visual-shapes.md": "tools/shapes/shapes-overview.md"
+  #       "sections/visual-shapes.md": "tools/shapes/shapes-overview.md"
+  #       "sections/visual-shapes-section.md": "tools/shapes/shapes-overview.md"
+  #       "sections/areas-section.md": "tools/entities/entity-area-tool.md"
+  #       "sections/icons-section.md": "tools/entities/entity-icon-tool.md"
+  #       "sections/names-section.md": "tools/entities/entity-name-tool.md"
+  #       "sections/states-section.md": "tools/entities/entity-state-tool.md"
+  #       "sections/entities-section.md": "tools/tools-overview.md"
+  #       "sections/groups-section.md": "card-basics/groups.md"
+  #       "sections/layout-overview.md": "card-basics/card-overview.md"
+  #       "sections/horseshoes-section.md": "tools/horseshoe/horseshoe-overview.md"
+  #       "sections/horseshoe-scale-and-state.md": "tools/horseshoe/horseshoe-scale-and-state.md"
+  #       "sections/horseshoe-ticks.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+  #       "sections/horseshoe-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+  #       "sections/horseshoe-ticks-and-labels.md": "tools/horseshoe/horseshoe-tick-marks-and-labels.md"
+  #       "sections/sparklines-section.md": "tools/sparkline/sparkline-overview.md"
+  #       "sections/sparkline-history-periods.md": "tools/sparkline/sparkline-history-periods-and-bins.md"
+  #       "sections/sparkline-cartesian-charts.md": "tools/sparkline/sparkline-overview.md"
+  #       "sections/sparkline-specialized-charts.md": "tools/sparkline/sparkline-overview.md"
+  #       "sections/texts-section.md": "tools/shapes/text-tool.md"
+  #       "sections/default-haptics.md": "interaction/actions.md"
 
-        # Former card-configuration pages
-        "reuse/reuse-introduction2.md": "reuse/reuse-introduction.md"
-        "card-configuration/overview.md": "card-basics/card-overview.md"
-        "card-configuration/sections/layout-overview.md": "card-basics/card-overview.md"
-        "card-configuration/circles-section.md": "tools/shapes/circle-tool.md"
-        "card-configuration/hlines-section.md": "tools/shapes/line-tool.md"
-        "card-configuration/vlines-section.md": "tools/shapes/line-tool.md"
-        "card-configuration/sections/circles-section.md": "tools/shapes/circle-tool.md"
-        "card-configuration/sections/hlines-vlines-section.md": "tools/shapes/line-tool.md"
-        "card-configuration/sections/hlines-section.md": "tools/shapes/line-tool.md"
-        "card-configuration/sections/vlines-section.md": "tools/shapes/line-tool.md"
-        "card-configuration/groups-section.md": "card-basics/groups.md"
-        "card-configuration/positioning-and-groups.md": "card-basics/positioning-and-sizing.md"
-        "card-configuration/entities-definition.md": "card-basics/entities.md"
+  #       # Former card-configuration pages
+  #       "reuse/reuse-introduction2.md": "reuse/reuse-introduction.md"
+  #       "card-configuration/overview.md": "card-basics/card-overview.md"
+  #       "card-configuration/sections/layout-overview.md": "card-basics/card-overview.md"
+  #       "card-configuration/circles-section.md": "tools/shapes/circle-tool.md"
+  #       "card-configuration/hlines-section.md": "tools/shapes/line-tool.md"
+  #       "card-configuration/vlines-section.md": "tools/shapes/line-tool.md"
+  #       "card-configuration/sections/circles-section.md": "tools/shapes/circle-tool.md"
+  #       "card-configuration/sections/hlines-vlines-section.md": "tools/shapes/line-tool.md"
+  #       "card-configuration/sections/hlines-section.md": "tools/shapes/line-tool.md"
+  #       "card-configuration/sections/vlines-section.md": "tools/shapes/line-tool.md"
+  #       "card-configuration/groups-section.md": "card-basics/groups.md"
+  #       "card-configuration/positioning-and-groups.md": "card-basics/positioning-and-sizing.md"
+  #       "card-configuration/entities-definition.md": "card-basics/entities.md"
 
-        # Former core-concepts pages
-        "core-concepts/size-of-card.md": "card-basics/positioning-and-sizing.md"
-        "core-concepts/card-structure.md": "card-basics/card-overview.md"
-        "core-concepts/entity-definitions.md": "card-basics/entities.md"
-        "core-concepts/positioning-and-groups.md": "card-basics/groups.md"
-        "core-concepts/actions-and-local-controls.md": "interaction/interaction-overview.md"
-        "core-concepts/actions-and-interactive-controls.md": "interaction/interaction-overview.md"
-        "core-concepts/animations.md": "interaction/animations.md"
-        "core-concepts/color-stops.md": "appearance/color-stops.md"
-        "core-concepts/color-filters.md": "appearance/color-filters.md"
-        "core-concepts/css-styling.md": "appearance/styling.md"
-        "core-concepts/external-palettes.md": "appearance/palettes.md"
-        "core-concepts/localization.md": "localization/overview.md"
-        "core-concepts/templating.md": "dynamic/javascript-templates.md"
+  #       # Former core-concepts pages
+  #       "core-concepts/size-of-card.md": "card-basics/positioning-and-sizing.md"
+  #       "core-concepts/card-structure.md": "card-basics/card-overview.md"
+  #       "core-concepts/entity-definitions.md": "card-basics/entities.md"
+  #       "core-concepts/positioning-and-groups.md": "card-basics/groups.md"
+  #       "core-concepts/actions-and-local-controls.md": "interaction/interaction-overview.md"
+  #       "core-concepts/actions-and-interactive-controls.md": "interaction/interaction-overview.md"
+  #       "core-concepts/animations.md": "interaction/animations.md"
+  #       "core-concepts/color-stops.md": "appearance/color-stops.md"
+  #       "core-concepts/color-filters.md": "appearance/color-filters.md"
+  #       "core-concepts/css-styling.md": "appearance/styling.md"
+  #       "core-concepts/external-palettes.md": "appearance/palettes.md"
+  #       "core-concepts/localization.md": "localization/overview.md"
+  #       "core-concepts/templating.md": "dynamic/javascript-templates.md"
 
-        # Former Reuse™ pages
-        "reuse/reuse-with-same_as.md": "reuse/reuse-introduction.md"
-        "reuse/reuse-with-calc-and-ref.md": "reuse/reuse-introduction.md"
-        "reuse/reuse-combined.md": "reuse/reuse-introduction.md"
+  #       # Former Reuse™ pages
+  #       "reuse/reuse-with-same_as.md": "reuse/reuse-introduction.md"
+  #       "reuse/reuse-with-calc-and-ref.md": "reuse/reuse-introduction.md"
+  #       "reuse/reuse-combined.md": "reuse/reuse-introduction.md"
 
-        # Former example indexes
-        "examples/awair-examples.md": "examples/demo-cards/demo-card-awair-many.md"
-        "examples/electricity-examples.md": "examples/demo-cards/demo-card-electricity-many.md"
-        "examples/pollen-examples.md": "examples/demo-cards/demo-card-kleenex-pollen-many.md"
-        "examples/generated-card-catalog.md": "examples/overview.md"
+  #       # Former example indexes
+  #       "examples/awair-examples.md": "examples/demo-cards/demo-card-awair-many.md"
+  #       "examples/electricity-examples.md": "examples/demo-cards/demo-card-electricity-many.md"
+  #       "examples/pollen-examples.md": "examples/demo-cards/demo-card-kleenex-pollen-many.md"
+  #       "examples/generated-card-catalog.md": "examples/overview.md"
   - minify:
       minify_html: true
 
