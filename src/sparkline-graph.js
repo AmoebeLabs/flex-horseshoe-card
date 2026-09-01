@@ -1422,8 +1422,6 @@ export default class SparklineGraph {
    * @returns {Array<Array<number>>} Radial x/y/value/angle/radius/index tuples.
    */
   getRadialPoints() {
-    const geometry = this.getRadialGeometry();
-
     return this.coords.map((coord, index) => {
       const angle = this.getRadialAngleForBin(index);
       const radius = this.getRadialRadiusForValue(coord[V]);
