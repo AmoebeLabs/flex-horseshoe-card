@@ -1459,9 +1459,8 @@ export default class SparklineGraph {
    *
    * @param {string} path - Radial value-line path.
    * @returns {string} Closed radial area path.
-   */
+  */
   getRadialArea(path) {
-    const geometry = this.getRadialGeometry();
     const zero = Math.min(this.max, Math.max(this.min, 0));
     const baselineRadius = this.getRadialRadiusForValue(zero);
     const baseline = this.coords.map((coord, index) => {
@@ -1514,9 +1513,8 @@ export default class SparklineGraph {
    * @param {number} startAngle - Clock-oriented start angle.
    * @param {number} endAngle - Clock-oriented end angle.
    * @returns {string} SVG path data.
-   */
+  */
   getRadialArcPath(radius, startAngle, endAngle) {
-    const geometry = this.getRadialGeometry();
     const arcDegrees = endAngle - startAngle;
     const start = this.getRadialPoint(radius, startAngle);
 
