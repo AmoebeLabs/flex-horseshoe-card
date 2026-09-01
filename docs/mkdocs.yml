@@ -66,9 +66,6 @@ plugins:
   - tags
   # - blog
   - macros
-  - sitemap:
-      changefreq: weekly
-      priority: 0.5
   # Preserve indexed URLs when documentation pages move or are combined.
   # - redirects:
   #     redirect_maps:
