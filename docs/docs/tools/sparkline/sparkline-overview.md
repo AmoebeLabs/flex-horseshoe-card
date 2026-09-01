@@ -17,16 +17,20 @@ A "true" sparkline therefore has no axes, no grid and no labels.
 ### From basic sparklines...
 An example of such a true sparkline is shown in the next example: an extended horseshoe with a simple sparkline to show the trend over the last 24 hours.
 
-![](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)
+![Flexible Horseshoe Card #036 with Horseshoe and minimal sparkline](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)
+
+A variant on this shows the radial sparkline chart (card #037) with variants showing minimal and maximal values (left) en the average values (right). Both show history for 6 days on the radial sparkline, and the current day on the horizontal sparkline in the middle.
+
+![Flexible Horseshoe Card #037 with Horseshoe, minimal sparkline for today and 6-day radial sparkline history](../../assets/screenshots/fhs-card-037-horseshoe-sparkline-power.png)
 
 Another example (card #061) shows a minimal card with an icon, sensor, state and a sparkline for today:
 
-![](../../assets/screenshots/fhs-true-sparkline-example.png)
+![Flexible Horseshoe Card #061 with icon, name, state and minimal sparkline](../../assets/screenshots/fhs-true-sparkline-example.png)
 ![](../../assets/screenshots/fhs-card-061-sensor-icon-name-state-history-b.png)
 
 And last but not least, card #062 which is even more compact than card #061
 
-![](../../assets/screenshots/fhs-card-062-sensor-icon-name-state-history.png)
+![Flexible Horseshoe Card #062 with icon, name, state and minimal sparkline](../../assets/screenshots/fhs-card-062-sensor-icon-name-state-history.png)
 
 ### ...to more variations with axes, tick marks and labels
 The Flexible Horseshoe Sparkline implementation is not limited to these "true" sparklines: you can add a grid, tick marks and labels to the sparkline graph.
@@ -113,6 +117,7 @@ For the current calendar period, the X-axis spans the full period while the grap
 | `bar`            | Cartesian            | One vertical bar for each time bin.                     |
 | `equalizer`      | Binned levels        | A stacked level display for every bin.                  |
 | `graded`         | Binned levels        | Grade-based or traffic-light-style values.              |
+| `radial`         | Circular values      | Line, area, or dots history arranged around an arc.      |
 | `state_bands`    | Categorical timeline | The duration and transitions of mapped states.          |
 | `barcode`        | Linear bins          | A dense color history without a Y-axis.                 |
 | `radial_barcode` | Circular bins        | Time bins arranged around a circle.                     |
@@ -127,13 +132,14 @@ For the current calendar period, the X-axis spans the full period while the grap
 | `bar`            |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
 | `equalizer`      |   Yes  |   Yes  | X and Y |        X and Y       |    No   |
 | `graded`         |   No   |   No   |    No   |          No          |    No   |
+| `radial`         |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
 | `state_bands`    |   Yes  |   Yes  | X and Y | X times and Y states |   Yes   |
 | `barcode`        |   Yes  |   No   |  X only |        X only        |   Yes   |
 | `radial_barcode` |   No   |   No   |    No   |          No          |   Yes   |
 
 Points can be added to line and area charts. Choose the standalone `dots` chart when every time bin should appear as an individual point without a connecting line.
 
-Line, area, bar, grid, and axis behavior are described in [Cartesian Charts and Axes](axes-and-grid.md). Equalizer, graded, state bands, barcode, and radial barcode charts are covered in [Specialized Charts](sparkline-overview.md#chart-types).
+Line, area, dots, and bar charts use Cartesian coordinates. A [radial chart](radial-chart.md) provides line, area, and dots around a circular arc. Equalizer, graded, state bands, barcode, and radial barcode each have their own chart page.
 
 ## :material-horseshoe: Position and size
 

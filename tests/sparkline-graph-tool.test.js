@@ -82,8 +82,10 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
     assert.notEqual(tool.primaryGraph, undefined);
     assert.deepEqual(warnings, ["[FHS sparkline] calendar day duration '6' hours is shorter than one day; using 24 hours"]);
 
+    const activeGraph = tool.primaryGraph;
     tool.updateRuntimeConfig();
 
+    assert.equal(tool.primaryGraph, activeGraph);
     assert.equal(warnings.length, 1);
 
     card.evaluateJavascriptTemplates = false;
@@ -98,6 +100,97 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
   } finally {
     globalThis.window = previousWindow;
     console.warn = previousConsoleWarn;
+  }
+});
+
+test('dynamic radial arc and rotation rebuild the graph with evaluated geometry', () => {
+  const previousWindow = globalThis.window;
+  let radialSize = 15;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+
+  try {
+    const templates = {
+      hasJavascriptTemplates(value) {
+        return JSON.stringify(value).includes('[[[');
+      },
+      getJsTemplateOrValue(value) {
+        const evaluated = structuredClone(value);
+        evaluated.sparkline.radial.arc_degrees = 180;
+        evaluated.sparkline.radial.rotate = -90;
+        evaluated.sparkline.radial.size = radialSize;
+        return evaluated;
+      },
+    };
+    const card = {
+      evaluateJavascriptTemplates: true,
+      dev: { debug: false },
+      entities: [],
+      _hass: {
+        locale: { language: 'en', time_format: 'language' },
+        config: { time_zone: 'UTC' },
+      },
+      cardLayout: {
+        changedGroupIds: new Set(),
+        calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+      },
+      cardTheme: {
+        modeChanged: false,
+        getActiveColorStopMode: () => 'light',
+      },
+    };
+    const config = {
+      id: 'dynamic-radial',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      width: 80,
+      height: 80,
+      period: {
+        type: 'rolling_window',
+        rolling_window: {
+          offset: 0,
+          duration: { hour: 24 },
+          bins: { per_hour: 1, density: 'medium' },
+        },
+      },
+      sparkline: {
+        show: { chart_type: 'radial', chart_variant: 'line' },
+        radial: {
+          arc_degrees: '[[[ return 180; ]]]',
+          rotate: '[[[ return -90; ]]]',
+          size: 15,
+        },
+      },
+    };
+
+    const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
+    tool.updateRuntimeConfig();
+
+    assert.equal(tool.config.sparkline.radial.arc_degrees, 180);
+    assert.equal(tool.config.sparkline.radial.rotate, -90);
+    assert.equal(tool.config.sparkline.radial.size, 15);
+    assert.equal(tool.config.sparkline.show.background, true);
+    assert.equal(tool.config.sparkline.radial.background.styles.fill, 'var(--secondary-background-color)');
+    assert.equal(tool.config.sparkline.line.line_width, 1);
+    assert.equal(tool.getConfiguredLineWidth(tool.sparklineSeries.primaryItem.config), 2);
+    assert.equal(tool.primaryGraph.getRadialGeometry().arcDegrees, 180);
+    assert.equal(tool.primaryGraph.getRadialGeometry().rotate, -90);
+
+    tool.legendMeasuredFontSize = 4;
+    tool.legendMeasuredRowHeight = 5;
+    tool.legendMeasuredSignature = '4|5';
+    radialSize = 20;
+    tool.updateRuntimeConfig();
+
+    assert.equal(tool.config.sparkline.radial.size, 20);
+    assert.equal(tool.legendMeasuredFontSize, 4);
+    assert.equal(tool.legendMeasuredRowHeight, 5);
+    assert.equal(tool.legendMeasuredSignature, '4|5');
+  } finally {
+    globalThis.window = previousWindow;
   }
 });
 
@@ -234,6 +327,89 @@ test('legend height follows fixed label font size and row count', () => {
   assert.equal(layout.graphArea.height, 90.08);
   assert.ok(Math.abs(layout.markerRadius - 1.65) < 1e-12);
 });
+
+test('legend measurement rebuilds marker and text positions in the same update', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  let legendPositionUpdates = 0;
+  let cardUpdates = 0;
+  Object.assign(tool, {
+    config: {
+      sparkline: {
+        show: { legend: true },
+        legend: { line_height: 1.2 },
+      },
+    },
+    legendTextTools: [{
+      widthOverflowPending: false,
+      updated() {},
+      textElement: { getBBox: () => ({ height: 4 }) },
+    }],
+    legendMeasuredSignature: undefined,
+    graphReady: false,
+    calculateLegendLayout: () => ({ graphArea: { x: 0, y: 6, width: 100, height: 94 } }),
+    updateRuntimeConfig() {},
+    updateLegendTextTools() { legendPositionUpdates += 1; },
+    card: { requestUpdate() { cardUpdates += 1; } },
+  });
+
+  tool.updated();
+
+  assert.equal(legendPositionUpdates, 1);
+  assert.equal(cardUpdates, 1);
+  assert.deepEqual(tool.graphArea, { x: 0, y: 6, width: 100, height: 94 });
+});
+
+test('legend waits for width ellipsis before measuring its visible text', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  let legendPositionUpdates = 0;
+  let boundingBoxReads = 0;
+  const legendTextTool = {
+    widthOverflowPending: true,
+    updated() {
+      this.widthOverflowPending = false;
+    },
+    textElement: {
+      getBBox() {
+        boundingBoxReads += 1;
+        return { height: 0 };
+      },
+    },
+  };
+
+  Object.assign(tool, {
+    config: {
+      sparkline: {
+        show: { legend: true },
+        legend: { line_height: 1.2 },
+      },
+    },
+    legendTextTools: [legendTextTool],
+    legendMeasuredSignature: undefined,
+    graphReady: false,
+    calculateLegendLayout: () => ({ graphArea: { x: 0, y: 6, width: 100, height: 94 } }),
+    updateRuntimeConfig() {},
+    updateLegendTextTools() { legendPositionUpdates += 1; },
+    card: { requestUpdate() {} },
+  });
+
+  tool.updated();
+
+  assert.equal(boundingBoxReads, 0);
+  assert.equal(legendPositionUpdates, 0);
+  assert.equal(tool.legendMeasuredSignature, undefined);
+
+  legendTextTool.textElement.getBBox = () => {
+    boundingBoxReads += 1;
+    return { height: 4 };
+  };
+  tool.updated();
+
+  assert.equal(boundingBoxReads, 1);
+  assert.equal(legendPositionUpdates, 1);
+  assert.equal(tool.legendMeasuredFontSize, 4);
+  assert.equal(tool.legendMeasuredRowHeight, 4.8);
+});
+
 test('area chart omits its line layers when show.line is false', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
@@ -348,6 +524,307 @@ test('area fade uses the fixed color belonging to each series', () => {
 
   assert.ok(gradients[0].values.includes('#1565c0'));
   assert.ok(gradients[1].values.includes('#d32f2f'));
+});
+
+test('radial area fade follows the visible zero radius', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const graph = {
+    min: -10,
+    max: 10,
+    getRadialGeometry: () => ({ centerX: 50, centerY: 50, outerRadius: 40 }),
+    getRadialRadiusForValue: (value) => (value + 10) * 2,
+  };
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 4,
+    graphArea: { width: 100, height: 100 },
+    sparklineSeries: {
+      items: [{
+        id: 'temperature',
+        graph,
+        config: {
+          sparkline: {
+            show: { chart_type: 'radial', chart_variant: 'area', fill: 'fade' },
+          },
+        },
+      }],
+    },
+  });
+
+  const masks = tool.renderSeriesRadialAreaMasks();
+
+  assert.match(masks[0].strings.join(''), /radialGradient/);
+  assert.ok(masks[0].values.includes('50%'));
+  assert.ok(masks[0].values.includes('radial-area-fade-mask-test-card-4-temperature'));
+});
+
+test('radial series render all areas below every line and point', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const makeItem = (id, variant, color) => ({
+    id,
+    entityConfig: {},
+    graph: {
+      getRadialPath: () => `${id}-line`,
+      getRadialArea: () => `${id}-area`,
+      getRadialMinMaxArea: () => `${id}-minmax`,
+      getRadialPoints: () => [[10, 20, 30]],
+    },
+    config: {
+      color,
+      area: { styles: {} },
+      sparkline: {
+        show: {
+          chart_variant: variant,
+          fill: 'solid',
+          line: variant !== 'dots',
+          points: variant === 'dots',
+        },
+        colorstops: { colors: [] },
+        colorstops_transition: 'hard',
+        line_color: [color, color, color],
+        line: { line_width: 1, styles: {}, show_dots: false, show_minmax: variant === 'line' },
+        area: { show_dots: false, show_minmax: variant === 'area' },
+        dots: { radius: 1 },
+      },
+    },
+  });
+
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 5,
+    sparklineSeries: {
+      items: [
+        makeItem('line-first', 'line', '#1565c0'),
+        makeItem('area-second', 'area', '#d32f2f'),
+        makeItem('dots-third', 'dots', '#66bb6a'),
+      ],
+    },
+    getRenderStyles: (styles) => styles,
+  });
+
+  const rendered = tool.renderSeriesRadial();
+  const minMaxLayers = rendered.values[0];
+  const areaLayers = rendered.values[1];
+  const lineLayers = rendered.values[2];
+  const pointLayers = rendered.values[3];
+
+  assert.match(minMaxLayers[0].strings.join(''), /sparkline-radial-minmax/);
+  assert.match(minMaxLayers[1].strings.join(''), /sparkline-radial-minmax/);
+  assert.equal(minMaxLayers[2], '');
+  assert.equal(areaLayers[0], '');
+  assert.match(areaLayers[1].strings.join(''), /sparkline-radial-area/);
+  assert.match(lineLayers[0].strings.join(''), /sparkline-radial-line/);
+  assert.match(lineLayers[1].strings.join(''), /sparkline-radial-line/);
+  assert.match(pointLayers[2][0].strings.join(''), /sparkline-radial-point/);
+});
+
+test('radial indicator retains its active ring segment during a Lit render', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 3,
+    activePoint: 2,
+    config: { sparkline: { show: { chart_type: 'radial' } } },
+    sparklineSeries: {
+      primaryItem: {
+        graph: {
+          getRadialGeometry: () => ({ centerX: 50, centerY: 50, innerRadius: 30, outerRadius: 40 }),
+          getRadialAngleForBin: () => 90,
+          getRadialPoint: (radius) => ({ x: 50 + radius, y: 50 }),
+        },
+      },
+    },
+  });
+
+  const indicator = tool.renderActiveIndicator();
+
+  assert.ok(indicator.values.includes(80));
+  assert.ok(indicator.values.includes(90));
+  assert.ok(indicator.values.includes('visible'));
+});
+
+test('horizontal radial x-axis labels align away from the circumference', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const renderedStyles = [];
+  const graph = {
+    axisArea: { x: 0, width: 100 },
+    getRadialGeometry: () => ({ arcDegrees: 360, anglePerBin: 15, outerRadius: 40 }),
+    getRadialAngleForFraction: (fraction) => fraction * 360,
+    getRadialValueAxisAngle: () => 0,
+    getRadialPoint: (radius, angle) => ({ x: radius, y: angle }),
+  };
+
+  Object.assign(tool, {
+    sparklineSeries: { primaryItem: { graph } },
+    axisGraphs: { primary: undefined, secondary: undefined },
+    config: {
+      sparkline: { show: { labels: { x: true }, tickmarks: { x: false } } },
+      x_axis: {
+        tickmarks_major: { size: 1 },
+        labels: { offset: 2, orientation: 'horizontal', styles: { fill: 'red' } },
+      },
+    },
+    buildLabelTicks: () => [
+      { x: 0, label: 'top' },
+      { x: 25, label: 'right' },
+      { x: 50, label: 'bottom' },
+      { x: 75, label: 'left' },
+    ],
+    getRenderStyles: (styles) => {
+      renderedStyles.push(styles);
+      return styles;
+    },
+  });
+
+  tool.renderRadialAxisLabels();
+
+  assert.deepEqual(
+    renderedStyles.map((styles) => [styles['text-anchor'], styles['dominant-baseline']]),
+    [
+      ['middle', 'text-after-edge'],
+      ['start', 'middle'],
+      ['middle', 'hanging'],
+      ['end', 'middle'],
+    ],
+  );
+});
+
+test('arc radial x-axis labels use unique readable text paths', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const projectedAngles = [];
+  const graph = {
+    axisArea: { x: 0, width: 100 },
+    getRadialGeometry: () => ({ arcDegrees: 180, anglePerBin: 15, outerRadius: 40 }),
+    getRadialAngleForFraction: (fraction) => fraction * 180,
+    getRadialValueAxisAngle: () => 0,
+    getRadialPoint: (radius, angle) => {
+      projectedAngles.push(angle);
+      return { x: radius + angle, y: radius - angle };
+    },
+  };
+
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 7,
+    sparklineSeries: { primaryItem: { graph } },
+    axisGraphs: { primary: undefined, secondary: undefined },
+    config: {
+      sparkline: { show: { labels: { x: true }, tickmarks: { x: false } } },
+      x_axis: {
+        tickmarks_major: { size: 1 },
+        labels: { offset: 2, orientation: 'arc', styles: { fill: 'red' } },
+      },
+    },
+    buildLabelTicks: () => [
+      { x: 0, label: 'start' },
+      { x: 100, label: 'end' },
+    ],
+    getRenderStyles: (styles) => styles,
+  });
+
+  const labels = tool.renderRadialAxisLabels().values[0];
+
+  assert.match(labels[0].strings.join(''), /sparkline-radial-label-path--x/);
+  assert.match(labels[0].strings.join(''), /<textPath/);
+  assert.ok(labels[0].values.includes('test-card-sparkline-7-radial-x-label-0'));
+  assert.ok(labels[1].values.includes('test-card-sparkline-7-radial-x-label-1'));
+  assert.deepEqual(projectedAngles, [0, -90, 90, 180, 270, 90]);
+});
+
+test('radial arc labels retain the configured multi-series legend', (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const card = {
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false },
+    config: {},
+    entities: [],
+    resolvedEntityConfigs: [],
+    cardAnimations: { styles: { texts: {} } },
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: (config) => ({ xpos: config.xpos, ypos: config.ypos }),
+      getGroupScaleTransform: () => '',
+      getGroupScaleStyle: () => '',
+      groupManager: {
+        getGroupChainForItem: () => [],
+        isItemVisible: () => true,
+      },
+      masksClips: { applyGradientRefs: (styles) => styles },
+    },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+    },
+    cardTools: { getBySection: () => [] },
+    actions: { getActionHandlerOptions: () => ({}) },
+    _hass: {
+      locale: { language: 'en', time_format: 'language' },
+      config: { time_zone: 'UTC' },
+      formatEntityName: (entity, name) => (typeof name === 'string' ? name : entity.entity_id),
+    },
+    requestUpdate() {},
+  };
+  const config = {
+    id: 'radial-legend',
+    xpos: 50,
+    ypos: 50,
+    width: 92,
+    height: 92,
+    margin: 0,
+    period: {
+      type: 'rolling_window',
+      rolling_window: {
+        offset: 0,
+        duration: { hour: 24 },
+        bins: { per_hour: 1, density: 'medium' },
+      },
+    },
+    sparkline: {
+      show: {
+        chart_type: 'radial',
+        chart_variant: 'line',
+        legend: true,
+      },
+      radial: { arc_degrees: 270, rotate: -135, size: 15 },
+      legend: { position: 'top', rows: 1, gap: 4, item_gap: 2 },
+    },
+    x_axis: { labels: { orientation: 'arc', offset: 2 } },
+    series: [
+      { id: 'living-room', entity_index: 0, name: 'Living room', color: '#42a5f5' },
+      { id: 'bedroom', entity_index: 1, name: 'Bedroom', color: '#f9a825' },
+      { id: 'study', entity_index: 2, name: 'Study', color: '#66bb6a' },
+    ],
+  };
+  const templates = { hasJavascriptTemplates: () => false };
+  const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
+
+  tool.sparklineSeries.items.forEach((item, index) => {
+    item.entity = { entity_id: `sensor.series_${index}`, state: String(index) };
+    item.entityConfig = {};
+  });
+  tool.updateLegendTextTools();
+
+  assert.equal(tool.config.x_axis.labels.orientation, 'arc');
+  assert.equal(tool.config.sparkline.show.legend, true);
+  assert.equal(tool.legendItems.length, 3);
+  assert.equal(tool.legendTextTools.length, 3);
+  assert.ok(tool.legendLayout.legendArea.height > 0);
+
+  const measurementElement = {};
+  const ellipsisElement = {};
+  tool.legendTextTools[0].widthMeasurementElements[0] = measurementElement;
+  tool.legendTextTools[0].widthEllipsisElements[0] = ellipsisElement;
+  tool.legendTextTools[0].render();
+
+  assert.equal(tool.legendTextTools[0].widthMeasurementElements[0], measurementElement);
+  assert.equal(tool.legendTextTools[0].widthEllipsisElements[0], ellipsisElement);
+  assert.match(tool.renderLegend().strings.join(''), /sparkline-legend/);
 });
 
 test('accepted history keeps its update flag active through the card pipeline', async () => {

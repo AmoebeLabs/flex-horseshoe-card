@@ -354,6 +354,8 @@ export default class TextTool extends BaseTool {
 
       if (widthOverflowSourceSignature !== this.widthOverflowSourceSignature) {
         this.widthMeasurementParts = widthMeasurementParts;
+        this.widthMeasurementElements = new Array(widthMeasurementParts.length);
+        this.widthEllipsisElements = new Array(widthMeasurementParts.length);
         this.widthOverflowSourceSignature = widthOverflowSourceSignature;
         this.widthOverflowMeasurementSignature = undefined;
         this.widthOverflowPending = true;
@@ -950,9 +952,6 @@ export default class TextTool extends BaseTool {
       'pointer-events': 'none',
       'white-space': 'pre',
     };
-
-    this.widthMeasurementElements = new Array(measurementRenderParts.length);
-    this.widthEllipsisElements = new Array(measurementRenderParts.length);
 
     return this.renderItemLayers(svg`
       <g

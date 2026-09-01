@@ -32,6 +32,19 @@ export const ONE_HOUR = 1000 * 3600;
  */
 export default class SparklineGraph {
   /**
+   * Returns the drawable circumference represented by a radial arc. Series
+   * uses this engine-owned measurement only to choose one shared auto density.
+   *
+   * @param {number} width - Configured graph width.
+   * @param {number} height - Configured graph height.
+   * @param {number} arcDegrees - Visible radial arc.
+   * @returns {number} Available radial length in SVG units.
+   */
+  static calculateRadialArcLength(width, height, arcDegrees) {
+    return Math.PI * Math.min(Number(width), Number(height)) * (Number(arcDegrees) / 360);
+  }
+
+  /**
    * Creates the geometry engine for one normalized sparkline configuration.
    * SparklineGraphTool owns fetching and rendering; this class turns source
    * rows into bucket metadata, axis geometry, and chart-specific coordinates.
@@ -106,6 +119,7 @@ export default class SparklineGraph {
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
+    this.radialConfig = this.config.sparkline.radial;
     this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline.radial_barcode.size);
   }
 
@@ -134,6 +148,18 @@ export default class SparklineGraph {
     if (chartType === 'line') {
       rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true;
     }
+    if (chartType === 'radial') {
+      const radialVariant = this.config.sparkline.show.chart_variant;
+      rendersDots = radialVariant === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true || this.config.sparkline.area.show_dots === true;
+      if (radialVariant !== 'dots' && this.config.sparkline.show.line !== false) {
+        const lineExtent = this.config.geometry.line_width / 2;
+        chartTop = lineExtent;
+        chartRight = lineExtent;
+        chartBottom = lineExtent;
+        chartLeft = lineExtent;
+      }
+    }
+
     if (chartType === 'area') {
       rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.area.show_dots === true;
     }
@@ -142,10 +168,10 @@ export default class SparklineGraph {
       const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
       const inheritedStrokeWidth = this.config.geometry.line_width / 2;
       const dotExtent = radius + inheritedStrokeWidth / 2;
-      chartTop = dotExtent;
-      chartRight = dotExtent;
-      chartBottom = dotExtent;
-      chartLeft = dotExtent;
+      chartTop = Math.max(chartTop, dotExtent);
+      chartRight = Math.max(chartRight, dotExtent);
+      chartBottom = Math.max(chartBottom, dotExtent);
+      chartLeft = Math.max(chartLeft, dotExtent);
     }
 
     if (chartType === 'bar' && bucketCount > 1) {
@@ -264,11 +290,13 @@ export default class SparklineGraph {
    * coordinator. The engine still calculates its own ticks and paths, but all
    * series convert values into the same SVG y coordinates.
    *
-   * @param {number} lowerBound - Shared visible minimum.
-   * @param {number} upperBound - Shared visible maximum.
+   * @param {number} lowerBound - Shared data or configured minimum.
+   * @param {number} upperBound - Shared data or configured maximum.
+   * @param {boolean} fixedLowerBound - Whether the user configured the minimum.
+   * @param {boolean} fixedUpperBound - Whether the user configured the maximum.
    */
-  setSharedYAxisBounds(lowerBound, upperBound) {
-    this.sharedYAxisBounds = { lowerBound, upperBound };
+  setSharedYAxisBounds(lowerBound, upperBound, fixedLowerBound, fixedUpperBound) {
+    this.sharedYAxisBounds = { lowerBound, upperBound, fixedLowerBound, fixedUpperBound };
   }
 
   /** Clears the shared bounds before the next automatic range measurement. */
@@ -424,9 +452,10 @@ export default class SparklineGraph {
     // Calculate min/max samples only for the active graph family.
     // Line settings must not leak into area, and area settings must not leak into line.
     const chartType = this.config.sparkline.show.chart_type;
-    const showMinMax = chartType === 'line' ? this.config.sparkline.line?.show_minmax === true : chartType === 'area' && this.config.sparkline.area?.show_minmax === true;
+    const graphFamily = chartType === 'radial' ? this.config.sparkline.show.chart_variant : chartType;
+    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line?.show_minmax === true : graphFamily === 'area' && this.config.sparkline.area?.show_minmax === true;
 
-    if (['line', 'area'].includes(chartType) && showMinMax) {
+    if (['line', 'area'].includes(graphFamily) && showMinMax) {
       const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);
 
       // Preserve the same preceding sample in both envelope series.
@@ -632,6 +661,25 @@ export default class SparklineGraph {
       }
     }
 
+    // Calendar bucket coordinates represent bucket starts, but the visible
+    // period ends at the exclusive boundary after the final bucket. Replace a
+    // tick occupying the same endpoint and expose that actual period end so a
+    // six-day axis can finish with the following midnight.
+    if (this.config.sparkline.show.chart_type !== 'state_bands' && this.config.period.type === 'calendar' && period.period === 'day') {
+      const periodEnd = new Date(axisEnd.getTime() + bucketMs);
+      const lastTick = ticks[ticks.length - 1];
+
+      if (lastTick && lastTick.timestamp === axisEnd.getTime()) ticks.pop();
+
+      ticks.push({
+        time: periodEnd,
+        timestamp: periodEnd.getTime(),
+        x: this.drawArea.x + this.drawArea.width,
+        isMidnight: periodEnd.getHours() === 0 && periodEnd.getMinutes() === 0,
+        isPeriodEnd: true,
+      });
+    }
+
     return {
       start: axisStart,
       end: axisEnd,
@@ -765,8 +813,8 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateYAxisGeometry(fontHeightPixels) {
-    const fixedLowerBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.lower_bound !== undefined;
-    const fixedUpperBound = this.sharedYAxisBounds !== undefined || this.config.y_axis.upper_bound !== undefined;
+    const fixedLowerBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedLowerBound : this.config.y_axis.lower_bound !== undefined;
+    const fixedUpperBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedUpperBound : this.config.y_axis.upper_bound !== undefined;
     let dataMin = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.lowerBound : fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
     let dataMax = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.upperBound : fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
 
@@ -776,7 +824,8 @@ export default class SparklineGraph {
     }
 
     const minSpacePerLabel = fontHeightPixels * 1.5;
-    const maxLabels = Math.floor(this.drawArea.height / minSpacePerLabel);
+    const axisLength = this.config.sparkline.show.chart_type === 'radial' ? this.getRadialGeometry().radialSize : this.drawArea.height;
+    const maxLabels = Math.floor(axisLength / minSpacePerLabel);
     const effectiveMaxLabels = Math.max(maxLabels, 2);
 
     if (this._logarithmic) {
@@ -804,6 +853,26 @@ export default class SparklineGraph {
     }
 
     const range = dataMax - dataMin;
+
+    // Without y labels there are no numeric endpoints to round. Divide the exact
+    // data range evenly so optional grid lines and tickmarks remain visually regular.
+    if (!this.config.sparkline.show.labels.y) {
+      const interval = range / (effectiveMaxLabels - 1);
+      const ticks = Array.from({ length: effectiveMaxLabels }, (_, index) => {
+        const value = dataMin + interval * index;
+        const y = this.drawArea.height + this.drawArea.y - ((value - dataMin) / range) * this.drawArea.height;
+        return { value, y };
+      });
+
+      return {
+        min: dataMin,
+        max: dataMax,
+        interval,
+        minorInterval: interval / 2,
+        ticks,
+      };
+    }
+
     const rawStep = range / (effectiveMaxLabels - 1);
     const exponent = Math.floor(Math.log10(rawStep));
     const powerOfTen = 10 ** exponent;
@@ -817,17 +886,31 @@ export default class SparklineGraph {
 
     const interval = chosenStep * powerOfTen;
     const minorInterval = interval / 2;
-    // A configured bound is exact. Only automatic sides expand to a clean
-    // interval boundary for readable ticks and labels.
-    const min = fixedLowerBound ? dataMin : Math.floor(dataMin / minorInterval) * minorInterval;
-    const max = fixedUpperBound ? dataMax : Math.ceil(dataMax / minorInterval) * minorInterval;
+    // Visible y labels need clean endpoint values. Without y labels, retain the
+    // exact data range so the graph uses the complete available chart height or radial band.
+    const min = fixedLowerBound ? dataMin : Math.floor(dataMin / interval) * interval;
+    const max = fixedUpperBound ? dataMax : Math.ceil(dataMax / interval) * interval;
     const ticks = [];
     const majorStart = Math.ceil(min / interval) * interval;
 
+    // The scale bounds explain the visible range. Fill the remaining label
+    // positions with clean interval values, then retain an even selection when
+    // more clean ticks exist than the available axis length can display.
+    const interiorValues = [];
     for (let value = majorStart; value <= max + interval / 100; value += interval) {
+      if (value > min + interval / 100 && value < max - interval / 100) interiorValues.push(value);
+    }
+
+    const interiorSlots = effectiveMaxLabels - 2;
+    let selectedInteriorValues;
+    if (interiorValues.length <= interiorSlots) selectedInteriorValues = interiorValues;
+    else if (interiorSlots === 1) selectedInteriorValues = [interiorValues[Math.floor(interiorValues.length / 2)]];
+    else selectedInteriorValues = Array.from({ length: interiorSlots }, (_, index) => interiorValues[Math.round((index * (interiorValues.length - 1)) / (interiorSlots - 1))]);
+
+    [min, ...selectedInteriorValues, max].forEach((value) => {
       const y = this.drawArea.height + this.drawArea.y - ((value - min) / (max - min)) * this.drawArea.height;
       ticks.push({ value, y });
-    }
+    });
 
     return {
       min,
@@ -1018,9 +1101,7 @@ export default class SparklineGraph {
     if (coords.length === 1) {
       // Real-time charts represent one current value across their complete width.
       // Historical charts retain the configured time axis and occupy one bin.
-      const singletonWidth = this.config.period.type === 'real_time'
-        ? this.drawArea.width
-        : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
     }
     coords = this._calcY(coords);
@@ -1049,9 +1130,7 @@ export default class SparklineGraph {
     if (coords.length === 1) {
       // Real-time charts represent one current value across their complete width.
       // Historical charts retain the configured time axis and occupy one bin.
-      const singletonWidth = this.config.period.type === 'real_time'
-        ? this.drawArea.width
-        : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
     }
     coords = this._calcY(coords);
@@ -1080,9 +1159,7 @@ export default class SparklineGraph {
   getPathMin() {
     let { coordsMin } = this;
     if (coordsMin.length === 1) {
-      const singletonWidth = this.config.period.type === 'real_time'
-        ? this.drawArea.width
-        : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coordsMin = [coordsMin[0], [coordsMin[0][X] + singletonWidth, 0, coordsMin[0][V]]];
     }
     coordsMin = this._calcY(coordsMin);
@@ -1112,9 +1189,7 @@ export default class SparklineGraph {
   getPathMax() {
     let { coordsMax } = this;
     if (coordsMax.length === 1) {
-      const singletonWidth = this.config.period.type === 'real_time'
-        ? this.drawArea.width
-        : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coordsMax = [coordsMax[0], [coordsMax[0][X] + singletonWidth, 0, coordsMax[0][V]]];
     }
     coordsMax = this._calcY(coordsMax);
@@ -1228,6 +1303,304 @@ export default class SparklineGraph {
   }
 
   /**
+   * Describes the polar plot shared by radial barcode, line, area and dots.
+   * History advances clockwise from the configured rotation at twelve o'clock;
+   * every renderer consumes these values instead of deriving its own angles.
+   *
+   * @returns {object} Center, radius, arc and bucket-angle geometry.
+   */
+  getRadialGeometry() {
+    const outerRadius = Math.min(this.drawArea.width, this.drawArea.height) / 2;
+    const radialSize = Math.min(Utils.calculateSvgDimension(this.radialConfig.size), outerRadius);
+    const innerRadius = outerRadius - radialSize;
+    const centerX = this.drawArea.x + this.drawArea.width / 2;
+    const centerY = this.drawArea.y + this.drawArea.height / 2;
+    const totalBins = Math.ceil(this.hours * this.points);
+    const arcDegrees = Number(this.radialConfig.arc_degrees);
+    const rotate = Number(this.radialConfig.rotate);
+
+    return {
+      centerX,
+      centerY,
+      outerRadius,
+      innerRadius,
+      radialSize,
+      arcDegrees,
+      rotate,
+      totalBins,
+      anglePerBin: arcDegrees / totalBins,
+    };
+  }
+
+  /**
+   * Converts one value into its radius on the active y-scale. Zero is not
+   * special here: radial area asks for zero explicitly when it builds its
+   * baseline, while line and dots project their actual bucket values.
+   *
+   * @param {number} value - Numeric bucket or axis value.
+   * @returns {number} Radius measured from the radial center.
+   */
+  getRadialRadiusForValue(value) {
+    const geometry = this.getRadialGeometry();
+    const max = this._logarithmic ? Math.log10(Math.max(1, this.max)) : this.max;
+    const min = this._logarithmic ? Math.log10(Math.max(1, this.min)) : this.min;
+    const plottedValue = this._logarithmic ? Math.log10(Math.max(1, value)) : value;
+    const ratio = (max - min) / geometry.radialSize;
+
+    return geometry.innerRadius + (plottedValue - min) / ratio;
+  }
+
+  /**
+   * Returns the clock-oriented angle belonging to a bucket center. Barcode
+   * segments use the corresponding start/end boundaries from the same step.
+   *
+   * @param {number} index - Zero-based bucket index.
+   * @returns {number} Clock-oriented angle in degrees.
+   */
+  getRadialAngleForBin(index) {
+    const geometry = this.getRadialGeometry();
+    return geometry.rotate + (index + 0.5) * geometry.anglePerBin;
+  }
+
+  /**
+   * Returns the clock-oriented angle at one relative position along the arc.
+   * Axis ticks use the same projection as history bins and barcode segments.
+   *
+   * @param {number} fraction - Relative position from 0 at start to 1 at end.
+   * @returns {number} Clock-oriented angle in degrees.
+   */
+  getRadialAngleForFraction(fraction) {
+    const geometry = this.getRadialGeometry();
+    return geometry.rotate + fraction * geometry.arcDegrees;
+  }
+
+  /**
+   * Places value axes at opposite sides of a full circle and at both ends of a
+   * partial arc. This keeps primary and secondary scales separately readable.
+   *
+   * @param {string} axisId - Primary or secondary y-axis identifier.
+   * @returns {number} Clock-oriented radial-axis angle in degrees.
+   */
+  getRadialValueAxisAngle(axisId) {
+    const geometry = this.getRadialGeometry();
+    if (axisId === 'primary') return this.getRadialAngleForFraction(0);
+    return this.getRadialAngleForFraction(geometry.arcDegrees === 360 ? 0.5 : 1);
+  }
+
+  /**
+   * Returns a point at one radius and angle in the current radial graph.
+   *
+   * @param {number} radius - Distance from the radial center.
+   * @param {number} angle - Clock-oriented angle in degrees.
+   * @returns {object} Cartesian x and y.
+   */
+  getRadialPoint(radius, angle) {
+    const geometry = this.getRadialGeometry();
+    return this.polarToCartesian(geometry.centerX, geometry.centerY, radius, radius, angle);
+  }
+
+  /**
+   * Returns the tangent offset used by value-axis ticks and labels.
+   *
+   * @param {number} angle - Clock-oriented radial-axis angle.
+   * @param {number} distance - Signed distance along the tangent.
+   * @returns {object} Cartesian x and y offset.
+   */
+  getRadialTangentOffset(angle, distance) {
+    const radians = (angle * Math.PI) / 180;
+    return {
+      x: Math.cos(radians) * distance,
+      y: Math.sin(radians) * distance,
+    };
+  }
+
+  /**
+   * Projects graph buckets into the shared radial coordinate system. Tuple
+   * indexes remain compatible with normal graph coordinates; angle, radius and
+   * source bucket index are appended for radial rendering and interaction.
+   *
+   * @returns {Array<Array<number>>} Radial x/y/value/angle/radius/index tuples.
+   */
+  getRadialPoints() {
+    const geometry = this.getRadialGeometry();
+
+    return this.coords.map((coord, index) => {
+      const angle = this.getRadialAngleForBin(index);
+      const radius = this.getRadialRadiusForValue(coord[V]);
+      const point = this.getRadialPoint(radius, angle);
+      return [point.x, point.y, coord[V], angle, radius, index];
+    });
+  }
+
+  /**
+   * Builds line or spline path data from radial points. It deliberately keeps
+   * the oldest and newest bucket separate, matching the chronological line
+   * contract used by cartesian history charts.
+   *
+   * @returns {string} SVG path data for the radial value line.
+   */
+  getRadialPath() {
+    const points = this.getRadialPoints();
+    let path = `M${points[0][X]},${points[0][Y]}`;
+    let last = points[0];
+
+    points.forEach((point) => {
+      const plottedPoint = this._smoothing ? this._midPoint(last[X], last[Y], point[X], point[Y]) : point;
+      path += ` ${plottedPoint[X]},${plottedPoint[Y]}`;
+      path += ` Q ${point[X]},${point[Y]}`;
+      last = point;
+    });
+    path += ` ${points[points.length - 1][X]},${points[points.length - 1][Y]}`;
+    return path;
+  }
+
+  /**
+   * Closes a radial value path against the visible zero radius. Baseline points
+   * follow the same bucket angles in reverse, so partial arcs and negative
+   * scales retain the same fill meaning as cartesian area charts.
+   *
+   * @param {string} path - Radial value-line path.
+   * @returns {string} Closed radial area path.
+   */
+  getRadialArea(path) {
+    const geometry = this.getRadialGeometry();
+    const zero = Math.min(this.max, Math.max(this.min, 0));
+    const baselineRadius = this.getRadialRadiusForValue(zero);
+    const baseline = this.coords.map((coord, index) => {
+      const angle = this.getRadialAngleForBin(index);
+      return this.getRadialPoint(baselineRadius, angle);
+    });
+    let area = path;
+
+    baseline.reverse().forEach((point) => {
+      area += ` L ${point.x},${point.y}`;
+    });
+    area += ' z';
+    return area;
+  }
+
+  /**
+   * Closes the per-bucket radial minimum and maximum samples into one envelope.
+   * Both edges use the same bucket angles as the normal radial path, so line
+   * and area variants share scale, rotation, partial arcs and series geometry.
+   *
+   * @returns {string} Closed SVG path data for the radial min/max envelope.
+   */
+  getRadialMinMaxArea() {
+    const minimumPoints = this.coordsMin.map((coord, index) => {
+      const angle = this.getRadialAngleForBin(index);
+      return this.getRadialPoint(this.getRadialRadiusForValue(coord[V]), angle);
+    });
+    const maximumPoints = this.coordsMax.map((coord, index) => {
+      const angle = this.getRadialAngleForBin(index);
+      return this.getRadialPoint(this.getRadialRadiusForValue(coord[V]), angle);
+    });
+    let path = `M${minimumPoints[0].x},${minimumPoints[0].y}`;
+
+    minimumPoints.slice(1).forEach((point) => {
+      path += ` L ${point.x},${point.y}`;
+    });
+    maximumPoints.reverse().forEach((point) => {
+      path += ` L ${point.x},${point.y}`;
+    });
+    path += ' z';
+
+    return path;
+  }
+
+  /**
+   * Creates an SVG arc at one radial scale radius. Full circles are split into
+   * two arcs because one SVG arc command cannot describe 360 degrees.
+   *
+   * @param {number} radius - Radius measured from the graph center.
+   * @param {number} startAngle - Clock-oriented start angle.
+   * @param {number} endAngle - Clock-oriented end angle.
+   * @returns {string} SVG path data.
+   */
+  getRadialArcPath(radius, startAngle, endAngle) {
+    const geometry = this.getRadialGeometry();
+    const arcDegrees = endAngle - startAngle;
+    const start = this.getRadialPoint(radius, startAngle);
+
+    if (Math.abs(arcDegrees) === 360) {
+      const middle = this.getRadialPoint(radius, startAngle + arcDegrees / 2);
+      return `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 1 ${middle.x} ${middle.y} A ${radius} ${radius} 0 0 1 ${start.x} ${start.y}`;
+    }
+
+    const end = this.getRadialPoint(radius, endAngle);
+    const largeArcFlag = Math.abs(arcDegrees) > 180 ? 1 : 0;
+    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+  }
+
+  /**
+   * Creates an SVG arc spanning the complete configured radial plot.
+   *
+   * @param {number} radius - Radius measured from the graph center.
+   * @returns {string} SVG path data.
+   */
+  getRadialPlotArcPath(radius) {
+    const geometry = this.getRadialGeometry();
+    return this.getRadialArcPath(radius, geometry.rotate, geometry.rotate + geometry.arcDegrees);
+  }
+
+  /**
+   * Creates the closed annular path behind the complete radial plot. Partial
+   * arcs join their inner and outer endpoints; complete circles use two arc
+   * pairs and the renderer's even-odd fill rule to preserve the center cutout.
+   *
+   * @returns {string} Closed SVG path for the configured radial ring.
+   */
+  getRadialBackgroundPath() {
+    const geometry = this.getRadialGeometry();
+    const startAngle = geometry.rotate;
+    const endAngle = geometry.rotate + geometry.arcDegrees;
+    const outerStart = this.getRadialPoint(geometry.outerRadius, startAngle);
+
+    if (geometry.arcDegrees === 360) {
+      const outerMiddle = this.getRadialPoint(geometry.outerRadius, startAngle + 180);
+      let path = `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 0 1 ${outerMiddle.x} ${outerMiddle.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 0 1 ${outerStart.x} ${outerStart.y} z`;
+
+      if (geometry.innerRadius > 0) {
+        const innerStart = this.getRadialPoint(geometry.innerRadius, startAngle);
+        const innerMiddle = this.getRadialPoint(geometry.innerRadius, startAngle - 180);
+        path += ` M ${innerStart.x} ${innerStart.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 0 0 ${innerMiddle.x} ${innerMiddle.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y} z`;
+      }
+      return path;
+    }
+
+    const outerEnd = this.getRadialPoint(geometry.outerRadius, endAngle);
+    const largeArcFlag = geometry.arcDegrees > 180 ? 1 : 0;
+    if (geometry.innerRadius === 0) {
+      return `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${geometry.centerX} ${geometry.centerY} z`;
+    }
+
+    const innerStart = this.getRadialPoint(geometry.innerRadius, startAngle);
+    const innerEnd = this.getRadialPoint(geometry.innerRadius, endAngle);
+    return `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${innerEnd.x} ${innerEnd.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y} z`;
+  }
+
+  /**
+   * Maps a pointer in graph coordinates back to the radial history bucket.
+   * Points outside a partial arc have no bucket and therefore no tooltip.
+   *
+   * @param {number} x - Pointer x inside the graph SVG.
+   * @param {number} y - Pointer y inside the graph SVG.
+   * @returns {number} Bucket index, or NaN outside the configured arc.
+   */
+  getRadialBinIndex(x, y) {
+    const geometry = this.getRadialGeometry();
+    const radians = Math.atan2(y - geometry.centerY, x - geometry.centerX);
+    const pointerAngle = (radians * (180 / Math.PI) + 450) % 360;
+    const normalizedStart = ((geometry.rotate % 360) + 360) % 360;
+    const normalizedPointer = (((pointerAngle - normalizedStart) % 360) + 360) % 360;
+
+    if (geometry.arcDegrees < 360 && normalizedPointer > geometry.arcDegrees) return NaN;
+
+    const index = Math.min(Math.floor(normalizedPointer / geometry.anglePerBin), geometry.totalBins - 1);
+    return index < this.coords.length ? index : NaN;
+  }
+
+  /**
    * Calculates the outer and inner arc endpoints for one annular segment.
    *
    * @returns {object} Arc endpoints and SVG arc flags.
@@ -1284,9 +1657,10 @@ export default class SparklineGraph {
   _calcRadialBarcode(coords, isBackground = false, columnSpacing = 4, rowSpacing = 4) {
     const max = this._logarithmic ? Math.log10(Math.max(1, this.max)) : this.max;
     const min = this._logarithmic ? Math.log10(Math.max(1, this.min)) : this.min;
-    const segments = this.hours * this.points;
-    const angleSize = 360 / segments;
-    const startAngle = 0;
+    const radialGeometry = this.getRadialGeometry();
+    const segments = radialGeometry.totalBins;
+    const angleSize = radialGeometry.anglePerBin;
+    const startAngle = radialGeometry.rotate;
     let runningAngle = startAngle;
     const clockWise = true;
     const wRatio = (max - min) / this.radialBarcodeSize;
@@ -1299,19 +1673,19 @@ export default class SparklineGraph {
         case 'sunburst':
         case 'sunburst_centered':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = (this.drawArea.width - this.radialBarcodeSize + ringWidth) / 2;
+          radius = radialGeometry.outerRadius - (this.radialBarcodeSize - ringWidth) / 2;
           break;
         case 'sunburst_outward':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = this.drawArea.width / 2 - this.radialBarcodeSize + ringWidth;
+          radius = radialGeometry.outerRadius - this.radialBarcodeSize + ringWidth;
           break;
         case 'sunburst_inward':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = this.drawArea.width / 2;
+          radius = radialGeometry.outerRadius;
           break;
         default:
           ringWidth = this.radialBarcodeSize;
-          radius = this.drawArea.width / 2;
+          radius = radialGeometry.outerRadius;
           break;
       }
       let newX = [];
@@ -1322,8 +1696,8 @@ export default class SparklineGraph {
       runningAngle += angleSize;
       newX.push(start.x, end.x, start2.x, end2.x);
       newY.push(start.y, end.y, start2.y, end2.y);
-      radiusX.push(this.drawArea.width / 2, this.drawArea.width / 2 - this.radialBarcodeSize);
-      radiusY.push(this.drawArea.height / 2, this.drawArea.height / 2 - this.radialBarcodeSize);
+      radiusX.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
+      radiusY.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
       return [newX, newY, value, 0, radiusX, radiusY, largeArcFlag, sweepFlag];
     });
     if (isBackground) {
@@ -1335,19 +1709,19 @@ export default class SparklineGraph {
           case 'sunburst':
           case 'sunburst_centered':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = (this.drawArea.width - this.radialBarcodeSize + ringWidth) / 2;
+            radius = radialGeometry.outerRadius - (this.radialBarcodeSize - ringWidth) / 2;
             break;
           case 'sunburst_outward':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = this.drawArea.width / 2 - this.radialBarcodeSize + ringWidth;
+            radius = radialGeometry.outerRadius - this.radialBarcodeSize + ringWidth;
             break;
           case 'sunburst_inward':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = this.drawArea.width / 2;
+            radius = radialGeometry.outerRadius;
             break;
           default:
             ringWidth = this.radialBarcodeSize;
-            radius = this.drawArea.width / 2;
+            radius = radialGeometry.outerRadius;
             break;
         }
         let bgCoords = [];
@@ -1364,8 +1738,8 @@ export default class SparklineGraph {
           runningAngle += angleSize;
           newX.push(start.x, end.x, start2.x, end2.x);
           newY.push(start.y, end.y, start2.y, end2.y);
-          radiusX.push(this.drawArea.width / 2, this.drawArea.width / 2 - this.radialBarcodeSize);
-          radiusY.push(this.drawArea.height / 2, this.drawArea.height / 2 - this.radialBarcodeSize);
+          radiusX.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
+          radiusY.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
           coords2.push([newX, newY, value, 0, radiusX, radiusY, largeArcFlag, sweepFlag]);
         }
       }
@@ -1866,20 +2240,13 @@ export default class SparklineGraph {
   _updateEndTime() {
     this._endTime = new Date();
     if (this.config.period.type === 'calendar') {
-      if (
-        this.config.period.calendar.period === 'day'
-        && (this.config.period.calendar.offset !== 0 || this.config.period.calendar.full_day === true)
-      ) {
+      if (this.config.period.calendar.period === 'day' && (this.config.period.calendar.offset !== 0 || this.config.period.calendar.full_day === true)) {
         // Historical days and shared day comparisons have a fixed local end.
         // The active day keeps its current-bin end unless a comparison needs
         // the complete 24-hour reference axis.
         const calendarStart = new Date(this._endTime);
         calendarStart.setHours(0, 0, 0, 0);
-        calendarStart.setHours(
-          calendarStart.getHours()
-            + this.config.period.calendar.offset * 24
-            - (this.config.period.calendar.duration.hour - 24),
-        );
+        calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
         this._endTime = new Date(calendarStart.getTime() + this.config.period.calendar.duration.hour * ONE_HOUR);
       } else if (this.config.period.calendar.period === 'day') {
         this._endTime = this._snapToBin(this._endTime);

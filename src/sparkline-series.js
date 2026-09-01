@@ -1,5 +1,6 @@
 import Merge from './merge.js';
 import SparklineGraph from './sparkline-graph.js';
+import Templates from './templates.js';
 import Utils from './utils.js';
 
 /**
@@ -29,10 +30,9 @@ export default class SparklineSeries {
    */
   updateConfig(config) {
     const hasExplicitSeries = config.series !== undefined;
-    const configuredSeries = hasExplicitSeries
-      ? config.series
-      : [{ id: 'default', entity_index: config.entity_index }];
+    const configuredSeries = hasExplicitSeries ? config.series : [{ id: 'default', entity_index: config.entity_index }];
     const ids = new Set();
+    const chartTypes = [];
 
     configuredSeries.forEach((seriesConfig) => {
       if (typeof seriesConfig.id !== 'string' || seriesConfig.id.length === 0) {
@@ -65,11 +65,28 @@ export default class SparklineSeries {
         throw new Error(`[sparklines] series '${seriesConfig.id}' y_axis_id must be primary or secondary`);
       }
       const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
-      if (hasExplicitSeries && !['line', 'area', 'dots', 'bar'].includes(chartType)) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots or bar`);
+      if (hasExplicitSeries && !['line', 'area', 'dots', 'bar', 'radial'].includes(chartType)) {
+        throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots, bar or radial`);
       }
+      if (chartType === 'radial') {
+        const chartVariant = seriesConfig.sparkline?.show?.chart_variant ?? config.sparkline.show.chart_variant;
+        if (!['line', 'area', 'dots'].includes(chartVariant) && !Templates.isJsTemplate(chartVariant)) {
+          throw new Error(`[sparklines] radial series '${seriesConfig.id}' chart_variant must be line, area or dots`);
+        }
+        if (seriesConfig.sparkline?.radial !== undefined) {
+          throw new Error(`[sparklines] radial series '${seriesConfig.id}' uses the parent sparkline.radial geometry`);
+        }
+      }
+      chartTypes.push(chartType);
       ids.add(seriesConfig.id);
     });
+
+    if (chartTypes.includes('radial') && chartTypes.some((chartType) => chartType !== 'radial')) {
+      throw new Error('[sparklines] radial series cannot be combined with cartesian series');
+    }
+    if ((config.sparkline.show.chart_type === 'radial') !== chartTypes.every((chartType) => chartType === 'radial')) {
+      throw new Error('[sparklines] parent chart_type must be radial when its series are radial');
+    }
 
     this.items = configuredSeries.map((seriesConfig) => {
       const effectiveConfig = Merge.mergeDeep({}, config, seriesConfig);
@@ -139,6 +156,7 @@ export default class SparklineSeries {
       barcode: 2,
       equalizer: 2,
       graded: 2,
+      radial: 1,
       radial_barcode: 5.6,
     };
     const densityFactor = {
@@ -147,7 +165,7 @@ export default class SparklineSeries {
       high: 0.5,
     };
     const graphType = config.sparkline.show.chart_type;
-    const availableWidth = graphType === 'radial_barcode' ? Math.PI * config.width : config.width;
+    const availableWidth = ['radial', 'radial_barcode'].includes(graphType) ? SparklineGraph.calculateRadialArcLength(config.width, config.height, config.sparkline.radial.arc_degrees) : config.width;
     const widthUnitsPerBin = widthUnitsPerBinByGraphType[graphType] * densityFactor[periodConfig.bins.density];
     const maximumBinsPerHour = availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
 
@@ -206,15 +224,11 @@ export default class SparklineSeries {
 
       const configuredLowerBoundItem = axisItems.find((item) => item.config.y_axis.lower_bound !== undefined);
       const configuredUpperBoundItem = axisItems.find((item) => item.config.y_axis.upper_bound !== undefined);
-      const lowerBound = configuredLowerBoundItem !== undefined
-        ? Number(configuredLowerBoundItem.config.y_axis.lower_bound)
-        : Math.min(...axisItems.map((item) => item.graph.min));
-      const upperBound = configuredUpperBoundItem !== undefined
-        ? Number(configuredUpperBoundItem.config.y_axis.upper_bound)
-        : Math.max(...axisItems.map((item) => item.graph.max));
+      const lowerBound = configuredLowerBoundItem !== undefined ? Number(configuredLowerBoundItem.config.y_axis.lower_bound) : Math.min(...axisItems.map((item) => item.graph.min));
+      const upperBound = configuredUpperBoundItem !== undefined ? Number(configuredUpperBoundItem.config.y_axis.upper_bound) : Math.max(...axisItems.map((item) => item.graph.max));
 
       axisItems.forEach((item) => {
-        item.graph.setSharedYAxisBounds(lowerBound, upperBound);
+        item.graph.setSharedYAxisBounds(lowerBound, upperBound, configuredLowerBoundItem !== undefined, configuredUpperBoundItem !== undefined);
         item.graph.update(item.rows);
       });
     });
@@ -228,10 +242,7 @@ export default class SparklineSeries {
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
     this.items.forEach((item) => {
       const chartType = item.config.sparkline.show.chart_type;
-      const rendersDots = chartType === 'dots'
-        || item.config.sparkline.show.points === true
-        || item.config.sparkline.line.show_dots === true
-        || item.config.sparkline.area.show_dots === true;
+      const rendersDots = chartType === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
         const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
         sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
@@ -265,6 +276,81 @@ export default class SparklineSeries {
   }
 
   /**
+   * Coordinates radial graph engines without deriving polar coordinates here.
+   * Every axis group receives one shared value range; SparklineGraph then maps
+   * those values and the shared bins into its own radial geometry.
+   *
+   * @param {Function} measureAxisMargin - Measures optional radial labels and ticks.
+   * @param {object} configuredMargin - User-configured plot margin.
+   * @returns {object} Shared readiness, axes and final radial margin state.
+   */
+  updateRadialGraphs(measureAxisMargin, configuredMargin) {
+    this.items.forEach((item) => {
+      item.graph.clearSharedYAxisBounds();
+      item.graph.update(item.rows);
+    });
+
+    const readyItems = this.items.filter((item) => item.graph.coords.length > 0);
+    if (readyItems.length !== this.items.length) {
+      return {
+        ready: false,
+        axisGraphs: { primary: undefined, secondary: undefined },
+      };
+    }
+
+    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
+    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
+    const axisGraphs = {
+      primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
+      secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
+    };
+
+    [primaryItems, secondaryItems].forEach((axisItems) => {
+      if (axisItems.length === 0) return;
+
+      const configuredLowerBoundItem = axisItems.find((item) => item.config.y_axis.lower_bound !== undefined);
+      const configuredUpperBoundItem = axisItems.find((item) => item.config.y_axis.upper_bound !== undefined);
+      const lowerBound = configuredLowerBoundItem !== undefined ? Number(configuredLowerBoundItem.config.y_axis.lower_bound) : Math.min(...axisItems.map((item) => item.graph.min));
+      const upperBound = configuredUpperBoundItem !== undefined ? Number(configuredUpperBoundItem.config.y_axis.upper_bound) : Math.max(...axisItems.map((item) => item.graph.max));
+
+      axisItems.forEach((item) => {
+        item.graph.setSharedYAxisBounds(lowerBound, upperBound, configuredLowerBoundItem !== undefined, configuredUpperBoundItem !== undefined);
+        item.graph.update(item.rows);
+      });
+    });
+
+    const axisMargin = measureAxisMargin(axisGraphs);
+    const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
+
+    // Every radial renderer uses one center and outer radius. Reserve the
+    // largest visible line or dot extent for the complete collection.
+    readyItems.forEach((item) => {
+      const variant = item.config.sparkline.show.chart_variant;
+      let extent = 0;
+
+      if (variant !== 'dots' && item.config.sparkline.show.line !== false) {
+        extent = item.graph.config.geometry.line_width / 2;
+      }
+      if (variant === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true) {
+        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
+        extent = Math.max(extent, dotExtent);
+      }
+
+      sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, extent);
+      sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, extent);
+      sharedChartGeometryMargin.b = Math.max(sharedChartGeometryMargin.b, extent);
+      sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, extent);
+    });
+
+    readyItems.forEach((item) => {
+      item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
+      item.graph.update(item.rows);
+    });
+
+    return { ready: true, axisGraphs, axisMargin };
+  }
+
+  /**
    * Replaces the graph for one series after static or runtime config changed.
    *
    * @param {object} item - Coordinator-owned series item.
@@ -278,21 +364,14 @@ export default class SparklineSeries {
    * @param {object} stateMap - State-band mapping for the graph engine.
    */
   createGraph(item, width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap) {
-    item.graph = new SparklineGraph(
-      width,
-      height,
-      axisMargin,
-      configuredMargin,
-      graphConfig,
-      gradeValues,
-      gradeRanks,
-      stateMap,
-    );
+    item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
   }
 
   /** Removes graph geometry while a dynamic period has no valid duration. */
   clearGraphs() {
-    this.items.forEach((item) => { item.graph = undefined; });
+    this.items.forEach((item) => {
+      item.graph = undefined;
+    });
   }
 
   /** Replaces the current normalized rows for one coordinator-owned item. */

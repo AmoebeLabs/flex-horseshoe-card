@@ -46,6 +46,9 @@ layout:
           chart_type: radial_barcode
           chart_variant: sunburst_outward
           chart_viz: flower
+        radial:
+          arc_degrees: 270
+          rotate: -135
         radial_barcode:
           size: 15
           line_width: 0.02
@@ -66,6 +69,8 @@ layout:
 | `show.chart_type` | string | No | `line` | Set to `radial_barcode` to display a radial barcode. |
 | `show.chart_variant` | string | No | standard ring | Chooses alignment and inward or outward direction. |
 | `show.chart_viz` | string | No | standard segment | Chooses the shape used for every interval. |
+| `radial.arc_degrees` | number | No | `360` | Sets how much of the circle is used. |
+| `radial.rotate` | number | No | `0` | Rotates the first interval around the center. |
 | `radial_barcode.size` | number | No | `5` | Sets the radial depth available to the intervals. |
 | `radial_barcode.line_width` | number | No | `0` | Sets the stroke width used by the interval shapes. |
 | `radial_barcode.column_spacing` | number | No | `1` | Sets the angular space between intervals. |
@@ -74,7 +79,7 @@ layout:
 
 !!! tip "Keep automatic bins"
 
-    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then uses the available circumference, duration, and density to choose a suitable number of radial segments.
+    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then uses the visible arc length, duration, and density to choose a suitable number of radial segments.
 
 ## :material-horseshoe: Basic radial barcode
 
@@ -84,6 +89,10 @@ sparkline:
     chart_type: radial_barcode
     chart_variant: sunburst_outward
     chart_viz: flower
+
+  radial:
+    arc_degrees: 270
+    rotate: -135
 
   radial_barcode:
     size: 15
@@ -140,6 +149,7 @@ Use the radial barcode showcase to compare the shapes and directions visually.
 
 ## :material-horseshoe: Related
 
+- [Radial chart](radial-chart.md)
 - [Barcode](barcode.md)
 - [Color stops](../../appearance/color-stops.md)
 - [History periods and bins](sparkline-history-periods-and-bins.md)
