@@ -52,7 +52,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.tabs.sticky
-    - navigation.expand
+    # - navigation.expand
     - navigation.top
     - search.suggest
     - search.highlight
