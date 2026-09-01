@@ -12,7 +12,7 @@ tags:
 
 Multiple series compare entities or time periods on one shared graph. Use them to see related measurements together instead of switching between separate graphs.
 
-Each series can have its own entity, name, color, chart type, and Y-axis. The graph shares its period, bins, X-axis, drawing area, and tooltip across all series.
+Each Cartesian series can have its own entity, name, color, chart type, and Y-axis. A radial series can choose line, area, or dots with `chart_variant`. The graph shares its period, bins, X-axis, drawing area, and tooltip across all series.
 
 <!-- Add a multiple-series chart with a legend here. -->
 
@@ -205,9 +205,41 @@ series:
 
 Use two axes when the series have different units or ranges.
 
+## :material-horseshoe: Combine radial variants
+
+A radial graph keeps `chart_type: radial` for every series. Choose the visible form with `chart_variant`:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: radial
+    chart_variant: line
+
+  radial:
+    arc_degrees: 270
+    rotate: -135
+
+series:
+  - id: temperature
+    entity_index: 0
+    color: "#42a5f5"
+
+  - id: humidity
+    entity_index: 1
+    color: "#66bb6a"
+    sparkline:
+      show:
+        chart_variant: dots
+      dots:
+        radius: 0.75
+```
+
+All radial series use the same arc and time bins. Each series keeps its own color and Y-axis assignment.
+
 ## :material-horseshoe: Related
 
 - [Axes and grid](axes-and-grid.md)
 - [History periods and bins](sparkline-history-periods-and-bins.md)
 - [Line chart](line-chart.md)
 - [Bar chart](bar-chart.md)
+- [Radial chart](radial-chart.md)

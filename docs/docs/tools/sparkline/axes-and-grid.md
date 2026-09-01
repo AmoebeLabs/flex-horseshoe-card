@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Axes and grid
-description: Show automatic axes, grid lines, tick marks, and labels on Cartesian sparkline charts.
+description: Show automatic axes, grid lines, tick marks, and labels on sparkline charts.
 tags:
   - Sparkline
   - Axes
@@ -10,7 +10,7 @@ tags:
 
 # Axes and grid
 
-Line, area, dots, bar, equalizer, and state-bands charts can show automatic axes and grid lines.
+Line, area, dots, bar, radial, equalizer, and state-bands charts can show automatic axes and grid lines.
 
 Show the X-axis when the user needs to identify times and the Y-axis when values or named states need a visible scale. Grid lines make it easier to compare a point with both axes.
 
@@ -35,7 +35,7 @@ sparkline:
       y: true
 ```
 
-The X-axis represents time. The Y-axis represents values or mapped states.
+The X-axis represents time. The Y-axis represents values or mapped states. On a radial chart, time follows the outer arc and values run outward from the center.
 
 ## :material-horseshoe: Configuration options
 
@@ -64,6 +64,34 @@ y_axis:
       font-size: 0.5em
 ```
 
+## :material-horseshoe: Use the complete value range
+
+Hide the Y-axis labels when the chart should give its values as much visual space as possible. The lowest visible value then starts at one edge of the graph and the highest visible value reaches the other edge.
+
+```yaml linenums="1"
+sparkline:
+  show:
+    labels:
+      y: false
+```
+
+Grid lines, tick marks, and the Y-axis can remain visible. They stay evenly spaced across the graph:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    grid:
+      y: true
+    axis:
+      y: true
+    tickmarks:
+      y: true
+    labels:
+      y: false
+```
+
+Show the Y-axis labels when readable scale values are more important than using the complete graph height or radial width.
+
 ## :material-horseshoe: Use two Y-axes
 
 Assign series with different units or ranges to separate axes. Keep related series on the same axis so their vertical positions remain comparable.
@@ -81,7 +109,7 @@ series:
     y_axis_id: secondary
 ```
 
-The primary axis is shown on the left and the secondary axis on the right.
+Cartesian charts show the primary axis on the left and the secondary axis on the right. Radial charts place them at separate sides of the configured arc.
 
 ## :material-horseshoe: Graph spacing
 
@@ -90,4 +118,5 @@ The graph reserves room for visible labels, tick marks, axes, bars, and dots. Us
 ## :material-horseshoe: Related
 
 - [Line, area, dots, and bars](sparkline-overview.md#chart-types)
+- [Radial chart](radial-chart.md)
 - [History periods and bins](sparkline-history-periods-and-bins.md)

@@ -14,9 +14,10 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
   },
   geometry: { line_width: 0, column_spacing: 4 },
   sparkline: {
-    show: { chart_type: chartType, points: false },
+    show: { chart_type: chartType, chart_variant: 'line', points: false, labels: { x: true, y: true } },
     state_values: { aggregate_func: 'avg', smoothing, logarithmic: false },
     dots: { radius: 2 },
+    radial: { arc_degrees: 360, rotate: 0, size: 50 },
     radial_barcode: { size: 5 },
     line: { show_minmax: showLineMinMax, show_dots: false },
     area: { show_minmax: showAreaMinMax, show_dots: false },
@@ -154,14 +155,16 @@ test('automatic y bounds expand while configured bounds stay exact', () => {
     ticks: automaticAxis.ticks.map((tick) => ({ value: tick.value, y: rounded(tick.y) })),
     },
     {
-    min: 2.5,
-    max: 17.5,
+    min: 0,
+    max: 20,
     interval: 5,
     minorInterval: 2.5,
     ticks: [
-      { value: 5, y: 76.666667 },
+      { value: 0, y: 90 },
+      { value: 5, y: 70 },
       { value: 10, y: 50 },
-      { value: 15, y: 23.333333 },
+      { value: 15, y: 30 },
+      { value: 20, y: 10 },
     ],
     },
   );
@@ -185,6 +188,47 @@ test('automatic y bounds expand while configured bounds stay exact', () => {
   });
 });
 
+test('shared automatic bounds expand to major ticks while configured bounds stay exact', () => {
+  const automaticConfig = createGraphConfig({ chartType: 'radial' });
+  automaticConfig.sparkline.radial.size = 9;
+  const automaticGraph = createGraph(automaticConfig);
+  automaticGraph.setSharedYAxisBounds(22.5, 26, false, false);
+
+  assert.deepEqual(automaticGraph.calculateYAxisGeometry(4).ticks.map((tick) => tick.value), [22, 24, 26]);
+
+  const fixedGraph = createGraph(automaticConfig);
+  fixedGraph.setSharedYAxisBounds(22.5, 26, true, true);
+
+  assert.deepEqual(fixedGraph.calculateYAxisGeometry(4).ticks.map((tick) => tick.value), [22.5, 24, 26]);
+});
+
+test('automatic y bounds remain exact when y labels are hidden', () => {
+  const graph = createGraph(createGraphConfig({ chartType: 'radial' }));
+  graph.config.sparkline.show.labels.y = false;
+  graph.min = 22.5;
+  graph.max = 25.1;
+  graph.setSharedYAxisBounds(22.5, 25.1, false, false);
+
+  const axis = graph.calculateYAxisGeometry(4);
+
+  assert.equal(axis.min, 22.5);
+  assert.equal(axis.max, 25.1);
+  assert.equal(axis.ticks[0].value, 22.5);
+  assert.equal(axis.ticks.at(-1).value, 25.1);
+  assert.ok(axis.ticks.every((tick, index) => index === 0 || rounded(tick.value - axis.ticks[index - 1].value) === rounded(axis.interval)));
+});
+
+test('short radial y-axis shows both scale bounds instead of one interior label', () => {
+  const config = createGraphConfig({ chartType: 'radial', lowerBound: 18, upperBound: 24 });
+  config.sparkline.radial.size = 10;
+  const graph = createGraph(config);
+
+  assert.deepEqual(graph.calculateYAxisGeometry(10).ticks, [
+    { value: 18, y: 90 },
+    { value: 24, y: 10 },
+  ]);
+});
+
 test('rolling x-axis uses bucket starts and draw-area positions', () => {
   const graph = createGraph();
   graph.bucketMeta = [{ start: new Date('2026-08-20T08:00:00.000Z') }, { start: new Date('2026-08-20T09:00:00.000Z') }, { start: new Date('2026-08-20T10:00:00.000Z') }, { start: new Date('2026-08-20T11:00:00.000Z') }];
@@ -206,6 +250,43 @@ test('rolling x-axis uses bucket starts and draw-area positions', () => {
     { time: '2026-08-20T11:00:00.000Z', x: 110 },
     ],
   );
+});
+
+test('calendar x-axis ends at the exclusive boundary after its final bin', () => {
+  const NativeDate = globalThis.Date;
+  const fixedNow = new NativeDate('2026-09-01T12:00:00.000Z');
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow.getTime()] : args));
+    }
+  };
+
+  try {
+    const config = createGraphConfig({ chartType: 'radial' });
+    config.period = {
+      type: 'calendar',
+      group_by: 'interval',
+      calendar: {
+        period: 'day',
+        offset: -1,
+        duration: { hour: 144 },
+        bins: { per_hour: 1 },
+      },
+    };
+    const graph = createGraph(config);
+    graph.hours = 144;
+    graph.points = 1;
+
+    const axis = graph.calculateXAxisGeometry(4.5);
+    const periodEndTick = axis.ticks.at(-1);
+
+    assert.equal(axis.end.toISOString(), '2026-08-31T23:00:00.000Z');
+    assert.equal(periodEndTick.time.toISOString(), '2026-09-01T00:00:00.000Z');
+    assert.equal(periodEndTick.x, graph.drawArea.x + graph.drawArea.width);
+    assert.equal(periodEndTick.isPeriodEnd, true);
+  } finally {
+    globalThis.Date = NativeDate;
+  }
 });
 
 test('line points and paths preserve smoothing geometry', () => {
@@ -287,14 +368,23 @@ test('area closes against zero or the nearest visible boundary', () => {
 });
 
 test('line and area min/max envelopes retain bucket extrema', () => {
-  for (const chartType of ['line', 'area']) {
+  const graphFamilies = [
+    { chartType: 'line', chartVariant: 'line' },
+    { chartType: 'area', chartVariant: 'area' },
+    { chartType: 'radial', chartVariant: 'line' },
+    { chartType: 'radial', chartVariant: 'area' },
+  ];
+
+  for (const { chartType, chartVariant } of graphFamilies) {
+    const lineFamily = chartVariant === 'line';
     const graph = createGraph(
       createGraphConfig({
-      chartType,
-      showLineMinMax: chartType === 'line',
-      showAreaMinMax: chartType === 'area',
+        chartType,
+        showLineMinMax: lineFamily,
+        showAreaMinMax: !lineFamily,
       }),
     );
+    graph.config.sparkline.show.chart_variant = chartVariant;
     graph._updateEndTime = () => {
       graph._endTime = new Date('2026-08-20T12:00:00.000Z');
     };
@@ -318,6 +408,7 @@ test('line and area min/max envelopes retain bucket extrema', () => {
     assert.equal(graph.min, 4);
     assert.equal(graph.max, 20);
     assert.match(graph.getAreaMinMax(graph.getPathMin(), graph.getPathMax()), / z$/);
+    if (chartType === 'radial') assert.match(graph.getRadialMinMaxArea(), / z$/);
   }
 });
 
@@ -490,6 +581,7 @@ test('radial barcode geometry does not consume cartesian configuration', () => {
         chart_variant: 'sunburst',
         chart_viz: 'flower',
       },
+      radial: { arc_degrees: 360, rotate: 0, size: 50 },
       radial_barcode: { size: 15 },
       state_values: {
         aggregate_func: 'avg',
@@ -523,6 +615,118 @@ test('radial barcode geometry does not consume cartesian configuration', () => {
     width: 120,
     height: 100,
   });
+});
+
+test('radial line, area and pointer geometry share one rotated partial arc', () => {
+  const config = createGraphConfig({ chartType: 'radial', lowerBound: 0, upperBound: 20 });
+  config.sparkline.radial = { arc_degrees: 180, rotate: 45, size: 10 };
+  const graph = createGraph(config);
+
+  graph.hours = 4;
+  graph.points = 1;
+  graph.min = 0;
+  graph.max = 20;
+  graph.coords = [
+    [10, 0, 0],
+    [40, 0, 10],
+    [70, 0, 20],
+    [100, 0, 5],
+  ];
+
+  const geometry = graph.getRadialGeometry();
+  const background = graph.getRadialBackgroundPath();
+  const points = graph.getRadialPoints();
+  const pointer = graph.getRadialPoint(geometry.outerRadius / 2, graph.getRadialAngleForBin(1));
+  const outsideArc = graph.getRadialPoint(geometry.outerRadius / 2, 315);
+
+  assert.match(background, /^M .* A .* L .* A .* z$/);
+
+  assert.deepEqual(
+    {
+      centerX: rounded(geometry.centerX),
+      centerY: rounded(geometry.centerY),
+      outerRadius: rounded(geometry.outerRadius),
+      innerRadius: rounded(geometry.innerRadius),
+      radialSize: rounded(geometry.radialSize),
+      arcDegrees: geometry.arcDegrees,
+      rotate: geometry.rotate,
+      anglePerBin: geometry.anglePerBin,
+    },
+    {
+      centerX: 60,
+      centerY: 50,
+      outerRadius: 40,
+      innerRadius: 20,
+      radialSize: 20,
+      arcDegrees: 180,
+      rotate: 45,
+      anglePerBin: 45,
+    },
+  );
+  assert.deepEqual(points.map((point) => point[3]), [67.5, 112.5, 157.5, 202.5]);
+  assert.equal(rounded(points[0][4]), 20);
+  assert.equal(rounded(points[2][4]), 40);
+  assert.equal(graph.getRadialBinIndex(pointer.x, pointer.y), 1);
+  assert.equal(Number.isNaN(graph.getRadialBinIndex(outsideArc.x, outsideArc.y)), true);
+  graph.coords = graph.coords.slice(0, 2);
+  const unavailableBin = graph.getRadialPoint(geometry.outerRadius / 2, graph.getRadialAngleForBin(3));
+  assert.equal(Number.isNaN(graph.getRadialBinIndex(unavailableBin.x, unavailableBin.y)), true);
+  assert.equal(graph.getRadialValueAxisAngle('primary'), 45);
+  assert.equal(graph.getRadialValueAxisAngle('secondary'), 225);
+  assert.match(graph.getRadialPath(), /^M/);
+  assert.match(graph.getRadialArea(graph.getRadialPath()), / z$/);
+  assert.equal(graph.getRadialPlotArcPath(geometry.outerRadius), graph.getRadialArcPath(geometry.outerRadius, 45, 225));
+});
+
+test('full radial circles place secondary value labels opposite the primary axis', () => {
+  const graph = createGraph(createGraphConfig({ chartType: 'radial' }));
+
+  assert.equal(graph.getRadialValueAxisAngle('primary'), 0);
+  assert.equal(graph.getRadialValueAxisAngle('secondary'), 180);
+});
+
+test('radial y-axis tick density follows the configured radial width', () => {
+  const radialConfig = createGraphConfig({ chartType: 'radial', lowerBound: 0, upperBound: 20 });
+  radialConfig.sparkline.radial.size = 5;
+  const radialGraph = createGraph(radialConfig);
+  const cartesianGraph = createGraph(createGraphConfig({ chartType: 'line', lowerBound: 0, upperBound: 20 }));
+
+  const radialAxis = radialGraph.calculateYAxisGeometry(4);
+  const cartesianAxis = cartesianGraph.calculateYAxisGeometry(4);
+
+  assert.equal(radialAxis.ticks.length, 2);
+  assert.ok(cartesianAxis.ticks.length > radialAxis.ticks.length);
+});
+
+test('radial barcode uses the same configured arc and rotation', () => {
+  const config = createGraphConfig({ chartType: 'radial_barcode', lowerBound: 0, upperBound: 20 });
+  config.sparkline.show.chart_variant = 'fixed';
+  config.sparkline.show.chart_viz = 'bar';
+  config.sparkline.radial = { arc_degrees: 180, rotate: 45, size: 50 };
+  const graph = createGraph(config);
+
+  graph.hours = 4;
+  graph.points = 1;
+  graph.min = 0;
+  graph.max = 20;
+  graph.coords = [
+    [10, 0, 0],
+    [40, 0, 10],
+    [70, 0, 20],
+    [100, 0, 5],
+  ];
+
+  const bins = graph.getRadialBarcode(0, 1, 0, 0);
+  const geometry = graph.getRadialGeometry();
+  const expectedOuterStart = graph.getRadialPoint(geometry.outerRadius, 90);
+  const expectedOuterEnd = graph.getRadialPoint(geometry.outerRadius, 45);
+
+  assert.equal(bins.length, 4);
+  assert.equal(rounded(bins[0].start.x), rounded(expectedOuterStart.x));
+  assert.equal(rounded(bins[0].start.y), rounded(expectedOuterStart.y));
+  assert.equal(rounded(bins[0].end.x), rounded(expectedOuterEnd.x));
+  assert.equal(rounded(bins[0].end.y), rounded(expectedOuterEnd.y));
+  assert.equal(SparklineGraph.calculateRadialArcLength(120, 100, 180), Math.PI * 50);
 });
 
 

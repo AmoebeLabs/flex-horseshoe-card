@@ -256,6 +256,7 @@ nav:
               - Equalizer: tools/sparkline/equalizer.md
               - Graded: tools/sparkline/graded.md
               - Line: tools/sparkline/line-chart.md
+              - Radial: tools/sparkline/radial-chart.md
               - Radial barcode: tools/sparkline/radial-barcode.md
               - State bands: tools/sparkline/state-bands.md
           - Graph configuration:

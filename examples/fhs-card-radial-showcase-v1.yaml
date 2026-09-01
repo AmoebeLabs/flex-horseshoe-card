@@ -1,0 +1,231 @@
+fhs_card_094_radial_showcase:
+  template:
+    type: card
+    defaults:
+      - line_entity: sensor.awair_element_livingroom_temperature
+      - area_entity: sensor.awair_element_bedroom_temperature
+      - dots_entity: sensor.awair_element_study_humidity
+
+  card:
+    entities:
+      - entity: fhs_input_number.radial_arc
+        slot: arc
+        initial: 270
+        min: 90
+        max: 360
+        step: 45
+        scope: card
+      - entity: fhs_input_number.radial_rotation
+        slot: rotation
+        initial: -135
+        min: -180
+        max: 180
+        step: 15
+        scope: card
+      - entity: fhs_input_number.radial_size
+        slot: size
+        initial: 15
+        min: 5
+        max: 45
+        step: 1
+        scope: card
+      - entity: fhs_input_boolean.radial_axes
+        slot: axes
+        initial: true
+        scope: card
+      - entity: "[[line_entity]]"
+        slot: line
+      - entity: "[[area_entity]]"
+        slot: area
+      - entity: "[[dots_entity]]"
+        slot: dots
+
+    layout:
+      aspectratio: 1/1.45
+
+      sparklines:
+        - id: radial-showcase
+          xpos: 50
+          ypos: 54
+          width: 92
+          height: 92
+          margin: 0
+
+          period:
+            type: rolling_window
+            rolling_window:
+              offset: 0
+              duration:
+                hour: 24
+              bins:
+                per_hour: auto
+                density: medium
+
+          sparkline:
+            show:
+              chart_type: radial
+              chart_variant: line
+              background: true
+              legend: true
+              grid:
+                x: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+                y: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+              # axis:
+              #   x: |
+              #     [[[
+              #       return entities[entity_slots.axes[0]].state === 'on';
+              #     ]]]
+              #   y: |
+              #     [[[
+              #       return entities[entity_slots.axes[0]].state === 'on';
+              #     ]]]
+              tickmarks:
+                x: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+                y: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+              labels:
+                x: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+                y: |
+                  [[[
+                    return entities[entity_slots.axes[0]].state === 'on';
+                  ]]]
+
+            radial:
+              arc_degrees: |
+                [[[
+                  return Number(entities[entity_slots.arc[0]].state);
+                ]]]
+              rotate: |
+                [[[
+                  return Number(entities[entity_slots.rotation[0]].state);
+                ]]]
+              size: |
+                [[[
+                  return Number(entities[entity_slots.size[0]].state);
+                ]]]
+              background:
+                styles:
+                  fill: var(--secondary-background-color)
+                  stroke: var(--divider-color)
+                  stroke-width: 0.5
+                  opacity: 0.3
+
+            legend:
+              position: top
+              rows: 1
+              gap: 4
+              item_gap: 2
+
+          x_axis:
+            labels:
+              orientation: arc
+              offset: 2
+
+          series:
+            - id: living-room-line
+              entity_index: line[0]
+              name: Living room
+              color: "#42a5f5"
+
+            - id: bedroom-area
+              entity_index: area[0]
+              name: Bedroom
+              color: "#f9a825"
+              sparkline:
+                show:
+                  chart_variant: area
+                  fill: fade
+                line:
+                  styles:
+                    opacity: 0.55
+
+            - id: study-dots
+              entity_index: dots[0]
+              name: Study humidity
+              color: "#66bb6a"
+              y_axis_id: secondary
+              sparkline:
+                show:
+                  chart_variant: dots
+                dots:
+                  radius: 0.75
+
+      texts:
+        - id: title
+          xpos: 50
+          ypos: 5
+          text: Radial chart showcase
+          styles:
+            font-size: 1.1em
+            font-weight: bold
+            text-anchor: middle
+
+      controls:
+        - id: arc
+          type: number
+          entity_index: arc[0]
+          xpos: 18
+          ypos: 126
+          width: 18
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Arc
+            styles:
+              font-size: 0.52em
+
+        - id: rotation
+          type: number
+          entity_index: rotation[0]
+          xpos: 50
+          ypos: 126
+          width: 18
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Rotate
+            styles:
+              font-size: 0.52em
+
+        - id: size
+          type: number
+          entity_index: size[0]
+          xpos: 82
+          ypos: 126
+          width: 18
+          height: 9
+          label:
+            position: start
+            gap: 3
+            text: Width
+            styles:
+              font-size: 0.52em
+
+        - id: axes
+          type: toggle
+          entity_index: axes[0]
+          xpos: 50
+          ypos: 140
+          width: 12
+          label:
+            position: start
+            gap: 3
+            text: Axes and grid
+            styles:
+              font-size: 0.52em

@@ -10,13 +10,14 @@ const graphConfig = {
     group_by: 'interval',
   },
   sparkline: {
-    show: { chart_type: 'line', points: false },
+    show: { chart_type: 'line', chart_variant: 'line', points: false, labels: { x: true, y: true } },
     state_values: {
       aggregate_func: 'avg',
       smoothing: false,
       logarithmic: false,
     },
     dots: { radius: 2 },
+    radial: { arc_degrees: 360, rotate: 0, size: 50 },
     radial_barcode: { size: 5 },
     line: { show_dots: false, show_minmax: false },
     area: { show_dots: false, show_minmax: false },
@@ -200,4 +201,117 @@ test('allows cartesian line, area, dots and bar series with an offset-only perio
     }),
     /period may only override real_time.offset/,
   );
+});
+
+test('accepts radial variants as one geometry family and rejects mixed geometry', () => {
+  const radial = new SparklineSeries({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      show: { ...graphConfig.sparkline.show, chart_type: 'radial', chart_variant: 'line' },
+    },
+    series: [
+      { id: 'line', entity_index: 0 },
+      { id: 'area', entity_index: 1, sparkline: { show: { chart_variant: 'area' } } },
+      { id: 'dots', entity_index: 2, sparkline: { show: { chart_variant: 'dots' } } },
+    ],
+  });
+
+  assert.deepEqual(radial.items.map((item) => item.config.sparkline.show.chart_variant), ['line', 'area', 'dots']);
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      sparkline: {
+        ...graphConfig.sparkline,
+        show: { ...graphConfig.sparkline.show, chart_type: 'radial', chart_variant: 'line' },
+      },
+      series: [
+        { id: 'radial', entity_index: 0 },
+        { id: 'line', entity_index: 1, sparkline: { show: { chart_type: 'line' } } },
+      ],
+    }),
+    /radial series cannot be combined with cartesian series/,
+  );
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      series: [{ id: 'radial', entity_index: 0, sparkline: { show: { chart_type: 'radial' } } }],
+    }),
+    /parent chart_type must be radial/,
+  );
+  assert.throws(
+    () => new SparklineSeries({
+      ...graphConfig,
+      sparkline: {
+        ...graphConfig.sparkline,
+        show: { ...graphConfig.sparkline.show, chart_type: 'radial', chart_variant: 'line' },
+      },
+      series: [{
+        id: 'different-arc',
+        entity_index: 0,
+        sparkline: { radial: { arc_degrees: 180 } },
+      }],
+    }),
+    /uses the parent sparkline.radial geometry/,
+  );
+});
+
+test('radial series share scale bounds and one measured outer margin', () => {
+  const calls = [];
+  const makeGraph = (min, max, lineWidth) => ({
+    min,
+    max,
+    coords: [[0, 0, min], [1, 0, max]],
+    config: {
+      geometry: { line_width: lineWidth },
+      y_axis: { lower_bound: undefined, upper_bound: undefined },
+    },
+    clearSharedYAxisBounds() {
+      calls.push(['clear', min, max]);
+    },
+    setSharedYAxisBounds(lowerBound, upperBound) {
+      this.min = lowerBound;
+      this.max = upperBound;
+      calls.push(['bounds', lowerBound, upperBound]);
+    },
+    setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin) {
+      calls.push(['areas', axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin]);
+    },
+    update() {
+      calls.push(['update', this.min, this.max]);
+    },
+  });
+  const series = new SparklineSeries({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      show: { ...graphConfig.sparkline.show, chart_type: 'radial', chart_variant: 'line' },
+    },
+    series: [
+      { id: 'inside', entity_index: 0 },
+      {
+        id: 'outside',
+        entity_index: 1,
+        sparkline: {
+          show: { chart_variant: 'dots' },
+          dots: { radius: 8 },
+        },
+      },
+    ],
+  });
+  series.items[0].graph = makeGraph(10, 20, 2);
+  series.items[1].graph = makeGraph(-5, 30, 4);
+  const axisMargin = { t: 4, r: 4, b: 4, l: 4, x: 4, y: 4 };
+  const configuredMargin = { t: 1, r: 2, b: 3, l: 4, x: 4, y: 1 };
+
+  const result = series.updateRadialGraphs(() => axisMargin, configuredMargin);
+
+  assert.equal(result.ready, true);
+  assert.deepEqual(series.items.map((item) => [item.graph.min, item.graph.max]), [[-5, 30], [-5, 30]]);
+  assert.equal(calls.filter((call) => call[0] === 'areas').length, 2);
+  assert.deepEqual(calls.filter((call) => call[0] === 'areas').map((call) => call[4]), [
+    { t: 17, r: 17, b: 17, l: 17 },
+    { t: 17, r: 17, b: 17, l: 17 },
+  ]);
+  assert.deepEqual(result.axisMargin, axisMargin);
 });
