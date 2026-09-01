@@ -46,7 +46,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
-  favicon: assets/logo/fhs-favicon.svg
+  # favicon: assets/logo/fhs-favicon.svg
+  favicon: assets/logo/favicon.ico
   logo: assets/logo/fhs-logo.svg
   custom_dir: overrides
   features:
