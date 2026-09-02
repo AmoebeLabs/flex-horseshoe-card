@@ -1540,6 +1540,95 @@ export default class SparklineGraph {
   }
 
   /**
+   * Creates one closed annular sector between exact radial angles. Complete
+   * circles use two SVG arcs on both edges so the same geometry also supports
+   * a day or night period spanning the full visible timeline.
+   *
+   * @param {number} innerRadius - Inner edge of the ring.
+   * @param {number} outerRadius - Outer edge of the ring.
+   * @param {number} startAngle - Clock-oriented start angle.
+   * @param {number} endAngle - Clock-oriented end angle.
+   * @returns {string} Closed SVG path data.
+   */
+  getRadialAnnularSegmentPath(innerRadius, outerRadius, startAngle, endAngle) {
+    const arcDegrees = endAngle - startAngle;
+    const outerStart = this.getRadialPoint(outerRadius, startAngle);
+
+    if (Math.abs(arcDegrees) === 360) {
+      const outerMiddle = this.getRadialPoint(outerRadius, startAngle + arcDegrees / 2);
+      if (innerRadius === 0) {
+        const center = this.getRadialGeometry();
+        return `M ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 0 1 ${outerMiddle.x} ${outerMiddle.y} A ${outerRadius} ${outerRadius} 0 0 1 ${outerStart.x} ${outerStart.y} L ${center.centerX} ${center.centerY} z`;
+      }
+      const innerStart = this.getRadialPoint(innerRadius, startAngle);
+      const innerMiddle = this.getRadialPoint(innerRadius, startAngle - arcDegrees / 2);
+      return `M ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 0 1 ${outerMiddle.x} ${outerMiddle.y} A ${outerRadius} ${outerRadius} 0 0 1 ${outerStart.x} ${outerStart.y} z M ${innerStart.x} ${innerStart.y} A ${innerRadius} ${innerRadius} 0 0 0 ${innerMiddle.x} ${innerMiddle.y} A ${innerRadius} ${innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y} z`;
+    }
+
+    const outerEnd = this.getRadialPoint(outerRadius, endAngle);
+    if (innerRadius === 0) {
+      const center = this.getRadialGeometry();
+      const largeArcFlag = Math.abs(arcDegrees) > 180 ? 1 : 0;
+      return `M ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${center.centerX} ${center.centerY} z`;
+    }
+    const innerStart = this.getRadialPoint(innerRadius, startAngle);
+    const innerEnd = this.getRadialPoint(innerRadius, endAngle);
+    const largeArcFlag = Math.abs(arcDegrees) > 180 ? 1 : 0;
+    return `M ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${innerEnd.x} ${innerEnd.y} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y} z`;
+  }
+
+  /**
+   * Maps an exact time interval onto the prepared graph geometry. Cartesian
+   * charts receive a full background rectangle or an internal top/bottom band;
+   * radial charts receive the matching annular sector. No graph bins are used.
+   *
+   * @param {Date} segmentStart - Visible segment start.
+   * @param {Date} segmentEnd - Visible segment end.
+   * @param {Date} rangeStart - Inclusive visible timeline start.
+   * @param {Date} rangeEnd - Exclusive visible timeline end.
+   * @param {object} config - Validated day/night mode, position, size and offset.
+   * @returns {object} Cartesian rectangle or radial path geometry.
+   */
+  getTimeRangeGeometry(segmentStart, segmentEnd, rangeStart, rangeEnd, config) {
+    const duration = rangeEnd.getTime() - rangeStart.getTime();
+    const startFraction = (segmentStart.getTime() - rangeStart.getTime()) / duration;
+    const endFraction = (segmentEnd.getTime() - rangeStart.getTime()) / duration;
+    const chartType = this.config.sparkline.show.chart_type;
+
+    if (chartType === 'radial' || chartType === 'radial_barcode') {
+      const radialGeometry = this.getRadialGeometry();
+      const graphInnerRadius = chartType === 'radial_barcode' ? radialGeometry.outerRadius - this.radialBarcodeSize : radialGeometry.innerRadius;
+      const outerRadius = config.mode === 'background' ? radialGeometry.outerRadius : graphInnerRadius + config.offset;
+      const innerRadius = config.mode === 'background' ? graphInnerRadius : outerRadius - config.size;
+      const startAngle = this.getRadialAngleForFraction(startFraction);
+      const endAngle = this.getRadialAngleForFraction(endFraction);
+
+      return {
+        type: 'radial',
+        path: this.getRadialAnnularSegmentPath(innerRadius, outerRadius, startAngle, endAngle),
+      };
+    }
+
+    const x = this.drawArea.x + startFraction * this.drawArea.width;
+    const width = (endFraction - startFraction) * this.drawArea.width;
+    const height = config.mode === 'background' ? this.drawArea.height : config.size;
+    const y =
+      config.mode === 'background'
+        ? this.drawArea.y
+        : config.position === 'top'
+          ? this.drawArea.y - config.offset
+          : this.drawArea.y + this.drawArea.height - config.size + config.offset;
+
+    return {
+      type: 'cartesian',
+      x,
+      y,
+      width,
+      height,
+    };
+  }
+
+  /**
    * Creates the closed annular path behind the complete radial plot. Partial
    * arcs join their inner and outer endpoints; complete circles use two arc
    * pairs and the renderer's even-odd fill rule to preserve the center cutout.
@@ -1548,31 +1637,7 @@ export default class SparklineGraph {
    */
   getRadialBackgroundPath() {
     const geometry = this.getRadialGeometry();
-    const startAngle = geometry.rotate;
-    const endAngle = geometry.rotate + geometry.arcDegrees;
-    const outerStart = this.getRadialPoint(geometry.outerRadius, startAngle);
-
-    if (geometry.arcDegrees === 360) {
-      const outerMiddle = this.getRadialPoint(geometry.outerRadius, startAngle + 180);
-      let path = `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 0 1 ${outerMiddle.x} ${outerMiddle.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 0 1 ${outerStart.x} ${outerStart.y} z`;
-
-      if (geometry.innerRadius > 0) {
-        const innerStart = this.getRadialPoint(geometry.innerRadius, startAngle);
-        const innerMiddle = this.getRadialPoint(geometry.innerRadius, startAngle - 180);
-        path += ` M ${innerStart.x} ${innerStart.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 0 0 ${innerMiddle.x} ${innerMiddle.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y} z`;
-      }
-      return path;
-    }
-
-    const outerEnd = this.getRadialPoint(geometry.outerRadius, endAngle);
-    const largeArcFlag = geometry.arcDegrees > 180 ? 1 : 0;
-    if (geometry.innerRadius === 0) {
-      return `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${geometry.centerX} ${geometry.centerY} z`;
-    }
-
-    const innerStart = this.getRadialPoint(geometry.innerRadius, startAngle);
-    const innerEnd = this.getRadialPoint(geometry.innerRadius, endAngle);
-    return `M ${outerStart.x} ${outerStart.y} A ${geometry.outerRadius} ${geometry.outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y} L ${innerEnd.x} ${innerEnd.y} A ${geometry.innerRadius} ${geometry.innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y} z`;
+    return this.getRadialAnnularSegmentPath(geometry.innerRadius, geometry.outerRadius, geometry.rotate, geometry.rotate + geometry.arcDegrees);
   }
 
   /**

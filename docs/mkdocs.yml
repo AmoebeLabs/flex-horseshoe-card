@@ -262,9 +262,10 @@ nav:
               - Radial barcode: tools/sparkline/radial-barcode.md
               - State bands: tools/sparkline/state-bands.md
           - Graph configuration:
+              - Axes and grid: tools/sparkline/axes-and-grid.md
+              - Day and night: tools/sparkline/day-and-night.md
               - History periods and bins: tools/sparkline/sparkline-history-periods-and-bins.md
               - Multiple series: tools/sparkline/multiple-series.md
-              - Axes and grid: tools/sparkline/axes-and-grid.md
 
       - Interactive controls:
           - Overview: tools/controls/controls-overview.md
