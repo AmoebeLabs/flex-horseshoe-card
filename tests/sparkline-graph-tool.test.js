@@ -904,6 +904,103 @@ test('accepted history keeps its update flag active through the card pipeline', 
   assert.equal(tool.historyLoading, false);
 });
 
+test('sun history and current forecast become exact day and night segments', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    config: {
+      period: {
+        type: 'calendar',
+        calendar: { offset: 0 },
+      },
+    },
+    dayNightHistory: [
+      { state: 'below_horizon', last_changed: '2026-09-02T00:00:00.000Z' },
+      { state: 'above_horizon', last_changed: '2026-09-02T06:13:00.000Z' },
+    ],
+    dayNightSegments: [],
+    getDayNightRange: () => ({
+      start: new Date('2026-09-02T00:00:00.000Z'),
+      end: new Date('2026-09-03T00:00:00.000Z'),
+      sourceRangeIsActive: true,
+    }),
+  });
+
+  tool.buildDayNightSegments({
+    state: 'above_horizon',
+    last_changed: '2026-09-02T06:13:00.000Z',
+    attributes: {
+      next_rising: '2026-09-03T06:15:00.000Z',
+      next_setting: '2026-09-02T18:47:00.000Z',
+    },
+  });
+
+  assert.deepEqual(
+    tool.dayNightSegments.map((segment) => ({
+      state: segment.state,
+      start: segment.start.toISOString(),
+      end: segment.end.toISOString(),
+    })),
+    [
+      { state: 'night', start: '2026-09-02T00:00:00.000Z', end: '2026-09-02T06:13:00.000Z' },
+      { state: 'day', start: '2026-09-02T06:13:00.000Z', end: '2026-09-02T18:47:00.000Z' },
+      { state: 'night', start: '2026-09-02T18:47:00.000Z', end: '2026-09-03T00:00:00.000Z' },
+    ],
+  );
+});
+
+test('represented sun history is reused without another request or loading state', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const range = {
+    start: new Date('2026-09-01T00:00:00.000Z'),
+    end: new Date('2026-09-02T00:00:00.000Z'),
+    sourceRangeIsActive: false,
+  };
+  let apiCalls = 0;
+  let segmentBuilds = 0;
+
+  Object.assign(tool, {
+    config: {
+      period: {
+        type: 'calendar',
+        calendar: { offset: -1 },
+      },
+    },
+    dayNightHistory: [{ state: 'below_horizon', last_changed: range.start.toISOString() }],
+    dayNightHistoryPromise: undefined,
+    dayNightRangeStart: range.start.getTime(),
+    dayNightRangeEnd: range.end.getTime(),
+    dayNightResynchronizationRequested: false,
+    sparklineSeries: { items: [{ historyLoading: false }] },
+    getDayNightRange: () => range,
+    buildDayNightSegments() {
+      segmentBuilds += 1;
+    },
+    card: {
+      _hass: {
+        callApi() {
+          apiCalls += 1;
+        },
+      },
+    },
+  });
+
+  tool.fetchDayNightHistoryIfNeeded({});
+
+  assert.equal(apiCalls, 0);
+  assert.equal(segmentBuilds, 1);
+  assert.equal(tool.historyLoading, false);
+});
+
+test('day and night resynchronization participates in the normal hass update contract', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    dayNightResynchronizationRequested: true,
+    sparklineSeries: { items: [] },
+  });
+
+  assert.equal(tool.requiresHassUpdate(), true);
+});
+
 test('calendar history request spans complete calendar days', () => {
   const NativeDate = globalThis.Date;
   const fixedNow = new NativeDate('2026-08-14T12:30:00');
@@ -1449,6 +1546,7 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
   let graphUpdates = 0;
 
   Object.assign(tool, {
+    config: { sparkline: { show: { day_night: false } } },
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     historyDurationReady: true,
     card: { dev: { fakeData: false } },

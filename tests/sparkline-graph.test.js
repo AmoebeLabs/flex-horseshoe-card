@@ -678,6 +678,87 @@ test('radial line, area and pointer geometry share one rotated partial arc', () 
   assert.equal(graph.getRadialPlotArcPath(geometry.outerRadius), graph.getRadialArcPath(geometry.outerRadius, 45, 225));
 });
 
+test('day and night cartesian geometry follows exact times instead of bins', () => {
+  const graph = createGraph();
+  const rangeStart = new Date('2026-09-02T00:00:00.000Z');
+  const rangeEnd = new Date('2026-09-03T00:00:00.000Z');
+  const segmentStart = new Date('2026-09-02T06:15:00.000Z');
+  const segmentEnd = new Date('2026-09-02T18:45:00.000Z');
+
+  const background = graph.getTimeRangeGeometry(segmentStart, segmentEnd, rangeStart, rangeEnd, {
+    mode: 'background',
+    position: 'bottom',
+    size: 4,
+    offset: 0,
+  });
+  const band = graph.getTimeRangeGeometry(segmentStart, segmentEnd, rangeStart, rangeEnd, {
+    mode: 'band',
+    position: 'bottom',
+    size: 4,
+    offset: -2,
+  });
+
+  assert.deepEqual(background, {
+    type: 'cartesian',
+    x: 36.04166666666667,
+    y: 10,
+    width: 52.08333333333333,
+    height: 80,
+  });
+  assert.deepEqual(band, {
+    type: 'cartesian',
+    x: 36.04166666666667,
+    y: 84,
+    width: 52.08333333333333,
+    height: 4,
+  });
+});
+
+test('day and night radial band uses the shared arc and an inward ring', () => {
+  const config = createGraphConfig({ chartType: 'radial' });
+  config.sparkline.radial = { arc_degrees: 270, rotate: -135, size: 15 };
+  const graph = createGraph(config);
+  const capturedGeometry = [];
+  graph.getRadialAnnularSegmentPath = (...geometry) => {
+    capturedGeometry.push(geometry);
+    return 'radial-day-night-path';
+  };
+
+  const geometry = graph.getTimeRangeGeometry(
+    new Date('2026-09-02T06:00:00.000Z'),
+    new Date('2026-09-02T18:00:00.000Z'),
+    new Date('2026-09-02T00:00:00.000Z'),
+    new Date('2026-09-03T00:00:00.000Z'),
+    { mode: 'band', position: 'top', size: 4, offset: -2 },
+  );
+
+  assert.deepEqual(geometry, { type: 'radial', path: 'radial-day-night-path' });
+  assert.deepEqual(capturedGeometry, [[4, 8, -67.5, 67.5]]);
+});
+
+test('day and night radial barcode background uses the complete barcode ring', () => {
+  const config = createGraphConfig({ chartType: 'radial_barcode' });
+  config.sparkline.radial = { arc_degrees: 360, rotate: 0, size: 15 };
+  config.sparkline.radial_barcode.size = 5;
+  const graph = createGraph(config);
+  const capturedGeometry = [];
+  graph.getRadialAnnularSegmentPath = (...geometry) => {
+    capturedGeometry.push(geometry);
+    return 'radial-barcode-day-night-path';
+  };
+
+  const geometry = graph.getTimeRangeGeometry(
+    new Date('2026-09-02T00:00:00.000Z'),
+    new Date('2026-09-03T00:00:00.000Z'),
+    new Date('2026-09-02T00:00:00.000Z'),
+    new Date('2026-09-03T00:00:00.000Z'),
+    { mode: 'background', position: 'bottom', size: 4, offset: 0 },
+  );
+
+  assert.deepEqual(geometry, { type: 'radial', path: 'radial-barcode-day-night-path' });
+  assert.deepEqual(capturedGeometry, [[30, 40, 0, 360]]);
+});
+
 test('full radial circles place secondary value labels opposite the primary axis', () => {
   const graph = createGraph(createGraphConfig({ chartType: 'radial' }));
 

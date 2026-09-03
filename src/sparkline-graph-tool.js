@@ -312,7 +312,6 @@ export default class SparklineGraphTool extends BaseTool {
           size: 5,
           line_width: 0,
           face: {
-            show_day_night: false,
             show_hour_marks: false,
             show_hour_numbers: false,
             hour_marks_count: 24,
@@ -326,6 +325,23 @@ export default class SparklineGraphTool extends BaseTool {
         tooltip: {
           styles: {
             'font-size': '0.9em',
+          },
+        },
+        day_night: {
+          mode: 'background',
+          position: 'bottom',
+          size: 4,
+          offset: 0,
+          day: {
+            styles: {
+              fill: 'transparent',
+            },
+          },
+          night: {
+            styles: {
+              fill: 'var(--divider-color)',
+              'fill-opacity': 0.2,
+            },
           },
         },
         legend: {
@@ -346,6 +362,7 @@ export default class SparklineGraphTool extends BaseTool {
           chart_type: 'line',
           chart_variant: 'line',
           background: true,
+          day_night: false,
           points: false,
           line: true,
           area: false,
@@ -373,9 +390,8 @@ export default class SparklineGraphTool extends BaseTool {
       x_axis: {
         axis: {
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 30%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.45,
           },
         },
         ticks_major: {
@@ -386,32 +402,28 @@ export default class SparklineGraphTool extends BaseTool {
         },
         grid_major: {
           styles: {
-            stroke: 'var(--divider-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 6%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.35,
           },
         },
         grid_minor: {
           styles: {
-            stroke: 'var(--divider-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 3%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.15,
           },
         },
         tickmarks_major: {
           size: 1,
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 30%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.45,
           },
         },
         tickmarks_minor: {
           size: 0.5,
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 18%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.25,
           },
         },
         labels: {
@@ -429,9 +441,8 @@ export default class SparklineGraphTool extends BaseTool {
       y_axis: {
         axis: {
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 30%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.45,
           },
         },
         ticks_major: {
@@ -442,32 +453,28 @@ export default class SparklineGraphTool extends BaseTool {
         },
         grid_major: {
           styles: {
-            stroke: 'var(--divider-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 6%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.35,
           },
         },
         grid_minor: {
           styles: {
-            stroke: 'var(--divider-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 3%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.15,
           },
         },
         tickmarks_major: {
           size: 1,
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 30%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.45,
           },
         },
         tickmarks_minor: {
           size: 0.5,
           styles: {
-            stroke: 'var(--primary-text-color)',
+            stroke: 'color-mix(in srgb, var(--primary-text-color) 18%, var(--card-background-color))',
             'stroke-width': 1,
-            opacity: 0.25,
           },
         },
         labels: {
@@ -533,6 +540,11 @@ export default class SparklineGraphTool extends BaseTool {
     if (normalizedConfig.sparkline?.radial?.background?.styles !== undefined) {
       normalizedConfig.sparkline.radial.background.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.radial.background.styles);
     }
+    ['day', 'night'].forEach((periodName) => {
+      if (normalizedConfig.sparkline?.day_night?.[periodName]?.styles !== undefined) {
+        normalizedConfig.sparkline.day_night[periodName].styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.day_night[periodName].styles);
+      }
+    });
     if (normalizedConfig.sparkline?.state_bands?.styles !== undefined) {
       normalizedConfig.sparkline.state_bands.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.state_bands.styles);
     }
@@ -553,6 +565,32 @@ export default class SparklineGraphTool extends BaseTool {
       });
     });
     const sparklineConfig = Merge.mergeDeep(defaultConfig, normalizedConfig);
+
+    const dayNightConfigurationUsesJavascript = templates.hasJavascriptTemplates({
+      show: sparklineConfig.sparkline.show.day_night,
+      day_night: sparklineConfig.sparkline.day_night,
+      period: sparklineConfig.period,
+    });
+    if (!dayNightConfigurationUsesJavascript) {
+      if (!['background', 'band'].includes(sparklineConfig.sparkline.day_night.mode)) {
+        throw new Error('[sparklines] sparkline.day_night.mode must be background or band');
+      }
+      if (!['top', 'bottom'].includes(sparklineConfig.sparkline.day_night.position)) {
+        throw new Error('[sparklines] sparkline.day_night.position must be top or bottom');
+      }
+      if (!Number.isFinite(Number(sparklineConfig.sparkline.day_night.size)) || Number(sparklineConfig.sparkline.day_night.size) <= 0) {
+        throw new Error('[sparklines] sparkline.day_night.size must be greater than 0');
+      }
+      if (!Number.isFinite(Number(sparklineConfig.sparkline.day_night.offset))) {
+        throw new Error('[sparklines] sparkline.day_night.offset must be a number');
+      }
+      if (sparklineConfig.sparkline.show.day_night && sparklineConfig.period.type === 'real_time') {
+        throw new Error('[sparklines] show.day_night requires a calendar or rolling_window period');
+      }
+      if (sparklineConfig.sparkline.show.day_night && sparklineConfig.period.type === 'calendar' && Number(sparklineConfig.period.calendar.offset) > 0) {
+        throw new Error('[sparklines] show.day_night does not support future calendar offsets');
+      }
+    }
 
     // Static radial values are validated now. JavaScript-backed values become
     // concrete in updateRuntimeConfig() and enter the same validation there.
@@ -692,6 +730,14 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements = {};
     this.binBoundaryTimer = undefined;
     this.calendarRangeTimer = undefined;
+    this.dayNightHistory = undefined;
+    this.dayNightHistoryPromise = undefined;
+    this.dayNightRangeStart = undefined;
+    this.dayNightRangeEnd = undefined;
+    this.dayNightPeriodSignature = JSON.stringify([this.config.sparkline.show.day_night, this.config.period]);
+    this.dayNightSunSignature = undefined;
+    this.dayNightResynchronizationRequested = false;
+    this.dayNightSegments = [];
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
@@ -1029,6 +1075,44 @@ export default class SparklineGraphTool extends BaseTool {
       if (!Number.isFinite(Number(this.config.sparkline.radial.size)) || Number(this.config.sparkline.radial.size) <= 0) {
         throw new Error('[sparklines] sparkline.radial.size must be greater than 0');
       }
+
+      this.config.sparkline.day_night.day.styles = ConfigHelper.toStyleDict(this.config.sparkline.day_night.day.styles);
+      this.config.sparkline.day_night.night.styles = ConfigHelper.toStyleDict(this.config.sparkline.day_night.night.styles);
+      if (!['background', 'band'].includes(this.config.sparkline.day_night.mode)) {
+        throw new Error('[sparklines] sparkline.day_night.mode must be background or band');
+      }
+      if (!['top', 'bottom'].includes(this.config.sparkline.day_night.position)) {
+        throw new Error('[sparklines] sparkline.day_night.position must be top or bottom');
+      }
+      if (!Number.isFinite(Number(this.config.sparkline.day_night.size)) || Number(this.config.sparkline.day_night.size) <= 0) {
+        throw new Error('[sparklines] sparkline.day_night.size must be greater than 0');
+      }
+      if (!Number.isFinite(Number(this.config.sparkline.day_night.offset))) {
+        throw new Error('[sparklines] sparkline.day_night.offset must be a number');
+      }
+      if (this.config.sparkline.show.day_night && this.config.period.type === 'real_time') {
+        throw new Error('[sparklines] show.day_night requires a calendar or rolling_window period');
+      }
+      if (this.config.sparkline.show.day_night && this.config.period.type === 'calendar' && Number(this.config.period.calendar.offset) > 0) {
+        throw new Error('[sparklines] show.day_night does not support future calendar offsets');
+      }
+
+      const activeDayNightPeriodSignature = JSON.stringify([this.config.sparkline.show.day_night, this.config.period]);
+      if (activeDayNightPeriodSignature !== this.dayNightPeriodSignature) {
+        this.dayNightHistory = undefined;
+        this.dayNightRangeStart = undefined;
+        this.dayNightRangeEnd = undefined;
+        this.dayNightSegments = [];
+        this.dayNightResynchronizationRequested = this.config.sparkline.show.day_night;
+        this.dayNightPeriodSignature = activeDayNightPeriodSignature;
+      }
+      if (!this.config.sparkline.show.day_night) {
+        this.dayNightHistory = undefined;
+        this.dayNightRangeStart = undefined;
+        this.dayNightRangeEnd = undefined;
+        this.dayNightSegments = [];
+        this.dayNightResynchronizationRequested = false;
+      }
     }
 
     // A calendar day always spans at least one complete day. A duration can
@@ -1347,6 +1431,29 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     historicalItems.forEach((item) => this.fetchHistoryIfNeeded(item));
+    if (this.config.sparkline.show.day_night) {
+      const sunEntity = this.card._hass.states['sun.sun'];
+      const sunSignature = JSON.stringify([
+        sunEntity.state,
+        sunEntity.last_changed,
+        sunEntity.attributes.next_rising,
+        sunEntity.attributes.next_setting,
+      ]);
+      if (sunSignature !== this.dayNightSunSignature) {
+        this.dayNightSunSignature = sunSignature;
+        if (this.dayNightHistory !== undefined) {
+          const dayNightRange = this.getDayNightRange();
+          if (dayNightRange.sourceRangeIsActive) {
+            this.dayNightHistory.push({
+              state: sunEntity.state,
+              last_changed: sunEntity.last_changed,
+            });
+          }
+          this.buildDayNightSegments(sunEntity);
+        }
+      }
+      this.fetchDayNightHistoryIfNeeded(sunEntity);
+    }
     if (historicalItems.length > 0 && historicalItems.every((item) => !item.preserveGraphWhileHistoryLoads)) {
       this.scheduleBinBoundaryRefresh();
       this.scheduleCalendarRangeRefresh();
@@ -1425,6 +1532,9 @@ export default class SparklineGraphTool extends BaseTool {
       }
       // A bin boundary advances the in-memory graph without fetching history.
       // Refresh local statistics and their bound tools from the recalculated series.
+      if (this.config.sparkline.show.day_night && this.dayNightHistory !== undefined) {
+        this.buildDayNightSegments(this.card._hass.states['sun.sun']);
+      }
       this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
       this.card.setHass(this.card._hass);
       this.scheduleBinBoundaryRefresh();
@@ -1457,6 +1567,11 @@ export default class SparklineGraphTool extends BaseTool {
           this.fetchHistoryIfNeeded(item);
         }
       });
+      if (this.config.sparkline.show.day_night) {
+        const dayNightRange = this.getDayNightRange();
+        const dayNightRangeChanged = dayNightRange.start.getTime() !== this.dayNightRangeStart || dayNightRange.end.getTime() !== this.dayNightRangeEnd;
+        if (dayNightRangeChanged) this.fetchDayNightHistoryIfNeeded(this.card._hass.states['sun.sun']);
+      }
       this.scheduleCalendarRangeRefresh();
     }, delay);
   }
@@ -1478,6 +1593,7 @@ export default class SparklineGraphTool extends BaseTool {
       const sourceRangeIsActive = item.config.period.type !== 'real_time' && this.getHistoryRange(item).sourceRangeIsActive;
       if (item.historySeries && sourceRangeIsActive) item.historyResynchronizationRequested = true;
     });
+    if (this.config.sparkline.show.day_night && this.dayNightHistory !== undefined) this.dayNightResynchronizationRequested = true;
   }
 
   /** Marks existing history for resynchronization after an HA reconnect. */
@@ -1491,7 +1607,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} True when existing history must be fetched again.
    */
   requiresHassUpdate() {
-    return this.sparklineSeries.items.some((item) => item.historyResynchronizationRequested);
+    return this.dayNightResynchronizationRequested || this.sparklineSeries.items.some((item) => item.historyResynchronizationRequested);
   }
 
   /**
@@ -1511,6 +1627,117 @@ export default class SparklineGraphTool extends BaseTool {
     if (unit === 's' || unit === 'sec') return value * 1000;
     if (unit === 'm' || unit === 'min') return value * 60 * 1000;
     return value * 60 * 60 * 1000;
+  }
+
+  /**
+   * Returns the parent plot range used by the one shared day/night layer.
+   * Individual comparison-series offsets deliberately do not select another
+   * sun timeline.
+   *
+   * @returns {object} Visible start/end and active-range state.
+   */
+  getDayNightRange() {
+    const range = this.getHistoryRange({ config: this.config });
+    return {
+      start: range.plotStart,
+      end: range.plotEnd,
+      sourceRangeIsActive: range.sourceRangeIsActive,
+    };
+  }
+
+  /**
+   * Converts historical horizon states and the current Sun forecast into
+   * continuous, clipped day/night periods. Forecast attributes are only used
+   * for the remaining part of the active calendar day.
+   *
+   * @param {object} sunEntity - Current Home Assistant sun.sun state.
+   */
+  buildDayNightSegments(sunEntity) {
+    const range = this.getDayNightRange();
+    const rangeStart = range.start.getTime();
+    const rangeEnd = range.end.getTime();
+    const horizonStates = this.dayNightHistory.map((row) => ({
+      state: row.state === 'above_horizon' ? 'day' : 'night',
+      time: new Date(row.last_changed).getTime(),
+    }));
+
+    if (range.sourceRangeIsActive) {
+      horizonStates.push({
+        state: sunEntity.state === 'above_horizon' ? 'day' : 'night',
+        time: new Date(sunEntity.last_changed).getTime(),
+      });
+    }
+
+    if (this.config.period.type === 'calendar' && Number(this.config.period.calendar.offset) === 0) {
+      horizonStates.push(
+        { state: 'day', time: new Date(sunEntity.attributes.next_rising).getTime() },
+        { state: 'night', time: new Date(sunEntity.attributes.next_setting).getTime() },
+      );
+    }
+
+    horizonStates.sort((first, second) => first.time - second.time);
+    const transitions = [];
+    horizonStates.forEach((horizonState) => {
+      if (horizonState.time > rangeEnd) return;
+      const previous = transitions[transitions.length - 1];
+      if (previous && previous.state === horizonState.state) return;
+      transitions.push(horizonState);
+    });
+
+    this.dayNightSegments = [];
+    transitions.forEach((transition, index) => {
+      const start = Math.max(rangeStart, transition.time);
+      const end = Math.min(rangeEnd, index < transitions.length - 1 ? transitions[index + 1].time : rangeEnd);
+      if (start >= end) return;
+
+      this.dayNightSegments.push({
+        state: transition.state,
+        start: new Date(start),
+        end: new Date(end),
+      });
+    });
+  }
+
+  /**
+   * Loads the horizon-state history represented by the parent sparkline
+   * period. The auxiliary request never changes graph loading state or clears
+   * already rendered series.
+   *
+   * @param {object} sunEntity - Current Home Assistant sun.sun state.
+   */
+  fetchDayNightHistoryIfNeeded(sunEntity) {
+    const range = this.getDayNightRange();
+    const representedRange =
+      this.dayNightHistory !== undefined &&
+      (this.config.period.type === 'rolling_window'
+        ? this.dayNightRangeStart <= range.start.getTime()
+        : this.dayNightRangeStart === range.start.getTime() && this.dayNightRangeEnd === range.end.getTime());
+
+    if (this.dayNightHistoryPromise) return;
+    if (representedRange && !this.dayNightResynchronizationRequested) {
+      this.buildDayNightSegments(sunEntity);
+      return;
+    }
+
+    const requestEnd = new Date(Math.min(range.end.getTime(), Date.now()));
+    const requestedPeriodSignature = this.dayNightPeriodSignature;
+    const path = this.buildHistoryPath('sun.sun', range.start, requestEnd);
+    this.dayNightHistoryPromise = this.card._hass
+      .callApi('GET', path)
+      .then((history) => {
+        if (requestedPeriodSignature !== this.dayNightPeriodSignature) return;
+
+        this.dayNightHistory = history.length === 0 ? [] : history[0];
+        this.dayNightRangeStart = range.start.getTime();
+        this.dayNightRangeEnd = range.end.getTime();
+        this.dayNightResynchronizationRequested = false;
+        this.buildDayNightSegments(sunEntity);
+        this.card.requestUpdate();
+      })
+      .finally(() => {
+        this.dayNightHistoryPromise = undefined;
+        if (this.dayNightResynchronizationRequested) this.fetchDayNightHistoryIfNeeded(this.card._hass.states['sun.sun']);
+      });
   }
 
   /**
@@ -3704,6 +3931,38 @@ export default class SparklineGraphTool extends BaseTool {
     return svg`<path class="sparkline-radial-background" d=${this.primaryGraph.getRadialBackgroundPath()} fill-rule="evenodd" style=${styleMap(styles)}></path>`;
   }
 
+  /**
+   * Renders exact sun-state intervals as the shared layer behind every graph
+   * series. SparklineGraph supplies either rectangle or annular geometry, so
+   * this method only applies the separately configured day and night styles.
+   *
+   * @returns {object|string} Lit SVG day/night layer or an empty result.
+   */
+  renderDayNightLayer() {
+    if (!this.config.sparkline.show.day_night || this.dayNightSegments.length === 0 || !this.graphReady) return '';
+
+    const range = this.getDayNightRange();
+    const dayNightConfig = {
+      mode: this.config.sparkline.day_night.mode,
+      position: this.config.sparkline.day_night.position,
+      size: Utils.calculateSvgDimension(this.config.sparkline.day_night.size),
+      offset: Utils.calculateSvgDimension(this.config.sparkline.day_night.offset),
+    };
+
+    return svg`
+      <g class='sparkline-day-night' pointer-events='none'>
+        ${this.dayNightSegments.map((segment) => {
+          const geometry = this.primaryGraph.getTimeRangeGeometry(segment.start, segment.end, range.start, range.end, dayNightConfig);
+          const styles = this.getRenderStyles(this.config.sparkline.day_night[segment.state].styles);
+
+          return geometry.type === 'radial'
+            ? svg`<path class='sparkline-day-night__${segment.state}' d=${geometry.path} fill-rule='evenodd' style=${styleMap(styles)}></path>`
+            : svg`<rect class='sparkline-day-night__${segment.state}' x=${geometry.x} y=${geometry.y} width=${geometry.width} height=${geometry.height} style=${styleMap(styles)}></rect>`;
+        })}
+      </g>
+    `;
+  }
+
   /** Renders the outer time arc and primary/secondary radial value axes. */
   renderRadialAxis() {
     const graph = this.primaryGraph;
@@ -5172,17 +5431,8 @@ export default class SparklineGraphTool extends BaseTool {
     if (!this.config?.sparkline?.radial_barcode?.face) return svg``;
 
     const geometry = this.primaryGraph.getRadialGeometry();
-    const dayNightRadius = radius * 0.62;
     const hourMarksRadius = radius * 0.84;
     const hourNumbersRadius = radius * 0.74;
-
-    const renderDayNight = () => {
-      return this.config.sparkline.radial_barcode.face?.show_day_night === true
-        ? svg`
-        <circle pathLength="1" r="${dayNightRadius}" cx=${geometry.centerX} cy=${geometry.centerY}></circle>
-      `
-        : '';
-    };
 
     const renderHourMarks = () => {
       return this.config.sparkline.radial_barcode.face?.show_hour_marks === true
@@ -5219,7 +5469,6 @@ export default class SparklineGraphTool extends BaseTool {
     };
 
     return svg`
-      ${renderDayNight()}
       ${renderHourMarks()}
       ${renderAbsoluteHourNumbers()}
       ${renderRelativeHourNumbers()}
@@ -5970,12 +6219,20 @@ export default class SparklineGraphTool extends BaseTool {
           </defs>
           <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
             <g
+              class="sparkline-background-layers"
+              opacity=${this.historyLoading ? 0.2 : 1}
+              pointer-events="none"
+            >
+              ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialBackground() : ''}
+              ${this.renderDayNightLayer()}
+            </g>
+            <g
             opacity=${this.historyLoading ? 0.2 : 1}
             style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
           >
           ${this.renderCartesianHitArea()}
           ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialHitArea() : ''}
-          ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialBackground() : ''}
+          ${this.renderGrid()}
           ${this.config.sparkline.show.chart_type === 'radial' ? this.renderSeriesRadial() : ''}
           ${this.sparklineSeries.items.length > 1 ? this.renderSeriesBars() : ''}
           ${
@@ -6030,7 +6287,6 @@ export default class SparklineGraphTool extends BaseTool {
           ${this.graded.map((grade, i) => this.renderSvgGraded(grade, i))}
           ${this.renderSvgStateBandsBackground()}
           ${this.renderSvgStateBands()}
-          ${this.renderGrid()}
           ${this.renderAxis()}
           ${this.sparklineSeries.items.length === 1 && this.config.sparkline.show.chart_type !== 'radial' ? this.renderPoints() : ''}
           ${this.renderActiveIndicator()}

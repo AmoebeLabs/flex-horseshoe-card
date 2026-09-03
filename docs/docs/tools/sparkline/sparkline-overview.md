@@ -104,6 +104,7 @@ Start by deciding what the graph should help you understand:
 | Show a calmer overall trend                    | Use fewer bins per hour with `aggregate_func: avg`. |
 | Show threshold changes instead of exact height | Use `barcode` or `radial_barcode` with color stops. |
 | Show when named states were active             | Use `state_bands` with a state map.                 |
+| Compare values during daylight and nighttime   | Add a [day-and-night layer](day-and-night.md).      |
 
 For the current calendar period, the X-axis spans the full period while the graph fills up to the current time. A rolling window moves continuously and always shows the latest configured duration.
 
@@ -168,6 +169,7 @@ Margins reserve space within the configured graph area. Cartesian labels and tic
 | `tooltip.styles`              | Adjusts the appearance of the interactive tooltip.                       |
 | `show.legend`                 | Shows one color marker and label for every declared series.                |
 | `legend`                      | Positions and styles the separate legend area.                            |
+| `day_night`                   | Styles daylight and nighttime as a background or separate band.           |
 | `line` and `area`             | Control the styling of line and area charts.                             |
 | `state_map` and `state_bands` | Map named states and control the appearance of a state bands chart.      |
 
@@ -205,6 +207,7 @@ See [Color Stops](../../appearance/color-stops.md) for reusable color definition
 
 * [Sparkline History Periods and Bins](sparkline-history-periods-and-bins.md)
 * [Sparkline Cartesian Charts and Axes](axes-and-grid.md)
+* [Day and Night](day-and-night.md)
 * [Sparkline Specialized Charts](sparkline-overview.md#chart-types)
 * [Entity Definitions](../../card-basics/entities.md)
 * [Color Stops](../../appearance/color-stops.md)
