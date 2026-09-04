@@ -5953,17 +5953,25 @@ export default class SparklineGraphTool extends BaseTool {
         const areaStyles = ConfigHelper.toStyleDict(config.area.styles);
         const path = ['line', 'area'].includes(chartType) ? graph.getPath() : undefined;
         const areaPath = chartType === 'area' ? graph.getArea(path) : undefined;
+        const showMinMax = chartType === 'line' ? config.sparkline.line.show_minmax === true : chartType === 'area' && config.sparkline.area.show_minmax === true;
+        const minMaxPath = showMinMax ? graph.getAreaMinMax(graph.getPathMin(), graph.getPathMax()) : undefined;
         const points =
           chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true ? graph.calculateYCoordinates(graph.coords) : [];
         const pointRadius = Utils.calculateSvgDimension(config.sparkline.dots.radius);
 
         const areaFade = config.sparkline.show.fill === 'fade';
         const areaGradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
+        const areaFill = areaFade && chartType === 'area' ? `url(#${areaGradientId})` : color;
 
         return svg`
           ${
             areaPath
-              ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFade ? `url(#${areaGradientId})` : color} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFade ? `url(#${areaGradientId})` : color }))}></path>`
+              ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFill} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFill }))}></path>`
+              : ''
+          }
+          ${
+            minMaxPath
+              ? svg`<path class="sparkline-series-minmax" d="${minMaxPath}" fill=${areaFill} stroke="none" style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFill }))}></path>`
               : ''
           }
           ${

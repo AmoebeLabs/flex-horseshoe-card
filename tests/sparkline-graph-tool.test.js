@@ -526,6 +526,61 @@ test('area fade uses the fixed color belonging to each series', () => {
   assert.ok(gradients[1].values.includes('#d32f2f'));
 });
 
+test('cartesian line and area series render their independently enabled minmax envelopes', () => {
+  const calls = [];
+  const makeItem = (id, chartType, showMinMax, color) => ({
+    id,
+    entityConfig: {},
+    graph: {
+      coords: [[0, 0, 10]],
+      getPath: () => `${id}-line`,
+      getArea: () => `${id}-area`,
+      getPathMin: () => `${id}-minimum`,
+      getPathMax: () => `${id}-maximum`,
+      getAreaMinMax: (minimum, maximum) => {
+        calls.push([id, minimum, maximum]);
+        return `${id}-minmax`;
+      },
+      calculateYCoordinates: () => [],
+    },
+    config: {
+      color,
+      area: { styles: { opacity: 0.25 } },
+      sparkline: {
+        show: { chart_type: chartType, fill: 'solid', line: true, points: false },
+        line_color: [color, color, color],
+        line: { line_width: 1, styles: {}, show_dots: false, show_minmax: chartType === 'line' && showMinMax },
+        area: { show_dots: false, show_minmax: chartType === 'area' && showMinMax },
+        dots: { radius: 1 },
+      },
+    },
+  });
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 6,
+    sparklineSeries: {
+      items: [
+        makeItem('line-range', 'line', true, '#1565c0'),
+        makeItem('area-range', 'area', true, '#d32f2f'),
+        makeItem('line-only', 'line', false, '#66bb6a'),
+      ],
+    },
+    getConfiguredLineWidth: () => 1,
+    getRenderStyles: (styles) => styles,
+  });
+
+  const renderedItems = tool.renderSeriesCartesian().values[0];
+
+  assert.deepEqual(calls, [
+    ['line-range', 'line-range-minimum', 'line-range-maximum'],
+    ['area-range', 'area-range-minimum', 'area-range-maximum'],
+  ]);
+  assert.match(renderedItems[0].values[1].strings.join(''), /sparkline-series-minmax/);
+  assert.match(renderedItems[1].values[1].strings.join(''), /sparkline-series-minmax/);
+  assert.equal(renderedItems[2].values[1], '');
+});
+
 test('radial area fade follows the visible zero radius', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const graph = {

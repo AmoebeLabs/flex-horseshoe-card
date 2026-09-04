@@ -95,6 +95,8 @@ Without a configured `name`, legend and tooltip labels combine the Home Assistan
 | `series[].name` | string or structured name | No | area and entity name | Sets the name shown in the legend and tooltip. |
 | `series[].color` | color | No | automatic palette | Sets a fixed color for the series. |
 | `series[].sparkline` | mapping | No | shared sparkline settings | Changes the chart type or chart-specific settings for this series. |
+| `series[].sparkline.line.show_minmax` | boolean | No | shared line setting (`false`) | Shows the minimum-to-maximum range around this line series. |
+| `series[].sparkline.area.show_minmax` | boolean | No | shared area setting (`false`) | Shows the minimum-to-maximum range around this area series. |
 | `series[].period` | mapping | No | shared period | Selects a supported period override, such as an earlier day. |
 | `series[].y_axis_id` | string | No | `primary` | Uses the `primary` or `secondary` Y-axis. |
 | `sparkline.show.legend` | boolean | No | `false` | Shows or hides the legend. |
@@ -137,6 +139,48 @@ series:
 ```
 
 The parent sparkline supplies the period, bins, axes, grid, and tooltip. A series can override some of the settings.
+
+## :material-horseshoe: Show the range within each interval
+
+A line or area normally shows one aggregated value for every interval. Enable `show_minmax` when the lowest and highest measurements within those intervals should remain visible too.
+
+Set it on the parent to show the range for every matching series:
+
+```yaml linenums="1"
+sparkline:
+  line:
+    show_minmax: true
+  area:
+    show_minmax: true
+
+series:
+  - id: cpu-average
+    entity_index: 0
+    sparkline:
+      show:
+        chart_type: line
+
+  - id: memory-average
+    entity_index: 1
+    sparkline:
+      show:
+        chart_type: area
+```
+
+A series can override the shared choice:
+
+```yaml linenums="1"
+series:
+  - id: cpu-average
+    entity_index: 0
+    sparkline:
+      show:
+        chart_type: line
+      line:
+        show_minmax: false
+```
+
+The average remains the main line or area. The additional filled range shows the variation that occurred inside each interval.
 
 ## :material-horseshoe: Compare today with yesterday
 
