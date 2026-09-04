@@ -658,7 +658,7 @@ test('horizontal radial x-axis labels align away from the circumference', () => 
     sparklineSeries: { primaryItem: { graph } },
     axisGraphs: { primary: undefined, secondary: undefined },
     config: {
-      sparkline: { show: { labels: { x: true }, tickmarks: { x: false } } },
+      sparkline: { show: { chart_type: 'radial', labels: { x: true }, tickmarks: { x: false } } },
       x_axis: {
         tickmarks_major: { size: 1 },
         labels: { offset: 2, orientation: 'horizontal', styles: { fill: 'red' } },
@@ -709,7 +709,7 @@ test('arc radial x-axis labels use unique readable text paths', () => {
     sparklineSeries: { primaryItem: { graph } },
     axisGraphs: { primary: undefined, secondary: undefined },
     config: {
-      sparkline: { show: { labels: { x: true }, tickmarks: { x: false } } },
+      sparkline: { show: { chart_type: 'radial', labels: { x: true }, tickmarks: { x: false } } },
       x_axis: {
         tickmarks_major: { size: 1 },
         labels: { offset: 2, orientation: 'arc', styles: { fill: 'red' } },
@@ -1601,4 +1601,57 @@ test('one implicit item enters the cartesian series coordinator', () => {
 
     assert.equal(coordinatorCalls, 1);
   });
+});
+
+test('radial barcode exposes only its radial time-axis presentation', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const calls = [];
+  Object.assign(tool, {
+    config: {
+      sparkline: {
+        show: {
+          chart_type: 'radial_barcode',
+          tickmarks: { x: true, y: true },
+          labels: { x: true, y: true },
+        },
+      },
+      x_axis: {
+        tickmarks_major: { size: 1 },
+        labels: { offset: 2 },
+      },
+    },
+    axisGraphs: {
+      primary: {
+        config: {
+          sparkline: {
+            show: {
+              chart_type: 'radial_barcode',
+              tickmarks: { y: true },
+              labels: { y: true },
+            },
+          },
+        },
+      },
+      secondary: undefined,
+    },
+    resolveAxisFontSizePixels: () => 8,
+    buildYAxisTicks: () => {
+      throw new Error('radial barcode has no value axis');
+    },
+  });
+
+  const margin = tool.calculateRadialAxisMargin(tool.axisGraphs);
+  assert.ok(margin.t > 0);
+  assert.deepEqual(margin, { t: margin.t, r: margin.t, b: margin.t, l: margin.t, x: margin.t, y: margin.t });
+
+  tool.renderRadialGrid = () => calls.push('grid');
+  tool.renderRadialAxis = () => calls.push('axis');
+  tool.renderRadialTickmarks = () => calls.push('tickmarks');
+  tool.renderRadialAxisLabels = () => calls.push('labels');
+  tool.renderGrid();
+  tool.renderAxis();
+  tool.renderTickmarks();
+  tool.renderAxisLabels();
+
+  assert.deepEqual(calls, ['grid', 'axis', 'tickmarks', 'labels']);
 });
