@@ -57,6 +57,7 @@ layout:
 | --- | --- | --- | --- | --- |
 | `show.chart_type` | string | No | `line` | Set to `bar` to display a bar chart. |
 | `show.fill` | string | No | solid | Uses a solid fill or a separate `fade` for every bar. |
+| `bar.orientation` | string | No | `vertical` | Uses `vertical` for history bars or `horizontal` for a real-time value bar. |
 | `bar.column_spacing` | number | No | `1` | Sets the space between neighboring bars. |
 | `state_values.aggregate_func` | string | No | `avg` | Chooses the value represented by each bar. |
 | `bins.per_hour` | number or `auto` | No | `auto` | Chooses how many bars can appear within each hour. |
@@ -87,6 +88,31 @@ sparkline:
 ```
 
 The fade follows the length and direction of each bar.
+
+## :material-horseshoe: Show a current value horizontally
+
+A horizontal bar gives a current value a compact progress-style display. Use it with a `real_time` period; history bars remain vertical so their time bins stay aligned from left to right.
+
+```yaml linenums="1"
+layout:
+  sparklines:
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+      width: 40
+      height: 2
+
+      period:
+        type: real_time
+
+      sparkline:
+        show:
+          chart_type: bar
+        bar:
+          orientation: horizontal
+```
+
+The value fills the configured width from left to right. Keep `orientation: vertical` when each historical time bin should appear as a separate bar.
 
 ## :material-horseshoe: Related
 
