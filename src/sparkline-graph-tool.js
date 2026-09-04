@@ -99,7 +99,7 @@ const CHART_AXES = {
   graded: { x: false, y: false },
   barcode: { x: true, y: false },
   radial: { x: true, y: true },
-  radial_barcode: { x: false, y: false },
+  radial_barcode: { x: true, y: false },
 };
 
 const computeThresholds = (stops, type) => {
@@ -309,6 +309,8 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         radial_barcode: {
+          arc_degrees: 360,
+          rotate: 0,
           size: 5,
           line_width: 0,
           face: {
@@ -594,22 +596,23 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Static radial values are validated now. JavaScript-backed values become
     // concrete in updateRuntimeConfig() and enter the same validation there.
-    const radialConfigurationUsesJavascript = templates.hasJavascriptTemplates({
-      radial: sparklineConfig.sparkline.radial,
-      chart_variant: sparklineConfig.sparkline.show.chart_variant,
-    });
-    if (!radialConfigurationUsesJavascript) {
-      if (sparklineConfig.sparkline.show.chart_type === 'radial' && !['line', 'area', 'dots'].includes(sparklineConfig.sparkline.show.chart_variant)) {
-        throw new Error('[sparklines] radial chart_variant must be line, area or dots');
-      }
-      if (!Number.isFinite(Number(sparklineConfig.sparkline.radial.arc_degrees)) || Number(sparklineConfig.sparkline.radial.arc_degrees) <= 0 || Number(sparklineConfig.sparkline.radial.arc_degrees) > 360) {
-        throw new Error('[sparklines] sparkline.radial.arc_degrees must be greater than 0 and at most 360');
-      }
-      if (!Number.isFinite(Number(sparklineConfig.sparkline.radial.rotate))) {
-        throw new Error('[sparklines] sparkline.radial.rotate must be numeric');
-      }
-      if (!Number.isFinite(Number(sparklineConfig.sparkline.radial.size)) || Number(sparklineConfig.sparkline.radial.size) <= 0) {
-        throw new Error('[sparklines] sparkline.radial.size must be greater than 0');
+    const chartType = sparklineConfig.sparkline.show.chart_type;
+    if (["radial", "radial_barcode"].includes(chartType)) {
+      const radialConfig = sparklineConfig.sparkline[chartType];
+      const radialConfigurationUsesJavascript = templates.hasJavascriptTemplates({ radial: radialConfig });
+      if (!radialConfigurationUsesJavascript) {
+        if (chartType === "radial" && !["line", "area", "dots"].includes(sparklineConfig.sparkline.show.chart_variant)) {
+          throw new Error("[sparklines] radial chart_variant must be line, area or dots");
+        }
+        if (!Number.isFinite(Number(radialConfig.arc_degrees)) || Number(radialConfig.arc_degrees) <= 0 || Number(radialConfig.arc_degrees) > 360) {
+          throw new Error(`[sparklines] sparkline..arc_degrees must be greater than 0 and at most 360`);
+        }
+        if (!Number.isFinite(Number(radialConfig.rotate))) {
+          throw new Error(`[sparklines] sparkline..rotate must be numeric`);
+        }
+        if (!Number.isFinite(Number(radialConfig.size)) || Number(radialConfig.size) <= 0) {
+          throw new Error(`[sparklines] sparkline..size must be greater than 0`);
+        }
       }
     }
 
@@ -970,9 +973,13 @@ export default class SparklineGraphTool extends BaseTool {
    */
   calculateRadialAxisMargin(axisGraphs) {
     const show = this.config.sparkline.show;
-    const xTickSize = show.tickmarks.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
-    const xLabelExtent = show.labels.x ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset) + this.resolveAxisFontSizePixels('x', FONT_SIZE) : 0;
-    const yGraphs = [axisGraphs.primary, axisGraphs.secondary].filter((graph) => graph !== undefined);
+    const chartAxes = CHART_AXES[show.chart_type];
+    const xTickSize = chartAxes.x && show.tickmarks.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
+    const xLabelExtent =
+      chartAxes.x && show.labels.x ? Utils.calculateSvgDimension(this.config.x_axis.labels.offset) + this.resolveAxisFontSizePixels('x', FONT_SIZE) : 0;
+    const yGraphs = [axisGraphs.primary, axisGraphs.secondary].filter(
+      (graph) => graph !== undefined && CHART_AXES[graph.config.sparkline.show.chart_type].y,
+    );
     let yExtent = 0;
 
     yGraphs.forEach((graph) => {
@@ -1063,17 +1070,21 @@ export default class SparklineGraphTool extends BaseTool {
     // Runtime controls can change radial appearance, arc and rotation. Validate
     // the evaluated values before series coordination creates graph engines.
     if (this.configChanged) {
-      if (this.config.sparkline.show.chart_type === 'radial' && !['line', 'area', 'dots'].includes(this.config.sparkline.show.chart_variant)) {
-        throw new Error('[sparklines] radial chart_variant must be line, area or dots');
-      }
-      if (!Number.isFinite(Number(this.config.sparkline.radial.arc_degrees)) || Number(this.config.sparkline.radial.arc_degrees) <= 0 || Number(this.config.sparkline.radial.arc_degrees) > 360) {
-        throw new Error('[sparklines] sparkline.radial.arc_degrees must be greater than 0 and at most 360');
-      }
-      if (!Number.isFinite(Number(this.config.sparkline.radial.rotate))) {
-        throw new Error('[sparklines] sparkline.radial.rotate must be numeric');
-      }
-      if (!Number.isFinite(Number(this.config.sparkline.radial.size)) || Number(this.config.sparkline.radial.size) <= 0) {
-        throw new Error('[sparklines] sparkline.radial.size must be greater than 0');
+      const chartType = this.config.sparkline.show.chart_type;
+      if (["radial", "radial_barcode"].includes(chartType)) {
+        const radialConfig = this.config.sparkline[chartType];
+        if (chartType === "radial" && !["line", "area", "dots"].includes(this.config.sparkline.show.chart_variant)) {
+          throw new Error("[sparklines] radial chart_variant must be line, area or dots");
+        }
+        if (!Number.isFinite(Number(radialConfig.arc_degrees)) || Number(radialConfig.arc_degrees) <= 0 || Number(radialConfig.arc_degrees) > 360) {
+          throw new Error(`[sparklines] sparkline..arc_degrees must be greater than 0 and at most 360`);
+        }
+        if (!Number.isFinite(Number(radialConfig.rotate))) {
+          throw new Error(`[sparklines] sparkline..rotate must be numeric`);
+        }
+        if (!Number.isFinite(Number(radialConfig.size)) || Number(radialConfig.size) <= 0) {
+          throw new Error(`[sparklines] sparkline..size must be greater than 0`);
+        }
       }
 
       this.config.sparkline.day_night.day.styles = ConfigHelper.toStyleDict(this.config.sparkline.day_night.day.styles);
@@ -2209,7 +2220,8 @@ export default class SparklineGraphTool extends BaseTool {
       // The provisional graph supplies formatted ticks and a concrete bucket
       // count. The tool measures outer axis space; the graph engine then owns
       // the final axisArea and chart-specific dataArea.
-      const axisMargin = this.calculateAxisMargin();
+      const axisMargin =
+        chartType === 'radial_barcode' ? this.calculateRadialAxisMargin(this.axisGraphs) : this.calculateAxisMargin();
       const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
       if (graphAreasChanged) {
         this.axisMargin = axisMargin;
@@ -3894,6 +3906,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderRadialGrid() {
     const graph = this.primaryGraph;
     const geometry = graph.getRadialGeometry();
+    const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.grid_major.styles));
     const yGraph = this.axisGraphs.primary ?? this.axisGraphs.secondary;
     const yStyles = this.getRenderStyles(ConfigHelper.toStyleDict(yGraph.config.y_axis.grid_major.styles));
@@ -3902,9 +3915,9 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       ${
-        this.config.sparkline.show.grid.x
+        chartAxes.x && this.config.sparkline.show.grid.x
           ? xTicks.map((tick) => {
-              const fraction = (tick.x - graph.axisArea.x) / graph.axisArea.width;
+              const fraction = (tick.x - graph.drawArea.x) / graph.drawArea.width;
               const angle = graph.getRadialAngleForFraction(fraction);
               const start = graph.getRadialPoint(geometry.innerRadius, angle);
               const end = graph.getRadialPoint(geometry.outerRadius, angle);
@@ -3913,7 +3926,7 @@ export default class SparklineGraphTool extends BaseTool {
           : ''
       }
       ${
-        yGraph.config.sparkline.show.grid.y
+        CHART_AXES[yGraph.config.sparkline.show.chart_type].y && yGraph.config.sparkline.show.grid.y
           ? yTicks.map((tick) => {
               const radius = yGraph.getRadialRadiusForValue(tick.value);
               return svg`<path class="sparkline-radial-grid--y" d=${graph.getRadialPlotArcPath(radius)} fill="none" style=${styleMap(yStyles)}></path>`;
@@ -3967,6 +3980,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderRadialAxis() {
     const graph = this.primaryGraph;
     const geometry = graph.getRadialGeometry();
+    const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const outerPath = graph.getRadialPlotArcPath(geometry.outerRadius);
     const primaryAngle = graph.getRadialValueAxisAngle('primary');
     const secondaryAngle = graph.getRadialValueAxisAngle('secondary');
@@ -3979,9 +3993,9 @@ export default class SparklineGraphTool extends BaseTool {
     const secondaryStyles = this.axisGraphs.secondary ? this.getRenderStyles(ConfigHelper.toStyleDict(this.axisGraphs.secondary.config.y_axis.axis.styles)) : {};
 
     return svg`
-      ${this.config.sparkline.show.axis.x ? svg`<path class="sparkline-radial-axis--x" d=${outerPath} fill="none" style=${styleMap(xStyles)}></path>` : ''}
-      ${this.axisGraphs.primary?.config.sparkline.show.axis.y ? svg`<line class="sparkline-radial-axis--y" x1=${primaryStart.x} y1=${primaryStart.y} x2=${primaryEnd.x} y2=${primaryEnd.y} style=${styleMap(primaryStyles)}></line>` : ''}
-      ${this.axisGraphs.secondary?.config.sparkline.show.axis.y ? svg`<line class="sparkline-radial-axis--y-secondary" x1=${secondaryStart.x} y1=${secondaryStart.y} x2=${secondaryEnd.x} y2=${secondaryEnd.y} style=${styleMap(secondaryStyles)}></line>` : ''}
+      ${chartAxes.x && this.config.sparkline.show.axis.x ? svg`<path class="sparkline-radial-axis--x" d=${outerPath} fill="none" style=${styleMap(xStyles)}></path>` : ''}
+      ${this.axisGraphs.primary && CHART_AXES[this.axisGraphs.primary.config.sparkline.show.chart_type].y && this.axisGraphs.primary.config.sparkline.show.axis.y ? svg`<line class="sparkline-radial-axis--y" x1=${primaryStart.x} y1=${primaryStart.y} x2=${primaryEnd.x} y2=${primaryEnd.y} style=${styleMap(primaryStyles)}></line>` : ''}
+      ${this.axisGraphs.secondary && CHART_AXES[this.axisGraphs.secondary.config.sparkline.show.chart_type].y && this.axisGraphs.secondary.config.sparkline.show.axis.y ? svg`<line class="sparkline-radial-axis--y-secondary" x1=${secondaryStart.x} y1=${secondaryStart.y} x2=${secondaryEnd.x} y2=${secondaryEnd.y} style=${styleMap(secondaryStyles)}></line>` : ''}
     `;
   }
 
@@ -3989,6 +4003,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderRadialTickmarks() {
     const graph = this.primaryGraph;
     const geometry = graph.getRadialGeometry();
+    const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const xSize = Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size);
     const xStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.x_axis.tickmarks_major.styles));
     const xTicks = this.buildXAxisTicks('major').filter((tick) => geometry.arcDegrees < 360 || !tick.isPeriodEnd);
@@ -3999,9 +4014,9 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       ${
-        this.config.sparkline.show.tickmarks.x
+        chartAxes.x && this.config.sparkline.show.tickmarks.x
           ? xTicks.map((tick) => {
-              const fraction = (tick.x - graph.axisArea.x) / graph.axisArea.width;
+              const fraction = (tick.x - graph.drawArea.x) / graph.drawArea.width;
               const angle = graph.getRadialAngleForFraction(fraction);
               const inner = graph.getRadialPoint(geometry.outerRadius, angle);
               const outer = graph.getRadialPoint(geometry.outerRadius + xSize, angle);
@@ -4010,7 +4025,7 @@ export default class SparklineGraphTool extends BaseTool {
           : ''
       }
       ${axisItems.map((axis) => {
-        if (!axis.graph?.config.sparkline.show.tickmarks.y) return '';
+        if (!axis.graph || !CHART_AXES[axis.graph.config.sparkline.show.chart_type].y || !axis.graph.config.sparkline.show.tickmarks.y) return '';
         const size = Utils.calculateSvgDimension(axis.graph.config.y_axis.tickmarks_major.size);
         const styles = this.getRenderStyles(ConfigHelper.toStyleDict(axis.graph.config.y_axis.tickmarks_major.styles));
         const tangent = graph.getRadialTangentOffset(axis.angle, size * axis.direction);
@@ -4027,15 +4042,16 @@ export default class SparklineGraphTool extends BaseTool {
   renderRadialAxisLabels() {
     const graph = this.primaryGraph;
     const geometry = graph.getRadialGeometry();
-    const xTickSize = this.config.sparkline.show.tickmarks.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
+    const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
+    const xTickSize = chartAxes.x && this.config.sparkline.show.tickmarks.x ? Utils.calculateSvgDimension(this.config.x_axis.tickmarks_major.size) : 0;
     const xOffset = Utils.calculateSvgDimension(this.config.x_axis.labels.offset);
     const xLabelStyles = ConfigHelper.toStyleDict(this.config.x_axis.labels.styles);
     const xTicks = this.buildLabelTicks('x', graph).filter((tick) => {
-      const fraction = (tick.x - graph.axisArea.x) / graph.axisArea.width;
+      const fraction = (tick.x - graph.drawArea.x) / graph.drawArea.width;
       return geometry.arcDegrees < 360 || fraction < 1;
     });
     const xLabelItems = xTicks.map((tick, tickIndex) => {
-      const fraction = (tick.x - graph.axisArea.x) / graph.axisArea.width;
+      const fraction = (tick.x - graph.drawArea.x) / graph.drawArea.width;
       const angle = graph.getRadialAngleForFraction(fraction);
       let arcSize = geometry.anglePerBin;
 
@@ -4043,12 +4059,12 @@ export default class SparklineGraphTool extends BaseTool {
       // endpoint the sole neighbour supplies that same natural interval.
       if (tickIndex > 0) {
         const previousTick = xTicks[tickIndex - 1];
-        const previousFraction = (previousTick.x - graph.axisArea.x) / graph.axisArea.width;
+        const previousFraction = (previousTick.x - graph.drawArea.x) / graph.drawArea.width;
         arcSize = Math.abs(angle - graph.getRadialAngleForFraction(previousFraction));
       }
       if (tickIndex < xTicks.length - 1) {
         const nextTick = xTicks[tickIndex + 1];
-        const nextFraction = (nextTick.x - graph.axisArea.x) / graph.axisArea.width;
+        const nextFraction = (nextTick.x - graph.drawArea.x) / graph.drawArea.width;
         const nextArcSize = Math.abs(graph.getRadialAngleForFraction(nextFraction) - angle);
         arcSize = tickIndex > 0 ? Math.min(arcSize, nextArcSize) : nextArcSize;
       }
@@ -4062,7 +4078,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       ${
-        this.config.sparkline.show.labels.x
+        chartAxes.x && this.config.sparkline.show.labels.x
           ? xLabelItems.map((labelItem, tickIndex) => {
               const { tick, angle, arcSize } = labelItem;
               const radius = geometry.outerRadius + xTickSize + xOffset;
@@ -4079,7 +4095,7 @@ export default class SparklineGraphTool extends BaseTool {
                 const pathEnd = graph.getRadialPoint(radius, isTopHalf ? endAngle : startAngle);
                 const sweepFlag = isTopHalf ? 1 : 0;
                 const pathId = `${this.cardId}-sparkline-${this.index}-radial-x-label-${tickIndex}`;
-                const styles = this.getRenderStyles(xLabelStyles);
+                const styles = this.getRenderStyles({ ...xLabelStyles, "text-anchor": "middle", "dominant-baseline": "text-after-edge" });
 
                 return svg`
                   <path id=${pathId} class="sparkline-radial-label-path--x" d="M ${pathStart.x} ${pathStart.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${pathEnd.x} ${pathEnd.y}" fill="none" stroke="none"></path>
@@ -4102,7 +4118,7 @@ export default class SparklineGraphTool extends BaseTool {
           : ''
       }
       ${axisItems.map((axis) => {
-        if (!axis.graph?.config.sparkline.show.labels.y) return '';
+        if (!axis.graph || !CHART_AXES[axis.graph.config.sparkline.show.chart_type].y || !axis.graph.config.sparkline.show.labels.y) return '';
         const tickSize = axis.graph.config.sparkline.show.tickmarks.y ? Utils.calculateSvgDimension(axis.graph.config.y_axis.tickmarks_major.size) : 0;
         const offset = Utils.calculateSvgDimension(axis.graph.config.y_axis.labels.offset);
         const tangent = graph.getRadialTangentOffset(axis.angle, (tickSize + offset) * axis.direction);
@@ -4123,7 +4139,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Grid layer SVG.
    */
   renderGrid() {
-    if (this.config.sparkline.show.chart_type === 'radial') return this.renderRadialGrid();
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) return this.renderRadialGrid();
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.grid.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
@@ -4190,7 +4206,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Axis layer SVG.
    */
   renderAxis() {
-    if (this.config.sparkline.show.chart_type === 'radial') return this.renderRadialAxis();
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) return this.renderRadialAxis();
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.axis.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
@@ -4252,7 +4268,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Tickmark layer SVG.
    */
   renderTickmarks() {
-    if (this.config.sparkline.show.chart_type === 'radial') return this.renderRadialTickmarks();
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) return this.renderRadialTickmarks();
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.tickmarks.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;
@@ -4338,7 +4354,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Label layer SVG.
    */
   renderAxisLabels() {
-    if (this.config.sparkline.show.chart_type === 'radial') return this.renderRadialAxisLabels();
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) return this.renderRadialAxisLabels();
     const chartAxes = CHART_AXES[this.config.sparkline.show.chart_type];
     const showX = this.config.sparkline.show.labels.x && chartAxes.x;
     const primaryGraph = this.axisGraphs.primary;

@@ -74,6 +74,11 @@ layout:
 | `radial_barcode.size` | number | No | `5` | Sets the radial depth available to the intervals. |
 | `radial_barcode.line_width` | number | No | `0` | Sets the stroke width used by the interval shapes. |
 | `radial_barcode.column_spacing` | number | No | `1` | Sets the angular space between intervals. |
+| `show.grid.x` | boolean | No | `false` | Shows time spokes behind the barcode. |
+| `show.axis.x` | boolean | No | `false` | Shows the outer time arc. |
+| `show.tickmarks.x` | boolean | No | `false` | Shows time marks around the outer edge. |
+| `show.labels.x` | boolean | No | `false` | Shows time labels around the barcode. |
+| `x_axis.labels.orientation` | string | No | `horizontal` | Displays time labels horizontally or along the arc. |
 | `color_stops` | mapping | No | none | Assigns colors to numeric ranges or named states. |
 | `bins.per_hour` | number or `auto` | No | `auto` | Chooses how many history intervals fit around the circle. |
 
@@ -146,6 +151,28 @@ Choose the chart type, then how values should occupy its ring, and finally the v
 | `rice_grain` | Rounded seed-like segments. |
 
 Use the radial barcode showcase to compare the shapes and directions visually.
+
+## :material-horseshoe: Add a time scale
+
+Time labels and marks can be shown around the barcode:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: radial_barcode
+    axis:
+      x: true
+    tickmarks:
+      x: true
+    labels:
+      x: true
+
+x_axis:
+  labels:
+    orientation: arc
+```
+
+Set `show.grid.x: true` when time spokes should continue through the barcode ring.
 
 ## :material-horseshoe: Related
 

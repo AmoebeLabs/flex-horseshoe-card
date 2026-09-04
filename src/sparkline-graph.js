@@ -119,8 +119,6 @@ export default class SparklineGraph {
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
-    this.radialConfig = this.config.sparkline.radial;
-    this.radialBarcodeSize = Utils.calculateSvgDimension(this.config.sparkline.radial_barcode.size);
   }
 
   /**
@@ -565,6 +563,8 @@ export default class SparklineGraph {
     const minMs = axisStart.getTime();
     const maxMs = axisEnd.getTime();
     const totalDuration = maxMs - minMs;
+    const xProjectionDuration =
+      this.config.sparkline.show.chart_type === 'radial_barcode' ? totalDuration + bucketMs : totalDuration;
     const approxLabelWidth = (this.config.x_axis.labels.max_length / 5) * (1 * fontWidthPixels + FONT_SIZE);
     const maxLabels = Math.floor(this.drawArea.width / approxLabelWidth);
     const effectiveMaxLabels = Math.max(maxLabels, 4);
@@ -609,7 +609,7 @@ export default class SparklineGraph {
 
           if (currentTickMs >= minMs && currentTickMs <= maxMs && !tickTimestamps.has(currentTickMs)) {
             tickTimestamps.add(currentTickMs);
-            const percentage = (currentTickMs - minMs) / totalDuration;
+            const percentage = (currentTickMs - minMs) / xProjectionDuration;
             ticks.push({
               time: tickDate,
               timestamp: currentTickMs,
@@ -630,7 +630,7 @@ export default class SparklineGraph {
 
       while (month.getTime() <= maxMs) {
         const currentTickMs = month.getTime();
-        const percentage = (currentTickMs - minMs) / totalDuration;
+        const percentage = (currentTickMs - minMs) / xProjectionDuration;
         ticks.push({
           time: new Date(month),
           timestamp: currentTickMs,
@@ -649,7 +649,7 @@ export default class SparklineGraph {
 
       while (day.getTime() <= maxMs) {
         const currentTickMs = day.getTime();
-        const percentage = (currentTickMs - minMs) / totalDuration;
+        const percentage = (currentTickMs - minMs) / xProjectionDuration;
         ticks.push({
           time: new Date(day),
           timestamp: currentTickMs,
@@ -1311,13 +1311,15 @@ export default class SparklineGraph {
    */
   getRadialGeometry() {
     const outerRadius = Math.min(this.drawArea.width, this.drawArea.height) / 2;
-    const radialSize = Math.min(Utils.calculateSvgDimension(this.radialConfig.size), outerRadius);
+    const radialConfig = this.config.sparkline[this.config.sparkline.show.chart_type];
+    const configuredRadialSize = Utils.calculateSvgDimension(radialConfig.size);
+    const radialSize = Math.min(configuredRadialSize, outerRadius);
     const innerRadius = outerRadius - radialSize;
     const centerX = this.drawArea.x + this.drawArea.width / 2;
     const centerY = this.drawArea.y + this.drawArea.height / 2;
     const totalBins = Math.ceil(this.hours * this.points);
-    const arcDegrees = Number(this.radialConfig.arc_degrees);
-    const rotate = Number(this.radialConfig.rotate);
+    const arcDegrees = Number(radialConfig.arc_degrees);
+    const rotate = Number(radialConfig.rotate);
 
     return {
       centerX,
@@ -1597,9 +1599,8 @@ export default class SparklineGraph {
 
     if (chartType === 'radial' || chartType === 'radial_barcode') {
       const radialGeometry = this.getRadialGeometry();
-      const graphInnerRadius = chartType === 'radial_barcode' ? radialGeometry.outerRadius - this.radialBarcodeSize : radialGeometry.innerRadius;
-      const outerRadius = config.mode === 'background' ? radialGeometry.outerRadius : graphInnerRadius + config.offset;
-      const innerRadius = config.mode === 'background' ? graphInnerRadius : outerRadius - config.size;
+      const outerRadius = config.mode === 'background' ? radialGeometry.outerRadius : radialGeometry.innerRadius + config.offset;
+      const innerRadius = config.mode === 'background' ? radialGeometry.innerRadius : outerRadius - config.size;
       const startAngle = this.getRadialAngleForFraction(startFraction);
       const endAngle = this.getRadialAngleForFraction(endFraction);
 
@@ -1724,7 +1725,34 @@ export default class SparklineGraph {
     const startAngle = radialGeometry.rotate;
     let runningAngle = startAngle;
     const clockWise = true;
-    const wRatio = (max - min) / this.radialBarcodeSize;
+    const chartViz = this.config.sparkline.show.chart_viz;
+    const halfAngleRadians = ((angleSize - columnSpacing * 2) * Math.PI) / 360;
+    const roundedSideFactor = Math.sin(halfAngleRadians);
+    let outerRoundFactor = 0;
+    let innerRoundFactor = 0;
+
+    // Every visualization owns its radial footprint. A regular bar already
+    // ends on its two configured radii; rounded paths consume space per side.
+    switch (chartViz) {
+      case "flower":
+        outerRoundFactor = this.config.sparkline.show.chart_variant === "sunburst_inward" ? 0 : roundedSideFactor;
+        innerRoundFactor = this.config.sparkline.show.chart_variant === "sunburst_outward" ? 0 : roundedSideFactor;
+        break;
+      case "flower2":
+        outerRoundFactor = roundedSideFactor;
+        innerRoundFactor = 0;
+        break;
+      case "rice_grain":
+        outerRoundFactor = roundedSideFactor;
+        innerRoundFactor = roundedSideFactor;
+        break;
+      case "bar":
+        break;
+    }
+    const radialBarcodeOuterRadius = radialGeometry.outerRadius / (1 + outerRoundFactor);
+    const radialBarcodeInnerRadius = radialGeometry.innerRadius / (1 - innerRoundFactor);
+    const radialBarcodeSize = radialBarcodeOuterRadius - radialBarcodeInnerRadius;
+    const wRatio = (max - min) / radialBarcodeSize;
 
     const coords2 = coords.map((coord) => {
       const value = !isBackground ? coord[V] : this.max;
@@ -1734,19 +1762,19 @@ export default class SparklineGraph {
         case 'sunburst':
         case 'sunburst_centered':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = radialGeometry.outerRadius - (this.radialBarcodeSize - ringWidth) / 2;
+          radius = radialBarcodeOuterRadius - (radialBarcodeSize - ringWidth) / 2;
           break;
         case 'sunburst_outward':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = radialGeometry.outerRadius - this.radialBarcodeSize + ringWidth;
+          radius = radialBarcodeOuterRadius - radialBarcodeSize + ringWidth;
           break;
         case 'sunburst_inward':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-          radius = radialGeometry.outerRadius;
+          radius = radialBarcodeOuterRadius;
           break;
         default:
-          ringWidth = this.radialBarcodeSize;
-          radius = radialGeometry.outerRadius;
+          ringWidth = radialBarcodeSize;
+          radius = radialBarcodeOuterRadius;
           break;
       }
       let newX = [];
@@ -1757,8 +1785,8 @@ export default class SparklineGraph {
       runningAngle += angleSize;
       newX.push(start.x, end.x, start2.x, end2.x);
       newY.push(start.y, end.y, start2.y, end2.y);
-      radiusX.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
-      radiusY.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
+      radiusX.push(radius, radius - ringWidth);
+      radiusY.push(radius, radius - ringWidth);
       return [newX, newY, value, 0, radiusX, radiusY, largeArcFlag, sweepFlag];
     });
     if (isBackground) {
@@ -1770,19 +1798,19 @@ export default class SparklineGraph {
           case 'sunburst':
           case 'sunburst_centered':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = radialGeometry.outerRadius - (this.radialBarcodeSize - ringWidth) / 2;
+            radius = radialBarcodeOuterRadius - (radialBarcodeSize - ringWidth) / 2;
             break;
           case 'sunburst_outward':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = radialGeometry.outerRadius - this.radialBarcodeSize + ringWidth;
+            radius = radialBarcodeOuterRadius - radialBarcodeSize + ringWidth;
             break;
           case 'sunburst_inward':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
-            radius = radialGeometry.outerRadius;
+            radius = radialBarcodeOuterRadius;
             break;
           default:
-            ringWidth = this.radialBarcodeSize;
-            radius = radialGeometry.outerRadius;
+            ringWidth = radialBarcodeSize;
+            radius = radialBarcodeOuterRadius;
             break;
         }
         let bgCoords = [];
@@ -1799,8 +1827,8 @@ export default class SparklineGraph {
           runningAngle += angleSize;
           newX.push(start.x, end.x, start2.x, end2.x);
           newY.push(start.y, end.y, start2.y, end2.y);
-          radiusX.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
-          radiusY.push(radialGeometry.outerRadius, radialGeometry.outerRadius - this.radialBarcodeSize);
+          radiusX.push(radius, radius - ringWidth);
+          radiusY.push(radius, radius - ringWidth);
           coords2.push([newX, newY, value, 0, radiusX, radiusY, largeArcFlag, sweepFlag]);
         }
       }
