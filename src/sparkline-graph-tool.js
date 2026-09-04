@@ -193,6 +193,13 @@ export default class SparklineGraphTool extends BaseTool {
         },
         rolling_window: {
           offset: 0,
+          duration: {
+            hour: 24,
+          },
+          bins: {
+            per_hour: 'auto',
+            density: 'medium',
+          },
         },
       },
       sparkline: {
