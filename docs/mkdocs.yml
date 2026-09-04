@@ -316,6 +316,7 @@ nav:
       - Pollen cards: examples/demo-cards/demo-card-kleenex-pollen-many.md
       - Electricity cards: examples/demo-cards/demo-card-electricity-many.md
       - Awair card: examples/demo-cards/demo-card-awair-many.md
+      - Server cards: examples/demo-cards/demo-card-server-many.md
 
   - Reference:
       - Configuration reference: reference/configuration-reference.md
