@@ -55,6 +55,8 @@ layout:
 | `show.chart_type` | string | No | `line` | Displays a line chart. |
 | `line.line_width` | number | No | `1` | Sets the width of the line. |
 | `line.styles` | mapping | No | default line styles | Applies styles such as opacity or a dashed stroke. |
+| `line.show_minmax` | boolean | No | `false` | Shows the lowest and highest values measured within every interval. |
+| `line.minmax.styles` | mapping | No | line color with `0.25` opacity | Styles the minimum-to-maximum band without changing the line. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections. |
 | `show.points` | boolean | No | `false` | Adds a point for every displayed interval. |
 | `dots.radius` | number | No | `2` | Sets the radius of optional points. |
@@ -70,6 +72,23 @@ sparkline:
   line:
     line_width: 1.5
 ```
+
+## :material-horseshoe: Show variation within each interval
+
+The line normally shows one aggregated value for every interval. Add a minimum-to-maximum band when the variation within those intervals should remain visible.
+
+```yaml linenums="1"
+sparkline:
+  line:
+    show_minmax: true
+    styles:
+      stroke: red
+    minmax:
+      styles:
+        opacity: 0.2
+```
+
+The band uses the line color. Its opacity can be changed independently without making the line less visible.
 
 ## :material-horseshoe: Smooth or straight connections
 
