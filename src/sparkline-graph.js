@@ -504,9 +504,10 @@ export default class SparklineGraph {
     const fontSizeY = this.config.y_axis.labels.styles['font-size'];
     const parsedFontSizeX = Number.parseFloat(fontSizeX);
     const parsedFontSizeY = Number.parseFloat(fontSizeY);
-    const fontWidthPixels = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE * 0.45 : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE * 0.45 : parsedFontSizeX * 0.45;
+    const fontSizePixelsX = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE : parsedFontSizeX;
+    const fontWidthPixels = fontSizePixelsX * 0.45;
     const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85;
-    const xAxis = this.calculateXAxisGeometry(fontWidthPixels);
+    const xAxis = this.calculateXAxisGeometry(fontWidthPixels, fontSizePixelsX);
     const yAxis = this.config.sparkline.show.chart_type === 'state_bands' ? this.calculateStateBandsYAxisGeometry() : this.calculateYAxisGeometry(fontHeightPixels);
 
     this.min = yAxis.min;
@@ -521,9 +522,10 @@ export default class SparklineGraph {
    * existing graph rendering remains untouched for now.
    *
    * @param {number} fontWidthPixels Average character width in pixels.
+   * @param {number} fontSizePixels Configured label font size in pixels.
    * @returns {object} Axis range, interval and ticks.
    */
-  calculateXAxisGeometry(fontWidthPixels) {
+  calculateXAxisGeometry(fontWidthPixels, fontSizePixels = fontWidthPixels / 0.45) {
     const period = this.config.period[this.config.period.type];
     const now = new Date();
     const bucketMs = ONE_HOUR / this.points;
@@ -565,9 +567,9 @@ export default class SparklineGraph {
     const totalDuration = maxMs - minMs;
     const xProjectionDuration =
       this.config.sparkline.show.chart_type === 'radial_barcode' ? totalDuration + bucketMs : totalDuration;
-    const approxLabelWidth = (this.config.x_axis.labels.max_length / 5) * (1 * fontWidthPixels + FONT_SIZE);
+    const approxLabelWidth = this.config.x_axis.labels.max_length * fontWidthPixels + fontSizePixels;
     const maxLabels = Math.floor(this.drawArea.width / approxLabelWidth);
-    const effectiveMaxLabels = Math.max(maxLabels, 4);
+    const effectiveMaxLabels = Math.max(maxLabels, 2);
     const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
     const timeIntervals = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000, 7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000, 2629800000];
     let selectedIndex = timeIntervals.findIndex((interval) => interval >= minTimeStep);

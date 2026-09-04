@@ -252,6 +252,19 @@ test('rolling x-axis uses bucket starts and draw-area positions', () => {
   );
 });
 
+test('automatic x-axis reduces label density for a larger font', () => {
+  const graph = createGraph();
+  graph.bucketMeta = Array.from({ length: 25 }, (_, hour) => ({
+    start: new Date(Date.UTC(2026, 7, 20, hour)),
+  }));
+
+  const compactAxis = graph.calculateXAxisGeometry(6 * 0.45, 6);
+  const largeAxis = graph.calculateXAxisGeometry(12 * 0.45, 12);
+
+  assert.ok(largeAxis.interval > compactAxis.interval);
+  assert.ok(largeAxis.ticks.length < compactAxis.ticks.length);
+});
+
 test('calendar x-axis ends at the exclusive boundary after its final bin', () => {
   const NativeDate = globalThis.Date;
   const fixedNow = new NativeDate('2026-09-01T12:00:00.000Z');
