@@ -103,6 +103,63 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
   }
 });
 
+test('calendar and rolling window use complete 24-hour default periods', () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+
+  try {
+    const templates = {
+      hasJavascriptTemplates: () => false,
+    };
+    const card = {
+      evaluateJavascriptTemplates: false,
+      dev: { debug: false },
+      entities: [],
+      _hass: {
+        locale: { language: 'en', time_format: 'language' },
+        config: { time_zone: 'UTC' },
+      },
+      cardLayout: {
+        changedGroupIds: new Set(),
+        calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+      },
+      cardTheme: {
+        modeChanged: false,
+        getActiveColorStopMode: () => 'light',
+      },
+    };
+
+    ['calendar', 'rolling_window'].forEach((periodType, index) => {
+      const tool = new SparklineGraphTool(
+        {
+          id: `default-${periodType}`,
+          entity_index: 0,
+          period: {
+            type: periodType,
+          },
+          sparkline: {
+            show: { chart_type: 'line' },
+          },
+        },
+        index,
+        templates,
+        'test-card',
+        card,
+      );
+
+      assert.equal(tool.config.period[periodType].duration.hour, 24);
+      assert.equal(tool.config.period[periodType].bins.per_hour, 'auto');
+      assert.equal(tool.config.period[periodType].bins.density, 'medium');
+      assert.equal(tool.primaryGraph.hours, 24);
+    });
+  } finally {
+    globalThis.window = previousWindow;
+  }
+});
+
 test('dynamic radial arc and rotation rebuild the graph with evaluated geometry', () => {
   const previousWindow = globalThis.window;
   let radialSize = 15;
