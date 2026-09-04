@@ -2167,13 +2167,35 @@ export default class SparklineGraph {
   }
 
   /**
-   * Builds bars around the graph's zero baseline and divides each time bucket
-   * horizontally when multiple entity series share the chart.
+   * Builds vertical or horizontal bars around the graph's zero baseline and
+   * divides each time bucket between the series that share the chart.
    *
    * @returns {Array<object>} Bar rectangle geometry.
    */
   getBars(position, total, columnSpacing = 4, rowSpacing = 4) {
     const coords = this._calcY(this.coords);
+    if (this.config.sparkline.bar.orientation === 'horizontal') {
+      const bucketHeight = this.drawArea.height / coords.length;
+      const barSlotHeight = bucketHeight / total;
+      const height = Math.max(1, barSlotHeight - rowSpacing);
+      const valueRange = this._max - this._min;
+      const zero = Math.min(this._max, Math.max(this._min, 0));
+      const zeroX = this.drawArea.x + ((zero - this._min) / valueRange) * this.drawArea.width;
+
+      // Horizontal bars retain the same value scale, but map it onto x. Time
+      // buckets and multiple series divide the available height instead.
+      return coords.map((coord, i) => {
+        const valueX = this.drawArea.x + ((coord[V] - this._min) / valueRange) * this.drawArea.width;
+        return {
+          x: Math.min(zeroX, valueX),
+          y: this.drawArea.y + bucketHeight * i + barSlotHeight * (position + 0.5) - height / 2,
+          height,
+          width: Math.max(1, Math.abs(valueX - zeroX)),
+          value: coord[V],
+        };
+      });
+    }
+
     const bucketWidth = coords.length > 1 ? coords[1][X] - coords[0][X] : this.drawArea.width;
     const barSlotWidth = bucketWidth / total;
     const yRatio = (this._max - this._min) / this.drawArea.height || 1;

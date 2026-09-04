@@ -218,6 +218,7 @@ export default class SparklineGraphTool extends BaseTool {
           show_dots: false,
         },
         bar: {
+          orientation: 'vertical',
           background: {
             show: {
               item_style: 'none',
@@ -242,6 +243,10 @@ export default class SparklineGraphTool extends BaseTool {
             },
           },
           foreground: {
+            show: {
+              item_style: "auto",
+            },
+            color: "var(--primary-color)",
             styles: { rx: 0, ry: 0 },
           },
         },
@@ -296,8 +301,8 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         radial: {
-          arc_degrees: 360,
           rotate: 0,
+          arc_degrees: 360,
           size: 50,
           background: {
             styles: {
@@ -309,8 +314,8 @@ export default class SparklineGraphTool extends BaseTool {
           },
         },
         radial_barcode: {
-          arc_degrees: 360,
           rotate: 0,
+          arc_degrees: 360,
           size: 5,
           line_width: 0,
           face: {
@@ -1163,7 +1168,16 @@ export default class SparklineGraphTool extends BaseTool {
           }
         }
       });
-      this.config.sparkline.bar.foreground.styles = ConfigHelper.toStyleDict(this.config.sparkline.bar.foreground.styles);
+      if (this.config.sparkline.show.chart_type === "bar") {
+        if (!['horizontal', 'vertical'].includes(this.config.sparkline.bar.orientation)) {
+          throw new Error('[sparklines] sparkline.bar.orientation must be horizontal or vertical');
+        }
+        const foreground = this.config.sparkline.bar.foreground;
+        if (!["auto", "none", "fixed", "colorstopsegments", "colorstopgradient"].includes(foreground.show.item_style)) {
+          throw new Error("[sparklines] sparkline.bar.foreground.show.item_style must be auto, none, fixed, colorstopsegments or colorstopgradient");
+        }
+        foreground.styles = ConfigHelper.toStyleDict(foreground.styles);
+      }
     }
 
     // Each configured side fixes that edge of the visible range. The series
@@ -1186,11 +1200,16 @@ export default class SparklineGraphTool extends BaseTool {
     // A single real-time value cannot produce a meaningful automatic range.
     // Bar and equalizer therefore require the active color-stop template to
     // publish the numeric scale used to render their current-value height.
-    if (this.configChanged && this.config.period.type === 'real_time' && ['bar', 'equalizer'].includes(this.config.sparkline.show.chart_type)) {
-      if (this.config.sparkline.colorstops.scales?.default === undefined) {
-        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default`);
+    if (this.configChanged && this.config.period.type === "real_time" && ["bar", "equalizer"].includes(this.config.sparkline.show.chart_type)) {
+      const colorStopScale = this.config.sparkline.colorstops.scales?.default;
+      const hasYAxisBounds = this.config.y_axis.lower_bound !== undefined && this.config.y_axis.upper_bound !== undefined;
+
+      // A current-value graph needs a numeric range for its height. That range
+      // can come from color stops or directly from the configured y axis.
+      if (colorStopScale === undefined && !hasYAxisBounds) {
+        throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default or y_axis.lower_bound and y_axis.upper_bound`);
       }
-      if (this.config.sparkline.colorstops.scales.default.min === undefined || this.config.sparkline.colorstops.scales.default.max === undefined) {
+      if (colorStopScale !== undefined && (colorStopScale.min === undefined || colorStopScale.max === undefined)) {
         throw new Error(`[sparklines] real-time ${this.config.sparkline.show.chart_type} requires color_stops.scales.default.min and max`);
       }
     }
@@ -2289,7 +2308,7 @@ export default class SparklineGraphTool extends BaseTool {
 
       if (chartType === 'bar') {
         this.bar[index] = this.primaryGraph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        if (this.config.period.type === 'real_time') {
+        if (this.config.period.type === 'real_time' && this.config.sparkline.bar.orientation === 'vertical') {
           // The engine places a one-point bar around its left-edge coordinate.
           // Center that single bar inside the complete real-time draw area.
           this.bar[index][0].x = this.primaryGraph.drawArea.x + (this.primaryGraph.drawArea.width - this.bar[index][0].width) / 2;
@@ -5308,8 +5327,17 @@ export default class SparklineGraphTool extends BaseTool {
     // Existing animate nodes are retained by Lit. State updates therefore do
     // not restart the graph, while a newly inserted calendar bar animates once.
     const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.sparklineSeries.primaryItem.historySeries);
-    const realTimeBarTransition = this.config.sparkline.animate && this.config.period.type === 'real_time' ? 'y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)' : undefined;
-    const foregroundStyles = { ...this.config.sparkline.bar.foreground.styles };
+    const horizontal = this.config.sparkline.bar.orientation === 'horizontal';
+    const realTimeBarTransition =
+      this.config.sparkline.animate && this.config.period.type === 'real_time'
+        ? horizontal
+          ? 'x 2s cubic-bezier(0.215, 0.61, 0.355, 1), width 2s cubic-bezier(0.215, 0.61, 0.355, 1)'
+          : 'y 2s cubic-bezier(0.215, 0.61, 0.355, 1), height 2s cubic-bezier(0.215, 0.61, 0.355, 1)'
+        : undefined;
+    const foreground = this.config.sparkline.bar.foreground;
+    const foregroundItemStyle = foreground.show.item_style;
+    if (foregroundItemStyle === 'none') return '';
+    const foregroundStyles = { ...foreground.styles };
     const fade = this.config.sparkline.show.fill === 'fade';
 
     // The graph color remains authoritative; foreground styles control shape,
@@ -5321,7 +5349,16 @@ export default class SparklineGraphTool extends BaseTool {
       <g class='bars' ?anim=${this.config.sparkline.animate}>
         <defs>${this.renderBarFadeGradients(bars, index, this.config, index)}</defs>
         ${bars.map((bar, i) => {
-          const color = this.computeColor(bar.value, index);
+          let color;
+          if (foregroundItemStyle === 'fixed') {
+            color = foreground.color;
+          } else if (foregroundItemStyle === 'colorstopsegments') {
+            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, false);
+          } else if (foregroundItemStyle === 'colorstopgradient') {
+            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, true);
+          } else {
+            color = this.computeColor(bar.value, index);
+          }
           const gradientId = `bar-fill-fade-${this.cardId}-${this.index}-${index}-${i}`;
           const fill = fade ? `url(#${gradientId})` : color;
           return svg`
@@ -5337,16 +5374,47 @@ export default class SparklineGraphTool extends BaseTool {
               stroke=${color}
               style=${styleMap(
                 this.getRenderStyles({
+                  x: realTimeBarTransition && horizontal ? `${bar.x}px` : undefined,
                   y: realTimeBarTransition ? `${bar.y}px` : undefined,
                   height: realTimeBarTransition ? `${Math.max(1, bar.height)}px` : undefined,
+                  width: realTimeBarTransition && horizontal ? `${Math.max(1, bar.width)}px` : undefined,
                   transition: realTimeBarTransition,
                   ...foregroundStyles,
                 }),
               )}
             >
               ${
-                animate
+                animate && horizontal
                   ? svg`
+                <animate
+                  attributeName='x'
+                  from=${bar.value >= 0 ? bar.x : bar.x + Math.max(1, bar.width)}
+                  to=${bar.x}
+                  begin='0s'
+                  dur='2s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animate>
+                <animate
+                  attributeName='width'
+                  from='0'
+                  to=${Math.max(1, bar.width)}
+                  begin='0s'
+                  dur='2s'
+                  fill='remove'
+                  restart='whenNotActive'
+                  repeatCount='1'
+                  calcMode='spline'
+                  keyTimes='0; 1'
+                  keySplines='0.215 0.61 0.355 1'
+                ></animate>
+              `
+                  : animate
+                    ? svg`
                 <animate
                   attributeName='y'
                   from=${bar.value > 0 ? bar.y + Math.max(1, bar.height) : bar.y}
