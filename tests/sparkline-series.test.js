@@ -91,6 +91,28 @@ test('normalizes explicit series in declaration order with independent graph set
   assert.equal(series.items[1].config.series, undefined);
 });
 
+test('series inherit parent minmax settings and can override them independently', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      line: { ...graphConfig.sparkline.line, show_minmax: true },
+      area: { ...graphConfig.sparkline.area, show_minmax: true },
+    },
+    series: [
+      { id: 'inherited-line', entity_index: 0 },
+      { id: 'line-without-range', entity_index: 1, sparkline: { line: { show_minmax: false } } },
+      { id: 'inherited-area', entity_index: 2, sparkline: { show: { chart_type: 'area' } } },
+      { id: 'area-without-range', entity_index: 3, sparkline: { show: { chart_type: 'area' }, area: { show_minmax: false } } },
+    ],
+  });
+
+  assert.equal(series.items[0].config.sparkline.line.show_minmax, true);
+  assert.equal(series.items[1].config.sparkline.line.show_minmax, false);
+  assert.equal(series.items[2].config.sparkline.area.show_minmax, true);
+  assert.equal(series.items[3].config.sparkline.area.show_minmax, false);
+});
+
 test('implicit and explicit one-series configs produce the same effective graph config', () => {
   const implicit = new SparklineSeries(graphConfig);
   const explicit = new SparklineSeries({
