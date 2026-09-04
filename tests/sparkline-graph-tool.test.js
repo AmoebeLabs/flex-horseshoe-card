@@ -638,6 +638,56 @@ test('cartesian line and area series render their independently enabled minmax e
   assert.equal(renderedItems[2].values[1], '');
 });
 
+test('single line minmax uses only the line styles', () => {
+  const paintSources = [];
+  let renderedStyles;
+  let areaStyleCalls = 0;
+  const lineStyles = { stroke: 'red', 'stroke-width': 2, opacity: 0.8 };
+  const areaStyles = { fill: 'blue', opacity: 0.2 };
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 4,
+    graphArea: { width: 80, height: 40 },
+    config: {
+      sparkline: {
+        show: { chart_type: 'line' },
+        line: {
+          minmax: {
+            styles: { opacity: 0.4 },
+          },
+        },
+      },
+    },
+    getLineStyles: () => lineStyles,
+    getAreaStyles: () => {
+      areaStyleCalls += 1;
+      return { ...areaStyles };
+    },
+    getSparklineBackgroundPaint: (styles) => {
+      paintSources.push({ ...styles });
+      return styles.stroke;
+    },
+    getRenderStyles: (styles) => {
+      renderedStyles = styles;
+      return styles;
+    },
+  });
+
+  tool.renderSvgAreaMinMaxBackground('M 0,0 z', 0);
+
+  assert.deepEqual(paintSources[0], {
+    stroke: 'red',
+    'stroke-width': 2,
+    opacity: '0.4',
+  });
+  assert.equal(areaStyleCalls, 0);
+  assert.equal(lineStyles.opacity, 0.8);
+  assert.equal(renderedStyles.fill, 'red');
+  assert.equal(renderedStyles.stroke, 'none');
+  assert.equal(renderedStyles.opacity, '0.4');
+});
+
 test('radial area fade follows the visible zero radius', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const graph = {

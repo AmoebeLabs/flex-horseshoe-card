@@ -220,6 +220,12 @@ export default class SparklineGraphTool extends BaseTool {
         line: {
           line_width: 1,
           show_dots: false,
+          show_minmax: false,
+          minmax: {
+            styles: {
+              opacity: 0.25,
+            },
+          },
         },
         area: {
           show_dots: false,
@@ -3397,9 +3403,16 @@ export default class SparklineGraphTool extends BaseTool {
     if (!['area', 'line'].includes(this.config.sparkline.show.chart_type)) return '';
     if (!fill) return '';
 
-    const areaStyles = this.getAreaStyles();
-    const backgroundStyles = areaStyles;
-    backgroundStyles.fill = this.getSparklineBackgroundPaint(areaStyles);
+    let backgroundStyles;
+    if (this.config.sparkline.show.chart_type === 'line') {
+      backgroundStyles = Merge.mergeDeep(
+        this.getLineStyles(),
+        ConfigHelper.toStyleDict(this.config.sparkline.line.minmax.styles),
+      );
+    } else {
+      backgroundStyles = this.getAreaStyles();
+    }
+    backgroundStyles.fill = this.getSparklineBackgroundPaint(backgroundStyles);
     backgroundStyles.stroke = 'none';
 
     return svg`
