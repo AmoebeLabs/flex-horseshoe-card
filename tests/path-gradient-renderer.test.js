@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildAdaptivePathGradient, renderAdaptivePathGradient } from '../src/path-gradient-renderer.js';
+import {
+  buildAdaptivePathGradient,
+  renderAdaptivePathGradient,
+  setFullPathGradientRevealRange,
+} from '../src/path-gradient-renderer.js';
 
 const straightGeometry = {
   getTotalLength: () => 200,
@@ -41,6 +45,23 @@ test('full gradient keeps a static color distribution behind the active reveal r
   assert.equal(first.ranges[0].gradient.startColor, '#000000');
   assert.equal(first.ranges[3].gradient.endColor, '#ff0000ff');
   assert.equal(first.ranges.at(-1).gradient.endColor, '#ffffff');
+});
+
+test('full gradient reveal updates retain adaptive ranges and cap configuration', () => {
+  const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig);
+  const ranges = gradient.ranges;
+  const updated = setFullPathGradientRevealRange(gradient, { start: 15, end: 75 });
+
+  assert.equal(updated, gradient);
+  assert.equal(updated.ranges, ranges);
+  assert.deepEqual(updated.revealRange, {
+    id: 'gradient-reveal',
+    start: 15,
+    end: 75,
+    startCap: 'round',
+    endCap: 'round',
+    dash: { array: [60, 100], offset: -15 },
+  });
 });
 
 test('current gradient redistributes all configured colors over the active range', () => {
