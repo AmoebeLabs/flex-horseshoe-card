@@ -142,6 +142,67 @@ export function buildWavePathDefinition(config) {
 }
 
 /**
+ * Builds an Archimedean spiral from configured inner to outer radius. Sampled
+ * points are joined as one Catmull-Rom-derived cubic spline so the browser sees
+ * a smooth centerline instead of a chain of tangent-breaking line segments.
+ *
+ * @param {object} config - Normalized spiral center, radii, sweep, and point count.
+ * @returns {object} Stable spiral path definition.
+ */
+export function buildSpiralPathDefinition(config) {
+  const points = [];
+
+  for (let index = 0; index <= config.points; index += 1) {
+    const progress = index / config.points;
+    const radius = config.radiusInner + (config.radiusOuter - config.radiusInner) * progress;
+    const angle = ((config.startAngle + config.degrees * progress) * Math.PI) / 180;
+
+    points.push({
+      x: config.cx + radius * Math.cos(angle),
+      y: config.cy + radius * Math.sin(angle),
+    });
+  }
+
+  const commands = [`M ${points[0].x} ${points[0].y}`];
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[Math.max(0, index - 1)];
+    const current = points[index];
+    const next = points[index + 1];
+    const following = points[Math.min(points.length - 1, index + 2)];
+    const controlOneX = current.x + (next.x - previous.x) / 6;
+    const controlOneY = current.y + (next.y - previous.y) / 6;
+    const controlTwoX = next.x - (following.x - current.x) / 6;
+    const controlTwoY = next.y - (following.y - current.y) / 6;
+
+    commands.push(`C ${controlOneX} ${controlOneY} ${controlTwoX} ${controlTwoY} ${next.x} ${next.y}`);
+  }
+
+  return createPathDefinition(commands.join(' '), false);
+}
+
+/**
+ * Builds a closed figure-eight centerline. Four cubic sections preserve the
+ * tangent through both outer turns, the center crossing, and the closing seam.
+ *
+ * @param {object} config - Normalized infinity center and horizontal/vertical radii.
+ * @returns {object} Stable self-intersecting path definition.
+ */
+export function buildInfinityPathDefinition(config) {
+  const halfControlX = config.radiusX / 2;
+  const d = [
+    `M ${config.cx} ${config.cy}`,
+    `C ${config.cx + halfControlX} ${config.cy - config.radiusY} ${config.cx + config.radiusX} ${config.cy - config.radiusY} ${config.cx + config.radiusX} ${config.cy}`,
+    `C ${config.cx + config.radiusX} ${config.cy + config.radiusY} ${config.cx + halfControlX} ${config.cy + config.radiusY} ${config.cx} ${config.cy}`,
+    `C ${config.cx - halfControlX} ${config.cy - config.radiusY} ${config.cx - config.radiusX} ${config.cy - config.radiusY} ${config.cx - config.radiusX} ${config.cy}`,
+    `C ${config.cx - config.radiusX} ${config.cy + config.radiusY} ${config.cx - halfControlX} ${config.cy + config.radiusY} ${config.cx} ${config.cy}`,
+    'Z',
+  ].join(' ');
+
+  return createPathDefinition(d, true);
+}
+
+/**
  * Dispatches normalized shape configuration to its centerline generator.
  *
  * @param {object} config - Normalized path geometry with a supported type.
@@ -157,5 +218,9 @@ export function buildPathDefinition(config) {
       return buildRectanglePathDefinition(config);
     case 'wave':
       return buildWavePathDefinition(config);
+    case 'spiral':
+      return buildSpiralPathDefinition(config);
+    case 'infinity':
+      return buildInfinityPathDefinition(config);
   }
 }

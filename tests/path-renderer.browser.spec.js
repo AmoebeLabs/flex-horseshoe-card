@@ -27,8 +27,10 @@ test('generic renderer paints the same normalized ranges on every path shape', a
             import { render, svg } from 'lit';
             import {
               buildArcPathDefinition,
+              buildInfinityPathDefinition,
               buildLinePathDefinition,
               buildRectanglePathDefinition,
+              buildSpiralPathDefinition,
               buildWavePathDefinition,
             } from '/src/path-generators.js';
             import { renderPathStrokeLayers } from '/src/path-renderer.js';
@@ -48,6 +50,14 @@ test('generic renderer paints the same normalized ranges on every path shape', a
               buildWavePathDefinition({
                 x1: 10, y1: 50, x2: 90, y2: 50,
                 waves: 2, amplitude: 12,
+              }),
+              buildSpiralPathDefinition({
+                cx: 50, cy: 50,
+                radiusInner: 5, radiusOuter: 40,
+                startAngle: -90, degrees: 720, points: 48,
+              }),
+              buildInfinityPathDefinition({
+                cx: 50, cy: 50, radiusX: 40, radiusY: 25,
               }),
             ];
             const background = {
@@ -105,14 +115,14 @@ test('generic renderer paints the same normalized ranges on every path shape', a
             ];
 
             render(svg\`
-              <svg viewBox="0 0 220 240" width="220" height="240">
+              <svg viewBox="0 0 220 350" width="220" height="350">
                 \${definitions.map((definition, index) => svg\`
                   <g class="shape" data-index=\${index}
                     transform="translate(\${(index % 2) * 110} \${Math.floor(index / 2) * 110})">
                     \${renderPathStrokeLayers(definition, background, foreground, ranges, \`shape-\${index}\`)}
                   </g>
                 \`)}
-                <g class="opacity-overlap" transform="translate(0 225)">
+                <g class="opacity-overlap" transform="translate(0 335)">
                   \${renderPathStrokeLayers(
                     overlapDefinition,
                     overlapBackground,
@@ -172,6 +182,7 @@ test('generic renderer paints the same normalized ranges on every path shape', a
     const isPaintedAt = (path, progress) => path.isPointInStroke(pointAt(progress));
 
     return {
+      shapeIndex: Number(shape.dataset.index),
       sameCenterline: renderedPaths.every((path) => path.getAttribute('d') === master.getAttribute('d')),
       normalized: renderedPaths.every((path) => path.getAttribute('pathLength') === '100'),
       backgroundAtGap: isPaintedAt(background, 37.5),
@@ -183,13 +194,14 @@ test('generic renderer paints the same normalized ranges on every path shape', a
     };
   }));
 
-  expect(renderedShapes).toHaveLength(4);
-  renderedShapes.forEach((shape) => {
+  expect(renderedShapes).toHaveLength(6);
+  renderedShapes.forEach((shape, shapeIndex) => {
     expect(shape).toEqual({
+      shapeIndex,
       sameCenterline: true,
       normalized: true,
       backgroundAtGap: true,
-      low: [true, false, false, false],
+      low: shapeIndex === 5 ? [true, false, true, false] : [true, false, false, false],
       high: [false, false, true, false],
       lowStartCap: true,
       highEndCap: true,
@@ -211,7 +223,7 @@ test('generic renderer paints the same normalized ranges on every path shape', a
     };
   }));
 
-  expect(capContracts).toHaveLength(16);
+  expect(capContracts).toHaveLength(24);
   capContracts.forEach((contract) => {
     const expected = {
       'butt-butt': { capCount: 0, startPainted: false, endPainted: false },
@@ -237,19 +249,19 @@ test('generic renderer paints the same normalized ranges on every path shape', a
 
     const canvas = document.createElement('canvas');
     canvas.width = 220;
-    canvas.height = 240;
+    canvas.height = 350;
     const context = canvas.getContext('2d');
     context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, 220, 240);
-    context.drawImage(image, 0, 0, 220, 240);
+    context.fillRect(0, 0, 220, 350);
+    context.drawImage(image, 0, 0, 220, 350);
     const pixel = (x, y) => [...context.getImageData(x, y, 1, 1).data];
     return {
       roundCapOverlap: pixel(121, 50),
       transparentFill: pixel(140, 50),
       border: pixel(140, 45),
       outside: pixel(140, 42),
-      gradientSegment: pixel(60, 225),
-      gradientOverlap: pixel(110, 225),
+      gradientSegment: pixel(60, 335),
+      gradientOverlap: pixel(110, 335),
     };
   });
 

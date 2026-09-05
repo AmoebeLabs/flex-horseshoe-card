@@ -3,9 +3,11 @@ import test from 'node:test';
 
 import {
   buildArcPathDefinition,
+  buildInfinityPathDefinition,
   buildLinePathDefinition,
   buildPathDefinition,
   buildRectanglePathDefinition,
+  buildSpiralPathDefinition,
   buildWavePathDefinition,
 } from '../src/path-generators.js';
 
@@ -137,4 +139,45 @@ test('wave generator applies amplitude perpendicular to a vertical baseline', ()
 
   assert.match(definition.d, /^M 50 10 C 38 /);
   assert.match(definition.d, /50 90$/);
+});
+
+test('spiral generator follows the configured radii and sweep as one smooth path', () => {
+  const config = {
+    type: 'spiral',
+    cx: 50,
+    cy: 50,
+    radiusInner: 5,
+    radiusOuter: 40,
+    startAngle: -90,
+    degrees: 720,
+    points: 48,
+  };
+  const definition = buildSpiralPathDefinition(config);
+  const dispatched = buildPathDefinition(config);
+
+  assert.equal(definition.closed, false);
+  assert.match(definition.d, /^M 50 45 C /);
+  assert.equal((definition.d.match(/ C /g) ?? []).length, 48);
+  const [, endX, endY] = definition.d.match(/ ([^ ]+) ([^ ]+)$/);
+  assert.ok(Math.abs(Number(endX) - 50) < 1e-10);
+  assert.equal(Number(endY), 10);
+  assert.equal(dispatched.signature, definition.signature);
+});
+
+test('infinity generator closes one tangent-continuous self-intersecting path', () => {
+  const config = {
+    type: 'infinity',
+    cx: 50,
+    cy: 50,
+    radiusX: 40,
+    radiusY: 25,
+  };
+  const definition = buildInfinityPathDefinition(config);
+  const dispatched = buildPathDefinition(config);
+
+  assert.equal(definition.closed, true);
+  assert.match(definition.d, /^M 50 50 C 70 25 90 25 90 50 /);
+  assert.equal((definition.d.match(/ C /g) ?? []).length, 4);
+  assert.match(definition.d, /C 10 75 30 75 50 50 Z$/);
+  assert.equal(dispatched.signature, definition.signature);
 });

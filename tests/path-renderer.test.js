@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   buildArcPathDefinition,
+  buildInfinityPathDefinition,
   buildLinePathDefinition,
   buildRectanglePathDefinition,
+  buildSpiralPathDefinition,
   buildWavePathDefinition,
 } from '../src/path-generators.js';
 import { renderNormalizedPathBands } from '../src/path-mask-renderer.js';
@@ -39,6 +41,21 @@ const pathDefinitions = [
     y2: 50,
     waves: 2,
     amplitude: 12,
+  }),
+  buildSpiralPathDefinition({
+    cx: 50,
+    cy: 50,
+    radiusInner: 5,
+    radiusOuter: 40,
+    startAngle: -90,
+    degrees: 720,
+    points: 48,
+  }),
+  buildInfinityPathDefinition({
+    cx: 50,
+    cy: 50,
+    radiusX: 40,
+    radiusY: 25,
   }),
 ];
 const background = {

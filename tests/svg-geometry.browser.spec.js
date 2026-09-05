@@ -280,6 +280,23 @@ test('all initial path generators produce measurable centerlines with stable end
         waves: 3,
         amplitude: 12,
       },
+      {
+        type: 'spiral',
+        cx: 70,
+        cy: 70,
+        radiusInner: 5,
+        radiusOuter: 55,
+        startAngle: -90,
+        degrees: 1080,
+        points: 72,
+      },
+      {
+        type: 'infinity',
+        cx: 70,
+        cy: 50,
+        radiusX: 55,
+        radiusY: 30,
+      },
     ];
     const measurements = configs.map((config) => {
       const definition = buildPathDefinition(config);
@@ -304,7 +321,7 @@ test('all initial path generators produce measurable centerlines with stable end
     return measurements;
   }, pathGeneratorSource);
 
-  const [arc, line, rectangle, wave] = generatedPaths;
+  const [arc, line, rectangle, wave, spiral, infinity] = generatedPaths;
 
   expect(arc.length).toBeCloseTo(Math.PI * 20, 1);
   expect(arc.start.x).toBeCloseTo(90, 4);
@@ -325,6 +342,18 @@ test('all initial path generators produce measurable centerlines with stable end
   expect(wave.start).toEqual({ x: 10, y: 50 });
   expect(wave.end.x).toBeCloseTo(130, 4);
   expect(wave.end.y).toBeCloseTo(50, 4);
+
+  expect(spiral.closed).toBe(false);
+  expect(spiral.length).toBeGreaterThan(500);
+  expect(spiral.start.x).toBeCloseTo(70, 4);
+  expect(spiral.start.y).toBeCloseTo(65, 4);
+  expect(spiral.end.x).toBeCloseTo(70, 4);
+  expect(spiral.end.y).toBeCloseTo(15, 4);
+
+  expect(infinity.closed).toBe(true);
+  expect(infinity.length).toBeGreaterThan(200);
+  expect(infinity.start).toEqual({ x: 70, y: 50 });
+  expect(infinity.end).toEqual({ x: 70, y: 50 });
 });
 
 test('shared measured geometry handles every initial shape, boundaries, corners, cusps, and seams', async ({ page }) => {
@@ -377,6 +406,23 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
         y2: 50,
         waves: 3,
         amplitude: 12,
+      },
+      {
+        type: 'spiral',
+        cx: 70,
+        cy: 70,
+        radiusInner: 5,
+        radiusOuter: 55,
+        startAngle: -90,
+        degrees: 1080,
+        points: 72,
+      },
+      {
+        type: 'infinity',
+        cx: 70,
+        cy: 50,
+        radiusX: 55,
+        radiusY: 30,
       },
     ];
     const sharedContracts = configs.map((config) => {
@@ -439,6 +485,25 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
     cuspGeometry.bindPathElement(cuspPath);
     const cuspTangent = cuspGeometry.tangentAtProgress(50);
 
+    // A self-intersection has two traversal positions at one physical point.
+    // Its local tangent must remain continuous through the crossing, while the
+    // closed seam must return with the same direction with which it started.
+    const infinityDefinition = buildPathDefinition(configs[5]);
+    const infinityPath = svg.querySelectorAll('path')[5];
+    const infinityGeometry = new PathGeometry(() => {});
+    infinityGeometry.setPathDefinition(infinityDefinition);
+    infinityGeometry.bindPathElement(infinityPath);
+    const infinityCrossing = {
+      before: infinityGeometry.tangentAtProgress(49.9),
+      at: infinityGeometry.tangentAtProgress(50),
+      after: infinityGeometry.tangentAtProgress(50.1),
+      point: infinityGeometry.pointAtProgress(50),
+    };
+    const infinitySeam = {
+      start: infinityGeometry.tangentAtProgress(0),
+      end: infinityGeometry.tangentAtProgress(100),
+    };
+
     URL.revokeObjectURL(geometryModuleUrl);
     URL.revokeObjectURL(generatorModuleUrl);
     return {
@@ -449,6 +514,8 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
       seamStart,
       seamEnd,
       cuspTangent,
+      infinityCrossing,
+      infinitySeam,
     };
   }, {
     geometrySource: pathGeometrySource,
@@ -477,4 +544,12 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
   expect(geometryContracts.seamStart.y).toBeCloseTo(geometryContracts.seamEnd.y, 5);
   expect(geometryContracts.cuspTangent.x).toBeCloseTo(-1, 5);
   expect(geometryContracts.cuspTangent.y).toBeCloseTo(0, 3);
+  expect(geometryContracts.infinityCrossing.point.x).toBeCloseTo(70, 4);
+  expect(geometryContracts.infinityCrossing.point.y).toBeCloseTo(50, 4);
+  expect(geometryContracts.infinityCrossing.before.x).toBeCloseTo(geometryContracts.infinityCrossing.at.x, 2);
+  expect(geometryContracts.infinityCrossing.before.y).toBeCloseTo(geometryContracts.infinityCrossing.at.y, 2);
+  expect(geometryContracts.infinityCrossing.after.x).toBeCloseTo(geometryContracts.infinityCrossing.at.x, 2);
+  expect(geometryContracts.infinityCrossing.after.y).toBeCloseTo(geometryContracts.infinityCrossing.at.y, 2);
+  expect(geometryContracts.infinitySeam.start.x).toBeCloseTo(geometryContracts.infinitySeam.end.x, 5);
+  expect(geometryContracts.infinitySeam.start.y).toBeCloseTo(geometryContracts.infinitySeam.end.y, 5);
 });
