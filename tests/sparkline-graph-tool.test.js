@@ -519,7 +519,10 @@ test('bar fade reverses at zero for positive and negative values', () => {
       sparkline: {
         animate: false,
         show: { chart_type: 'bar', fill: 'fade' },
-        bar: { foreground: { styles: {} } },
+        bar: {
+          orientation: 'vertical',
+          foreground: { show: { item_style: 'auto' }, styles: {} },
+        },
       },
     },
     sparklineSeries: {
@@ -810,6 +813,7 @@ test('horizontal radial x-axis labels align away from the circumference', () => 
   const renderedStyles = [];
   const graph = {
     axisArea: { x: 0, width: 100 },
+    drawArea: { x: 0, width: 100 },
     getRadialGeometry: () => ({ arcDegrees: 360, anglePerBin: 15, outerRadius: 40 }),
     getRadialAngleForFraction: (fraction) => fraction * 360,
     getRadialValueAxisAngle: () => 0,
@@ -856,6 +860,7 @@ test('arc radial x-axis labels use unique readable text paths', () => {
   const projectedAngles = [];
   const graph = {
     axisArea: { x: 0, width: 100 },
+    drawArea: { x: 0, width: 100 },
     getRadialGeometry: () => ({ arcDegrees: 180, anglePerBin: 15, outerRadius: 40 }),
     getRadialAngleForFraction: (fraction) => fraction * 180,
     getRadialValueAxisAngle: () => 0,

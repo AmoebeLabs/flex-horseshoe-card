@@ -18,7 +18,8 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     state_values: { aggregate_func: 'avg', smoothing, logarithmic: false },
     dots: { radius: 2 },
     radial: { arc_degrees: 360, rotate: 0, size: 50 },
-    radial_barcode: { size: 5 },
+    radial_barcode: { arc_degrees: 360, rotate: 0, size: 5 },
+    bar: { orientation: 'vertical' },
     line: { show_minmax: showLineMinMax, show_dots: false },
     area: { show_minmax: showAreaMinMax, show_dots: false },
   },
@@ -574,7 +575,7 @@ test('dot geometry reserves radius plus half the inherited stroke width', () => 
   });
 });
 
-test('radial barcode geometry reserves only its rounded outer edge', () => {
+test('radial barcode uses the complete graph area without external geometry margin', () => {
   const axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
   const configuredMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
   const graph = new SparklineGraph(120, 100, axisMargin, configuredMargin, {
@@ -595,7 +596,7 @@ test('radial barcode geometry reserves only its rounded outer edge', () => {
         chart_viz: 'flower',
       },
       radial: { arc_degrees: 360, rotate: 0, size: 50 },
-      radial_barcode: { size: 15 },
+      radial_barcode: { arc_degrees: 360, rotate: 0, size: 15 },
       state_values: {
         aggregate_func: 'avg',
         smoothing: false,
@@ -612,15 +613,8 @@ test('radial barcode geometry reserves only its rounded outer edge', () => {
 
   graph.setGraphAreas(axisMargin, configuredMargin, 48);
 
-  const extent = graph.chartGeometryMargin.t;
-  assert.ok(extent > 0);
-  assert.deepEqual(graph.chartGeometryMargin, { t: extent, r: extent, b: extent, l: extent, x: extent, y: extent });
-  assert.equal(graph.dataArea.x, extent);
-  assert.equal(graph.dataArea.y, extent);
-  assert.equal(graph.dataArea.top, extent);
-  assert.equal(graph.dataArea.bottom, extent);
-  assert.equal(rounded(graph.dataArea.width), rounded(120 - extent * 2));
-  assert.equal(rounded(graph.dataArea.height), rounded(100 - extent * 2));
+  assert.deepEqual(graph.chartGeometryMargin, { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 });
+  assert.deepEqual(graph.dataArea, { x: 0, y: 0, top: 0, bottom: 0, width: 120, height: 100 });
 });
 
 test('radial line, area and pointer geometry share one rotated partial arc', () => {
@@ -744,8 +738,7 @@ test('day and night radial band uses the shared arc and an inward ring', () => {
 
 test('day and night radial barcode background uses the complete barcode ring', () => {
   const config = createGraphConfig({ chartType: 'radial_barcode' });
-  config.sparkline.radial = { arc_degrees: 360, rotate: 0, size: 15 };
-  config.sparkline.radial_barcode.size = 5;
+  config.sparkline.radial_barcode = { arc_degrees: 360, rotate: 0, size: 5 };
   const graph = createGraph(config);
   const capturedGeometry = [];
   graph.getRadialAnnularSegmentPath = (...geometry) => {
@@ -785,11 +778,11 @@ test('radial y-axis tick density follows the configured radial width', () => {
   assert.ok(cartesianAxis.ticks.length > radialAxis.ticks.length);
 });
 
-test('radial barcode uses the same configured arc and rotation', () => {
+test('radial barcode uses its configured arc and rotation', () => {
   const config = createGraphConfig({ chartType: 'radial_barcode', lowerBound: 0, upperBound: 20 });
   config.sparkline.show.chart_variant = 'fixed';
   config.sparkline.show.chart_viz = 'bar';
-  config.sparkline.radial = { arc_degrees: 180, rotate: 45, size: 50 };
+  config.sparkline.radial_barcode = { arc_degrees: 180, rotate: 45, size: 5 };
   const graph = createGraph(config);
 
   graph.hours = 4;
@@ -828,10 +821,10 @@ test('radial barcode grid geometry uses the barcode size', () => {
   assert.equal(geometry.innerRadius, 30);
 });
 
-test('radial barcode reserves only outward rounded geometry', () => {
+test('radial barcode visualization variants do not reserve external geometry margin', () => {
   const axisMargin = { t: 0, r: 0, b: 0, l: 0 };
   const configuredMargin = { t: 10, r: 10, b: 10, l: 10 };
-  const getRoundExtent = (chartViz, chartVariant) => {
+  const getGeometryMargin = (chartViz, chartVariant) => {
     const config = createGraphConfig({ chartType: 'radial_barcode' });
     config.sparkline.show.chart_viz = chartViz;
     config.sparkline.show.chart_variant = chartVariant;
@@ -841,10 +834,11 @@ test('radial barcode reserves only outward rounded geometry', () => {
     return graph.chartGeometryMargin.t;
   };
 
-  assert.ok(getRoundExtent('rice_grain', 'fixed') > 0);
-  assert.ok(getRoundExtent('flower2', 'fixed') > 0);
-  assert.ok(getRoundExtent('flower', 'sunburst_outward') > 0);
-  assert.equal(getRoundExtent('flower', 'sunburst_inward'), 0);
+  assert.equal(getGeometryMargin('bar', 'fixed'), 0);
+  assert.equal(getGeometryMargin('rice_grain', 'fixed'), 0);
+  assert.equal(getGeometryMargin('flower2', 'fixed'), 0);
+  assert.equal(getGeometryMargin('flower', 'sunburst_outward'), 0);
+  assert.equal(getGeometryMargin('flower', 'sunburst_inward'), 0);
 });
 
 
