@@ -169,6 +169,34 @@ export class PathValueMapper {
   }
 
   /**
+   * Divides the active source branch at configured stop values. The resulting
+   * intervals contain only source meaning and normalized path progress; color
+   * selection remains the responsibility of the paint layer.
+   *
+   * @param {Array<number>} stopValues - Configured source values.
+   * @returns {Array<object>} Ordered semantic stop intervals in 0..100 space.
+   */
+  buildColorStopSemanticRanges(stopValues) {
+    const sourceRange = this.getActiveSourceRange();
+    const sourceMin = Math.min(sourceRange.start, sourceRange.end);
+    const sourceMax = Math.max(sourceRange.start, sourceRange.end);
+    const progressPoints = [sourceRange.start, ...stopValues, sourceRange.end]
+      .filter((sourceValue) => Number(sourceValue) >= sourceMin && Number(sourceValue) <= sourceMax)
+      .sort((valueA, valueB) => this.valueToProgress(valueA) - this.valueToProgress(valueB))
+      .filter((sourceValue, index, values) => values.findIndex((candidate) => Number(candidate) === Number(sourceValue)) === index);
+
+    return progressPoints.slice(0, -1).map((sourceValue, index) => ({
+      id: `color-stop-${index}`,
+      start: this.valueToProgress(sourceValue),
+      end: this.valueToProgress(progressPoints[index + 1]),
+      active: true,
+      sourceValue,
+      sourceEndValue: progressPoints[index + 1],
+      role: 'color-stop',
+    }));
+  }
+
+  /**
    * Builds semantic ranges for the current source or ranked state. Equal state
    * slots retain their before/current/after relation without adding paint data.
    *
@@ -222,4 +250,67 @@ export class PathValueMapper {
       role: 'state',
     }];
   }
+}
+
+/**
+ * Converts ordered semantic ranges into drawable 0..100 ranges. This is the
+ * single policy for clipping, internal and endpoint gaps, endpoint caps, and
+ * normalized dash placement on every path shape.
+ *
+ * @param {Array<object>} semanticRanges - Ordered path-independent ranges.
+ * @param {object} config - Normalized paint, clip, gap, and cap configuration.
+ * @returns {Array<object>} Visible painted ranges with normalized dash data.
+ */
+export function buildPaintedRanges(semanticRanges, config) {
+  // Clip first so the first and last visible intervals own the real visible
+  // endpoints, including a state ending partway through a color-stop interval.
+  const clippedRanges = semanticRanges
+    .map((range, index) => ({
+      range,
+      paint: config.paints[index],
+      start: clamp(Math.max(range.start, config.clip.start), 0, 100),
+      end: clamp(Math.min(range.end, config.clip.end), 0, 100),
+    }))
+    .filter((range) => range.end > range.start);
+
+  // Internal gaps are shared equally by their neighbours. Endpoint gaps are
+  // independent and therefore never shorten an endpoint unless configured.
+  const gappedRanges = clippedRanges
+    .map((item, index) => {
+      const first = index === 0;
+      const last = index === clippedRanges.length - 1;
+      const start = clamp(item.start + (first ? config.endpointGap.start : config.gap / 2), 0, 100);
+      const end = clamp(item.end - (last ? config.endpointGap.end : config.gap / 2), 0, 100);
+
+      return {
+        ...item,
+        start,
+        end,
+      };
+    })
+    .filter((range) => range.end > range.start);
+
+  // Dash arrays use pathLength="100". A complete 100-unit off-part prevents
+  // the visible dash from repeating at the seam of a closed path.
+  return gappedRanges.map((item, index) => {
+    const first = index === 0;
+    const last = index === gappedRanges.length - 1;
+    const length = item.end - item.start;
+
+    return {
+      ...item.range,
+      start: item.start,
+      end: item.end,
+      length,
+      color: item.paint.color,
+      width: item.paint.width,
+      opacity: item.paint.opacity,
+      startCap: first ? config.linecap.start : 'butt',
+      endCap: last ? config.linecap.end : 'butt',
+      dash: {
+        array: [length, 100],
+        offset: item.start === 0 ? 0 : -item.start,
+      },
+    };
+  });
 }

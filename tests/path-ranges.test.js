@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { GaugeScale } from '../src/horseshoe-geometry.js';
-import { PathValueMapper } from '../src/path-ranges.js';
+import { buildPaintedRanges, PathValueMapper } from '../src/path-ranges.js';
 
 /** Builds one mapper around the production scale implementation. */
 const createMapper = ({
@@ -142,5 +142,228 @@ test('semantic ranges contain no path geometry or paint properties', () => {
 
   ['angle', 'radius', 'path', 'd', 'color', 'fill', 'stroke', 'styles'].forEach((property) => {
     assert.equal(Object.hasOwn(range, property), false);
+  });
+});
+
+test('continuous progress preserves true endpoints and produces one normalized dash', () => {
+  const semanticRanges = createMapper().buildSemanticRanges(63);
+  const paintedRanges = buildPaintedRanges(semanticRanges, {
+    clip: { start: 0, end: 100 },
+    gap: 4,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'butt' },
+    paints: [{ color: '#ff9800', width: 6, opacity: 0.8 }],
+  });
+
+  assert.deepEqual(paintedRanges, [{
+    id: 'state',
+    start: 0,
+    end: 63,
+    length: 63,
+    active: true,
+    sourceValue: 63,
+    role: 'state',
+    color: '#ff9800',
+    width: 6,
+    opacity: 0.8,
+    startCap: 'round',
+    endCap: 'butt',
+    dash: {
+      array: [63, 100],
+      offset: 0,
+    },
+  }]);
+});
+
+test('segmented ranges split internal gaps and retain the complete outer endpoints', () => {
+  const semanticRanges = createMapper({
+    stateMode: 'segment',
+    stateMap: [
+      { state: 'low', value: 0 },
+      { state: 'medium', value: 1 },
+      { state: 'high', value: 2 },
+    ],
+  }).buildSemanticRanges(1);
+  const paintedRanges = buildPaintedRanges(semanticRanges, {
+    clip: { start: 0, end: 100 },
+    gap: 4,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [
+      { color: 'green', width: 5, opacity: 1 },
+      { color: 'orange', width: 5, opacity: 1 },
+      { color: 'red', width: 5, opacity: 1 },
+    ],
+  });
+
+  assert.equal(paintedRanges[0].start, 0);
+  assert.equal(paintedRanges[0].end, 100 / 3 - 2);
+  assert.equal(paintedRanges[1].start, 100 / 3 + 2);
+  assert.equal(paintedRanges[1].end, 200 / 3 - 2);
+  assert.equal(paintedRanges[2].start, 200 / 3 + 2);
+  assert.equal(paintedRanges[2].end, 100);
+  assert.deepEqual(paintedRanges.map((range) => [range.startCap, range.endCap]), [
+    ['round', 'butt'],
+    ['butt', 'butt'],
+    ['butt', 'round'],
+  ]);
+  assert.deepEqual(paintedRanges.map((range) => range.color), ['green', 'orange', 'red']);
+});
+
+test('explicit endpoint gaps shorten only the outside of the complete painted range', () => {
+  const paintedRanges = buildPaintedRanges(createMapper().buildSemanticRanges(100), {
+    clip: { start: 0, end: 100 },
+    gap: 8,
+    endpointGap: { start: 3, end: 5 },
+    linecap: { start: 'butt', end: 'round' },
+    paints: [{ color: 'blue', width: 4, opacity: 1 }],
+  });
+
+  assert.equal(paintedRanges[0].start, 3);
+  assert.equal(paintedRanges[0].end, 95);
+  assert.deepEqual(paintedRanges[0].dash, {
+    array: [92, 100],
+    offset: -3,
+  });
+});
+
+test('clipping clamps ranges to 0..100 and removes ranges without visible length', () => {
+  const config = {
+    clip: { start: 0, end: 100 },
+    gap: 4,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [
+      { color: 'green', width: 4, opacity: 1 },
+      { color: 'red', width: 4, opacity: 1 },
+    ],
+  };
+  const clampedRanges = buildPaintedRanges([
+    { id: 'visible', start: -10, end: 130, active: true, sourceValue: 50, role: 'state' },
+  ], {
+    ...config,
+    paints: [config.paints[0]],
+  });
+  const collapsedRanges = buildPaintedRanges([
+    { id: 'collapsed', start: 0, end: 1, active: true, sourceValue: 0, role: 'state' },
+    { id: 'visible', start: 1, end: 100, active: true, sourceValue: 50, role: 'state' },
+  ], config);
+
+  assert.equal(clampedRanges[0].start, 0);
+  assert.equal(clampedRanges[0].end, 100);
+  assert.deepEqual(collapsedRanges.map((range) => range.id), ['visible']);
+  assert.equal(collapsedRanges[0].startCap, 'round');
+  assert.equal(collapsedRanges[0].endCap, 'round');
+});
+
+test('color-stop intervals clip to active progress before gap and cap placement', () => {
+  const mapper = createMapper();
+  const stopRanges = mapper.buildColorStopSemanticRanges([0, 25, 50, 75, 100]);
+  const paintedRanges = buildPaintedRanges(stopRanges, {
+    clip: { start: 0, end: 63 },
+    gap: 4,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'butt' },
+    paints: [
+      { color: 'green', width: 6, opacity: 1 },
+      { color: 'yellow', width: 6, opacity: 1 },
+      { color: 'orange', width: 6, opacity: 1 },
+      { color: 'red', width: 6, opacity: 1 },
+    ],
+  });
+
+  assert.deepEqual(paintedRanges.map((range) => ({
+    start: range.start,
+    end: range.end,
+    color: range.color,
+    startCap: range.startCap,
+    endCap: range.endCap,
+  })), [
+    { start: 0, end: 23, color: 'green', startCap: 'round', endCap: 'butt' },
+    { start: 27, end: 48, color: 'yellow', startCap: 'butt', endCap: 'butt' },
+    { start: 52, end: 63, color: 'orange', startCap: 'butt', endCap: 'butt' },
+  ]);
+});
+
+test('absolute color-stop intervals follow the active signed branch in path order', () => {
+  const mapper = createMapper({ min: -10, max: 40, barMode: 'absolute', activeValue: -5 });
+
+  assert.deepEqual(mapper.buildColorStopSemanticRanges([-10, -5, 0, 5, 40]), [
+    {
+      id: 'color-stop-0',
+      start: 0,
+      end: 50,
+      active: true,
+      sourceValue: 0,
+      sourceEndValue: -5,
+      role: 'color-stop',
+    },
+    {
+      id: 'color-stop-1',
+      start: 50,
+      end: 100,
+      active: true,
+      sourceValue: -5,
+      sourceEndValue: -10,
+      role: 'color-stop',
+    },
+  ]);
+});
+
+test('bidirectional and string-state ranges use the same paint and dash contract', () => {
+  const bidirectional = createMapper({ min: -20, max: 20, barMode: 'bidirectional', zeroRatio: 0.5 })
+    .buildSemanticRanges(-10);
+  const stringStates = createMapper({
+    stateMode: 'stringstate_level',
+    stateMap: [
+      { state: 'low', value: 0 },
+      { state: 'high', value: 1 },
+    ],
+  }).buildSemanticRanges(1);
+  const bidirectionalPaint = buildPaintedRanges(bidirectional, {
+    clip: { start: 0, end: 100 },
+    gap: 2,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [{ color: 'blue', width: 4, opacity: 1 }],
+  });
+  const stringPaint = buildPaintedRanges(stringStates, {
+    clip: { start: 0, end: 100 },
+    gap: 2,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [
+      { color: 'green', width: 4, opacity: 0.5 },
+      { color: 'red', width: 4, opacity: 1 },
+    ],
+  });
+
+  assert.deepEqual(bidirectionalPaint[0].dash, {
+    array: [25, 100],
+    offset: -25,
+  });
+  assert.deepEqual(stringPaint.map((range) => range.dash), [
+    { array: [49, 100], offset: 0 },
+    { array: [49, 100], offset: -51 },
+  ]);
+  assert.deepEqual(stringPaint.map((range) => range.active), [true, true]);
+});
+
+test('painted output is identical for arc, line, rectangle, and wave consumers', () => {
+  const semanticRanges = createMapper().buildSemanticRanges(42);
+  const config = {
+    clip: { start: 0, end: 100 },
+    gap: 0,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'butt', end: 'round' },
+    paints: [{ color: 'purple', width: 3, opacity: 0.7 }],
+  };
+  const outputs = ['arc', 'line', 'rectangle', 'wave'].map(() => buildPaintedRanges(semanticRanges, config));
+
+  outputs.slice(1).forEach((output) => assert.deepEqual(output, outputs[0]));
+  outputs[0].forEach((range) => {
+    ['angle', 'radius', 'path', 'd', 'x', 'y'].forEach((property) => {
+      assert.equal(Object.hasOwn(range, property), false);
+    });
   });
 });
