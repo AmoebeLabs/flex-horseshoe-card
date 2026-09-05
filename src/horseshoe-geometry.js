@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 
 import { clamp } from './frontend_mods/common/number/clamp.ts';
+import { PathValueMapper } from './path-ranges.js';
 
 /**
  * Conversion factor used by point projection helpers.
@@ -334,6 +335,13 @@ export class GaugeGeometry {
     this.zeroAngle = this.ratioToAngle(this.zeroRatio);
 
     this.scale = scale;
+    this.valueMapper = new PathValueMapper({
+      scale,
+      barMode: this.barMode,
+      zeroRatio: this.zeroRatio,
+      stateMode: config.horseshoe_state.mode,
+      stateMap: config.state_map?.map,
+    }, activeValue);
   }
 
   /**
@@ -344,10 +352,8 @@ export class GaugeGeometry {
    * @returns {boolean} Whether the active branch changed.
    */
   setActiveValue(value) {
-    const nextSign = Number(value) < 0 ? -1 : 1;
-    const changed = this.barMode === 'absolute' && nextSign !== this.absoluteSign;
-
-    this.absoluteSign = nextSign;
+    const changed = this.valueMapper.setActiveValue(value);
+    this.absoluteSign = this.valueMapper.absoluteSign;
 
     return changed;
   }
@@ -359,19 +365,7 @@ export class GaugeGeometry {
    * @returns {{start: number, end: number}} Active signed source interval.
    */
   getActiveSourceRange() {
-    if (this.barMode !== 'absolute') {
-      return {
-        start: this.scale.min,
-        end: this.scale.max,
-      };
-    }
-
-    return {
-      start: 0,
-      end: this.absoluteSign < 0
-        ? (this.scale.min < 0 ? this.scale.min : -this.scale.max)
-        : this.scale.max,
-    };
+    return this.valueMapper.getActiveSourceRange();
   }
 
   /**
@@ -382,20 +376,12 @@ export class GaugeGeometry {
    * @returns {number} Signed source value.
    */
   magnitudeToSourceValue(magnitude) {
-    const numericMagnitude = Number(magnitude);
-
-    if (numericMagnitude === 0) {
-      return 0;
-    }
-
-    return this.barMode === 'absolute' ? numericMagnitude * this.absoluteSign : numericMagnitude;
+    return this.valueMapper.magnitudeToSourceValue(magnitude);
   }
 
   /** Returns the visible positive magnitude limit of the active branch. */
   getActiveMagnitudeMax() {
-    const range = this.getActiveSourceRange();
-
-    return Math.abs(range.end);
+    return this.valueMapper.getActiveMagnitudeMax();
   }
 
   /**
@@ -406,17 +392,7 @@ export class GaugeGeometry {
    * @returns {Array<object>} In-range color stops in visual arc order.
    */
   getActiveColorStops(colorStops) {
-    if (this.barMode !== 'absolute') {
-      return colorStops;
-    }
-
-    const range = this.getActiveSourceRange();
-    const sourceMin = Math.min(range.start, range.end);
-    const sourceMax = Math.max(range.start, range.end);
-
-    return colorStops
-      .filter((colorStop) => Number(colorStop.value) >= sourceMin && Number(colorStop.value) <= sourceMax)
-      .sort((colorStopA, colorStopB) => this.valueToRatio(colorStopA.value) - this.valueToRatio(colorStopB.value));
+    return this.valueMapper.getActiveColorStops(colorStops);
   }
 
   /**
@@ -555,60 +531,7 @@ export class GaugeGeometry {
    * @returns {number} Normalized visual arc position.
    */
   valueToRatio(value) {
-    const numericValue = Number(value);
-    const symmetricalBidirectional = this.barMode === 'bidirectional' || this.barMode === 'bidirectional_symmetrical';
-
-    // Absolute mode folds the active signed branch onto the complete arc. A
-    // 0..max scale maps both signs through the same magnitude scale. A signed
-    // scale normalizes each side independently around its configured zero.
-    if (this.barMode === 'absolute') {
-      const zeroScaleRatio = this.scaleValueToRatio(0);
-      const valueScaleRatio = this.scaleValueToRatio(this.scale.min === 0 ? Math.abs(numericValue) : numericValue);
-
-      if (this.scale.min === 0) {
-        const endScaleRatio = this.scaleValueToRatio(this.scale.max);
-        return clamp((valueScaleRatio - zeroScaleRatio) / (endScaleRatio - zeroScaleRatio), 0, 1);
-      }
-
-      if (numericValue < 0) {
-        const endScaleRatio = this.scaleValueToRatio(this.scale.min);
-        return clamp((zeroScaleRatio - valueScaleRatio) / (zeroScaleRatio - endScaleRatio), 0, 1);
-      }
-
-      const endScaleRatio = this.scaleValueToRatio(this.scale.max);
-      return clamp((valueScaleRatio - zeroScaleRatio) / (endScaleRatio - zeroScaleRatio), 0, 1);
-    }
-
-    // Normal and linear bidirectional modes use the configured scale directly.
-    if (!symmetricalBidirectional) {
-      return this.scaleValueToRatio(numericValue);
-    }
-
-    // Symmetrical bidirectional bars reserve the visual midpoint for value 0.
-    // A one-sided scale occupies its matching half; a signed scale compresses
-    // both configured branches independently around that midpoint.
-    if (this.scale.min >= 0) {
-      return 0.5 + 0.5 * this.scaleValueToRatio(numericValue);
-    }
-
-    if (this.scale.max <= 0) {
-      return 0.5 * this.scaleValueToRatio(numericValue);
-    }
-
-    const zeroScaleRatio = this.scaleValueToRatio(0);
-
-    if (numericValue < 0) {
-      const valueRatio = this.scaleValueToRatio(numericValue);
-      const sideRatio = zeroScaleRatio > 0 ? valueRatio / zeroScaleRatio : 0;
-
-      return 0.5 * clamp(sideRatio, 0, 1);
-    }
-
-    const valueRatio = this.scaleValueToRatio(numericValue);
-    const positiveRange = 1 - zeroScaleRatio;
-    const sideRatio = positiveRange > 0 ? (valueRatio - zeroScaleRatio) / positiveRange : 0;
-
-    return 0.5 + 0.5 * clamp(sideRatio, 0, 1);
+    return this.valueMapper.valueToRatio(value);
   }
 
   /**
