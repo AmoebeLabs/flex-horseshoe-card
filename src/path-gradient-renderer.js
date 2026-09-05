@@ -115,6 +115,25 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
 }
 
 /**
+ * Moves the reveal over a previously built full-path gradient without sampling
+ * geometry or rebuilding its adaptive color ranges.
+ *
+ * @param {object} gradient - Existing full-path adaptive gradient.
+ * @param {object} range - New normalized visible start and end progress.
+ * @returns {object} The same gradient object with its reveal range updated.
+ */
+export function setFullPathGradientRevealRange(gradient, range) {
+  const revealLength = range.end - range.start;
+
+  gradient.revealRange.start = range.start;
+  gradient.revealRange.end = range.end;
+  gradient.revealRange.dash.array = [revealLength, 100];
+  gradient.revealRange.dash.offset = range.start === 0 ? 0 : -range.start;
+
+  return gradient;
+}
+
+/**
  * Renders adaptive gradient ranges through the same generic band, border, cap,
  * and transparency pipeline as solid ranges. Full gradients are clipped by a
  * normalized dash intersections so state-only updates do not rebuild colors
