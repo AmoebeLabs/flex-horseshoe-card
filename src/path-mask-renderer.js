@@ -11,7 +11,7 @@ import { nothing, svg } from 'lit';
  * @param {string} className - CSS class namespace for the rendered stroke.
  * @returns {TemplateResult} One composed normalized path stroke.
  */
-function renderNormalizedPathStroke(pathDefinition, range, paint, className) {
+export function renderNormalizedPathStroke(pathDefinition, range, paint, className) {
   const capDashLength = 0.001;
   const caps = [
     { location: 'start', type: range.startCap, progress: range.start },
@@ -40,7 +40,7 @@ function renderNormalizedPathStroke(pathDefinition, range, paint, className) {
           stroke=${paint.color}
           stroke-width=${paint.width}
           stroke-linecap="round"
-          stroke-dasharray="${capDashLength} 100"
+          stroke-dasharray="${capDashLength} 200"
           stroke-dashoffset=${-(cap.progress - capDashLength / 2)}
         ></path>
       ` : nothing)}
