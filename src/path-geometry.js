@@ -58,6 +58,8 @@ export default class PathGeometry {
     if (!this.activeMeasurement) {
       this.activeMeasurement = {
         totalLength: pathElement.getTotalLength(),
+        points: new Map(),
+        tangents: new Map(),
       };
       this.measurementCache.set(this.pathDefinition.signature, this.activeMeasurement);
     }
@@ -102,5 +104,107 @@ export default class PathGeometry {
    */
   getPathElement() {
     return this.pathElement;
+  }
+
+  /**
+   * Returns a browser-measured coordinate at normalized path progress. The
+   * normalized-to-actual conversion remains private to this geometry boundary.
+   *
+   * @param {number} progress - Position in normalized 0..100 path space.
+   * @returns {object} Point with x and y coordinates in SVG user units.
+   */
+  pointAtProgress(progress) {
+    if (!this.activeMeasurement.points.has(progress)) {
+      const actualDistance = (progress / 100) * this.activeMeasurement.totalLength;
+      const measuredPoint = this.pathElement.getPointAtLength(actualDistance);
+
+      this.activeMeasurement.points.set(progress, {
+        x: measuredPoint.x,
+        y: measuredPoint.y,
+      });
+    }
+
+    return this.activeMeasurement.points.get(progress);
+  }
+
+  /**
+   * Returns the unit direction of path traversal at normalized progress. Open
+   * endpoints use a one-sided sample, ordinary positions and corners use a
+   * centered sample, and a closed seam samples across the end/start boundary.
+   * An exact cusp follows its outgoing branch.
+   *
+   * @param {number} progress - Position in normalized 0..100 path space.
+   * @returns {object} Unit tangent with x and y vector components.
+   */
+  tangentAtProgress(progress) {
+    if (!this.activeMeasurement.tangents.has(progress)) {
+      const totalLength = this.activeMeasurement.totalLength;
+      const actualDistance = (progress / 100) * totalLength;
+      const sampleDistance = Math.min(0.01, totalLength / 2);
+      let beforeDistance;
+      let afterDistance;
+
+      if (this.pathDefinition.closed) {
+        beforeDistance = (actualDistance - sampleDistance + totalLength) % totalLength;
+        afterDistance = (actualDistance + sampleDistance) % totalLength;
+      } else {
+        beforeDistance = Math.max(0, actualDistance - sampleDistance);
+        afterDistance = Math.min(totalLength, actualDistance + sampleDistance);
+      }
+
+      const before = this.pathElement.getPointAtLength(beforeDistance);
+      const after = this.pathElement.getPointAtLength(afterDistance);
+      let deltaX = after.x - before.x;
+      let deltaY = after.y - before.y;
+      let vectorLength = Math.hypot(deltaX, deltaY);
+      const cuspThreshold = sampleDistance / 100;
+
+      // Symmetrical samples coincide at an exact cusp. Select the outgoing
+      // branch first, then the incoming branch at an open path endpoint.
+      if (vectorLength < cuspThreshold) {
+        const cusp = this.pathElement.getPointAtLength(actualDistance);
+        const outgoingDistance = this.pathDefinition.closed
+          ? (actualDistance + sampleDistance) % totalLength
+          : Math.min(totalLength, actualDistance + sampleDistance);
+        const outgoing = this.pathElement.getPointAtLength(outgoingDistance);
+        deltaX = outgoing.x - cusp.x;
+        deltaY = outgoing.y - cusp.y;
+        vectorLength = Math.hypot(deltaX, deltaY);
+
+        if (vectorLength < cuspThreshold) {
+          const incomingDistance = this.pathDefinition.closed
+            ? (actualDistance - sampleDistance + totalLength) % totalLength
+            : Math.max(0, actualDistance - sampleDistance);
+          const incoming = this.pathElement.getPointAtLength(incomingDistance);
+          deltaX = cusp.x - incoming.x;
+          deltaY = cusp.y - incoming.y;
+          vectorLength = Math.hypot(deltaX, deltaY);
+        }
+      }
+
+      this.activeMeasurement.tangents.set(progress, {
+        x: deltaX / vectorLength,
+        y: deltaY / vectorLength,
+      });
+    }
+
+    return this.activeMeasurement.tangents.get(progress);
+  }
+
+  /**
+   * Returns the unit normal on the requested visual side relative to path
+   * traversal. SVG's downward y-axis is accounted for, and both sides are exact
+   * opposites.
+   *
+   * @param {number} progress - Position in normalized 0..100 path space.
+   * @param {'left'|'right'} side - Side relative to forward path traversal.
+   * @returns {object} Unit normal with x and y vector components.
+   */
+  normalAtProgress(progress, side) {
+    const tangent = this.tangentAtProgress(progress);
+
+    return side === 'left'
+      ? { x: tangent.y, y: -tangent.x }
+      : { x: -tangent.y, y: tangent.x };
   }
 }
