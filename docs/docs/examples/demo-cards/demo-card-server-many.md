@@ -23,6 +23,8 @@ This example is still being expanded. The CPU card below is available now; memor
 
 ![Server monitoring card showing the load of four CPU cores](../../assets/screenshots/fhs-card-070-sensor-grid-4.png)
 
+![Server monitoring card showing the load of four CPU cores with history on background](../../assets/screenshots/fhs-card-073-sensor-grid-4-area.png)
+
 | Description                                                                  | Aspect ratio |
 | :--------------------------------------------------------------------------- | :----------- |
 | Displays the load of four CPU cores from one server. | `1/1`      |
@@ -68,3 +70,4 @@ Example definition to use within view
 ```
 
 !!! info "[Link to Github System Template definition](https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/070-079/fhs-card-070-sensor-grid-4.yaml)"
+/
