@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import { test, expect } from '@playwright/test';
 
 test('SVGGeometryElement reports actual length and points independently from pathLength', async ({ page }) => {
@@ -114,4 +116,120 @@ test('geometry-dependent content stays hidden until its first path binding is co
   await expect(page.locator('#dependent')).toHaveAttribute('visibility', 'visible');
   await expect(page.locator('#dependent')).toHaveAttribute('cx', '110');
   await expect(page.locator('#dependent')).toHaveAttribute('cy', '40');
+});
+
+test('PathGeometry measures each signature once and hides output during rebinding', async ({ page }) => {
+  const pathGeometrySource = await readFile(new URL('../src/path-geometry.js', import.meta.url), 'utf8');
+
+  await page.setContent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="80">
+      <path id="measurement" d="M 10 40 L 110 40" pathLength="100"
+        fill="none" stroke="transparent"></path>
+      <circle id="dependent" cx="0" cy="0" r="5" visibility="hidden"></circle>
+    </svg>
+  `);
+
+  const lifecycle = await page.evaluate(async (moduleSource) => {
+    const moduleUrl = URL.createObjectURL(new Blob([moduleSource], { type: 'text/javascript' }));
+    const { default: PathGeometry } = await import(moduleUrl);
+    const pathElement = document.querySelector('#measurement');
+    const dependent = document.querySelector('#dependent');
+    const nativeGetTotalLength = pathElement.getTotalLength.bind(pathElement);
+    let measurementCalls = 0;
+    let requestedRenders = 0;
+
+    pathElement.getTotalLength = () => {
+      measurementCalls += 1;
+      return nativeGetTotalLength();
+    };
+
+    const geometry = new PathGeometry(() => {
+      requestedRenders += 1;
+    });
+    const shortDefinition = {
+      d: 'M 10 40 L 110 40',
+      closed: false,
+      direction: 'forward',
+      signature: 'line-100',
+    };
+    const longDefinition = {
+      d: 'M 10 40 L 210 40',
+      closed: false,
+      direction: 'forward',
+      signature: 'line-200',
+    };
+
+    geometry.setPathDefinition(shortDefinition);
+    geometry.bindPathElement(pathElement);
+    dependent.setAttribute('visibility', geometry.isReady() ? 'visible' : 'hidden');
+    const initial = {
+      ready: geometry.isReady(),
+      visibility: dependent.getAttribute('visibility'),
+      totalLength: geometry.getTotalLength(),
+      measurementCalls,
+      requestedRenders,
+    };
+
+    geometry.setPathDefinition(shortDefinition);
+    geometry.bindPathElement(pathElement);
+    const unchanged = { measurementCalls, requestedRenders };
+
+    geometry.setPathDefinition(longDefinition);
+    dependent.setAttribute('visibility', geometry.isReady() ? 'visible' : 'hidden');
+    pathElement.setAttribute('d', longDefinition.d);
+    const invalidated = {
+      ready: geometry.isReady(),
+      visibility: dependent.getAttribute('visibility'),
+    };
+    geometry.bindPathElement(pathElement);
+    const changed = {
+      ready: geometry.isReady(),
+      totalLength: geometry.getTotalLength(),
+      measurementCalls,
+      requestedRenders,
+    };
+
+    geometry.setPathDefinition(shortDefinition);
+    pathElement.setAttribute('d', shortDefinition.d);
+    geometry.bindPathElement(pathElement);
+    const reused = {
+      ready: geometry.isReady(),
+      totalLength: geometry.getTotalLength(),
+      measurementCalls,
+      requestedRenders,
+    };
+
+    URL.revokeObjectURL(moduleUrl);
+    return { initial, unchanged, invalidated, changed, reused };
+  }, pathGeometrySource);
+
+  expect(lifecycle).toEqual({
+    initial: {
+      ready: true,
+      visibility: 'visible',
+      totalLength: 100,
+      measurementCalls: 1,
+      requestedRenders: 1,
+    },
+    unchanged: {
+      measurementCalls: 1,
+      requestedRenders: 1,
+    },
+    invalidated: {
+      ready: false,
+      visibility: 'hidden',
+    },
+    changed: {
+      ready: true,
+      totalLength: 200,
+      measurementCalls: 2,
+      requestedRenders: 2,
+    },
+    reused: {
+      ready: true,
+      totalLength: 100,
+      measurementCalls: 2,
+      requestedRenders: 3,
+    },
+  });
 });
