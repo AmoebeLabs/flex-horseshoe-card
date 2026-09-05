@@ -12,7 +12,10 @@ function createCard() {
       changedGroupIds: new Set(),
       groupManager: {
         getGroupForItem: () => group,
+        getGroupChainForItem: () => [],
+        isItemVisible: () => true,
       },
+      masksClips: { applyGradientRefs: (styles) => styles },
       getGroupScaleTransform: () => '',
       getGroupScaleStyle: () => '',
     },
@@ -21,6 +24,13 @@ function createCard() {
       getActiveColorStopMode: () => 'light',
     },
     cardAnimations: { styles: { horseshoes_v3: {} } },
+    actions: { getActionHandlerOptions: () => ({}), handleAction: () => {} },
+    _hass: {
+      formatEntityState: (_entity, state) => `State ${state}`,
+      formatEntityAttributeValue: (_entity, _attribute, state) => `Attribute ${state}`,
+    },
+    requestUpdate: () => {},
+    config: {},
   };
 }
 
@@ -44,12 +54,37 @@ function createConfig(path) {
   };
 }
 
+function bindMeasuredHorizontalPath(horseshoe, startX, y, length) {
+  horseshoe.pathGeometry.bindPathElement({
+    getTotalLength: () => length,
+    getPointAtLength: (distance) => ({ x: startX + distance, y }),
+  });
+}
+
 test('temporary V3 section never enters the existing horseshoe implementation', () => {
   const card = createCard();
   const config = createConfig({ type: 'arc', radius: 40, arc_degrees: 270 });
 
   assert.equal(HorseshoeGauge.setConfig(config, createTemplates(), 'card', card).length, 0);
   assert.equal(HorseshoeV3.setConfig(config, createTemplates(), 'card', card).length, 1);
+});
+
+test('legacy scale tickmarks enter V3 through the shared configuration conversion', () => {
+  const card = createCard();
+  const config = createConfig({ type: 'arc', radius: 40, arc_degrees: 270 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    radius: 40,
+    tickmarks_radius: 38,
+    show: { scale_tickmarks: true },
+    horseshoe_scale: { min: 0, max: 100, ticksize: 10, width: 6, color: '#333333' },
+  });
+
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', card);
+  horseshoe.updateRuntimeConfig();
+
+  assert.equal(horseshoe.config.show.tickmarks, true);
+  assert.equal(horseshoe.config.horseshoe_tickmarks.ticks_major.ticksize, 10);
+  assert.equal(horseshoe.config.horseshoe_tickmarks.ticks_major.offset, -2);
 });
 
 test('existing arc fields become one complete V3 arc contract and retain a true 360 degree ring', () => {
@@ -150,19 +185,208 @@ test('fixed linear mode maps entity state to the same normalized progress for ev
   assert.equal(horseshoe.renderContract.stateRanges[0].end, 75);
 });
 
-test('unsupported V3 modes and invalid shape values fail at the adapter boundary', () => {
+test('invalid V3 shape values fail at the adapter boundary', () => {
   const invalidConfigs = [
     createConfig({ type: 'unknown' }),
     createConfig({ type: 'arc', radius: 0 }),
     createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, start: 'corner' }),
   ];
-  const segmented = createConfig({ type: 'arc', radius: 40 });
-  segmented.layout.horseshoes_v3[0].show = { horseshoe_style: 'colorstopsegments' };
-
-  [...invalidConfigs, segmented].forEach((config) => {
+  invalidConfigs.forEach((config) => {
     const card = createCard();
     const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', card);
 
     assert.throws(() => horseshoe.updateRuntimeConfig(), /\[horseshoes_v3\]/);
   });
+});
+
+test('normal, bidirectional, and absolute bars produce path-independent state ranges', () => {
+  const cases = [
+    { barMode: 'normal', min: 0, max: 100, state: '25', expected: [0, 25] },
+    { barMode: 'bidirectional', min: -100, max: 100, state: '-50', expected: [25, 50] },
+    { barMode: 'absolute', min: -100, max: 100, state: '-50', expected: [0, 50] },
+  ];
+
+  cases.forEach(({ barMode, min, max, state, expected }) => {
+    const config = createConfig({ type: 'wave', length: 80, waves: 3, amplitude: 8 });
+    Object.assign(config.layout.horseshoes_v3[0], {
+      bar_mode: barMode,
+      horseshoe_scale: { min, max },
+    });
+    const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+    horseshoe.updateRuntimeConfig();
+    horseshoe.setState({ entity_id: 'sensor.load', state, attributes: {} }, {});
+
+    assert.deepEqual(
+      [horseshoe.renderContract.stateRanges[0].start, horseshoe.renderContract.stateRanges[0].end],
+      expected,
+    );
+  });
+});
+
+test('color-stop segments share one normalized contract for scale and clipped state', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    show: { horseshoe_style: 'colorstopsegments', scale_style: 'colorstopsegments' },
+    color_stops: {
+      colors: {
+        0: '#00ff00',
+        50: '#ffff00',
+        100: '#ff0000',
+      },
+    },
+  });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+
+  assert.deepEqual(horseshoe.renderContract.scaleRanges.map((range) => [range.start, range.end]), [[0, 50], [50, 100]]);
+  assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => [range.start, range.end]), [[0, 50], [50, 75]]);
+  assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.color), ['#00ff00', '#ffff00']);
+});
+
+test('V3 applies the existing item and layer color-filter cascade before path rendering', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    color_filter: { grayscale: 1 },
+    horseshoe_scale: { min: 0, max: 100, styles: { fill: '#00ff00' } },
+    horseshoe_state: { styles: { fill: '#ff0000' } },
+  });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+
+  assert.notEqual(horseshoe.renderContract.backgroundRange.color, '#00ff00');
+  assert.notEqual(horseshoe.renderContract.stateRanges[0].color, '#ff0000');
+  assert.match(horseshoe.renderContract.backgroundRange.color, /^rgb/);
+  assert.match(horseshoe.renderContract.stateRanges[0].color, /^rgb/);
+});
+
+test('ranked string states keep every segment mounted and change only active opacity', () => {
+  const config = createConfig({ type: 'rectangle', width: 80, height: 60 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    horseshoe_state: { mode: 'stringstate_level', inactive_opacity: 0.1 },
+    color_stops: {
+      colors: [
+        { state: 'low', color: '#00ff00', rank: 0 },
+        { state: 'medium', color: '#ffff00', rank: 1 },
+        { state: 'high', color: '#ff0000', rank: 2 },
+      ],
+    },
+  });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.level', state: 'medium', attributes: {} }, {});
+
+  assert.equal(horseshoe.renderContract.stateRanges.length, 3);
+  assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.opacity), [1, 1, 0.1]);
+  assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.color), ['#00ff00', '#ffff00', '#ff0000']);
+});
+
+test('full and current gradients are built from measured geometry after value mapping', () => {
+  ['colorstopgradient', 'lineargradient', 'minmaxgradient'].forEach((horseshoeStyle) => {
+    const config = createConfig({ type: 'line', length: 80 });
+    Object.assign(config.layout.horseshoes_v3[0], {
+      show: { horseshoe_style: horseshoeStyle },
+      color_stops: { 0: '#00ff00', 50: '#ffff00', 100: '#ff0000' },
+    });
+    const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+    horseshoe.updateRuntimeConfig();
+    horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+    assert.equal(horseshoe.stateGradient, undefined);
+
+    bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+    horseshoe.buildMeasuredGradientContracts();
+
+    assert.equal(horseshoe.stateGradient.mode, horseshoeStyle === 'colorstopgradient' ? 'full' : 'current');
+    assert.deepEqual(
+      [horseshoe.stateGradient.revealRange.start, horseshoe.stateGradient.revealRange.end],
+      [0, 75],
+    );
+    assert.equal(horseshoe.stateGradient.ranges.length > 1, true);
+  });
+});
+
+test('rotated tickmarks and labels receive final coordinates without a parent text transform', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    rotate: 90,
+    show: {
+      labels_at: 'ticks_major',
+      tickmarks: { major: true, minor: false },
+      label_badges: true,
+    },
+    horseshoe_tickmarks: {
+      ticks_major: { ticksize: 25, width: 6, thickness: 2, offset: 0, styles: { fill: '#ffffff' } },
+    },
+    horseshoe_labels: { orientation: 'horizontal', offset: 12, styles: { fill: '#ffffff' } },
+  });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+
+  assert.equal(horseshoe.pathElements.ticks.length, 5);
+  assert.equal(horseshoe.pathElements.labels.length, 5);
+  assert.deepEqual(
+    { x: horseshoe.pathElements.labels[1].x, y: horseshoe.pathElements.labels[1].y },
+    { x: 112, y: 60 },
+  );
+  const renderedSource = horseshoe.render().strings.join('');
+  assert.match(renderedSource, /horseshoe-v3__path[^>]*transform=/);
+  assert.doesNotMatch(renderedSource, /horseshoe-v3__ticks-labels-markers[^>]*transform=/);
+});
+
+test('numeric state updates retain measured backgrounds, tickmarks, and labels', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes_v3[0], {
+    show: {
+      horseshoe_background: 'fixed',
+      labels_at: 'ticks_major',
+      tickmarks: { major: true, minor: false },
+    },
+    horseshoe_background: { width: 8, styles: { fill: '#222222' } },
+    horseshoe_tickmarks: {
+      ticks_major: { ticksize: 25, width: 6, thickness: 2, styles: { fill: '#ffffff' } },
+    },
+  });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const backgrounds = horseshoe.backgroundLayers;
+  const pathElements = horseshoe.pathElements;
+
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+
+  assert.equal(horseshoe.backgroundLayers, backgrounds);
+  assert.equal(horseshoe.pathElements, pathElements);
+  assert.equal(horseshoe.renderContract.stateRanges[0].end, 75);
+});
+
+test('a mounted numeric update delegates progress to the state animator without rebuilding static layout', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  const [horseshoe] = HorseshoeV3.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const pathElements = horseshoe.pathElements;
+  const stateTargets = [];
+  horseshoe.stateAnimator.stateLayerElement = {};
+  horseshoe.stateAnimator.animateTo = (progress) => stateTargets.push(progress);
+
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+
+  assert.deepEqual(stateTargets, [75]);
+  assert.equal(horseshoe.pathElements, pathElements);
 });

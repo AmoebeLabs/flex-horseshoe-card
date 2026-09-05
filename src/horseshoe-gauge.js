@@ -16,7 +16,7 @@ import {
 } from './horseshoe-renderer.js';
 import { buildColorStopGradientPathItems, buildHorseshoeBackgroundItems, buildLabelBackgroundItems, buildLabelItems, buildScalePathItems, buildStatePathItems } from './horseshoe-shapes.js';
 import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
-import buildTickPathItems, { buildTickBackgroundItems } from './horseshoe-tickmarks.js';
+import buildTickPathItems, { applyLegacyScaleTickmarkConfig, buildTickBackgroundItems } from './horseshoe-tickmarks.js';
 
 /**
  * Coordinates runtime state, geometry, path builders, and SVG render layers for one v2 horseshoe.
@@ -127,53 +127,7 @@ export default class HorseshoeGauge extends BaseTool {
    * @returns {object} Horseshoe config with compatibility tickmarks applied.
    */
   static applyLegacyTickmarkCompat(horseshoeConfig) {
-    if (horseshoeConfig.show?.scale_tickmarks !== true) {
-      return horseshoeConfig;
-    }
-
-    const existingTickmarks = horseshoeConfig.horseshoe_tickmarks ?? {};
-
-    if (existingTickmarks.ticks_major || existingTickmarks.ticks_minor) {
-      return {
-        ...horseshoeConfig,
-        show: {
-          ...horseshoeConfig.show,
-          tickmarks: horseshoeConfig.show.tickmarks ?? horseshoeConfig.show.ticks ?? true,
-        },
-      };
-    }
-
-    const scale = horseshoeConfig.horseshoe_scale ?? {};
-    const min = Number(scale.min ?? 0);
-    const max = Number(scale.max ?? 100);
-    const range = max - min;
-    const ticksize = scale.ticksize ?? (range ? range / 10 : undefined);
-    const radius = Number(horseshoeConfig.radius ?? 45);
-    const tickmarksRadius = Number(horseshoeConfig.tickmarks_radius ?? 43);
-    const tickWidth = Number(scale.width ?? 6);
-
-    return {
-      ...horseshoeConfig,
-      show: {
-        ...horseshoeConfig.show,
-        tickmarks: true,
-      },
-      horseshoe_tickmarks: {
-        ...existingTickmarks,
-        ticks_major: {
-          ticksize,
-          shape: 'circle',
-          radius: tickWidth / 2,
-          width: tickWidth,
-          thickness: tickWidth,
-          offset: tickmarksRadius - radius,
-          styles: [
-            ...(Array.isArray(existingTickmarks.styles) ? existingTickmarks.styles : existingTickmarks.styles ? [existingTickmarks.styles] : []),
-            { fill: scale.color ?? 'var(--primary-background-color)' },
-          ],
-        },
-      },
-    };
+    return applyLegacyScaleTickmarkConfig(horseshoeConfig);
   }
 
   /**

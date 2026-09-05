@@ -1,7 +1,7 @@
 import { clamp } from './frontend_mods/common/number/clamp.ts';
 
 /**
- * Maps source values and state modes into semantic 0..100 path ranges. This
+ * Maps source values and state modes into value-based 0..100 path ranges. This
  * layer knows scale and state meaning, but never receives SVG or paint data.
  */
 export class PathValueMapper {
@@ -174,9 +174,9 @@ export class PathValueMapper {
    * selection remains the responsibility of the paint layer.
    *
    * @param {Array<number>} stopValues - Configured source values.
-   * @returns {Array<object>} Ordered semantic stop intervals in 0..100 space.
+   * @returns {Array<object>} Ordered color-stop intervals in 0..100 space.
    */
-  buildColorStopSemanticRanges(stopValues) {
+  buildColorStopRanges(stopValues) {
     const sourceRange = this.getActiveSourceRange();
     const sourceMin = Math.min(sourceRange.start, sourceRange.end);
     const sourceMax = Math.max(sourceRange.start, sourceRange.end);
@@ -197,13 +197,13 @@ export class PathValueMapper {
   }
 
   /**
-   * Builds semantic ranges for the current source or ranked state. Equal state
+   * Builds value ranges for the current source or ranked state. Equal state
    * slots retain their before/current/after relation without adding paint data.
    *
    * @param {number} value - Current numeric or ranked source value.
-   * @returns {Array<object>} Semantic ranges in normalized 0..100 path space.
+   * @returns {Array<object>} Value ranges in normalized 0..100 path space.
    */
-  buildSemanticRanges(value) {
+  buildStateRanges(value) {
     if (this.stateMode === 'segment' || this.stateMode === 'stringstate_mode' || this.stateMode === 'stringstate_level') {
       const currentIndex = this.stateMap.findIndex((item) => Number(item.value) === Number(value));
       const step = 100 / this.stateMap.length;
@@ -253,18 +253,18 @@ export class PathValueMapper {
 }
 
 /**
- * Converts ordered semantic ranges into drawable 0..100 ranges. This is the
+ * Converts ordered value ranges into drawable 0..100 ranges. This is the
  * single policy for clipping, internal and endpoint gaps, endpoint caps, and
  * normalized dash placement on every path shape.
  *
- * @param {Array<object>} semanticRanges - Ordered path-independent ranges.
+ * @param {Array<object>} ranges - Ordered path-independent ranges.
  * @param {object} config - Normalized paint, clip, gap, and cap configuration.
  * @returns {Array<object>} Visible painted ranges with normalized dash data.
  */
-export function buildPaintedRanges(semanticRanges, config) {
+export function buildPaintedRanges(ranges, config) {
   // Clip first so the first and last visible intervals own the real visible
   // endpoints, including a state ending partway through a color-stop interval.
-  const clippedRanges = semanticRanges
+  const clippedRanges = ranges
     .map((range, index) => ({
       range,
       paint: config.paints[index],

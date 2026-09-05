@@ -38,8 +38,8 @@ test('path features follow measured geometry on every supported path shape', asy
               buildWavePathDefinition,
             } from '/src/path-generators.js';
             import PathGeometry from '/src/path-geometry.js';
-            import { buildPathFeatureLayout } from '/src/path-feature-layout.js';
-            import { renderPathFeatures } from '/src/path-feature-renderer.js';
+            import { buildPathElements } from '/src/path-elements.js';
+            import { renderPathElements } from '/src/path-elements-renderer.js';
 
             const definitions = [
               buildArcPathDefinition({ cx: 50, cy: 50, radiusX: 35, radiusY: 35, startAngle: -135, arcDegrees: 270 }),
@@ -101,11 +101,11 @@ test('path features follow measured geometry on every supported path shape', asy
               geometry.bindPathElement(document.querySelector(\`.shape[data-index="\${index}"] .master\`));
               return geometry;
             });
-            const layouts = geometries.map((geometry) => buildPathFeatureLayout(geometry, featureConfig));
-            const repeatedLayouts = geometries.map((geometry) => buildPathFeatureLayout(geometry, featureConfig));
+            const layouts = geometries.map((geometry) => buildPathElements(geometry, featureConfig));
+            const repeatedLayouts = geometries.map((geometry) => buildPathElements(geometry, featureConfig));
 
             layouts.forEach((layout, index) => {
-              render(renderPathFeatures(layout, \`shape-\${index}\`), document.querySelector(\`.shape[data-index="\${index}"] .features\`));
+              render(renderPathElements(layout, \`shape-\${index}\`), document.querySelector(\`.shape[data-index="\${index}"] .features\`));
             });
 
             window.pathFeatureFixture = { definitions, geometries, layouts, repeatedLayouts };
@@ -145,9 +145,9 @@ test('path features follow measured geometry on every supported path shape', asy
         )),
         normalOffset: offsetVector.x * sourceNormal.x + offsetVector.y * sourceNormal.y,
         repeatedLayoutMatches: JSON.stringify(layout) === JSON.stringify(repeatedLayouts[index]),
-        horizontalTransform: shape.querySelector('.path-features__label[data-feature-id="horizontal"]').getAttribute('transform'),
-        guideLength: shape.querySelector('.path-features__label-guide').getTotalLength(),
-        visibleBadgeCount: shape.querySelectorAll('.path-features__badge').length,
+        horizontalTransform: shape.querySelector('.path-label[data-path-item-id="horizontal"]').getAttribute('transform'),
+        guideLength: shape.querySelector('.path-label-guide').getTotalLength(),
+        visibleBadgeCount: shape.querySelectorAll('.path-label-badge').length,
       };
     });
   });

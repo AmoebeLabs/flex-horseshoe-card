@@ -1190,7 +1190,7 @@ function buildAbsoluteLabelStopItems(runtimeConfig, geometry) {
  * @param {object} runtimeConfig - Normalized horseshoe runtime configuration.
  * @returns {Array<object>} Label stop definitions before positioning.
  */
-function buildLabelStopItems(runtimeConfig, geometry) {
+export function buildLabelStopItems(runtimeConfig, geometry) {
   const labelsAt = runtimeConfig.show.labels_at ?? 'none';
 
   if (runtimeConfig.bar_mode === 'absolute' && labelsAt !== 'segment' && labelsAt !== 'stringstate') {

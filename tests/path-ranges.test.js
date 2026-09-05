@@ -27,7 +27,7 @@ test('normal values become path-independent 0..100 ranges', () => {
   const mapper = createMapper();
 
   assert.equal(mapper.valueToProgress(63), 63);
-  assert.deepEqual(mapper.buildSemanticRanges(63), [{
+  assert.deepEqual(mapper.buildStateRanges(63), [{
     id: 'state',
     start: 0,
     end: 63,
@@ -61,7 +61,7 @@ test('spline and splineorg scales map values before path progress is produced', 
 
   assert.ok(Math.abs(spline.valueToProgress(50) - 80) < 1e-12);
   assert.ok(Math.abs(splineorg.valueToProgress(50) - 80) < 1e-12);
-  assert.ok(Math.abs(spline.buildSemanticRanges(50)[0].end - 80) < 1e-12);
+  assert.ok(Math.abs(spline.buildStateRanges(50)[0].end - 80) < 1e-12);
 });
 
 test('absolute mode folds either active signed branch over the complete path', () => {
@@ -98,7 +98,7 @@ test('bidirectional modes build a range between zero and the mapped value', () =
   const linear = createMapper({ min: -20, max: 40, barMode: 'bidirectional_linear', zeroRatio: 1 / 3 });
 
   assert.equal(positive.valueToProgress(20), 75);
-  assert.deepEqual(positive.buildSemanticRanges(20)[0], {
+  assert.deepEqual(positive.buildStateRanges(20)[0], {
     id: 'state',
     start: 50,
     end: 75,
@@ -107,7 +107,7 @@ test('bidirectional modes build a range between zero and the mapped value', () =
     role: 'state',
   });
   assert.equal(signed.valueToProgress(-10), 25);
-  assert.deepEqual(signed.buildSemanticRanges(-10)[0], {
+  assert.deepEqual(signed.buildStateRanges(-10)[0], {
     id: 'state',
     start: 25,
     end: 50,
@@ -115,11 +115,11 @@ test('bidirectional modes build a range between zero and the mapped value', () =
     sourceValue: -10,
     role: 'state',
   });
-  assert.ok(Math.abs(linear.buildSemanticRanges(10)[0].start - (100 / 3)) < 1e-12);
-  assert.equal(linear.buildSemanticRanges(10)[0].end, 50);
+  assert.ok(Math.abs(linear.buildStateRanges(10)[0].start - (100 / 3)) < 1e-12);
+  assert.equal(linear.buildStateRanges(10)[0].end, 50);
 });
 
-test('mapped states receive equal semantic slots and mode-specific activation', () => {
+test('mapped states receive equal value slots and mode-specific activation', () => {
   const stateMap = [
     { state: 'low', value: 0 },
     { state: 'medium', value: 1 },
@@ -128,17 +128,17 @@ test('mapped states receive equal semantic slots and mode-specific activation', 
   const current = createMapper({ stateMode: 'stringstate_mode', stateMap });
   const level = createMapper({ stateMode: 'stringstate_level', stateMap });
 
-  assert.deepEqual(current.buildSemanticRanges(1).map(({ start, end, active, relation }) => ({ start, end, active, relation })), [
+  assert.deepEqual(current.buildStateRanges(1).map(({ start, end, active, relation }) => ({ start, end, active, relation })), [
     { start: 0, end: 100 / 3, active: false, relation: 'before' },
     { start: 100 / 3, end: 200 / 3, active: true, relation: 'current' },
     { start: 200 / 3, end: 100, active: false, relation: 'after' },
   ]);
-  assert.deepEqual(level.buildSemanticRanges(1).map((range) => range.active), [true, true, false]);
-  assert.deepEqual(current.buildSemanticRanges(99).map((range) => range.relation), ['after', 'after', 'after']);
+  assert.deepEqual(level.buildStateRanges(1).map((range) => range.active), [true, true, false]);
+  assert.deepEqual(current.buildStateRanges(99).map((range) => range.relation), ['after', 'after', 'after']);
 });
 
-test('semantic ranges contain no path geometry or paint properties', () => {
-  const range = createMapper().buildSemanticRanges(50)[0];
+test('value ranges contain no path geometry or paint properties', () => {
+  const range = createMapper().buildStateRanges(50)[0];
 
   ['angle', 'radius', 'path', 'd', 'color', 'fill', 'stroke', 'styles'].forEach((property) => {
     assert.equal(Object.hasOwn(range, property), false);
@@ -146,8 +146,8 @@ test('semantic ranges contain no path geometry or paint properties', () => {
 });
 
 test('continuous progress preserves true endpoints and produces one normalized dash', () => {
-  const semanticRanges = createMapper().buildSemanticRanges(63);
-  const paintedRanges = buildPaintedRanges(semanticRanges, {
+  const stateRanges = createMapper().buildStateRanges(63);
+  const paintedRanges = buildPaintedRanges(stateRanges, {
     clip: { start: 0, end: 100 },
     gap: 4,
     endpointGap: { start: 0, end: 0 },
@@ -176,15 +176,15 @@ test('continuous progress preserves true endpoints and produces one normalized d
 });
 
 test('segmented ranges split internal gaps and retain the complete outer endpoints', () => {
-  const semanticRanges = createMapper({
+  const stateRanges = createMapper({
     stateMode: 'segment',
     stateMap: [
       { state: 'low', value: 0 },
       { state: 'medium', value: 1 },
       { state: 'high', value: 2 },
     ],
-  }).buildSemanticRanges(1);
-  const paintedRanges = buildPaintedRanges(semanticRanges, {
+  }).buildStateRanges(1);
+  const paintedRanges = buildPaintedRanges(stateRanges, {
     clip: { start: 0, end: 100 },
     gap: 4,
     endpointGap: { start: 0, end: 0 },
@@ -211,7 +211,7 @@ test('segmented ranges split internal gaps and retain the complete outer endpoin
 });
 
 test('explicit endpoint gaps shorten only the outside of the complete painted range', () => {
-  const paintedRanges = buildPaintedRanges(createMapper().buildSemanticRanges(100), {
+  const paintedRanges = buildPaintedRanges(createMapper().buildStateRanges(100), {
     clip: { start: 0, end: 100 },
     gap: 8,
     endpointGap: { start: 3, end: 5 },
@@ -258,7 +258,7 @@ test('clipping clamps ranges to 0..100 and removes ranges without visible length
 
 test('color-stop intervals clip to active progress before gap and cap placement', () => {
   const mapper = createMapper();
-  const stopRanges = mapper.buildColorStopSemanticRanges([0, 25, 50, 75, 100]);
+  const stopRanges = mapper.buildColorStopRanges([0, 25, 50, 75, 100]);
   const paintedRanges = buildPaintedRanges(stopRanges, {
     clip: { start: 0, end: 63 },
     gap: 4,
@@ -288,7 +288,7 @@ test('color-stop intervals clip to active progress before gap and cap placement'
 test('absolute color-stop intervals follow the active signed branch in path order', () => {
   const mapper = createMapper({ min: -10, max: 40, barMode: 'absolute', activeValue: -5 });
 
-  assert.deepEqual(mapper.buildColorStopSemanticRanges([-10, -5, 0, 5, 40]), [
+  assert.deepEqual(mapper.buildColorStopRanges([-10, -5, 0, 5, 40]), [
     {
       id: 'color-stop-0',
       start: 0,
@@ -312,14 +312,14 @@ test('absolute color-stop intervals follow the active signed branch in path orde
 
 test('bidirectional and string-state ranges use the same paint and dash contract', () => {
   const bidirectional = createMapper({ min: -20, max: 20, barMode: 'bidirectional', zeroRatio: 0.5 })
-    .buildSemanticRanges(-10);
+    .buildStateRanges(-10);
   const stringStates = createMapper({
     stateMode: 'stringstate_level',
     stateMap: [
       { state: 'low', value: 0 },
       { state: 'high', value: 1 },
     ],
-  }).buildSemanticRanges(1);
+  }).buildStateRanges(1);
   const bidirectionalPaint = buildPaintedRanges(bidirectional, {
     clip: { start: 0, end: 100 },
     gap: 2,
@@ -350,7 +350,7 @@ test('bidirectional and string-state ranges use the same paint and dash contract
 });
 
 test('painted output is identical for arc, line, rectangle, and wave consumers', () => {
-  const semanticRanges = createMapper().buildSemanticRanges(42);
+  const stateRanges = createMapper().buildStateRanges(42);
   const config = {
     clip: { start: 0, end: 100 },
     gap: 0,
@@ -358,7 +358,7 @@ test('painted output is identical for arc, line, rectangle, and wave consumers',
     linecap: { start: 'butt', end: 'round' },
     paints: [{ color: 'purple', width: 3, opacity: 0.7 }],
   };
-  const outputs = ['arc', 'line', 'rectangle', 'wave'].map(() => buildPaintedRanges(semanticRanges, config));
+  const outputs = ['arc', 'line', 'rectangle', 'wave'].map(() => buildPaintedRanges(stateRanges, config));
 
   outputs.slice(1).forEach((output) => assert.deepEqual(output, outputs[0]));
   outputs[0].forEach((range) => {

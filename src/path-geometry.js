@@ -208,3 +208,114 @@ export default class PathGeometry {
       : { x: -tangent.y, y: tangent.x };
   }
 }
+
+/**
+ * Presents measured path geometry in its final card coordinate system. Visual
+ * path layers use the same affine matrix, while path elements consume the
+ * transformed points and vectors directly and therefore inherit no SVG transform.
+ */
+export class TransformedPathGeometry {
+  /** Stores one bound geometry and its complete affine transform contract. */
+  constructor(pathGeometry, matrix) {
+    this.pathGeometry = pathGeometry;
+    this.matrix = matrix;
+    this.transformedLength = undefined;
+  }
+
+  /** Returns the unchanged topology metadata of the measured centerline. */
+  getPathDefinition() {
+    return this.pathGeometry.getPathDefinition();
+  }
+
+  /**
+   * Approximates final visual length after non-uniform scaling. Normalized path
+   * progress remains owned by the original path; this length is used only to
+   * convert physical label-guide lengths into a local progress interval.
+   */
+  getTotalLength() {
+    if (this.transformedLength === undefined) {
+      let previous = this.pointAtProgress(0);
+      let length = 0;
+
+      for (let progress = 0.5; progress <= 100; progress += 0.5) {
+        const point = this.pointAtProgress(progress);
+        length += Math.hypot(point.x - previous.x, point.y - previous.y);
+        previous = point;
+      }
+
+      this.transformedLength = length;
+    }
+
+    return this.transformedLength;
+  }
+
+  /** Maps one measured point through the final affine card transform. */
+  pointAtProgress(progress) {
+    const point = this.pathGeometry.pointAtProgress(progress);
+
+    return {
+      x: this.matrix.a * point.x + this.matrix.c * point.y + this.matrix.e,
+      y: this.matrix.b * point.x + this.matrix.d * point.y + this.matrix.f,
+    };
+  }
+
+  /** Maps and normalizes the path traversal vector without applying translation. */
+  tangentAtProgress(progress) {
+    const tangent = this.pathGeometry.tangentAtProgress(progress);
+    const x = this.matrix.a * tangent.x + this.matrix.c * tangent.y;
+    const y = this.matrix.b * tangent.x + this.matrix.d * tangent.y;
+    const length = Math.hypot(x, y);
+
+    return { x: x / length, y: y / length };
+  }
+
+  /**
+   * Transforms the source-side normal so an offset path element follows the same
+   * rotate/flip as its path position without transforming the element itself.
+   */
+  normalAtProgress(progress, side) {
+    const normal = this.pathGeometry.normalAtProgress(progress, side);
+    const x = this.matrix.a * normal.x + this.matrix.c * normal.y;
+    const y = this.matrix.b * normal.x + this.matrix.d * normal.y;
+    const length = Math.hypot(x, y);
+
+    return { x: x / length, y: y / length };
+  }
+}
+
+/**
+ * Samples one measured centerline into a parallel path definition. Background
+ * bands use this when their configured offset differs from the primary path;
+ * the same point/normal contract works for every admitted path shape.
+ *
+ * @param {PathGeometry} pathGeometry - Bound source centerline.
+ * @param {number} offset - Signed distance from the centerline in SVG units.
+ * @param {'left'|'right'} side - Visual side relative to traversal.
+ * @param {number} samples - Number of equal normalized intervals.
+ * @returns {object} Stable sampled path definition.
+ */
+export function buildOffsetPathDefinition(pathGeometry, offset, side, samples) {
+  const sourceDefinition = pathGeometry.getPathDefinition();
+  const points = Array.from({ length: samples + 1 }, (_, index) => {
+    const progress = index / samples * 100;
+    const point = pathGeometry.pointAtProgress(progress);
+    const normal = pathGeometry.normalAtProgress(progress, side);
+
+    return {
+      x: point.x + normal.x * offset,
+      y: point.y + normal.y * offset,
+    };
+  });
+  const d = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+    + (sourceDefinition.closed ? ' Z' : '');
+  const definition = {
+    d,
+    closed: sourceDefinition.closed,
+    direction: sourceDefinition.direction,
+  };
+
+  return {
+    ...definition,
+    signature: JSON.stringify(definition),
+  };
+}
