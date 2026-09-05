@@ -233,3 +233,96 @@ test('PathGeometry measures each signature once and hides output during rebindin
     },
   });
 });
+
+test('all initial path generators produce measurable centerlines with stable endpoints', async ({ page }) => {
+  const pathGeneratorSource = await readFile(new URL('../src/path-generators.js', import.meta.url), 'utf8');
+
+  const generatedPaths = await page.evaluate(async (moduleSource) => {
+    const moduleUrl = URL.createObjectURL(new Blob([moduleSource], { type: 'text/javascript' }));
+    const { buildPathDefinition } = await import(moduleUrl);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const configs = [
+      {
+        type: 'arc',
+        cx: 50,
+        cy: 50,
+        radiusX: 40,
+        radiusY: 40,
+        startAngle: 0,
+        arcDegrees: 90,
+      },
+      {
+        type: 'line',
+        x1: 10,
+        y1: 20,
+        x2: 110,
+        y2: 70,
+      },
+      {
+        type: 'rectangle',
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 60,
+        radiusTopLeft: 5,
+        radiusTopRight: 10,
+        radiusBottomRight: 15,
+        radiusBottomLeft: 20,
+        start: 'right',
+        direction: 'counter-clockwise',
+      },
+      {
+        type: 'wave',
+        x1: 10,
+        y1: 50,
+        x2: 130,
+        y2: 50,
+        waves: 3,
+        amplitude: 12,
+      },
+    ];
+    const measurements = configs.map((config) => {
+      const definition = buildPathDefinition(config);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', definition.d);
+      svg.append(path);
+      const length = path.getTotalLength();
+      const start = path.getPointAtLength(0);
+      const end = path.getPointAtLength(length);
+
+      return {
+        type: config.type,
+        closed: definition.closed,
+        length,
+        start: { x: start.x, y: start.y },
+        end: { x: end.x, y: end.y },
+      };
+    });
+
+    document.body.append(svg);
+    URL.revokeObjectURL(moduleUrl);
+    return measurements;
+  }, pathGeneratorSource);
+
+  const [arc, line, rectangle, wave] = generatedPaths;
+
+  expect(arc.length).toBeCloseTo(Math.PI * 20, 1);
+  expect(arc.start.x).toBeCloseTo(90, 4);
+  expect(arc.start.y).toBeCloseTo(50, 4);
+  expect(arc.end.x).toBeCloseTo(50, 4);
+  expect(arc.end.y).toBeCloseTo(90, 4);
+
+  expect(line.length).toBeCloseTo(Math.hypot(100, 50), 4);
+  expect(line.start).toEqual({ x: 10, y: 20 });
+  expect(line.end).toEqual({ x: 110, y: 70 });
+
+  expect(rectangle.closed).toBe(true);
+  expect(rectangle.length).toBeGreaterThan(280);
+  expect(rectangle.start.x).toBeCloseTo(rectangle.end.x, 4);
+  expect(rectangle.start.y).toBeCloseTo(rectangle.end.y, 4);
+
+  expect(wave.length).toBeGreaterThan(120);
+  expect(wave.start).toEqual({ x: 10, y: 50 });
+  expect(wave.end.x).toBeCloseTo(130, 4);
+  expect(wave.end.y).toBeCloseTo(50, 4);
+});
