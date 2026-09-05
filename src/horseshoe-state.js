@@ -67,12 +67,20 @@ const STRINGSTATE_RELATIONS = ["before", "current", "after"];
  * Normalizes string-state label role and state-map style dictionaries.
  */
 function normalizeStringstateLabelConfig(config) {
-  if (!config) {
-    return config;
-  }
-
   const normalized = {
-    ...config,
+    state_map: {
+      map: [],
+    },
+    before: {
+      styles: {},
+    },
+    current: {
+      styles: {},
+    },
+    after: {
+      styles: {},
+    },
+    ...(config ?? {}),
   };
 
   STRINGSTATE_RELATIONS.forEach((relation) => {
@@ -84,30 +92,24 @@ function normalizeStringstateLabelConfig(config) {
     }
   });
 
-  if (normalized.state_map) {
-    normalized.state_map = {
-      ...normalized.state_map,
-      map: (normalized.state_map.map ?? []).map((entry) => {
-        const normalizedEntry = {
-          ...entry,
-          styles: ConfigHelper.toStyleDict(entry.styles),
+  normalized.state_map = {
+    ...normalized.state_map,
+    map: normalized.state_map.map.map((entry) => {
+      const normalizedEntry = {
+        ...entry,
+        styles: ConfigHelper.toStyleDict(entry.styles),
+      };
+
+      STRINGSTATE_RELATIONS.forEach((relation) => {
+        normalizedEntry[relation] = {
+          ...(normalizedEntry[relation] ?? {}),
+          styles: ConfigHelper.toStyleDict(normalizedEntry[relation]?.styles),
         };
+      });
 
-        STRINGSTATE_RELATIONS.forEach((relation) => {
-          if (normalizedEntry[relation]) {
-            normalizedEntry[relation] = {
-              ...normalizedEntry[relation],
-              styles: ConfigHelper.toStyleDict(
-                normalizedEntry[relation].styles,
-              ),
-            };
-          }
-        });
-
-        return normalizedEntry;
-      }),
-    };
-  }
+      return normalizedEntry;
+    }),
+  };
 
   return normalized;
 }
@@ -191,6 +193,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   const horseshoeLabels = {
     offset: 12,
+    distance_min: 0,
+    ellipsis: 0,
     ...(config.horseshoe_labels ?? {}),
   };
 

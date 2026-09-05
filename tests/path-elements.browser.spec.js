@@ -2,14 +2,14 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-test('path features follow measured geometry on every supported path shape', async ({ page }) => {
+test('path elements follow measured geometry on every supported path shape', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   await page.route('http://fhs.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
 
-    if (pathname === '/path-feature-fixture') {
+    if (pathname === '/path-element-fixture') {
       await route.fulfill({
         contentType: 'text/html',
         body: `
@@ -84,7 +84,7 @@ test('path features follow measured geometry on every supported path shape', asy
             };
 
             render(svg\`
-              <svg id="path-feature-showcase" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 250" width="700" height="500">
+              <svg id="path-element-showcase" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 250" width="700" height="500">
                 <rect width="350" height="250" fill="white"></rect>
                 \${definitions.map((definition, index) => svg\`
                   <g class="shape" data-index=\${index} transform="translate(\${positions[index].x} \${positions[index].y})">
@@ -119,7 +119,7 @@ test('path features follow measured geometry on every supported path shape', asy
     await route.fulfill({ contentType: 'text/javascript', body: source });
   });
 
-  await page.goto('http://fhs.test/path-feature-fixture');
+  await page.goto('http://fhs.test/path-element-fixture');
   await page.waitForTimeout(100);
   expect(pageErrors).toEqual([]);
   await expect.poll(() => page.evaluate(() => window.pathFeatureFixture !== undefined)).toBe(true);

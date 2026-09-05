@@ -2,18 +2,18 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-test('representative fixed horseshoe has old and V3 browser geometry parity', async ({ page }) => {
+test('representative fixed horseshoe matches the frozen browser geometry contract', async ({ page }) => {
   const pageErrors = [];
-  page.on('pageerror', (error) => pageErrors.push(error.stack));
+  page.on('pageerror', (error) => pageErrors.push(`${error.name}: ${error.message}\n${error.stack}`));
 
   await page.route('http://fhs.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
 
-    if (pathname === '/horseshoe-v3-adapter-fixture') {
+    if (pathname === '/horseshoe-path-adapter-fixture') {
       await route.fulfill({
         contentType: 'text/html',
         body: `
-          <div id="fixture"></div>
+          <div id="parity-fixture"></div>
           <script type="importmap">
             {
               "imports": {
@@ -69,11 +69,11 @@ test('representative fixed horseshoe has old and V3 browser geometry parity', as
                   <path class="old-state" d=\${referencePath} pathLength="100" fill="none" stroke="#2563eb" stroke-width="12" stroke-linecap="round" stroke-dasharray="60 100"></path>
                 </g>
                 <g class="new" transform="translate(200 0)">
-                  \${renderNormalizedPathBands(pathDefinition, [scaleRange], layer, 'new-scale', 'horseshoe-v3__scale')}
-                  \${renderNormalizedPathBands(pathDefinition, [stateRange], layer, 'new-state', 'horseshoe-v3__state-band')}
+                  \${renderNormalizedPathBands(pathDefinition, [scaleRange], layer, 'new-scale', 'horseshoe__scale')}
+                  \${renderNormalizedPathBands(pathDefinition, [stateRange], layer, 'new-state', 'horseshoe__state-band')}
                 </g>
               </svg>
-            \`, document.querySelector('#fixture'));
+            \`, document.querySelector('#parity-fixture'));
 
             window.fixtureReady = true;
           </script>
@@ -86,20 +86,20 @@ test('representative fixed horseshoe has old and V3 browser geometry parity', as
     await route.fulfill({ contentType: 'text/javascript', body: source });
   });
 
-  await page.goto('http://fhs.test/horseshoe-v3-adapter-fixture');
+  await page.goto('http://fhs.test/horseshoe-path-adapter-fixture');
   await page.waitForTimeout(500);
-  expect(pageErrors).toEqual([]);
   const diagnostics = await page.evaluate(() => ({
     ready: window.fixtureReady === true,
     resources: performance.getEntriesByType('resource').map((entry) => entry.name),
   }));
+  if (pageErrors.length) throw new Error(JSON.stringify({ pageErrors, diagnostics }, null, 2));
   if (!diagnostics.ready) throw new Error(JSON.stringify(diagnostics, null, 2));
 
   const parity = await page.evaluate(() => {
     const oldState = document.querySelector('.old-state');
     const oldScale = document.querySelector('.old-scale');
-    const newState = document.querySelector('.new .horseshoe-v3__state-band__fill-stroke__body');
-    const newScale = document.querySelector('.new .horseshoe-v3__scale__fill-stroke__body');
+    const newState = document.querySelector('.new .horseshoe__state-band__fill-stroke__body');
+    const newScale = document.querySelector('.new .horseshoe__scale__fill-stroke__body');
     const bounds = (element) => {
       const box = element.getBBox();
       return { x: box.x, y: box.y, width: box.width, height: box.height };
@@ -125,4 +125,5 @@ test('representative fixed horseshoe has old and V3 browser geometry parity', as
   expect(parity.newScaleBounds.height).toBeCloseTo(parity.oldScaleBounds.height, 6);
   expect(parity.newStateBounds.width).toBeCloseTo(parity.oldStateBounds.width, 6);
   expect(parity.newStateBounds.height).toBeCloseTo(parity.oldStateBounds.height, 6);
+  await expect(page.locator('#parity-fixture')).toHaveScreenshot('final-horseshoe-paths.png');
 });
