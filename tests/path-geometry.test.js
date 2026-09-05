@@ -21,6 +21,23 @@ function createMeasuredPath(totalLength) {
   return { pathElement, measurement };
 }
 
+/**
+ * Creates a straight horizontal SVG geometry stand-in for point contracts.
+ *
+ * @param {number} totalLength - Length and end coordinate of the path.
+ * @returns {object} Path element stand-in.
+ */
+function createHorizontalPath(totalLength) {
+  return {
+    getTotalLength() {
+      return totalLength;
+    },
+    getPointAtLength(distance) {
+      return { x: distance, y: 20 };
+    },
+  };
+}
+
 test('binds an active path before geometry-dependent output becomes ready', () => {
   let requestedRenders = 0;
   const geometry = new PathGeometry(() => {
@@ -137,4 +154,42 @@ test('reuses cached browser measurements when a prior signature becomes active a
   assert.equal(secondPath.measurement.calls, 1);
   assert.equal(reboundFirstPath.measurement.calls, 0);
   assert.equal(requestedRenders, 3);
+});
+
+test('converts normalized progress to actual browser distance inside PathGeometry', () => {
+  const geometry = new PathGeometry(() => {});
+  const definition = {
+    d: 'M 0 20 L 200 20',
+    closed: false,
+    direction: 'forward',
+    signature: 'line-200',
+  };
+
+  geometry.setPathDefinition(definition);
+  geometry.bindPathElement(createHorizontalPath(200));
+
+  assert.deepEqual(geometry.pointAtProgress(0), { x: 0, y: 20 });
+  assert.deepEqual(geometry.pointAtProgress(25), { x: 50, y: 20 });
+  assert.deepEqual(geometry.pointAtProgress(50), { x: 100, y: 20 });
+  assert.deepEqual(geometry.pointAtProgress(75), { x: 150, y: 20 });
+  assert.deepEqual(geometry.pointAtProgress(100), { x: 200, y: 20 });
+});
+
+test('returns normalized tangent and opposing left/right normals', () => {
+  const geometry = new PathGeometry(() => {});
+  const definition = {
+    d: 'M 0 20 L 200 20',
+    closed: false,
+    direction: 'forward',
+    signature: 'line-200',
+  };
+
+  geometry.setPathDefinition(definition);
+  geometry.bindPathElement(createHorizontalPath(200));
+
+  assert.deepEqual(geometry.tangentAtProgress(0), { x: 1, y: 0 });
+  assert.deepEqual(geometry.tangentAtProgress(50), { x: 1, y: 0 });
+  assert.deepEqual(geometry.tangentAtProgress(100), { x: 1, y: 0 });
+  assert.deepEqual(geometry.normalAtProgress(50, 'left'), { x: 0, y: -1 });
+  assert.deepEqual(geometry.normalAtProgress(50, 'right'), { x: -0, y: 1 });
 });

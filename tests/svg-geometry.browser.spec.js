@@ -326,3 +326,155 @@ test('all initial path generators produce measurable centerlines with stable end
   expect(wave.end.x).toBeCloseTo(130, 4);
   expect(wave.end.y).toBeCloseTo(50, 4);
 });
+
+test('shared measured geometry handles every initial shape, boundaries, corners, cusps, and seams', async ({ page }) => {
+  const pathGeometrySource = await readFile(new URL('../src/path-geometry.js', import.meta.url), 'utf8');
+  const pathGeneratorSource = await readFile(new URL('../src/path-generators.js', import.meta.url), 'utf8');
+
+  const geometryContracts = await page.evaluate(async ({ geometrySource, generatorSource }) => {
+    const geometryModuleUrl = URL.createObjectURL(new Blob([geometrySource], { type: 'text/javascript' }));
+    const generatorModuleUrl = URL.createObjectURL(new Blob([generatorSource], { type: 'text/javascript' }));
+    const { default: PathGeometry } = await import(geometryModuleUrl);
+    const { buildPathDefinition } = await import(generatorModuleUrl);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    document.body.append(svg);
+
+    const configs = [
+      {
+        type: 'arc',
+        cx: 50,
+        cy: 50,
+        radiusX: 40,
+        radiusY: 40,
+        startAngle: 0,
+        arcDegrees: 270,
+      },
+      {
+        type: 'line',
+        x1: 10,
+        y1: 20,
+        x2: 110,
+        y2: 70,
+      },
+      {
+        type: 'rectangle',
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 60,
+        radiusTopLeft: 0,
+        radiusTopRight: 0,
+        radiusBottomRight: 0,
+        radiusBottomLeft: 0,
+        start: 'top',
+        direction: 'clockwise',
+      },
+      {
+        type: 'wave',
+        x1: 10,
+        y1: 50,
+        x2: 130,
+        y2: 50,
+        waves: 3,
+        amplitude: 12,
+      },
+    ];
+    const sharedContracts = configs.map((config) => {
+      const definition = buildPathDefinition(config);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', definition.d);
+      svg.append(path);
+      const geometry = new PathGeometry(() => {});
+      geometry.setPathDefinition(definition);
+      geometry.bindPathElement(path);
+
+      return {
+        type: config.type,
+        samples: [0, 25, 50, 75, 100].map((progress) => ({
+          point: geometry.pointAtProgress(progress),
+          tangent: geometry.tangentAtProgress(progress),
+          left: geometry.normalAtProgress(progress, 'left'),
+          right: geometry.normalAtProgress(progress, 'right'),
+        })),
+      };
+    });
+
+    const clockwiseArc = sharedContracts[0].samples[0].tangent;
+    const counterClockwiseDefinition = buildPathDefinition({
+      type: 'arc',
+      cx: 50,
+      cy: 50,
+      radiusX: 40,
+      radiusY: 40,
+      startAngle: 0,
+      arcDegrees: -90,
+    });
+    const counterClockwisePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    counterClockwisePath.setAttribute('d', counterClockwiseDefinition.d);
+    svg.append(counterClockwisePath);
+    const counterClockwiseGeometry = new PathGeometry(() => {});
+    counterClockwiseGeometry.setPathDefinition(counterClockwiseDefinition);
+    counterClockwiseGeometry.bindPathElement(counterClockwisePath);
+
+    const rectangleDefinition = buildPathDefinition(configs[2]);
+    const rectanglePath = svg.querySelectorAll('path')[2];
+    const rectangleGeometry = new PathGeometry(() => {});
+    rectangleGeometry.setPathDefinition(rectangleDefinition);
+    rectangleGeometry.bindPathElement(rectanglePath);
+    const cornerTangent = rectangleGeometry.tangentAtProgress((50 / rectangleGeometry.getTotalLength()) * 100);
+    const seamStart = rectangleGeometry.tangentAtProgress(0);
+    const seamEnd = rectangleGeometry.tangentAtProgress(100);
+
+    const cuspDefinition = {
+      d: 'M 0 0 L 50 0 L 0 0',
+      closed: false,
+      direction: 'forward',
+      signature: 'cusp',
+    };
+    const cuspPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    cuspPath.setAttribute('d', cuspDefinition.d);
+    svg.append(cuspPath);
+    const cuspGeometry = new PathGeometry(() => {});
+    cuspGeometry.setPathDefinition(cuspDefinition);
+    cuspGeometry.bindPathElement(cuspPath);
+    const cuspTangent = cuspGeometry.tangentAtProgress(50);
+
+    URL.revokeObjectURL(geometryModuleUrl);
+    URL.revokeObjectURL(generatorModuleUrl);
+    return {
+      sharedContracts,
+      clockwiseArc,
+      counterClockwiseArc: counterClockwiseGeometry.tangentAtProgress(0),
+      cornerTangent,
+      seamStart,
+      seamEnd,
+      cuspTangent,
+    };
+  }, {
+    geometrySource: pathGeometrySource,
+    generatorSource: pathGeneratorSource,
+  });
+
+  geometryContracts.sharedContracts.forEach(({ samples }) => {
+    samples.forEach(({ point, tangent, left, right }) => {
+      [point.x, point.y, tangent.x, tangent.y, left.x, left.y, right.x, right.y].forEach((value) => {
+        expect(Number.isFinite(value)).toBe(true);
+      });
+      expect(Math.hypot(tangent.x, tangent.y)).toBeCloseTo(1, 5);
+      expect(tangent.x * left.x + tangent.y * left.y).toBeCloseTo(0, 5);
+      expect(left.x).toBeCloseTo(-right.x, 5);
+      expect(left.y).toBeCloseTo(-right.y, 5);
+    });
+  });
+
+  expect(geometryContracts.clockwiseArc.x).toBeCloseTo(0, 2);
+  expect(geometryContracts.clockwiseArc.y).toBeCloseTo(1, 3);
+  expect(geometryContracts.counterClockwiseArc.x).toBeCloseTo(0, 2);
+  expect(geometryContracts.counterClockwiseArc.y).toBeCloseTo(-1, 3);
+  expect(geometryContracts.cornerTangent.x).toBeCloseTo(Math.SQRT1_2, 2);
+  expect(geometryContracts.cornerTangent.y).toBeCloseTo(Math.SQRT1_2, 2);
+  expect(geometryContracts.seamStart.x).toBeCloseTo(geometryContracts.seamEnd.x, 5);
+  expect(geometryContracts.seamStart.y).toBeCloseTo(geometryContracts.seamEnd.y, 5);
+  expect(geometryContracts.cuspTangent.x).toBeCloseTo(-1, 5);
+  expect(geometryContracts.cuspTangent.y).toBeCloseTo(0, 3);
+});
