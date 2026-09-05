@@ -3,14 +3,14 @@
  * centerline. Every coordinate is derived from normalized progress plus the
  * browser-measured point, tangent, and normal contract; no path shape is known
  * or reconstructed here. Rotation and flips have already been applied to that
- * geometry. Features receive final coordinates so labels never inherit a path
+ * geometry. These items receive final coordinates so labels never inherit a path
  * transform and therefore remain readable.
  *
  * @param {PathGeometry} pathGeometry - Bound browser-measured path geometry.
- * @param {object} config - Complete normalized feature layout configuration.
- * @returns {object} Final renderer-ready feature coordinates and guide paths.
+ * @param {object} config - Complete tickmark, label, badge, and marker configuration.
+ * @returns {object} Final renderer-ready coordinates and label guide paths.
  */
-export function buildPathFeatureLayout(pathGeometry, config) {
+export function buildPathElements(pathGeometry, config) {
   const pathDefinition = pathGeometry.getPathDefinition();
   const pathLength = pathGeometry.getTotalLength();
 
@@ -121,4 +121,4 @@ export function buildPathFeatureLayout(pathGeometry, config) {
   return { ticks, labels, markers };
 }
 
-export default buildPathFeatureLayout;
+export default buildPathElements;

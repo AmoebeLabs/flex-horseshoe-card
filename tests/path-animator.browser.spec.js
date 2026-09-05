@@ -30,8 +30,8 @@ test('state animation preserves measured geometry and every static path layer', 
           <script type="module">
             import { render, svg } from 'lit';
             import PathStateAnimator from '/src/path-animator.js';
-            import { buildPathFeatureLayout } from '/src/path-feature-layout.js';
-            import { renderPathFeatures } from '/src/path-feature-renderer.js';
+            import { buildPathElements } from '/src/path-elements.js';
+            import { renderPathElements } from '/src/path-elements-renderer.js';
             import {
               buildArcPathDefinition,
               buildInfinityPathDefinition,
@@ -105,7 +105,7 @@ test('state animation preserves measured geometry and every static path layer', 
               const geometry = new PathGeometry(() => {});
               geometry.setPathDefinition(definition);
               geometry.bindPathElement(master);
-              render(renderPathFeatures(buildPathFeatureLayout(geometry, featureConfig), \`animation-feature-\${index}\`), shape.querySelector('.features'));
+              render(renderPathElements(buildPathElements(geometry, featureConfig), \`animation-feature-\${index}\`), shape.querySelector('.features'));
 
               const stateLayer = shape.querySelector('.state');
               const animator = new PathStateAnimator({
@@ -136,7 +136,7 @@ test('state animation preserves measured geometry and every static path layer', 
                 nodes: {
                   master,
                   background: shape.querySelector('.background'),
-                  features: shape.querySelector('.path-features'),
+                  features: shape.querySelector('.path-tick-label-badge-marker'),
                   stateBody: shape.querySelector('.path-animation-state__fill-stroke__body'),
                 },
               };
@@ -183,7 +183,7 @@ test('state animation preserves measured geometry and every static path layer', 
       measurementCount: fixture.getMeasurementCount(),
       masterPreserved: fixture.nodes.master === shape.querySelector('.master'),
       backgroundPreserved: fixture.nodes.background === shape.querySelector('.background'),
-      featuresPreserved: fixture.nodes.features === shape.querySelector('.path-features'),
+      featuresPreserved: fixture.nodes.features === shape.querySelector('.path-tick-label-badge-marker'),
       stateBodyPreserved: fixture.nodes.stateBody === stateBody,
       dashArray: stateBody.getAttribute('stroke-dasharray'),
       geometryReady: fixture.geometry.isReady(),

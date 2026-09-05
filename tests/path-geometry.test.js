@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import PathGeometry from '../src/path-geometry.js';
+import PathGeometry, { buildOffsetPathDefinition, TransformedPathGeometry } from '../src/path-geometry.js';
 
 /**
  * Creates a measurable path stand-in and exposes its browser-call count.
@@ -192,4 +192,79 @@ test('returns normalized tangent and opposing left/right normals', () => {
   assert.deepEqual(geometry.tangentAtProgress(100), { x: 1, y: 0 });
   assert.deepEqual(geometry.normalAtProgress(50, 'left'), { x: 0, y: -1 });
   assert.deepEqual(geometry.normalAtProgress(50, 'right'), { x: -0, y: 1 });
+});
+
+test('transformed geometry publishes final points and directions without transforming feature elements', () => {
+  const geometry = new PathGeometry(() => {});
+  const definition = {
+    d: 'M 0 20 L 200 20',
+    closed: false,
+    direction: 'forward',
+    signature: 'line-200',
+  };
+
+  geometry.setPathDefinition(definition);
+  geometry.bindPathElement(createHorizontalPath(200));
+
+  const transformed = new TransformedPathGeometry(geometry, {
+    a: 0,
+    b: 1,
+    c: -1,
+    d: 0,
+    e: 120,
+    f: 0,
+  });
+
+  assert.deepEqual(transformed.pointAtProgress(25), { x: 100, y: 50 });
+  assert.deepEqual(transformed.tangentAtProgress(50), { x: 0, y: 1 });
+  const rotatedNormal = transformed.normalAtProgress(50, 'left');
+  assert.ok(Math.abs(rotatedNormal.x - 1) < 1e-10);
+  assert.ok(Math.abs(rotatedNormal.y) < 1e-10);
+  assert.ok(Math.abs(transformed.getTotalLength() - 200) < 0.000001);
+});
+
+test('offset paths sample the same measured geometry and preserve topology', () => {
+  const geometry = new PathGeometry(() => {});
+  const definition = {
+    d: 'M 0 20 L 200 20',
+    closed: false,
+    direction: 'forward',
+    signature: 'line-offset',
+  };
+
+  geometry.setPathDefinition(definition);
+  geometry.bindPathElement(createHorizontalPath(200));
+
+  const offset = buildOffsetPathDefinition(geometry, 10, 'left', 4);
+
+  assert.equal(offset.d, 'M 0 10 L 50 10 L 100 10 L 150 10 L 200 10');
+  assert.equal(offset.closed, false);
+  assert.equal(offset.direction, 'forward');
+});
+
+test('reflected feature normals preserve the transformed side of the source path', () => {
+  const geometry = new PathGeometry(() => {});
+  const definition = {
+    d: 'M 0 20 L 200 20',
+    closed: false,
+    direction: 'forward',
+    signature: 'line-reflected',
+  };
+
+  geometry.setPathDefinition(definition);
+  geometry.bindPathElement(createHorizontalPath(200));
+
+  const reflected = new TransformedPathGeometry(geometry, {
+    a: -1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 200,
+    f: 0,
+  });
+
+  assert.deepEqual(reflected.tangentAtProgress(50), { x: -1, y: 0 });
+  const reflectedNormal = reflected.normalAtProgress(50, 'left');
+  assert.ok(Math.abs(reflectedNormal.x) < 1e-10);
+  assert.ok(Math.abs(reflectedNormal.y + 1) < 1e-10);
 });
