@@ -451,7 +451,7 @@ export default class SparklineGraph {
     // Line settings must not leak into area, and area settings must not leak into line.
     const chartType = this.config.sparkline.show.chart_type;
     const graphFamily = chartType === 'radial' ? this.config.sparkline.show.chart_variant : chartType;
-    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line?.show_minmax === true : graphFamily === 'area' && this.config.sparkline.area?.show_minmax === true;
+    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line.show.minmax === true : graphFamily === 'area' && this.config.sparkline.area.show.minmax === true;
 
     if (['line', 'area'].includes(graphFamily) && showMinMax) {
       const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);

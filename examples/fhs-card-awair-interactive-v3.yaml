@@ -655,7 +655,8 @@ fhs_card_awair_interactive_v3:
                   show_dots: false
 
                 area:
-                  show_minmax: true
+                  show:
+                    minmax: true
 
                 color_stops: ref(awair_color_stop)
 

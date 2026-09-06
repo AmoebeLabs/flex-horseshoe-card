@@ -10,17 +10,17 @@ const graphConfig = {
     group_by: 'interval',
   },
   sparkline: {
-    show: { chart_type: 'line', chart_variant: 'line', points: false, labels: { x: true, y: true } },
+    show: { chart_type: 'line', chart_variant: 'line', item_style: 'auto', points: false, labels: { x: true, y: true } },
     state_values: {
       aggregate_func: 'avg',
       smoothing: false,
       logarithmic: false,
     },
-    dots: { radius: 2 },
+    dots: { radius: 2, styles: { fill: 'var(--primary-color)', stroke: 'var(--primary-color)' } },
     radial: { arc_degrees: 360, rotate: 0, size: 50 },
     radial_barcode: { size: 5 },
-    line: { show_dots: false, show_minmax: false },
-    area: { show_dots: false, show_minmax: false },
+    line: { show_dots: false, show: { item_style: 'auto', minmax: false }, minmax: { show: { item_style: 'auto' } } },
+    area: { show_dots: false, show: { item_style: 'auto', minmax: false }, minmax: { show: { item_style: 'auto' } } },
   },
   x_axis: {
     labels: { max_length: 5, styles: { 'font-size': '10px' } },
@@ -96,21 +96,70 @@ test('series inherit parent minmax settings and can override them independently'
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
-      line: { ...graphConfig.sparkline.line, show_minmax: true },
-      area: { ...graphConfig.sparkline.area, show_minmax: true },
+      line: { ...graphConfig.sparkline.line, show: { ...graphConfig.sparkline.line.show, minmax: true } },
+      area: { ...graphConfig.sparkline.area, show: { ...graphConfig.sparkline.area.show, minmax: true } },
     },
     series: [
       { id: 'inherited-line', entity_index: 0 },
-      { id: 'line-without-range', entity_index: 1, sparkline: { line: { show_minmax: false } } },
+      { id: 'line-without-range', entity_index: 1, sparkline: { line: { show: { minmax: false } } } },
       { id: 'inherited-area', entity_index: 2, sparkline: { show: { chart_type: 'area' } } },
-      { id: 'area-without-range', entity_index: 3, sparkline: { show: { chart_type: 'area' }, area: { show_minmax: false } } },
+      { id: 'area-without-range', entity_index: 3, sparkline: { show: { chart_type: 'area' }, area: { show: { minmax: false } } } },
     ],
   });
 
-  assert.equal(series.items[0].config.sparkline.line.show_minmax, true);
-  assert.equal(series.items[1].config.sparkline.line.show_minmax, false);
-  assert.equal(series.items[2].config.sparkline.area.show_minmax, true);
-  assert.equal(series.items[3].config.sparkline.area.show_minmax, false);
+  assert.equal(series.items[0].config.sparkline.line.show.minmax, true);
+  assert.equal(series.items[1].config.sparkline.line.show.minmax, false);
+  assert.equal(series.items[2].config.sparkline.area.show.minmax, true);
+  assert.equal(series.items[3].config.sparkline.area.show.minmax, false);
+});
+
+test('series inherit the graph paint style and can override it independently', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    sparkline: {
+      ...graphConfig.sparkline,
+      show: { ...graphConfig.sparkline.show, item_style: 'fixed' },
+    },
+    series: [
+      { id: 'fixed', entity_index: 0 },
+      { id: 'gradient', entity_index: 1, sparkline: { show: { item_style: 'colorstopgradient' } } },
+    ],
+  });
+
+  assert.equal(series.items[0].config.sparkline.show.item_style, 'fixed');
+  assert.equal(series.items[0].config.sparkline.line.show.item_style, 'auto');
+  assert.equal(series.items[1].config.sparkline.show.item_style, 'colorstopgradient');
+  assert.equal(series.items[1].config.sparkline.line.show.item_style, 'colorstopgradient');
+  assert.equal(series.items[1].config.sparkline.line.minmax.show.item_style, 'colorstopgradient');
+  assert.throws(
+    () => new SparklineSeries({ ...graphConfig, sparkline: { ...graphConfig.sparkline, show: { ...graphConfig.sparkline.show, item_style: 'unknown' } } }),
+    /sparkline\.show\.item_style must be/,
+  );
+});
+
+test('series layer paint overrides remain independent from the series-wide choice', () => {
+  const series = new SparklineSeries({
+    ...graphConfig,
+    series: [
+      {
+        id: 'temperature',
+        entity_index: 0,
+        sparkline: {
+          show: { item_style: 'colorstopgradient' },
+          line: {
+            show: { item_style: 'fixed' },
+            minmax: { show: { item_style: 'colorstopinterpolated' } },
+          },
+        },
+      },
+    ],
+  });
+
+  assert.equal(series.primaryItem.config.sparkline.show.item_style, 'colorstopgradient');
+  assert.equal(series.primaryItem.config.sparkline.line.show.item_style, 'fixed');
+  assert.equal(series.primaryItem.config.sparkline.line.minmax.show.item_style, 'colorstopinterpolated');
+  assert.equal(series.primaryItem.config.sparkline.area.show.item_style, 'colorstopgradient');
+  assert.equal(series.primaryItem.config.sparkline.area.minmax.show.item_style, 'colorstopgradient');
 });
 
 test('implicit and explicit one-series configs produce the same effective graph config', () => {

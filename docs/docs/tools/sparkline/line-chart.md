@@ -53,9 +53,10 @@ layout:
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `show.chart_type` | string | No | `line` | Displays a line chart. |
+| `show.item_style` | string | No | `auto` | Chooses a fixed color, one color from the current state, or a gradient across the graph. |
 | `line.line_width` | number | No | `1` | Sets the width of the line. |
 | `line.styles` | mapping | No | default line styles | Applies styles such as opacity or a dashed stroke. |
-| `line.show_minmax` | boolean | No | `false` | Shows the lowest and highest values measured within every interval. |
+| `line.show.minmax` | boolean | No | `false` | Shows the lowest and highest values measured within every interval. |
 | `line.minmax.styles` | mapping | No | line color with `0.25` opacity | Styles the minimum-to-maximum band without changing the line. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections. |
 | `show.points` | boolean | No | `false` | Adds a point for every displayed interval. |
@@ -80,7 +81,8 @@ The line normally shows one aggregated value for every interval. Add a minimum-t
 ```yaml linenums="1"
 sparkline:
   line:
-    show_minmax: true
+    show:
+      minmax: true
     styles:
       stroke: red
     minmax:
@@ -89,6 +91,68 @@ sparkline:
 ```
 
 The band uses the line color. Its opacity can be changed independently without making the line less visible.
+
+## :material-horseshoe: Choose the line color
+
+Keep a line at one configured color with `fixed`:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: line
+    item_style: fixed
+  line:
+    styles:
+      stroke: red
+```
+
+Color stops offer three other choices:
+
+| Item style | Result |
+| --- | --- |
+| `colorstop` | Uses one matching color for the current entity state. |
+| `colorstopinterpolated` | Uses one blended color for the current entity state. |
+| `colorstopgradient` | Distributes the configured colors across the complete value range. |
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: line
+    item_style: colorstopinterpolated
+  color_stops:
+    colors:
+      - value: 0
+        color: green
+      - value: 50
+        color: orange
+      - value: 100
+        color: red
+```
+
+The line and its min/max band can use different colors. This keeps the current range visible while a fixed line remains easy to recognize:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: line
+  color_stops:
+    template:
+      name: fhs_colorstops_cpu_load
+  line:
+    show:
+      item_style: fixed
+      minmax: true
+    styles:
+      stroke: white
+      opacity: 0.8
+    minmax:
+      show:
+        item_style: colorstopinterpolated
+      styles:
+        opacity: 0.15
+```
+
+See [Color stops](../../appearance/color-stops.md) for reusable palettes and scales.
 
 ## :material-horseshoe: Smooth or straight connections
 

@@ -476,10 +476,12 @@ test('area chart omits its line layers when show.line is false', () => {
     graphArea: { width: 100, height: 50 },
     config: {
       sparkline: {
-        show: { chart_type: 'area', line: false },
+        show: { chart_type: 'area', item_style: 'fixed', line: false },
+        line: { show: { item_style: 'fixed' } },
         colorstops: { colors: [] },
       },
     },
+    sparklineSeries: { primaryItem: { entity: { state: '1' }, entityConfig: {}, graph: { coords: [[0, 0, 1]] } } },
     getLineStyles: () => ({
       stroke: 'red',
       'stroke-width': 1,
@@ -564,12 +566,14 @@ test('area fade uses the fixed color belonging to each series', () => {
   const lineColors = ['#1565c0', '#d32f2f'];
   const makeItem = (id) => ({
     id,
+    entity: { state: '20' },
     entityConfig: {},
-    graph: { drawArea: { height: 40 } },
+    graph: { coords: [[0, 0, 20]], drawArea: { width: 80, height: 40 } },
     config: {
       sparkline: {
-        show: { chart_type: 'area', fill: 'fade' },
+        show: { chart_type: 'area', item_style: 'auto', fill: 'fade' },
         line_color: lineColors,
+        area: { show: { item_style: 'auto' }, styles: { fill: lineColors[0] } },
       },
     },
   });
@@ -586,10 +590,99 @@ test('area fade uses the fixed color belonging to each series', () => {
   assert.ok(gradients[1].values.includes('#d32f2f'));
 });
 
+test('graph paint selection preserves fixed styles and selects color stops from the supplied current value', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const config = {
+    sparkline: {
+      colorstops: {
+        colors: [
+          { value: 0, color: '#000000' },
+          { value: 100, color: '#ffffff' },
+        ],
+      },
+    },
+  };
+
+  assert.equal(tool.getConfiguredSparklinePaint(config, 'auto', 50, 'red', 'gradient', 'automatic'), 'automatic');
+  assert.equal(tool.getConfiguredSparklinePaint(config, 'fixed', 50, 'red', 'gradient', 'automatic'), 'red');
+  assert.equal(tool.getConfiguredSparklinePaint(config, 'colorstop', 50, 'red', 'gradient', 'automatic'), '#000000');
+  assert.notEqual(tool.getConfiguredSparklinePaint(config, 'colorstopinterpolated', 50, 'red', 'gradient', 'automatic'), '#000000');
+  assert.equal(tool.getConfiguredSparklinePaint(config, 'colorstopgradient', 50, 'red', 'gradient', 'automatic'), 'gradient');
+});
+
+test('single-color graph paint follows the current entity state instead of the last aggregate bin', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const paintValues = [];
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 0,
+    config: {
+      sparkline: {
+        show: { item_style: 'colorstopinterpolated' },
+        colorstops: { colors: [{ value: 0, color: 'blue' }, { value: 100, color: 'green' }] },
+      },
+    },
+    sparklineSeries: {
+      primaryItem: {
+        entity: { state: '25' },
+        graph: { coords: [[0, 0, 75]] },
+      },
+    },
+    getEntityNumericState: (item, entity) => Number(entity.state),
+    getConfiguredSparklinePaint: (config, itemStyle, value) => {
+      paintValues.push(value);
+      return 'selected-color';
+    },
+  });
+
+  assert.equal(tool.getSparklineBackgroundPaint({ stroke: 'red' }, 'colorstopinterpolated'), 'selected-color');
+  assert.deepEqual(paintValues, [25]);
+});
+
+test('explicit Cartesian gradients use each series graph scale', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  const gradientCalls = [];
+  const makeItem = (id, itemStyle) => ({
+    id,
+    graph: {
+      computeGradient: (thresholds, logarithmic) => {
+        gradientCalls.push([id, thresholds, logarithmic]);
+        return [
+          { color: `${id}-low`, offset: 0 },
+          { color: `${id}-high`, offset: 100 },
+        ];
+      },
+    },
+    config: {
+      sparkline: {
+        show: { chart_type: 'line', item_style: itemStyle },
+        line: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
+        area: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
+        colorstops: { colors: [{ value: 0, color: 'black' }, { value: 100, color: 'white' }] },
+        colorstops_transition: 'smooth',
+        state_values: { logarithmic: false },
+      },
+    },
+  });
+
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 7,
+    sparklineSeries: { items: [makeItem('temperature', 'colorstopgradient'), makeItem('humidity', 'fixed')] },
+  });
+
+  const gradients = tool.renderSeriesCartesianColorGradients();
+
+  assert.equal(gradientCalls.length, 1);
+  assert.ok(gradients[0].values.includes('cartesian-series-color-test-card-7-temperature'));
+  assert.equal(gradients[1], '');
+});
+
 test('cartesian line and area series render their independently enabled minmax envelopes', () => {
   const calls = [];
   const makeItem = (id, chartType, showMinMax, color) => ({
     id,
+    entity: { state: '10' },
     entityConfig: {},
     graph: {
       coords: [[0, 0, 10]],
@@ -605,13 +698,12 @@ test('cartesian line and area series render their independently enabled minmax e
     },
     config: {
       color,
-      area: { styles: { opacity: 0.25 } },
       sparkline: {
-        show: { chart_type: chartType, fill: 'solid', line: true, points: false },
+        show: { chart_type: chartType, item_style: 'auto', fill: 'solid', line: true, points: false },
         line_color: [color, color, color],
-        line: { line_width: 1, styles: {}, show_dots: false, show_minmax: chartType === 'line' && showMinMax },
-        area: { show_dots: false, show_minmax: chartType === 'area' && showMinMax },
-        dots: { radius: 1 },
+        line: { line_width: 1, styles: {}, show_dots: false, show: { item_style: 'auto', minmax: chartType === 'line' && showMinMax }, minmax: { show: { item_style: 'auto' }, styles: { opacity: 0.25 } } },
+        area: { show_dots: false, show: { item_style: 'auto', minmax: chartType === 'area' && showMinMax }, minmax: { show: { item_style: 'auto' } }, styles: { opacity: 0.25 } },
+        dots: { radius: 1, styles: { fill: color, stroke: color } },
       },
     },
   });
@@ -656,7 +748,9 @@ test('single line minmax uses only the line styles', () => {
       sparkline: {
         show: { chart_type: 'line' },
         line: {
+          show: { item_style: 'fixed' },
           minmax: {
+            show: { item_style: 'colorstopinterpolated' },
             styles: { opacity: 0.4 },
           },
         },
@@ -689,6 +783,43 @@ test('single line minmax uses only the line styles', () => {
   assert.equal(renderedStyles.fill, 'red');
   assert.equal(renderedStyles.stroke, 'none');
   assert.equal(renderedStyles.opacity, '0.4');
+});
+
+test('single line and its minmax band select paint independently', () => {
+  const paintChoices = [];
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    cardId: 'test-card',
+    index: 5,
+    graphArea: { width: 80, height: 40 },
+    config: {
+      sparkline: {
+        show: { chart_type: 'line', line: true },
+        line: {
+          show: { item_style: 'fixed' },
+          styles: { stroke: 'white', opacity: 0.8 },
+          minmax: {
+            show: { item_style: 'colorstopinterpolated' },
+            styles: { opacity: 0.15 },
+          },
+        },
+      },
+    },
+    getLineStyles: () => ({ stroke: 'white', 'stroke-width': 1, opacity: 0.8 }),
+    getSparklineBackgroundPaint: (styles, itemStyle) => {
+      paintChoices.push([itemStyle, styles.stroke]);
+      return itemStyle === 'fixed' ? styles.stroke : 'interpolated-color';
+    },
+    getRenderStyles: (styles) => styles,
+  });
+
+  tool.renderSvgLineBackground('M 0,0 L 80,40', 0);
+  tool.renderSvgAreaMinMaxBackground('M 0,0 z', 0);
+
+  assert.deepEqual(paintChoices, [
+    ['fixed', 'white'],
+    ['colorstopinterpolated', 'white'],
+  ]);
 });
 
 test('radial area fade follows the visible zero radius', () => {
@@ -727,8 +858,10 @@ test('radial series render all areas below every line and point', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const makeItem = (id, variant, color) => ({
     id,
+    entity: { state: '30' },
     entityConfig: {},
     graph: {
+      coords: [[0, 0, 30]],
       getRadialPath: () => `${id}-line`,
       getRadialArea: () => `${id}-area`,
       getRadialMinMaxArea: () => `${id}-minmax`,
@@ -736,10 +869,10 @@ test('radial series render all areas below every line and point', () => {
     },
     config: {
       color,
-      area: { styles: {} },
       sparkline: {
         show: {
           chart_variant: variant,
+          item_style: 'auto',
           fill: 'solid',
           line: variant !== 'dots',
           points: variant === 'dots',
@@ -747,9 +880,9 @@ test('radial series render all areas below every line and point', () => {
         colorstops: { colors: [] },
         colorstops_transition: 'hard',
         line_color: [color, color, color],
-        line: { line_width: 1, styles: {}, show_dots: false, show_minmax: variant === 'line' },
-        area: { show_dots: false, show_minmax: variant === 'area' },
-        dots: { radius: 1 },
+        line: { line_width: 1, styles: {}, show_dots: false, show: { item_style: 'auto', minmax: variant === 'line' }, minmax: { show: { item_style: 'auto' }, styles: { opacity: 0.25 } } },
+        area: { show_dots: false, show: { item_style: 'auto', minmax: variant === 'area' }, minmax: { show: { item_style: 'auto' } }, styles: {} },
+        dots: { radius: 1, styles: { fill: color, stroke: color } },
       },
     },
   });
@@ -1744,7 +1877,11 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
 test('one implicit item enters the cartesian series coordinator', () => {
   const config = {
     entity_index: 0,
-    sparkline: { show: { chart_type: 'line' } },
+    sparkline: {
+      show: { chart_type: 'line', item_style: 'auto' },
+      line: { show: { item_style: 'auto' }, minmax: { show: { item_style: 'auto' } } },
+      area: { show: { item_style: 'auto' }, minmax: { show: { item_style: 'auto' } } },
+    },
   };
   const configurations = [
     config,

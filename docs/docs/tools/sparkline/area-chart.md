@@ -59,11 +59,12 @@ layout:
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `show.chart_type` | string | No | `line` | Set to `area` to display an area chart. |
+| `show.item_style` | string | No | `auto` | Chooses a fixed color, one color from the current state, or a gradient across the graph. |
 | `show.line` | boolean | No | `true` | Shows or hides the line along the area. |
 | `show.area` | boolean | No | `false` | Shows or hides the filled surface. |
 | `show.fill` | string | No | solid | Uses a solid fill or `fade`. |
 | `show.points` | boolean | No | `false` | Adds a point for every displayed interval. |
-| `area.show_minmax` | boolean | No | `false` | Shows the minimum-to-maximum range in every interval. |
+| `area.show.minmax` | boolean | No | `false` | Shows the minimum-to-maximum range in every interval. |
 | `line.line_width` | number | No | `1` | Sets the width of the trend line. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections. |
 
@@ -91,10 +92,44 @@ sparkline:
 ```yaml linenums="1"
 sparkline:
   area:
-    show_minmax: true
+    show:
+      minmax: true
 ```
 
 The range shows the minimum and maximum values represented by each time bin.
+
+## :material-horseshoe: Choose the area color
+
+Keep the area at one configured color with `fixed`:
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: area
+    item_style: fixed
+  area:
+    styles:
+      fill: steelblue
+```
+
+Use `colorstop` or `colorstopinterpolated` when the complete area should follow the current entity state. Use `colorstopgradient` when the colors should follow the complete vertical value range.
+
+```yaml linenums="1"
+sparkline:
+  show:
+    chart_type: area
+    item_style: colorstopgradient
+  color_stops:
+    colors:
+      - value: 0
+        color: green
+      - value: 50
+        color: orange
+      - value: 100
+        color: red
+```
+
+The area fill and its optional minimum-to-maximum range use the same selected color. A visible line uses its corresponding line paint. See [Color stops](../../appearance/color-stops.md).
 
 ## :material-horseshoe: Related
 
