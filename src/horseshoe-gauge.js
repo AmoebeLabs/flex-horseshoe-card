@@ -411,6 +411,7 @@ export default class HorseshoeGauge extends BaseTool {
    * value and painted ranges for all non-gradient scale and state modes.
    */
   setState(entity, entityConfig) {
+    Colors.setElement(this.card);
     super.setState(entity, entityConfig);
 
     const stateData = getGaugeStateData(this.runtimeConfig, entity, entityConfig);
@@ -452,11 +453,15 @@ export default class HorseshoeGauge extends BaseTool {
     this.stateSegmentPaints = [];
 
     if (this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level') {
+      const stringStateMode = this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
+      const stateTransition = stringStateMode ? String(stateStyles.transition).replace(/\bfill\b/g, 'stroke') : stateStyles.transition;
+
       statePathRanges = buildPaintedRanges(stateRanges, {
         paints: stateRanges.map((range, index) => ({
           color: this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[index].color ?? Colors.calculateStrokeColor(this.config.state_map.map[index].value, this.config.colorstops, stateMode === 'colorstopinterpolated') }, [this.config.horseshoe_state.color_filter]).fill,
           width: Number(this.config.horseshoe_state.width),
           opacity: range.active ? Number(stateStyles.opacity) : Number(this.config.horseshoe_state.inactive_opacity ?? 0),
+          transition: stateTransition,
         })),
         clip: { start: 0, end: 100 },
         gap: pathGap,
@@ -582,6 +587,13 @@ export default class HorseshoeGauge extends BaseTool {
    * selected colors over only the currently visible state range.
    */
   buildMeasuredGradientContracts() {
+    Colors.setElement(this.card);
+
+    // External palettes may still be loading when the first measured paths are
+    // built. Unresolved colors must leave these keys open for the palette-driven
+    // update, matching the established horseshoe cache lifecycle.
+    Colors.unresolvedColor = false;
+
     const stateMode = this.renderContract.stateMode;
     const scaleMode = this.renderContract.scaleMode;
     const stateClip = this.renderContract.stateClip;
@@ -937,9 +949,11 @@ export default class HorseshoeGauge extends BaseTool {
       });
     }
 
-    this.stateGradientKey = stateGradientKey;
-    this.scaleAndBackgroundLayoutKey = scaleAndBackgroundLayoutKey;
-    this.pathElementsKey = pathElementsKey;
+    if (!Colors.unresolvedColor) {
+      this.stateGradientKey = stateGradientKey;
+      this.scaleAndBackgroundLayoutKey = scaleAndBackgroundLayoutKey;
+      this.pathElementsKey = pathElementsKey;
+    }
     return true;
   }
 
@@ -1059,9 +1073,7 @@ export default class HorseshoeGauge extends BaseTool {
               ? renderAdaptivePathGradient(this.pathDefinition, this.scaleGradient, this.renderContract.backgroundLayer, `${pathId}-scale-gradient`, 'horseshoe__scale-gradient')
               : renderNormalizedPathBands(this.pathDefinition, this.renderContract.scaleRanges, this.renderContract.backgroundLayer, `${pathId}-scale`, 'horseshoe__scale')
           }
-          <g id="${pathId}-state" class="horseshoe__state">
-            ${this.valueMapper ? this.renderStateAtProgress(this.stateAnimator.currentProgress, pathId) : svg``}
-          </g>
+          <g id="${pathId}-state" class="horseshoe__state"></g>
         </g>
         <g class="horseshoe__path-elements">
           ${renderPathElements(this.pathElements, `${pathId}-items`)}

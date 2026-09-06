@@ -166,6 +166,7 @@ test('continuous progress preserves true endpoints and produces one normalized d
     color: '#ff9800',
     width: 6,
     opacity: 0.8,
+    transition: undefined,
     startCap: 'round',
     endCap: 'butt',
     dash: {

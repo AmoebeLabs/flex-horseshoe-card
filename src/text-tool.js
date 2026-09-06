@@ -107,6 +107,7 @@ export default class TextTool extends BaseTool {
     this.widthEllipsisElements = [];
     this.widthOverflowParts = [];
     this.widthOverflowSourceSignature = undefined;
+    this.widthOverflowRevision = 0;
     this.widthOverflowMeasurementSignature = undefined;
     this.widthOverflowPending = false;
     this.widthMeasurementScheduled = false;
@@ -357,12 +358,14 @@ export default class TextTool extends BaseTool {
         this.widthMeasurementElements = new Array(widthMeasurementParts.length);
         this.widthEllipsisElements = new Array(widthMeasurementParts.length);
         this.widthOverflowSourceSignature = widthOverflowSourceSignature;
+        this.widthOverflowRevision += 1;
         this.widthOverflowMeasurementSignature = undefined;
         this.widthOverflowPending = true;
       }
 
       overflowParts = this.widthOverflowParts;
     } else {
+      this.widthOverflowRevision += 1;
       this.widthMeasurementParts = [];
       this.widthOverflowParts = [];
       this.widthOverflowSourceSignature = undefined;
@@ -761,7 +764,7 @@ export default class TextTool extends BaseTool {
     if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
       if (!this.widthMeasurementScheduled) {
         this.widthMeasurementScheduled = true;
-        const scheduledSourceSignature = this.widthOverflowSourceSignature;
+        const scheduledRevision = this.widthOverflowRevision;
 
         document.fonts.ready.then(async () => {
           const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
@@ -775,7 +778,7 @@ export default class TextTool extends BaseTool {
             // eslint-disable-next-line no-await-in-loop -- SVG layout must settle frame by frame.
             await new Promise(requestAnimationFrame);
 
-            if (scheduledSourceSignature !== this.widthOverflowSourceSignature) break;
+            if (scheduledRevision !== this.widthOverflowRevision) break;
 
             measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
             ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
@@ -789,7 +792,7 @@ export default class TextTool extends BaseTool {
 
           this.widthMeasurementScheduled = false;
 
-          if (scheduledSourceSignature === this.widthOverflowSourceSignature) {
+          if (scheduledRevision === this.widthOverflowRevision) {
             this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
             this.textParts = this.widthOverflowParts;
             this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;

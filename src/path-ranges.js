@@ -305,6 +305,7 @@ export function buildPaintedRanges(ranges, config) {
       color: item.paint.color,
       width: item.paint.width,
       opacity: item.paint.opacity,
+      transition: item.paint.transition,
       startCap: first ? config.linecap.start : 'butt',
       endCap: last ? config.linecap.end : 'butt',
       dash: {

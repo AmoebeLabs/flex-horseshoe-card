@@ -67,6 +67,20 @@ test('normal horseshoe configuration enters the path-engine implementation', () 
   assert.equal(HorseshoeGauge.setConfig(config, createTemplates(), 'card', card).length, 1);
 });
 
+test('stringstate label selection without a state map renders no labels', () => {
+  const card = createCard();
+  const config = createConfig({ type: 'arc', radius: 40, arc_degrees: 270 });
+  config.layout.horseshoes[0].show = { labels_at: 'stringstate' };
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', card);
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+
+  assert.doesNotThrow(() => horseshoe.buildMeasuredGradientContracts());
+  assert.deepEqual(horseshoe.pathElements.labels, []);
+});
+
 test('committed path elements are found when the generated card id starts with a digit', () => {
   const card = createCard();
   const requestedIds = [];
@@ -371,7 +385,7 @@ test('the path-engine gauge applies the existing item and layer color-filter cas
 test('ranked string states keep every segment mounted and change only active opacity', () => {
   const config = createConfig({ type: 'rectangle', width: 80, height: 60 });
   Object.assign(config.layout.horseshoes[0], {
-    horseshoe_state: { mode: 'stringstate_level', inactive_opacity: 0.1 },
+    horseshoe_state: { mode: 'stringstate_level', inactive_opacity: 0.1, styles: { transition: 'fill 5s ease, opacity 5s ease' } },
     color_stops: {
       colors: [
         { state: 'low', color: '#00ff00', rank: 0 },
@@ -388,6 +402,11 @@ test('ranked string states keep every segment mounted and change only active opa
   assert.equal(horseshoe.renderContract.stateRanges.length, 3);
   assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.opacity), [1, 1, 0.1]);
   assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.color), ['#00ff00', '#ffff00', '#ff0000']);
+  assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.transition), [
+    'stroke 5s ease, opacity 5s ease',
+    'stroke 5s ease, opacity 5s ease',
+    'stroke 5s ease, opacity 5s ease',
+  ]);
 });
 
 test('full and current gradients are built from measured geometry after value mapping', () => {

@@ -187,6 +187,13 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     ...(config.horseshoe_state ?? {}),
   };
 
+  if (horseshoeState.mode === "stringstate_mode" || horseshoeState.mode === "stringstate_level") {
+    horseshoeState.styles = {
+      transition: "fill 600ms ease, opacity 600ms ease, filter 600ms ease",
+      ...ConfigHelper.toStyleDict(horseshoeState.styles),
+    };
+  }
+
   const horseshoeBackground = {
     ...(config.horseshoe_background ?? {}),
   };
@@ -202,7 +209,7 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     ...(config.horseshoe_tickmarks ?? {}),
   };
 
-  const stateMap = config.state_map ?? horseshoeState.state_map;
+  const stateMap = config.state_map ?? horseshoeState.state_map ?? { map: [] };
 
   const colorStops = ColorStops.ensureMinimumStops(
     config.colorstops,
