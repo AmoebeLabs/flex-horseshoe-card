@@ -55,8 +55,10 @@ layout:
 | `show.chart_type` | string | No | `line` | Displays a line chart. |
 | `show.item_style` | string | No | `auto` | Chooses a fixed color, one color from the current state, or a gradient across the graph. |
 | `line.line_width` | number | No | `1` | Sets the width of the line. |
+| `line.color_filter` | mapping | No | Not set | Adjusts the selected line color. |
 | `line.styles` | mapping | No | default line styles | Applies styles such as opacity or a dashed stroke. |
 | `line.show.minmax` | boolean | No | `false` | Shows the lowest and highest values measured within every interval. |
+| `line.minmax.color_filter` | mapping | No | Not set | Adjusts the min/max color independently from the line. |
 | `line.minmax.styles` | mapping | No | line color with `0.25` opacity | Styles the minimum-to-maximum band without changing the line. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections. |
 | `show.points` | boolean | No | `false` | Adds a point for every displayed interval. |
@@ -151,6 +153,19 @@ sparkline:
       styles:
         opacity: 0.15
 ```
+
+A color filter can make the line or its min/max band lighter, darker, less saturated, or otherwise adjust the selected color:
+
+```yaml linenums="1"
+line:
+  color_filter:
+    brightness: 1.2
+  minmax:
+    color_filter:
+      brightness: 0.7
+```
+
+The line and min/max filters are independent. Filtering the line does not change the min/max band. See [Color filters](../../appearance/color-filters.md) for all available adjustments.
 
 See [Color stops](../../appearance/color-stops.md) for reusable palettes and scales.
 

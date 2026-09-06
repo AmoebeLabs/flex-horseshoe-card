@@ -736,6 +736,7 @@ test('cartesian line and area series render their independently enabled minmax e
 test('single line minmax uses only the line styles', () => {
   const paintSources = [];
   let renderedStyles;
+  let renderedFilters;
   let areaStyleCalls = 0;
   const lineStyles = { stroke: 'red', 'stroke-width': 2, opacity: 0.8 };
   const areaStyles = { fill: 'blue', opacity: 0.2 };
@@ -748,8 +749,10 @@ test('single line minmax uses only the line styles', () => {
       sparkline: {
         show: { chart_type: 'line' },
         line: {
+          color_filter: { brightness: 1.2 },
           show: { item_style: 'fixed' },
           minmax: {
+            color_filter: { brightness: 0.7 },
             show: { item_style: 'colorstopinterpolated' },
             styles: { opacity: 0.4 },
           },
@@ -765,8 +768,9 @@ test('single line minmax uses only the line styles', () => {
       paintSources.push({ ...styles });
       return styles.stroke;
     },
-    getRenderStyles: (styles) => {
+    getRenderStyles: (styles, filters) => {
       renderedStyles = styles;
+      renderedFilters = filters;
       return styles;
     },
   });
@@ -783,10 +787,12 @@ test('single line minmax uses only the line styles', () => {
   assert.equal(renderedStyles.fill, 'red');
   assert.equal(renderedStyles.stroke, 'none');
   assert.equal(renderedStyles.opacity, '0.4');
+  assert.deepEqual(renderedFilters, [{ brightness: 0.7 }]);
 });
 
 test('single line and its minmax band select paint independently', () => {
   const paintChoices = [];
+  const filterChoices = [];
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
     cardId: 'test-card',
@@ -796,9 +802,11 @@ test('single line and its minmax band select paint independently', () => {
       sparkline: {
         show: { chart_type: 'line', line: true },
         line: {
+          color_filter: { saturation: 0.8 },
           show: { item_style: 'fixed' },
           styles: { stroke: 'white', opacity: 0.8 },
           minmax: {
+            color_filter: { brightness: 0.6 },
             show: { item_style: 'colorstopinterpolated' },
             styles: { opacity: 0.15 },
           },
@@ -810,7 +818,10 @@ test('single line and its minmax band select paint independently', () => {
       paintChoices.push([itemStyle, styles.stroke]);
       return itemStyle === 'fixed' ? styles.stroke : 'interpolated-color';
     },
-    getRenderStyles: (styles) => styles,
+    getRenderStyles: (styles, filters) => {
+      filterChoices.push(filters);
+      return styles;
+    },
   });
 
   tool.renderSvgLineBackground('M 0,0 L 80,40', 0);
@@ -819,6 +830,10 @@ test('single line and its minmax band select paint independently', () => {
   assert.deepEqual(paintChoices, [
     ['fixed', 'white'],
     ['colorstopinterpolated', 'white'],
+  ]);
+  assert.deepEqual(filterChoices, [
+    [{ saturation: 0.8 }],
+    [{ brightness: 0.6 }],
   ]);
 });
 

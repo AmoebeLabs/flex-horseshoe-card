@@ -224,6 +224,7 @@ export default class SparklineGraphTool extends BaseTool {
         line: {
           line_width: 1,
           show_dots: false,
+          color_filter: {},
           show: {
             item_style: 'auto',
             minmax: false,
@@ -236,6 +237,7 @@ export default class SparklineGraphTool extends BaseTool {
             'stroke-linejoin': 'round',
           },
           minmax: {
+            color_filter: {},
             show: {
               item_style: 'auto',
             },
@@ -246,6 +248,7 @@ export default class SparklineGraphTool extends BaseTool {
         },
         area: {
           show_dots: false,
+          color_filter: {},
           show: {
             item_style: 'auto',
             minmax: false,
@@ -255,6 +258,7 @@ export default class SparklineGraphTool extends BaseTool {
             opacity: 0.25,
           },
           minmax: {
+            color_filter: {},
             show: {
               item_style: 'auto',
             },
@@ -3399,7 +3403,7 @@ export default class SparklineGraphTool extends BaseTool {
         y="0"
         width="${this.graphArea.width}"
         height="${this.graphArea.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        style=${styleMap(this.getRenderStyles(backgroundStyles, [this.config.sparkline.area.color_filter]))}
         mask="url(#fill-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
@@ -3463,7 +3467,9 @@ export default class SparklineGraphTool extends BaseTool {
         y="0"
         width="${this.graphArea.width}"
         height="${this.graphArea.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        style=${styleMap(this.getRenderStyles(backgroundStyles, [
+          this.config.sparkline[this.config.sparkline.show.chart_type].minmax.color_filter,
+        ]))}
         mask="url(#fillMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
@@ -3526,7 +3532,7 @@ export default class SparklineGraphTool extends BaseTool {
         y="0"
         width="${this.graphArea.width}"
         height="${this.graphArea.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        style=${styleMap(this.getRenderStyles(backgroundStyles, [this.config.sparkline.line.color_filter]))}
         mask="url(#sparkline-line-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
@@ -3589,7 +3595,9 @@ export default class SparklineGraphTool extends BaseTool {
         y="0"
         width="${this.graphArea.width}"
         height="${this.graphArea.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles))}
+        style=${styleMap(this.getRenderStyles(backgroundStyles, [
+          this.config.sparkline.line.minmax.color_filter,
+        ]))}
         mask="url(#sparkline-lineMinMax-${this.cardId}-${this.index}-${i})"
       ></rect>
     `;
@@ -6127,17 +6135,22 @@ export default class SparklineGraphTool extends BaseTool {
         return svg`
           ${
             areaPath
-              ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFill} stroke="none" mask=${areaFade && config.sparkline.area.show.item_style === 'colorstopgradient' ? `url(#${areaMaskId})` : ''} style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFill }))}></path>`
+              ? svg`<path class="sparkline-series-area" d="${areaPath}" fill=${areaFill} stroke="none" mask=${areaFade && config.sparkline.area.show.item_style === 'colorstopgradient' ? `url(#${areaMaskId})` : ''} style=${styleMap(this.getRenderStyles({ ...areaStyles, fill: areaFill }, [config.sparkline.area.color_filter]))}></path>`
               : ''
           }
           ${
             minMaxPath
-              ? svg`<path class="sparkline-series-minmax" d="${minMaxPath}" fill=${minMaxPaint} stroke="none" style=${styleMap(this.getRenderStyles({ ...minMaxStyles, fill: minMaxPaint, stroke: 'none' }))}></path>`
+              ? svg`<path class="sparkline-series-minmax" d="${minMaxPath}" fill=${minMaxPaint} stroke="none" style=${styleMap(this.getRenderStyles(
+                { ...minMaxStyles, fill: minMaxPaint, stroke: 'none' },
+                chartType === 'line'
+                  ? [config.sparkline.line.minmax.color_filter]
+                  : [config.sparkline.area.minmax.color_filter],
+              ))}></path>`
               : ''
           }
           ${
             path && config.sparkline.show.line !== false
-              ? svg`<path class="sparkline-series-line" d="${path}" fill="none" stroke="${linePaint}" style=${styleMap(this.getRenderStyles({ ...lineStyles, fill: 'none', stroke: linePaint }))}></path>`
+              ? svg`<path class="sparkline-series-line" d="${path}" fill="none" stroke="${linePaint}" style=${styleMap(this.getRenderStyles({ ...lineStyles, fill: 'none', stroke: linePaint }, [config.sparkline.line.color_filter]))}></path>`
               : ''
           }
           ${points.map((point) => {
@@ -6216,17 +6229,22 @@ export default class SparklineGraphTool extends BaseTool {
     return svg`
       ${seriesLayers.map((layer) =>
         layer.minMaxPath
-          ? svg`<path class="sparkline-radial-minmax" d="${layer.minMaxPath}" fill=${layer.minMaxPaint} stroke="none" style=${styleMap(this.getRenderStyles({ ...layer.minMaxStyles, fill: layer.minMaxPaint, stroke: 'none' }))}></path>`
+          ? svg`<path class="sparkline-radial-minmax" d="${layer.minMaxPath}" fill=${layer.minMaxPaint} stroke="none" style=${styleMap(this.getRenderStyles(
+            { ...layer.minMaxStyles, fill: layer.minMaxPaint, stroke: 'none' },
+            layer.config.sparkline.show.chart_variant === 'line'
+              ? [layer.config.sparkline.line.minmax.color_filter]
+              : [layer.config.sparkline.area.minmax.color_filter],
+          ))}></path>`
           : '',
       )}
       ${seriesLayers.map((layer) =>
         layer.areaPath
-          ? svg`<path class="sparkline-radial-area" d="${layer.areaPath}" fill=${layer.areaPaint} stroke="none" mask=${layer.areaFade ? `url(#${layer.areaMaskId})` : ''} style=${styleMap(this.getRenderStyles({ ...layer.areaStyles, fill: layer.areaPaint }))}></path>`
+          ? svg`<path class="sparkline-radial-area" d="${layer.areaPath}" fill=${layer.areaPaint} stroke="none" mask=${layer.areaFade ? `url(#${layer.areaMaskId})` : ''} style=${styleMap(this.getRenderStyles({ ...layer.areaStyles, fill: layer.areaPaint }, [layer.config.sparkline.area.color_filter]))}></path>`
           : '',
       )}
       ${seriesLayers.map((layer) =>
         layer.path && layer.config.sparkline.show.line !== false
-          ? svg`<path class="sparkline-radial-line" d="${layer.path}" fill="none" stroke="${layer.linePaint}" style=${styleMap(this.getRenderStyles({ ...layer.lineStyles, fill: 'none', stroke: layer.linePaint }))}></path>`
+          ? svg`<path class="sparkline-radial-line" d="${layer.path}" fill="none" stroke="${layer.linePaint}" style=${styleMap(this.getRenderStyles({ ...layer.lineStyles, fill: 'none', stroke: layer.linePaint }, [layer.config.sparkline.line.color_filter]))}></path>`
           : '',
       )}
       ${seriesLayers.map((layer) =>
