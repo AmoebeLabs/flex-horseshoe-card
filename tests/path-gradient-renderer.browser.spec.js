@@ -15,6 +15,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
             {
               "imports": {
                 "lit": "/node_modules/lit/index.js",
+                "lit/": "/node_modules/lit/",
                 "lit-html": "/node_modules/lit-html/lit-html.js",
                 "lit-html/": "/node_modules/lit-html/",
                 "lit-element/": "/node_modules/lit-element/",

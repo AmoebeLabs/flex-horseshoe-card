@@ -41,12 +41,12 @@ test('representative fixed horseshoe matches the frozen browser geometry contrac
               border: { color: 'transparent', width: 0 },
             };
             const scaleRange = {
-              id: 'scale', start: 0, end: 100, color: '#d1d5db', width: 6,
+              id: 'scale', start: 0, end: 100, length: 100, color: '#d1d5db', width: 6,
               opacity: 1, startCap: 'round', endCap: 'round',
               dash: { array: [100, 100], offset: 0 },
             };
             const stateRange = {
-              id: 'state', start: 0, end: 60, color: '#2563eb', width: 12,
+              id: 'state', start: 0, end: 60, length: 60, color: '#2563eb', width: 12,
               opacity: 1, startCap: 'round', endCap: 'round',
               dash: { array: [60, 100], offset: 0 },
             };
