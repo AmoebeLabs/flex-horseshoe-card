@@ -1,0 +1,130 @@
+fhs_card_horseshoe_path_shape_v1:
+  template:
+    type: card
+    defaults:
+      - var_title: Path
+      - var_path:
+          type: arc
+          radius: 34
+          arc_degrees: 270
+          start_angle: -135
+
+  card:
+    default_entities:
+      - entity: fhs_input_number.showcase_horseshoe_path_state
+        slot: source
+        initial: 65
+        min: 0
+        max: 100
+        step: 1
+        unit: "%"
+        scope: global
+
+    layout:
+      aspectratio: 1/1.15
+
+      horseshoes:
+        - id: path-shape
+          entity_index: source[0]
+          xpos: 50
+          ypos: 48
+          path: "[[var_path]]"
+
+          show:
+            horseshoe: true
+            horseshoe_style: colorstop #colorstopgradient
+            scale_style: fixed
+            tickmarks: true
+            labels_at: ticks_major
+            label_badges: false
+
+          horseshoe_scale:
+            min: 0
+            max: 100
+            width: 3
+            color: var(--divider-color)
+            styles:
+              opacity: 0.45
+
+          horseshoe_state:
+            width: 8
+            linecap: round
+
+          horseshoe_tickmarks:
+            ticks_major:
+              ticksize: 25
+              width: 4
+              offset: 7
+              thickness: 1
+              styles:
+                fill: var(--primary-text-color)
+                opacity: 0.65
+            ticks_minor:
+              ticksize: 5
+              width: 2
+              offset: 7
+              thickness: 1
+              styles:
+                fill: var(--secondary-text-color)
+                opacity: 0.4
+
+          horseshoe_labels:
+            offset: 16
+            orientation: horizontal
+            styles:
+              font-size: 0.55em
+              fill: var(--secondary-text-color)
+
+          color_stops:
+            gap: 1
+            scales:
+              default:
+                min: 0
+                max: 100
+            colors:
+              0: "#1565c0"
+              35: "#42a5f5"
+              65: "#66bb6a"
+              85: "#f9a825"
+              100: "#d32f2f"
+
+      texts:
+        - id: title
+          xpos: 50
+          ypos: 6
+          text: "[[var_title]]"
+          styles:
+            font-size: 1em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+
+      states:
+        - id: value
+          entity_index: source[0]
+          xpos: 50
+          ypos: 85
+          show:
+            uom: end
+          styles:
+            font-size: 1.2em
+            font-weight: bold
+            text-anchor: middle
+            dominant-baseline: central
+
+      controls:
+        - id: value
+          type: slider
+          entity_index: source[0]
+          xpos: 50
+          ypos: 98
+          width: 70
+          height: 7
+          interaction:
+            update_interval: 0
+          value:
+            show: false
+          show:
+            item_variant: single
+            item_viz: linear
+            item_style: ha

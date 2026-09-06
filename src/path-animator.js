@@ -52,6 +52,10 @@ export default class PathStateAnimator {
    * @param {number} targetProgress - Validated normalized target in 0..100 path space.
    */
   animateTo(targetProgress) {
+    // Home Assistant can deliver the same value again while its visual
+    // transition is running. Keep moving toward that existing target.
+    if (this.animating && this.toProgress === targetProgress) return;
+
     if (this.frame !== undefined) {
       this.cancelFrame(this.frame);
     }

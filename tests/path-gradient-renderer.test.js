@@ -117,8 +117,8 @@ test('renderer defines local gradients and reuses generic masked path bands', ()
 
   assert.equal(gradientDefinitions.length, gradient.ranges.length);
   assert.equal(bands.values[1], layer.opacity);
-  assert.equal(bands.values[5].at(-1).values[3].values[5], '10 100');
-  assert.equal(bands.values[5].at(-1).values[3].values[6], -50);
+  assert.equal(bands.values[5].at(-1).values[4].values[5], '10 100');
+  assert.equal(bands.values[5].at(-1).values[4].values[6], -50);
 });
 
 test('normalized reveal clipping does not use a spatial mask at path crossings', () => {
@@ -137,7 +137,7 @@ test('normalized reveal clipping does not use a spatial mask at path crossings',
   const visibleFills = bands.values[5];
 
   assert.equal(rendered.strings.join('').includes('reveal-mask'), false);
-  assert.equal(visibleFills[0].values[3].values[6], -20);
-  assert.equal(visibleFills.at(-1).values[3].values[5], '10 100');
-  assert.equal(visibleFills.at(-1).values[3].values[6], -50);
+  assert.equal(visibleFills[0].values[4].values[6], -20);
+  assert.equal(visibleFills.at(-1).values[4].values[5], '10 100');
+  assert.equal(visibleFills.at(-1).values[4].values[6], -50);
 });

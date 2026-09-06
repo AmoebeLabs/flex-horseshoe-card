@@ -83,6 +83,26 @@ test('an interrupted transition continues from its displayed path progress', () 
   assert.equal(scheduler.pendingFrames(), 0);
 });
 
+test('a repeated value does not restart its active transition', () => {
+  const scheduler = createFrameScheduler();
+  const animator = new PathStateAnimator({
+    animation: { enabled: true, duration: 100, easing: 'linear' },
+    initialProgress: 50,
+    requestFrame: scheduler.requestFrame,
+    cancelFrame: scheduler.cancelFrame,
+    updateStateLayer: () => {},
+    onComplete: () => {},
+  });
+
+  animator.bindStateLayer({ id: 'state' });
+  animator.animateTo(40);
+  animator.animateTo(40);
+
+  assert.equal(scheduler.pendingFrames(), 1);
+  scheduler.runNextFrame(1000);
+  assert.equal(scheduler.pendingFrames(), 1);
+});
+
 test('stopping a transition preserves the visible state and cancels pending work', () => {
   const scheduler = createFrameScheduler();
   const updates = [];

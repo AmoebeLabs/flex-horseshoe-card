@@ -1,4 +1,5 @@
 import { nothing, svg } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
 
 /**
  * Renders one normalized range as a butt-ended centerline plus independently
@@ -12,10 +13,19 @@ import { nothing, svg } from 'lit';
  * @returns {TemplateResult} One composed normalized path stroke.
  */
 export function renderNormalizedPathStroke(pathDefinition, range, paint, className) {
-  const capDashLength = 0.001;
+  // Safari flattens a round dash cap that ends exactly at the end of a curved
+  // or multi-command path. Keep the cap stroke just inside the path; its native
+  // round linecap still extends to the same visible endpoint over the body.
+  // Use 0.001 normalized path unit, or half of a shorter range, so the inset
+  // remains invisible and can never move beyond the range start.
+  const endCapInset = Math.min(0.001, range.length / 2);
+  // One normalized path unit gives Safari a real stroke segment to cap. For a
+  // shorter range, stop before the inset so the complete dash stays in range.
+  const capDashLength = Math.min(1, range.length - endCapInset);
   const caps = [
-    { location: 'start', type: range.startCap, progress: range.start },
-    { location: 'end', type: range.endCap, progress: range.end },
+    { location: 'start', type: range.startCap, progress: range.start, dashOffset: -range.start },
+    // End the cap dash at range.end - endCapInset instead of the Safari-problematic exact endpoint.
+    { location: 'end', type: range.endCap, progress: range.end, dashOffset: -(range.end - endCapInset - capDashLength) },
   ];
 
   return svg`
@@ -30,6 +40,7 @@ export function renderNormalizedPathStroke(pathDefinition, range, paint, classNa
         stroke-linecap="butt"
         stroke-dasharray=${range.dash.array.join(' ')}
         stroke-dashoffset=${range.dash.offset}
+        style=${styleMap({ transition: paint.transition })}
       ></path>
       ${caps.map((cap) => cap.type === 'round' ? svg`
         <path
@@ -41,7 +52,8 @@ export function renderNormalizedPathStroke(pathDefinition, range, paint, classNa
           stroke-width=${paint.width}
           stroke-linecap="round"
           stroke-dasharray="${capDashLength} 200"
-          stroke-dashoffset=${-(cap.progress - capDashLength / 2)}
+          stroke-dashoffset=${cap.dashOffset}
+          style=${styleMap({ transition: paint.transition })}
         ></path>
       ` : nothing)}
     </g>
@@ -94,6 +106,7 @@ export function renderNormalizedPathBands(pathDefinition, ranges, layer, layerId
             const borderPaint = {
               color: layer.border.color,
               width: range.width + layer.border.width * 2,
+              transition: range.transition,
             };
 
             return svg`
@@ -102,6 +115,7 @@ export function renderNormalizedPathBands(pathDefinition, ranges, layer, layerId
                 data-path-range=${range.id}
                 opacity=${range.opacity}
                 mask="url(#${layerId}-${range.id}-border-mask)"
+                style=${styleMap({ transition: range.transition })}
               >
                 ${renderNormalizedPathStroke(pathDefinition, range, borderPaint, `${className}__border-stroke`)}
               </g>
@@ -111,13 +125,14 @@ export function renderNormalizedPathBands(pathDefinition, ranges, layer, layerId
       ` : nothing}
       <g class="${className}__fills" opacity=${layer.fillOpacity}>
         ${ranges.map((range) => {
-          const fillPaint = { color: range.color, width: range.width };
+          const fillPaint = { color: range.color, width: range.width, transition: range.transition };
 
           return svg`
             <g
               class="${className}__fill"
               data-path-range=${range.id}
               opacity=${range.opacity}
+              style=${styleMap({ transition: range.transition })}
             >
               ${renderNormalizedPathStroke(pathDefinition, range, fillPaint, `${className}__fill-stroke`)}
             </g>

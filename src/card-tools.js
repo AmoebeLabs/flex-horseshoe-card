@@ -10,10 +10,9 @@ import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
 import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
-import HorseshoeV3 from './horseshoe-v3.js';
 
-const RUNTIME_SECTIONS = ['horseshoes', 'horseshoes_v3', 'names', 'areas', 'states', 'texts', 'rectangles', 'lines', 'circles', 'arcs', 'icons', 'controls'];
-const RENDER_SECTIONS = ['rectangles', 'circles', 'arcs', 'horseshoes', 'horseshoes_v3', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
+const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'lines', 'circles', 'arcs', 'icons', 'controls'];
+const RENDER_SECTIONS = ['rectangles', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
 
 /** Owns every configured layout tool and forwards their shared lifecycle phases. */
 export default class CardTools {
@@ -26,7 +25,7 @@ export default class CardTools {
     this.templates = templates;
     this.cardId = cardId;
     this.sections = {
-      rectangles: [], circles: [], arcs: [], horseshoes: [], horseshoes_v3: [], lines: [], icons: [],
+      rectangles: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
     };
   }
@@ -38,7 +37,6 @@ export default class CardTools {
 
   /** Constructs the remaining tools after main has calculated their SVG dimensions. */
   setLayoutToolConfig(config) {
-    this.sections.horseshoes_v3 = HorseshoeV3.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.names = NameTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.areas = AreaTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.states = StateTool.setConfig(config, this.templates, this.cardId, this.card);

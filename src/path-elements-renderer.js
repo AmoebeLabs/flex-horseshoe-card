@@ -76,6 +76,7 @@ export function renderPathElements(elements, pathItemId) {
               href="#${pathItemId}-label-guide-${index}"
               startOffset="${label.guideStartOffset}%"
               text-anchor="middle"
+              dominant-baseline="central"
             >${label.text}</textPath>
           </text>
         ` : svg`

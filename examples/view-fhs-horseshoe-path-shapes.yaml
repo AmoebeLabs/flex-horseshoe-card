@@ -1,0 +1,76 @@
+title: Horseshoe path shapes
+path: fhs-horseshoe-path-shapes
+type: sections
+max_columns: 3
+sections:
+  - type: grid
+    cards:
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Arc
+            - var_path:
+                type: arc
+                radius_x: 34
+                radius_y: 27
+                arc_degrees: 270
+                start_angle: -135
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Line
+            - var_path:
+                type: line
+                length: 68
+                angle: 0
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Rectangle
+            - var_path:
+                type: rectangle
+                width: 62
+                height: 42
+                radius: 7
+                start: top
+                direction: clockwise
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Wave
+            - var_path:
+                type: wave
+                length: 68
+                angle: 0
+                waves: 3
+                amplitude: 9
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Spiral
+            - var_path:
+                type: spiral
+                radius_inner: 4
+                radius_outer: 32
+                start_angle: -90
+                degrees: 720
+                points: 64
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Infinity
+            - var_path:
+                type: infinity
+                radius_x: 34
+                radius_y: 22

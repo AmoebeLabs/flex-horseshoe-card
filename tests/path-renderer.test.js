@@ -122,7 +122,7 @@ test('every generated shape uses the same generic stroke and dash layers', () =>
     assert.equal(renderedRanges.values[5].length, 2);
 
     renderedRanges.values[5].forEach((range, rangeIndex) => {
-      const fillStroke = range.values[3];
+      const fillStroke = range.values[4];
 
       assert.equal(range.values[2], paintedRanges[rangeIndex].opacity);
       assert.equal(fillStroke.values[2], pathDefinition.d);
@@ -149,8 +149,8 @@ test('all endpoint cap combinations add round strokes only where selected', () =
       `caps-${index}`,
       'caps-band',
     );
-    const fillStroke = rendered.values[5][0].values[3];
-    const renderedCaps = fillStroke.values[7]
+    const fillStroke = rendered.values[5][0].values[4];
+    const renderedCaps = fillStroke.values[8]
       .filter((cap) => typeof cap !== 'symbol')
       .map((cap) => cap.values[2]);
 
@@ -171,7 +171,7 @@ test('border mask removes the complete fill width from a wider independent borde
   const outerMaskStroke = borderMask.values[3];
   const innerMaskStroke = borderMask.values[4];
   const visibleBorderRange = borderLayers.values[3][0];
-  const visibleBorderStroke = visibleBorderRange.values[5];
+  const visibleBorderStroke = visibleBorderRange.values[6];
 
   assert.equal(outerMaskStroke.values[3], 'white');
   assert.equal(outerMaskStroke.values[4], 12);

@@ -15,6 +15,7 @@ test('generic renderer paints the same normalized ranges on every path shape', a
             {
               "imports": {
                 "lit": "/node_modules/lit/index.js",
+                "lit/": "/node_modules/lit/",
                 "lit-html": "/node_modules/lit-html/lit-html.js",
                 "lit-html/": "/node_modules/lit-html/",
                 "lit-element/": "/node_modules/lit-element/",
@@ -72,13 +73,13 @@ test('generic renderer paints the same normalized ranges on every path shape', a
             };
             const ranges = [
               {
-                id: 'low', start: 0, end: 35, color: '#00aa00', width: 8,
-                opacity: 1,
+                id: 'low', start: 0, end: 35, length: 35, color: '#00aa00', width: 8,
+                opacity: 1, transition: 'stroke 5s ease, opacity 5s ease',
                 startCap: 'round', endCap: 'butt',
                 dash: { array: [35, 100], offset: 0 },
               },
               {
-                id: 'high', start: 40, end: 75, color: '#cc0000', width: 8,
+                id: 'high', start: 40, end: 75, length: 35, color: '#cc0000', width: 8,
                 opacity: 1,
                 startCap: 'butt', endCap: 'round',
                 dash: { array: [35, 100], offset: -40 },
@@ -140,14 +141,15 @@ test('generic renderer paints the same normalized ranges on every path shape', a
                         foreground,
                         [{
                           id: combination.id,
-                          start: 20,
-                          end: 80,
+                          start: 0,
+                          end: 100,
+                          length: 100,
                           color: '#00aa00',
                           width: 8,
                           opacity: 1,
                           startCap: combination.startCap,
                           endCap: combination.endCap,
-                          dash: { array: [60, 100], offset: -20 },
+                          dash: { array: [100, 100], offset: 0 },
                         }],
                         \`cap-\${shapeIndex}-\${combination.id}\`,
                       )}
@@ -191,6 +193,8 @@ test('generic renderer paints the same normalized ranges on every path shape', a
       lowStartCap: isPaintedAt(lowStartCap, 0),
       highEndCap: isPaintedAt(highEndCap, 75),
       fillCapCount: shape.querySelectorAll('.path-stroke-renderer__range-band__fill-stroke__cap').length,
+      rangeTransition: ranges[0].style.transition,
+      groupTransition: ranges[0].closest('[data-path-range="low"]').style.transition,
     };
   }));
 
@@ -206,30 +210,35 @@ test('generic renderer paints the same normalized ranges on every path shape', a
       lowStartCap: true,
       highEndCap: true,
       fillCapCount: 2,
+      rangeTransition: 'stroke 5s, opacity 5s',
+      groupTransition: 'stroke 5s, opacity 5s',
     });
   });
 
   const capContracts = await page.evaluate(() => [...document.querySelectorAll('.cap-contract')].map((contract) => {
     const master = contract.querySelector('.path-stroke-renderer__master');
     const capPaths = [...contract.querySelectorAll('.path-stroke-renderer__range-band__fill-stroke__cap')];
+    const startCap = contract.querySelector('.path-stroke-renderer__range-band__fill-stroke__cap--start');
+    const endCap = contract.querySelector('.path-stroke-renderer__range-band__fill-stroke__cap--end');
     const totalLength = master.getTotalLength();
     const pointAt = (progress) => master.getPointAtLength((progress / 100) * totalLength);
 
     return {
       combination: contract.dataset.combination,
       capCount: capPaths.length,
-      startPainted: capPaths.some((path) => path.isPointInStroke(pointAt(20))),
-      endPainted: capPaths.some((path) => path.isPointInStroke(pointAt(80))),
+      startPainted: startCap ? startCap.isPointInStroke(pointAt(0)) : false,
+      endPainted: endCap ? endCap.isPointInStroke(pointAt(100)) : false,
+      capOffsets: capPaths.map((path) => Number(path.getAttribute('stroke-dashoffset'))),
     };
   }));
 
   expect(capContracts).toHaveLength(24);
   capContracts.forEach((contract) => {
     const expected = {
-      'butt-butt': { capCount: 0, startPainted: false, endPainted: false },
-      'round-round': { capCount: 2, startPainted: true, endPainted: true },
-      'round-butt': { capCount: 1, startPainted: true, endPainted: false },
-      'butt-round': { capCount: 1, startPainted: false, endPainted: true },
+      'butt-butt': { capCount: 0, startPainted: false, endPainted: false, capOffsets: [] },
+      'round-round': { capCount: 2, startPainted: true, endPainted: true, capOffsets: [0, -98.999] },
+      'round-butt': { capCount: 1, startPainted: true, endPainted: false, capOffsets: [0] },
+      'butt-round': { capCount: 1, startPainted: false, endPainted: true, capOffsets: [-98.999] },
     }[contract.combination];
 
     expect(contract).toEqual({ combination: contract.combination, ...expected });
