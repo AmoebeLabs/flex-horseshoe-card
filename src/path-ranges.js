@@ -290,11 +290,34 @@ export function buildPaintedRanges(ranges, config) {
     })
     .filter((range) => range.end > range.start);
 
+  // Equal adjacent paint without a gap is one visual stroke. Joining it here
+  // removes internal SVG dash seams while preserving distinct string-state
+  // relations, explicit gaps, and genuinely different segment paint.
+  const joinedRanges = gappedRanges.reduce((output, item) => {
+    const previous = output.at(-1);
+    const samePaint = previous
+      && previous.end === item.start
+      && previous.paint.color === item.paint.color
+      && previous.paint.width === item.paint.width
+      && previous.paint.opacity === item.paint.opacity
+      && previous.paint.transition === item.paint.transition
+      && previous.range.active === item.range.active
+      && previous.range.relation === item.range.relation;
+
+    if (samePaint) {
+      previous.end = item.end;
+      return output;
+    }
+
+    output.push({ ...item });
+    return output;
+  }, []);
+
   // Dash arrays use pathLength="100". A complete 100-unit off-part prevents
   // the visible dash from repeating at the seam of a closed path.
-  return gappedRanges.map((item, index) => {
+  return joinedRanges.map((item, index) => {
     const first = index === 0;
-    const last = index === gappedRanges.length - 1;
+    const last = index === joinedRanges.length - 1;
     const length = item.end - item.start;
 
     return {

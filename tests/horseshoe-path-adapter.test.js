@@ -364,6 +364,30 @@ test('color-stop segments share one normalized contract for scale and clipped st
   assert.deepEqual(horseshoe.renderContract.stateRanges.map((range) => range.color), ['#00ff00', '#ffff00']);
 });
 
+test('single-color horseshoe modes keep one continuous rectangle state range', () => {
+  ['fixed', 'colorstop', 'colorstopinterpolated'].forEach((horseshoeStyle) => {
+    const config = createConfig({ type: 'rectangle', width: 80, height: 60, radius: 5, start: 'top', direction: 'clockwise' });
+    Object.assign(config.layout.horseshoes[0], {
+      show: { horseshoe_style: horseshoeStyle, scale_style: 'fixed' },
+      horseshoe_state: { linecap: 'round' },
+      color_stops: {
+        colors: {
+          0: '#42a5f5',
+          100: '#42a5f5',
+        },
+      },
+    });
+    const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+    horseshoe.updateRuntimeConfig();
+    horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+
+    assert.equal(horseshoe.renderContract.stateRanges.length, 1);
+    assert.equal(horseshoe.renderContract.stateRanges[0].startCap, 'round');
+    assert.equal(horseshoe.renderContract.stateRanges[0].endCap, 'round');
+  });
+});
+
 test('the path-engine gauge applies the existing item and layer color-filter cascade before path rendering', () => {
   const config = createConfig({ type: 'line', length: 80 });
   Object.assign(config.layout.horseshoes[0], {
