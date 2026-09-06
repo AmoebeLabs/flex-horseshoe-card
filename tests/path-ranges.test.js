@@ -211,6 +211,44 @@ test('segmented ranges split internal gaps and retain the complete outer endpoin
   assert.deepEqual(paintedRanges.map((range) => range.color), ['green', 'orange', 'red']);
 });
 
+test('adjacent equal paint without a gap becomes one continuous range', () => {
+  const ranges = [
+    { id: 'first', start: 0, end: 30, active: true, role: 'color-stop' },
+    { id: 'second', start: 30, end: 70, active: true, role: 'color-stop' },
+    { id: 'third', start: 70, end: 100, active: true, role: 'color-stop' },
+  ];
+  const paint = { color: '#42a5f5', width: 8, opacity: 0.6 };
+  const paintedRanges = buildPaintedRanges(ranges, {
+    clip: { start: 0, end: 100 },
+    gap: 0,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [paint, paint, paint],
+  });
+
+  assert.equal(paintedRanges.length, 1);
+  assert.equal(paintedRanges[0].start, 0);
+  assert.equal(paintedRanges[0].end, 100);
+  assert.equal(paintedRanges[0].startCap, 'round');
+  assert.equal(paintedRanges[0].endCap, 'round');
+  assert.deepEqual(paintedRanges[0].dash, { array: [100, 100], offset: 0 });
+
+  const rangesWithGap = buildPaintedRanges(ranges, {
+    clip: { start: 0, end: 100 },
+    gap: 2,
+    endpointGap: { start: 0, end: 0 },
+    linecap: { start: 'round', end: 'round' },
+    paints: [paint, paint, paint],
+  });
+
+  assert.equal(rangesWithGap.length, 3);
+  assert.deepEqual(rangesWithGap.map((range) => [range.startCap, range.endCap]), [
+    ['round', 'butt'],
+    ['butt', 'butt'],
+    ['butt', 'round'],
+  ]);
+});
+
 test('explicit endpoint gaps shorten only the outside of the complete painted range', () => {
   const paintedRanges = buildPaintedRanges(createMapper().buildStateRanges(100), {
     clip: { start: 0, end: 100 },

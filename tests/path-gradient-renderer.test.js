@@ -42,6 +42,8 @@ test('full gradient keeps a static color distribution behind the active reveal r
   assert.deepEqual(first.ranges.map((range) => range.opacity), Array(8).fill(1));
   assert.equal(first.ranges[0].startCap, 'round');
   assert.equal(first.ranges.at(-1).endCap, 'round');
+  assert.equal(first.ranges.slice(1).every((range) => range.startCap === 'butt'), true);
+  assert.equal(first.ranges.slice(0, -1).every((range) => range.endCap === 'butt'), true);
   assert.equal(first.ranges[0].gradient.startColor, '#000000');
   assert.equal(first.ranges[3].gradient.endColor, '#ff0000ff');
   assert.equal(first.ranges.at(-1).gradient.endColor, '#ffffff');
