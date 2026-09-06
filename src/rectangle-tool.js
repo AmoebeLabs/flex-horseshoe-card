@@ -34,8 +34,14 @@ export default class RectangleTool extends BaseTool {
   constructor(config, index, templates, cardId, card) {
     const rectangleConfig = {
       radius: 0,
+      fill_mask: 'auto',
       ...config,
     };
+
+    if (rectangleConfig.fill_mask !== 'auto'
+      && (typeof rectangleConfig.fill_mask !== 'number' || rectangleConfig.fill_mask < 0)) {
+      throw new Error('[rectangles] fill_mask must be auto or a number equal to or greater than zero');
+    }
 
     // Referenced width and height use optional padding around the measured item.
     if (typeof rectangleConfig.width === 'object') {
@@ -161,17 +167,63 @@ export default class RectangleTool extends BaseTool {
 
     this.applyColorStops(styles);
 
+    // Keep the configured border on the original rectangle path. The fill mask
+    // prevents the translucent fill and stroke from blending. A configured
+    // width can leave more or less of the card background between both layers.
+    const path = this.buildRoundedRectanglePath();
+    const strokeWidth = Number(styles['stroke-width']);
+    const fillMaskInset = this.config.fill_mask === 'auto'
+      ? strokeWidth / 2
+      : this.config.fill_mask;
+    const maskId = `${this.cardId}-rectangle-${this.index}-fill-mask`;
+    const fillStyles = {
+      ...styles,
+      stroke: 'none',
+      'stroke-width': 0,
+      'stroke-opacity': 0,
+    };
+    const borderStyles = {
+      ...styles,
+      fill: 'none',
+      'fill-opacity': 0,
+    };
+
     return this.renderItemLayers(svg`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
+        ${this.actionHandler()}
+        @action=${(event) => this.handleAction(event)}
       >
+        <defs>
+          <mask
+            id=${maskId}
+            maskUnits="userSpaceOnUse"
+            maskContentUnits="userSpaceOnUse"
+            x=${this.config.svg.x - strokeWidth}
+            y=${this.config.svg.y - strokeWidth}
+            width=${this.config.svg.width + strokeWidth * 2}
+            height=${this.config.svg.height + strokeWidth * 2}
+            style="mask-type:luminance"
+          >
+            <path
+              d=${path}
+              fill="white"
+              stroke="black"
+              stroke-width=${fillMaskInset * 2}
+            ></path>
+          </mask>
+        </defs>
         <path
-          ${this.actionHandler()}
-          @action=${(event) => this.handleAction(event)}
-          class="rectangle-tool"
-          d="${this.buildRoundedRectanglePath()}"
-          style=${styleMap(this.getRenderStyles(styles))}
+          class="rectangle-tool rectangle-tool__fill"
+          d=${path}
+          mask=${`url(#${maskId})`}
+          style=${styleMap(this.getRenderStyles(fillStyles))}
+        ></path>
+        <path
+          class="rectangle-tool__border"
+          d=${path}
+          style=${styleMap(this.getRenderStyles(borderStyles))}
         ></path>
       </g>
     `);

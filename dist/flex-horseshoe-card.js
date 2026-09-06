@@ -860,17 +860,42 @@ const ht=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let pt=class{constr
   `}
         </g>
       </g>
-    `);var e,i}}class ar extends Ca{static setConfig(t,e,i,s){return(t.layout?.rectangles??[]).map(((t,a)=>new ar(t,a,e,i,s)))}constructor(t,e,i,s,a){const r={radius:0,...t};"object"==typeof r.width&&(r.width={padding:0,...r.width}),"object"==typeof r.height&&(r.height={padding:0,...r.height}),r.fit&&(r.fit={...r.fit,padding:{x:1.5,y:.5,...r.fit.padding}}),super(r,e,i,s,a,"rectangles","rectangles",void 0,{fill:!0,stroke:!1}),this.config.svg=this.calculateSvgDimensions()}updateRuntimeConfig(){super.updateRuntimeConfig(),this.configChanged&&(this.config.svg=this.calculateSvgDimensions(this.config))}calculateSvgDimensions(t=this.config){let e,i,s;if(t.fit){const a=this.card.cardTools.getItemGeometry(t.fit);e={xpos:a.xpos,ypos:a.ypos},i=er.calculateSvgDimension(a.width+2*t.fit.padding.x),s=er.calculateSvgDimension(a.height+2*t.fit.padding.y)}else e=this.card.cardLayout.calculateSvgCoordinatesInGroup(t),i=er.calculateSvgDimension(this.card.cardTools.getItemWidth(t.width)),s=er.calculateSvgDimension(this.card.cardTools.getItemHeight(t.height));const a="object"==typeof t.radius?t.radius:{all:t.radius},r=Math.min(s,i)/2,o=t=>Math.min(r,Math.max(0,er.calculateSvgDimension(t)));return e.width=i,e.height=s,e.x=e.xpos-i/2,e.y=e.ypos-s/2,e.radiusTopLeft=o(a.top_left??a.left??a.top??a.all),e.radiusTopRight=o(a.top_right??a.right??a.top??a.all),e.radiusBottomLeft=o(a.bottom_left??a.left??a.bottom??a.all),e.radiusBottomRight=o(a.bottom_right??a.right??a.bottom??a.all),e}buildRoundedRectanglePath(){const t=this.config.svg;return`\n      M ${t.x+t.radiusTopLeft} ${t.y}\n      h ${t.width-t.radiusTopLeft-t.radiusTopRight}\n      q ${t.radiusTopRight} 0 ${t.radiusTopRight} ${t.radiusTopRight}\n      v ${t.height-t.radiusTopRight-t.radiusBottomRight}\n      q 0 ${t.radiusBottomRight} -${t.radiusBottomRight} ${t.radiusBottomRight}\n      h -${t.width-t.radiusBottomRight-t.radiusBottomLeft}\n      q -${t.radiusBottomLeft} 0 -${t.radiusBottomLeft} -${t.radiusBottomLeft}\n      v -${t.height-t.radiusBottomLeft-t.radiusTopLeft}\n      q 0 -${t.radiusTopLeft} ${t.radiusTopLeft} -${t.radiusTopLeft}\n      Z\n    `}render(){this.config.svg=this.calculateSvgDimensions(this.config);const t=this.getStyles({fill:"var(--primary-background-color)",stroke:"none","stroke-width":0});return this.applyColorStops(t),this.renderItemLayers(H`
+    `);var e,i}}class ar extends Ca{static setConfig(t,e,i,s){return(t.layout?.rectangles??[]).map(((t,a)=>new ar(t,a,e,i,s)))}constructor(t,e,i,s,a){const r={radius:0,fill_mask:"auto",...t};if("auto"!==r.fill_mask&&("number"!=typeof r.fill_mask||r.fill_mask<0))throw new Error("[rectangles] fill_mask must be auto or a number equal to or greater than zero");"object"==typeof r.width&&(r.width={padding:0,...r.width}),"object"==typeof r.height&&(r.height={padding:0,...r.height}),r.fit&&(r.fit={...r.fit,padding:{x:1.5,y:.5,...r.fit.padding}}),super(r,e,i,s,a,"rectangles","rectangles",void 0,{fill:!0,stroke:!1}),this.config.svg=this.calculateSvgDimensions()}updateRuntimeConfig(){super.updateRuntimeConfig(),this.configChanged&&(this.config.svg=this.calculateSvgDimensions(this.config))}calculateSvgDimensions(t=this.config){let e,i,s;if(t.fit){const a=this.card.cardTools.getItemGeometry(t.fit);e={xpos:a.xpos,ypos:a.ypos},i=er.calculateSvgDimension(a.width+2*t.fit.padding.x),s=er.calculateSvgDimension(a.height+2*t.fit.padding.y)}else e=this.card.cardLayout.calculateSvgCoordinatesInGroup(t),i=er.calculateSvgDimension(this.card.cardTools.getItemWidth(t.width)),s=er.calculateSvgDimension(this.card.cardTools.getItemHeight(t.height));const a="object"==typeof t.radius?t.radius:{all:t.radius},r=Math.min(s,i)/2,o=t=>Math.min(r,Math.max(0,er.calculateSvgDimension(t)));return e.width=i,e.height=s,e.x=e.xpos-i/2,e.y=e.ypos-s/2,e.radiusTopLeft=o(a.top_left??a.left??a.top??a.all),e.radiusTopRight=o(a.top_right??a.right??a.top??a.all),e.radiusBottomLeft=o(a.bottom_left??a.left??a.bottom??a.all),e.radiusBottomRight=o(a.bottom_right??a.right??a.bottom??a.all),e}buildRoundedRectanglePath(){const t=this.config.svg;return`\n      M ${t.x+t.radiusTopLeft} ${t.y}\n      h ${t.width-t.radiusTopLeft-t.radiusTopRight}\n      q ${t.radiusTopRight} 0 ${t.radiusTopRight} ${t.radiusTopRight}\n      v ${t.height-t.radiusTopRight-t.radiusBottomRight}\n      q 0 ${t.radiusBottomRight} -${t.radiusBottomRight} ${t.radiusBottomRight}\n      h -${t.width-t.radiusBottomRight-t.radiusBottomLeft}\n      q -${t.radiusBottomLeft} 0 -${t.radiusBottomLeft} -${t.radiusBottomLeft}\n      v -${t.height-t.radiusBottomLeft-t.radiusTopLeft}\n      q 0 -${t.radiusTopLeft} ${t.radiusTopLeft} -${t.radiusTopLeft}\n      Z\n    `}render(){this.config.svg=this.calculateSvgDimensions(this.config);const t=this.getStyles({fill:"var(--primary-background-color)",stroke:"none","stroke-width":0});this.applyColorStops(t);const e=this.buildRoundedRectanglePath(),i=Number(t["stroke-width"]),s="auto"===this.config.fill_mask?i/2:this.config.fill_mask,a=`${this.cardId}-rectangle-${this.index}-fill-mask`,r={...t,stroke:"none","stroke-width":0,"stroke-opacity":0},o={...t,fill:"none","fill-opacity":0};return this.renderItemLayers(H`
       <g
         transform="${this.getGroupScaleTransform()}"
         style="${this.getGroupScaleStyle()}"
+        ${this.actionHandler()}
+        @action=${t=>this.handleAction(t)}
       >
+        <defs>
+          <mask
+            id=${a}
+            maskUnits="userSpaceOnUse"
+            maskContentUnits="userSpaceOnUse"
+            x=${this.config.svg.x-i}
+            y=${this.config.svg.y-i}
+            width=${this.config.svg.width+2*i}
+            height=${this.config.svg.height+2*i}
+            style="mask-type:luminance"
+          >
+            <path
+              d=${e}
+              fill="white"
+              stroke="black"
+              stroke-width=${2*s}
+            ></path>
+          </mask>
+        </defs>
         <path
-          ${this.actionHandler()}
-          @action=${t=>this.handleAction(t)}
-          class="rectangle-tool"
-          d="${this.buildRoundedRectanglePath()}"
-          style=${mt(this.getRenderStyles(t))}
+          class="rectangle-tool rectangle-tool__fill"
+          d=${e}
+          mask=${`url(#${a})`}
+          style=${mt(this.getRenderStyles(r))}
+        ></path>
+        <path
+          class="rectangle-tool__border"
+          d=${e}
+          style=${mt(this.getRenderStyles(o))}
         ></path>
       </g>
     `)}}class rr extends Ca{static setConfig(t,e,i,s){return[...(t.layout?.lines??[]).map((t=>rr.normalizeLineConfig(t,"lines"))),...(t.layout?.hlines??[]).map((t=>rr.normalizeLineConfig(t,"hlines"))),...(t.layout?.vlines??[]).map((t=>rr.normalizeLineConfig(t,"vlines")))].map(((t,a)=>new rr(t,a,e,i,s)))}static normalizeLineConfig(t,e){let i=t.orientation??"horizontal";return"hlines"===e&&(i="horizontal"),"vlines"===e&&(i="vertical"),{...t,orientation:i,animation_section:e}}constructor(t,e,i,s,a){const r={orientation:"horizontal",length:10,xpos:50,ypos:50,...t};super(r,e,i,s,a,r.animation_section,r.animation_section,void 0,{fill:!1,stroke:!0}),this.validateOrientation(this.config.orientation),this.config.svg=this.calculateSvgDimensions()}updateRuntimeConfig(){super.updateRuntimeConfig(),this.configChanged&&(this.validateOrientation(this.config.orientation),this.config.svg=this.calculateSvgDimensions(this.config))}validateOrientation(t){if(!["horizontal","vertical","fromto"].includes(t))throw Error(`LineTool::validateOrientation - invalid orientation '${t}' [horizontal, vertical, fromto]`)}calculateSvgDimensions(t=this.config){if("fromto"===t.orientation){const e=t.start??{xpos:t.x1,ypos:t.y1},i=t.end??{xpos:t.x2,ypos:t.y2},s=this.card.cardLayout.calculateSvgCoordinatesInGroup({...t,xpos:e.xpos??e.x,ypos:e.ypos??e.y}),a=this.card.cardLayout.calculateSvgCoordinatesInGroup({...t,xpos:i.xpos??i.x,ypos:i.ypos??i.y});return{xpos:(s.xpos+a.xpos)/2,ypos:(s.ypos+a.ypos)/2,x1:s.xpos,y1:s.ypos,x2:a.xpos,y2:a.ypos}}const e=this.card.cardLayout.calculateSvgCoordinatesInGroup(t),i=er.calculateSvgDimension(t.length);return"vertical"===t.orientation?{...e,length:i,x1:e.xpos,y1:e.ypos-i/2,x2:e.xpos,y2:e.ypos+i/2}:{...e,length:i,x1:e.xpos-i/2,y1:e.ypos,x2:e.xpos+i/2,y2:e.ypos}}render(){const t=this.getStyles({"stroke-linecap":"round",stroke:"var(--primary-text-color)",opacity:"1.0","stroke-width":"2"});return this.applyColorStops(t),this.renderItemLayers(H`

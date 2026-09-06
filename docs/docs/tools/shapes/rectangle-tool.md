@@ -52,6 +52,7 @@ For more about the card coordinate system, see [Positioning and sizing](../../ca
 | `fit.padding.x` |    No    | `1.5`                   | Horizontal padding around the fitted item         |
 | `fit.padding.y` |    No    | `0.5`                   | Vertical padding around the fitted item           |
 | `radius`        |    No    | `0`                     | Corner radius                                     |
+| `fill_mask`     |    No    | `auto`                  | Fill width removed along the inside of the outline |
 | `entity_index`  |    No    | Not set                 | Entity used by state-dependent features           |
 | `styles`        |    No    | Default rectangle style | SVG and CSS styling                               |
 | `color_stops`   |    No    | Not set                 | Colors the rectangle from its entity value        |
@@ -120,6 +121,28 @@ Common properties include:
 | `opacity`        | Opacity of the complete rectangle |
 | `fill-opacity`   | Opacity of the fill               |
 | `stroke-opacity` | Opacity of the outline            |
+
+When both the fill and outline are translucent, the colors would normally become darker where they overlap. The rectangle prevents that overlap automatically.
+
+Set `fill_mask` to a number when you want to control how much fill is removed along the inside of the outline. A larger value reveals more of the card background between the fill and outline:
+
+```yaml linenums="1"
+layout:
+  rectangles:
+    - xpos: 50
+      ypos: 50
+      width: 40
+      height: 20
+      fill_mask: 2
+      styles:
+        fill: var(--primary-color)
+        fill-opacity: 0.2
+        stroke: var(--primary-color)
+        stroke-width: 4
+        stroke-opacity: 0.6
+```
+
+Keep `fill_mask: auto` when the fill should meet the inside of the outline without a deliberate gap.
 
 See [Styling](../../appearance/styling.md) for the complete styling guide.
 
