@@ -20,8 +20,8 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     radial: { arc_degrees: 360, rotate: 0, size: 50 },
     radial_barcode: { arc_degrees: 360, rotate: 0, size: 5 },
     bar: { orientation: 'vertical' },
-    line: { show_minmax: showLineMinMax, show_dots: false },
-    area: { show_minmax: showAreaMinMax, show_dots: false },
+    line: { show: { minmax: showLineMinMax }, show_dots: false },
+    area: { show: { minmax: showAreaMinMax }, show_dots: false },
   },
   x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
   y_axis: {

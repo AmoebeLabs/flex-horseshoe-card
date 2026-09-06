@@ -94,6 +94,34 @@ export default class SparklineSeries {
       delete effectiveConfig.id;
       delete effectiveConfig.series;
 
+      // A series-wide paint choice replaces the inherited shared choice for
+      // every layer unless that series explicitly configures the deeper layer.
+      const seriesItemStyle = seriesConfig.sparkline?.show?.item_style;
+      effectiveConfig.sparkline.line.show.item_style = seriesConfig.sparkline?.line?.show?.item_style
+        ?? seriesItemStyle
+        ?? config.sparkline.line.show.item_style;
+      effectiveConfig.sparkline.line.minmax.show.item_style = seriesConfig.sparkline?.line?.minmax?.show?.item_style
+        ?? seriesItemStyle
+        ?? config.sparkline.line.minmax.show.item_style;
+      effectiveConfig.sparkline.area.show.item_style = seriesConfig.sparkline?.area?.show?.item_style
+        ?? seriesItemStyle
+        ?? config.sparkline.area.show.item_style;
+      effectiveConfig.sparkline.area.minmax.show.item_style = seriesConfig.sparkline?.area?.minmax?.show?.item_style
+        ?? seriesItemStyle
+        ?? config.sparkline.area.minmax.show.item_style;
+
+      [
+        ['sparkline.show.item_style', effectiveConfig.sparkline.show.item_style],
+        ['sparkline.line.show.item_style', effectiveConfig.sparkline.line.show.item_style],
+        ['sparkline.line.minmax.show.item_style', effectiveConfig.sparkline.line.minmax.show.item_style],
+        ['sparkline.area.show.item_style', effectiveConfig.sparkline.area.show.item_style],
+        ['sparkline.area.minmax.show.item_style', effectiveConfig.sparkline.area.minmax.show.item_style],
+      ].forEach(([name, itemStyle]) => {
+        if (!['auto', 'fixed', 'colorstop', 'colorstopinterpolated', 'colorstopgradient'].includes(itemStyle) && !Templates.isJsTemplate(itemStyle)) {
+          throw new Error(`[sparklines] series '${seriesConfig.id}' ${name} must be auto, fixed, colorstop, colorstopinterpolated or colorstopgradient`);
+        }
+      });
+
       if (existingItem !== undefined) {
         existingItem.entity_index = seriesConfig.entity_index;
         existingItem.y_axis_id = seriesConfig.y_axis_id ?? 'primary';

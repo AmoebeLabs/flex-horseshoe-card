@@ -72,8 +72,8 @@ layout:
 | `radial.background.styles` | styles | No | theme colors | Sets the fill, stroke, stroke width, opacity, and other SVG styles of the background. |
 | `show.line` | boolean | No | `true` | Shows or hides the line for line and area variants. |
 | `show.fill` | string | No | solid | Uses a solid area fill or `fade`. |
-| `line.show_minmax` | boolean | No | `false` | Shows the minimum-to-maximum range for every bin of a line variant. |
-| `area.show_minmax` | boolean | No | `false` | Shows the minimum-to-maximum range for every bin of an area variant. |
+| `line.show.minmax` | boolean | No | `false` | Shows the minimum-to-maximum range for every bin of a line variant. |
+| `area.show.minmax` | boolean | No | `false` | Shows the minimum-to-maximum range for every bin of an area variant. |
 | `dots.radius` | number | No | `2` | Sets the radius of dots and optional points. |
 | `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight line connections. |
 | `bins.per_hour` | number or `auto` | No | `auto` | Chooses how many time bins fit along the configured arc. |
@@ -115,7 +115,8 @@ A line or area can show the complete range represented by every time bin. Use th
         chart_variant: line
 
       line:
-        show_minmax: true
+        show:
+          minmax: true
     ```
 
 === "Area"
@@ -127,7 +128,8 @@ A line or area can show the complete range represented by every time bin. Use th
         chart_variant: area
 
       area:
-        show_minmax: true
+        show:
+          minmax: true
     ```
 
 ## :material-horseshoe: Choose the arc

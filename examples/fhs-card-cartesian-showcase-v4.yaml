@@ -232,21 +232,23 @@ fhs_showcase_cartesian_v4:
               ylabels_at: ticks_major
             line:
               line_width: 1
-              show_minmax: |
-                [[[
-                  const aggregate = entities[entity_slots.aggregate[0]].state;
-                  return entities[entity_slots.show_minmax[0]].state === 'on'
-                    && constants.minmax_aggregates.includes(aggregate);
-                ]]]
+              show:
+                minmax: |
+                  [[[
+                    const aggregate = entities[entity_slots.aggregate[0]].state;
+                    return entities[entity_slots.show_minmax[0]].state === 'on'
+                      && constants.minmax_aggregates.includes(aggregate);
+                  ]]]
             dots:
               radius: 1
             area:
-              show_minmax: |
-                [[[
-                  const aggregate = entities[entity_slots.aggregate[0]].state;
-                  return entities[entity_slots.show_minmax[0]].state === 'on'
-                    && constants.minmax_aggregates.includes(aggregate);
-                ]]]
+              show:
+                minmax: |
+                  [[[
+                    const aggregate = entities[entity_slots.aggregate[0]].state;
+                    return entities[entity_slots.show_minmax[0]].state === 'on'
+                      && constants.minmax_aggregates.includes(aggregate);
+                  ]]]
             colorstops_transition: |
               [[[ return entities[entity_slots.color_transition[0]].state; ]]]
             color_stops:
