@@ -64,15 +64,17 @@ export function buildLinePathDefinition(config) {
 }
 
 /**
- * Calculates the final clockwise corner coordinates for a regular polygon.
+ * Calculates the final clockwise corner coordinates for a polygon.
  * `top` identifies the exact point along a side that must lie on the vertical
  * centerline above the polygon. Width and height scale the oriented base
- * polygon independently; radius keeps the regular polygon proportions.
+ * polygon independently.
  *
  * @param {object} config - Validated polygon center, size, side count, and top position.
  * @returns {Array<{x: number, y: number}>} Clockwise polygon corners.
  */
 export function calculatePolygonPoints(config) {
+  // Start odd polygons at their top corner and even polygons at the corner
+  // immediately left of their horizontal top side.
   const baseStartAngle = config.sides % 2 === 0
     ? -Math.PI / 2 - Math.PI / config.sides
     : -Math.PI / 2;
@@ -83,8 +85,8 @@ export function calculatePolygonPoints(config) {
     basePoints.push({ x: Math.cos(angle), y: Math.sin(angle) });
   }
 
-  // A side position is linear along the actual edge. Rotate that exact point
-  // to twelve o'clock rather than approximating it as an angular fraction.
+  // Orient the configured side position toward twelve o'clock. This keeps
+  // `top` tied to polygon sides instead of to an SVG rotation angle.
   const normalizedTop = config.top === config.sides ? 0 : config.top;
   const topSide = Math.floor(normalizedTop);
   const topFraction = normalizedTop - topSide;
@@ -98,76 +100,247 @@ export function calculatePolygonPoints(config) {
     y: point.x * Math.sin(rotation) + point.y * Math.cos(rotation),
   }));
 
-  if (config.radius !== undefined) {
-    return orientedPoints.map((point) => ({
-      x: config.cx + point.x * config.radius,
-      y: config.cy + point.y * config.radius,
-    }));
-  }
-
+  // Scale after orientation so width and height remain the configured outer
+  // dimensions for every side count and every top position.
   const xValues = orientedPoints.map((point) => point.x);
   const yValues = orientedPoints.map((point) => point.y);
+  const centerX = (Math.min(...xValues) + Math.max(...xValues)) / 2;
+  const centerY = (Math.min(...yValues) + Math.max(...yValues)) / 2;
   const scaleX = config.width / (Math.max(...xValues) - Math.min(...xValues));
   const scaleY = config.height / (Math.max(...yValues) - Math.min(...yValues));
 
   return orientedPoints.map((point) => ({
-    x: config.cx + point.x * scaleX,
-    y: config.cy + point.y * scaleY,
+    x: config.cx + (point.x - centerX) * scaleX,
+    y: config.cy + (point.y - centerY) * scaleY,
   }));
 }
 
 /**
- * Builds one continuous regular-polygon centerline between numeric side
- * positions. Integers identify corners and decimals identify positions along
- * the following side. Direction changes traversal without changing numbering.
+ * Calculates the largest circular corner radius that fits a polygon without
+ * letting the rounded parts cross on any side.
+ *
+ * @param {object} config - Validated polygon center, dimensions, side count, and top position.
+ * @returns {number} Largest valid corner radius in SVG units.
+ */
+export function calculatePolygonMaximumRadius(config) {
+  const points = calculatePolygonPoints(config);
+
+  // Every corner consumes part of both adjoining sides. The tangent factor
+  // converts one unit of corner radius to that consumed side distance.
+  const tangentFactors = points.map((point, index) => {
+    const previous = points[(index - 1 + config.sides) % config.sides];
+    const next = points[(index + 1) % config.sides];
+    const previousLength = Math.hypot(previous.x - point.x, previous.y - point.y);
+    const nextLength = Math.hypot(next.x - point.x, next.y - point.y);
+    const previousUnitX = (previous.x - point.x) / previousLength;
+    const previousUnitY = (previous.y - point.y) / previousLength;
+    const nextUnitX = (next.x - point.x) / nextLength;
+    const nextUnitY = (next.y - point.y) / nextLength;
+    const interiorAngle = Math.acos(Math.max(-1, Math.min(1, previousUnitX * nextUnitX + previousUnitY * nextUnitY)));
+
+    return 1 / Math.tan(interiorAngle / 2);
+  });
+
+  // The shortest remaining side allowance determines the largest radius that
+  // can be used without two neighbouring rounded corners crossing.
+  return Math.min(...points.map((point, index) => {
+    const next = points[(index + 1) % config.sides];
+    const sideLength = Math.hypot(next.x - point.x, next.y - point.y);
+    return sideLength / (tangentFactors[index] + tangentFactors[(index + 1) % config.sides]);
+  }));
+}
+
+/**
+ * Builds one continuous rounded-polygon centerline between numeric side
+ * positions. Integers lie halfway around corners, exactly as for rounded
+ * rectangles. Decimals remain proportional over the rounded side range.
  *
  * @param {object} config - Validated polygon geometry and selected side range.
  * @returns {object} Stable polygon path definition.
  */
 export function buildPolygonPathDefinition(config) {
   const points = calculatePolygonPoints(config);
+  const line = (x1, y1, x2, y2) => ({
+    type: 'line', x1, y1, x2, y2,
+    length: Math.hypot(x2 - x1, y2 - y1),
+  });
+  // Replace every sharp corner with one circular arc. The midpoint divides
+  // that arc between the preceding and following numbered sides, matching the
+  // established rounded-rectangle position model.
+  const corners = points.map((point, index) => {
+    const previous = points[(index - 1 + config.sides) % config.sides];
+    const next = points[(index + 1) % config.sides];
+    const previousLength = Math.hypot(previous.x - point.x, previous.y - point.y);
+    const nextLength = Math.hypot(next.x - point.x, next.y - point.y);
+    const previousUnit = { x: (previous.x - point.x) / previousLength, y: (previous.y - point.y) / previousLength };
+    const nextUnit = { x: (next.x - point.x) / nextLength, y: (next.y - point.y) / nextLength };
+    const interiorAngle = Math.acos(Math.max(-1, Math.min(1, previousUnit.x * nextUnit.x + previousUnit.y * nextUnit.y)));
+    const tangentDistance = config.radius / Math.tan(interiorAngle / 2);
+    const bisectorLength = Math.hypot(previousUnit.x + nextUnit.x, previousUnit.y + nextUnit.y);
+    const centerDistance = config.radius / Math.sin(interiorAngle / 2);
+    const center = {
+      x: point.x + ((previousUnit.x + nextUnit.x) / bisectorLength) * centerDistance,
+      y: point.y + ((previousUnit.y + nextUnit.y) / bisectorLength) * centerDistance,
+    };
+    const incoming = { x: point.x + previousUnit.x * tangentDistance, y: point.y + previousUnit.y * tangentDistance };
+    const outgoing = { x: point.x + nextUnit.x * tangentDistance, y: point.y + nextUnit.y * tangentDistance };
+    const startAngle = Math.atan2(incoming.y - center.y, incoming.x - center.x);
+    let endAngle = Math.atan2(outgoing.y - center.y, outgoing.x - center.x);
+
+    if (endAngle <= startAngle) endAngle += Math.PI * 2;
+    const middleAngle = (startAngle + endAngle) / 2;
+    const middle = {
+      x: center.x + config.radius * Math.cos(middleAngle),
+      y: center.y + config.radius * Math.sin(middleAngle),
+    };
+    const arc = (arcStart, arcEnd, arcStartAngle, arcEndAngle) => ({
+      type: 'arc',
+      cx: center.x,
+      cy: center.y,
+      radius: config.radius,
+      startAngle: arcStartAngle,
+      endAngle: arcEndAngle,
+      x1: arcStart.x,
+      y1: arcStart.y,
+      x2: arcEnd.x,
+      y2: arcEnd.y,
+      length: config.radius * (arcEndAngle - arcStartAngle),
+    });
+
+    return {
+      incoming,
+      middle,
+      outgoing,
+      firstHalf: arc(incoming, middle, startAngle, middleAngle),
+      secondHalf: arc(middle, outgoing, middleAngle, endAngle),
+    };
+  });
+  // One numbered side contains half its starting corner, the straight edge,
+  // and half its ending corner. A full polygon is therefore still 0..sides.
+  const sides = corners.map((corner, index) => {
+    const nextCorner = corners[(index + 1) % config.sides];
+    return [
+      corner.secondHalf,
+      line(corner.outgoing.x, corner.outgoing.y, nextCorner.incoming.x, nextCorner.incoming.y),
+      nextCorner.firstHalf,
+    ];
+  });
+  const pointOnSegment = (segment, progress) => {
+    if (segment.type === 'line') {
+      return {
+        x: segment.x1 + (segment.x2 - segment.x1) * progress,
+        y: segment.y1 + (segment.y2 - segment.y1) * progress,
+      };
+    }
+
+    const angle = segment.startAngle + (segment.endAngle - segment.startAngle) * progress;
+    return {
+      x: segment.cx + segment.radius * Math.cos(angle),
+      y: segment.cy + segment.radius * Math.sin(angle),
+    };
+  };
+  // Decimal positions use traveled centerline distance, so 0.5 remains the
+  // true halfway point even when rounded corners consume part of the side.
+  const sidePoint = (side, fraction) => {
+    const sideLength = sides[side].reduce((total, segment) => total + segment.length, 0);
+    const distance = sideLength * fraction;
+    let consumed = 0;
+
+    for (const segment of sides[side]) {
+      if (distance <= consumed + segment.length || segment === sides[side][sides[side].length - 1]) {
+        const progress = segment.length === 0 ? 1 : (distance - consumed) / segment.length;
+        return pointOnSegment(segment, progress);
+      }
+      consumed += segment.length;
+    }
+  };
   const pointAtPosition = (position) => {
     const wrappedPosition = ((position % config.sides) + config.sides) % config.sides;
     const side = Math.floor(wrappedPosition);
-    const fraction = wrappedPosition - side;
-    const sideStart = points[side];
-    const sideEnd = points[(side + 1) % config.sides];
-
-    return {
-      x: sideStart.x + (sideEnd.x - sideStart.x) * fraction,
-      y: sideStart.y + (sideEnd.y - sideStart.y) * fraction,
-    };
+    return sidePoint(side, wrappedPosition - side);
   };
-  const startPoint = pointAtPosition(config.start);
+
+  // Corner rounding changes the traveled distance represented by a decimal
+  // side position. Orient the completed rounded centerline so the configured
+  // `top` position itself, rather than its former sharp-edge approximation,
+  // lands exactly at twelve o'clock.
+  const topPoint = pointAtPosition(config.top);
+  const rotation = -Math.PI / 2 - Math.atan2(topPoint.y - config.cy, topPoint.x - config.cx);
+  const rotatePoint = (point) => ({
+    x: config.cx + (point.x - config.cx) * Math.cos(rotation) - (point.y - config.cy) * Math.sin(rotation),
+    y: config.cy + (point.x - config.cx) * Math.sin(rotation) + (point.y - config.cy) * Math.cos(rotation),
+  });
+
+  // Append only the requested part of one numbered side. Reversing traversal
+  // changes SVG sweep direction without changing the public side numbering.
+  const appendSideRange = (commands, side, fromFraction, toFraction, direction) => {
+    const segments = sides[side];
+    const sideLength = segments.reduce((total, segment) => total + segment.length, 0);
+    const rangeStart = sideLength * Math.min(fromFraction, toFraction);
+    const rangeEnd = sideLength * Math.max(fromFraction, toFraction);
+    const orderedSegments = direction === 'clockwise' ? segments : [...segments].reverse();
+    let consumed = direction === 'clockwise' ? 0 : sideLength;
+
+    orderedSegments.forEach((segment) => {
+      const segmentStart = direction === 'clockwise' ? consumed : consumed - segment.length;
+      const segmentEnd = direction === 'clockwise' ? consumed + segment.length : consumed;
+      consumed += direction === 'clockwise' ? segment.length : -segment.length;
+      const overlapStart = Math.max(rangeStart, segmentStart);
+      const overlapEnd = Math.min(rangeEnd, segmentEnd);
+
+      if (overlapEnd <= overlapStart || segment.length === 0) return;
+
+      const forwardStart = (overlapStart - segmentStart) / segment.length;
+      const forwardEnd = (overlapEnd - segmentStart) / segment.length;
+      const targetProgress = direction === 'clockwise' ? forwardEnd : forwardStart;
+      const target = rotatePoint(pointOnSegment(segment, targetProgress));
+
+      if (segment.type === 'line') {
+        commands.push(`L ${target.x} ${target.y}`);
+      } else {
+        commands.push(`A ${segment.radius} ${segment.radius} 0 0 ${direction === 'clockwise' ? 1 : 0} ${target.x} ${target.y}`);
+      }
+    });
+  };
+  const startPoint = rotatePoint(pointAtPosition(config.start));
   const commands = [`M ${startPoint.x} ${startPoint.y}`];
   const closed = Math.abs(config.end - config.start) === config.sides;
 
   if (config.start === config.end) return createPathDefinition(commands[0], false);
 
+  // Walk side by side until the requested end is reached. Equal start/end is
+  // intentionally empty; an exact difference of `sides` is the complete path.
   if (config.direction === 'clockwise') {
     const traversalEnd = closed
       ? config.start + config.sides
       : config.end < config.start ? config.end + config.sides : config.end;
+    let position = config.start;
 
-    for (let position = Math.floor(config.start) + 1; position < traversalEnd; position += 1) {
-      const point = pointAtPosition(position);
-      commands.push(`L ${point.x} ${point.y}`);
+    while (position < traversalEnd) {
+      const sideBase = Math.floor(position);
+      const nextPosition = Math.min(traversalEnd, sideBase + 1);
+      // A traversal can continue beyond the last numbered side. Wrap that
+      // running position back to the corresponding polygon side.
+      const polygonSide = ((sideBase % config.sides) + config.sides) % config.sides;
+      appendSideRange(commands, polygonSide, position - sideBase, nextPosition - sideBase, 'clockwise');
+      position = nextPosition;
     }
-
-    const endPoint = pointAtPosition(traversalEnd);
-    commands.push(`L ${endPoint.x} ${endPoint.y}`);
   } else {
     const traversalEnd = closed
       ? config.start - config.sides
       : config.end > config.start ? config.end - config.sides : config.end;
+    let position = config.start;
 
-    for (let position = Math.ceil(config.start) - 1; position > traversalEnd; position -= 1) {
-      const point = pointAtPosition(position);
-      commands.push(`L ${point.x} ${point.y}`);
+    while (position > traversalEnd) {
+      const startsAtCorner = Number.isInteger(position);
+      const sideBase = startsAtCorner ? position - 1 : Math.floor(position);
+      const nextPosition = Math.max(traversalEnd, sideBase);
+      // Counterclockwise traversal reaches negative running positions. Wrap
+      // those positions to the unchanged clockwise polygon numbering.
+      const polygonSide = ((sideBase % config.sides) + config.sides) % config.sides;
+      appendSideRange(commands, polygonSide, position - sideBase, nextPosition - sideBase, 'counterclockwise');
+      position = nextPosition;
     }
-
-    const endPoint = pointAtPosition(traversalEnd);
-    commands.push(`L ${endPoint.x} ${endPoint.y}`);
   }
 
   if (closed) commands.push('Z');
@@ -185,6 +358,9 @@ export function buildPolygonPathDefinition(config) {
  * @returns {object} Stable rounded rectangle path definition.
  */
 export function buildRectanglePathDefinition(config) {
+  const sideCount = 4;
+  // Convert center-based card dimensions to the four outer boundaries used by
+  // the rounded side definitions below.
   const left = config.cx - config.width / 2;
   const top = config.cy - config.height / 2;
   const right = config.cx + config.width / 2;
@@ -198,6 +374,8 @@ export function buildRectanglePathDefinition(config) {
     type: 'line', x1, y1, x2, y2,
     length: Math.hypot(x2 - x1, y2 - y1),
   });
+  // Integers identify corner midpoints, not sharp corner coordinates. Each
+  // numbered side therefore owns both its straight edge and two half-corners.
   const sides = [
     [
       arc(left + radii[0], top + radii[0], radii[0], 225, 270),
@@ -234,6 +412,8 @@ export function buildRectanglePathDefinition(config) {
       y: segment.cy + segment.radius * Math.sin(angle),
     };
   };
+  // Measure a decimal position over the complete rounded side. This prevents
+  // corner radius changes from moving 0.5 away from the visual midpoint.
   const sidePoint = (side, fraction) => {
     const sideLength = sides[side].reduce((total, segment) => total + segment.length, 0);
     const distance = sideLength * fraction;
@@ -248,7 +428,7 @@ export function buildRectanglePathDefinition(config) {
     }
   };
   const pointAtPosition = (position) => {
-    const wrappedPosition = ((position % 4) + 4) % 4;
+    const wrappedPosition = ((position % sideCount) + sideCount) % sideCount;
     const side = Math.floor(wrappedPosition);
     return sidePoint(side, wrappedPosition - side);
   };
@@ -261,6 +441,8 @@ export function buildRectanglePathDefinition(config) {
     x: config.cx + (point.x - config.cx) * Math.cos(rotation) - (point.y - config.cy) * Math.sin(rotation),
     y: config.cy + (point.x - config.cx) * Math.sin(rotation) + (point.y - config.cy) * Math.cos(rotation),
   });
+  // Convert the selected fraction of one side to the required line and arc
+  // commands, preserving the configured clockwise or counterclockwise route.
   const appendSideRange = (commands, side, fromFraction, toFraction, direction) => {
     const segments = sides[side];
     const sideLength = segments.reduce((total, segment) => total + segment.length, 0);
@@ -292,33 +474,39 @@ export function buildRectanglePathDefinition(config) {
   };
   const startPoint = rotatePoint(pointAtPosition(config.start));
   const commands = [`M ${startPoint.x} ${startPoint.y}`];
-  const closed = Math.abs(config.end - config.start) === 4;
+  const closed = Math.abs(config.end - config.start) === sideCount;
 
   if (config.start === config.end) return createPathDefinition(commands[0], false);
 
+  // Continue through numbered sides until the requested endpoint. An exact
+  // range of four closes the rectangle; equal start/end remains empty.
   if (config.direction === 'clockwise') {
     const traversalEnd = closed
-      ? config.start + 4
-      : config.end < config.start ? config.end + 4 : config.end;
+      ? config.start + sideCount
+      : config.end < config.start ? config.end + sideCount : config.end;
     let position = config.start;
 
     while (position < traversalEnd) {
       const sideBase = Math.floor(position);
       const nextPosition = Math.min(traversalEnd, sideBase + 1);
-      appendSideRange(commands, ((sideBase % 4) + 4) % 4, position - sideBase, nextPosition - sideBase, 'clockwise');
+      // A full traversal reaches `sideCount`, which is rectangle side 0.
+      const rectangleSide = ((sideBase % sideCount) + sideCount) % sideCount;
+      appendSideRange(commands, rectangleSide, position - sideBase, nextPosition - sideBase, 'clockwise');
       position = nextPosition;
     }
   } else {
     const traversalEnd = closed
-      ? config.start - 4
-      : config.end > config.start ? config.end - 4 : config.end;
+      ? config.start - sideCount
+      : config.end > config.start ? config.end - sideCount : config.end;
     let position = config.start;
 
     while (position > traversalEnd) {
       const startsAtCorner = Number.isInteger(position);
       const sideBase = startsAtCorner ? position - 1 : Math.floor(position);
       const nextPosition = Math.max(traversalEnd, sideBase);
-      appendSideRange(commands, ((sideBase % 4) + 4) % 4, position - sideBase, nextPosition - sideBase, 'counterclockwise');
+      // Negative traversal positions wrap to the unchanged 0..3 numbering.
+      const rectangleSide = ((sideBase % sideCount) + sideCount) % sideCount;
+      appendSideRange(commands, rectangleSide, position - sideBase, nextPosition - sideBase, 'counterclockwise');
       position = nextPosition;
     }
   }
@@ -336,6 +524,8 @@ export function buildRectanglePathDefinition(config) {
  * @returns {object} Stable wave path definition.
  */
 export function buildWavePathDefinition(config) {
+  // Derive one perpendicular direction from the configured baseline. All wave
+  // amplitudes use this direction, so rotating the wave does not alter shape.
   const deltaX = config.x2 - config.x1;
   const deltaY = config.y2 - config.y1;
   const baselineLength = Math.hypot(deltaX, deltaY);
@@ -344,6 +534,8 @@ export function buildWavePathDefinition(config) {
   const halfWaveCount = config.waves * 2;
   const commands = [`M ${config.x1} ${config.y1}`];
 
+  // Two cubic halves make one complete wave. Alternating the control direction
+  // creates crests and troughs while shared endpoints keep joins smooth.
   for (let index = 0; index < halfWaveCount; index += 1) {
     const startProgress = index / halfWaveCount;
     const endProgress = (index + 1) / halfWaveCount;
@@ -374,6 +566,8 @@ export function buildWavePathDefinition(config) {
 export function buildSpiralPathDefinition(config) {
   const points = [];
 
+  // Sample the configured sweep while increasing radius linearly from the
+  // inner to the outer value users supplied.
   for (let index = 0; index <= config.points; index += 1) {
     const progress = index / config.points;
     const radius = config.radiusInner + (config.radiusOuter - config.radiusInner) * progress;
@@ -387,6 +581,8 @@ export function buildSpiralPathDefinition(config) {
 
   const commands = [`M ${points[0].x} ${points[0].y}`];
 
+  // Convert neighbouring samples to cubic controls. The resulting SVG remains
+  // one smooth path for state length, gradients, segments, ticks, and labels.
   for (let index = 0; index < points.length - 1; index += 1) {
     const previous = points[Math.max(0, index - 1)];
     const current = points[index];
@@ -411,6 +607,8 @@ export function buildSpiralPathDefinition(config) {
  * @returns {object} Stable self-intersecting path definition.
  */
 export function buildInfinityPathDefinition(config) {
+  // Four cubic sections make both loops and return through the center crossing.
+  // Keeping it one closed path lets every generic path layer use it unchanged.
   const halfControlX = config.radiusX / 2;
   const d = [
     `M ${config.cx} ${config.cy}`,

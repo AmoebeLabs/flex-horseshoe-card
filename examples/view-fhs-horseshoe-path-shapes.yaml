@@ -59,7 +59,9 @@ sections:
             - var_path:
                 type: polygon
                 sides: 3
-                radius: 34
+                width: 68
+                height: 68
+                radius: 4
 
       - type: custom:flex-horseshoe-card
         template:
@@ -71,6 +73,7 @@ sections:
                 sides: 6
                 width: 68
                 height: 52
+                radius: 4
                 top: 0.5
 
       - type: custom:flex-horseshoe-card

@@ -24,6 +24,7 @@ fhs_card_polygon_horseshoe_v1:
           sides: 6
           width: 72
           height: 58
+          radius: 4
           top: 0.5
           show:
             item_style: colorstopinterpolated
@@ -56,6 +57,7 @@ fhs_card_polygon_horseshoe_v1:
             sides: 6
             width: 72
             height: 58
+            radius: 4
             top: 0.5
 
           show:

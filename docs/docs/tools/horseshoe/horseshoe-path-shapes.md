@@ -30,7 +30,9 @@ layout:
       path:
         type: polygon
         sides: 6
-        radius: 38
+        width: 76
+        height: 66
+        radius: 4
 
       horseshoe_scale:
         min: 0
@@ -45,7 +47,7 @@ layout:
 | `arc` | A circular or elliptical gauge. |
 | `line` | A straight gauge at any angle. |
 | `rectangle` | A complete border or a selected route around a panel. |
-| `polygon` | A triangle, hexagon, or another regular polygon. |
+| `polygon` | A triangle, hexagon, or another many-sided shape. |
 | `wave` | A repeating wave. |
 | `spiral` | A gauge that winds outward. |
 | `infinity` | A continuous figure-eight gauge. |
@@ -99,7 +101,9 @@ These are also the defaults, so a complete shape does not need `start` or `end`.
 path:
   type: polygon
   sides: 6
-  radius: 38
+  width: 76
+  height: 66
+  radius: 4
   start: 0
   end: 4
   direction: counterclockwise
@@ -121,18 +125,19 @@ Odd-sided polygons use `top: 0` by default, which places a corner at the top. Ev
 
 Because `top` belongs to the shape itself, tick marks and labels stay correctly positioned and readable.
 
-## :material-horseshoe: Size a polygon
+## :material-horseshoe: Size and round a polygon
 
-Use a radius for a regular polygon:
+Set the polygon's outside dimensions with `width` and `height`:
 
 ```yaml linenums="1"
 path:
   type: polygon
   sides: 5
-  radius: 38
+  width: 76
+  height: 76
 ```
 
-Use both `width` and `height` when the polygon must fit exact dimensions:
+Add `radius` when the corners should be rounded. It has the same meaning as the radius of a rectangle corner:
 
 ```yaml linenums="1"
 path:
@@ -140,9 +145,8 @@ path:
   sides: 6
   width: 80
   height: 55
+  radius: 4
 ```
-
-Do not combine `radius` with `width` and `height`.
 
 ## :material-horseshoe: Keep nested paths aligned
 
@@ -181,9 +185,9 @@ See [Reuse™](../../reuse/reuse-introduction.md) when several gauges share more
 | Field | Applies to | Required | Default | Description |
 | --- | --- | :---: | --- | --- |
 | `path.type` | Both | Yes | | `rectangle` or `polygon`. |
-| `path.width` | Both | Rectangle: No; polygon: one size | `80` for rectangle | Exact shape width. |
-| `path.height` | Both | Rectangle: No; polygon: one size | `80` for rectangle | Exact shape height. |
-| `path.radius` | Both | Polygon: one size | `0` for rectangle | Rectangle corner radius or polygon center-to-corner radius. |
+| `path.width` | Both | Polygon: Yes | `80` for rectangle | Exact outer width. |
+| `path.height` | Both | Polygon: Yes | `80` for rectangle | Exact outer height. |
+| `path.radius` | Both | No | `0` | Corner radius; use `0` for sharp corners. |
 | `path.sides` | Polygon | Yes | | Number of sides; use an integer of `3` or greater. |
 | `path.start` | Both | No | `0` | Position where the path begins. |
 | `path.end` | Both | No | `4` or `sides` | Position where the path ends. |

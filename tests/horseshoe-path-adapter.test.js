@@ -173,7 +173,7 @@ test('existing arc fields become one complete path contract and retain a true 36
 
   horseshoe.updateRuntimeConfig();
 
-  assert.deepEqual(horseshoe.pathContract, {
+  assert.deepEqual(horseshoe.pathConfig, {
     type: 'arc',
     cx: 100,
     cy: 100,
@@ -204,16 +204,16 @@ test('all frozen path shapes normalize percentage config into complete generator
       },
     },
     {
-      path: { type: 'polygon', sides: 6, radius: 40 },
+      path: { type: 'polygon', sides: 6, width: 80, height: 60, radius: 5 },
       expected: {
-        type: 'polygon', cx: 100, cy: 100, sides: 6, radius: 80,
+        type: 'polygon', cx: 100, cy: 100, sides: 6, width: 160, height: 120, radius: 10,
         start: 0, end: 6, top: 0.5, direction: 'clockwise',
       },
     },
     {
       path: { type: 'polygon', sides: 5, width: 80, height: 60, top: 1.25, start: 4.5, end: 2.5, direction: 'counterclockwise' },
       expected: {
-        type: 'polygon', cx: 100, cy: 100, sides: 5, width: 160, height: 120,
+        type: 'polygon', cx: 100, cy: 100, sides: 5, width: 160, height: 120, radius: 0,
         start: 4.5, end: 2.5, top: 1.25, direction: 'counterclockwise',
       },
     },
@@ -237,7 +237,7 @@ test('all frozen path shapes normalize percentage config into complete generator
 
     horseshoe.updateRuntimeConfig();
 
-    assert.deepEqual(horseshoe.pathContract, expected);
+    assert.deepEqual(horseshoe.pathConfig, expected);
     assert.equal(typeof horseshoe.pathDefinition.d, 'string');
     assert.ok(horseshoe.pathDefinition.d.startsWith('M '));
   });
@@ -272,10 +272,11 @@ test('invalid path shape values fail at the adapter boundary', () => {
     createConfig({ type: 'arc', radius: 0 }),
     createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, start: -0.1 }),
     createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, end: 4.1 }),
-    createConfig({ type: 'polygon', sides: 2, radius: 40 }),
-    createConfig({ type: 'polygon', sides: 6, radius: 40, width: 80, height: 60 }),
+    createConfig({ type: 'polygon', sides: 2, width: 80, height: 60 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, radius: -1 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, radius: 100 }),
     createConfig({ type: 'polygon', sides: 6, width: 80 }),
-    createConfig({ type: 'polygon', sides: 6, radius: 40, top: 6.1 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, top: 6.1 }),
   ];
   invalidConfigs.forEach((config) => {
     const card = createCard();

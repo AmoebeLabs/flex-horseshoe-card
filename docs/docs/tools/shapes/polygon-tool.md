@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Polygon
-description: Add triangles, hexagons, and other regular polygon shapes to a Flexible Horseshoe Card.
+description: Add triangles, hexagons, and other polygon shapes to a Flexible Horseshoe Card.
 tags:
   - Polygon
   - Shapes
@@ -10,13 +10,13 @@ tags:
 
 # Polygon
 
-A polygon adds a triangle, hexagon, or another regular shape anywhere on the card. Use it as a background, border, status surface, or as the matching background for a polygon-shaped horseshoe.
+A polygon adds a triangle, hexagon, or another many-sided shape anywhere on the card. Use it as a background, border, status surface, or as the matching background for a polygon-shaped horseshoe.
 
 <!-- Add polygon tool examples image -->
 
 ## :material-horseshoe: Basic configuration
 
-Add polygons under `layout.polygons`. Choose the number of sides and give the shape either a radius or an exact width and height:
+Add polygons under `layout.polygons`. Choose the number of sides, width, and height:
 
 ```yaml linenums="1"
 layout:
@@ -25,7 +25,9 @@ layout:
       xpos: 50
       ypos: 50
       sides: 6
-      radius: 35
+      width: 80
+      height: 55
+      radius: 4
       styles:
         fill: var(--primary-color)
         fill-opacity: 0.2
@@ -35,9 +37,9 @@ layout:
 
 An odd-sided polygon points upward by default. An even-sided polygon has a horizontal side at the top.
 
-## :material-horseshoe: Choose the size
+## :material-horseshoe: Choose the size and corners
 
-Use `radius` when the polygon should keep its regular proportions:
+`width` and `height` set the outside dimensions. Use equal values for an evenly proportioned polygon, or different values when the shape must fit a wider or taller area:
 
 ```yaml linenums="1"
 layout:
@@ -45,20 +47,11 @@ layout:
     - xpos: 50
       ypos: 50
       sides: 5
-      radius: 35
-```
-
-Use `width` and `height` when the polygon must fit an exact area. Both fields are required together:
-
-```yaml linenums="1"
-layout:
-  polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 6
       width: 80
-      height: 55
+      height: 80
 ```
+
+Add `radius` to round the corners. Its meaning is the same as for a rectangle; omit it for sharp corners.
 
 ## :material-horseshoe: Choose what faces upward
 
@@ -90,7 +83,8 @@ layout:
     - xpos: 50
       ypos: 50
       sides: 6
-      radius: 35
+      width: 80
+      height: 55
       top: 0
 ```
 
@@ -106,6 +100,7 @@ layout:
       sides: 6
       width: 80
       height: 55
+      radius: 4
       top: 0.5
       styles:
         fill: var(--primary-color)
@@ -120,6 +115,7 @@ layout:
         sides: 6
         width: 80
         height: 55
+        radius: 4
         top: 0.5
       horseshoe_scale:
         min: 0
@@ -135,16 +131,14 @@ See [Horseshoe path shapes](../horseshoe/horseshoe-path-shapes.md) for partial p
 | `xpos` | Yes | | Horizontal center position. |
 | `ypos` | Yes | | Vertical center position. |
 | `sides` | Yes | | Number of sides; use an integer of `3` or greater. |
-| `radius` | One size | | Distance from the center to each corner. |
-| `width` | One size | | Exact width; requires `height`. |
-| `height` | One size | | Exact height; requires `width`. |
+| `width` | Yes | | Exact outer width. |
+| `height` | Yes | | Exact outer height. |
+| `radius` | No | `0` | Corner radius; use `0` for sharp corners. |
 | `top` | No | `0` for odd sides; `0.5` for even sides | Side position that faces upward. |
 | `fill_mask` | No | `auto` | Fill width removed along the inside of the outline. |
 | `entity_index` | No | Not set | Entity used for value-dependent colors, actions, and animations. |
 | `styles` | No | Default polygon style | Fill, outline, opacity, and other SVG styles. |
 | `color_stops` | No | Not set | Colors the polygon from its entity value. |
-
-Use either `radius`, or use `width` and `height`. Do not combine both sizing methods.
 
 ## :material-horseshoe: Styling and interaction
 
