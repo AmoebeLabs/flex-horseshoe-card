@@ -1,6 +1,5 @@
 import { svg } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
-import { SVGInjector } from "@tanem/svg-injector";
 import BaseTool from "./base-tool.js";
 import Colors from "./colors.js";
 import ConfigHelper from "./config-helper.js";
@@ -8,6 +7,7 @@ import Merge from "./merge.js";
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from "./weather-icons-name.ts";
 import { FONT_SIZE, SVG_VIEW_BOX } from "./const.js";
 import { entityIcon, attributeIcon } from "./frontend_mods/data/icons.ts";
+import { getIconSource, HomeAssistantIconPath, injectExternalSvgSources } from "./icon-source.js";
 
 /**
  * Layout icon tool that renders Home Assistant icons and URL image/SVG icons.
@@ -59,8 +59,7 @@ export default class IconTool extends BaseTool {
 
     this.config.svg = this.calculateSvgDimensions();
     this.iconId = Math.random().toString(36).substr(2, 9);
-    this.iconSvg = undefined;
-    this.pendingIconPath = undefined;
+    this.haIconPath = new HomeAssistantIconPath(card, this.iconId);
   }
 
   /** Updates icon configuration and geometry before entity data is assigned. */
@@ -251,81 +250,9 @@ export default class IconTool extends BaseTool {
     return this.card.entitiesIcon[iconId];
   }
 
-  /**
-   * Checks for css url(...) icon values.
-   *
-   * @param {*} icon - Icon config value.
-   * @returns {boolean} True when the icon is a css url(...).
-   */
-  isUrlIcon(icon) {
-    return (
-      typeof icon === "string" && /^url\(['"]?.+['"]?\)$/i.test(icon.trim())
-    );
-  }
-
-  /**
-   * Checks whether a URL points to an SVG file.
-   *
-   * @param {string} url - Image URL.
-   * @returns {boolean} True when the URL ends in .svg.
-   */
-  isSvgUrl(url) {
-    return url.endsWith(".svg");
-  }
-
-  /**
-   * Extracts the URL from a css url(...) value.
-   *
-   * @param {string} value - CSS url value.
-   * @returns {string} Plain URL.
-   */
-  getUrlFromCssUrl(value) {
-    return value
-      .trim()
-      .replace(/^url\(['"]?/i, "")
-      .replace(/['"]?\)$/, "");
-  }
-
-  /**
-   * Injects pending external SVG URL icons into the shadow DOM.
-   */
-  injectSvgUrlIcons() {
-    const elements = this.card.shadowRoot.querySelectorAll(
-      "svg.icon-svg-url[data-src]:not(.injected-svg)",
-    );
-
-    if (!elements.length) return;
-
-    SVGInjector(elements, {
-      /** Removes source dimensions so IconTool remains responsible for sizing. */
-      beforeEach(svgNode) {
-        svgNode.removeAttribute("height");
-        svgNode.removeAttribute("width");
-      },
-
-      afterEach: (err, injectedSvg) => {
-        if (err || !injectedSvg) return;
-
-        const url = injectedSvg.dataset.src;
-        if (!url) return;
-
-        this.card.svgUrlCache[url] = injectedSvg.cloneNode(true);
-      },
-
-      afterAll: () => {
-        this.card.requestUpdate();
-      },
-
-      cacheRequests: false,
-      evalScripts: "once",
-      httpRequestWithCredentials: false,
-      renumerateIRIElements: false,
-    });
-  }
-
   /** Injects all pending external SVG URL icons once per Lit update. */
   updated() {
-    if (this.index === 0) this.injectSvgUrlIcons();
+    if (this.index === 0) injectExternalSvgSources(this.card);
   }
 
   /**
@@ -494,19 +421,6 @@ export default class IconTool extends BaseTool {
   }
 
   /**
-   * Reads the rendered ha-icon SVG path from the shadow DOM.
-   *
-   * @returns {string|undefined} Rendered icon path.
-   */
-  getRenderedHaIconPath() {
-    const iconElement = this.card.shadowRoot.getElementById(
-      `icon-${this.iconId}`,
-    );
-
-    return iconElement?.shadowRoot?.querySelector("*")?.path;
-  }
-
-  /**
    * Renders this icon tool.
    *
    * @returns {TemplateResult} SVG template for the icon.
@@ -562,14 +476,14 @@ export default class IconTool extends BaseTool {
 
     const icon = this.buildIcon(smItem, renderItem);
 
-    if (this.isUrlIcon(icon)) {
-      const url = this.getUrlFromCssUrl(icon);
+    if (icon) {
+      const iconSource = getIconSource(icon);
 
-      if (this.isSvgUrl(url)) {
+      if (iconSource.type === "svg-url") {
         return this.renderItemLayers(
           this.renderSvgUrlIcon(
             renderItem,
-            url,
+            iconSource.value,
             configStyle,
             iconPixels,
             cx,
@@ -580,75 +494,29 @@ export default class IconTool extends BaseTool {
         );
       }
 
-      return this.renderItemLayers(
-        this.renderImageUrlIcon(
+      if (iconSource.type === "image-url") {
+        return this.renderItemLayers(
+          this.renderImageUrlIcon(
+            renderItem,
+            iconSource.value,
+            configStyle,
+            iconPixels,
+            cx,
+            cy,
+            adjust,
+          ),
           renderItem,
-          url,
-          configStyle,
-          iconPixels,
-          cx,
-          cy,
-          adjust,
-        ),
-        renderItem,
-      );
+        );
+      }
     }
 
     if (!icon) {
       return svg``;
     }
 
-    if (this.card.iconCache[icon]) {
-      this.iconSvg = this.card.iconCache[icon];
-    } else {
-      this.iconSvg = undefined;
+    const iconSvg = this.haIconPath.getPath(icon);
 
-      if (this.pendingIconPath !== icon) {
-        this.pendingIconPath = icon;
-
-        let attempts = 0;
-        const maxAttempts = 40;
-        const delay = 50;
-
-        const readIconPath = () => {
-          if (this.pendingIconPath !== icon) return;
-
-          const iconSvg = this.getRenderedHaIconPath();
-
-          if (iconSvg) {
-            this.iconSvg = iconSvg;
-            this.card.iconCache[icon] = iconSvg;
-            this.pendingIconPath = undefined;
-
-            this.card.requestUpdate();
-            return;
-          }
-
-          attempts += 1;
-
-          if (attempts >= maxAttempts) {
-            this.pendingIconPath = undefined;
-            return;
-          }
-
-          window.setTimeout(readIconPath, delay);
-        };
-
-        const afterRender =
-          this.card?.updateComplete &&
-          typeof this.card.updateComplete.then === "function"
-            ? this.card.updateComplete
-            : new Promise((resolve) => {
-                window.requestAnimationFrame(resolve);
-              });
-
-        afterRender.then(() => {
-          window.setTimeout(readIconPath, 0);
-        });
-      }
-    }
-
-    if (this.iconSvg) {
+    if (iconSvg) {
       const x1 = cx - iconPixels * adjust;
       const y1 =
         cy - iconPixels * 0.5 - (renderItem.yposc ? 0 : iconPixels * 0.25);
@@ -686,7 +554,7 @@ export default class IconTool extends BaseTool {
               <g class="icon-rotate" transform="rotate(${rotate})">
                 <g class="icon-scale" transform="scale(${scale})">
                   <g class="icon-center" transform="translate(-12 -12)">
-                    <path d="${this.iconSvg}"></path>
+                    <path d="${iconSvg}"></path>
                   </g>
                 </g>
               </g>
@@ -722,7 +590,7 @@ export default class IconTool extends BaseTool {
           >
             <ha-icon
               .icon=${icon}
-              id="icon-${this.iconId}"
+              id="${this.haIconPath.elementId}"
             ></ha-icon>
           </div>
         </body>
