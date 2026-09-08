@@ -37,8 +37,6 @@ sections:
                 width: 62
                 height: 42
                 radius: 7
-                start: top
-                direction: clockwise
 
       - type: custom:flex-horseshoe-card
         template:
