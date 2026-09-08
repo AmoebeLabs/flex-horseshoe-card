@@ -418,6 +418,41 @@ test('the path-engine gauge applies the existing item and layer color-filter cas
   assert.match(horseshoe.renderContract.stateRanges[0].color, /^rgb/);
 });
 
+test('state markers use the calculated state fill and preserve explicit state styles', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: {
+      horseshoe_style: 'colorstopinterpolated',
+      state_progress: false,
+      state_marker: true,
+    },
+    horseshoe_state: {
+      styles: {
+        stroke: '#ffffff',
+        'stroke-width': 2,
+        opacity: 0.6,
+      },
+    },
+    color_stops: {
+      colors: {
+        0: '#0000ff',
+        100: '#00ff00',
+      },
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+
+  assert.equal(horseshoe.stateMarkerStyles.fill, '#007f7fff');
+  assert.equal(horseshoe.stateMarkerStyles.stroke, '#ffffff');
+  assert.equal(horseshoe.stateMarkerStyles['stroke-width'], '2');
+  assert.equal(horseshoe.stateMarkerStyles.opacity, '0.6');
+  assert.equal(horseshoe.config.show.state_progress, false);
+  assert.equal(horseshoe.config.show.state_marker, true);
+});
+
 test('ranked string states keep every segment mounted and change only active opacity', () => {
   const config = createConfig({ type: 'rectangle', width: 80, height: 60 });
   Object.assign(config.layout.horseshoes[0], {

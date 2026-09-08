@@ -7,7 +7,8 @@ import Merge from "./merge.js";
 import FIXED_WEATHER_ATTRIBUTE_ICONS_NAME from "./weather-icons-name.ts";
 import { FONT_SIZE, SVG_VIEW_BOX } from "./const.js";
 import { entityIcon, attributeIcon } from "./frontend_mods/data/icons.ts";
-import { getIconSource, HomeAssistantIconPath, injectExternalSvgSources } from "./icon-source.js";
+import { getIconSource, HomeAssistantIconPath } from "./icon-source.js";
+import { injectExternalSvgSources } from "./icon-svg-source.js";
 
 /**
  * Layout icon tool that renders Home Assistant icons and URL image/SVG icons.
