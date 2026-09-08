@@ -52,6 +52,7 @@ export default class HorseshoeGauge extends BaseTool {
       'horseshoe_position',
       'horseshoe_scale',
       'horseshoe_state',
+      'horseshoe_marker',
       'horseshoe_background',
       'horseshoe_labels',
       'horseshoe_tickmarks',
@@ -184,6 +185,10 @@ export default class HorseshoeGauge extends BaseTool {
       arc_degrees: itemConfig.arc_degrees,
       start_angle: itemConfig.start_angle,
     };
+
+    if (this.config.horseshoe_marker.attach_to === 'center' && sourcePath.type !== 'arc') {
+      throw new Error('[horseshoes] center-attached horseshoe_marker requires path.type arc');
+    }
 
     if (!PATH_TYPES.includes(sourcePath.type)) {
       throw new Error(`[horseshoes] path.type '${sourcePath.type}' is invalid [${PATH_TYPES.join(', ')}]`);

@@ -362,6 +362,22 @@ test('major and minor tickmark visibility remains independently configurable', (
   assert.equal(horseshoe.pathElements.ticks.every((tick) => tick.layer === 'minor'), true);
 });
 
+test('center-attached state markers are limited to arc paths', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    horseshoe_marker: {
+      attach_to: 'center',
+      icon: 'mdi:arrow-up-bold',
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  assert.throws(
+    () => horseshoe.updateRuntimeConfig(),
+    /center-attached horseshoe_marker requires path.type arc/,
+  );
+});
+
 test('color-stop segments share one normalized contract for scale and clipped state', () => {
   const config = createConfig({ type: 'line', length: 80 });
   Object.assign(config.layout.horseshoes[0], {
