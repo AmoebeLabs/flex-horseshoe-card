@@ -34,7 +34,7 @@ A rectangle can use a fixed center position, width, and height. It can also use 
 
 A circle needs a center position and a radius. Define the radius in SVG units with `radius`, or use `radius_percent` to scale it relative to the card.
 
-A polygon needs at least three sides. Use `radius` to keep its regular proportions, or use `width` and `height` to fit an exact area. See [Polygon](polygon-tool.md) for choosing which corner or side faces upward.
+A polygon needs at least three sides, a width, and a height. Add `radius` when its corners should be rounded. See [Polygon](polygon-tool.md) for choosing which corner or side faces upward.
 
 Horizontal and vertical lines both use a center position and a length. Their configuration is almost identical; only the section name changes. Horizontal lines belong in `hlines`, while vertical lines belong in `vlines`.
 
@@ -229,7 +229,7 @@ Color stops use `fill` for rectangles, polygons, and arcs, and `stroke` for circ
 
 ## :material-horseshoe: Configuration fields
 
-The required fields depend on the shape type. Rectangles use either fixed dimensions or `fit`, polygons use a radius or exact dimensions, circles need a radius, and lines use a length.
+The required fields depend on the shape type. Rectangles use either fixed dimensions or `fit`, polygons use width and height, circles need a radius, and lines use a length.
 
 === "Rectangle"
     | Field | Required | Default | Description |
@@ -270,9 +270,9 @@ The required fields depend on the shape type. Rectangles use either fixed dimens
     | `xpos` | :material-check: | | Horizontal center position |
     | `ypos` | :material-check: | | Vertical center position |
     | `sides` | :material-check: | | Number of sides; `3` or greater |
-    | `radius` | One size | | Distance from the center to a corner |
-    | `width` | One size | | Exact width; requires `height` |
-    | `height` | One size | | Exact height; requires `width` |
+    | `width` | :material-check: | | Exact outer width |
+    | `height` | :material-check: | | Exact outer height |
+    | `radius` | :material-close: | `0` | Corner radius; use `0` for sharp corners |
     | `top` | :material-close: | `0` for odd sides; `0.5` for even sides | Corner or side position that faces upward |
     | `entity_index` | :material-close: | Not set | Entity used by state-dependent features |
     | `styles` | :material-close: | Default polygon style | SVG and CSS styling |

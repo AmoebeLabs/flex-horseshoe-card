@@ -10,6 +10,7 @@ import {
   buildRectanglePathDefinition,
   buildSpiralPathDefinition,
   buildWavePathDefinition,
+  calculatePolygonMaximumRadius,
   calculatePolygonPoints,
 } from '../src/path-generators.js';
 
@@ -118,8 +119,8 @@ test('rectangle generator traverses a complete sharp path counterclockwise', () 
 });
 
 test('polygon points keep the natural odd and even top orientation', () => {
-  const triangle = calculatePolygonPoints({ cx: 50, cy: 50, sides: 3, radius: 40, top: 0 });
-  const hexagon = calculatePolygonPoints({ cx: 50, cy: 50, sides: 6, radius: 40, top: 0.5 });
+  const triangle = calculatePolygonPoints({ cx: 50, cy: 50, sides: 3, width: 80, height: 80, top: 0 });
+  const hexagon = calculatePolygonPoints({ cx: 50, cy: 50, sides: 6, width: 80, height: 80, top: 0.5 });
 
   assert.ok(Math.abs(triangle[0].x - 50) < 1e-10);
   assert.equal(triangle[0].y, 10);
@@ -138,11 +139,11 @@ test('polygon width and height produce exact outer dimensions', () => {
 
 test('polygon generator selects decimal side positions in both directions', () => {
   const clockwise = buildPolygonPathDefinition({
-    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
     top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
   });
   const counterClockwise = buildPolygonPathDefinition({
-    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
     top: 0.5, start: 1.5, end: 3.5, direction: 'counterclockwise',
   });
 
@@ -153,14 +154,14 @@ test('polygon generator selects decimal side positions in both directions', () =
   assert.match(counterClockwise.d, /^M 90 50 L 90 /);
   assert.match(counterClockwise.d, / L 10 50$/);
   assert.equal(buildPathDefinition({
-    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
     top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
   }).signature, clockwise.signature);
 });
 
 test('polygon generator distinguishes zero length from an exact complete path', () => {
   const config = {
-    type: 'polygon', cx: 50, cy: 50, sides: 6, radius: 40,
+    type: 'polygon', cx: 50, cy: 50, sides: 6, width: 80, height: 80, radius: 0,
     top: 0.5, direction: 'clockwise',
   };
   const empty = buildPolygonPathDefinition({ ...config, start: 0, end: 0 });
@@ -177,6 +178,30 @@ test('polygon generator distinguishes zero length from an exact complete path', 
   assert.equal(completeCounterClockwise.closed, true);
   assert.equal((completeCounterClockwise.d.match(/ L /g) ?? []).length, 6);
   assert.notEqual(completeCounterClockwise.d, complete.d);
+});
+
+test('polygon radius rounds corners without changing its configured size contract', () => {
+  const config = {
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 5,
+    top: 0.5, start: 0, end: 4, direction: 'clockwise',
+  };
+  const definition = buildPolygonPathDefinition(config);
+
+  assert.equal(definition.closed, true);
+  assert.equal((definition.d.match(/ A 5 5 /g) ?? []).length, 8);
+  assert.equal((definition.d.match(/ L /g) ?? []).length, 4);
+  assert.ok(Math.abs(calculatePolygonMaximumRadius(config) - 30) < 1e-10);
+});
+
+test('rounded polygon places the configured decimal side position exactly at the top', () => {
+  const definition = buildPolygonPathDefinition({
+    type: 'polygon', cx: 100, cy: 100, sides: 3, width: 140, height: 80, radius: 10,
+    top: 0.25, start: 0.25, end: 0.25, direction: 'clockwise',
+  });
+  const [x, y] = definition.d.slice(2).split(' ').map(Number);
+
+  assert.ok(Math.abs(x - 100) < 1e-10);
+  assert.ok(y < 100);
 });
 
 test('side-positioned rectangle builds the same roof at every size', () => {

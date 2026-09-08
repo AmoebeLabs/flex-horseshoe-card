@@ -1,11 +1,11 @@
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import BaseTool from './base-tool.js';
-import { buildPolygonPathDefinition, calculatePolygonPoints } from './path-generators.js';
+import { buildPolygonPathDefinition, calculatePolygonMaximumRadius } from './path-generators.js';
 import Utils from './utils.js';
 
 /**
- * Layout polygon tool that renders one complete regular polygon surface.
+ * Layout polygon tool that renders one complete polygon surface.
  */
 export default class PolygonTool extends BaseTool {
   /**
@@ -35,6 +35,7 @@ export default class PolygonTool extends BaseTool {
   constructor(config, index, templates, cardId, card) {
     const polygonConfig = {
       fill_mask: 'auto',
+      radius: 0,
       ...config,
     };
 
@@ -51,26 +52,21 @@ export default class PolygonTool extends BaseTool {
   }
 
   /**
-   * Validates polygon sizing and converts it to the shared path-generator contract.
+   * Validates polygon sizing and converts it to the shared path-generator config.
    *
    * @param {object} config - Static or evaluated runtime polygon config.
    */
   setPolygonPathDefinition(config) {
     const sides = config.sides;
-    const usesRadius = config.radius !== undefined;
-    const usesDimensions = config.width !== undefined || config.height !== undefined;
     const top = config.top ?? (sides % 2 === 0 ? 0.5 : 0);
 
     if (!Number.isInteger(sides) || sides < 3) {
       throw new Error('[polygons] sides must be an integer equal to or greater than 3');
     }
-    if (usesRadius === usesDimensions || (usesDimensions && (config.width === undefined || config.height === undefined))) {
-      throw new Error('[polygons] requires either radius, or both width and height');
-    }
-    if (usesRadius && config.radius <= 0) throw new Error('[polygons] radius must be greater than zero');
-    if (usesDimensions && (config.width <= 0 || config.height <= 0)) {
+    if (config.width === undefined || config.height === undefined || config.width <= 0 || config.height <= 0) {
       throw new Error('[polygons] width and height must be greater than zero');
     }
+    if (!Number.isFinite(config.radius) || config.radius < 0) throw new Error('[polygons] radius must be zero or greater');
     if (!Number.isFinite(top) || top < 0 || top > sides) {
       throw new Error(`[polygons] top must be a number from 0 through ${sides}`);
     }
@@ -80,24 +76,23 @@ export default class PolygonTool extends BaseTool {
 
     const center = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     config.svg = center;
-    this.pathContract = {
+    this.pathConfig = {
       type: 'polygon',
       cx: center.xpos,
       cy: center.ypos,
       sides,
-      ...(usesRadius
-        ? { radius: Utils.calculateSvgDimension(config.radius) }
-        : {
-          width: Utils.calculateSvgDimension(config.width),
-          height: Utils.calculateSvgDimension(config.height),
-        }),
+      width: Utils.calculateSvgDimension(config.width),
+      height: Utils.calculateSvgDimension(config.height),
+      radius: Utils.calculateSvgDimension(config.radius),
       start: 0,
       end: sides,
       top,
       direction: 'clockwise',
     };
-    this.pathDefinition = buildPolygonPathDefinition(this.pathContract);
-    this.points = calculatePolygonPoints(this.pathContract);
+    if (this.pathConfig.radius > calculatePolygonMaximumRadius(this.pathConfig)) {
+      throw new Error('[polygons] radius is too large for its width, height, and number of sides');
+    }
+    this.pathDefinition = buildPolygonPathDefinition(this.pathConfig);
   }
 
   /**
@@ -119,12 +114,13 @@ export default class PolygonTool extends BaseTool {
     // fill and stroke from blending while preserving the configured outline.
     const strokeWidth = Number(styles['stroke-width']);
     const fillMaskInset = this.config.fill_mask === 'auto' ? strokeWidth / 2 : this.config.fill_mask;
-    const xValues = this.points.map((point) => point.x);
-    const yValues = this.points.map((point) => point.y);
-    const minX = Math.min(...xValues);
-    const maxX = Math.max(...xValues);
-    const minY = Math.min(...yValues);
-    const maxY = Math.max(...yValues);
+    // `top` can rotate the shape to any side position. A circle around the
+    // configured dimensions gives the fill mask enough room for every angle.
+    const maskRadius = Math.hypot(this.pathConfig.width, this.pathConfig.height) / 2;
+    const minX = this.pathConfig.cx - maskRadius;
+    const maxX = this.pathConfig.cx + maskRadius;
+    const minY = this.pathConfig.cy - maskRadius;
+    const maxY = this.pathConfig.cy + maskRadius;
     const maskId = `${this.cardId}-polygon-${this.index}-fill-mask`;
     const fillStyles = {
       ...styles,

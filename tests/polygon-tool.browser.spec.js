@@ -52,11 +52,11 @@ test('polygon layout tool renders on the exact shared horseshoe polygon path', a
             };
             const templates = { hasJavascriptTemplates: () => false };
             const tool = new PolygonTool({
-              sides: 6, xpos: 50, ypos: 50, width: 70, height: 50, top: 0.5,
+              sides: 6, xpos: 50, ypos: 50, width: 70, height: 50, radius: 4, top: 0.5,
               styles: { fill: '#38bdf8', 'fill-opacity': 0.35, stroke: '#0f172a', 'stroke-width': 3 },
             }, 0, templates, 'fixture', card);
             const horseshoePath = buildPolygonPathDefinition({
-              type: 'polygon', cx: 100, cy: 100, sides: 6, width: 140, height: 100,
+              type: 'polygon', cx: 100, cy: 100, sides: 6, width: 140, height: 100, radius: 8,
               start: 0, end: 6, top: 0.5, direction: 'clockwise',
             });
 

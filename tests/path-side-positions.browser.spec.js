@@ -14,7 +14,7 @@ test('browser geometry measures polygon and rounded rectangle side ranges as one
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     document.body.append(svg);
     const polygonConfig = {
-      cx: 100, cy: 100, sides: 6, width: 140, height: 100,
+      cx: 100, cy: 100, sides: 6, width: 140, height: 100, radius: 0,
       top: 0.1, start: 5.5, end: 2.5, direction: 'clockwise',
     };
     const rectangleConfig = {
@@ -82,7 +82,7 @@ test('browser geometry closes only an explicitly complete side range', async ({ 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     document.body.append(svg);
     const base = {
-      cx: 50, cy: 50, sides: 5, radius: 40, top: 0,
+      cx: 50, cy: 50, sides: 5, width: 80, height: 80, radius: 0, top: 0,
       direction: 'clockwise',
     };
     const emptyDefinition = buildPolygonPathDefinition({ ...base, start: 0, end: 0 });
