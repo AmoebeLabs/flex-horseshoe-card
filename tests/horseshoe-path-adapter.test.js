@@ -378,6 +378,32 @@ test('center-attached state markers are limited to arc paths', () => {
   );
 });
 
+test('state marker styles override the inherited state appearance', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    horseshoe_state: {
+      styles: {
+        fill: '#2563eb',
+        opacity: 0.5,
+      },
+    },
+    horseshoe_marker: {
+      styles: {
+        fill: '#ffffff',
+        opacity: 1,
+      },
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+
+  assert.equal(horseshoe.config.horseshoe_state.styles.fill, '#2563eb');
+  assert.equal(horseshoe.stateMarkerStyles.fill, '#ffffff');
+  assert.equal(horseshoe.stateMarkerStyles.opacity, '1');
+});
+
 test('color-stop segments share one normalized contract for scale and clipped state', () => {
   const config = createConfig({ type: 'line', length: 80 });
   Object.assign(config.layout.horseshoes[0], {

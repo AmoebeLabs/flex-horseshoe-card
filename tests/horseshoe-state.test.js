@@ -32,6 +32,7 @@ test('minimal horseshoe configuration normalizes an empty color-stop configurati
     size: 12,
     start_offset: 0,
     end_offset: 0,
+    styles: {},
   });
 });
 
@@ -44,6 +45,10 @@ test('path marker configuration uses an explicit source and preserves signed pla
       size: 10,
       rotate: -90,
       offset: -4,
+      styles: {
+        fill: 'white',
+        opacity: 0.8,
+      },
     },
   }, 0, groupManager, 'dark');
   const config = normalizeRuntimeConfig(baseConfig, 'dark');
@@ -57,6 +62,10 @@ test('path marker configuration uses an explicit source and preserves signed pla
     size: 10,
     start_offset: 0,
     end_offset: 0,
+    styles: {
+      fill: 'white',
+      opacity: '0.8',
+    },
   });
 });
 
@@ -82,6 +91,7 @@ test('center marker configuration requires an icon and keeps both signed offsets
     size: undefined,
     start_offset: -2,
     end_offset: 3,
+    styles: {},
   });
 });
 

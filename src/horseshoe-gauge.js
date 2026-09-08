@@ -609,6 +609,7 @@ export default class HorseshoeGauge extends BaseTool {
     this.stateMarkerStyles = {
       ...stateStyles,
       fill: markerColor,
+      ...this.config.horseshoe_marker.styles,
     };
 
     const targetProgress = this.valueMapper.valueToProgress(this.value);
