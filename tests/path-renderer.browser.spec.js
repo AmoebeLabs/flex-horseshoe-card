@@ -43,10 +43,10 @@ test('generic renderer paints the same normalized ranges on every path shape', a
               }),
               buildLinePathDefinition({ x1: 10, y1: 50, x2: 90, y2: 50 }),
               buildRectanglePathDefinition({
-                x: 15, y: 15, width: 70, height: 70,
+                cx: 50, cy: 50, width: 70, height: 70,
                 radiusTopLeft: 8, radiusTopRight: 8,
                 radiusBottomRight: 8, radiusBottomLeft: 8,
-                start: 'top', direction: 'clockwise',
+                start: 0, end: 4, top: 0.5, direction: 'clockwise',
               }),
               buildWavePathDefinition({
                 x1: 10, y1: 50, x2: 90, y2: 50,

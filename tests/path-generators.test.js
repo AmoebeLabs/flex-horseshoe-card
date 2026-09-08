@@ -6,9 +6,12 @@ import {
   buildInfinityPathDefinition,
   buildLinePathDefinition,
   buildPathDefinition,
+  buildPolygonPathDefinition,
   buildRectanglePathDefinition,
   buildSpiralPathDefinition,
   buildWavePathDefinition,
+  calculatePolygonMaximumRadius,
+  calculatePolygonPoints,
 } from '../src/path-generators.js';
 
 test('arc generator builds partial clockwise and counter-clockwise centerlines', () => {
@@ -71,44 +74,176 @@ test('line generator preserves configured endpoints', () => {
   });
 });
 
-test('rectangle generator keeps one signature for equivalent geometry', () => {
+test('rectangle generator dispatches the same numeric side-position geometry', () => {
   const config = {
     type: 'rectangle',
-    x: 10,
-    y: 20,
+    cx: 50,
+    cy: 50,
     width: 80,
     height: 60,
     radiusTopLeft: 5,
     radiusTopRight: 10,
     radiusBottomRight: 15,
     radiusBottomLeft: 20,
-    start: 'top',
+    start: 0,
+    end: 4,
+    top: 0.5,
     direction: 'clockwise',
   };
   const direct = buildRectanglePathDefinition(config);
   const dispatched = buildPathDefinition(config);
 
   assert.equal(direct.closed, true);
-  assert.equal(direct.d, 'M 50 20 L 80 20 Q 90 20 90 30 L 90 50 L 90 65 Q 90 80 75 80 L 50 80 L 30 80 Q 10 80 10 60 L 10 50 L 10 25 Q 10 20 15 20 L 50 20 Z');
+  assert.equal((direct.d.match(/ A /g) ?? []).length, 8);
+  assert.match(direct.d, / Z$/);
   assert.equal(dispatched.signature, direct.signature);
 });
 
-test('rectangle generator changes origin and traversal without changing its bounds', () => {
+test('rectangle generator traverses a complete sharp path counterclockwise', () => {
   const definition = buildRectanglePathDefinition({
-    x: 10,
-    y: 20,
+    cx: 50,
+    cy: 50,
     width: 80,
     height: 60,
     radiusTopLeft: 0,
     radiusTopRight: 0,
     radiusBottomRight: 0,
     radiusBottomLeft: 0,
-    start: 'right',
-    direction: 'counter-clockwise',
+    start: 4,
+    end: 0,
+    top: 0.5,
+    direction: 'counterclockwise',
   });
 
-  assert.match(definition.d, /^M 90 50 L 90 20/);
-  assert.match(definition.d, /L 90 50 Z$/);
+  assert.equal(definition.d, 'M 10 20 L 10 80 L 90 80 L 90 20 L 10 20 Z');
+});
+
+test('polygon points keep the natural odd and even top orientation', () => {
+  const triangle = calculatePolygonPoints({ cx: 50, cy: 50, sides: 3, width: 80, height: 80, top: 0 });
+  const hexagon = calculatePolygonPoints({ cx: 50, cy: 50, sides: 6, width: 80, height: 80, top: 0.5 });
+
+  assert.ok(Math.abs(triangle[0].x - 50) < 1e-10);
+  assert.equal(triangle[0].y, 10);
+  assert.ok(Math.abs(hexagon[0].y - hexagon[1].y) < 1e-10);
+  assert.ok(Math.abs((hexagon[0].x + hexagon[1].x) / 2 - 50) < 1e-10);
+});
+
+test('polygon width and height produce exact outer dimensions', () => {
+  const points = calculatePolygonPoints({ cx: 50, cy: 50, sides: 5, width: 80, height: 60, top: 0 });
+  const xValues = points.map((point) => point.x);
+  const yValues = points.map((point) => point.y);
+
+  assert.ok(Math.abs(Math.max(...xValues) - Math.min(...xValues) - 80) < 1e-10);
+  assert.ok(Math.abs(Math.max(...yValues) - Math.min(...yValues) - 60) < 1e-10);
+});
+
+test('polygon generator selects decimal side positions in both directions', () => {
+  const clockwise = buildPolygonPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  });
+  const counterClockwise = buildPolygonPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
+    top: 0.5, start: 1.5, end: 3.5, direction: 'counterclockwise',
+  });
+
+  assert.equal(clockwise.closed, false);
+  assert.equal(counterClockwise.closed, false);
+  assert.match(clockwise.d, /^M 10 50 L 10 /);
+  assert.match(clockwise.d, / L 90 50$/);
+  assert.match(counterClockwise.d, /^M 90 50 L 90 /);
+  assert.match(counterClockwise.d, / L 10 50$/);
+  assert.equal(buildPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 0,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  }).signature, clockwise.signature);
+});
+
+test('polygon generator distinguishes zero length from an exact complete path', () => {
+  const config = {
+    type: 'polygon', cx: 50, cy: 50, sides: 6, width: 80, height: 80, radius: 0,
+    top: 0.5, direction: 'clockwise',
+  };
+  const empty = buildPolygonPathDefinition({ ...config, start: 0, end: 0 });
+  const complete = buildPolygonPathDefinition({ ...config, start: 0, end: 6 });
+  const completeCounterClockwise = buildPolygonPathDefinition({
+    ...config, start: 0, end: 6, direction: 'counterclockwise',
+  });
+
+  assert.equal(empty.closed, false);
+  assert.doesNotMatch(empty.d, / L /);
+  assert.equal(complete.closed, true);
+  assert.match(complete.d, / Z$/);
+  assert.equal((complete.d.match(/ L /g) ?? []).length, 6);
+  assert.equal(completeCounterClockwise.closed, true);
+  assert.equal((completeCounterClockwise.d.match(/ L /g) ?? []).length, 6);
+  assert.notEqual(completeCounterClockwise.d, complete.d);
+});
+
+test('polygon radius rounds corners without changing its configured size contract', () => {
+  const config = {
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60, radius: 5,
+    top: 0.5, start: 0, end: 4, direction: 'clockwise',
+  };
+  const definition = buildPolygonPathDefinition(config);
+
+  assert.equal(definition.closed, true);
+  assert.equal((definition.d.match(/ A 5 5 /g) ?? []).length, 8);
+  assert.equal((definition.d.match(/ L /g) ?? []).length, 4);
+  assert.ok(Math.abs(calculatePolygonMaximumRadius(config) - 30) < 1e-10);
+});
+
+test('rounded polygon places the configured decimal side position exactly at the top', () => {
+  const definition = buildPolygonPathDefinition({
+    type: 'polygon', cx: 100, cy: 100, sides: 3, width: 140, height: 80, radius: 10,
+    top: 0.25, start: 0.25, end: 0.25, direction: 'clockwise',
+  });
+  const [x, y] = definition.d.slice(2).split(' ').map(Number);
+
+  assert.ok(Math.abs(x - 100) < 1e-10);
+  assert.ok(y < 100);
+});
+
+test('side-positioned rectangle builds the same roof at every size', () => {
+  const definition = buildRectanglePathDefinition({
+    cx: 50, cy: 50, width: 80, height: 60,
+    radiusTopLeft: 0, radiusTopRight: 0, radiusBottomRight: 0, radiusBottomLeft: 0,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  });
+
+  assert.equal(definition.closed, false);
+  assert.equal(definition.d, 'M 10 50 L 10 20 L 90 20 L 90 50');
+});
+
+test('side-positioned rectangle assigns integer positions to rounded-corner midpoints', () => {
+  const definition = buildRectanglePathDefinition({
+    cx: 50, cy: 50, width: 80, height: 60,
+    radiusTopLeft: 10, radiusTopRight: 10, radiusBottomRight: 10, radiusBottomLeft: 10,
+    top: 0.5, start: 0, end: 4, direction: 'clockwise',
+  });
+  const [, startX, startY] = definition.d.match(/^M ([^ ]+) ([^ ]+)/);
+
+  assert.ok(Math.abs(Number(startX) - (20 + 10 * Math.cos(225 * Math.PI / 180))) < 1e-10);
+  assert.ok(Math.abs(Number(startY) - (30 + 10 * Math.sin(225 * Math.PI / 180))) < 1e-10);
+  assert.equal(definition.closed, true);
+  assert.equal((definition.d.match(/ A /g) ?? []).length, 8);
+  assert.match(definition.d, / Z$/);
+});
+
+test('side-positioned rectangle keeps a complete path in either direction', () => {
+  const config = {
+    cx: 50, cy: 50, width: 80, height: 60,
+    radiusTopLeft: 10, radiusTopRight: 10, radiusBottomRight: 10, radiusBottomLeft: 10,
+    top: 0.5, start: 0, end: 4,
+  };
+  const clockwise = buildRectanglePathDefinition({ ...config, direction: 'clockwise' });
+  const counterClockwise = buildRectanglePathDefinition({ ...config, direction: 'counterclockwise' });
+
+  assert.equal(clockwise.closed, true);
+  assert.equal(counterClockwise.closed, true);
+  assert.equal((clockwise.d.match(/ A /g) ?? []).length, 8);
+  assert.equal((counterClockwise.d.match(/ A /g) ?? []).length, 8);
+  assert.notEqual(counterClockwise.d, clockwise.d);
 });
 
 test('wave generator preserves endpoints and emits two cubic halves per wave', () => {

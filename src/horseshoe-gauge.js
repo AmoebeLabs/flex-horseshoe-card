@@ -7,7 +7,7 @@ import { GaugeScale } from './horseshoe-geometry.js';
 import { applyEllipsis, buildLabelStopItems } from './horseshoe-labels.js';
 import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
 import { applyLegacyScaleTickmarkConfig, buildTickValues, getTickmarkVisibility } from './horseshoe-tickmarks.js';
-import { buildArcPathDefinition, buildInfinityPathDefinition, buildLinePathDefinition, buildRectanglePathDefinition, buildSpiralPathDefinition, buildWavePathDefinition } from './path-generators.js';
+import { buildArcPathDefinition, buildInfinityPathDefinition, buildLinePathDefinition, buildPolygonPathDefinition, buildRectanglePathDefinition, buildSpiralPathDefinition, buildWavePathDefinition, calculatePolygonMaximumRadius } from './path-generators.js';
 import PathGeometry, { buildOffsetPathDefinition, TransformedPathGeometry } from './path-geometry.js';
 import { buildPathElements } from './path-elements.js';
 import { renderPathElements } from './path-elements-renderer.js';
@@ -17,11 +17,11 @@ import { renderNormalizedPathBands } from './path-mask-renderer.js';
 import { buildPaintedRanges, PathValueMapper } from './path-ranges.js';
 import Utils from './utils.js';
 
-const PATH_TYPES = ['arc', 'line', 'rectangle', 'wave', 'spiral', 'infinity'];
+const PATH_TYPES = ['arc', 'line', 'rectangle', 'polygon', 'wave', 'spiral', 'infinity'];
 
 /**
- * Translates horseshoe configuration into the complete contracts consumed by
- * the generic path engine. Compatibility, defaults, and validation end here;
+ * Translates horseshoe configuration into the complete path and rendering data
+ * consumed by the generic path engine. Compatibility, defaults, and validation end here;
  * path modules never inspect card configuration.
  */
 export default class HorseshoeGauge extends BaseTool {
@@ -88,7 +88,7 @@ export default class HorseshoeGauge extends BaseTool {
 
     this.activeItemConfig = this.config;
     this.runtimeConfig = undefined;
-    this.pathContract = undefined;
+    this.pathConfig = undefined;
     this.pathDefinition = undefined;
     this.scale = undefined;
     this.valueMapper = undefined;
@@ -192,7 +192,7 @@ export default class HorseshoeGauge extends BaseTool {
     const center = this.config.svg;
     const dimension = (value) => Utils.calculateSvgDimension(value);
 
-    // Every branch creates the exact complete generator contract. Shared item
+    // Every branch creates the complete config for one path generator. Shared item
     // placement stays outside path; all shape-specific fields remain in path.
     switch (sourcePath.type) {
       case 'arc': {
@@ -203,7 +203,7 @@ export default class HorseshoeGauge extends BaseTool {
         if (radiusX <= 0 || radiusY <= 0 || arcDegrees === 0 || Math.abs(arcDegrees) > 360) {
           throw new Error('[horseshoes] arc radii must be greater than zero and arc_degrees must be between -360 and 360');
         }
-        this.pathContract = {
+        this.pathConfig = {
           type: 'arc',
           cx: center.xpos,
           cy: center.ypos,
@@ -212,7 +212,7 @@ export default class HorseshoeGauge extends BaseTool {
           startAngle: sourcePath.start_angle ?? 90 + (360 - arcDegrees) / 2,
           arcDegrees,
         };
-        this.pathDefinition = buildArcPathDefinition(this.pathContract);
+        this.pathDefinition = buildArcPathDefinition(this.pathConfig);
         break;
       }
       case 'line': {
@@ -221,14 +221,14 @@ export default class HorseshoeGauge extends BaseTool {
         const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
         const deltaX = (Math.cos(angle) * length) / 2;
         const deltaY = (Math.sin(angle) * length) / 2;
-        this.pathContract = {
+        this.pathConfig = {
           type: 'line',
           x1: center.xpos - deltaX,
           y1: center.ypos - deltaY,
           x2: center.xpos + deltaX,
           y2: center.ypos + deltaY,
         };
-        this.pathDefinition = buildLinePathDefinition(this.pathContract);
+        this.pathDefinition = buildLinePathDefinition(this.pathConfig);
         break;
       }
       case 'rectangle': {
@@ -237,27 +237,74 @@ export default class HorseshoeGauge extends BaseTool {
         const radiusConfig = typeof sourcePath.radius === 'object' ? sourcePath.radius : { all: sourcePath.radius ?? 0 };
         const maxRadius = Math.min(width, height) / 2;
         const radius = (value) => Math.min(maxRadius, dimension(value));
+        const start = sourcePath.start ?? 0;
+        const end = sourcePath.end ?? 4;
+        const top = sourcePath.top ?? 0.5;
+        const direction = sourcePath.direction ?? 'clockwise';
         if (width <= 0 || height <= 0) throw new Error('[horseshoes] rectangle width and height must be greater than zero');
-        if (!['top', 'right', 'bottom', 'left'].includes(sourcePath.start ?? 'top')) {
-          throw new Error(`[horseshoes] rectangle path.start '${sourcePath.start}' is invalid [top, right, bottom, left]`);
+        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= 4)) {
+          throw new Error('[horseshoes] rectangle path.start, path.end, and path.top must be numbers from 0 through 4');
         }
-        if (!['clockwise', 'counterclockwise'].includes(sourcePath.direction ?? 'clockwise')) {
+        if (!['clockwise', 'counterclockwise'].includes(direction)) {
           throw new Error(`[horseshoes] rectangle path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
         }
-        this.pathContract = {
+        this.pathConfig = {
           type: 'rectangle',
-          x: center.xpos - width / 2,
-          y: center.ypos - height / 2,
+          cx: center.xpos,
+          cy: center.ypos,
           width,
           height,
           radiusTopLeft: radius(radiusConfig.top_left ?? radiusConfig.all),
           radiusTopRight: radius(radiusConfig.top_right ?? radiusConfig.all),
           radiusBottomRight: radius(radiusConfig.bottom_right ?? radiusConfig.all),
           radiusBottomLeft: radius(radiusConfig.bottom_left ?? radiusConfig.all),
-          start: sourcePath.start ?? 'top',
-          direction: sourcePath.direction ?? 'clockwise',
+          start,
+          end,
+          top,
+          direction,
         };
-        this.pathDefinition = buildRectanglePathDefinition(this.pathContract);
+        this.pathDefinition = buildRectanglePathDefinition(this.pathConfig);
+        break;
+      }
+      case 'polygon': {
+        const sides = sourcePath.sides;
+        const radiusValue = sourcePath.radius ?? 0;
+        const start = sourcePath.start ?? 0;
+        const end = sourcePath.end ?? sides;
+        const top = sourcePath.top ?? (sides % 2 === 0 ? 0.5 : 0);
+        const direction = sourcePath.direction ?? 'clockwise';
+
+        if (!Number.isInteger(sides) || sides < 3) {
+          throw new Error('[horseshoes] polygon path.sides must be an integer equal to or greater than 3');
+        }
+        if (sourcePath.width === undefined || sourcePath.height === undefined || sourcePath.width <= 0 || sourcePath.height <= 0) {
+          throw new Error('[horseshoes] polygon path.width and path.height must be greater than zero');
+        }
+        if (!Number.isFinite(radiusValue) || radiusValue < 0) throw new Error('[horseshoes] polygon path.radius must be zero or greater');
+        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= sides)) {
+          throw new Error(`[horseshoes] polygon path.start, path.end, and path.top must be numbers from 0 through ${sides}`);
+        }
+        if (!['clockwise', 'counterclockwise'].includes(direction)) {
+          throw new Error(`[horseshoes] polygon path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
+        }
+
+        this.pathConfig = {
+          type: 'polygon',
+          cx: center.xpos,
+          cy: center.ypos,
+          sides,
+          width: dimension(sourcePath.width),
+          height: dimension(sourcePath.height),
+          radius: dimension(radiusValue),
+          start,
+          end,
+          top,
+          direction,
+        };
+        if (this.pathConfig.radius > calculatePolygonMaximumRadius(this.pathConfig)) {
+          throw new Error('[horseshoes] polygon path.radius is too large for its width, height, and number of sides');
+        }
+        this.pathDefinition = buildPolygonPathDefinition(this.pathConfig);
         break;
       }
       case 'wave': {
@@ -268,7 +315,7 @@ export default class HorseshoeGauge extends BaseTool {
         const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
         const deltaX = (Math.cos(angle) * length) / 2;
         const deltaY = (Math.sin(angle) * length) / 2;
-        this.pathContract = {
+        this.pathConfig = {
           type: 'wave',
           x1: center.xpos - deltaX,
           y1: center.ypos - deltaY,
@@ -277,14 +324,14 @@ export default class HorseshoeGauge extends BaseTool {
           waves: sourcePath.waves ?? 3,
           amplitude: dimension(sourcePath.amplitude ?? 8),
         };
-        this.pathDefinition = buildWavePathDefinition(this.pathContract);
+        this.pathDefinition = buildWavePathDefinition(this.pathConfig);
         break;
       }
       case 'spiral': {
         if ((sourcePath.radius_inner ?? 5) < 0 || (sourcePath.radius_outer ?? 40) <= 0 || (sourcePath.points ?? 48) < 2) {
           throw new Error('[horseshoes] spiral radii must be valid and points must be at least 2');
         }
-        this.pathContract = {
+        this.pathConfig = {
           type: 'spiral',
           cx: center.xpos,
           cy: center.ypos,
@@ -294,21 +341,21 @@ export default class HorseshoeGauge extends BaseTool {
           degrees: sourcePath.degrees ?? 720,
           points: sourcePath.points ?? 48,
         };
-        this.pathDefinition = buildSpiralPathDefinition(this.pathContract);
+        this.pathDefinition = buildSpiralPathDefinition(this.pathConfig);
         break;
       }
       case 'infinity': {
         if ((sourcePath.radius_x ?? 40) <= 0 || (sourcePath.radius_y ?? 25) <= 0) {
           throw new Error('[horseshoes] infinity radii must be greater than zero');
         }
-        this.pathContract = {
+        this.pathConfig = {
           type: 'infinity',
           cx: center.xpos,
           cy: center.ypos,
           radiusX: dimension(sourcePath.radius_x ?? 40),
           radiusY: dimension(sourcePath.radius_y ?? 25),
         };
-        this.pathDefinition = buildInfinityPathDefinition(this.pathContract);
+        this.pathDefinition = buildInfinityPathDefinition(this.pathConfig);
         break;
       }
     }
@@ -448,7 +495,7 @@ export default class HorseshoeGauge extends BaseTool {
       : { start: 0, end: 0 };
     const colorStops = this.valueMapper.getActiveColorStops(this.config.colorstops.colors);
     const colorStopRanges = this.valueMapper.buildColorStopRanges(colorStops.map((colorStop) => colorStop.value));
-    const pathGap = this.pathContract.type === 'arc' ? (Number(this.config.horseshoe_state.segment_gap) / Math.abs(this.pathContract.arcDegrees)) * 100 : Number(this.config.horseshoe_state.segment_gap);
+    const pathGap = this.pathConfig.type === 'arc' ? (Number(this.config.horseshoe_state.segment_gap) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(this.config.horseshoe_state.segment_gap);
     let statePathRanges;
     this.stateSegmentPaints = [];
 
@@ -505,7 +552,7 @@ export default class HorseshoeGauge extends BaseTool {
       });
     }
 
-    const scaleGap = this.pathContract.type === 'arc' ? (Number(this.config.colorstops.gap) / Math.abs(this.pathContract.arcDegrees)) * 100 : Number(this.config.colorstops.gap);
+    const scaleGap = this.pathConfig.type === 'arc' ? (Number(this.config.colorstops.gap) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(this.config.colorstops.gap);
     let scaleRanges = [];
 
     if (scaleMode === 'fixed' || (scaleMode === 'colorstopsegments' && !colorStopRanges.length)) {
@@ -643,7 +690,7 @@ export default class HorseshoeGauge extends BaseTool {
       minSegmentLength: 1,
       maxTangentAngle: 12,
       maxSegments: 96,
-      overlap: 0.5,
+      overlap: 2,
     };
     const stateCompleteColorStops = sourceColorStops.map((colorStop) => ({
       progress: this.valueMapper.valueToProgress(colorStop.value),
@@ -771,7 +818,7 @@ export default class HorseshoeGauge extends BaseTool {
           const rawStyles = ConfigHelper.toStyleDict(background.config.styles);
           const styles = this.getRenderStyles(rawStyles, [background.colorFilter]);
           const linecap = typeof background.config.linecap === 'object' ? background.config.linecap : { start: background.config.linecap ?? 'round', end: background.config.linecap ?? 'round' };
-          const gap = this.pathContract.type === 'arc' ? (Number(background.config.gap ?? 0) / Math.abs(this.pathContract.arcDegrees)) * 100 : Number(background.config.gap ?? 0);
+          const gap = this.pathConfig.type === 'arc' ? (Number(background.config.gap ?? 0) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(background.config.gap ?? 0);
           const definition = background.offset === 0 ? this.pathDefinition : buildOffsetPathDefinition(this.pathGeometry, background.offset, 'left', 200);
           const layer = {
             opacity: Number(styles.opacity ?? 1),
@@ -905,8 +952,8 @@ export default class HorseshoeGauge extends BaseTool {
       const badgeConfig = this.config.horseshoe_labels.badges;
       const pathLength = this.transformedPathGeometry.getTotalLength();
       const configuredLabelLength =
-        this.pathContract.type === 'arc'
-          ? (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / Math.abs(this.pathContract.arcDegrees)
+        this.pathConfig.type === 'arc'
+          ? (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / Math.abs(this.pathConfig.arcDegrees)
           : (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / 260;
       const labels = labelStops.map((labelStop, index) => {
         const mappedStateLabels = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';

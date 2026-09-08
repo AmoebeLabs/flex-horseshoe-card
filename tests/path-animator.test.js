@@ -157,7 +157,7 @@ test('full-gradient animation retains adaptive geometry and changes only its rev
     minSegmentLength: 1,
     maxTangentAngle: 12,
     maxSegments: 96,
-    overlap: 0.5,
+    overlap: 2,
   });
   const adaptiveRanges = gradient.ranges;
   const measurementCounts = { lengthReads, pointReads };

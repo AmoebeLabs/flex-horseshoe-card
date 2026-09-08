@@ -173,7 +173,7 @@ test('existing arc fields become one complete path contract and retain a true 36
 
   horseshoe.updateRuntimeConfig();
 
-  assert.deepEqual(horseshoe.pathContract, {
+  assert.deepEqual(horseshoe.pathConfig, {
     type: 'arc',
     cx: 100,
     cy: 100,
@@ -196,11 +196,25 @@ test('all frozen path shapes normalize percentage config into complete generator
       expected: { type: 'line', x1: 20, y1: 100, x2: 180, y2: 100 },
     },
     {
-      path: { type: 'rectangle', width: 80, height: 60, radius: 5, start: 'right', direction: 'counterclockwise' },
+      path: { type: 'rectangle', width: 80, height: 60, radius: 5 },
       expected: {
-        type: 'rectangle', x: 20, y: 40, width: 160, height: 120,
+        type: 'rectangle', cx: 100, cy: 100, width: 160, height: 120,
         radiusTopLeft: 10, radiusTopRight: 10, radiusBottomRight: 10, radiusBottomLeft: 10,
-        start: 'right', direction: 'counterclockwise',
+        start: 0, end: 4, top: 0.5, direction: 'clockwise',
+      },
+    },
+    {
+      path: { type: 'polygon', sides: 6, width: 80, height: 60, radius: 5 },
+      expected: {
+        type: 'polygon', cx: 100, cy: 100, sides: 6, width: 160, height: 120, radius: 10,
+        start: 0, end: 6, top: 0.5, direction: 'clockwise',
+      },
+    },
+    {
+      path: { type: 'polygon', sides: 5, width: 80, height: 60, top: 1.25, start: 4.5, end: 2.5, direction: 'counterclockwise' },
+      expected: {
+        type: 'polygon', cx: 100, cy: 100, sides: 5, width: 160, height: 120, radius: 0,
+        start: 4.5, end: 2.5, top: 1.25, direction: 'counterclockwise',
       },
     },
     {
@@ -223,7 +237,7 @@ test('all frozen path shapes normalize percentage config into complete generator
 
     horseshoe.updateRuntimeConfig();
 
-    assert.deepEqual(horseshoe.pathContract, expected);
+    assert.deepEqual(horseshoe.pathConfig, expected);
     assert.equal(typeof horseshoe.pathDefinition.d, 'string');
     assert.ok(horseshoe.pathDefinition.d.startsWith('M '));
   });
@@ -256,7 +270,13 @@ test('invalid path shape values fail at the adapter boundary', () => {
   const invalidConfigs = [
     createConfig({ type: 'unknown' }),
     createConfig({ type: 'arc', radius: 0 }),
-    createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, start: 'corner' }),
+    createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, start: -0.1 }),
+    createConfig({ type: 'rectangle', width: 80, height: 60, radius: 0, end: 4.1 }),
+    createConfig({ type: 'polygon', sides: 2, width: 80, height: 60 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, radius: -1 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, radius: 100 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80 }),
+    createConfig({ type: 'polygon', sides: 6, width: 80, height: 60, top: 6.1 }),
   ];
   invalidConfigs.forEach((config) => {
     const card = createCard();
@@ -430,7 +450,8 @@ test('full and current gradients are built from measured geometry after value ma
       [horseshoe.stateGradient.revealRange.start, horseshoe.stateGradient.revealRange.end],
       [0, 75],
     );
-    assert.equal(horseshoe.stateGradient.ranges.length > 1, true);
+    assert.equal(horseshoe.stateGradient.ranges.length, 1);
+    assert.equal(horseshoe.stateGradient.ranges[0].gradient.stops.length, horseshoeStyle === 'minmaxgradient' ? 2 : 3);
   });
 });
 

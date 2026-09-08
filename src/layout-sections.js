@@ -15,6 +15,7 @@ export const VISIBLE_LAYOUT_SECTIONS = Object.freeze([
   'circles',
   'arcs',
   'rectangles',
+  'polygons',
   'lines',
   'hlines',
   'vlines',

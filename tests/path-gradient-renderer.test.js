@@ -26,25 +26,37 @@ const baseConfig = {
   minSegmentLength: 1,
   maxTangentAngle: 12,
   maxSegments: 96,
-  overlap: 0.5,
+  overlap: 2,
 };
 
-test('full gradient keeps a static color distribution behind the active reveal range', () => {
+test('full gradient keeps one straight range with static color stops behind the active reveal range', () => {
   const first = buildAdaptivePathGradient(straightGeometry, baseConfig);
   const second = buildAdaptivePathGradient(straightGeometry, {
     ...baseConfig,
     range: { start: 0, end: 80 },
   });
 
-  assert.equal(first.ranges.length, 8);
+  assert.equal(first.ranges.length, 1);
   assert.deepEqual(first.ranges, second.ranges);
   assert.notDeepEqual(first.revealRange, second.revealRange);
-  assert.deepEqual(first.ranges.map((range) => range.opacity), Array(8).fill(1));
+  assert.deepEqual(first.ranges.map((range) => range.opacity), [1]);
   assert.equal(first.ranges[0].startCap, 'round');
   assert.equal(first.ranges.at(-1).endCap, 'round');
-  assert.equal(first.ranges[0].gradient.startColor, '#000000');
-  assert.equal(first.ranges[3].gradient.endColor, '#ff0000ff');
-  assert.equal(first.ranges.at(-1).gradient.endColor, '#ffffff');
+  assert.deepEqual(first.ranges[0].gradient.stops, [
+    { offset: 0, color: '#000000' },
+    { offset: 50, color: '#ff0000' },
+    { offset: 100, color: '#ffffff' },
+  ]);
+});
+
+test('a diagonal straight path also keeps one gradient range', () => {
+  const diagonalGeometry = {
+    getTotalLength: () => Math.hypot(200, 80),
+    pointAtProgress: (progress) => ({ x: progress * 2, y: progress * 0.8 }),
+  };
+  const gradient = buildAdaptivePathGradient(diagonalGeometry, baseConfig);
+
+  assert.equal(gradient.ranges.length, 1);
 });
 
 test('full gradient reveal updates retain adaptive ranges and cap configuration', () => {
@@ -73,9 +85,11 @@ test('current gradient redistributes all configured colors over the active range
 
   assert.equal(gradient.ranges[0].start, 20);
   assert.equal(gradient.ranges.at(-1).end, 60);
-  assert.equal(gradient.ranges[0].gradient.startColor, '#000000');
-  assert.equal(gradient.ranges.at(-1).gradient.endColor, '#ffffff');
-  assert.equal(gradient.ranges.some((range) => range.gradient.endColor === '#ff0000ff'), true);
+  assert.deepEqual(gradient.ranges[0].gradient.stops, [
+    { offset: 0, color: '#000000' },
+    { offset: 50, color: '#ff0000' },
+    { offset: 100, color: '#ffffff' },
+  ]);
 });
 
 test('adaptive splitting responds to curvature and never exceeds the configured DOM budget', () => {
@@ -102,6 +116,26 @@ test('adaptive splitting responds to curvature and never exceeds the configured 
   assert.equal(gradient.ranges.every((range) => range.end > range.start), true);
 });
 
+test('gradient joins overlap by a fixed SVG length', () => {
+  const turningGeometry = {
+    getTotalLength: () => 100,
+    pointAtProgress: (progress) => {
+      const angle = (progress / 100) * Math.PI;
+      return { x: Math.cos(angle) * 50, y: Math.sin(angle) * 50 };
+    },
+  };
+  const gradient = buildAdaptivePathGradient(turningGeometry, {
+    ...baseConfig,
+    colorStops: [
+      { progress: 0, color: '#000000' },
+      { progress: 100, color: '#ffffff' },
+    ],
+    maxSegmentLength: 25,
+  });
+
+  assert.ok(Math.abs(gradient.ranges[0].end - gradient.ranges[1].start - 2) < 1e-10);
+});
+
 test('renderer defines local gradients and reuses generic masked path bands', () => {
   const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig);
   const layer = {
@@ -117,8 +151,8 @@ test('renderer defines local gradients and reuses generic masked path bands', ()
 
   assert.equal(gradientDefinitions.length, gradient.ranges.length);
   assert.equal(bands.values[1], layer.opacity);
-  assert.equal(bands.values[5].at(-1).values[4].values[5], '10 100');
-  assert.equal(bands.values[5].at(-1).values[4].values[6], -50);
+  assert.equal(bands.values[5][0].values[4].values[5], '60 100');
+  assert.equal(bands.values[5][0].values[4].values[6], 0);
 });
 
 test('normalized reveal clipping does not use a spatial mask at path crossings', () => {
@@ -138,6 +172,5 @@ test('normalized reveal clipping does not use a spatial mask at path crossings',
 
   assert.equal(rendered.strings.join('').includes('reveal-mask'), false);
   assert.equal(visibleFills[0].values[4].values[6], -20);
-  assert.equal(visibleFills.at(-1).values[4].values[5], '10 100');
-  assert.equal(visibleFills.at(-1).values[4].values[6], -50);
+  assert.equal(visibleFills[0].values[4].values[5], '40 100');
 });

@@ -35,6 +35,7 @@ Use this page to find the detailed configuration for a card area. The product gu
 | `lines` | [Line](../tools/shapes/line-tool.md) |
 | `circles` | [Circle](../tools/shapes/circle-tool.md) |
 | `arcs` | [Arc](../tools/shapes/arc-tool.md) |
+| `polygons` | [Polygon](../tools/shapes/polygon-tool.md) |
 | `rectangles` | [Rectangle](../tools/shapes/rectangle-tool.md) |
 | `horseshoes` | [Horseshoe](../tools/horseshoe/horseshoe-overview.md) |
 | `sparklines` | [Sparkline](../tools/sparkline/sparkline-overview.md) |

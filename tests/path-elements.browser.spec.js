@@ -45,9 +45,9 @@ test('path elements follow measured geometry on every supported path shape', asy
               buildArcPathDefinition({ cx: 50, cy: 50, radiusX: 35, radiusY: 35, startAngle: -135, arcDegrees: 270 }),
               buildLinePathDefinition({ x1: 10, y1: 50, x2: 90, y2: 50 }),
               buildRectanglePathDefinition({
-                x: 13, y: 13, width: 74, height: 74,
+                cx: 50, cy: 50, width: 74, height: 74,
                 radiusTopLeft: 9, radiusTopRight: 9, radiusBottomRight: 9, radiusBottomLeft: 9,
-                start: 'top', direction: 'clockwise',
+                start: 0, end: 4, top: 0.5, direction: 'clockwise',
               }),
               buildWavePathDefinition({ x1: 10, y1: 50, x2: 90, y2: 50, waves: 2, amplitude: 15 }),
               buildSpiralPathDefinition({ cx: 50, cy: 50, radiusInner: 6, radiusOuter: 40, startAngle: -90, degrees: 720, points: 48 }),

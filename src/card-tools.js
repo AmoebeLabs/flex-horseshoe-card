@@ -1,5 +1,6 @@
 import HorseshoeGauge from './horseshoe-gauge.js';
 import RectangleTool from './rectangle-tool.js';
+import PolygonTool from './polygon-tool.js';
 import LineTool from './line-tool.js';
 import CircleTool from './circle-tool.js';
 import ArcTool from './arc-tool.js';
@@ -11,8 +12,8 @@ import IconTool from './icon-tool.js';
 import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
 
-const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'lines', 'circles', 'arcs', 'icons', 'controls'];
-const RENDER_SECTIONS = ['rectangles', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
+const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'lines', 'circles', 'arcs', 'icons', 'controls'];
+const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
 
 /** Owns every configured layout tool and forwards their shared lifecycle phases. */
 export default class CardTools {
@@ -25,7 +26,7 @@ export default class CardTools {
     this.templates = templates;
     this.cardId = cardId;
     this.sections = {
-      rectangles: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
+      rectangles: [], polygons: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
     };
   }
@@ -42,6 +43,7 @@ export default class CardTools {
     this.sections.states = StateTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.texts = TextTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.rectangles = RectangleTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.polygons = PolygonTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.lines = LineTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.circles = CircleTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.arcs = ArcTool.setConfig(config, this.templates, this.cardId, this.card);
