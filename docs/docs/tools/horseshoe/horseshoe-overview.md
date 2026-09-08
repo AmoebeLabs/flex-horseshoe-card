@@ -87,6 +87,8 @@ Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-sc
 
 A horseshoe can also inherit its position from a group. See [Positioning and Groups](../../card-basics/positioning-and-sizing.md) and [Groups Section](../../card-basics/groups.md).
 
+The gauge can follow a rectangle, polygon, line, wave, spiral, or infinity symbol instead of an arc. See [Horseshoe path shapes](horseshoe-path-shapes.md) for examples and configuration.
+
 ## :material-horseshoe: Show options
 
 Visibility and presentation settings are grouped under `show`.
@@ -143,6 +145,7 @@ Common SVG properties include `fill`, `stroke`, `stroke-width`, `opacity`, `fill
 
 * [Horseshoe Scale and State](horseshoe-scale-and-state.md)
 * [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md)
+* [Horseshoe Path Shapes](horseshoe-path-shapes.md)
 * [Color Stops](../../appearance/color-stops.md)
 * [Animations](../../interaction/animations.md)
 * [Reusable YAML Card Examples](../../reuse/reuse-introduction.md)

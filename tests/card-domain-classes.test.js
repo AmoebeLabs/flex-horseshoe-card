@@ -450,6 +450,7 @@ test('CardConfig assigns stable ids throughout visible layout sections', () => {
     layout: {
       groups: [{}, { id: 'named' }],
       controls: [{}, { id: 'control' }],
+      polygons: [{}, { id: 'polygon' }],
       compounds: [{ lines: [{}, { id: 'line' }] }],
       masks: { mask: { circles: [{}] } },
       clips: {},
@@ -460,6 +461,7 @@ test('CardConfig assigns stable ids throughout visible layout sections', () => {
 
   assert.deepEqual(config.layout.groups.map((item) => item.id), ['0', 'named']);
   assert.deepEqual(config.layout.controls.map((item) => item.id), ['0', 'control']);
+  assert.deepEqual(config.layout.polygons.map((item) => item.id), ['0', 'polygon']);
   assert.deepEqual(config.layout.compounds[0].lines.map((item) => item.id), ['0', 'line']);
   assert.equal(config.layout.masks.mask.circles[0].id, '0');
 });
@@ -664,6 +666,7 @@ test('CardAnimations matches entity state and preserves reused styles and icons'
           { animation_id: 'status', styles: { stroke: 'red' } },
           { animation_id: 'status', reuse: true, styles: { opacity: 0.5 } },
         ],
+        polygons: [{ animation_id: 'surface', styles: { fill: 'green' } }],
         icons: [{ animation_id: 'main', icon: 'mdi:lightbulb', styles: { fill: 'yellow' } }],
       }],
     },
@@ -673,6 +676,7 @@ test('CardAnimations matches entity state and preserves reused styles and icons'
   animations.update(config, [{ state: 'on' }], templates, true);
 
   assert.deepEqual(animations.styles.lines.status, { stroke: 'red', opacity: '0.5' });
+  assert.deepEqual(animations.styles.polygons.surface, { fill: 'green' });
   assert.deepEqual(animations.styles.icons.main, { fill: 'yellow' });
   assert.equal(animations.styles.iconsIcon.main, 'mdi:lightbulb');
 });

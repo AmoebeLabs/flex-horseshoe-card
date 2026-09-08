@@ -42,6 +42,41 @@ sections:
         template:
           name: fhs_card_horseshoe_path_shape_v1
           variables:
+            - var_title: Rectangle roof
+            - var_path:
+                type: rectangle
+                width: 70
+                height: 46
+                radius: 5
+                start: 3.5
+                end: 1.5
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Triangle
+            - var_path:
+                type: polygon
+                sides: 3
+                radius: 34
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
+            - var_title: Hexagon
+            - var_path:
+                type: polygon
+                sides: 6
+                width: 68
+                height: 52
+                top: 0.5
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_path_shape_v1
+          variables:
             - var_title: Wave
             - var_path:
                 type: wave
@@ -72,3 +107,7 @@ sections:
                 type: infinity
                 radius_x: 34
                 radius_y: 22
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_polygon_horseshoe_v1

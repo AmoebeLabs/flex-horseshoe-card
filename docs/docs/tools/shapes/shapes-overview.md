@@ -1,9 +1,10 @@
 ---
 template: main.html
 title: Visual Shapes
-description: Configure rectangles, circles, horizontal lines, and vertical lines as positioned and styled visual building blocks in card layouts.
+description: Configure rectangles, polygons, circles, and lines as positioned and styled visual building blocks in card layouts.
 tags:
 - Rectangles
+- Polygons
 - Circles
 - Horizontal Lines
 - Vertical Lines
@@ -11,20 +12,21 @@ tags:
 
 [line-tool support]: https://github.com/amoebelabs/swiss-army-knife-card/releases/
 
-# Visual shapes: rectangles, lines, and circles
+# Visual shapes
 
 Visual shapes are simple SVG building blocks that help organize and enhance a card layout. Use them as separators, backgrounds, highlights, indicators, or decorative elements.
 
-The card supports four shape sections:
+Choose the shape that matches the visual element you want to add:
 
 | Shape           | Section      | Description                                                                        |
 | :-------------- | :----------- | :--------------------------------------------------------------------------------- |
 | Rectangle       | `rectangles` | A fixed rectangle or one that automatically fits another layout item               |
+| Polygon         | `polygons`   | A triangle, hexagon, or another regular shape                                      |
 | Circle          | `circles`    | A circle positioned by its center point, using either `radius` or `radius_percent` |
 | Horizontal line | `hlines`     | A horizontal line positioned by its center point and length                        |
 | Vertical line   | `vlines`     | A vertical line positioned by its center point and length                          |
 
-All four shapes use the same 100 × 100 card coordinate system. This makes it easy to align them with horseshoes, states, names, icons, and other layout elements.
+All shapes use the same 100 × 100 card coordinate system. This makes it easy to align them with horseshoes, states, names, icons, and other layout elements.
 
 ## :material-horseshoe: Basic usage
 
@@ -32,11 +34,13 @@ A rectangle can use a fixed center position, width, and height. It can also use 
 
 A circle needs a center position and a radius. Define the radius in SVG units with `radius`, or use `radius_percent` to scale it relative to the card.
 
+A polygon needs at least three sides. Use `radius` to keep its regular proportions, or use `width` and `height` to fit an exact area. See [Polygon](polygon-tool.md) for choosing which corner or side faces upward.
+
 Horizontal and vertical lines both use a center position and a length. Their configuration is almost identical; only the section name changes. Horizontal lines belong in `hlines`, while vertical lines belong in `vlines`.
 
 Shapes can also be connected to an entity through `entity_index`. This allows color stops and animations to respond to the state of that entity.
 
-Color stops use `fill` for rectangles and arcs, and `stroke` for circles and lines by default. Select `show.item_style: colorstop` for hard value ranges or `show.item_style: colorstopgradient` for a blended color. Add the matching mode block to color the fill, stroke, or both.
+Color stops use `fill` for rectangles, polygons, and arcs, and `stroke` for circles and lines by default. Select `show.item_style: colorstop` for hard value ranges or `show.item_style: colorstopgradient` for a blended color. Add the matching mode block to color the fill, stroke, or both.
 
 ### Example definitions
 
@@ -144,6 +148,23 @@ Color stops use `fill` for rectangles and arcs, and `stroke` for circles and lin
           5: 'purple'
     ```
 
+=== "Polygon"
+    A polygon uses a center, a side count, and one sizing method:
+
+    ```yaml title="Hexagon" linenums="1"
+    - xpos: 50
+      ypos: 50
+      sides: 6
+      radius: 30
+      styles:
+        fill: var(--primary-color)
+        fill-opacity: 0.2
+        stroke: var(--primary-color)
+        stroke-width: 1
+    ```
+
+    See [Polygon](polygon-tool.md) for exact dimensions, orientation, color stops, and matching a polygon horseshoe.
+
 === "Horizontal Line"
     A horizontal line uses a center position and a length:
 
@@ -208,7 +229,7 @@ Color stops use `fill` for rectangles and arcs, and `stroke` for circles and lin
 
 ## :material-horseshoe: Configuration fields
 
-The required fields depend on the shape type. Rectangles use either fixed dimensions or `fit`, circles need a radius, and lines use a length.
+The required fields depend on the shape type. Rectangles use either fixed dimensions or `fit`, polygons use a radius or exact dimensions, circles need a radius, and lines use a length.
 
 === "Rectangle"
     | Field | Required | Default | Description |
@@ -242,6 +263,20 @@ The required fields depend on the shape type. Rectangles use either fixed dimens
 
     !!! note
         Use either `radius` or `radius_percent`.
+
+=== "Polygon"
+    | Field | Required | Default | Description |
+    | :---- | :------: | :------ | :---------- |
+    | `xpos` | :material-check: | | Horizontal center position |
+    | `ypos` | :material-check: | | Vertical center position |
+    | `sides` | :material-check: | | Number of sides; `3` or greater |
+    | `radius` | One size | | Distance from the center to a corner |
+    | `width` | One size | | Exact width; requires `height` |
+    | `height` | One size | | Exact height; requires `width` |
+    | `top` | :material-close: | `0` for odd sides; `0.5` for even sides | Corner or side position that faces upward |
+    | `entity_index` | :material-close: | Not set | Entity used by state-dependent features |
+    | `styles` | :material-close: | Default polygon style | SVG and CSS styling |
+    | `color_stops` | :material-close: | Not set | Uses the connected entity state to determine the shape color |
 
 === "Horizontal Line"
     | Field | Required | Default | Description |
@@ -294,6 +329,16 @@ Visual shapes are rendered as SVG elements and can therefore be styled with CSS 
     | `stroke` | Defines the outline color | `stroke: blue` |
     | `stroke-width` | Controls the outline width | `stroke-width: 2em` |
     | `opacity` | Controls the opacity of the entire circle | `opacity: 0.7` |
+    | `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
+    | `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
+
+=== "Polygon"
+    | Property | What it does | Example |
+    | :------- | :----------- | :------ |
+    | `fill` | Defines the fill color | `fill: red` |
+    | `stroke` | Defines the outline color | `stroke: blue` |
+    | `stroke-width` | Controls the outline width | `stroke-width: 2` |
+    | `opacity` | Controls the opacity of the complete polygon | `opacity: 0.7` |
     | `fill-opacity` | Controls the opacity of the fill | `fill-opacity: 0.5` |
     | `stroke-opacity` | Controls the opacity of the outline | `stroke-opacity: 0.5` |
 
