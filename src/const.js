@@ -10,6 +10,7 @@ const FONT_SIZE = 12;
 const DEFAULT_ZPOS = {
   arcs: 100,
   rectangles: 200,
+  polygons: 250,
   circles: 300,
   horseshoes: 400,
   horseshoes_v2: 400,
@@ -28,6 +29,7 @@ const DEFAULT_ZPOS = {
 const DEFAULT_RENDER_INDEX = {
   arcs: 100000,
   rectangles: 200000,
+  polygons: 250000,
   circles: 300000,
   horseshoes: 400000,
   horseshoes_v2: 400000,
