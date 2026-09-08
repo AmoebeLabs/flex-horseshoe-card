@@ -210,6 +210,7 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
         : markerSource.size,
     start_offset: markerSource.start_offset ?? 0,
     end_offset: markerSource.end_offset ?? 0,
+    styles: ConfigHelper.toStyleDict(markerSource.styles),
   };
 
   if (!["path", "center"].includes(horseshoeMarker.attach_to)) {
