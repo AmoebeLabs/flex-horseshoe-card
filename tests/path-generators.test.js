@@ -6,9 +6,12 @@ import {
   buildInfinityPathDefinition,
   buildLinePathDefinition,
   buildPathDefinition,
+  buildPolygonPathDefinition,
   buildRectanglePathDefinition,
+  buildSidePositionedRectanglePathDefinition,
   buildSpiralPathDefinition,
   buildWavePathDefinition,
+  calculatePolygonPoints,
 } from '../src/path-generators.js';
 
 test('arc generator builds partial clockwise and counter-clockwise centerlines', () => {
@@ -109,6 +112,88 @@ test('rectangle generator changes origin and traversal without changing its boun
 
   assert.match(definition.d, /^M 90 50 L 90 20/);
   assert.match(definition.d, /L 90 50 Z$/);
+});
+
+test('polygon points keep the natural odd and even top orientation', () => {
+  const triangle = calculatePolygonPoints({ cx: 50, cy: 50, sides: 3, radius: 40, top: 0 });
+  const hexagon = calculatePolygonPoints({ cx: 50, cy: 50, sides: 6, radius: 40, top: 0.5 });
+
+  assert.ok(Math.abs(triangle[0].x - 50) < 1e-10);
+  assert.equal(triangle[0].y, 10);
+  assert.ok(Math.abs(hexagon[0].y - hexagon[1].y) < 1e-10);
+  assert.ok(Math.abs((hexagon[0].x + hexagon[1].x) / 2 - 50) < 1e-10);
+});
+
+test('polygon width and height produce exact outer dimensions', () => {
+  const points = calculatePolygonPoints({ cx: 50, cy: 50, sides: 5, width: 80, height: 60, top: 0 });
+  const xValues = points.map((point) => point.x);
+  const yValues = points.map((point) => point.y);
+
+  assert.ok(Math.abs(Math.max(...xValues) - Math.min(...xValues) - 80) < 1e-10);
+  assert.ok(Math.abs(Math.max(...yValues) - Math.min(...yValues) - 60) < 1e-10);
+});
+
+test('polygon generator selects decimal side positions in both directions', () => {
+  const clockwise = buildPolygonPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  });
+  const counterClockwise = buildPolygonPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    top: 0.5, start: 1.5, end: 3.5, direction: 'counterclockwise',
+  });
+
+  assert.equal(clockwise.closed, false);
+  assert.equal(counterClockwise.closed, false);
+  assert.match(clockwise.d, /^M 10 50 L 10 /);
+  assert.match(clockwise.d, / L 90 50$/);
+  assert.match(counterClockwise.d, /^M 90 50 L 90 /);
+  assert.match(counterClockwise.d, / L 10 50$/);
+  assert.equal(buildPathDefinition({
+    type: 'polygon', cx: 50, cy: 50, sides: 4, width: 80, height: 60,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  }).signature, clockwise.signature);
+});
+
+test('polygon generator distinguishes zero length from an exact complete path', () => {
+  const config = {
+    type: 'polygon', cx: 50, cy: 50, sides: 6, radius: 40,
+    top: 0.5, direction: 'clockwise',
+  };
+  const empty = buildPolygonPathDefinition({ ...config, start: 0, end: 0 });
+  const complete = buildPolygonPathDefinition({ ...config, start: 0, end: 6 });
+
+  assert.equal(empty.closed, false);
+  assert.doesNotMatch(empty.d, / L /);
+  assert.equal(complete.closed, true);
+  assert.match(complete.d, / Z$/);
+  assert.equal((complete.d.match(/ L /g) ?? []).length, 6);
+});
+
+test('side-positioned rectangle builds the same roof at every size', () => {
+  const definition = buildSidePositionedRectanglePathDefinition({
+    cx: 50, cy: 50, width: 80, height: 60,
+    radiusTopLeft: 0, radiusTopRight: 0, radiusBottomRight: 0, radiusBottomLeft: 0,
+    top: 0.5, start: 3.5, end: 1.5, direction: 'clockwise',
+  });
+
+  assert.equal(definition.closed, false);
+  assert.equal(definition.d, 'M 10 50 L 10 20 L 90 20 L 90 50');
+});
+
+test('side-positioned rectangle assigns integer positions to rounded-corner midpoints', () => {
+  const definition = buildSidePositionedRectanglePathDefinition({
+    cx: 50, cy: 50, width: 80, height: 60,
+    radiusTopLeft: 10, radiusTopRight: 10, radiusBottomRight: 10, radiusBottomLeft: 10,
+    top: 0.5, start: 0, end: 4, direction: 'clockwise',
+  });
+  const [, startX, startY] = definition.d.match(/^M ([^ ]+) ([^ ]+)/);
+
+  assert.ok(Math.abs(Number(startX) - (20 + 10 * Math.cos(225 * Math.PI / 180))) < 1e-10);
+  assert.ok(Math.abs(Number(startY) - (30 + 10 * Math.sin(225 * Math.PI / 180))) < 1e-10);
+  assert.equal(definition.closed, true);
+  assert.equal((definition.d.match(/ A /g) ?? []).length, 8);
+  assert.match(definition.d, / Z$/);
 });
 
 test('wave generator preserves endpoints and emits two cubic halves per wave', () => {
