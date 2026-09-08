@@ -208,11 +208,29 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
     });
     const infinityOrder = [...document.querySelectorAll('.shape[data-index="5"] .path-gradient__band__fill')]
       .map((range) => Number(range.dataset.pathRange.replace('gradient-', '')));
+    const lineMaster = document.querySelector('.shape[data-index="1"] .master');
+    const lineLength = lineMaster.getTotalLength();
+    const lineThicknesses = [10, 20, 30, 40, 50, 60, 70].map((progress) => {
+      const point = lineMaster.getPointAtLength((progress / 100) * lineLength);
+
+      return Array.from({ length: 17 }, (_, index) => {
+        const pixel = context.getImageData(
+          Math.round(point.x + positions[1].x),
+          Math.round(point.y + positions[1].y) + index - 8,
+          1,
+          1,
+        ).data;
+        return pixel[0] < 250 || pixel[1] < 250 || pixel[2] < 250;
+      }).filter(Boolean).length;
+    });
 
     return {
       metrics,
       allSamplesPainted: paintedSamples.map((samples) => samples.every(Boolean)),
       infinityOrder,
+      lineGradientRanges: gradients[1].ranges.length,
+      lineGradientStopOffsets: gradients[1].ranges[0].gradient.stops.map((stop) => stop.offset),
+      lineThicknesses,
       allRangeOpacitiesAreOne: gradients.every((gradient) => gradient.ranges.every((range) => range.opacity === 1)),
     };
   });
@@ -220,6 +238,9 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
   expect(result.allSamplesPainted).toEqual([true, true, true, true, true, true]);
   expect(result.allRangeOpacitiesAreOne).toBe(true);
   expect(result.infinityOrder).toEqual([...result.infinityOrder].sort((valueA, valueB) => valueA - valueB));
+  expect(result.lineGradientRanges).toBe(1);
+  expect(result.lineGradientStopOffsets).toEqual([0, 35, 70, 100]);
+  expect(Math.max(...result.lineThicknesses) - Math.min(...result.lineThicknesses)).toBeLessThanOrEqual(1);
   expect(Math.max(...result.metrics.segmentCounts)).toBeLessThanOrEqual(96);
   expect(result.metrics.nodeCount).toBeLessThan(5000);
   expect(result.metrics.buildDuration).toBeLessThan(250);

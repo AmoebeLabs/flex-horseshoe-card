@@ -17,32 +17,22 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
   const domainStart = config.mode === 'full' ? 0 : config.range.start;
   const domainEnd = config.mode === 'full' ? 100 : config.range.end;
   const colorStops = { colors: config.colorStops.map((stop) => ({ value: stop.progress, color: stop.color })) };
-  const anchors = [
-    domainStart,
-    ...config.colorStops.map((stop) => domainStart + (stop.progress / 100) * (domainEnd - domainStart)),
-    domainEnd,
-  ]
-    .sort((progressA, progressB) => progressA - progressB)
-    .filter((progress, index, values) => values.indexOf(progress) === index);
-  const pendingIntervals = anchors.slice(0, -1).map((start, index) => ({ start, end: anchors[index + 1] })).reverse();
+  const positionedColorStops = config.colorStops.map((stop) => ({
+    progress: domainStart + (stop.progress / 100) * (domainEnd - domainStart),
+    color: stop.color,
+  }));
+  const pendingIntervals = [{ start: domainStart, end: domainEnd }];
   const adaptiveIntervals = [];
+  const pathLength = pathGeometry.getTotalLength();
 
-  // Split by measured length before asking the browser for coordinates. Once
-  // an interval is short enough, its two chord directions reveal local curve
-  // change with one cached start/middle/end sample each. A true corner stops at
-  // the configured visible minimum instead of subdividing toward zero forever.
+  // Keep an arbitrarily long straight trajectory intact. Curves and corners
+  // are divided until each local linear gradient follows the centerline closely
+  // enough; color stops do not create additional SVG paths.
   while (pendingIntervals.length) {
     const interval = pendingIntervals.pop();
     const midpoint = (interval.start + interval.end) / 2;
-    const intervalLength = ((interval.end - interval.start) / 100) * pathGeometry.getTotalLength();
+    const intervalLength = ((interval.end - interval.start) / 100) * pathLength;
     const splitFitsDomBudget = adaptiveIntervals.length + pendingIntervals.length + 2 <= config.maxSegments;
-
-    if (intervalLength > config.maxSegmentLength && splitFitsDomBudget) {
-      pendingIntervals.push({ start: midpoint, end: interval.end });
-      pendingIntervals.push({ start: interval.start, end: midpoint });
-      continue;
-    }
-
     const startPoint = pathGeometry.pointAtProgress(interval.start);
     const middlePoint = pathGeometry.pointAtProgress(midpoint);
     const endPoint = pathGeometry.pointAtProgress(interval.end);
@@ -52,8 +42,27 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
     const secondChordLength = Math.hypot(secondChord.x, secondChord.y);
     const chordDotProduct = (firstChord.x * secondChord.x + firstChord.y * secondChord.y) / (firstChordLength * secondChordLength);
     const chordAngle = Math.acos(Math.min(1, Math.max(-1, chordDotProduct))) * 180 / Math.PI;
+    let longCurvedInterval = false;
 
-    if (chordAngle > config.maxTangentAngle && intervalLength / 2 >= config.minSegmentLength && splitFitsDomBudget) {
+    // Long intervals need two extra samples to distinguish a genuinely straight
+    // trajectory from a curve whose start, middle, and end happen to align.
+    if (intervalLength > config.maxSegmentLength) {
+      const firstQuarterPoint = pathGeometry.pointAtProgress((interval.start + midpoint) / 2);
+      const thirdQuarterPoint = pathGeometry.pointAtProgress((midpoint + interval.end) / 2);
+      const chord = { x: endPoint.x - startPoint.x, y: endPoint.y - startPoint.y };
+      const chordLength = Math.hypot(chord.x, chord.y);
+      const straightTolerance = 0.001;
+      const pathIsStraight = chordLength > 0 && [firstQuarterPoint, middlePoint, thirdQuarterPoint].every((point) => {
+        const pointDelta = { x: point.x - startPoint.x, y: point.y - startPoint.y };
+        const distanceFromChord = Math.abs(pointDelta.x * chord.y - pointDelta.y * chord.x) / chordLength;
+        const positionAlongChord = (pointDelta.x * chord.x + pointDelta.y * chord.y) / (chordLength * chordLength);
+        return distanceFromChord <= straightTolerance && positionAlongChord >= 0 && positionAlongChord <= 1;
+      });
+      longCurvedInterval = !pathIsStraight;
+    }
+    const directionChangeTooLarge = !Number.isFinite(chordAngle) || chordAngle > config.maxTangentAngle;
+
+    if ((longCurvedInterval || directionChangeTooLarge) && intervalLength / 2 >= config.minSegmentLength && splitFitsDomBudget) {
       pendingIntervals.push({ start: midpoint, end: interval.end });
       pendingIntervals.push({ start: interval.start, end: midpoint });
       continue;
@@ -62,6 +71,7 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
     adaptiveIntervals.push(interval);
   }
 
+  const overlapProgress = (config.overlap / pathLength) * 100;
   const ranges = adaptiveIntervals.map((interval, index) => {
     const gradientStartProgress = ((interval.start - domainStart) / (domainEnd - domainStart)) * 100;
     const gradientEndProgress = ((interval.end - domainStart) / (domainEnd - domainStart)) * 100;
@@ -69,8 +79,18 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
     const endPoint = pathGeometry.pointAtProgress(interval.end);
     const overlapEnd = index === adaptiveIntervals.length - 1
       ? interval.end
-      : Math.min(domainEnd, interval.end + (interval.end - interval.start) * config.overlap);
+      : Math.min(domainEnd, interval.end + overlapProgress);
     const length = overlapEnd - interval.start;
+    const gradientStops = [
+      { offset: 0, color: Colors.calculateStrokeColor(gradientStartProgress, colorStops, true) },
+      ...positionedColorStops
+        .filter((stop) => stop.progress > interval.start && stop.progress < interval.end)
+        .map((stop) => ({
+          offset: ((stop.progress - interval.start) / (interval.end - interval.start)) * 100,
+          color: stop.color,
+        })),
+      { offset: 100, color: Colors.calculateStrokeColor(gradientEndProgress, colorStops, true) },
+    ];
 
     return {
       id: `gradient-${index}`,
@@ -90,8 +110,7 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
         y1: startPoint.y,
         x2: endPoint.x,
         y2: endPoint.y,
-        startColor: Colors.calculateStrokeColor(gradientStartProgress, colorStops, true),
-        endColor: Colors.calculateStrokeColor(gradientEndProgress, colorStops, true),
+        stops: gradientStops,
       },
     };
   });
@@ -184,8 +203,9 @@ export function renderAdaptivePathGradient(pathDefinition, gradient, layer, laye
             x2=${range.gradient.x2}
             y2=${range.gradient.y2}
           >
-            <stop offset="0%" stop-color=${range.gradient.startColor}></stop>
-            <stop offset="100%" stop-color=${range.gradient.endColor}></stop>
+            ${range.gradient.stops.map((stop) => svg`
+              <stop offset="${stop.offset}%" stop-color=${stop.color}></stop>
+            `)}
           </linearGradient>
         `)}
       </defs>

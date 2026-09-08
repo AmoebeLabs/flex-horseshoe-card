@@ -450,7 +450,8 @@ test('full and current gradients are built from measured geometry after value ma
       [horseshoe.stateGradient.revealRange.start, horseshoe.stateGradient.revealRange.end],
       [0, 75],
     );
-    assert.equal(horseshoe.stateGradient.ranges.length > 1, true);
+    assert.equal(horseshoe.stateGradient.ranges.length, 1);
+    assert.equal(horseshoe.stateGradient.ranges[0].gradient.stops.length, horseshoeStyle === 'minmaxgradient' ? 2 : 3);
   });
 });
 
