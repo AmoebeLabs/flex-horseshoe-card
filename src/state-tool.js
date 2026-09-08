@@ -721,7 +721,7 @@ export default class StateTool extends BaseTool {
     if (options.includeStyles) {
       stateStyles = this.getStyles({
         'font-size': '1em',
-        color: 'var(--primary-text-color)',
+        fill: 'var(--primary-text-color)',
         opacity: '1.0',
         'text-anchor': 'middle',
       });
