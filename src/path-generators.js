@@ -140,11 +140,14 @@ export function buildPolygonPathDefinition(config) {
   };
   const startPoint = pointAtPosition(config.start);
   const commands = [`M ${startPoint.x} ${startPoint.y}`];
+  const closed = Math.abs(config.end - config.start) === config.sides;
 
   if (config.start === config.end) return createPathDefinition(commands[0], false);
 
   if (config.direction === 'clockwise') {
-    const traversalEnd = config.end < config.start ? config.end + config.sides : config.end;
+    const traversalEnd = closed
+      ? config.start + config.sides
+      : config.end < config.start ? config.end + config.sides : config.end;
 
     for (let position = Math.floor(config.start) + 1; position < traversalEnd; position += 1) {
       const point = pointAtPosition(position);
@@ -154,7 +157,9 @@ export function buildPolygonPathDefinition(config) {
     const endPoint = pointAtPosition(traversalEnd);
     commands.push(`L ${endPoint.x} ${endPoint.y}`);
   } else {
-    const traversalEnd = config.end > config.start ? config.end - config.sides : config.end;
+    const traversalEnd = closed
+      ? config.start - config.sides
+      : config.end > config.start ? config.end - config.sides : config.end;
 
     for (let position = Math.ceil(config.start) - 1; position > traversalEnd; position -= 1) {
       const point = pointAtPosition(position);
@@ -165,7 +170,6 @@ export function buildPolygonPathDefinition(config) {
     commands.push(`L ${endPoint.x} ${endPoint.y}`);
   }
 
-  const closed = Math.abs(config.end - config.start) === config.sides;
   if (closed) commands.push('Z');
 
   return createPathDefinition(commands.join(' '), closed);
@@ -180,7 +184,7 @@ export function buildPolygonPathDefinition(config) {
  * @param {object} config - Validated rectangle center, dimensions, radii, and side range.
  * @returns {object} Stable rounded rectangle path definition.
  */
-export function buildSidePositionedRectanglePathDefinition(config) {
+export function buildRectanglePathDefinition(config) {
   const left = config.cx - config.width / 2;
   const top = config.cy - config.height / 2;
   const right = config.cx + config.width / 2;
@@ -288,11 +292,14 @@ export function buildSidePositionedRectanglePathDefinition(config) {
   };
   const startPoint = rotatePoint(pointAtPosition(config.start));
   const commands = [`M ${startPoint.x} ${startPoint.y}`];
+  const closed = Math.abs(config.end - config.start) === 4;
 
   if (config.start === config.end) return createPathDefinition(commands[0], false);
 
   if (config.direction === 'clockwise') {
-    const traversalEnd = config.end < config.start ? config.end + 4 : config.end;
+    const traversalEnd = closed
+      ? config.start + 4
+      : config.end < config.start ? config.end + 4 : config.end;
     let position = config.start;
 
     while (position < traversalEnd) {
@@ -302,7 +309,9 @@ export function buildSidePositionedRectanglePathDefinition(config) {
       position = nextPosition;
     }
   } else {
-    const traversalEnd = config.end > config.start ? config.end - 4 : config.end;
+    const traversalEnd = closed
+      ? config.start - 4
+      : config.end > config.start ? config.end - 4 : config.end;
     let position = config.start;
 
     while (position > traversalEnd) {
@@ -314,53 +323,9 @@ export function buildSidePositionedRectanglePathDefinition(config) {
     }
   }
 
-  const closed = Math.abs(config.end - config.start) === 4;
   if (closed) commands.push('Z');
 
   return createPathDefinition(commands.join(' '), closed);
-}
-
-/**
- * Builds a closed rectangular centerline with independent corner radii. The
- * start side changes only the path origin; direction controls traversal order.
- *
- * @param {object} config - Normalized rectangle geometry.
- * @returns {object} Stable rectangle path definition.
- */
-export function buildRectanglePathDefinition(config) {
-  const left = config.x;
-  const top = config.y;
-  const right = config.x + config.width;
-  const bottom = config.y + config.height;
-  const centerX = config.x + config.width / 2;
-  const centerY = config.y + config.height / 2;
-  const startPoints = {
-    top: `${centerX} ${top}`,
-    right: `${right} ${centerY}`,
-    bottom: `${centerX} ${bottom}`,
-    left: `${left} ${centerY}`,
-  };
-  const sideOrder = ['top', 'right', 'bottom', 'left'];
-  const clockwiseSections = {
-    top: `L ${right - config.radiusTopRight} ${top} Q ${right} ${top} ${right} ${top + config.radiusTopRight} L ${right} ${centerY}`,
-    right: `L ${right} ${bottom - config.radiusBottomRight} Q ${right} ${bottom} ${right - config.radiusBottomRight} ${bottom} L ${centerX} ${bottom}`,
-    bottom: `L ${left + config.radiusBottomLeft} ${bottom} Q ${left} ${bottom} ${left} ${bottom - config.radiusBottomLeft} L ${left} ${centerY}`,
-    left: `L ${left} ${top + config.radiusTopLeft} Q ${left} ${top} ${left + config.radiusTopLeft} ${top} L ${centerX} ${top}`,
-  };
-  const counterClockwiseSections = {
-    top: `L ${left + config.radiusTopLeft} ${top} Q ${left} ${top} ${left} ${top + config.radiusTopLeft} L ${left} ${centerY}`,
-    left: `L ${left} ${bottom - config.radiusBottomLeft} Q ${left} ${bottom} ${left + config.radiusBottomLeft} ${bottom} L ${centerX} ${bottom}`,
-    bottom: `L ${right - config.radiusBottomRight} ${bottom} Q ${right} ${bottom} ${right} ${bottom - config.radiusBottomRight} L ${right} ${centerY}`,
-    right: `L ${right} ${top + config.radiusTopRight} Q ${right} ${top} ${right - config.radiusTopRight} ${top} L ${centerX} ${top}`,
-  };
-  const startIndex = sideOrder.indexOf(config.start);
-  const orderedSides = config.direction === 'clockwise'
-    ? [...sideOrder.slice(startIndex), ...sideOrder.slice(0, startIndex)]
-    : [...sideOrder.slice(0, startIndex + 1).reverse(), ...sideOrder.slice(startIndex + 1).reverse()];
-  const sections = config.direction === 'clockwise' ? clockwiseSections : counterClockwiseSections;
-  const d = `M ${startPoints[config.start]} ${orderedSides.map((side) => sections[side]).join(' ')} Z`;
-
-  return createPathDefinition(d, true);
 }
 
 /**

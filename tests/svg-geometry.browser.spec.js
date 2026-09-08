@@ -260,16 +260,18 @@ test('all initial path generators produce measurable centerlines with stable end
       },
       {
         type: 'rectangle',
-        x: 10,
-        y: 20,
+        cx: 60,
+        cy: 50,
         width: 100,
         height: 60,
         radiusTopLeft: 5,
         radiusTopRight: 10,
         radiusBottomRight: 15,
         radiusBottomLeft: 20,
-        start: 'right',
-        direction: 'counter-clockwise',
+        start: 4,
+        end: 0,
+        top: 0.5,
+        direction: 'counterclockwise',
       },
       {
         type: 'wave',
@@ -387,15 +389,17 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
       },
       {
         type: 'rectangle',
-        x: 10,
-        y: 20,
+        cx: 60,
+        cy: 50,
         width: 100,
         height: 60,
         radiusTopLeft: 0,
         radiusTopRight: 0,
         radiusBottomRight: 0,
         radiusBottomLeft: 0,
-        start: 'top',
+        start: 0,
+        end: 4,
+        top: 0.5,
         direction: 'clockwise',
       },
       {
@@ -467,7 +471,7 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
     const rectangleGeometry = new PathGeometry(() => {});
     rectangleGeometry.setPathDefinition(rectangleDefinition);
     rectangleGeometry.bindPathElement(rectanglePath);
-    const cornerTangent = rectangleGeometry.tangentAtProgress((50 / rectangleGeometry.getTotalLength()) * 100);
+    const cornerTangent = rectangleGeometry.tangentAtProgress((100 / rectangleGeometry.getTotalLength()) * 100);
     const seamStart = rectangleGeometry.tangentAtProgress(0);
     const seamEnd = rectangleGeometry.tangentAtProgress(100);
 

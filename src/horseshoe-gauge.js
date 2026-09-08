@@ -7,7 +7,7 @@ import { GaugeScale } from './horseshoe-geometry.js';
 import { applyEllipsis, buildLabelStopItems } from './horseshoe-labels.js';
 import { getGaugeStateData, normalizeBaseConfig, normalizeRuntimeConfig } from './horseshoe-state.js';
 import { applyLegacyScaleTickmarkConfig, buildTickValues, getTickmarkVisibility } from './horseshoe-tickmarks.js';
-import { buildArcPathDefinition, buildInfinityPathDefinition, buildLinePathDefinition, buildRectanglePathDefinition, buildSpiralPathDefinition, buildWavePathDefinition } from './path-generators.js';
+import { buildArcPathDefinition, buildInfinityPathDefinition, buildLinePathDefinition, buildPolygonPathDefinition, buildRectanglePathDefinition, buildSpiralPathDefinition, buildWavePathDefinition } from './path-generators.js';
 import PathGeometry, { buildOffsetPathDefinition, TransformedPathGeometry } from './path-geometry.js';
 import { buildPathElements } from './path-elements.js';
 import { renderPathElements } from './path-elements-renderer.js';
@@ -17,7 +17,7 @@ import { renderNormalizedPathBands } from './path-mask-renderer.js';
 import { buildPaintedRanges, PathValueMapper } from './path-ranges.js';
 import Utils from './utils.js';
 
-const PATH_TYPES = ['arc', 'line', 'rectangle', 'wave', 'spiral', 'infinity'];
+const PATH_TYPES = ['arc', 'line', 'rectangle', 'polygon', 'wave', 'spiral', 'infinity'];
 
 /**
  * Translates horseshoe configuration into the complete contracts consumed by
@@ -237,27 +237,75 @@ export default class HorseshoeGauge extends BaseTool {
         const radiusConfig = typeof sourcePath.radius === 'object' ? sourcePath.radius : { all: sourcePath.radius ?? 0 };
         const maxRadius = Math.min(width, height) / 2;
         const radius = (value) => Math.min(maxRadius, dimension(value));
+        const start = sourcePath.start ?? 0;
+        const end = sourcePath.end ?? 4;
+        const top = sourcePath.top ?? 0.5;
+        const direction = sourcePath.direction ?? 'clockwise';
         if (width <= 0 || height <= 0) throw new Error('[horseshoes] rectangle width and height must be greater than zero');
-        if (!['top', 'right', 'bottom', 'left'].includes(sourcePath.start ?? 'top')) {
-          throw new Error(`[horseshoes] rectangle path.start '${sourcePath.start}' is invalid [top, right, bottom, left]`);
+        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= 4)) {
+          throw new Error('[horseshoes] rectangle path.start, path.end, and path.top must be numbers from 0 through 4');
         }
-        if (!['clockwise', 'counterclockwise'].includes(sourcePath.direction ?? 'clockwise')) {
+        if (!['clockwise', 'counterclockwise'].includes(direction)) {
           throw new Error(`[horseshoes] rectangle path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
         }
         this.pathContract = {
           type: 'rectangle',
-          x: center.xpos - width / 2,
-          y: center.ypos - height / 2,
+          cx: center.xpos,
+          cy: center.ypos,
           width,
           height,
           radiusTopLeft: radius(radiusConfig.top_left ?? radiusConfig.all),
           radiusTopRight: radius(radiusConfig.top_right ?? radiusConfig.all),
           radiusBottomRight: radius(radiusConfig.bottom_right ?? radiusConfig.all),
           radiusBottomLeft: radius(radiusConfig.bottom_left ?? radiusConfig.all),
-          start: sourcePath.start ?? 'top',
-          direction: sourcePath.direction ?? 'clockwise',
+          start,
+          end,
+          top,
+          direction,
         };
         this.pathDefinition = buildRectanglePathDefinition(this.pathContract);
+        break;
+      }
+      case 'polygon': {
+        const sides = sourcePath.sides;
+        const usesRadius = sourcePath.radius !== undefined;
+        const usesDimensions = sourcePath.width !== undefined || sourcePath.height !== undefined;
+        const start = sourcePath.start ?? 0;
+        const end = sourcePath.end ?? sides;
+        const top = sourcePath.top ?? (sides % 2 === 0 ? 0.5 : 0);
+        const direction = sourcePath.direction ?? 'clockwise';
+
+        if (!Number.isInteger(sides) || sides < 3) {
+          throw new Error('[horseshoes] polygon path.sides must be an integer equal to or greater than 3');
+        }
+        if (usesRadius === usesDimensions || (usesDimensions && (sourcePath.width === undefined || sourcePath.height === undefined))) {
+          throw new Error('[horseshoes] polygon requires either path.radius, or both path.width and path.height');
+        }
+        if (usesRadius && sourcePath.radius <= 0) throw new Error('[horseshoes] polygon path.radius must be greater than zero');
+        if (usesDimensions && (sourcePath.width <= 0 || sourcePath.height <= 0)) {
+          throw new Error('[horseshoes] polygon path.width and path.height must be greater than zero');
+        }
+        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= sides)) {
+          throw new Error(`[horseshoes] polygon path.start, path.end, and path.top must be numbers from 0 through ${sides}`);
+        }
+        if (!['clockwise', 'counterclockwise'].includes(direction)) {
+          throw new Error(`[horseshoes] polygon path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
+        }
+
+        this.pathContract = {
+          type: 'polygon',
+          cx: center.xpos,
+          cy: center.ypos,
+          sides,
+          ...(usesRadius
+            ? { radius: dimension(sourcePath.radius) }
+            : { width: dimension(sourcePath.width), height: dimension(sourcePath.height) }),
+          start,
+          end,
+          top,
+          direction,
+        };
+        this.pathDefinition = buildPolygonPathDefinition(this.pathContract);
         break;
       }
       case 'wave': {
