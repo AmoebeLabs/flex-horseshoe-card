@@ -44,10 +44,10 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               }),
               buildLinePathDefinition({ x1: 10, y1: 50, x2: 90, y2: 50 }),
               buildRectanglePathDefinition({
-                x: 12, y: 12, width: 76, height: 76,
+                cx: 50, cy: 50, width: 76, height: 76,
                 radiusTopLeft: 8, radiusTopRight: 8,
                 radiusBottomRight: 8, radiusBottomLeft: 8,
-                start: 'top', direction: 'clockwise',
+                start: 0, end: 4, top: 0.5, direction: 'clockwise',
               }),
               buildWavePathDefinition({
                 x1: 10, y1: 50, x2: 90, y2: 50,

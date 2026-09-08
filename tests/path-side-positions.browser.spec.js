@@ -8,7 +8,7 @@ test('browser geometry measures polygon and rounded rectangle side ranges as one
     const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
     const {
       buildPolygonPathDefinition,
-      buildSidePositionedRectanglePathDefinition,
+      buildRectanglePathDefinition,
       calculatePolygonPoints,
     } = await import(moduleUrl);
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -24,7 +24,7 @@ test('browser geometry measures polygon and rounded rectangle side ranges as one
     };
     const definitions = [
       buildPolygonPathDefinition(polygonConfig),
-      buildSidePositionedRectanglePathDefinition(rectangleConfig),
+      buildRectanglePathDefinition(rectangleConfig),
     ];
     const measured = definitions.map((definition) => {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
