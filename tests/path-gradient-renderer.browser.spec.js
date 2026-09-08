@@ -30,6 +30,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               buildArcPathDefinition,
               buildInfinityPathDefinition,
               buildLinePathDefinition,
+              buildPolygonPathDefinition,
               buildRectanglePathDefinition,
               buildSpiralPathDefinition,
               buildWavePathDefinition,
@@ -60,6 +61,10 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               buildInfinityPathDefinition({
                 cx: 50, cy: 50, radiusX: 42, radiusY: 27,
               }),
+              buildPolygonPathDefinition({
+                cx: 50, cy: 50, sides: 6, width: 72, height: 58, radius: 4,
+                start: 0, end: 6, top: 0.5, direction: 'clockwise',
+              }),
             ];
             const positions = definitions.map((definition, index) => ({
               x: 10 + (index % 3) * 110,
@@ -81,7 +86,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               minSegmentLength: 1,
               maxTangentAngle: 8,
               maxSegments: 96,
-              overlap: 0.5,
+              overlap: 2,
             };
             const layer = {
               opacity: 0.72,
@@ -91,7 +96,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
             };
 
             render(svg\`
-              <svg id="gradient-showcase" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 230" width="680" height="460">
+              <svg id="gradient-showcase" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 340" width="680" height="680">
                 \${definitions.map((definition, index) => svg\`
                   <g class="shape" data-index=\${index} transform="translate(\${positions[index].x} \${positions[index].y})">
                     <path class="master" d=\${definition.d} pathLength="100" fill="none" stroke="transparent"></path>
@@ -105,7 +110,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               const geometry = new PathGeometry(() => {});
               geometry.setPathDefinition(definition);
               geometry.bindPathElement(document.querySelector(\`.shape[data-index="\${index}"] .master\`));
-              return buildAdaptivePathGradient(geometry, config);
+              return buildAdaptivePathGradient(geometry, index === 6 ? { ...config, range: { start: 0, end: 65 } } : config);
             });
 
             // Exclude browser JIT and first SVG measurement setup from the steady-state budget.
@@ -192,7 +197,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
 
     const canvas = document.createElement('canvas');
     canvas.width = 340;
-    canvas.height = 230;
+    canvas.height = 340;
     const context = canvas.getContext('2d');
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -200,7 +205,8 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
     const paintedSamples = [...document.querySelectorAll('.shape')].map((shape, index) => {
       const master = shape.querySelector('.master');
       const totalLength = master.getTotalLength();
-      return Array.from({ length: 73 }, (_, sampleIndex) => {
+      const visibleSampleCount = index === 6 ? 64 : 73;
+      return Array.from({ length: visibleSampleCount }, (_, sampleIndex) => {
         const point = master.getPointAtLength(((sampleIndex + 1) / 100) * totalLength);
         const pixel = context.getImageData(Math.round(point.x + positions[index].x), Math.round(point.y + positions[index].y), 1, 1).data;
         return pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245;
@@ -235,7 +241,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
     };
   });
 
-  expect(result.allSamplesPainted).toEqual([true, true, true, true, true, true]);
+  expect(result.allSamplesPainted).toEqual([true, true, true, true, true, true, true]);
   expect(result.allRangeOpacitiesAreOne).toBe(true);
   expect(result.infinityOrder).toEqual([...result.infinityOrder].sort((valueA, valueB) => valueA - valueB));
   expect(result.lineGradientRanges).toBe(1);

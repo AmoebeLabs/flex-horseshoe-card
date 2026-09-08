@@ -26,7 +26,7 @@ const baseConfig = {
   minSegmentLength: 1,
   maxTangentAngle: 12,
   maxSegments: 96,
-  overlap: 0.5,
+  overlap: 2,
 };
 
 test('full gradient keeps one straight range with static color stops behind the active reveal range', () => {
@@ -133,7 +133,7 @@ test('gradient joins overlap by a fixed SVG length', () => {
     maxSegmentLength: 25,
   });
 
-  assert.ok(Math.abs(gradient.ranges[0].end - gradient.ranges[1].start - 0.5) < 1e-10);
+  assert.ok(Math.abs(gradient.ranges[0].end - gradient.ranges[1].start - 2) < 1e-10);
 });
 
 test('renderer defines local gradients and reuses generic masked path bands', () => {
