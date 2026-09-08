@@ -196,11 +196,11 @@ test('all frozen path shapes normalize percentage config into complete generator
       expected: { type: 'line', x1: 20, y1: 100, x2: 180, y2: 100 },
     },
     {
-      path: { type: 'rectangle', width: 80, height: 60, radius: 5, start: 3.5, end: 1.5, top: 0.5, direction: 'clockwise' },
+      path: { type: 'rectangle', width: 80, height: 60, radius: 5 },
       expected: {
         type: 'rectangle', cx: 100, cy: 100, width: 160, height: 120,
         radiusTopLeft: 10, radiusTopRight: 10, radiusBottomRight: 10, radiusBottomLeft: 10,
-        start: 3.5, end: 1.5, top: 0.5, direction: 'clockwise',
+        start: 0, end: 4, top: 0.5, direction: 'clockwise',
       },
     },
     {
