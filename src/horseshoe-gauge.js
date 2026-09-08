@@ -690,7 +690,7 @@ export default class HorseshoeGauge extends BaseTool {
       minSegmentLength: 1,
       maxTangentAngle: 12,
       maxSegments: 96,
-      overlap: 0.5,
+      overlap: 2,
     };
     const stateCompleteColorStops = sourceColorStops.map((colorStop) => ({
       progress: this.valueMapper.valueToProgress(colorStop.value),
