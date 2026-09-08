@@ -8,7 +8,7 @@ export default class CardAnimations {
    */
   constructor() {
     this.styles = {
-      lines: {}, vlines: {}, hlines: {}, circles: {}, arcs: {}, rectangles: {},
+      lines: {}, vlines: {}, hlines: {}, circles: {}, arcs: {}, rectangles: {}, polygons: {},
       icons: {}, iconsIcon: {}, names: {}, areas: {}, states: {}, texts: {}, controls: {},
     };
   }
@@ -26,7 +26,7 @@ export default class CardAnimations {
           : sourceAnimationItem;
         if (entities[entityIndex].state.toLowerCase() !== item.state.toLowerCase()) return;
 
-        ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'names', 'areas', 'states', 'texts', 'controls'].forEach((section) => {
+        ['lines', 'vlines', 'hlines', 'circles', 'arcs', 'rectangles', 'polygons', 'names', 'areas', 'states', 'texts', 'controls'].forEach((section) => {
           if (!item[section]) return;
           item[section].forEach((animationItem) => {
             const animationId = animationItem.animation_id;

@@ -681,17 +681,19 @@ test('CardTools preserves section render order and separates sparkline runtime u
   const cardTools = new CardTools({}, {}, 'card');
   const calls = [];
   const rectangle = { updateRuntimeConfig: () => calls.push('rectangle') };
+  const polygon = { updateRuntimeConfig: () => calls.push('polygon') };
   const horseshoe = { updateRuntimeConfig: () => calls.push('horseshoe') };
   const sparkline = { updateRuntimeConfig: () => calls.push('sparkline') };
 
   cardTools.sections.rectangles = [rectangle];
+  cardTools.sections.polygons = [polygon];
   cardTools.sections.horseshoes = [horseshoe];
   cardTools.sections.sparklines = [sparkline];
 
-  assert.deepEqual(cardTools.getRenderableTools(), [rectangle, horseshoe, sparkline]);
+  assert.deepEqual(cardTools.getRenderableTools(), [rectangle, polygon, horseshoe, sparkline]);
   cardTools.updateSparklineRuntimeConfig();
   cardTools.updateRuntimeConfig();
-  assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle']);
+  assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle', 'polygon']);
 });
 
 test('CardTools sorts renderables by z-position and stable render index', () => {
