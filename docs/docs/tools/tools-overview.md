@@ -18,7 +18,7 @@ Card tools are the elements you add to a Flexible Horseshoe Card. Choose the too
 | You want to show | Use |
 | --- | --- |
 | Current state, name, area, or icon | [Entity tools](entities/entity-state-tool.md) |
-| A line, circle, arc, rectangle, or custom text | [Shapes](shapes/shapes-overview.md) |
+| A line, circle, arc, rectangle, polygon, or custom text | [Shapes](shapes/shapes-overview.md) |
 | A value on a circular scale | [Horseshoe](horseshoe/horseshoe-overview.md) |
 | Entity history or statistics | [Sparkline](sparkline/sparkline-overview.md) |
 | A button, toggle, selector, stepper, or slider | [Interactive controls](controls/controls-overview.md) |

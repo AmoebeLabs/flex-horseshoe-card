@@ -240,11 +240,13 @@ nav:
           - Arc: tools/shapes/arc-tool.md
           - Circle: tools/shapes/circle-tool.md
           - Line: tools/shapes/line-tool.md
+          - Polygon: tools/shapes/polygon-tool.md
           - Rectangle: tools/shapes/rectangle-tool.md
           - Text: tools/shapes/text-tool.md
 
       - Horseshoe:
           - Overview: tools/horseshoe/horseshoe-overview.md
+          - Path shapes: tools/horseshoe/horseshoe-path-shapes.md
           - Scale and state: tools/horseshoe/horseshoe-scale-and-state.md
           - Tick marks and labels: tools/horseshoe/horseshoe-tick-marks-and-labels.md
 

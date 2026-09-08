@@ -68,6 +68,7 @@ Use `layout.aspectratio` to make the card square, wide, or tall:
 | Arc and horseshoe | `radius`, `arc_degrees` |
 | Line | `length`, `thickness` |
 | Rectangle | `width`, `height`, `radius` |
+| Polygon | `radius`, or `width` and `height` |
 | Sparkline and control | `width`, `height` |
 
 ## :material-horseshoe: Move related tools together
