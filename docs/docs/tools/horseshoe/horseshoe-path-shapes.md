@@ -13,9 +13,12 @@ tags:
 
 A horseshoe can follow more than a circular arc. Use another path when a gauge should follow the edge of a panel, form a roof over a value, or become a triangle, hexagon, wave, spiral, or infinity symbol.
 
+<!-- Add horseshoe path shape showcase image -->
+
+![](../../assets/screenshots/fhs-path-shapes-overview.png)
+
 The scale, state progress, marker, colors, tick marks, labels, and animation continue to work along the selected shape. See [Horseshoe scale and state](horseshoe-scale-and-state.md#show-the-current-value-with-a-marker) for markers that follow a path or point to an arc from its center.
 
-<!-- Add horseshoe path shape showcase image -->
 
 ## :material-horseshoe: Choose a path
 
@@ -27,12 +30,13 @@ layout:
     - entity_index: 0
       xpos: 50
       ypos: 50
-      path:
-        type: polygon
-        sides: 6
-        width: 76
-        height: 66
-        radius: 4
+
+      path:             # Define specific path for the horseshoe
+        type: polygon   # In this case a polygon...
+        sides: 6        # ...with 6 sides (hexagon)
+        width: 76       # And given width, ...
+        height: 66      # ..height, ...
+        radius: 4       # ..and radius for the corners of the hexagon
 
       horseshoe_scale:
         min: 0
@@ -52,7 +56,8 @@ layout:
 | `spiral` | A gauge that winds outward. |
 | `infinity` | A continuous figure-eight gauge. |
 
-Without `path`, the horseshoe uses its normal circular arc.
+!!! info "Without `path`, the horseshoe uses its normal circular arc."
+    Only define a path if you want another shaped 'horseshoe'!
 
 ## :material-horseshoe: Follow part of a rectangle or polygon
 
@@ -65,12 +70,24 @@ Rectangle             Triangle              Hexagon
 |         |              / \                 /       \
 |         |             /   \               5         2
 3 ------- 2            2 --- 1               \       /
-                                               4 --- 3
+                                              4 --- 3
 ```
 
 For example, `0.5` is halfway from corner `0` to corner `1`. On a rectangle, `4` is the end of the final side and returns to corner `0`.
 
-Use `start` and `end` to choose the visible route. This rectangle follows the left half of the top-left corner, the complete top side, and the right half of the top-right corner. It forms a roof that keeps the same proportions at every size:
+Use `start` and `end` to choose the visible route.
+
+The example rectangle below follows the left half of the top-left corner, the complete top side, and the right half of the top-right corner. It forms a roof that keeps he same proportions at every size:
+
+```text
+Rectangle "roof"
+
+0 ======= 1
+#         #
+|         |
+3 ------- 2
+
+```
 
 ```yaml linenums="1"
 path:
@@ -85,11 +102,11 @@ path:
 
 Use the complete range when the gauge should follow the entire shape:
 
-| Shape | Complete path |
-| --- | --- |
-| Rectangle | `start: 0`, `end: 4` |
-| Triangle | `start: 0`, `end: 3` |
-| Hexagon | `start: 0`, `end: 6` |
+| Shape | Default | Complete path |
+| --- | -- | --- |
+| Rectangle | yes | `start: 0`, `end: 4` |
+| Triangle | yes | `start: 0`, `end: 3` |
+| Hexagon | yes | `start: 0`, `end: 6` |
 
 These are also the defaults, so a complete shape does not need `start` or `end`.
 
@@ -115,11 +132,11 @@ The direction determines how the state grows from the configured start. It does 
 
 Use `top` to place a corner or a point along a side at the top of the shape:
 
-| Value | Result |
-| --- | --- |
-| `top: 0` | Corner `0` faces upward. |
-| `top: 0.5` | The middle of side `0` to `1` faces upward. |
-| `top: 0.1` | The point ten percent along side `0` to `1` faces upward. |
+| Value | Default For | Result |
+| --- | -- | --- |
+| `top: 0` | Odd Sided Polygons | Corner `0` faces upward. |
+| `top: 0.5` | Even Sided Polygons | The middle of side `0` to `1` faces upward. |
+| `top: 0.1` | - | The point ten percent along side `0` to `1` faces upward. |
 
 Odd-sided polygons use `top: 0` by default, which places a corner at the top. Even-sided polygons and rectangles use `top: 0.5`, which makes the upper side horizontal.
 
