@@ -109,7 +109,11 @@ export default class HorseshoeGauge extends BaseTool {
     this.pathElements = { ticks: [], labels: [], markers: [] };
     this.backgroundLayers = [];
     this.stateAnimator = undefined;
-    this.stateMarker = new HorseshoeStateMarker(card, `${cardId}-horseshoe-${index}-marker`);
+    this.stateMarker = new HorseshoeStateMarker(
+      card,
+      `${cardId}-horseshoe-${index}-marker`,
+      () => this.stateAnimator.updateStateLayer(this.stateAnimator.stateLayerElement, this.stateAnimator.currentProgress),
+    );
     this.stateMarkerStyles = undefined;
     this.displayProgress = undefined;
     this.stateRanges = [];

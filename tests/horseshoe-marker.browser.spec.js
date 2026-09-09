@@ -43,6 +43,14 @@ test('one animation progress drives state markers on every path shape', async ({
             import PathGeometry, { TransformedPathGeometry } from '/src/path-geometry.js';
             import { renderNormalizedPathBands } from '/src/path-mask-renderer.js';
 
+            customElements.define('ha-icon', class extends HTMLElement {
+              connectedCallback() {
+                const source = document.createElement('span');
+                source.path = 'M2 2h20v20H2z';
+                this.attachShadow({ mode: 'open' }).append(source);
+              }
+            });
+
             const definitions = [
               buildArcPathDefinition({ cx: 50, cy: 50, radiusX: 35, radiusY: 35, startAngle: -135, arcDegrees: 270 }),
               buildLinePathDefinition({ x1: 10, y1: 50, x2: 90, y2: 50 }),
@@ -183,6 +191,30 @@ test('one animation progress drives state markers on every path shape', async ({
               )}
             \`, centerHost);
 
+            // Exercise the real asynchronous MDI source route. The marker owns
+            // a state-mount repaint because a normal card render does not own
+            // the Lit tree inside that dedicated mount.
+            const loadingHost = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            loadingHost.id = 'loading-marker';
+            document.querySelector('svg').append(loadingHost);
+            const loadingCard = {
+              iconCache: {}, svgUrlCache: {}, shadowRoot: document,
+              updateComplete: Promise.resolve(), requestUpdate() {},
+            };
+            const loadingConfig = { ...centerConfig, icon: 'mdi:loaded-marker' };
+            let loadingMarker;
+            const renderLoadedMarker = () => render(svg\`
+              \${loadingMarker.render(
+                centerGeometry,
+                { cx: 50, cy: 50 },
+                loadingConfig,
+                80,
+                stateStyles,
+              )}
+            \`, loadingHost);
+            loadingMarker = new HorseshoeStateMarker(loadingCard, 'loading-source', renderLoadedMarker);
+            renderLoadedMarker();
+
             window.markerFixture = { fixtures, centerGeometry };
           </script>
         `,
@@ -287,4 +319,7 @@ test('one animation progress drives state markers on every path shape', async ({
   expect(Number(transformValues[3])).toBeCloseTo(centerMarker.expectedRotation, 5);
   expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScale, 5);
   expect(centerMarker.fill).toBe('rgb(239, 68, 68)');
+
+  await expect.poll(() => page.locator('#loading-marker .horseshoe__state-marker--ha-icon').count()).toBe(1);
+  expect(await page.locator('#loading-marker foreignObject').count()).toBe(0);
 });

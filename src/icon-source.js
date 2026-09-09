@@ -22,9 +22,10 @@ export function getIconSource(icon) {
  */
 export class HomeAssistantIconPath {
   /** Stores the source element id and current asynchronous request state. */
-  constructor(card, sourceId) {
+  constructor(card, sourceId, pathLoaded = () => card.requestUpdate()) {
     this.card = card;
     this.elementId = `icon-${sourceId}`;
+    this.pathLoaded = pathLoaded;
     this.path = undefined;
     this.pendingIcon = undefined;
   }
@@ -61,7 +62,7 @@ export class HomeAssistantIconPath {
         this.path = iconPath;
         this.card.iconCache[icon] = iconPath;
         this.pendingIcon = undefined;
-        this.card.requestUpdate();
+        this.pathLoaded();
         return;
       }
 

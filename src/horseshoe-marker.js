@@ -11,10 +11,10 @@ import { buildPathElements } from "./path-elements.js";
  */
 export default class HorseshoeStateMarker {
   /** Creates one reusable Home Assistant icon source for this horseshoe item. */
-  constructor(card, markerId) {
+  constructor(card, markerId, pathLoaded) {
     this.card = card;
     this.markerId = markerId;
-    this.haIconPath = new HomeAssistantIconPath(card, `${markerId}-source`);
+    this.haIconPath = new HomeAssistantIconPath(card, `${markerId}-source`, pathLoaded);
   }
 
   /**
@@ -153,9 +153,18 @@ export default class HorseshoeStateMarker {
 
     if (!iconPath) {
       return svg`
-        <foreignObject width="0" height="0" x=${marker.x} y=${marker.y} overflow="hidden">
+        <foreignObject
+          width="0"
+          height="0"
+          x=${marker.x}
+          y=${marker.y}
+          overflow="hidden"
+          style="opacity:0;pointer-events:none"
+        >
           <body>
-            <ha-icon .icon=${iconSource.value} id=${this.haIconPath.elementId}></ha-icon>
+            <div xmlns="http://www.w3.org/1999/xhtml" style="color:transparent;fill:transparent">
+              <ha-icon .icon=${iconSource.value} id=${this.haIconPath.elementId}></ha-icon>
+            </div>
           </body>
         </foreignObject>
       `;
