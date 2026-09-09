@@ -77,7 +77,9 @@ export default class HorseshoeStateMarker {
         x: (markerStartX + markerEndX) / 2,
         y: (markerStartY + markerEndY) / 2,
       };
-      rotation = Math.atan2(directionY, directionX) * 180 / Math.PI + Number(markerConfig.rotate);
+      // Center pointers use the horseshoe convention: an upward-facing icon
+      // needs rotate 0 and follows the current position around the arc.
+      rotation = Math.atan2(directionY, directionX) * 180 / Math.PI + 90 + Number(markerConfig.rotate);
     }
 
     if (markerConfig.shape === "circle") {

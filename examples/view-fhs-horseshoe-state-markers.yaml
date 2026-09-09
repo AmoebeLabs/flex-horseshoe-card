@@ -84,7 +84,7 @@ sections:
                 start_angle: -135
             - var_marker:
                 attach_to: center
-                icon: mdi:arrow-right-thin
+                icon: mdi:arrow-up-thin
                 rotate: 0
                 aspectratio: 8
                 start_offset: 3

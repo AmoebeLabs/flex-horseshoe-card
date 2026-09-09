@@ -312,7 +312,7 @@ test('one animation progress drives state markers on every path shape', async ({
       transform: marker.getAttribute('transform'),
       expectedX: (start.x + end.x) / 2,
       expectedY: (start.y + end.y) / 2,
-      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 15,
+      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 90 + 15,
       expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / 20,
       expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / 20 / 8,
       fill: marker.style.fill,
