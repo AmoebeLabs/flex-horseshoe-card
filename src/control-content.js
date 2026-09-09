@@ -187,9 +187,10 @@ export default class ControlContent {
           const sourcePart = { ...visualConfig, type: item.type };
           delete sourcePart.id;
           delete sourcePart.text;
-          // Item styles belong to the outer TextTool. Repeating relative font
-          // sizes on the generated tspan would multiply values such as 0.7em.
+          // Item styles belong to the outer TextTool. The generated value and
+          // unit tspans inherit those styles unless either part overrides them.
           delete sourcePart.styles;
+          sourcePart.source_styles = false;
           visualConfig.text = [sourcePart];
           visualConfig.text_overflow = Merge.mergeDeep(
             {
