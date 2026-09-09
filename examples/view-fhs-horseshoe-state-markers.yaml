@@ -1,0 +1,93 @@
+title: Horseshoe state markers
+path: fhs-horseshoe-state-markers
+type: sections
+max_columns: 4
+sections:
+  - type: grid
+    cards:
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_state_marker_v1
+          variables:
+            - var_title: Arc progress and marker
+            - var_path:
+                type: arc
+                radius: 34
+                arc_degrees: 270
+                start_angle: -135
+            - var_show:
+                horseshoe: true
+                horseshoe_style: colorstopgradient
+                scale_style: fixed
+                state_progress: true
+                state_marker: true
+                tickmarks: true
+                labels_at: ticks_major
+                label_badges: false
+            - var_marker:
+                attach_to: path
+                icon: mdi:dots-horizontal
+                size: 9
+                offset: 0
+                styles:
+                  fill: var(--card-background-color)
+                  stroke: var(--primary-text-color)
+                  stroke-width: 1
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_state_marker_v1
+          variables:
+            - var_title: Marker beside a line
+            - var_path:
+                type: line
+                length: 68
+                angle: 0
+            - var_marker:
+                attach_to: path
+                shape: triangle
+                size: 8
+                offset: 8
+                styles:
+                  fill: var(--primary-text-color)
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_state_marker_v1
+          variables:
+            - var_title: Marker beside a rectangle
+            - var_path:
+                type: rectangle
+                width: 62
+                height: 42
+                radius: 7
+            - var_marker:
+                attach_to: path
+                shape: circle
+                size: 8
+                offset: 8
+                styles:
+                  fill: var(--card-background-color)
+                  stroke: var(--primary-text-color)
+                  stroke-width: 1
+
+      - type: custom:flex-horseshoe-card
+        template:
+          name: fhs_card_horseshoe_state_marker_v1
+          variables:
+            - var_title: Pointer from the center
+            - var_path:
+                type: arc
+                radius_x: 34
+                radius_y: 27
+                arc_degrees: 270
+                start_angle: -135
+            - var_marker:
+                attach_to: center
+                icon: mdi:arrow-right-thin
+                rotate: 0
+                start_offset: 3
+                end_offset: 2
+                styles:
+                  fill: var(--primary-text-color)
+                  opacity: 0.8

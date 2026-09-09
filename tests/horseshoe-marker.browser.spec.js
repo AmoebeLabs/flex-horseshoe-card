@@ -40,7 +40,7 @@ test('one animation progress drives state markers on every path shape', async ({
               buildSpiralPathDefinition,
               buildWavePathDefinition,
             } from '/src/path-generators.js';
-            import PathGeometry from '/src/path-geometry.js';
+            import PathGeometry, { TransformedPathGeometry } from '/src/path-geometry.js';
             import { renderNormalizedPathBands } from '/src/path-mask-renderer.js';
 
             const definitions = [
@@ -115,7 +115,7 @@ test('one animation progress drives state markers on every path shape', async ({
                   };
                   render(svg\`
                     \${renderNormalizedPathBands(definition, [range], stateLayerConfig, \`state-\${index}\`, 'state-progress')}
-                    \${marker.render(geometry, markerConfig, progress, stateStyles)}
+                    \${marker.render(geometry, definition, markerConfig, progress, stateStyles)}
                   \`, element);
                 },
                 onComplete: () => {},
@@ -155,12 +155,35 @@ test('one animation progress drives state markers on every path shape', async ({
             render(svg\`
               \${sourceConfigs.map((config, index) => svg\`
                 <g transform="translate(\${index * 20} 0)">
-                  \${new HorseshoeStateMarker(card, \`source-\${index}\`).render(fixtures[1].geometry, config, 50, stateStyles)}
+                  \${new HorseshoeStateMarker(card, \`source-\${index}\`).render(fixtures[1].geometry, definitions[1], config, 50, stateStyles)}
                 </g>
               \`)}
             \`, sourceHost);
 
-            window.markerFixture = { fixtures };
+            // A center marker uses the transformed arc center and state point,
+            // so item flips affect the complete pointer without mirrored text
+            // or icon content.
+            const centerHost = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            centerHost.id = 'center-marker';
+            document.querySelector('svg').append(centerHost);
+            const centerGeometry = new TransformedPathGeometry(fixtures[0].geometry, {
+              a: -1, b: 0, c: 0, d: 1, e: 100, f: 0,
+            });
+            const centerConfig = {
+              attach_to: 'center', shape: undefined, icon: 'mdi:test-marker',
+              rotate: 15, offset: 0, size: undefined, start_offset: 4, end_offset: 2,
+            };
+            render(svg\`
+              \${new HorseshoeStateMarker(card, 'center-source').render(
+                centerGeometry,
+                { cx: 50, cy: 50 },
+                centerConfig,
+                80,
+                stateStyles,
+              )}
+            \`, centerHost);
+
+            window.markerFixture = { fixtures, centerGeometry };
           </script>
         `,
       });
@@ -235,4 +258,33 @@ test('one animation progress drives state markers on every path shape', async ({
     images: 1,
     imageAspectRatio: 'xMidYMid meet',
   });
+
+  const centerMarker = await page.evaluate(() => {
+    const center = window.markerFixture.centerGeometry.pointInCardCoordinates({ x: 50, y: 50 });
+    const statePoint = window.markerFixture.centerGeometry.pointAtProgress(80);
+    const deltaX = statePoint.x - center.x;
+    const deltaY = statePoint.y - center.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const directionX = deltaX / distance;
+    const directionY = deltaY / distance;
+    const start = { x: center.x + directionX * 4, y: center.y + directionY * 4 };
+    const end = { x: statePoint.x - directionX * 2, y: statePoint.y - directionY * 2 };
+    const marker = document.querySelector('#center-marker .horseshoe__state-marker');
+
+    return {
+      transform: marker.getAttribute('transform'),
+      expectedX: (start.x + end.x) / 2,
+      expectedY: (start.y + end.y) / 2,
+      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 15,
+      expectedScale: Math.hypot(end.x - start.x, end.y - start.y) / 24,
+      fill: marker.style.fill,
+    };
+  });
+  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+)\)/);
+
+  expect(Number(transformValues[1])).toBeCloseTo(centerMarker.expectedX, 5);
+  expect(Number(transformValues[2])).toBeCloseTo(centerMarker.expectedY, 5);
+  expect(Number(transformValues[3])).toBeCloseTo(centerMarker.expectedRotation, 5);
+  expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScale, 5);
+  expect(centerMarker.fill).toBe('rgb(239, 68, 68)');
 });

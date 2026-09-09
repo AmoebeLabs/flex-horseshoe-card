@@ -1094,7 +1094,7 @@ export default class HorseshoeGauge extends BaseTool {
     return svg`
       <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
       ${this.config.show.state_marker
-        ? this.stateMarker.render(this.transformedPathGeometry, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
+        ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
         : svg``}
     `;
   }

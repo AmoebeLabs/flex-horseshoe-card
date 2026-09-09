@@ -22,31 +22,60 @@ export default class HorseshoeStateMarker {
    * Path geometry supplies the same tangent and normal used by static markers.
    *
    * @param {TransformedPathGeometry} pathGeometry - Bound path in final card coordinates.
+   * @param {object} pathConfig - Normalized path geometry including the arc center.
    * @param {object} markerConfig - Normalized path marker configuration.
    * @param {number} progress - Current animated position in 0..100 path space.
    * @param {object} stateStyles - Calculated horseshoe state appearance.
    * @returns {TemplateResult} Marker SVG or its hidden source loader.
    */
-  render(pathGeometry, markerConfig, progress, stateStyles) {
-    const marker = buildPathElements(pathGeometry, {
-      ticks: [],
-      labels: [],
-      markers: [
-        {
-          id: this.markerId,
-          progress,
-          side: "left",
-          offset: Number(markerConfig.offset),
-          direction: "forward",
-          shape: markerConfig.shape,
-          radius: Number(markerConfig.size) / 2,
-          length: Number(markerConfig.size),
-          width: Number(markerConfig.size),
-          styles: stateStyles,
-        },
-      ],
-    }).markers[0];
-    const rotation = marker.rotation + Number(markerConfig.rotate);
+  render(pathGeometry, pathConfig, markerConfig, progress, stateStyles) {
+    let marker;
+    let iconSize;
+    let rotation;
+
+    if (markerConfig.attach_to === "path") {
+      marker = buildPathElements(pathGeometry, {
+        ticks: [],
+        labels: [],
+        markers: [
+          {
+            id: this.markerId,
+            progress,
+            side: "left",
+            offset: Number(markerConfig.offset),
+            direction: "forward",
+            shape: markerConfig.shape,
+            radius: Number(markerConfig.size) / 2,
+            length: Number(markerConfig.size),
+            width: Number(markerConfig.size),
+            styles: stateStyles,
+          },
+        ],
+      }).markers[0];
+      iconSize = Number(markerConfig.size);
+      rotation = marker.rotation + Number(markerConfig.rotate);
+    } else {
+      const center = pathGeometry.pointInCardCoordinates({ x: pathConfig.cx, y: pathConfig.cy });
+      const statePoint = pathGeometry.pointAtProgress(progress);
+      const deltaX = statePoint.x - center.x;
+      const deltaY = statePoint.y - center.y;
+      const centerToStateLength = Math.hypot(deltaX, deltaY);
+      const directionX = deltaX / centerToStateLength;
+      const directionY = deltaY / centerToStateLength;
+      const markerStartX = center.x + directionX * Number(markerConfig.start_offset);
+      const markerStartY = center.y + directionY * Number(markerConfig.start_offset);
+      const markerEndX = statePoint.x - directionX * Number(markerConfig.end_offset);
+      const markerEndY = statePoint.y - directionY * Number(markerConfig.end_offset);
+
+      // The source keeps its aspect ratio while its forward axis spans the
+      // configured center-to-state interval.
+      iconSize = Math.hypot(markerEndX - markerStartX, markerEndY - markerStartY);
+      marker = {
+        x: (markerStartX + markerEndX) / 2,
+        y: (markerStartY + markerEndY) / 2,
+      };
+      rotation = Math.atan2(directionY, directionX) * 180 / Math.PI + Number(markerConfig.rotate);
+    }
 
     if (markerConfig.shape === "circle") {
       return svg`
@@ -74,7 +103,6 @@ export default class HorseshoeStateMarker {
     }
 
     const iconSource = getIconSource(markerConfig.icon);
-    const iconSize = Number(markerConfig.size);
 
     if (iconSource.type === "image-url") {
       return svg`
