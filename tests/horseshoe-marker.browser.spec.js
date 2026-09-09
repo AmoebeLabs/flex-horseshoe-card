@@ -307,24 +307,28 @@ test('one animation progress drives state markers on every path shape', async ({
     const start = { x: center.x + directionX * 4, y: center.y + directionY * 4 };
     const end = { x: statePoint.x + directionX * -2, y: statePoint.y + directionY * -2 };
     const marker = document.querySelector('#center-marker .horseshoe__state-marker');
+    const iconRotationRadians = 15 * Math.PI / 180;
+    const rotatedIconSize = Math.abs(20 * Math.cos(iconRotationRadians)) + Math.abs(20 * Math.sin(iconRotationRadians));
 
     return {
       transform: marker.getAttribute('transform'),
       expectedX: (start.x + end.x) / 2,
       expectedY: (start.y + end.y) / 2,
-      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 90 + 15,
-      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / 20,
-      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / 20 / 8,
+      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 90,
+      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / rotatedIconSize / 8,
+      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / rotatedIconSize,
+      expectedIconRotation: 15,
       fill: marker.style.fill,
     };
   });
-  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\)/);
+  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\)/);
 
   expect(Number(transformValues[1])).toBeCloseTo(centerMarker.expectedX, 5);
   expect(Number(transformValues[2])).toBeCloseTo(centerMarker.expectedY, 5);
   expect(Number(transformValues[3])).toBeCloseTo(centerMarker.expectedRotation, 5);
   expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScaleX, 5);
   expect(Number(transformValues[5])).toBeCloseTo(centerMarker.expectedScaleY, 5);
+  expect(Number(transformValues[6])).toBeCloseTo(centerMarker.expectedIconRotation, 5);
   expect(centerMarker.fill).toBe('rgb(239, 68, 68)');
 
   await expect.poll(() => page.locator('#loading-marker .horseshoe__state-marker--ha-icon').count()).toBe(1);

@@ -732,7 +732,7 @@ const ht=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let pt=class{constr
         ${Qa(t,r,i,`${s}-bands`,`${a}__band`)}
       </g>
     </g>
-  `}const ir={linear:t=>t,"ease-in":t=>t**3,"ease-out":t=>1-(1-t)**3,"ease-in-out":t=>t<.5?4*t**3:1-(-2*t+2)**3/2};class sr{constructor(t){this.animation=t.animation,this.requestFrame=t.requestFrame,this.cancelFrame=t.cancelFrame,this.updateStateLayer=t.updateStateLayer,this.onComplete=t.onComplete,this.currentProgress=t.initialProgress,this.stateLayerElement=void 0,this.frame=void 0,this.startTime=void 0,this.fromProgress=t.initialProgress,this.toProgress=t.initialProgress,this.animating=!1}bindStateLayer(t){this.stateLayerElement=t,this.updateStateLayer(this.stateLayerElement,this.currentProgress)}animateTo(t){if(this.animating&&this.toProgress===t)return;if(void 0!==this.frame&&this.cancelFrame(this.frame),this.frame=void 0,this.startTime=void 0,this.fromProgress=this.currentProgress,this.toProgress=t,!this.animation.enabled)return this.currentProgress=this.toProgress,this.animating=!1,this.updateStateLayer(this.stateLayerElement,this.currentProgress),void this.onComplete(this.currentProgress);this.animating=!0;const e=ir[this.animation.easing],i=t=>{void 0===this.startTime&&(this.startTime=t);const s=t-this.startTime,a=Ra(s/this.animation.duration,0,1),r=e(a);this.currentProgress=this.fromProgress+(this.toProgress-this.fromProgress)*r,this.updateStateLayer(this.stateLayerElement,this.currentProgress),a<1?this.frame=this.requestFrame(i):(this.frame=void 0,this.startTime=void 0,this.animating=!1,this.onComplete(this.toProgress))};this.frame=this.requestFrame(i)}stopAnimation(){void 0!==this.frame&&this.cancelFrame(this.frame),this.frame=void 0,this.startTime=void 0,this.animating=!1}}function ar(t){const e=t.trim().match(/^url\(['"]?(.+?)['"]?\)$/i);if(!e)return{type:"ha-icon",value:t};const i=e[1];return{type:i.endsWith(".svg")?"svg-url":"image-url",value:i}}class rr{constructor(t,e,i=(()=>t.requestUpdate()),s=!1){this.card=t,this.elementId=`icon-${e}`,this.pathLoaded=i,this.measureBounds=s,this.path=void 0,this.pendingIcon=void 0}getPath(t){if(this.card.iconCache[t]&&(!this.measureBounds||this.card.iconBoundsCache[t]))return this.path=this.card.iconCache[t],this.path;if(this.path=void 0,this.pendingIcon===t)return this.path;this.pendingIcon=t;let e=0;const i=()=>{if(this.pendingIcon!==t)return;const s=this.card.shadowRoot.getElementById(this.elementId),a=s?.shadowRoot?.querySelector("*"),r=a?.path??this.card.iconCache[t],o=a?.shadowRoot?.querySelector("path")??s?.shadowRoot?.querySelector("path"),n=this.measureBounds?o?.getBBox():void 0;if(r&&(!this.measureBounds||n))return this.path=r,this.card.iconCache[t]=r,this.measureBounds&&(this.card.iconBoundsCache[t]={x:n.x,y:n.y,width:n.width,height:n.height}),this.pendingIcon=void 0,void this.pathLoaded();e+=1,e>=40?this.pendingIcon=void 0:window.setTimeout(i,50)};return(this.card.updateComplete&&"function"==typeof this.card.updateComplete.then?this.card.updateComplete:new Promise((t=>window.requestAnimationFrame(t)))).then((()=>window.setTimeout(i,0))),this.path}getBounds(t){return this.card.iconBoundsCache[t]}}class or{constructor(t,e,i){this.card=t,this.markerId=e,this.haIconPath=new rr(t,`${e}-source`,i,!0)}render(t,e,i,s,a){let r,o,n,l;if("path"===i.attach_to)r=Za(t,{ticks:[],labels:[],markers:[{id:this.markerId,progress:s,side:"left",offset:Number(i.offset),direction:"forward",shape:i.shape,radius:Number(i.size)/2,length:Number(i.size),width:Number(i.size)/Number(i.aspectratio),styles:a}]}).markers[0],o=Number(i.size),n=o/Number(i.aspectratio),l=r.rotation+Number(i.rotate);else{const a=t.pointInCardCoordinates({x:e.cx,y:e.cy}),h=t.pointAtProgress(s),c=h.x-a.x,d=h.y-a.y,p=Math.hypot(c,d),u=c/p,g=d/p,m=a.x+u*Number(i.start_offset),f=a.y+g*Number(i.start_offset),y=h.x+u*Number(i.end_offset),v=h.y+g*Number(i.end_offset);o=Math.hypot(y-m,v-f),n=o/Number(i.aspectratio),r={x:(m+y)/2,y:(f+v)/2},l=180*Math.atan2(g,u)/Math.PI+90+Number(i.rotate)}if("circle"===i.shape)return H`
+  `}const ir={linear:t=>t,"ease-in":t=>t**3,"ease-out":t=>1-(1-t)**3,"ease-in-out":t=>t<.5?4*t**3:1-(-2*t+2)**3/2};class sr{constructor(t){this.animation=t.animation,this.requestFrame=t.requestFrame,this.cancelFrame=t.cancelFrame,this.updateStateLayer=t.updateStateLayer,this.onComplete=t.onComplete,this.currentProgress=t.initialProgress,this.stateLayerElement=void 0,this.frame=void 0,this.startTime=void 0,this.fromProgress=t.initialProgress,this.toProgress=t.initialProgress,this.animating=!1}bindStateLayer(t){this.stateLayerElement=t,this.updateStateLayer(this.stateLayerElement,this.currentProgress)}animateTo(t){if(this.animating&&this.toProgress===t)return;if(void 0!==this.frame&&this.cancelFrame(this.frame),this.frame=void 0,this.startTime=void 0,this.fromProgress=this.currentProgress,this.toProgress=t,!this.animation.enabled)return this.currentProgress=this.toProgress,this.animating=!1,this.updateStateLayer(this.stateLayerElement,this.currentProgress),void this.onComplete(this.currentProgress);this.animating=!0;const e=ir[this.animation.easing],i=t=>{void 0===this.startTime&&(this.startTime=t);const s=t-this.startTime,a=Ra(s/this.animation.duration,0,1),r=e(a);this.currentProgress=this.fromProgress+(this.toProgress-this.fromProgress)*r,this.updateStateLayer(this.stateLayerElement,this.currentProgress),a<1?this.frame=this.requestFrame(i):(this.frame=void 0,this.startTime=void 0,this.animating=!1,this.onComplete(this.toProgress))};this.frame=this.requestFrame(i)}stopAnimation(){void 0!==this.frame&&this.cancelFrame(this.frame),this.frame=void 0,this.startTime=void 0,this.animating=!1}}function ar(t){const e=t.trim().match(/^url\(['"]?(.+?)['"]?\)$/i);if(!e)return{type:"ha-icon",value:t};const i=e[1];return{type:i.endsWith(".svg")?"svg-url":"image-url",value:i}}class rr{constructor(t,e,i=(()=>t.requestUpdate()),s=!1){this.card=t,this.elementId=`icon-${e}`,this.pathLoaded=i,this.measureBounds=s,this.path=void 0,this.pendingIcon=void 0}getPath(t){if(this.card.iconCache[t]&&(!this.measureBounds||this.card.iconBoundsCache[t]))return this.path=this.card.iconCache[t],this.path;if(this.path=void 0,this.pendingIcon===t)return this.path;this.pendingIcon=t;let e=0;const i=()=>{if(this.pendingIcon!==t)return;const s=this.card.shadowRoot.getElementById(this.elementId),a=s?.shadowRoot?.querySelector("*"),r=a?.path??this.card.iconCache[t],o=a?.shadowRoot?.querySelector("path")??s?.shadowRoot?.querySelector("path"),n=this.measureBounds?o?.getBBox():void 0;if(r&&(!this.measureBounds||n))return this.path=r,this.card.iconCache[t]=r,this.measureBounds&&(this.card.iconBoundsCache[t]={x:n.x,y:n.y,width:n.width,height:n.height}),this.pendingIcon=void 0,void this.pathLoaded();e+=1,e>=40?this.pendingIcon=void 0:window.setTimeout(i,50)};return(this.card.updateComplete&&"function"==typeof this.card.updateComplete.then?this.card.updateComplete:new Promise((t=>window.requestAnimationFrame(t)))).then((()=>window.setTimeout(i,0))),this.path}getBounds(t){return this.card.iconBoundsCache[t]}}class or{constructor(t,e,i){this.card=t,this.markerId=e,this.haIconPath=new rr(t,`${e}-source`,i,!0)}render(t,e,i,s,a){let r,o,n,l,h=0;if("path"===i.attach_to)r=Za(t,{ticks:[],labels:[],markers:[{id:this.markerId,progress:s,side:"left",offset:Number(i.offset),direction:"forward",shape:i.shape,radius:Number(i.size)/2,length:Number(i.size),width:Number(i.size)/Number(i.aspectratio),styles:a}]}).markers[0],o=Number(i.size),n=o/Number(i.aspectratio),l=r.rotation+Number(i.rotate);else{const a=t.pointInCardCoordinates({x:e.cx,y:e.cy}),c=t.pointAtProgress(s),d=c.x-a.x,p=c.y-a.y,u=Math.hypot(d,p),g=d/u,m=p/u,f=a.x+g*Number(i.start_offset),y=a.y+m*Number(i.start_offset),v=c.x+g*Number(i.end_offset),b=c.y+m*Number(i.end_offset);o=Math.hypot(v-f,b-y),n=o/Number(i.aspectratio),r={x:(f+v)/2,y:(y+b)/2},h=Number(i.rotate),l=180*Math.atan2(m,g)/Math.PI+90}if("circle"===i.shape)return H`
         <circle
           class="horseshoe__state-marker horseshoe__state-marker--circle"
           cx=${r.x}
@@ -749,10 +749,10 @@ const ht=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let pt=class{constr
           style=${mt(a)}
           pointer-events="none"
         ></polygon>
-      `;const h=ar(i.icon);if("image-url"===h.type)return H`
+      `;const c=ar(i.icon);if("image-url"===c.type)return H`
         <image
           class="horseshoe__state-marker horseshoe__state-marker--image"
-          href=${h.value}
+          href=${c.value}
           x=${r.x-o/2}
           y=${r.y-n/2}
           width=${o}
@@ -762,24 +762,24 @@ const ht=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let pt=class{constr
           style=${mt(a)}
           pointer-events="none"
         ></image>
-      `;if("svg-url"===h.type){if(!this.card.svgUrlCache[h.value])return H`
+      `;if("svg-url"===c.type){if(!this.card.svgUrlCache[c.value])return H`
           <svg
             class="icon-svg-url hidden"
-            data-src=${h.value}
+            data-src=${c.value}
             viewBox="0 0 24 24"
             width="0"
             height="0"
           >
-            <image href=${h.value} width="24" height="24"></image>
+            <image href=${c.value} width="24" height="24"></image>
           </svg>
-        `;const t=this.card.svgUrlCache[h.value].cloneNode(!0);return t.classList.remove("hidden"),H`
+        `;const t=this.card.svgUrlCache[c.value].cloneNode(!0);return t.classList.remove("hidden"),H`
         <g
           class="horseshoe__state-marker horseshoe__state-marker--svg"
           transform="translate(${r.x} ${r.y}) rotate(${l}) scale(${o/24} ${n/24}) translate(-12 -12)"
           style=${mt(a)}
           pointer-events="none"
         >${t}</g>
-      `}const c=this.haIconPath.getPath(h.value);if(!c)return H`
+      `}const d=this.haIconPath.getPath(c.value);if(!d)return H`
         <foreignObject
           width="0"
           height="0"
@@ -790,18 +790,18 @@ const ht=1,ct=2,dt=t=>(...e)=>({_$litDirective$:t,values:e});let pt=class{constr
         >
           <body>
             <div xmlns="http://www.w3.org/1999/xhtml" style="color:transparent;fill:transparent">
-              <ha-icon .icon=${h.value} id=${this.haIconPath.elementId}></ha-icon>
+              <ha-icon .icon=${c.value} id=${this.haIconPath.elementId}></ha-icon>
             </div>
           </body>
         </foreignObject>
-      `;let d=`translate(${r.x} ${r.y}) rotate(${l}) scale(${o/24} ${n/24}) translate(-12 -12)`;if("center"===i.attach_to){const t=this.haIconPath.getBounds(h.value);d=`translate(${r.x} ${r.y}) rotate(${l}) scale(${o/t.width} ${n/t.height}) translate(${-t.x-t.width/2} ${-t.y-t.height/2})`}return H`
+      `;let p=`translate(${r.x} ${r.y}) rotate(${l}) scale(${o/24} ${n/24}) translate(-12 -12)`;if("center"===i.attach_to){const t=this.haIconPath.getBounds(c.value),e=h*Math.PI/180,i=Math.abs(t.width*Math.cos(e))+Math.abs(t.height*Math.sin(e)),s=Math.abs(t.width*Math.sin(e))+Math.abs(t.height*Math.cos(e));p=`translate(${r.x} ${r.y}) rotate(${l}) scale(${n/i} ${o/s}) rotate(${h}) translate(${-t.x-t.width/2} ${-t.y-t.height/2})`}return H`
       <g
         class="horseshoe__state-marker horseshoe__state-marker--ha-icon"
-        transform=${d}
+        transform=${p}
         style=${mt(a)}
         pointer-events="none"
       >
-        <path d=${c}></path>
+        <path d=${d}></path>
       </g>
     `}}function nr(t,e,i){if(i||2===arguments.length)for(var s,a=0,r=e.length;a<r;a++)!s&&a in e||(s||(s=Array.prototype.slice.call(e,0,a)),s[a]=e[a]);return t.concat(s||Array.prototype.slice.call(e))}"function"==typeof SuppressedError&&SuppressedError;var lr,hr={};
 /*!
