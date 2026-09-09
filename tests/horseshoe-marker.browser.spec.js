@@ -45,8 +45,12 @@ test('one animation progress drives state markers on every path shape', async ({
 
             customElements.define('ha-icon', class extends HTMLElement {
               connectedCallback() {
-                const source = document.createElement('span');
+                const source = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 source.path = 'M2 2h20v20H2z';
+                source.setAttribute('viewBox', '0 0 24 24');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', source.path);
+                source.append(path);
                 this.attachShadow({ mode: 'open' }).append(source);
               }
             });
@@ -71,7 +75,7 @@ test('one animation progress drives state markers on every path shape', async ({
               x: 10 + (index % 4) * 110,
               y: 10 + Math.floor(index / 4) * 110,
             }));
-            const card = { iconCache: {}, svgUrlCache: {}, requestUpdate() {} };
+            const card = { iconCache: {}, iconBoundsCache: {}, svgUrlCache: {}, requestUpdate() {} };
             const markerConfig = {
               attach_to: 'path', shape: 'circle', icon: undefined,
               rotate: 0, offset: 3, size: 8, aspectratio: 1, start_offset: 0, end_offset: 0,
@@ -144,6 +148,7 @@ test('one animation progress drives state markers on every path shape', async ({
             // Render every supported path-marker source against the same measured
             // line. Cached sources avoid network and isolate source selection.
             card.iconCache['mdi:test-marker'] = 'M2 2h20v20H2z';
+            card.iconBoundsCache['mdi:test-marker'] = { x: 2, y: 2, width: 20, height: 20 };
             const cachedSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             cachedSvg.setAttribute('viewBox', '0 0 24 24');
             const cachedSvgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -198,7 +203,7 @@ test('one animation progress drives state markers on every path shape', async ({
             loadingHost.id = 'loading-marker';
             document.querySelector('svg').append(loadingHost);
             const loadingCard = {
-              iconCache: {}, svgUrlCache: {}, shadowRoot: document,
+              iconCache: {}, iconBoundsCache: {}, svgUrlCache: {}, shadowRoot: document,
               updateComplete: Promise.resolve(), requestUpdate() {},
             };
             const loadingConfig = { ...centerConfig, icon: 'mdi:loaded-marker' };
@@ -308,8 +313,8 @@ test('one animation progress drives state markers on every path shape', async ({
       expectedX: (start.x + end.x) / 2,
       expectedY: (start.y + end.y) / 2,
       expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 15,
-      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / 24,
-      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / 24 / 8,
+      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / 20,
+      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / 20 / 8,
       fill: marker.style.fill,
     };
   });

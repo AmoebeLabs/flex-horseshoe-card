@@ -22,10 +22,11 @@ export function getIconSource(icon) {
  */
 export class HomeAssistantIconPath {
   /** Stores the source element id and current asynchronous request state. */
-  constructor(card, sourceId, pathLoaded = () => card.requestUpdate()) {
+  constructor(card, sourceId, pathLoaded = () => card.requestUpdate(), measureBounds = false) {
     this.card = card;
     this.elementId = `icon-${sourceId}`;
     this.pathLoaded = pathLoaded;
+    this.measureBounds = measureBounds;
     this.path = undefined;
     this.pendingIcon = undefined;
   }
@@ -38,7 +39,7 @@ export class HomeAssistantIconPath {
    * @returns {string|undefined} SVG path data when available.
    */
   getPath(icon) {
-    if (this.card.iconCache[icon]) {
+    if (this.card.iconCache[icon] && (!this.measureBounds || this.card.iconBoundsCache[icon])) {
       this.path = this.card.iconCache[icon];
       return this.path;
     }
@@ -56,11 +57,22 @@ export class HomeAssistantIconPath {
       if (this.pendingIcon !== icon) return;
 
       const iconElement = this.card.shadowRoot.getElementById(this.elementId);
-      const iconPath = iconElement?.shadowRoot?.querySelector("*")?.path;
+      const iconSource = iconElement?.shadowRoot?.querySelector("*");
+      const iconPath = iconSource?.path ?? this.card.iconCache[icon];
+      const renderedPath = iconSource?.shadowRoot?.querySelector("path") ?? iconElement?.shadowRoot?.querySelector("path");
+      const iconBounds = this.measureBounds ? renderedPath?.getBBox() : undefined;
 
-      if (iconPath) {
+      if (iconPath && (!this.measureBounds || iconBounds)) {
         this.path = iconPath;
         this.card.iconCache[icon] = iconPath;
+        if (this.measureBounds) {
+          this.card.iconBoundsCache[icon] = {
+            x: iconBounds.x,
+            y: iconBounds.y,
+            width: iconBounds.width,
+            height: iconBounds.height,
+          };
+        }
         this.pendingIcon = undefined;
         this.pathLoaded();
         return;
@@ -83,5 +95,10 @@ export class HomeAssistantIconPath {
 
     afterRender.then(() => window.setTimeout(readIconPath, 0));
     return this.path;
+  }
+
+  /** Returns the measured visible bounds of a loaded Home Assistant icon. */
+  getBounds(icon) {
+    return this.card.iconBoundsCache[icon];
   }
 }

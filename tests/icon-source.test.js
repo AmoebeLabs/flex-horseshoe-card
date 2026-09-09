@@ -21,6 +21,7 @@ test('configured icon sources distinguish Home Assistant, SVG, and raster source
 test('Home Assistant icon paths are shared through the existing card cache', () => {
   const card = {
     iconCache: { 'mdi:gauge': 'M0 0h24v24z' },
+    iconBoundsCache: {},
   };
   const source = new HomeAssistantIconPath(card, 'marker');
 
