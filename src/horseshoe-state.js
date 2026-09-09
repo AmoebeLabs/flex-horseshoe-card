@@ -32,6 +32,8 @@ export function normalizeBaseConfig(config, index, groupManager, colorStopMode) 
       horseshoe: true,
       horseshoe_style: "fixed",
       labels_at: "none",
+      state_progress: true,
+      state_marker: false,
       ...(config.show ?? {}),
     },
   };
@@ -136,6 +138,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     horseshoe: true,
     horseshoe_style: "fixed",
     labels_at: "none",
+    state_progress: true,
+    state_marker: false,
     ...(config.show ?? {}),
   };
 
@@ -186,6 +190,76 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     animation: DEFAULT_STATE_ANIMATION,
     ...(config.horseshoe_state ?? {}),
   };
+
+  // A path marker has a useful zero-config circle. Center attachment represents
+  // a pointer from the arc center and therefore needs an explicit icon shape.
+  const markerSource = config.horseshoe_marker ?? {};
+  const markerAttachTo = markerSource.attach_to ?? "path";
+  const horseshoeMarker = {
+    attach_to: markerAttachTo,
+    shape:
+      markerAttachTo === "path" && markerSource.icon === undefined
+        ? (markerSource.shape ?? "circle")
+        : markerSource.shape,
+    icon: markerSource.icon,
+    rotate: markerSource.rotate ?? 0,
+    offset: markerSource.offset ?? 0,
+    size:
+      markerAttachTo === "path"
+        ? (markerSource.size ?? horseshoeState.width)
+        : markerSource.size,
+    aspectratio: markerSource.aspectratio ?? 1,
+    start_offset: markerSource.start_offset ?? 0,
+    end_offset: markerSource.end_offset ?? 0,
+    styles: ConfigHelper.toStyleDict(markerSource.styles),
+  };
+
+  if (!["path", "center"].includes(horseshoeMarker.attach_to)) {
+    throw new Error(
+      `[horseshoes] horseshoe_marker.attach_to '${horseshoeMarker.attach_to}' is invalid [path, center]`,
+    );
+  }
+
+  if (
+    horseshoeMarker.shape !== undefined &&
+    !["circle", "triangle"].includes(horseshoeMarker.shape)
+  ) {
+    throw new Error(
+      `[horseshoes] horseshoe_marker.shape '${horseshoeMarker.shape}' is invalid [circle, triangle]`,
+    );
+  }
+
+  if (
+    markerSource.icon !== undefined &&
+    (typeof markerSource.icon !== "string" || markerSource.icon.trim() === "")
+  ) {
+    throw new Error("[horseshoes] horseshoe_marker.icon must be a non-empty string");
+  }
+
+  if (markerSource.icon !== undefined && markerSource.shape !== undefined) {
+    throw new Error("[horseshoes] horseshoe_marker accepts either icon or shape, not both");
+  }
+
+  if (horseshoeMarker.attach_to === "center" && horseshoeMarker.icon === undefined) {
+    throw new Error("[horseshoes] center-attached horseshoe_marker requires icon");
+  }
+
+  if (
+    horseshoeMarker.attach_to === "path" &&
+    (!Number.isFinite(Number(horseshoeMarker.size)) || Number(horseshoeMarker.size) <= 0)
+  ) {
+    throw new Error("[horseshoes] path-attached horseshoe_marker.size must be greater than zero");
+  }
+
+  if (!Number.isFinite(Number(horseshoeMarker.aspectratio)) || Number(horseshoeMarker.aspectratio) <= 0) {
+    throw new Error("[horseshoes] horseshoe_marker.aspectratio must be greater than zero");
+  }
+
+  ["rotate", "offset", "start_offset", "end_offset"].forEach((field) => {
+    if (!Number.isFinite(Number(horseshoeMarker[field]))) {
+      throw new Error(`[horseshoes] horseshoe_marker.${field} must be a number`);
+    }
+  });
 
   if (horseshoeState.mode === "stringstate_mode" || horseshoeState.mode === "stringstate_level") {
     horseshoeState.styles = {
@@ -387,6 +461,8 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
         ...ConfigHelper.toStyleDict(horseshoeState.styles),
       },
     },
+
+    horseshoe_marker: horseshoeMarker,
 
     horseshoe_labels: {
       ...horseshoeLabels,

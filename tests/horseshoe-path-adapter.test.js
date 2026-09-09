@@ -362,6 +362,48 @@ test('major and minor tickmark visibility remains independently configurable', (
   assert.equal(horseshoe.pathElements.ticks.every((tick) => tick.layer === 'minor'), true);
 });
 
+test('center-attached state markers are limited to arc paths', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    horseshoe_marker: {
+      attach_to: 'center',
+      icon: 'mdi:arrow-up-bold',
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  assert.throws(
+    () => horseshoe.updateRuntimeConfig(),
+    /center-attached horseshoe_marker requires path.type arc/,
+  );
+});
+
+test('state marker styles override the inherited state appearance', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    horseshoe_state: {
+      styles: {
+        fill: '#2563eb',
+        opacity: 0.5,
+      },
+    },
+    horseshoe_marker: {
+      styles: {
+        fill: '#ffffff',
+        opacity: 1,
+      },
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+
+  assert.equal(horseshoe.config.horseshoe_state.styles.fill, '#2563eb');
+  assert.equal(horseshoe.stateMarkerStyles.fill, '#ffffff');
+  assert.equal(horseshoe.stateMarkerStyles.opacity, '1');
+});
+
 test('color-stop segments share one normalized contract for scale and clipped state', () => {
   const config = createConfig({ type: 'line', length: 80 });
   Object.assign(config.layout.horseshoes[0], {
@@ -400,6 +442,41 @@ test('the path-engine gauge applies the existing item and layer color-filter cas
   assert.notEqual(horseshoe.renderContract.stateRanges[0].color, '#ff0000');
   assert.match(horseshoe.renderContract.backgroundRange.color, /^rgb/);
   assert.match(horseshoe.renderContract.stateRanges[0].color, /^rgb/);
+});
+
+test('state markers use the calculated state fill and preserve explicit state styles', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: {
+      horseshoe_style: 'colorstopinterpolated',
+      state_progress: false,
+      state_marker: true,
+    },
+    horseshoe_state: {
+      styles: {
+        stroke: '#ffffff',
+        'stroke-width': 2,
+        opacity: 0.6,
+      },
+    },
+    color_stops: {
+      colors: {
+        0: '#0000ff',
+        100: '#00ff00',
+      },
+    },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+
+  assert.equal(horseshoe.stateMarkerStyles.fill, '#007f7fff');
+  assert.equal(horseshoe.stateMarkerStyles.stroke, '#ffffff');
+  assert.equal(horseshoe.stateMarkerStyles['stroke-width'], '2');
+  assert.equal(horseshoe.stateMarkerStyles.opacity, '0.6');
+  assert.equal(horseshoe.config.show.state_progress, false);
+  assert.equal(horseshoe.config.show.state_marker, true);
 });
 
 test('ranked string states keep every segment mounted and change only active opacity', () => {

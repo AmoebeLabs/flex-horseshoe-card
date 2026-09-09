@@ -100,6 +100,7 @@ class FlexHorseshoeCard extends LitElement {
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
     this.iconCache = {};
+    this.iconBoundsCache = {};
     this.svgUrlCache = {};
 
     this.dev = {

@@ -21,6 +21,110 @@ test('minimal horseshoe configuration normalizes an empty color-stop configurati
   assert.equal(config.horseshoe_scale.min, 0);
   assert.equal(config.horseshoe_scale.max, 40);
   assert.equal(config.horseshoe_labels.distance_min, 0);
+  assert.equal(config.show.state_progress, true);
+  assert.equal(config.show.state_marker, false);
+  assert.deepEqual(config.horseshoe_marker, {
+    attach_to: 'path',
+    shape: 'circle',
+    icon: undefined,
+    rotate: 0,
+    offset: 0,
+    size: 12,
+    aspectratio: 1,
+    start_offset: 0,
+    end_offset: 0,
+    styles: {},
+  });
+});
+
+test('path marker configuration uses an explicit source and preserves signed placement', () => {
+  const baseConfig = normalizeBaseConfig({
+    horseshoe_scale: { min: 0, max: 100 },
+    horseshoe_state: { width: 8 },
+    horseshoe_marker: {
+      icon: 'mdi:dots-horizontal',
+      size: 10,
+      rotate: -90,
+      offset: -4,
+      styles: {
+        fill: 'white',
+        opacity: 0.8,
+      },
+    },
+  }, 0, groupManager, 'dark');
+  const config = normalizeRuntimeConfig(baseConfig, 'dark');
+
+  assert.deepEqual(config.horseshoe_marker, {
+    attach_to: 'path',
+    shape: undefined,
+    icon: 'mdi:dots-horizontal',
+    rotate: -90,
+    offset: -4,
+    size: 10,
+    aspectratio: 1,
+    start_offset: 0,
+    end_offset: 0,
+    styles: {
+      fill: 'white',
+      opacity: '0.8',
+    },
+  });
+});
+
+test('center marker configuration requires an icon and keeps both signed offsets', () => {
+  const baseConfig = normalizeBaseConfig({
+    horseshoe_scale: { min: 0, max: 100 },
+    horseshoe_marker: {
+      attach_to: 'center',
+      icon: 'mdi:arrow-up-bold',
+      rotate: 180,
+      aspectratio: 8,
+      start_offset: -2,
+      end_offset: 3,
+    },
+  }, 0, groupManager, 'dark');
+  const config = normalizeRuntimeConfig(baseConfig, 'dark');
+
+  assert.deepEqual(config.horseshoe_marker, {
+    attach_to: 'center',
+    shape: undefined,
+    icon: 'mdi:arrow-up-bold',
+    rotate: 180,
+    offset: 0,
+    size: undefined,
+    aspectratio: 8,
+    start_offset: -2,
+    end_offset: 3,
+    styles: {},
+  });
+});
+
+test('marker configuration rejects ambiguous, missing, and invalid values', () => {
+  const config = {
+    horseshoe_scale: { min: 0, max: 100, type: 'linear' },
+    colorstops: { scales: {}, colors: [] },
+  };
+
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { attach_to: 'center' } }),
+    /center-attached horseshoe_marker requires icon/,
+  );
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { icon: 'mdi:gauge', shape: 'circle' } }),
+    /either icon or shape/,
+  );
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { shape: 'square' } }),
+    /shape 'square' is invalid/,
+  );
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { size: 0 } }),
+    /size must be greater than zero/,
+  );
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { aspectratio: 0 } }),
+    /aspectratio must be greater than zero/,
+  );
 });
 
 test('absolute mode validates a scale containing an undisplaced zero', () => {

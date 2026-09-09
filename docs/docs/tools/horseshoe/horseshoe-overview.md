@@ -1,7 +1,7 @@
 ---
 template: main.html
 title: Horseshoe Gauge Overview
-description: Build configurable Home Assistant horseshoe gauges with scales, state arcs, colors, tick marks, labels, and reusable layout definitions.
+description: Build configurable Home Assistant horseshoe gauges with scales, state progress, markers, colors, tick marks, labels, and reusable layout definitions.
 tags:
 - Section
 - Horseshoe
@@ -61,7 +61,8 @@ A horseshoe consists of several layers that can be shown, hidden, and styled ind
 | :------------------- | :-------------------------------------------------- | :------------------------------------------------------------- |
 | Horseshoe background | `horseshoe_background`                              | Adds an optional arc behind the full gauge.                    |
 | Scale                | `horseshoe_scale`                                   | Defines the value range, geometry, width, and base appearance. |
-| State                | `horseshoe_state`                                   | Shows the current entity value or mapped state.                |
+| State progress       | `horseshoe_state`                                   | Fills the path up to the current entity value or mapped state. |
+| State marker         | `horseshoe_marker`                                  | Marks the current value on the path or points to it from the center. |
 | Tick background      | `horseshoe_tickmarks.background`                    | Adds an optional background behind the tick layer.             |
 | Tick marks           | `horseshoe_tickmarks.ticks_major` and `ticks_minor` | Places numeric divisions along the scale.                      |
 | Label background     | `horseshoe_labels.background`                       | Adds an optional background behind the labels.                 |
@@ -97,6 +98,8 @@ Visibility and presentation settings are grouped under `show`.
 | :--------------------- | :------ | :------------------------------------------------ |
 | `horseshoe`            | `true`  | Shows or hides the entire horseshoe.              |
 | `horseshoe_style`      | `fixed` | Chooses fixed or color-stop-based state coloring. |
+| `state_progress`       | `true`  | Fills the path from its start to the current value. |
+| `state_marker`         | `false` | Shows the current value with a marker.            |
 | `horseshoe_background` | `none`  | Chooses the horseshoe background mode.            |
 | `tickmarks`            |         | Shows the configured major and minor tick marks.  |
 | `tick_background`      | `none`  | Chooses the tick background mode.                 |

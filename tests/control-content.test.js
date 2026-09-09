@@ -282,6 +282,7 @@ test('button and select opt into explicit content without changing control entit
   assert.equal(button.contentVisual.childTools[0].tool.entity_index, 7);
   assert.equal(button.contentVisual.childTools[0].type, 'text');
   assert.equal(button.contentVisual.childTools[0].tool.config.styles['font-size'], '0.7em');
+  assert.equal(button.contentVisual.childTools[0].tool.sourceTextParts[0].source_styles, false);
   assert.equal(button.contentVisual.childTools[0].tool.sourceTextParts[0].styles, undefined);
   assert.equal(select.entity_index, 0);
   assert.deepEqual(

@@ -13,6 +13,9 @@ import { buildPathElements } from './path-elements.js';
 import { renderPathElements } from './path-elements-renderer.js';
 import { buildAdaptivePathGradient, renderAdaptivePathGradient } from './path-gradient-renderer.js';
 import PathStateAnimator from './path-animator.js';
+import HorseshoeStateMarker from './horseshoe-marker.js';
+import { getIconSource } from './icon-source.js';
+import { injectExternalSvgSources } from './icon-svg-source.js';
 import { renderNormalizedPathBands } from './path-mask-renderer.js';
 import { buildPaintedRanges, PathValueMapper } from './path-ranges.js';
 import Utils from './utils.js';
@@ -52,6 +55,7 @@ export default class HorseshoeGauge extends BaseTool {
       'horseshoe_position',
       'horseshoe_scale',
       'horseshoe_state',
+      'horseshoe_marker',
       'horseshoe_background',
       'horseshoe_labels',
       'horseshoe_tickmarks',
@@ -105,6 +109,12 @@ export default class HorseshoeGauge extends BaseTool {
     this.pathElements = { ticks: [], labels: [], markers: [] };
     this.backgroundLayers = [];
     this.stateAnimator = undefined;
+    this.stateMarker = new HorseshoeStateMarker(
+      card,
+      `${cardId}-horseshoe-${index}-marker`,
+      () => this.stateAnimator.updateStateLayer(this.stateAnimator.stateLayerElement, this.stateAnimator.currentProgress),
+    );
+    this.stateMarkerStyles = undefined;
     this.displayProgress = undefined;
     this.stateRanges = [];
     this.colorStopRanges = [];
@@ -184,6 +194,10 @@ export default class HorseshoeGauge extends BaseTool {
       arc_degrees: itemConfig.arc_degrees,
       start_angle: itemConfig.start_angle,
     };
+
+    if (this.config.horseshoe_marker.attach_to === 'center' && sourcePath.type !== 'arc') {
+      throw new Error('[horseshoes] center-attached horseshoe_marker requires path.type arc');
+    }
 
     if (!PATH_TYPES.includes(sourcePath.type)) {
       throw new Error(`[horseshoes] path.type '${sourcePath.type}' is invalid [${PATH_TYPES.join(', ')}]`);
@@ -497,6 +511,7 @@ export default class HorseshoeGauge extends BaseTool {
     const colorStopRanges = this.valueMapper.buildColorStopRanges(colorStops.map((colorStop) => colorStop.value));
     const pathGap = this.pathConfig.type === 'arc' ? (Number(this.config.horseshoe_state.segment_gap) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(this.config.horseshoe_state.segment_gap);
     let statePathRanges;
+    let markerColor = stateStyles.fill;
     this.stateSegmentPaints = [];
 
     if (this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level') {
@@ -515,6 +530,8 @@ export default class HorseshoeGauge extends BaseTool {
         endpointGap: { start: pathGap / 2, end: pathGap / 2 },
         linecap: this.config.horseshoe_state.linecap,
       });
+      const mappedStateIndex = this.config.state_map.map.findIndex((entry) => Number(entry.value) === Number(this.config.mapped_state.value));
+      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[mappedStateIndex].color ?? Colors.calculateStrokeColor(this.config.state_map.map[mappedStateIndex].value, this.config.colorstops, stateMode === 'colorstopinterpolated') }, [this.config.horseshoe_state.color_filter]).fill;
     } else if (stateMode === 'colorstopsegments' && colorStopRanges.length) {
       this.stateSegmentPaints = colorStopRanges.map((range) => ({
         color: this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false) }, [this.config.horseshoe_state.color_filter]).fill,
@@ -528,6 +545,7 @@ export default class HorseshoeGauge extends BaseTool {
         endpointGap: { start: 0, end: 0 },
         linecap: this.config.horseshoe_state.linecap,
       });
+      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(this.value, this.config.colorstops, false) }, [this.config.horseshoe_state.color_filter]).fill;
     } else {
       let stateColor = stateStyles.fill;
 
@@ -538,6 +556,7 @@ export default class HorseshoeGauge extends BaseTool {
         stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstopsMinMax, true);
       }
       stateColor = this.getRenderStyles({ ...rawStateStyles, fill: stateColor }, [this.config.horseshoe_state.color_filter]).fill;
+      markerColor = stateColor;
 
       statePathRanges = buildPaintedRanges(stateRanges, {
         paints: stateRanges.map(() => ({
@@ -590,6 +609,11 @@ export default class HorseshoeGauge extends BaseTool {
     this.statePaintConfig = {
       gap: pathGap,
       linecap: this.config.horseshoe_state.linecap,
+    };
+    this.stateMarkerStyles = {
+      ...stateStyles,
+      fill: markerColor,
+      ...this.config.horseshoe_marker.styles,
     };
 
     const targetProgress = this.valueMapper.valueToProgress(this.value);
@@ -1018,56 +1042,65 @@ export default class HorseshoeGauge extends BaseTool {
         ? { start: Math.min(this.valueMapper.zeroProgress, progress), end: Math.max(this.valueMapper.zeroProgress, progress) }
         : { start: 0, end: progress };
 
-    if (clip.end <= clip.start) {
-      return renderNormalizedPathBands(this.pathDefinition, [], this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
-    }
+    let progressLayer = svg``;
 
-    if (this.stateGradient || this.currentStateGradientConfig) {
-      let gradient = this.stateGradient;
+    if (this.config.show.state_progress && clip.end > clip.start) {
+      if (this.stateGradient || this.currentStateGradientConfig) {
+        let gradient = this.stateGradient;
 
-      if (gradient?.mode === 'full') {
-        const length = clip.end - clip.start;
-        gradient = {
-          ...gradient,
-          revealRange: {
-            ...gradient.revealRange,
-            start: clip.start,
-            end: clip.end,
-            dash: {
-              array: [length, 100],
-              offset: clip.start === 0 ? 0 : -clip.start,
+        if (gradient?.mode === 'full') {
+          const length = clip.end - clip.start;
+          gradient = {
+            ...gradient,
+            revealRange: {
+              ...gradient.revealRange,
+              start: clip.start,
+              end: clip.end,
+              dash: {
+                array: [length, 100],
+                offset: clip.start === 0 ? 0 : -clip.start,
+              },
             },
-          },
-        };
-      } else if (!gradient || clip.start !== this.renderContract.stateClip.start || clip.end !== this.renderContract.stateClip.end) {
-        gradient = buildAdaptivePathGradient(this.pathGeometry, {
-          ...this.currentStateGradientConfig,
-          range: clip,
-        });
+          };
+        } else if (!gradient || clip.start !== this.renderContract.stateClip.start || clip.end !== this.renderContract.stateClip.end) {
+          gradient = buildAdaptivePathGradient(this.pathGeometry, {
+            ...this.currentStateGradientConfig,
+            range: clip,
+          });
+        }
+
+        progressLayer = renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
+      } else {
+        let ranges = this.renderContract.stateRanges;
+
+        if (!discreteState) {
+          const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
+          const paints =
+            this.renderContract.stateMode === 'colorstopsegments'
+              ? this.stateSegmentPaints
+              : [this.statePaints[0]];
+
+          ranges = buildPaintedRanges(animatedStateRanges, {
+            paints,
+            clip,
+            gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
+            endpointGap: { start: 0, end: 0 },
+            linecap: this.statePaintConfig.linecap,
+          });
+        }
+
+        progressLayer = renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
       }
-
-      return renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
     }
 
-    let ranges = this.renderContract.stateRanges;
-
-    if (!discreteState) {
-      const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
-      const paints =
-        this.renderContract.stateMode === 'colorstopsegments'
-          ? this.stateSegmentPaints
-          : [this.statePaints[0]];
-
-      ranges = buildPaintedRanges(animatedStateRanges, {
-        paints,
-        clip,
-        gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
-        endpointGap: { start: 0, end: 0 },
-        linecap: this.statePaintConfig.linecap,
-      });
-    }
-
-    return renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
+    // Progress uses the path transform; the marker uses already transformed
+    // coordinates so its text/image source is rotated but never mirrored.
+    return svg`
+      <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
+      ${this.config.show.state_marker
+        ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
+        : svg``}
+    `;
   }
 
   /** Binds the committed master centerline for gradients, tickmarks, labels, badges, and markers. */
@@ -1083,6 +1116,14 @@ export default class HorseshoeGauge extends BaseTool {
 
     if (newlyBound && this.valueMapper && this.buildMeasuredGradientContracts()) {
       this.card.requestUpdate();
+    }
+
+    if (
+      this.config.show.state_marker &&
+      this.config.horseshoe_marker.icon &&
+      getIconSource(this.config.horseshoe_marker.icon).type === 'svg-url'
+    ) {
+      injectExternalSvgSources(this.card);
     }
   }
 
@@ -1120,8 +1161,8 @@ export default class HorseshoeGauge extends BaseTool {
               ? renderAdaptivePathGradient(this.pathDefinition, this.scaleGradient, this.renderContract.backgroundLayer, `${pathId}-scale-gradient`, 'horseshoe__scale-gradient')
               : renderNormalizedPathBands(this.pathDefinition, this.renderContract.scaleRanges, this.renderContract.backgroundLayer, `${pathId}-scale`, 'horseshoe__scale')
           }
-          <g id="${pathId}-state" class="horseshoe__state"></g>
         </g>
+        <g id="${pathId}-state" class="horseshoe__state"></g>
         <g class="horseshoe__path-elements">
           ${renderPathElements(this.pathElements, `${pathId}-items`)}
         </g>
