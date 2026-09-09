@@ -74,7 +74,7 @@ test('one animation progress drives state markers on every path shape', async ({
             const card = { iconCache: {}, svgUrlCache: {}, requestUpdate() {} };
             const markerConfig = {
               attach_to: 'path', shape: 'circle', icon: undefined,
-              rotate: 0, offset: 3, size: 8, start_offset: 0, end_offset: 0,
+              rotate: 0, offset: 3, size: 8, aspectratio: 1, start_offset: 0, end_offset: 0,
             };
             const stateStyles = { fill: '#ef4444', stroke: '#7f1d1d', opacity: 0.9 };
             const stateLayerConfig = {
@@ -179,7 +179,7 @@ test('one animation progress drives state markers on every path shape', async ({
             });
             const centerConfig = {
               attach_to: 'center', shape: undefined, icon: 'mdi:test-marker',
-              rotate: 15, offset: 0, size: undefined, start_offset: 4, end_offset: 2,
+              rotate: 15, offset: 0, size: undefined, aspectratio: 8, start_offset: 4, end_offset: 2,
             };
             render(svg\`
               \${new HorseshoeStateMarker(card, 'center-source').render(
@@ -288,7 +288,7 @@ test('one animation progress drives state markers on every path shape', async ({
     haIcons: 1,
     svgIcons: 1,
     images: 1,
-    imageAspectRatio: 'xMidYMid meet',
+    imageAspectRatio: 'none',
   });
 
   const centerMarker = await page.evaluate(() => {
@@ -308,16 +308,18 @@ test('one animation progress drives state markers on every path shape', async ({
       expectedX: (start.x + end.x) / 2,
       expectedY: (start.y + end.y) / 2,
       expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 15,
-      expectedScale: Math.hypot(end.x - start.x, end.y - start.y) / 24,
+      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / 24,
+      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / 24 / 8,
       fill: marker.style.fill,
     };
   });
-  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+)\)/);
+  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\)/);
 
   expect(Number(transformValues[1])).toBeCloseTo(centerMarker.expectedX, 5);
   expect(Number(transformValues[2])).toBeCloseTo(centerMarker.expectedY, 5);
   expect(Number(transformValues[3])).toBeCloseTo(centerMarker.expectedRotation, 5);
-  expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScale, 5);
+  expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScaleX, 5);
+  expect(Number(transformValues[5])).toBeCloseTo(centerMarker.expectedScaleY, 5);
   expect(centerMarker.fill).toBe('rgb(239, 68, 68)');
 
   await expect.poll(() => page.locator('#loading-marker .horseshoe__state-marker--ha-icon').count()).toBe(1);

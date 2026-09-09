@@ -30,7 +30,8 @@ export default class HorseshoeStateMarker {
    */
   render(pathGeometry, pathConfig, markerConfig, progress, stateStyles) {
     let marker;
-    let iconSize;
+    let markerLength;
+    let markerWidth;
     let rotation;
 
     if (markerConfig.attach_to === "path") {
@@ -47,12 +48,13 @@ export default class HorseshoeStateMarker {
             shape: markerConfig.shape,
             radius: Number(markerConfig.size) / 2,
             length: Number(markerConfig.size),
-            width: Number(markerConfig.size),
+            width: Number(markerConfig.size) / Number(markerConfig.aspectratio),
             styles: stateStyles,
           },
         ],
       }).markers[0];
-      iconSize = Number(markerConfig.size);
+      markerLength = Number(markerConfig.size);
+      markerWidth = markerLength / Number(markerConfig.aspectratio);
       rotation = marker.rotation + Number(markerConfig.rotate);
     } else {
       const center = pathGeometry.pointInCardCoordinates({ x: pathConfig.cx, y: pathConfig.cy });
@@ -67,9 +69,10 @@ export default class HorseshoeStateMarker {
       const markerEndX = statePoint.x - directionX * Number(markerConfig.end_offset);
       const markerEndY = statePoint.y - directionY * Number(markerConfig.end_offset);
 
-      // The source keeps its aspect ratio while its forward axis spans the
-      // configured center-to-state interval.
-      iconSize = Math.hypot(markerEndX - markerStartX, markerEndY - markerStartY);
+      // Offsets determine the complete pointer length. Its configured aspect
+      // ratio then controls width without another absolute size setting.
+      markerLength = Math.hypot(markerEndX - markerStartX, markerEndY - markerStartY);
+      markerWidth = markerLength / Number(markerConfig.aspectratio);
       marker = {
         x: (markerStartX + markerEndX) / 2,
         y: (markerStartY + markerEndY) / 2,
@@ -109,11 +112,11 @@ export default class HorseshoeStateMarker {
         <image
           class="horseshoe__state-marker horseshoe__state-marker--image"
           href=${iconSource.value}
-          x=${marker.x - iconSize / 2}
-          y=${marker.y - iconSize / 2}
-          width=${iconSize}
-          height=${iconSize}
-          preserveAspectRatio="xMidYMid meet"
+          x=${marker.x - markerLength / 2}
+          y=${marker.y - markerWidth / 2}
+          width=${markerLength}
+          height=${markerWidth}
+          preserveAspectRatio="none"
           transform="rotate(${rotation} ${marker.x} ${marker.y})"
           style=${styleMap(stateStyles)}
           pointer-events="none"
@@ -142,7 +145,7 @@ export default class HorseshoeStateMarker {
       return svg`
         <g
           class="horseshoe__state-marker horseshoe__state-marker--svg"
-          transform="translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${iconSize / 24}) translate(-12 -12)"
+          transform="translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / 24} ${markerWidth / 24}) translate(-12 -12)"
           style=${styleMap(stateStyles)}
           pointer-events="none"
         >${svgNode}</g>
@@ -173,7 +176,7 @@ export default class HorseshoeStateMarker {
     return svg`
       <g
         class="horseshoe__state-marker horseshoe__state-marker--ha-icon"
-        transform="translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${iconSize / 24}) translate(-12 -12)"
+        transform="translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / 24} ${markerWidth / 24}) translate(-12 -12)"
         style=${styleMap(stateStyles)}
         pointer-events="none"
       >

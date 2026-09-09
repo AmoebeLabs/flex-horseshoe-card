@@ -30,6 +30,7 @@ test('minimal horseshoe configuration normalizes an empty color-stop configurati
     rotate: 0,
     offset: 0,
     size: 12,
+    aspectratio: 1,
     start_offset: 0,
     end_offset: 0,
     styles: {},
@@ -60,6 +61,7 @@ test('path marker configuration uses an explicit source and preserves signed pla
     rotate: -90,
     offset: -4,
     size: 10,
+    aspectratio: 1,
     start_offset: 0,
     end_offset: 0,
     styles: {
@@ -76,6 +78,7 @@ test('center marker configuration requires an icon and keeps both signed offsets
       attach_to: 'center',
       icon: 'mdi:arrow-up-bold',
       rotate: 180,
+      aspectratio: 8,
       start_offset: -2,
       end_offset: 3,
     },
@@ -89,6 +92,7 @@ test('center marker configuration requires an icon and keeps both signed offsets
     rotate: 180,
     offset: 0,
     size: undefined,
+    aspectratio: 8,
     start_offset: -2,
     end_offset: 3,
     styles: {},
@@ -116,6 +120,10 @@ test('marker configuration rejects ambiguous, missing, and invalid values', () =
   assert.throws(
     () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { size: 0 } }),
     /size must be greater than zero/,
+  );
+  assert.throws(
+    () => normalizeRuntimeConfig({ ...config, horseshoe_marker: { aspectratio: 0 } }),
+    /aspectratio must be greater than zero/,
   );
 });
 

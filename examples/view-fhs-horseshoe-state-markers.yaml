@@ -86,6 +86,7 @@ sections:
                 attach_to: center
                 icon: mdi:arrow-right-thin
                 rotate: 0
+                aspectratio: 8
                 start_offset: 3
                 end_offset: 2
                 styles:
