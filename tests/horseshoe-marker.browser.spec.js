@@ -40,8 +40,20 @@ test('one animation progress drives state markers on every path shape', async ({
               buildSpiralPathDefinition,
               buildWavePathDefinition,
             } from '/src/path-generators.js';
-            import PathGeometry from '/src/path-geometry.js';
+            import PathGeometry, { TransformedPathGeometry } from '/src/path-geometry.js';
             import { renderNormalizedPathBands } from '/src/path-mask-renderer.js';
+
+            customElements.define('ha-icon', class extends HTMLElement {
+              connectedCallback() {
+                const source = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                source.path = 'M2 22L12 2L22 22Z';
+                source.setAttribute('viewBox', '0 0 24 24');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', source.path);
+                source.append(path);
+                this.attachShadow({ mode: 'open' }).append(source);
+              }
+            });
 
             const definitions = [
               buildArcPathDefinition({ cx: 50, cy: 50, radiusX: 35, radiusY: 35, startAngle: -135, arcDegrees: 270 }),
@@ -63,10 +75,10 @@ test('one animation progress drives state markers on every path shape', async ({
               x: 10 + (index % 4) * 110,
               y: 10 + Math.floor(index / 4) * 110,
             }));
-            const card = { iconCache: {}, svgUrlCache: {}, requestUpdate() {} };
+            const card = { iconCache: {}, iconBoundsCache: {}, svgUrlCache: {}, requestUpdate() {} };
             const markerConfig = {
               attach_to: 'path', shape: 'circle', icon: undefined,
-              rotate: 0, offset: 3, size: 8, start_offset: 0, end_offset: 0,
+              rotate: 0, offset: 3, size: 8, aspectratio: 1, start_offset: 0, end_offset: 0,
             };
             const stateStyles = { fill: '#ef4444', stroke: '#7f1d1d', opacity: 0.9 };
             const stateLayerConfig = {
@@ -115,7 +127,7 @@ test('one animation progress drives state markers on every path shape', async ({
                   };
                   render(svg\`
                     \${renderNormalizedPathBands(definition, [range], stateLayerConfig, \`state-\${index}\`, 'state-progress')}
-                    \${marker.render(geometry, markerConfig, progress, stateStyles)}
+                    \${marker.render(geometry, definition, markerConfig, progress, stateStyles)}
                   \`, element);
                 },
                 onComplete: () => {},
@@ -136,6 +148,14 @@ test('one animation progress drives state markers on every path shape', async ({
             // Render every supported path-marker source against the same measured
             // line. Cached sources avoid network and isolate source selection.
             card.iconCache['mdi:test-marker'] = 'M2 2h20v20H2z';
+            const centerRotation = 15 * Math.PI / 180;
+            const centerBoundsSize = Math.abs(20 * Math.cos(centerRotation)) + Math.abs(20 * Math.sin(centerRotation));
+            card.iconBoundsCache['mdi:test-marker|15'] = {
+              x: -centerBoundsSize / 2, y: -centerBoundsSize / 2,
+              width: centerBoundsSize, height: centerBoundsSize,
+              tipX: -7.0710678118654755,
+              sourceCenterX: 12, sourceCenterY: 12,
+            };
             const cachedSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             cachedSvg.setAttribute('viewBox', '0 0 24 24');
             const cachedSvgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -155,12 +175,59 @@ test('one animation progress drives state markers on every path shape', async ({
             render(svg\`
               \${sourceConfigs.map((config, index) => svg\`
                 <g transform="translate(\${index * 20} 0)">
-                  \${new HorseshoeStateMarker(card, \`source-\${index}\`).render(fixtures[1].geometry, config, 50, stateStyles)}
+                  \${new HorseshoeStateMarker(card, \`source-\${index}\`).render(fixtures[1].geometry, definitions[1], config, 50, stateStyles)}
                 </g>
               \`)}
             \`, sourceHost);
 
-            window.markerFixture = { fixtures };
+            // A center marker uses the transformed arc center and state point,
+            // so item flips affect the complete pointer without mirrored text
+            // or icon content.
+            const centerHost = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            centerHost.id = 'center-marker';
+            document.querySelector('svg').append(centerHost);
+            const centerGeometry = new TransformedPathGeometry(fixtures[0].geometry, {
+              a: -1, b: 0, c: 0, d: 1, e: 100, f: 0,
+            });
+            const centerConfig = {
+              attach_to: 'center', shape: undefined, icon: 'mdi:test-marker',
+              rotate: 15, offset: 0, size: undefined, aspectratio: 8, start_offset: 4, end_offset: -2,
+            };
+            render(svg\`
+              \${new HorseshoeStateMarker(card, 'center-source').render(
+                centerGeometry,
+                { cx: 50, cy: 50 },
+                centerConfig,
+                80,
+                stateStyles,
+              )}
+            \`, centerHost);
+
+            // Exercise the real asynchronous MDI source route. The marker owns
+            // a state-mount repaint because a normal card render does not own
+            // the Lit tree inside that dedicated mount.
+            const loadingHost = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            loadingHost.id = 'loading-marker';
+            document.querySelector('svg').append(loadingHost);
+            const loadingCard = {
+              iconCache: {}, iconBoundsCache: {}, svgUrlCache: {}, shadowRoot: document,
+              updateComplete: Promise.resolve(), requestUpdate() {},
+            };
+            const loadingConfig = { ...centerConfig, icon: 'mdi:loaded-marker' };
+            let loadingMarker;
+            const renderLoadedMarker = () => render(svg\`
+              \${loadingMarker.render(
+                centerGeometry,
+                { cx: 50, cy: 50 },
+                loadingConfig,
+                80,
+                stateStyles,
+              )}
+            \`, loadingHost);
+            loadingMarker = new HorseshoeStateMarker(loadingCard, 'loading-source', renderLoadedMarker);
+            renderLoadedMarker();
+
+            window.markerFixture = { fixtures, centerGeometry, loadingCard };
           </script>
         `,
       });
@@ -224,15 +291,60 @@ test('one animation progress drives state markers on every path shape', async ({
     haIcons: document.querySelectorAll('#marker-sources .horseshoe__state-marker--ha-icon').length,
     svgIcons: document.querySelectorAll('#marker-sources .horseshoe__state-marker--svg').length,
     images: document.querySelectorAll('#marker-sources .horseshoe__state-marker--image').length,
+    haIconTransform: document.querySelector('#marker-sources .horseshoe__state-marker--ha-icon')?.getAttribute('transform'),
     imageAspectRatio: document.querySelector('#marker-sources .horseshoe__state-marker--image')?.getAttribute('preserveAspectRatio'),
   }));
 
-  expect(sources).toEqual({
-    circles: 1,
-    triangles: 1,
-    haIcons: 1,
-    svgIcons: 1,
-    images: 1,
-    imageAspectRatio: 'xMidYMid meet',
+  expect(sources.circles).toBe(1);
+  expect(sources.triangles).toBe(1);
+  expect(sources.haIcons).toBe(1);
+  expect(sources.svgIcons).toBe(1);
+  expect(sources.images).toBe(1);
+  expect(sources.imageAspectRatio).toBe('none');
+  expect(sources.haIconTransform).toContain(`scale(${8 / 24} ${8 / 24}) translate(-12 -12)`);
+
+  const centerMarker = await page.evaluate(() => {
+    const center = window.markerFixture.centerGeometry.pointInCardCoordinates({ x: 50, y: 50 });
+    const statePoint = window.markerFixture.centerGeometry.pointAtProgress(80);
+    const deltaX = statePoint.x - center.x;
+    const deltaY = statePoint.y - center.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const directionX = deltaX / distance;
+    const directionY = deltaY / distance;
+    const start = { x: center.x + directionX * 4, y: center.y + directionY * 4 };
+    const end = { x: statePoint.x + directionX * -2, y: statePoint.y + directionY * -2 };
+    const marker = document.querySelector('#center-marker .horseshoe__state-marker');
+    const iconRotationRadians = 15 * Math.PI / 180;
+    const rotatedIconSize = Math.abs(20 * Math.cos(iconRotationRadians)) + Math.abs(20 * Math.sin(iconRotationRadians));
+
+    return {
+      transform: marker.getAttribute('transform'),
+      expectedX: (start.x + end.x) / 2,
+      expectedY: (start.y + end.y) / 2,
+      expectedRotation: Math.atan2(directionY, directionX) * 180 / Math.PI + 90,
+      expectedScaleX: Math.hypot(end.x - start.x, end.y - start.y) / rotatedIconSize / 8,
+      expectedScaleY: Math.hypot(end.x - start.x, end.y - start.y) / rotatedIconSize,
+      expectedIconRotation: 15,
+      fill: marker.style.fill,
+    };
   });
+  const transformValues = centerMarker.transform.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\) scale\(([-\d.]+) ([-\d.]+)\) translate\([^)]+\) rotate\(([-\d.]+)\)/);
+
+  expect(Number(transformValues[1])).toBeCloseTo(centerMarker.expectedX, 5);
+  expect(Number(transformValues[2])).toBeCloseTo(centerMarker.expectedY, 5);
+  expect(Number(transformValues[3])).toBeCloseTo(centerMarker.expectedRotation, 5);
+  expect(Number(transformValues[4])).toBeCloseTo(centerMarker.expectedScaleX, 5);
+  expect(Number(transformValues[5])).toBeCloseTo(centerMarker.expectedScaleY, 5);
+  expect(Number(transformValues[6])).toBeCloseTo(centerMarker.expectedIconRotation, 5);
+  expect(centerMarker.fill).toBe('rgb(239, 68, 68)');
+
+  await expect.poll(() => page.locator('#loading-marker .horseshoe__state-marker--ha-icon').count()).toBe(1);
+  expect(await page.locator('#loading-marker foreignObject').count()).toBe(0);
+  const correctedBounds = await page.evaluate(() => window.markerFixture.loadingCard.iconBoundsCache['mdi:loaded-marker|15']);
+  expect(correctedBounds.width).toBeCloseTo(19.3185, 1);
+  expect(correctedBounds.height).toBeCloseTo(21.9067, 1);
+  expect(correctedBounds.tipX).toBeCloseTo(2.5882, 1);
+  const loadedTransform = await page.locator('#loading-marker .horseshoe__state-marker--ha-icon').getAttribute('transform');
+  const loadedScales = loadedTransform.match(/scale\(([-\d.]+) ([-\d.]+)\)/);
+  expect(Number(loadedScales[1]) * 8).toBeCloseTo(Number(loadedScales[2]), 5);
 });

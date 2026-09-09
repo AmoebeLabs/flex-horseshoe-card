@@ -208,8 +208,10 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
       markerAttachTo === "path"
         ? (markerSource.size ?? horseshoeState.width)
         : markerSource.size,
+    aspectratio: markerSource.aspectratio ?? 1,
     start_offset: markerSource.start_offset ?? 0,
     end_offset: markerSource.end_offset ?? 0,
+    styles: ConfigHelper.toStyleDict(markerSource.styles),
   };
 
   if (!["path", "center"].includes(horseshoeMarker.attach_to)) {
@@ -247,6 +249,10 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     (!Number.isFinite(Number(horseshoeMarker.size)) || Number(horseshoeMarker.size) <= 0)
   ) {
     throw new Error("[horseshoes] path-attached horseshoe_marker.size must be greater than zero");
+  }
+
+  if (!Number.isFinite(Number(horseshoeMarker.aspectratio)) || Number(horseshoeMarker.aspectratio) <= 0) {
+    throw new Error("[horseshoes] horseshoe_marker.aspectratio must be greater than zero");
   }
 
   ["rotate", "offset", "start_offset", "end_offset"].forEach((field) => {

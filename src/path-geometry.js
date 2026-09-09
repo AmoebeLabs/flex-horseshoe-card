@@ -253,6 +253,11 @@ export class TransformedPathGeometry {
   pointAtProgress(progress) {
     const point = this.pathGeometry.pointAtProgress(progress);
 
+    return this.pointInCardCoordinates(point);
+  }
+
+  /** Maps a source path coordinate through the final affine card transform. */
+  pointInCardCoordinates(point) {
     return {
       x: this.matrix.a * point.x + this.matrix.c * point.y + this.matrix.e,
       y: this.matrix.b * point.x + this.matrix.d * point.y + this.matrix.f,

@@ -109,7 +109,11 @@ export default class HorseshoeGauge extends BaseTool {
     this.pathElements = { ticks: [], labels: [], markers: [] };
     this.backgroundLayers = [];
     this.stateAnimator = undefined;
-    this.stateMarker = new HorseshoeStateMarker(card, `${cardId}-horseshoe-${index}-marker`);
+    this.stateMarker = new HorseshoeStateMarker(
+      card,
+      `${cardId}-horseshoe-${index}-marker`,
+      () => this.stateAnimator.updateStateLayer(this.stateAnimator.stateLayerElement, this.stateAnimator.currentProgress),
+    );
     this.stateMarkerStyles = undefined;
     this.displayProgress = undefined;
     this.stateRanges = [];
@@ -609,6 +613,7 @@ export default class HorseshoeGauge extends BaseTool {
     this.stateMarkerStyles = {
       ...stateStyles,
       fill: markerColor,
+      ...this.config.horseshoe_marker.styles,
     };
 
     const targetProgress = this.valueMapper.valueToProgress(this.value);
@@ -1093,7 +1098,7 @@ export default class HorseshoeGauge extends BaseTool {
     return svg`
       <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
       ${this.config.show.state_marker
-        ? this.stateMarker.render(this.transformedPathGeometry, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
+        ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
         : svg``}
     `;
   }
