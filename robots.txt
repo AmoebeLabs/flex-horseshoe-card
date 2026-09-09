@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /search/search_index.json
+
+Sitemap: https://flexible-horseshoe-card-manual.amoebelabs.com/sitemap.xml
