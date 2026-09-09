@@ -13,7 +13,7 @@ tags:
 
 A horseshoe can follow more than a circular arc. Use another path when a gauge should follow the edge of a panel, form a roof over a value, or become a triangle, hexagon, wave, spiral, or infinity symbol.
 
-The scale, state, colors, tick marks, labels, and animation continue to work along the selected shape.
+The scale, state progress, marker, colors, tick marks, labels, and animation continue to work along the selected shape. See [Horseshoe scale and state](horseshoe-scale-and-state.md#show-the-current-value-with-a-marker) for markers that follow a path or point to an arc from its center.
 
 <!-- Add horseshoe path shape showcase image -->
 
