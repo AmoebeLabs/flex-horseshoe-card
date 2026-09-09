@@ -38,41 +38,83 @@ export class HomeAssistantIconPath {
    * @param {string} icon - Home Assistant icon name.
    * @returns {string|undefined} SVG path data when available.
    */
-  getPath(icon) {
-    if (this.card.iconCache[icon] && (!this.measureBounds || this.card.iconBoundsCache[icon])) {
+  getPath(icon, rotation) {
+    const measureRotatedBounds = this.measureBounds && rotation !== undefined;
+    const boundsKey = `${icon}|${rotation}`;
+
+    if (this.card.iconCache[icon] && (!measureRotatedBounds || this.card.iconBoundsCache[boundsKey])) {
       this.path = this.card.iconCache[icon];
       return this.path;
     }
 
     this.path = undefined;
 
-    if (this.pendingIcon === icon) return this.path;
+    if (this.pendingIcon === boundsKey) return this.path;
 
-    this.pendingIcon = icon;
+    this.pendingIcon = boundsKey;
     let attempts = 0;
     const maxAttempts = 40;
     const delay = 50;
 
     const readIconPath = () => {
-      if (this.pendingIcon !== icon) return;
+      if (this.pendingIcon !== boundsKey) return;
 
       const iconElement = this.card.shadowRoot.getElementById(this.elementId);
       const iconSource = iconElement?.shadowRoot?.querySelector("*");
       const iconPath = iconSource?.path ?? this.card.iconCache[icon];
       const renderedPath = iconSource?.shadowRoot?.querySelector("path") ?? iconElement?.shadowRoot?.querySelector("path");
-      const iconBounds = this.measureBounds ? renderedPath?.getBBox() : undefined;
+      let iconBounds;
 
-      if (iconPath && (!this.measureBounds || iconBounds)) {
+      if (measureRotatedBounds && renderedPath) {
+        const sourceBounds = renderedPath.getBBox();
+        const sourceCenterX = sourceBounds.x + sourceBounds.width / 2;
+        const sourceCenterY = sourceBounds.y + sourceBounds.height / 2;
+        const pathLength = renderedPath.getTotalLength();
+        const measurementSteps = Math.ceil(pathLength * 32);
+        const rotationRadians = rotation * Math.PI / 180;
+        const rotationCosine = Math.cos(rotationRadians);
+        const rotationSine = Math.sin(rotationRadians);
+        let minimumX = Infinity;
+        let minimumY = Infinity;
+        let maximumX = -Infinity;
+        let maximumY = -Infinity;
+        const correctedContour = [];
+
+        // Rotate the visible path contour first and measure that corrected
+        // shape. Empty corners from its original bbox never enter the result.
+        for (let index = 0; index <= measurementSteps; index += 1) {
+          const point = renderedPath.getPointAtLength(pathLength * index / measurementSteps);
+          const centeredX = point.x - sourceCenterX;
+          const centeredY = point.y - sourceCenterY;
+          const rotatedX = centeredX * rotationCosine - centeredY * rotationSine;
+          const rotatedY = centeredX * rotationSine + centeredY * rotationCosine;
+          correctedContour.push({ x: rotatedX, y: rotatedY });
+          minimumX = Math.min(minimumX, rotatedX);
+          minimumY = Math.min(minimumY, rotatedY);
+          maximumX = Math.max(maximumX, rotatedX);
+          maximumY = Math.max(maximumY, rotatedY);
+        }
+
+        const tipTolerance = pathLength / measurementSteps;
+        const tipContour = correctedContour.filter((point) => point.y <= minimumY + tipTolerance);
+        const tipMinimumX = Math.min(...tipContour.map((point) => point.x));
+        const tipMaximumX = Math.max(...tipContour.map((point) => point.x));
+
+        iconBounds = {
+          x: minimumX,
+          y: minimumY,
+          width: maximumX - minimumX,
+          height: maximumY - minimumY,
+          tipX: (tipMinimumX + tipMaximumX) / 2,
+          sourceCenterX,
+          sourceCenterY,
+        };
+      }
+
+      if (iconPath && (!measureRotatedBounds || iconBounds)) {
         this.path = iconPath;
         this.card.iconCache[icon] = iconPath;
-        if (this.measureBounds) {
-          this.card.iconBoundsCache[icon] = {
-            x: iconBounds.x,
-            y: iconBounds.y,
-            width: iconBounds.width,
-            height: iconBounds.height,
-          };
-        }
+        if (measureRotatedBounds) this.card.iconBoundsCache[boundsKey] = iconBounds;
         this.pendingIcon = undefined;
         this.pathLoaded();
         return;
@@ -98,7 +140,7 @@ export class HomeAssistantIconPath {
   }
 
   /** Returns the measured visible bounds of a loaded Home Assistant icon. */
-  getBounds(icon) {
-    return this.card.iconBoundsCache[icon];
+  getBounds(icon, rotation) {
+    return this.card.iconBoundsCache[`${icon}|${rotation}`];
   }
 }

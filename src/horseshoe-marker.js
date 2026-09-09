@@ -156,7 +156,10 @@ export default class HorseshoeStateMarker {
       `;
     }
 
-    const iconPath = this.haIconPath.getPath(iconSource.value);
+    const iconPath = this.haIconPath.getPath(
+      iconSource.value,
+      markerConfig.attach_to === "center" ? iconRotation : undefined,
+    );
 
     if (!iconPath) {
       return svg`
@@ -180,22 +183,15 @@ export default class HorseshoeStateMarker {
     let iconTransform = `translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / 24} ${markerWidth / 24}) translate(-12 -12)`;
 
     if (markerConfig.attach_to === "center") {
-      const iconBounds = this.haIconPath.getBounds(iconSource.value);
+      const iconBounds = this.haIconPath.getBounds(iconSource.value, iconRotation);
 
       // Center-marker transformation order defines the user-facing config:
       // 1. rotate corrects the icon's natural direction so it points upward;
       // 2. aspectratio shapes that corrected icon between start_offset and end_offset;
       // 3. the complete pointer follows the current value around the arc.
-      // The corrected bounds are therefore calculated before either scale is applied.
-      const iconRotationRadians = iconRotation * Math.PI / 180;
-      const rotatedIconWidth =
-        Math.abs(iconBounds.width * Math.cos(iconRotationRadians)) +
-        Math.abs(iconBounds.height * Math.sin(iconRotationRadians));
-      const rotatedIconHeight =
-        Math.abs(iconBounds.width * Math.sin(iconRotationRadians)) +
-        Math.abs(iconBounds.height * Math.cos(iconRotationRadians));
-
-      iconTransform = `translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerWidth / rotatedIconWidth} ${markerLength / rotatedIconHeight}) rotate(${iconRotation}) translate(${-iconBounds.x - iconBounds.width / 2} ${-iconBounds.y - iconBounds.height / 2})`;
+      // The real corrected SVG bounds are measured before either scale is applied.
+      const iconScale = markerLength / iconBounds.height;
+      iconTransform = `translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${iconScale / Number(markerConfig.aspectratio)} ${iconScale}) translate(${-iconBounds.tipX} ${-iconBounds.y - iconBounds.height / 2}) rotate(${iconRotation}) translate(${-iconBounds.sourceCenterX} ${-iconBounds.sourceCenterY})`;
     }
 
     return svg`
