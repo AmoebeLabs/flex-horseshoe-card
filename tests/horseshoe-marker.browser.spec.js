@@ -184,7 +184,7 @@ test('one animation progress drives state markers on every path shape', async ({
             });
             const centerConfig = {
               attach_to: 'center', shape: undefined, icon: 'mdi:test-marker',
-              rotate: 15, offset: 0, size: undefined, aspectratio: 8, start_offset: 4, end_offset: 2,
+              rotate: 15, offset: 0, size: undefined, aspectratio: 8, start_offset: 4, end_offset: -2,
             };
             render(svg\`
               \${new HorseshoeStateMarker(card, 'center-source').render(
@@ -284,17 +284,17 @@ test('one animation progress drives state markers on every path shape', async ({
     haIcons: document.querySelectorAll('#marker-sources .horseshoe__state-marker--ha-icon').length,
     svgIcons: document.querySelectorAll('#marker-sources .horseshoe__state-marker--svg').length,
     images: document.querySelectorAll('#marker-sources .horseshoe__state-marker--image').length,
+    haIconTransform: document.querySelector('#marker-sources .horseshoe__state-marker--ha-icon')?.getAttribute('transform'),
     imageAspectRatio: document.querySelector('#marker-sources .horseshoe__state-marker--image')?.getAttribute('preserveAspectRatio'),
   }));
 
-  expect(sources).toEqual({
-    circles: 1,
-    triangles: 1,
-    haIcons: 1,
-    svgIcons: 1,
-    images: 1,
-    imageAspectRatio: 'none',
-  });
+  expect(sources.circles).toBe(1);
+  expect(sources.triangles).toBe(1);
+  expect(sources.haIcons).toBe(1);
+  expect(sources.svgIcons).toBe(1);
+  expect(sources.images).toBe(1);
+  expect(sources.imageAspectRatio).toBe('none');
+  expect(sources.haIconTransform).toContain(`scale(${8 / 24} ${8 / 24}) translate(-12 -12)`);
 
   const centerMarker = await page.evaluate(() => {
     const center = window.markerFixture.centerGeometry.pointInCardCoordinates({ x: 50, y: 50 });
@@ -305,7 +305,7 @@ test('one animation progress drives state markers on every path shape', async ({
     const directionX = deltaX / distance;
     const directionY = deltaY / distance;
     const start = { x: center.x + directionX * 4, y: center.y + directionY * 4 };
-    const end = { x: statePoint.x - directionX * 2, y: statePoint.y - directionY * 2 };
+    const end = { x: statePoint.x + directionX * -2, y: statePoint.y + directionY * -2 };
     const marker = document.querySelector('#center-marker .horseshoe__state-marker');
 
     return {

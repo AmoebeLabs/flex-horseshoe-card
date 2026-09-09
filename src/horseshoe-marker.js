@@ -66,8 +66,8 @@ export default class HorseshoeStateMarker {
       const directionY = deltaY / centerToStateLength;
       const markerStartX = center.x + directionX * Number(markerConfig.start_offset);
       const markerStartY = center.y + directionY * Number(markerConfig.start_offset);
-      const markerEndX = statePoint.x - directionX * Number(markerConfig.end_offset);
-      const markerEndY = statePoint.y - directionY * Number(markerConfig.end_offset);
+      const markerEndX = statePoint.x + directionX * Number(markerConfig.end_offset);
+      const markerEndY = statePoint.y + directionY * Number(markerConfig.end_offset);
 
       // Offsets determine the complete pointer length. Its configured aspect
       // ratio then controls width without another absolute size setting.
@@ -173,14 +173,20 @@ export default class HorseshoeStateMarker {
       `;
     }
 
-    const iconBounds = this.haIconPath.getBounds(iconSource.value);
+    let iconTransform = `translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / 24} ${markerWidth / 24}) translate(-12 -12)`;
 
-    // Map the visible MDI path, excluding its view-box whitespace, exactly
-    // between the center marker's start and end positions.
+    if (markerConfig.attach_to === "center") {
+      const iconBounds = this.haIconPath.getBounds(iconSource.value);
+
+      // Map the visible MDI path, excluding its view-box whitespace, exactly
+      // between the center marker's start and end positions.
+      iconTransform = `translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / iconBounds.width} ${markerWidth / iconBounds.height}) translate(${-iconBounds.x - iconBounds.width / 2} ${-iconBounds.y - iconBounds.height / 2})`;
+    }
+
     return svg`
       <g
         class="horseshoe__state-marker horseshoe__state-marker--ha-icon"
-        transform="translate(${marker.x} ${marker.y}) rotate(${rotation}) scale(${markerLength / iconBounds.width} ${markerWidth / iconBounds.height}) translate(${-iconBounds.x - iconBounds.width / 2} ${-iconBounds.y - iconBounds.height / 2})"
+        transform=${iconTransform}
         style=${styleMap(stateStyles)}
         pointer-events="none"
       >

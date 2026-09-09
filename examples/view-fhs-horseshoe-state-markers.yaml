@@ -88,7 +88,7 @@ sections:
                 rotate: 0
                 aspectratio: 8
                 start_offset: 3
-                end_offset: 2
+                end_offset: -2
                 styles:
                   fill: var(--primary-text-color)
                   opacity: 0.8
