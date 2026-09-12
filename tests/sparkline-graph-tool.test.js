@@ -1600,11 +1600,11 @@ test('explicit series use the most restrictive automatic bin density for every g
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [line, dots] }),
   });
 
-  const sharedBinsPerHour = tool.sparklineSeries.calculateSharedBinsPerHour();
-  const lineGraphConfig = tool.buildGraphConfig(line.config, sharedBinsPerHour);
-  const dotsGraphConfig = tool.buildGraphConfig(dots.config, sharedBinsPerHour);
+  const binPlan = tool.sparklineSeries.updateBinPlan();
+  const lineGraphConfig = tool.buildGraphConfig(line.config, binPlan.perHour);
+  const dotsGraphConfig = tool.buildGraphConfig(dots.config, binPlan.perHour);
 
-  assert.equal(sharedBinsPerHour, 1);
+  assert.deepEqual(binPlan, { perHour: 1, durationHours: 1 });
   assert.equal(lineGraphConfig.period.rolling_window.bins.per_hour, 1);
   assert.equal(dotsGraphConfig.period.rolling_window.bins.per_hour, 1);
 });

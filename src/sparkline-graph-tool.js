@@ -734,9 +734,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
 
-    // Real-time charts render the current value directly and have no bins.
-    // Historical charts coordinate one shared density across their series.
-    const sharedBinsPerHour = this.historyDurationReady && this.config.period.type !== 'real_time' ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
+    // Series selects and stores one bin layout before any graph is created.
+    // Dynamic periods wait until their runtime values are available below.
+    if (this.historyDurationReady) this.sparklineSeries.updateBinPlan();
+    const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.binPlan.perHour : undefined;
     this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
     if (this.historyDurationReady) {
       this.sparklineSeries.items.forEach((item) => {
@@ -1054,7 +1055,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {number|undefined} sharedBinsPerHour - Coordinator-resolved bin density shared by all items.
    * @returns {object} Engine config.
    */
-  buildGraphConfig(config, sharedBinsPerHour = undefined) {
+  buildGraphConfig(config, sharedBinsPerHour) {
     // Every series is projected onto the parent sparkline's visible period.
     // Its own offset only selects source history; the graph engine receives
     // plot-time boundaries so all series share the x-axis exactly.
@@ -1086,7 +1087,7 @@ export default class SparklineGraphTool extends BaseTool {
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
     if (period.type !== 'real_time') {
-      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : (sharedBinsPerHour ?? this.sparklineSeries.calculateBinsPerHour(config));
+      period[period.type].bins.per_hour = sharedBinsPerHour;
     }
 
     return {
@@ -1416,9 +1417,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value ?? Infinity);
       return true;
     });
-    // Real-time charts render the current value directly and have no bins.
-    // Historical charts coordinate one shared density across their series.
-    const sharedBinsPerHour = this.historyDurationReady && this.config.period.type !== 'real_time' ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
+    // Runtime config can change duration, density or graph width. Recalculate
+    // the one Series-owned bin result before replacing the graph engines.
+    this.sparklineSeries.updateBinPlan();
+    const sharedBinsPerHour = this.sparklineSeries.binPlan.perHour;
     this.graphConfig = this.buildGraphConfig(this.config, sharedBinsPerHour);
     this.sparklineSeries.items.forEach((item) => {
       const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);

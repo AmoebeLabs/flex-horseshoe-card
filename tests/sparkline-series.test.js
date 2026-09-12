@@ -176,6 +176,61 @@ test('implicit and explicit one-series configs produce the same effective graph 
   assert.equal(explicit.hasExplicitSeries, true);
 });
 
+test('stores one effective historical bin plan for implicit and explicit series', () => {
+  const historicalConfig = {
+    ...graphConfig,
+    width: 90,
+    height: 40,
+    period: {
+      type: 'rolling_window',
+      group_by: 'interval',
+      rolling_window: {
+        offset: 0,
+        duration: { hour: 24 },
+        bins: { per_hour: 'auto', density: 'medium' },
+      },
+    },
+  };
+  const implicit = new SparklineSeries(historicalConfig);
+  const explicit = new SparklineSeries({
+    ...historicalConfig,
+    series: [
+      { id: 'line', entity_index: 0 },
+      { id: 'dots', entity_index: 1, sparkline: { show: { chart_type: 'dots' } } },
+    ],
+  });
+
+  const implicitBinPlan = implicit.updateBinPlan();
+  const explicitBinPlan = explicit.updateBinPlan();
+
+  assert.deepEqual(implicitBinPlan, { perHour: 3, durationHours: 1 / 3 });
+  assert.deepEqual(explicitBinPlan, { perHour: 1, durationHours: 1 });
+  assert.equal(explicit.binPlan, explicitBinPlan);
+});
+
+test('real-time and state-band series do not expose a derived bin duration', () => {
+  const realTime = new SparklineSeries(graphConfig);
+  const stateBands = new SparklineSeries({
+    ...graphConfig,
+    period: {
+      type: 'rolling_window',
+      group_by: 'interval',
+      rolling_window: {
+        offset: 0,
+        duration: { hour: 24 },
+        bins: { per_hour: 'auto', density: 'medium' },
+      },
+    },
+    sparkline: {
+      ...graphConfig.sparkline,
+      show: { ...graphConfig.sparkline.show, chart_type: 'state_bands' },
+    },
+  });
+
+  assert.deepEqual(realTime.updateBinPlan(), { perHour: undefined, durationHours: undefined });
+  assert.deepEqual(stateBands.updateBinPlan(), { perHour: 1, durationHours: undefined });
+});
+
 test('runtime config updates keep history and graph state on the same series item', () => {
   const series = new SparklineSeries({
     ...graphConfig,
