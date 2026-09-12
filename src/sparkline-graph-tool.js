@@ -2422,7 +2422,6 @@ export default class SparklineGraphTool extends BaseTool {
         !Number.isFinite(pointIndex)
         || this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
         || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-        || this.sparklineSeries.items.some((item) => ![SPARKLINE_REQUEST_STATE.LOADED, SPARKLINE_REQUEST_STATE.NOT_REQUIRED].includes(item.requestState))
       ) {
         this.restoreRadialActiveBinDom();
         this.clearRadialTooltip();
@@ -2612,7 +2611,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-      || this.sparklineSeries.items.some((item) => ![SPARKLINE_REQUEST_STATE.LOADED, SPARKLINE_REQUEST_STATE.NOT_REQUIRED].includes(item.requestState))
     ) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
@@ -2669,7 +2667,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-      || this.sparklineSeries.items.some((item) => ![SPARKLINE_REQUEST_STATE.LOADED, SPARKLINE_REQUEST_STATE.NOT_REQUIRED].includes(item.requestState))
     ) {
       this.clearTooltip();
       return;
@@ -2695,7 +2692,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-      || this.sparklineSeries.items.some((item) => ![SPARKLINE_REQUEST_STATE.LOADED, SPARKLINE_REQUEST_STATE.NOT_REQUIRED].includes(item.requestState))
     ) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
@@ -5360,7 +5356,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG loading indicator or an empty template.
    */
   renderHistoryLoadingSpinner() {
-    if (!this.historyLoading) return svg``;
+    // A background refresh does not replace the complete presentation already
+    // on screen. Show loading only while no processed graph can be interacted with.
+    if (!this.historyLoading || this.sparklineSeries.dataState === SPARKLINE_DATA_STATE.HAS_DATA) return svg``;
 
     const centerX = this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width / 2;
     const centerY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height / 2;
@@ -6117,7 +6115,7 @@ export default class SparklineGraphTool extends BaseTool {
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
           overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
+          style="touch-action:none; pointer-events:auto; overflow:visible;"
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
           @pointerdown=${(event) => event.stopPropagation()}
@@ -6137,15 +6135,15 @@ export default class SparklineGraphTool extends BaseTool {
           <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
             <g
               class="sparkline-background-layers"
-              opacity=${this.historyLoading ? 0.2 : 1}
+              opacity="1"
               pointer-events="none"
             >
               ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialBackground() : ''}
               ${this.renderDayNightLayer()}
             </g>
             <g
-            opacity=${this.historyLoading ? 0.2 : 1}
-            style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
+            opacity="1"
+            style="pointer-events:auto"
           >
           ${this.renderCartesianHitArea()}
           ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialHitArea() : ''}

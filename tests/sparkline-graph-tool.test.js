@@ -2172,7 +2172,7 @@ test('x-axis ticks come from the current data graph when the first series is emp
   assert.equal(ticks[0].value, Date.parse('2026-09-12T10:00:00.000Z'));
 });
 
-test('tooltip selection clears while any series request is loading', () => {
+test('retained presentation remains interactive while a series refresh is loading', () => {
   const primary = { requestState: 'loaded', dataState: 'has_data' };
   const comparison = { requestState: 'loading', dataState: 'has_data' };
   let tooltipVisibleInDom = true;
@@ -2183,17 +2183,28 @@ test('tooltip selection clears while any series request is loading', () => {
     tooltipVisible: true,
     activePoint: 3,
     activeX: 40,
+    config: { sparkline: { show: { chart_type: 'line' } } },
+    mouseEventToPoint: () => ({ x: 12, y: 8 }),
+    pointToGraphX: (point) => point.x,
+    snapPointerXToGraphPoint: (x) => x,
+    getPointIndexFromX: () => 2,
+    updateTooltipFromPointIndex() {
+      this.tooltip = { index: 2, title: '10:00' };
+      this.tooltipVisible = true;
+    },
+    updateTooltipContentDom() {},
+    updateTooltipPositionDom() {},
     updateTooltipVisibilityDom(visible) { tooltipVisibleInDom = visible; },
     updateActiveIndicatorDom() { indicatorUpdates += 1; },
   });
 
   tool.updateActivePointer({ clientX: 10, clientY: 10 });
 
-  assert.deepEqual(tool.tooltip, {});
-  assert.equal(tool.tooltipVisible, false);
-  assert.equal(tool.activePoint, undefined);
-  assert.equal(tool.activeX, undefined);
-  assert.equal(tooltipVisibleInDom, false);
+  assert.deepEqual(tool.tooltip, { index: 2, title: '10:00' });
+  assert.equal(tool.tooltipVisible, true);
+  assert.equal(tool.activePoint, 3);
+  assert.equal(tool.activeX, 12);
+  assert.equal(tooltipVisibleInDom, true);
   assert.equal(indicatorUpdates, 1);
 });
 
@@ -2402,6 +2413,18 @@ test('history spinner follows only explicit loading request state', () => {
   assert.equal(tool.historyLoading, false);
   item.requestState = 'closed';
   assert.equal(tool.historyLoading, false);
+});
+
+test('retained presentation does not render a loading spinner', () => {
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    sparklineSeries: {
+      items: [{ requestState: 'loading', dataState: 'has_data' }],
+      dataState: 'has_data',
+    },
+  });
+
+  const spinner = tool.renderHistoryLoadingSpinner();
+  assert.deepEqual(spinner.strings, ['']);
 });
 
 test('real-time and state-band results omit metadata that does not apply', () => {
