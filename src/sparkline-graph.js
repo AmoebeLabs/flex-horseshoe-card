@@ -91,6 +91,7 @@ export default class SparklineGraph {
     this._history = undefined;
     this.coords = [];
     this.bucketMeta = [];
+    this.statistics = {};
     this.stateBandSegments = [];
     this.stateBandTransitions = [];
     this.xAxis = {};
@@ -119,6 +120,74 @@ export default class SparklineGraph {
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
+  }
+
+  /**
+   * Stores the complete visible-period statistics for this graph's source
+   * series. Historical averages retain the existing time weighting between
+   * Home Assistant state changes. Real-time graphs expose their one current
+   * value with the timestamp supplied by the coordinating tool.
+   *
+   * @param {Array<object>} series - Prepared source rows used by this graph.
+   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
+   * @param {string|undefined} currentStateTime - HA timestamp for a real-time value.
+   * @returns {object} Stored min, average, max and matching timestamps.
+   */
+  updateStatistics(series, statisticsRange, currentStateTime) {
+    if (this.config.period.type === 'real_time') {
+      const state = Number(series[0].state);
+      this.statistics = {
+        min: state,
+        avg: state,
+        max: state,
+        min_time: currentStateTime,
+        max_time: currentStateTime,
+      };
+      return this.statistics;
+    }
+
+    const sortedSeries = series
+      .filter((item) => item && Number.isFinite(Number(item.state)))
+      .concat()
+      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+
+    if (sortedSeries.length === 0) {
+      this.statistics = {};
+      return this.statistics;
+    }
+
+    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
+    const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
+    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
+    const values = visibleSeries.map((item) => Number(item.state));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const minItem = visibleSeries.find((item) => Number(item.state) === min);
+    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
+    const minItemTime = new Date(minItem.last_changed).getTime();
+    const maxItemTime = new Date(maxItem.last_changed).getTime();
+    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
+    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
+    let weightedValue = 0;
+    let weightedDuration = 0;
+
+    // Each state contributes for the time it remained active inside the
+    // visible period; short-lived states therefore do not skew the average.
+    visibleSeries.forEach((item, index) => {
+      const value = Number(item.state);
+      const itemStart = new Date(item.last_changed).getTime();
+      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
+      const startTime = Math.max(itemStart, rangeStart);
+      const endTime = Math.min(nextItemStart, rangeEnd);
+      const duration = Math.max(0, endTime - startTime);
+
+      weightedValue += value * duration;
+      weightedDuration += duration;
+    });
+
+    const avg = weightedValue / weightedDuration;
+    this.statistics = { min, avg, max, min_time, max_time };
+    return this.statistics;
   }
 
   /**
