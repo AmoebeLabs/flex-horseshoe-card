@@ -2,6 +2,7 @@ import Merge from './merge.js';
 import SparklineGraph from './sparkline-graph.js';
 import Templates from './templates.js';
 import Utils from './utils.js';
+import { SPARKLINE_DATA_STATE, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 
 /**
  * Coordinates the graph engines belonging to one sparkline layout item.
@@ -139,8 +140,8 @@ export default class SparklineSeries {
         entityConfig: undefined,
         graph: undefined,
         rows: [],
-        requestState: 'not_loaded',
-        dataState: 'not_loaded',
+        requestState: SPARKLINE_REQUEST_STATE.NOT_LOADED,
+        dataState: SPARKLINE_DATA_STATE.NOT_LOADED,
       };
     });
     this.hasExplicitSeries = hasExplicitSeries;
@@ -239,11 +240,11 @@ export default class SparklineSeries {
       item.dataState = item.graph.update(item.rows);
     });
 
-    const currentItems = this.items.filter((item) => ['data', 'empty'].includes(item.dataState));
-    const dataItems = this.items.filter((item) => item.dataState === 'data');
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
       return {
-        dataState: currentItems.length === this.items.length ? 'empty' : 'not_loaded',
+        dataState: currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
@@ -310,7 +311,7 @@ export default class SparklineSeries {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
     });
 
-    return { dataState: 'data', axisGraphs, axisMargin };
+    return { dataState: SPARKLINE_DATA_STATE.HAS_DATA, axisGraphs, axisMargin };
   }
 
   /**
@@ -328,11 +329,11 @@ export default class SparklineSeries {
       item.dataState = item.graph.update(item.rows);
     });
 
-    const currentItems = this.items.filter((item) => ['data', 'empty'].includes(item.dataState));
-    const dataItems = this.items.filter((item) => item.dataState === 'data');
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
       return {
-        dataState: currentItems.length === this.items.length ? 'empty' : 'not_loaded',
+        dataState: currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
@@ -386,7 +387,7 @@ export default class SparklineSeries {
       item.graph.update(item.rows);
     });
 
-    return { dataState: 'data', axisGraphs, axisMargin };
+    return { dataState: SPARKLINE_DATA_STATE.HAS_DATA, axisGraphs, axisMargin };
   }
 
   /**
@@ -411,7 +412,7 @@ export default class SparklineSeries {
   clearGraphs() {
     this.items.forEach((item) => {
       item.graph = undefined;
-      item.dataState = 'not_loaded';
+      item.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     });
   }
 

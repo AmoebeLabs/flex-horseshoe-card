@@ -1,6 +1,7 @@
 import Colors from './colors';
 import Utils from './utils';
 import { FONT_SIZE } from './const';
+import { SPARKLINE_DATA_STATE } from './sparkline-state.js';
 
 export const X = 0;
 export const Y = 1;
@@ -89,7 +90,7 @@ export default class SparklineGraph {
     this.setGraphAreas(axisMargin, configuredMargin, 0);
 
     this._history = undefined;
-    this.dataState = 'not_loaded';
+    this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.coords = [];
     this.bucketMeta = [];
     this.statistics = {};
@@ -391,7 +392,7 @@ export default class SparklineGraph {
   update(history) {
     if (history !== undefined) this._history = history;
     if (this._history === undefined) {
-      this.dataState = 'not_loaded';
+      this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
       return this.dataState;
     }
     if (this._history.length === 0) {
@@ -413,7 +414,7 @@ export default class SparklineGraph {
       this.calendarBucketStartMs = undefined;
       this.calendarBucketCount = undefined;
       this.visibleBucketCount = undefined;
-      this.dataState = 'empty';
+      this.dataState = SPARKLINE_DATA_STATE.EMPTY;
       return this.dataState;
     }
 
@@ -425,7 +426,7 @@ export default class SparklineGraph {
       this.coords = [];
       this.bucketMeta = [];
       this.buildAxisGeometry();
-      this.dataState = 'data';
+      this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
       return this.dataState;
     }
 
@@ -585,7 +586,7 @@ export default class SparklineGraph {
     if (this.config.y_axis.upper_bound !== undefined) this.max = Number(this.config.y_axis.upper_bound);
 
     this.buildAxisGeometry();
-    this.dataState = 'data';
+    this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
     return this.dataState;
   }
 
