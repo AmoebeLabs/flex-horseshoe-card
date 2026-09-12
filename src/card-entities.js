@@ -128,10 +128,7 @@ export default class CardEntities {
     resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
       if (!entityConfig.sparkline_entity_type) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
-      const seriesItem = entityConfig.sparkline_series_id === undefined
-        ? graphTool.sparklineSeries.primaryItem
-        : graphTool.sparklineSeries.items.find((item) => item.id === entityConfig.sparkline_series_id);
-      const graph = seriesItem.graph;
+      const sparklineResult = graphTool.getSeriesResult(entityConfig.sparkline_series_id);
       const sourceEntity = entities[entityConfig.source_entity_index];
       const sourceConfig = resolvedEntityConfigs[entityConfig.source_entity_index];
       const entityType = entityConfig.sparkline_entity_type;
@@ -144,8 +141,7 @@ export default class CardEntities {
       let deviceClass = sourceEntity.attributes.device_class;
 
       if (['min', 'avg', 'max', 'min_time', 'max_time'].includes(entityType)) {
-        const statistics = entityConfig.sparkline_series_id === undefined ? graphTool.stats : seriesItem.stats;
-        state = Object.hasOwn(statistics, entityType) ? statistics[entityType] : 'unavailable';
+        state = sparklineResult[entityType] === undefined ? 'unavailable' : sparklineResult[entityType];
         if (entityType === 'avg' && Number.isFinite(Number(state))) {
           const sourceDecimals = sourceConfig.decimals !== undefined
             ? Number(sourceConfig.decimals)
@@ -159,9 +155,8 @@ export default class CardEntities {
       }
 
       if (entityType === 'duration') {
-        const historical = graph.config.period.type !== 'real_time';
-        if (historical && graph.historyDurationReady) {
-          const hours = graph.config.period[graph.config.period.type].duration.hour;
+        if (sparklineResult.duration !== undefined) {
+          const hours = sparklineResult.duration;
           state = String(hours);
           unitOfMeasurement = 'h';
           if (hours < 1) { state = String(hours * 60); unitOfMeasurement = 'min'; }
@@ -174,9 +169,8 @@ export default class CardEntities {
       }
 
       if (entityType === 'bin_duration') {
-        const binned = graph.config.period.type !== 'real_time' && graph.config.sparkline.show.chart_type !== 'state_bands';
-        if (binned && graph.historyDurationReady) {
-          const hours = 1 / graph.calculateBinsPerHour(graph.config);
+        if (sparklineResult.bin_duration !== undefined) {
+          const hours = sparklineResult.bin_duration;
           state = String(hours);
           unitOfMeasurement = 'h';
           if (hours < 1) { state = String(hours * 60); unitOfMeasurement = 'min'; }
@@ -189,8 +183,7 @@ export default class CardEntities {
       }
 
       if (entityType === 'aggregate_func') {
-        const binned = graph.config.period.type !== 'real_time' && graph.config.sparkline.show.chart_type !== 'state_bands';
-        state = binned && graph.historyDurationReady ? graph.config.sparkline.state_values.aggregate_func : 'unavailable';
+        state = sparklineResult.aggregate_func === undefined ? 'unavailable' : sparklineResult.aggregate_func;
         unitOfMeasurement = undefined;
         deviceClass = undefined;
       }

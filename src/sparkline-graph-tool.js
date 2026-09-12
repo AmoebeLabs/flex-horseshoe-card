@@ -734,9 +734,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
 
-    // Real-time charts render the current value directly and have no bins.
-    // Historical charts coordinate one shared density across their series.
-    const sharedBinsPerHour = this.historyDurationReady && this.config.period.type !== 'real_time' ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
+    // Series selects and stores one bin layout before any graph is created.
+    // Dynamic periods wait until their runtime values are available below.
+    if (this.historyDurationReady) this.sparklineSeries.updateBinPlan();
+    const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.binPlan.perHour : undefined;
     this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
     if (this.historyDurationReady) {
       this.sparklineSeries.items.forEach((item) => {
@@ -775,7 +776,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.lineMaxPath = undefined;
     this.areaPath = undefined;
     this.areaMinMaxPath = undefined;
-    this.stats = {};
     this.tooltip = {};
     this.tooltipVisible = false;
     this.activePoint = undefined;
@@ -1054,7 +1054,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {number|undefined} sharedBinsPerHour - Coordinator-resolved bin density shared by all items.
    * @returns {object} Engine config.
    */
-  buildGraphConfig(config, sharedBinsPerHour = undefined) {
+  buildGraphConfig(config, sharedBinsPerHour) {
     // Every series is projected onto the parent sparkline's visible period.
     // Its own offset only selects source history; the graph engine receives
     // plot-time boundaries so all series share the x-axis exactly.
@@ -1086,7 +1086,7 @@ export default class SparklineGraphTool extends BaseTool {
     // SparklineGraph only receives numeric bins. State bands use exact
     // transitions and retain one neutral internal point interval.
     if (period.type !== 'real_time') {
-      period[period.type].bins.per_hour = graphType === 'state_bands' ? 1 : (sharedBinsPerHour ?? this.sparklineSeries.calculateBinsPerHour(config));
+      period[period.type].bins.per_hour = sharedBinsPerHour;
     }
 
     return {
@@ -1387,7 +1387,6 @@ export default class SparklineGraphTool extends BaseTool {
       this.graphConfig = undefined;
       this.sparklineSeries.clearGraphs();
       this.graphReady = false;
-      this.stats = {};
       this.clearTooltip();
       this.graphGeometryChanged = false;
       return;
@@ -1416,9 +1415,10 @@ export default class SparklineGraphTool extends BaseTool {
       this.gradeRanks[rankIndex].rangeMax.push(this.config.sparkline.colorstops.colors[index + 1]?.value ?? Infinity);
       return true;
     });
-    // Real-time charts render the current value directly and have no bins.
-    // Historical charts coordinate one shared density across their series.
-    const sharedBinsPerHour = this.historyDurationReady && this.config.period.type !== 'real_time' ? this.sparklineSeries.calculateSharedBinsPerHour() : undefined;
+    // Runtime config can change duration, density or graph width. Recalculate
+    // the one Series-owned bin result before replacing the graph engines.
+    this.sparklineSeries.updateBinPlan();
+    const sharedBinsPerHour = this.sparklineSeries.binPlan.perHour;
     this.graphConfig = this.buildGraphConfig(this.config, sharedBinsPerHour);
     this.sparklineSeries.items.forEach((item) => {
       const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
@@ -1466,7 +1466,6 @@ export default class SparklineGraphTool extends BaseTool {
         sourceEntityChanged = true;
         item.historySeries = undefined;
         item.rows = [];
-        item.stats = {};
         item.historyRangeStart = undefined;
         item.historyRangeEnd = undefined;
         item.historyRefreshAt = 0;
@@ -1489,7 +1488,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (sourceEntityChanged) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
-      this.stats = {};
       this.clearTooltip();
     }
 
@@ -2135,7 +2133,6 @@ export default class SparklineGraphTool extends BaseTool {
     );
     this.graphReady = coordinatedGraphs.ready;
     if (!this.graphReady) {
-      this.stats = {};
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
@@ -2163,20 +2160,8 @@ export default class SparklineGraphTool extends BaseTool {
     const zeroY = graph.calculateYCoordinates([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
     this.sparklineSeries.items.forEach((item) => {
-      if (item.config.period.type === 'real_time') {
-        const state = Number(item.rows[0].state);
-        item.stats = {
-          min: state,
-          avg: state,
-          max: state,
-          min_time: item.entity.last_changed,
-          max_time: item.entity.last_changed,
-        };
-      } else {
-        item.stats = this.calculateStatistics(item.rows, statisticsRanges.get(item));
-      }
+      item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
-    this.stats = this.sparklineSeries.primaryItem.stats;
   }
 
   /**
@@ -2204,27 +2189,14 @@ export default class SparklineGraphTool extends BaseTool {
     }, this.configuredGraphMargin);
     this.graphReady = coordinatedGraphs.ready;
     if (!this.graphReady) {
-      this.stats = {};
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
     this.axisMargin = coordinatedGraphs.axisMargin;
 
     this.sparklineSeries.items.forEach((item) => {
-      if (item.config.period.type === 'real_time') {
-        const state = Number(item.rows[0].state);
-        item.stats = {
-          min: state,
-          avg: state,
-          max: state,
-          min_time: item.entity.last_changed,
-          max_time: item.entity.last_changed,
-        };
-      } else {
-        item.stats = this.calculateStatistics(item.rows, statisticsRanges.get(item));
-      }
+      item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
-    this.stats = this.sparklineSeries.primaryItem.stats;
   }
 
   /**
@@ -2278,7 +2250,6 @@ export default class SparklineGraphTool extends BaseTool {
       // An accepted history response can legitimately contain no numeric rows.
       // The engine then has no axis geometry, so no graph-dependent work follows.
       if (!this.graphReady) {
-        this.stats = {};
         return;
       }
 
@@ -2391,72 +2362,36 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    // Real-time has one current value and no timestamped history series. Keep
-    // the local statistics entities complete using the source entity timestamp.
-    if (this.config.period.type === 'real_time') {
-      const state = Number(this.sparklineSeries.primaryItem.rows[0].state);
-      this.stats = {
-        min: state,
-        avg: state,
-        max: state,
-        min_time: this.entity.last_changed,
-        max_time: this.entity.last_changed,
-      };
-    } else {
-      this.stats = this.calculateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange);
-    }
+    this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
   }
 
   /**
-   * Calculates min/max from the raw source values and calculates avg as a
-   * time-weighted average. Home Assistant history rows are state changes, so a
-   * value that only existed briefly must not count the same as a value that was
-   * active for hours.
+   * Returns the current derived values for one normalized series item. Graph
+   * supplies period statistics, Series supplies the shared bin duration, and
+   * this coordinator supplies the active normalized period configuration.
    *
-   * @param {Array<object>} series - Current graph source series.
-   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
-   * @returns {object} Graph statistics.
+   * @param {string|undefined} seriesId - Explicit series id, or the primary item.
+   * @returns {object} Current values for the eight fhs_sparkline entity types.
    */
-  calculateStatistics(series, statisticsRange) {
-    const sortedSeries = series
-      .filter((item) => item && Number.isFinite(Number(item.state)))
-      .concat()
-      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
+  getSeriesResult(seriesId) {
+    const item = seriesId === undefined
+      ? this.sparklineSeries.primaryItem
+      : this.sparklineSeries.items.find((seriesItem) => seriesItem.id === seriesId);
+    const periodType = item.config.period.type;
+    const historical = periodType !== 'real_time';
+    const binned = historical && item.config.sparkline.show.chart_type !== 'state_bands';
+    const statistics = this.graphReady && item.rows.length > 0 ? item.graph.statistics : {};
 
-    if (sortedSeries.length === 0) {
-      return {};
-    }
-
-    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
-    const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
-    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
-    const values = visibleSeries.map((item) => Number(item.state));
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const minItem = visibleSeries.find((item) => Number(item.state) === min);
-    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
-    const minItemTime = new Date(minItem.last_changed).getTime();
-    const maxItemTime = new Date(maxItem.last_changed).getTime();
-    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
-    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
-    let weightedValue = 0;
-    let weightedDuration = 0;
-
-    visibleSeries.forEach((item, index) => {
-      const value = Number(item.state);
-      const itemStart = new Date(item.last_changed).getTime();
-      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
-      const startTime = Math.max(itemStart, rangeStart);
-      const endTime = Math.min(nextItemStart, rangeEnd);
-      const duration = Math.max(0, endTime - startTime);
-
-      weightedValue += value * duration;
-      weightedDuration += duration;
-    });
-
-    const avg = weightedValue / weightedDuration;
-
-    return { min, avg, max, min_time, max_time };
+    return {
+      min: statistics.min,
+      avg: statistics.avg,
+      max: statistics.max,
+      min_time: statistics.min_time,
+      max_time: statistics.max_time,
+      duration: historical && this.historyDurationReady ? item.config.period[periodType].duration.hour : undefined,
+      bin_duration: binned && this.historyDurationReady ? this.sparklineSeries.binPlan.durationHours : undefined,
+      aggregate_func: binned && this.historyDurationReady ? item.config.sparkline.state_values.aggregate_func : undefined,
+    };
   }
 
   /**

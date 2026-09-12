@@ -18,6 +18,7 @@ export default class SparklineSeries {
    */
   constructor(config) {
     this.items = [];
+    this.binPlan = undefined;
     this.updateConfig(config);
   }
 
@@ -137,7 +138,6 @@ export default class SparklineSeries {
         entity: undefined,
         entityConfig: undefined,
         graph: undefined,
-        stats: {},
         rows: [],
         historySeries: undefined,
         historyPromise: undefined,
@@ -152,6 +152,7 @@ export default class SparklineSeries {
       };
     });
     this.hasExplicitSeries = hasExplicitSeries;
+    this.binPlan = undefined;
   }
 
   /**
@@ -204,13 +205,29 @@ export default class SparklineSeries {
   }
 
   /**
-   * Chooses one density for the shared x-axis. The most space-demanding item
-   * limits every graph so coordinates, ticks, and pointer buckets align.
+   * Stores the effective bin layout shared by every graph in this collection.
+   * The most space-demanding historical series limits the collection so graph
+   * coordinates, ticks and pointer buckets remain aligned. Real-time and state
+   * bands do not expose a derived bin duration.
    *
-   * @returns {number} Shared bins per hour.
+   * @returns {object} Effective bins per hour and derived bin duration.
    */
-  calculateSharedBinsPerHour() {
-    return Math.min(...this.items.map((item) => this.calculateBinsPerHour(item.config)));
+  updateBinPlan() {
+    const historicalItems = this.items.filter((item) => item.config.period.type !== 'real_time');
+
+    if (historicalItems.length === 0) {
+      this.binPlan = { perHour: undefined, durationHours: undefined };
+      return this.binPlan;
+    }
+
+    if (historicalItems[0].config.sparkline.show.chart_type === 'state_bands') {
+      this.binPlan = { perHour: 1, durationHours: undefined };
+      return this.binPlan;
+    }
+
+    const perHour = Math.min(...historicalItems.map((item) => this.calculateBinsPerHour(item.config)));
+    this.binPlan = { perHour, durationHours: 1 / perHour };
+    return this.binPlan;
   }
 
   /**

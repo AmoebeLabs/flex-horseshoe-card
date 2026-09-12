@@ -141,6 +141,48 @@ test('single-bucket aggregate functions retain their meaning', () => {
   );
 });
 
+test('stores unchanged time-weighted statistics for the visible historical period', () => {
+  const graph = createGraph();
+  const range = {
+    start: new Date('2026-09-12T08:00:00.000Z').getTime(),
+    end: new Date('2026-09-12T12:00:00.000Z').getTime(),
+  };
+  const statistics = graph.updateStatistics(
+    [
+      { state: 10, last_changed: '2026-09-12T07:00:00.000Z' },
+      { state: 20, last_changed: '2026-09-12T09:00:00.000Z' },
+      { state: 40, last_changed: '2026-09-12T11:00:00.000Z' },
+    ],
+    range,
+    undefined,
+  );
+
+  assert.deepEqual(statistics, {
+    min: 10,
+    avg: 22.5,
+    max: 40,
+    min_time: '2026-09-12T08:00:00.000Z',
+    max_time: '2026-09-12T11:00:00.000Z',
+  });
+  assert.equal(graph.statistics, statistics);
+});
+
+test('stores the current value and HA timestamp for a real-time graph', () => {
+  const config = createGraphConfig();
+  config.period = { type: 'real_time' };
+  const graph = createGraph(config);
+  const statistics = graph.updateStatistics([{ state: 17.5 }], undefined, '2026-09-12T12:00:00.000Z');
+
+  assert.deepEqual(statistics, {
+    min: 17.5,
+    avg: 17.5,
+    max: 17.5,
+    min_time: '2026-09-12T12:00:00.000Z',
+    max_time: '2026-09-12T12:00:00.000Z',
+  });
+  assert.equal(graph.statistics, statistics);
+});
+
 test('automatic y bounds expand while configured bounds stay exact', () => {
   const automaticGraph = createGraph();
   automaticGraph.min = 3;

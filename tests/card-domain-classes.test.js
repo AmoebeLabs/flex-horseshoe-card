@@ -581,8 +581,7 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
     state: '10.20',
     attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
   }];
-  const graph = { config: { id: 'history' } };
-  const graphTool = { config: { id: 'history' }, stats: { avg: 10.2 }, sparklineSeries: { primaryItem: { graph, stats: { avg: 10.2 } } } };
+  const graphTool = { config: { id: 'history' }, getSeriesResult: () => ({ avg: 10.2 }) };
 
   cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
@@ -614,8 +613,7 @@ test('CardEntities publishes unavailable derived values before graph statistics 
   }];
   const graphTool = {
     config: { id: 'history' },
-    stats: {},
-    sparklineSeries: { primaryItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: {} } },
+    getSeriesResult: () => ({}),
   };
 
   cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
@@ -643,17 +641,69 @@ test('CardEntities updates explicit series derived values from the matching grap
   }];
   const graphTool = {
     config: { id: 'climate' },
-    sparklineSeries: {
-      stats: { avg: 10.2 },
-      primaryItem: { graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 10.2 } },
-      items: [{ id: 'yesterday_room', graph: { config: { period: { type: 'rolling_window' } } }, stats: { avg: 18.7 } }],
-    },
+    getSeriesResult: (seriesId) => ({ avg: seriesId === 'yesterday_room' ? 18.7 : 10.2 }),
   };
 
   cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
   assert.equal(entities[1].state, '18.7');
   assert.equal(entities[1].attributes.sparkline_series_id, 'yesterday_room');
+});
+
+test('CardEntities represents all eight values from the Sparkline result interface', () => {
+  const cardEntities = new CardEntities({}, {});
+  const entityTypes = ['min', 'avg', 'max', 'min_time', 'max_time', 'duration', 'bin_duration', 'aggregate_func'];
+  const resolvedConfigs = [
+    { entity: 'sensor.temperature', decimals: 1 },
+    ...entityTypes.map((entityType) => ({
+      entity: `fhs_sparkline.history_${entityType}`,
+      local: true,
+      source_entity_index: 0,
+      sparkline_id: 'history',
+      sparkline_entity_type: entityType,
+    })),
+  ];
+  const entities = [{
+    entity_id: 'sensor.temperature',
+    state: '12.2',
+    attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
+  }];
+  const graphTool = {
+    config: { id: 'history' },
+    getSeriesResult: () => ({
+      min: 10,
+      avg: 12.25,
+      max: 15,
+      min_time: '2026-09-12T08:00:00.000Z',
+      max_time: '2026-09-12T11:00:00.000Z',
+      duration: 24,
+      bin_duration: 0.25,
+      aggregate_func: 'avg',
+    }),
+  };
+
+  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
+
+  assert.deepEqual(entities.slice(1).map((entity) => entity.state), [
+    '10',
+    '12.3',
+    '15',
+    '2026-09-12T08:00:00.000Z',
+    '2026-09-12T11:00:00.000Z',
+    '1',
+    '15',
+    'avg',
+  ]);
+  assert.deepEqual(entities.slice(1).map((entity) => entity.attributes.unit_of_measurement), [
+    'C',
+    'C',
+    'C',
+    undefined,
+    undefined,
+    'd',
+    'min',
+    undefined,
+  ]);
 });
 
 test('CardAnimations matches entity state and preserves reused styles and icons', () => {
