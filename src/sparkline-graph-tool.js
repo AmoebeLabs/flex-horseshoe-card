@@ -776,7 +776,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.lineMaxPath = undefined;
     this.areaPath = undefined;
     this.areaMinMaxPath = undefined;
-    this.stats = {};
     this.tooltip = {};
     this.tooltipVisible = false;
     this.activePoint = undefined;
@@ -1388,7 +1387,6 @@ export default class SparklineGraphTool extends BaseTool {
       this.graphConfig = undefined;
       this.sparklineSeries.clearGraphs();
       this.graphReady = false;
-      this.stats = {};
       this.clearTooltip();
       this.graphGeometryChanged = false;
       return;
@@ -1468,7 +1466,6 @@ export default class SparklineGraphTool extends BaseTool {
         sourceEntityChanged = true;
         item.historySeries = undefined;
         item.rows = [];
-        item.stats = {};
         item.historyRangeStart = undefined;
         item.historyRangeEnd = undefined;
         item.historyRefreshAt = 0;
@@ -1491,7 +1488,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (sourceEntityChanged) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
-      this.stats = {};
       this.clearTooltip();
     }
 
@@ -2137,7 +2133,6 @@ export default class SparklineGraphTool extends BaseTool {
     );
     this.graphReady = coordinatedGraphs.ready;
     if (!this.graphReady) {
-      this.stats = {};
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
@@ -2165,9 +2160,8 @@ export default class SparklineGraphTool extends BaseTool {
     const zeroY = graph.calculateYCoordinates([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
     this.sparklineSeries.items.forEach((item) => {
-      item.stats = item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
+      item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
-    this.stats = this.sparklineSeries.primaryItem.stats;
   }
 
   /**
@@ -2195,16 +2189,14 @@ export default class SparklineGraphTool extends BaseTool {
     }, this.configuredGraphMargin);
     this.graphReady = coordinatedGraphs.ready;
     if (!this.graphReady) {
-      this.stats = {};
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
     this.axisMargin = coordinatedGraphs.axisMargin;
 
     this.sparklineSeries.items.forEach((item) => {
-      item.stats = item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
+      item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
-    this.stats = this.sparklineSeries.primaryItem.stats;
   }
 
   /**
@@ -2258,7 +2250,6 @@ export default class SparklineGraphTool extends BaseTool {
       // An accepted history response can legitimately contain no numeric rows.
       // The engine then has no axis geometry, so no graph-dependent work follows.
       if (!this.graphReady) {
-        this.stats = {};
         return;
       }
 
@@ -2371,7 +2362,36 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    this.stats = this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+    this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+  }
+
+  /**
+   * Returns the current derived values for one normalized series item. Graph
+   * supplies period statistics, Series supplies the shared bin duration, and
+   * this coordinator supplies the active normalized period configuration.
+   *
+   * @param {string|undefined} seriesId - Explicit series id, or the primary item.
+   * @returns {object} Current values for the eight fhs_sparkline entity types.
+   */
+  getSeriesResult(seriesId) {
+    const item = seriesId === undefined
+      ? this.sparklineSeries.primaryItem
+      : this.sparklineSeries.items.find((seriesItem) => seriesItem.id === seriesId);
+    const periodType = item.config.period.type;
+    const historical = periodType !== 'real_time';
+    const binned = historical && item.config.sparkline.show.chart_type !== 'state_bands';
+    const statistics = this.graphReady && item.rows.length > 0 ? item.graph.statistics : {};
+
+    return {
+      min: statistics.min,
+      avg: statistics.avg,
+      max: statistics.max,
+      min_time: statistics.min_time,
+      max_time: statistics.max_time,
+      duration: historical && this.historyDurationReady ? item.config.period[periodType].duration.hour : undefined,
+      bin_duration: binned && this.historyDurationReady ? this.sparklineSeries.binPlan.durationHours : undefined,
+      aggregate_func: binned && this.historyDurationReady ? item.config.sparkline.state_values.aggregate_func : undefined,
+    };
   }
 
   /**

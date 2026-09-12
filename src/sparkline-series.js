@@ -138,7 +138,6 @@ export default class SparklineSeries {
         entity: undefined,
         entityConfig: undefined,
         graph: undefined,
-        stats: {},
         rows: [],
         historySeries: undefined,
         historyPromise: undefined,
