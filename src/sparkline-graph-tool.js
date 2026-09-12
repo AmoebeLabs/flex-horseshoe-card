@@ -10,6 +10,7 @@ import Utils from './utils.js';
 import { X, Y, V } from './sparkline-graph.js';
 import SparklineSeries from './sparkline-series.js';
 import SparklineHistory from './sparkline-history.js';
+import { SPARKLINE_DATA_STATE, SPARKLINE_HISTORY_RESULT, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 import StateTool from './state-tool.js';
 import TextTool from './text-tool.js';
 import { formatDateVeryShort } from './frontend_mods/common/datetime/format_date.ts';
@@ -141,7 +142,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   get historyLoading() {
-    return this.sparklineHistory.isLoading();
+    return this.sparklineSeries.items.some((item) => item.requestState === SPARKLINE_REQUEST_STATE.LOADING);
   }
 
   /**
@@ -729,16 +730,16 @@ export default class SparklineGraphTool extends BaseTool {
 
     // A JavaScript-backed period becomes concrete during updateRuntimeConfig().
     // Static periods can create their graph immediately from the source config.
-    this.historyDurationReady = false;
+    this.periodDurationAvailable = false;
     if (!periodUsesJavascript) {
       const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-      this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
+      this.periodDurationAvailable = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
     this.sparklineHistory = new SparklineHistory(
       this.config.period,
       this.stateBandsStateMap,
       this.sparklineSeries.items,
-      this.historyDurationReady,
+      this.periodDurationAvailable,
       this.config.sparkline.show.day_night,
       {
         binBoundaryReached: () => this.historyBinBoundaryReached(),
@@ -749,10 +750,10 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Series selects and stores one bin layout before any graph is created.
     // Dynamic periods wait until their runtime values are available below.
-    if (this.historyDurationReady) this.sparklineSeries.updateBinPlan();
-    const sharedBinsPerHour = this.historyDurationReady ? this.sparklineSeries.binPlan.perHour : undefined;
-    this.graphConfig = this.historyDurationReady ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
-    if (this.historyDurationReady) {
+    if (this.periodDurationAvailable) this.sparklineSeries.updateBinPlan();
+    const sharedBinsPerHour = this.periodDurationAvailable ? this.sparklineSeries.binPlan.perHour : undefined;
+    this.graphConfig = this.periodDurationAvailable ? this.buildGraphConfig(this.config, sharedBinsPerHour) : undefined;
+    if (this.periodDurationAvailable) {
       this.sparklineSeries.items.forEach((item) => {
         const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
         this.sparklineSeries.createGraph(
@@ -768,7 +769,6 @@ export default class SparklineGraphTool extends BaseTool {
         );
       });
     }
-    this.graphReady = false;
     this.gradient = [];
     this.length = [];
     this.area = [];
@@ -1250,7 +1250,7 @@ export default class SparklineGraphTool extends BaseTool {
     // Historical tools remain inactive until a dynamic duration provides a
     // finite positive range. Real-time tools have no history duration.
     const historyDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
-    this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
+    this.periodDurationAvailable = this.config.period.type === 'real_time' || (Number.isFinite(historyDuration) && historyDuration > 0);
 
     if (this.card.dev.debug && this.configChanged) {
       console.log('[FHS sparkline runtime period]', {
@@ -1335,25 +1335,27 @@ export default class SparklineGraphTool extends BaseTool {
       this.config.period,
       this.stateBandsStateMap,
       this.sparklineSeries.items,
-      this.historyDurationReady,
+      this.periodDurationAvailable,
       this.config.sparkline.show.day_night,
     );
+    this.sparklineSeries.items.forEach((item) => {
+      this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
+    });
 
     // A period change invalidates only History's source/request state. Existing
     // graph geometry remains mounted while a missing expanded range is loaded.
     if (historyConfigChanges.periodChanged) {
-      if (this.sparklineHistory.isLoading()) this.clearTooltip();
+      if (this.historyLoading) this.clearTooltip();
       if (this.sparklineHistory.preservesGraphWhileLoading()) return;
     }
 
-    if (!this.historyDurationReady) {
+    if (!this.periodDurationAvailable) {
       this.sparklineSeries.items.forEach((item) => {
         item.rows = [];
         this.sparklineHistory.clearSeries(item.id);
       });
       this.graphConfig = undefined;
       this.sparklineSeries.clearGraphs();
-      this.graphReady = false;
       this.clearTooltip();
       this.graphGeometryChanged = false;
       return;
@@ -1401,7 +1403,6 @@ export default class SparklineGraphTool extends BaseTool {
         graphConfig.sparkline.state_map ?? {},
       );
     });
-    this.graphReady = false;
     this.graphGeometryChanged = false;
   }
 
@@ -1427,6 +1428,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.sparklineSeries.items.forEach((item) => {
       const realTime = item.config.period.type === 'real_time';
       const historyEntityChanged = this.sparklineHistory.bindSeriesEntity(item);
+      this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
 
       if (historyEntityChanged) {
         sourceEntityChanged = true;
@@ -1435,7 +1437,7 @@ export default class SparklineGraphTool extends BaseTool {
 
       if (realTime) {
         item.rows = [{ state: this.getEntityNumericState(item, item.entity) }];
-      } else if (!this.historyDurationReady) {
+      } else if (!this.periodDurationAvailable) {
         item.rows = [];
       } else if (this.sparklineHistory.hasRows(item.id) && !this.sparklineHistory.getRequestFacts(item.id).preserveGraphWhileLoading) {
         const range = this.sparklineHistory.getSeriesRange(item);
@@ -1454,7 +1456,14 @@ export default class SparklineGraphTool extends BaseTool {
     const historicalItems = this.sparklineSeries.items.filter((item) => item.config.period.type !== 'real_time');
     if (historicalItems.length === 0) this.sparklineHistory.stopTimeBoundaryUpdates();
 
-    if (this.sparklineSeries.items.some((item) => item.rows.length > 0)) {
+    // A multi-series graph is one presentation result. Rebuild it only when
+    // every source has completed, so completed and pending Series cannot be
+    // combined into one supposedly current geometry result.
+    const allSeriesRequestsCompleted = this.sparklineSeries.items.every((item) => [
+      SPARKLINE_REQUEST_STATE.LOADED,
+      SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
+    ].includes(item.requestState));
+    if (allSeriesRequestsCompleted) {
       this.updateGraphFromSeries();
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
@@ -1498,6 +1507,10 @@ export default class SparklineGraphTool extends BaseTool {
   /** Delegates card disconnection so History can invalidate requests and timers. */
   disconnected() {
     this.sparklineHistory.disconnected();
+    this.sparklineSeries.items.forEach((item) => {
+      this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
+    });
+    this.clearTooltip();
   }
 
   /**
@@ -1506,6 +1519,10 @@ export default class SparklineGraphTool extends BaseTool {
    */
   connected() {
     this.sparklineHistory.connected();
+    this.sparklineSeries.items.forEach((item) => {
+      this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
+    });
+    this.clearTooltip();
   }
 
   /** Marks existing history for resynchronization after an HA reconnect. */
@@ -1534,11 +1551,11 @@ export default class SparklineGraphTool extends BaseTool {
 
   /** Applies presentation work after History completes an auxiliary sun request. */
   dayNightHistoryRequestCompleted(result) {
-    if (result.status === 'stale') {
+    if (result.status === SPARKLINE_HISTORY_RESULT.STALE) {
       if (result.retryImmediately) this.fetchDayNightHistoryIfNeeded();
       return;
     }
-    if (result.status === 'failed') {
+    if (result.status === SPARKLINE_HISTORY_RESULT.FAILED) {
       console.error('[FHS sparkline day/night history request failed]', result.error);
       this.card.requestUpdate();
       return;
@@ -1559,6 +1576,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (!request.historyAvailable) return undefined;
 
     const requestFacts = this.sparklineHistory.getRequestFacts(item.id);
+    this.sparklineSeries.setRequestState(item, requestFacts.requestState);
 
     if (this.card.dev.debug) {
       console.log('[FHS sparkline history decision]', {
@@ -1589,20 +1607,24 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {object} result - Completion reported by SparklineHistory.
    */
   historyRequestCompleted(result) {
-    if (result.status === 'stale') {
+    if (result.status === SPARKLINE_HISTORY_RESULT.STALE) {
       if (result.retryImmediately) {
         const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
         this.fetchHistoryIfNeeded(item);
       }
       return;
     }
-    if (result.status === 'failed') {
+    if (result.status === SPARKLINE_HISTORY_RESULT.FAILED) {
+      const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
+      this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
+      this.clearTooltip();
       console.error('[FHS sparkline history request failed]', result.error);
       this.card.requestUpdate();
       return;
     }
 
     const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
+    this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
     try {
       // A preserved graph receives its new period geometry only after History
       // has accepted records for that expanded range.
@@ -1665,6 +1687,28 @@ export default class SparklineGraphTool extends BaseTool {
       }
     });
 
+    // These arrays represent only the current processed result. Clearing them
+    // before coordination prevents a successful empty result from retaining
+    // paths produced by the previous history response.
+    this.area = [];
+    this.areaMinMax = [];
+    this.line = [];
+    this.bar = [];
+    this.points = [];
+    this.barcodeChart = [];
+    this.barcodeChartBackground = [];
+    this.radialBarcodeChart = [];
+    this.radialBarcodeChartBackground = [];
+    this.equalizer = [];
+    this.graded = [];
+    this.stateBands = [];
+    this.gradient = [];
+    this.linePath = undefined;
+    this.lineMinPath = undefined;
+    this.lineMaxPath = undefined;
+    this.areaPath = undefined;
+    this.areaMinMaxPath = undefined;
+
     const coordinatedGraphs = this.sparklineSeries.updateCartesianGraphs(
       (axisGraphs) => {
         this.axisGraphs = axisGraphs;
@@ -1674,19 +1718,18 @@ export default class SparklineGraphTool extends BaseTool {
       this.svg.column_spacing,
       this.svg.row_spacing,
     );
-    this.graphReady = coordinatedGraphs.ready;
-    if (!this.graphReady) {
+    if (coordinatedGraphs.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+      this.clearTooltip();
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
     this.axisMargin = coordinatedGraphs.axisMargin;
 
-    this.area = [];
-    this.areaMinMax = [];
-    this.line = [];
-    this.points = [];
-    this.gradient = [];
     this.sparklineSeries.items.forEach((item, index) => {
+      // A current empty result participates in shared coordination but has no
+      // geometry to add to the visible series collection.
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return;
+
       const { graph, config } = item;
       const chartType = config.sparkline.show.chart_type;
       if (['line', 'area'].includes(chartType)) {
@@ -1703,6 +1746,7 @@ export default class SparklineGraphTool extends BaseTool {
     const zeroY = graph.calculateYCoordinates([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
     this.sparklineSeries.items.forEach((item) => {
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return;
       item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
   }
@@ -1730,14 +1774,15 @@ export default class SparklineGraphTool extends BaseTool {
       this.axisGraphs = axisGraphs;
       return this.calculateRadialAxisMargin(axisGraphs);
     }, this.configuredGraphMargin);
-    this.graphReady = coordinatedGraphs.ready;
-    if (!this.graphReady) {
+    if (coordinatedGraphs.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+      this.clearTooltip();
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
     this.axisMargin = coordinatedGraphs.axisMargin;
 
     this.sparklineSeries.items.forEach((item) => {
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return;
       item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
   }
@@ -1746,6 +1791,17 @@ export default class SparklineGraphTool extends BaseTool {
    * Runs the reused graph engine and stores the generated FHS render paths.
    */
   updateGraphFromSeries() {
+    // Keep an already-rendered graph while a refresh is in flight, but never
+    // publish geometry assembled from completed and pending Series together.
+    const allSeriesRequestsCompleted = this.sparklineSeries.items.every((item) => [
+      SPARKLINE_REQUEST_STATE.LOADED,
+      SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
+    ].includes(item.requestState));
+    if (!allSeriesRequestsCompleted) {
+      this.clearTooltip();
+      return;
+    }
+
     const chartType = this.config.sparkline.show.chart_type;
     const cartesianSeries = this.sparklineSeries.items.every((item) => ['line', 'area', 'dots', 'bar'].includes(item.config.sparkline.show.chart_type));
     const radialSeries = this.sparklineSeries.items.every((item) => item.config.sparkline.show.chart_type === 'radial');
@@ -1773,7 +1829,7 @@ export default class SparklineGraphTool extends BaseTool {
     // one-item collection. Single-series paint and statistics remain richer.
     if (cartesianSeries) {
       this.updateCartesianSeriesGraphs();
-      if (!this.graphReady || this.sparklineSeries.items.length > 1) return;
+      if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length > 1) return;
     }
 
     const sourceRangeIsActive = this.config.period.type !== 'real_time'
@@ -1782,43 +1838,8 @@ export default class SparklineGraphTool extends BaseTool {
       ? this.sparklineHistory.pruneActiveRows(this.sparklineSeries.primaryItem, this.primaryGraph.points)
       : undefined;
 
-    if (!cartesianSeries) {
-      // Real-time uses the graph engine's existing one-hour/one-point calculation.
-      // Only history-backed modes calculate and apply a requested history range.
-      if (this.config.period.type !== 'real_time') {
-        const range = this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem);
-        this.primaryGraph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
-      }
-
-      this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
-      this.graphReady = this.sparklineSeries.updateGraphs()[0];
-
-      // An accepted history response can legitimately contain no numeric rows.
-      // The engine then has no axis geometry, so no graph-dependent work follows.
-      if (!this.graphReady) {
-        return;
-      }
-
-      // The provisional graph supplies formatted ticks and a concrete bucket
-      // count. The tool measures outer axis space; the graph engine then owns
-      // the final axisArea and chart-specific dataArea.
-      const axisMargin =
-        chartType === 'radial_barcode' ? this.calculateRadialAxisMargin(this.axisGraphs) : this.calculateAxisMargin();
-      const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
-      if (graphAreasChanged) {
-        this.axisMargin = axisMargin;
-        this.graphReady = this.sparklineSeries.updateGraphs()[0];
-      }
-    }
-    // Use the graph engine y-scale for every vertical introduction animation.
-    // Clamp value zero to the draw area for positive-only and negative-only scales.
-    if (chartType === 'state_bands') {
-      this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
-    } else {
-      const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
-      this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
-    }
-
+    // The single-series presentation arrays are rebuilt from this processing
+    // result. Empty results therefore cannot leave an old SVG path mounted.
     this.area = [];
     this.areaMinMax = [];
     this.line = [];
@@ -1830,6 +1851,56 @@ export default class SparklineGraphTool extends BaseTool {
     this.radialBarcodeChart = [];
     this.radialBarcodeChartBackground = [];
     this.graded = [];
+    this.stateBands = [];
+    this.gradient = [];
+    this.linePath = undefined;
+    this.lineMinPath = undefined;
+    this.lineMaxPath = undefined;
+    this.areaPath = undefined;
+    this.areaMinMaxPath = undefined;
+
+    if (!cartesianSeries) {
+      // Real-time uses the graph engine's existing one-hour/one-point calculation.
+      // Only history-backed modes calculate and apply a requested history range.
+      if (this.config.period.type !== 'real_time') {
+        const range = this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem);
+        this.primaryGraph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
+      }
+
+      this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
+      this.sparklineSeries.updateGraphs();
+
+      // An accepted history response can legitimately contain no numeric rows.
+      // The engine then has no axis geometry, so no graph-dependent work follows.
+      if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+        this.clearTooltip();
+        return;
+      }
+
+      // The provisional graph supplies formatted ticks and a concrete bucket
+      // count. The tool measures outer axis space; the graph engine then owns
+      // the final axisArea and chart-specific dataArea.
+      const axisMargin =
+        chartType === 'radial_barcode' ? this.calculateRadialAxisMargin(this.axisGraphs) : this.calculateAxisMargin();
+      const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
+      if (graphAreasChanged) {
+        this.axisMargin = axisMargin;
+        this.sparklineSeries.updateGraphs();
+        if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+          this.clearTooltip();
+          return;
+        }
+      }
+    }
+    // Use the graph engine y-scale for every vertical introduction animation.
+    // Clamp value zero to the draw area for positive-only and negative-only scales.
+    if (chartType === 'state_bands') {
+      this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
+    } else {
+      const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
+      this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
+    }
+
     this.stateBands = chartType === 'state_bands' && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id) ? this.primaryGraph.getStateBands() : [];
 
     if (this.primaryGraph.coords.length > 0) {
@@ -1926,7 +1997,11 @@ export default class SparklineGraphTool extends BaseTool {
     const periodType = item.config.period.type;
     const historical = periodType !== 'real_time';
     const binned = historical && item.config.sparkline.show.chart_type !== 'state_bands';
-    const statistics = this.graphReady && item.rows.length > 0 ? item.graph.statistics : {};
+    const currentResultHasData = item.dataState === SPARKLINE_DATA_STATE.HAS_DATA && [
+      SPARKLINE_REQUEST_STATE.LOADED,
+      SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
+    ].includes(item.requestState);
+    const statistics = currentResultHasData ? item.graph.statistics : {};
 
     return {
       min: statistics.min,
@@ -1934,9 +2009,11 @@ export default class SparklineGraphTool extends BaseTool {
       max: statistics.max,
       min_time: statistics.min_time,
       max_time: statistics.max_time,
-      duration: historical && this.historyDurationReady ? item.config.period[periodType].duration.hour : undefined,
-      bin_duration: binned && this.historyDurationReady ? this.sparklineSeries.binPlan.durationHours : undefined,
-      aggregate_func: binned && this.historyDurationReady ? item.config.sparkline.state_values.aggregate_func : undefined,
+      requestState: item.requestState,
+      dataState: item.dataState,
+      duration: historical && this.periodDurationAvailable ? item.config.period[periodType].duration.hour : undefined,
+      bin_duration: binned && this.periodDurationAvailable ? this.sparklineSeries.binPlan.durationHours : undefined,
+      aggregate_func: binned && this.periodDurationAvailable ? item.config.sparkline.state_values.aggregate_func : undefined,
     };
   }
 
@@ -2201,6 +2278,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.sparklineSeries.items.length > 1) {
       const series = this.sparklineSeries.items.map((item, seriesIndex) => {
+        const label = this.formatSeriesName(item);
+        const color = item.config.color ?? item.entityConfig.color ?? item.config.sparkline.line_color[seriesIndex];
+
+        // A successful empty Series remains part of the configured legend and
+        // tooltip layout, but contributes no value from a previous result.
+        if (item.dataState === SPARKLINE_DATA_STATE.EMPTY) return { label, color, value: '', uom: '' };
+
         // Each engine owns its own bucket list. Match the selected primary x
         // coordinate so a series can have a different number of visible bins.
         const seriesPointIndex = item.graph.coords.reduce(
@@ -2210,8 +2294,8 @@ export default class SparklineGraphTool extends BaseTool {
         const seriesBucket = item.graph.bucketMeta[seriesPointIndex];
         const formatted = this.formatSeriesTooltipValue(item, seriesBucket.avg);
         return {
-          label: this.formatSeriesName(item),
-          color: item.config.color ?? item.entityConfig.color ?? item.config.sparkline.line_color[seriesIndex],
+          label,
+          color,
           ...formatted,
         };
       });
@@ -2295,6 +2379,7 @@ export default class SparklineGraphTool extends BaseTool {
    */
   clearTooltip() {
     this.tooltip = {};
+    this.activeX = undefined;
     this.activePoint = undefined;
     this.tooltipVisible = false;
   }
@@ -2333,7 +2418,15 @@ export default class SparklineGraphTool extends BaseTool {
       this._radialPendingPointIndex = undefined;
       this._radialPendingEvent = undefined;
 
-      if (!Number.isFinite(pointIndex)) return;
+      if (
+        !Number.isFinite(pointIndex)
+        || this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+        || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      ) {
+        this.restoreRadialActiveBinDom();
+        this.clearRadialTooltip();
+        return;
+      }
 
       this.updateTooltipFromRadial(pointIndex, event);
     });
@@ -2515,6 +2608,16 @@ export default class SparklineGraphTool extends BaseTool {
   updateActivePointer(e) {
     this.pointerEvent = e;
 
+    if (
+      this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+    ) {
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      return;
+    }
+
     if (this.config.sparkline.show.chart_type === 'state_bands') {
       const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
       const segment = this.primaryGraph.stateBandSegments.find((stateBand) => pointerX >= stateBand.x && pointerX <= stateBand.x + stateBand.width);
@@ -2561,6 +2664,14 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
    */
   updateTooltipFromPointer(e) {
+    if (
+      this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+    ) {
+      this.clearTooltip();
+      return;
+    }
+
     const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
     const pointIndex = this.getPointIndexFromX(pointerX);
 
@@ -2578,6 +2689,16 @@ export default class SparklineGraphTool extends BaseTool {
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
    */
   updateRadialActivePointer(e) {
+    if (
+      this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+    ) {
+      this.clearTooltip();
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      return;
+    }
+
     const pointIndex = this.getRadialPointIndexFromEvent(e);
 
     // console.log('[updateRadialActivePointer] - pointIndex, e ', pointIndex, e);
@@ -3403,8 +3524,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   buildXAxisTicks(level) {
     const ticks = [];
+    const xAxisGraph = this.axisGraphs.primary !== undefined ? this.axisGraphs.primary : this.axisGraphs.secondary;
 
-    this.primaryGraph.xAxis.ticks.forEach((tick) => {
+    xAxisGraph.xAxis.ticks.forEach((tick) => {
       const label = tick.isMidnight ? formatDateVeryShort(tick.time, this.card._hass.locale, this.card._hass.config) : formatTime(tick.time, this.card._hass.locale, this.card._hass.config);
 
       ticks.push({
@@ -3522,7 +3644,7 @@ export default class SparklineGraphTool extends BaseTool {
    */
   renderDayNightLayer() {
     const dayNightSegments = this.sparklineHistory.getDayNightSegments();
-    if (!this.config.sparkline.show.day_night || dayNightSegments.length === 0 || !this.graphReady) return '';
+    if (!this.config.sparkline.show.day_night || dayNightSegments.length === 0 || this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return '';
 
     const range = this.sparklineHistory.getDayNightRange();
     const dayNightConfig = {
@@ -5234,6 +5356,8 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG loading indicator or an empty template.
    */
   renderHistoryLoadingSpinner() {
+    // Keep retained graph geometry visible and interactive while the spinner
+    // indicates that the newly requested history range is still loading.
     if (!this.historyLoading) return svg``;
 
     const centerX = this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width / 2;
@@ -5305,7 +5429,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesBars() {
     return svg`
       ${this.sparklineSeries.items.map((item, index) => {
-        if (item.config.sparkline.show.chart_type !== 'bar') return '';
+        if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || item.config.sparkline.show.chart_type !== 'bar') return '';
 
         const { config } = item;
         const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
@@ -5425,7 +5549,8 @@ export default class SparklineGraphTool extends BaseTool {
     return this.sparklineSeries.items.map((item) => {
       const { config, graph } = item;
       if (
-        config.sparkline.show.chart_type !== 'radial'
+        item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+        || config.sparkline.show.chart_type !== 'radial'
         || config.sparkline.colorstops.colors.length === 0
         || ![
           config.sparkline.show.item_style,
@@ -5473,7 +5598,7 @@ export default class SparklineGraphTool extends BaseTool {
       const layerItemStyles = chartType === 'line'
         ? [config.sparkline.line.show.item_style, config.sparkline.line.minmax.show.item_style]
         : [config.sparkline.line.show.item_style, config.sparkline.area.show.item_style, config.sparkline.area.minmax.show.item_style];
-      if (!['line', 'area'].includes(chartType) || !layerItemStyles.includes('colorstopgradient')) return '';
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || !['line', 'area'].includes(chartType) || !layerItemStyles.includes('colorstopgradient')) return '';
 
       const gradient = graph.computeGradient(
         computeThresholds(config.sparkline.colorstops.colors, config.sparkline.colorstops_transition),
@@ -5498,7 +5623,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesRadialAreaMasks() {
     return this.sparklineSeries.items.map((item) => {
       const { config, graph } = item;
-      if (config.sparkline.show.chart_type !== 'radial' || config.sparkline.show.chart_variant !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || config.sparkline.show.chart_type !== 'radial' || config.sparkline.show.chart_variant !== 'area' || config.sparkline.show.fill !== 'fade') return '';
 
       const geometry = graph.getRadialGeometry();
       const zero = Math.min(graph.max, Math.max(graph.min, 0));
@@ -5540,7 +5665,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesAreaGradients() {
     return this.sparklineSeries.items.map((item, index) => {
       const { config, graph } = item;
-      if (config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
 
       const gradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
       const maskId = `series-area-fade-mask-${this.cardId}-${this.index}-${item.id}`;
@@ -5581,6 +5706,8 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesCartesian() {
     return svg`
       ${this.sparklineSeries.items.map((item, index) => {
+        if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return '';
+
         const { config, graph } = item;
         const chartType = config.sparkline.show.chart_type;
         const automaticColor = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
@@ -5655,6 +5782,8 @@ export default class SparklineGraphTool extends BaseTool {
    */
   renderSeriesRadial() {
     const seriesLayers = this.sparklineSeries.items.map((item, index) => {
+      if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return undefined;
+
       const { config, graph } = item;
       const variant = config.sparkline.show.chart_variant;
       const seriesColor = config.color ?? item.entityConfig.color;
@@ -5706,7 +5835,7 @@ export default class SparklineGraphTool extends BaseTool {
         currentValue,
         index,
       };
-    });
+    }).filter((layer) => layer !== undefined);
 
     return svg`
       ${seriesLayers.map((layer) =>
@@ -5893,7 +6022,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (measuredSignature === this.legendMeasuredSignature) return;
 
-    const graphWasReady = this.graphReady;
+    const graphHadData = this.sparklineSeries.dataState === SPARKLINE_DATA_STATE.HAS_DATA;
     this.legendMeasuredSignature = measuredSignature;
     this.legendMeasuredFontSize = measuredTextHeight;
     this.legendMeasuredRowHeight = measuredRowHeight;
@@ -5902,7 +6031,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.graphGeometryChanged = true;
     this.updateRuntimeConfig();
     this.updateLegendTextTools();
-    if (graphWasReady) this.updateGraphFromSeries();
+    if (graphHadData) this.updateGraphFromSeries();
     this.card.requestUpdate();
   }
 
@@ -5942,7 +6071,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSvg() {
     // Every historical mode remains empty until its first Home Assistant
     // history response is accepted. Current entity state is never a placeholder.
-    if (!this.graphReady) {
+    if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
       return svg`
         <g
           transform="${this.getGroupScaleTransform()}"
@@ -5963,7 +6092,7 @@ export default class SparklineGraphTool extends BaseTool {
             @click=${(event) => event.stopPropagation()}
           >
             <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
-              ${this.historyDurationReady ? this.renderHistoryLoadingSpinner() : svg``}
+              ${this.periodDurationAvailable ? this.renderHistoryLoadingSpinner() : svg``}
             </g>
             ${this.renderLegend()}
           </svg>
@@ -5986,7 +6115,7 @@ export default class SparklineGraphTool extends BaseTool {
           viewBox="0 0 ${this.svg.width} ${this.svg.height}"
           overflow="visible"
           touch-action="none"
-          style="touch-action:none; pointer-events:${this.historyLoading ? 'none' : 'auto'}; overflow:visible;"
+          style="touch-action:none; pointer-events:auto; overflow:visible;"
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
           @pointerdown=${(event) => event.stopPropagation()}
@@ -6006,15 +6135,15 @@ export default class SparklineGraphTool extends BaseTool {
           <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
             <g
               class="sparkline-background-layers"
-              opacity=${this.historyLoading ? 0.2 : 1}
+              opacity="1"
               pointer-events="none"
             >
               ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialBackground() : ''}
               ${this.renderDayNightLayer()}
             </g>
             <g
-            opacity=${this.historyLoading ? 0.2 : 1}
-            style="pointer-events:${this.historyLoading ? 'none' : 'auto'}"
+            opacity="1"
+            style="pointer-events:auto"
           >
           ${this.renderCartesianHitArea()}
           ${this.config.sparkline.show.chart_type === 'radial' ? this.renderRadialHitArea() : ''}

@@ -1,3 +1,5 @@
+import { SPARKLINE_HISTORY_RESULT, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
+
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const HISTORY_RETRY_MS = 30 * 1000;
@@ -16,11 +18,11 @@ export default class SparklineHistory {
    * @param {object} plotPeriod - Parent period defining the shared timeline.
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Normalized Sparkline Series items.
-   * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
+   * @param {boolean} periodDurationAvailable - Whether the evaluated graph period can be used.
    * @param {boolean} dayNightEnabled - Whether this History owner also maintains sun history.
    * @param {object} events - GraphTool continuations for due requests and elapsed bins.
    */
-  constructor(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled, events) {
+  constructor(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled, events) {
     this.seriesRecords = new Map();
     this.connectedToCard = true;
     this.events = events;
@@ -41,7 +43,7 @@ export default class SparklineHistory {
       retryAt: 0,
       resynchronizationRequested: false,
     };
-    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled);
+    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled);
   }
 
   /**
@@ -51,15 +53,15 @@ export default class SparklineHistory {
    * @param {object} plotPeriod - Parent period defining the shared timeline.
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Current normalized Sparkline Series items.
-   * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
+   * @param {boolean} periodDurationAvailable - Whether the evaluated graph period can be used.
    * @param {boolean} dayNightEnabled - Whether sun history belongs to this Sparkline.
    * @returns {object} History changes that affect GraphTool scheduling.
    */
-  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled) {
+  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled) {
     this.plotPeriod = plotPeriod;
     this.stateBandsStateMap = stateBandsStateMap;
     this.seriesItems = seriesItems;
-    this.historyDurationReady = historyDurationReady;
+    this.periodDurationAvailable = periodDurationAvailable;
     this.dayNightEnabled = dayNightEnabled;
     let periodChanged = false;
 
@@ -85,7 +87,7 @@ export default class SparklineHistory {
           requestNumber: 0,
           requestPromise: undefined,
           requestTimer: undefined,
-          loading: false,
+          requestState: item.config.period.type === 'real_time' ? SPARKLINE_REQUEST_STATE.NOT_REQUIRED : SPARKLINE_REQUEST_STATE.NOT_LOADED,
           refreshAt: 0,
           retryAt: 0,
           resynchronizationRequested: false,
@@ -97,7 +99,11 @@ export default class SparklineHistory {
 
       const record = this.seriesRecords.get(item.id);
       const periodSignature = JSON.stringify(item.config.period);
-      if (periodSignature === record.periodSignature) return;
+      if (periodSignature === record.periodSignature) {
+        if (item.config.period.type === 'real_time') record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
+        else if (!periodDurationAvailable) record.requestState = SPARKLINE_REQUEST_STATE.NOT_LOADED;
+        return;
+      }
 
       periodChanged = true;
       record.periodSignature = periodSignature;
@@ -106,14 +112,19 @@ export default class SparklineHistory {
       globalThis.clearTimeout(record.requestTimer);
       record.requestTimer = undefined;
       record.retryAt = 0;
-      record.resynchronizationRequested = true;
       record.acceptedResultPending = false;
 
       const requestedRangeIsMissing = item.config.period.type !== 'real_time'
-        && historyDurationReady
+        && periodDurationAvailable
         && !this.acceptedHistoryContainsRange(item.id, this.getSeriesRange(item), item.config.period.type);
-      record.loading = requestedRangeIsMissing;
+      // A smaller period can be rebuilt directly from the retained source rows.
+      // Only a period outside the accepted range requires Home Assistant history.
+      record.resynchronizationRequested = requestedRangeIsMissing;
       record.preserveGraphWhileLoading = requestedRangeIsMissing && record.rows !== undefined;
+      if (item.config.period.type === 'real_time') record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
+      else if (!periodDurationAvailable) record.requestState = SPARKLINE_REQUEST_STATE.NOT_LOADED;
+      else if (requestedRangeIsMissing) record.requestState = SPARKLINE_REQUEST_STATE.LOADING;
+      else record.requestState = record.rows === undefined ? SPARKLINE_REQUEST_STATE.NOT_LOADED : SPARKLINE_REQUEST_STATE.LOADED;
     });
 
     const dayNightPeriodSignature = JSON.stringify([dayNightEnabled, plotPeriod]);
@@ -133,7 +144,7 @@ export default class SparklineHistory {
       this.dayNightRecord.periodSignature = dayNightPeriodSignature;
     }
 
-    if (periodChanged || !historyDurationReady) this.stopTimeBoundaryUpdates();
+    if (periodChanged || !periodDurationAvailable) this.stopTimeBoundaryUpdates();
 
     return { periodChanged };
   }
@@ -222,8 +233,10 @@ export default class SparklineHistory {
 
     if (sourceChanged) {
       this.clearSeries(item.id);
-      record.loading = item.config.period.type !== 'real_time' && this.historyDurationReady;
       record.resynchronizationRequested = item.config.period.type !== 'real_time';
+      if (item.config.period.type === 'real_time') record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
+      else if (this.periodDurationAvailable) record.requestState = SPARKLINE_REQUEST_STATE.LOADING;
+      else record.requestState = SPARKLINE_REQUEST_STATE.NOT_LOADED;
     }
 
     record.sourceKey = sourceKey;
@@ -234,17 +247,12 @@ export default class SparklineHistory {
   getRequestFacts(seriesId) {
     const record = this.seriesRecords.get(seriesId);
     return {
-      loading: record.loading,
+      requestState: record.requestState,
       requestPending: record.requestPromise !== undefined,
       preserveGraphWhileLoading: record.preserveGraphWhileLoading,
       resynchronizationRequested: record.resynchronizationRequested,
       retryAt: record.retryAt,
     };
-  }
-
-  /** Returns whether at least one Series is waiting for missing history. */
-  isLoading() {
-    return this.seriesItems.some((item) => this.seriesRecords.get(item.id).loading);
   }
 
   /** Returns whether accepted graph data must remain unchanged during a request. */
@@ -276,7 +284,7 @@ export default class SparklineHistory {
     this.binBoundaryTimer = undefined;
     this.calendarRangeTimer = undefined;
 
-    if (!this.connectedToCard || !this.historyDurationReady) return;
+    if (!this.connectedToCard || !this.periodDurationAvailable) return;
 
     const historicalItems = this.seriesItems.filter((item) => item.config.period.type !== 'real_time');
     if (historicalItems.length === 0) return;
@@ -521,7 +529,7 @@ export default class SparklineHistory {
           && record.requestNumber === requestNumber
           && record.periodSignature === requestedPeriodSignature;
         if (!requestOwnerStillMatches) {
-          return { status: 'stale', retryImmediately: false };
+          return { status: SPARKLINE_HISTORY_RESULT.STALE, retryImmediately: false };
         }
 
         const currentRange = this.getDayNightRange();
@@ -533,7 +541,7 @@ export default class SparklineHistory {
         if (!rangeStillMatches) {
           record.requestPromise = undefined;
           record.resynchronizationRequested = true;
-          return { status: 'stale', retryImmediately: true };
+          return { status: SPARKLINE_HISTORY_RESULT.STALE, retryImmediately: true };
         }
 
         globalThis.clearTimeout(record.requestTimer);
@@ -545,13 +553,13 @@ export default class SparklineHistory {
         record.retryAt = 0;
         record.resynchronizationRequested = false;
         this.buildDayNightSegments();
-        return { status: 'accepted', range };
+        return { status: SPARKLINE_HISTORY_RESULT.ACCEPTED, range };
       },
       (error) => {
         const requestStillMatches = this.connectedToCard
           && record.requestNumber === requestNumber
           && record.periodSignature === requestedPeriodSignature;
-        if (!requestStillMatches) return { status: 'stale', retryImmediately: false };
+        if (!requestStillMatches) return { status: SPARKLINE_HISTORY_RESULT.STALE, retryImmediately: false };
 
         record.requestPromise = undefined;
         record.retryAt = Date.now() + HISTORY_RETRY_MS;
@@ -562,7 +570,7 @@ export default class SparklineHistory {
           record.retryAt = 0;
           this.events.dayNightHistoryDue();
         }, HISTORY_RETRY_MS);
-        return { status: 'failed', error, retryAt: record.retryAt };
+        return { status: SPARKLINE_HISTORY_RESULT.FAILED, error, retryAt: record.retryAt };
       },
     );
     record.requestPromise = requestPromise;
@@ -586,7 +594,7 @@ export default class SparklineHistory {
    */
   requestSeriesHistory(item, hass) {
     const record = this.seriesRecords.get(item.id);
-    if (!this.historyDurationReady) {
+    if (!this.periodDurationAvailable) {
       return {
         historyAvailable: false,
         started: false,
@@ -627,11 +635,11 @@ export default class SparklineHistory {
       };
     }
 
-    const loadingStarted = !representedRange && !record.loading;
+    const loadingStarted = !representedRange && record.requestState !== SPARKLINE_REQUEST_STATE.LOADING;
     if (!representedRange) {
-      record.loading = true;
       record.preserveGraphWhileLoading = record.rows !== undefined;
     }
+    record.requestState = SPARKLINE_REQUEST_STATE.LOADING;
 
     const requestedSourceKey = record.sourceKey;
     const requestedPeriodSignature = record.periodSignature;
@@ -658,7 +666,7 @@ export default class SparklineHistory {
             record.requestPromise = undefined;
             record.resynchronizationRequested = true;
           }
-          return { status: 'stale', seriesId: item.id, retryImmediately };
+          return { status: SPARKLINE_HISTORY_RESULT.STALE, seriesId: item.id, retryImmediately };
         }
 
         const currentItem = this.seriesItems.find((seriesItem) => seriesItem.id === item.id);
@@ -671,7 +679,7 @@ export default class SparklineHistory {
         if (!rangeStillMatches) {
           record.requestPromise = undefined;
           record.resynchronizationRequested = true;
-          return { status: 'stale', seriesId: item.id, retryImmediately: true };
+          return { status: SPARKLINE_HISTORY_RESULT.STALE, seriesId: item.id, retryImmediately: true };
         }
 
         const historyRows = history.length === 0 ? [] : history[0];
@@ -680,18 +688,18 @@ export default class SparklineHistory {
         globalThis.clearTimeout(record.requestTimer);
         record.requestPromise = undefined;
         record.requestTimer = undefined;
-        record.loading = false;
         record.retryAt = 0;
         record.preserveGraphWhileLoading = false;
         record.resynchronizationRequested = false;
         record.acceptedResultPending = true;
+        record.requestState = SPARKLINE_REQUEST_STATE.LOADED;
         if (currentItem.config.history.refresh_interval !== undefined) {
           record.refreshAt = Date.now() + this.getIntervalMilliseconds(currentItem.config.history.refresh_interval);
           this.scheduleSeriesHistoryRequest(currentItem, record.refreshAt);
         }
 
         return {
-          status: 'accepted',
+          status: SPARKLINE_HISTORY_RESULT.ACCEPTED,
           seriesId: item.id,
           rows: record.rows,
           range,
@@ -706,14 +714,14 @@ export default class SparklineHistory {
           && record.sourceKey === requestedSourceKey
           && record.periodSignature === requestedPeriodSignature;
 
-        if (!requestStillMatches) return { status: 'stale', seriesId: item.id, retryImmediately: false };
+        if (!requestStillMatches) return { status: SPARKLINE_HISTORY_RESULT.STALE, seriesId: item.id, retryImmediately: false };
 
         record.requestPromise = undefined;
-        record.loading = false;
         record.retryAt = Date.now() + HISTORY_RETRY_MS;
         record.resynchronizationRequested = true;
+        record.requestState = SPARKLINE_REQUEST_STATE.ERROR;
         this.scheduleSeriesHistoryRequest(item, record.retryAt);
-        return { status: 'failed', seriesId: item.id, error, retryAt: record.retryAt };
+        return { status: SPARKLINE_HISTORY_RESULT.FAILED, seriesId: item.id, error, retryAt: record.retryAt };
       },
     );
     record.requestPromise = requestPromise;
@@ -752,11 +760,11 @@ export default class SparklineHistory {
       record.requestNumber += 1;
       record.requestPromise = undefined;
       record.requestTimer = undefined;
-      record.loading = false;
       record.retryAt = 0;
       record.resynchronizationRequested = false;
       record.preserveGraphWhileLoading = false;
       record.acceptedResultPending = false;
+      record.requestState = SPARKLINE_REQUEST_STATE.CLOSED;
     });
     globalThis.clearTimeout(this.dayNightRecord.requestTimer);
     this.dayNightRecord.requestNumber += 1;
@@ -770,11 +778,19 @@ export default class SparklineHistory {
   connected() {
     this.connectedToCard = true;
     this.seriesItems.forEach((item) => {
-      if (item.config.period.type === 'real_time') return;
-
       const record = this.seriesRecords.get(item.id);
+      if (item.config.period.type === 'real_time') {
+        record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
+        return;
+      }
+
       if (record.rows !== undefined && this.getSeriesRange(item).sourceRangeIsActive) {
         record.resynchronizationRequested = true;
+        record.requestState = SPARKLINE_REQUEST_STATE.LOADING;
+      } else if (record.rows !== undefined) {
+        record.requestState = SPARKLINE_REQUEST_STATE.LOADED;
+      } else {
+        record.requestState = this.periodDurationAvailable ? SPARKLINE_REQUEST_STATE.LOADING : SPARKLINE_REQUEST_STATE.NOT_LOADED;
       }
       if (item.config.history.refresh_interval !== undefined && record.rows !== undefined) {
         this.scheduleSeriesHistoryRequest(item, record.refreshAt);
@@ -824,12 +840,12 @@ export default class SparklineHistory {
     record.sourceRangeStart = undefined;
     record.sourceRangeEnd = undefined;
     record.acceptedSourceKey = undefined;
-    record.loading = false;
     record.refreshAt = 0;
     record.retryAt = 0;
     record.resynchronizationRequested = false;
     record.preserveGraphWhileLoading = false;
     record.acceptedResultPending = false;
+    record.requestState = SPARKLINE_REQUEST_STATE.NOT_LOADED;
   }
 
   /**
@@ -847,6 +863,7 @@ export default class SparklineHistory {
     record.sourceRangeStart = range.sourceStart.getTime();
     record.sourceRangeEnd = range.sourceEnd.getTime();
     record.acceptedSourceKey = record.sourceKey;
+    record.requestState = SPARKLINE_REQUEST_STATE.LOADED;
 
     if (range.sourceRangeIsActive) this.addCurrentEntityState(item, range);
     else this.buildSeriesRows(item, range);

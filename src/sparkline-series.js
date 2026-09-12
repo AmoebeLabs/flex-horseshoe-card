@@ -2,6 +2,7 @@ import Merge from './merge.js';
 import SparklineGraph from './sparkline-graph.js';
 import Templates from './templates.js';
 import Utils from './utils.js';
+import { SPARKLINE_DATA_STATE, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 
 /**
  * Coordinates the graph engines belonging to one sparkline layout item.
@@ -19,6 +20,7 @@ export default class SparklineSeries {
   constructor(config) {
     this.items = [];
     this.binPlan = undefined;
+    this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.updateConfig(config);
   }
 
@@ -139,10 +141,22 @@ export default class SparklineSeries {
         entityConfig: undefined,
         graph: undefined,
         rows: [],
+        requestState: SPARKLINE_REQUEST_STATE.NOT_LOADED,
+        dataState: SPARKLINE_DATA_STATE.NOT_LOADED,
       };
     });
     this.hasExplicitSeries = hasExplicitSeries;
     this.binPlan = undefined;
+
+    // Keep the collection state aligned when runtime config retains existing
+    // items. Every item must be current before the collection is current.
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    this.dataState = currentItems.length !== this.items.length
+      ? SPARKLINE_DATA_STATE.NOT_LOADED
+      : dataItems.length > 0
+        ? SPARKLINE_DATA_STATE.HAS_DATA
+        : SPARKLINE_DATA_STATE.EMPTY;
   }
 
   /**
@@ -229,24 +243,26 @@ export default class SparklineSeries {
    * @param {object} configuredMargin - User-configured plot margin.
    * @param {number} columnSpacing - Horizontal spacing between grouped bars.
    * @param {number} rowSpacing - Vertical spacing used by bar geometry.
-   * @returns {object} Shared readiness, axes, and final margin state.
+   * @returns {object} Shared processed-data state, axes, and final margin state.
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.graph.update(item.rows);
+      item.dataState = item.graph.update(item.rows);
     });
 
-    const readyItems = this.items.filter((item) => item.graph.coords.length > 0);
-    if (readyItems.length !== this.items.length) {
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
-        ready: false,
+        dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
 
-    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
-    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
+    const primaryItems = dataItems.filter((item) => item.y_axis_id === 'primary');
+    const secondaryItems = dataItems.filter((item) => item.y_axis_id === 'secondary');
     const axisGraphs = {
       primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
       secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
@@ -268,14 +284,14 @@ export default class SparklineSeries {
       });
     });
 
-    const barItems = readyItems.filter((item) => item.config.sparkline.show.chart_type === 'bar');
-    readyItems.forEach((item) => {
+    const barItems = dataItems.filter((item) => item.config.sparkline.show.chart_type === 'bar');
+    dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
       item.graph.update(item.rows);
     });
 
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
-    this.items.forEach((item) => {
+    dataItems.forEach((item) => {
       const chartType = item.config.sparkline.show.chart_type;
       const rendersDots = chartType === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
@@ -299,7 +315,7 @@ export default class SparklineSeries {
       sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, rightOverflow);
     });
 
-    readyItems.forEach((item) => {
+    dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
       item.graph.update(item.rows);
     });
@@ -307,7 +323,8 @@ export default class SparklineSeries {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
     });
 
-    return { ready: true, axisGraphs, axisMargin };
+    this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+    return { dataState: this.dataState, axisGraphs, axisMargin };
   }
 
   /**
@@ -322,19 +339,21 @@ export default class SparklineSeries {
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.graph.update(item.rows);
+      item.dataState = item.graph.update(item.rows);
     });
 
-    const readyItems = this.items.filter((item) => item.graph.coords.length > 0);
-    if (readyItems.length !== this.items.length) {
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
-        ready: false,
+        dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
 
-    const primaryItems = readyItems.filter((item) => item.y_axis_id === 'primary');
-    const secondaryItems = readyItems.filter((item) => item.y_axis_id === 'secondary');
+    const primaryItems = dataItems.filter((item) => item.y_axis_id === 'primary');
+    const secondaryItems = dataItems.filter((item) => item.y_axis_id === 'secondary');
     const axisGraphs = {
       primary: primaryItems.length > 0 ? primaryItems[0].graph : undefined,
       secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
@@ -359,7 +378,7 @@ export default class SparklineSeries {
 
     // Every radial renderer uses one center and outer radius. Reserve the
     // largest visible line or dot extent for the complete collection.
-    readyItems.forEach((item) => {
+    dataItems.forEach((item) => {
       const variant = item.config.sparkline.show.chart_variant;
       let extent = 0;
 
@@ -377,12 +396,13 @@ export default class SparklineSeries {
       sharedChartGeometryMargin.l = Math.max(sharedChartGeometryMargin.l, extent);
     });
 
-    readyItems.forEach((item) => {
+    dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
       item.graph.update(item.rows);
     });
 
-    return { ready: true, axisGraphs, axisMargin };
+    this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+    return { dataState: this.dataState, axisGraphs, axisMargin };
   }
 
   /**
@@ -400,13 +420,21 @@ export default class SparklineSeries {
    */
   createGraph(item, width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap) {
     item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+    item.dataState = item.graph.dataState;
   }
 
   /** Removes graph geometry while a dynamic period has no valid duration. */
   clearGraphs() {
     this.items.forEach((item) => {
       item.graph = undefined;
+      item.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     });
+    this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
+  }
+
+  /** Stores the request state reported by the History owner for one item. */
+  setRequestState(item, requestState) {
+    item.requestState = requestState;
   }
 
   /** Replaces the current normalized rows for one coordinator-owned item. */
@@ -416,6 +444,16 @@ export default class SparklineSeries {
 
   /** Runs all initialized graph engines against their own normalized rows. */
   updateGraphs() {
-    return this.items.map((item) => item.graph.update(item.rows));
+    const dataStates = this.items.map((item) => {
+      item.dataState = item.graph.update(item.rows);
+      return item.dataState;
+    });
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    this.dataState = currentItems.length !== this.items.length
+      ? SPARKLINE_DATA_STATE.NOT_LOADED
+      : this.items.some((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA)
+        ? SPARKLINE_DATA_STATE.HAS_DATA
+        : SPARKLINE_DATA_STATE.EMPTY;
+    return dataStates;
   }
 }

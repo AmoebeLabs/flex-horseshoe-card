@@ -41,7 +41,7 @@ const createGraph = (config = createGraphConfig()) => new SparklineGraph(120, 10
 /** Keeps floating-point SVG geometry assertions exact and readable. */
 const rounded = (value) => Number(value.toFixed(6));
 
-test('reports whether update produced complete axis geometry', () => {
+test('reports processed data independently from graph geometry', () => {
   const graph = Object.create(SparklineGraph.prototype);
   Object.assign(graph, {
     config: { sparkline: { show: { chart_type: 'state_bands' } } },
@@ -60,12 +60,46 @@ test('reports whether update produced complete axis geometry', () => {
     },
   });
 
-  assert.equal(graph.update(), false);
+  assert.equal(graph.update(), 'not_loaded');
   graph.history = [];
-  assert.equal(graph.update(), false);
+  assert.equal(graph.update(), 'empty');
   graph.history = [{ state: 1 }];
-  assert.equal(graph.update(), true);
+  assert.equal(graph.update(), 'has_data');
   assert.deepEqual(graph.xAxis, { start: new Date(0), end: new Date(1) });
+});
+
+test('valid empty input clears every processed result from previous data', () => {
+  const graph = createGraph(createGraphConfig({ showLineMinMax: true }));
+  graph._updateEndTime = () => {
+    graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+  };
+  graph.buildAxisGeometry = () => {
+    graph.xAxis = { ticks: [1] };
+    graph.yAxis = { ticks: [2] };
+  };
+  const rows = [
+    { state: '4', haState: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', haState: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+
+  assert.equal(graph.update(rows), 'has_data');
+  graph.updateStatistics(rows, undefined, undefined);
+  assert.ok(graph.coords.length > 0);
+  assert.ok(graph.coordsMin.length > 0);
+  assert.ok(graph.coordsMax.length > 0);
+  assert.notDeepEqual(graph.statistics, {});
+
+  assert.equal(graph.update([]), 'empty');
+  assert.equal(graph.dataState, 'empty');
+  assert.deepEqual(graph.coords, []);
+  assert.deepEqual(graph.coordsMin, []);
+  assert.deepEqual(graph.coordsMax, []);
+  assert.deepEqual(graph.bucketMeta, []);
+  assert.deepEqual(graph.statistics, {});
+  assert.deepEqual(graph.stateBandSegments, []);
+  assert.deepEqual(graph.stateBandTransitions, []);
+  assert.deepEqual(graph.xAxis, {});
+  assert.deepEqual(graph.yAxis, {});
 });
 
 test('rolling history becomes fixed buckets with carry-forward metadata', () => {
