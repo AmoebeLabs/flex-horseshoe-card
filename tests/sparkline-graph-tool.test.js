@@ -1506,6 +1506,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     calculateYCoordinates: (points) => points,
     getPath: () => 'M 0 0 L 100 50',
     getArea: () => 'M 0 0 L 100 50 Z',
+    updateStatistics: () => ({}),
   });
   const tool = Object.create(SparklineGraphTool.prototype);
   const makeConfig = (chartType) => ({
@@ -1528,7 +1529,6 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    calculateStatistics: () => ({}),
     area: [],
     areaMinMax: [],
     line: [],
@@ -1631,6 +1631,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     },
     calculateYCoordinates: (points) => points.map((point) => [point[0], 25, point[2]]),
     getPath: () => 'M 0 0 L 100 50',
+    updateStatistics: () => ({}),
   });
   const makeConfig = (chartType = 'bar') => ({
     period: { type: "real_time" },
@@ -1652,7 +1653,6 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    calculateStatistics: () => ({}),
     area: [],
     areaMinMax: [],
     line: [],

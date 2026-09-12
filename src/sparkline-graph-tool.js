@@ -2165,18 +2165,7 @@ export default class SparklineGraphTool extends BaseTool {
     const zeroY = graph.calculateYCoordinates([[graph.drawArea.x, 0, 0]])[0][Y];
     this.animationBaselineY = Math.min(graph.drawArea.y + graph.drawArea.height, Math.max(graph.drawArea.y, zeroY));
     this.sparklineSeries.items.forEach((item) => {
-      if (item.config.period.type === 'real_time') {
-        const state = Number(item.rows[0].state);
-        item.stats = {
-          min: state,
-          avg: state,
-          max: state,
-          min_time: item.entity.last_changed,
-          max_time: item.entity.last_changed,
-        };
-      } else {
-        item.stats = this.calculateStatistics(item.rows, statisticsRanges.get(item));
-      }
+      item.stats = item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
     this.stats = this.sparklineSeries.primaryItem.stats;
   }
@@ -2213,18 +2202,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.axisMargin = coordinatedGraphs.axisMargin;
 
     this.sparklineSeries.items.forEach((item) => {
-      if (item.config.period.type === 'real_time') {
-        const state = Number(item.rows[0].state);
-        item.stats = {
-          min: state,
-          avg: state,
-          max: state,
-          min_time: item.entity.last_changed,
-          max_time: item.entity.last_changed,
-        };
-      } else {
-        item.stats = this.calculateStatistics(item.rows, statisticsRanges.get(item));
-      }
+      item.stats = item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
     this.stats = this.sparklineSeries.primaryItem.stats;
   }
@@ -2393,72 +2371,7 @@ export default class SparklineGraphTool extends BaseTool {
     } else {
       this.gradient = [];
     }
-    // Real-time has one current value and no timestamped history series. Keep
-    // the local statistics entities complete using the source entity timestamp.
-    if (this.config.period.type === 'real_time') {
-      const state = Number(this.sparklineSeries.primaryItem.rows[0].state);
-      this.stats = {
-        min: state,
-        avg: state,
-        max: state,
-        min_time: this.entity.last_changed,
-        max_time: this.entity.last_changed,
-      };
-    } else {
-      this.stats = this.calculateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange);
-    }
-  }
-
-  /**
-   * Calculates min/max from the raw source values and calculates avg as a
-   * time-weighted average. Home Assistant history rows are state changes, so a
-   * value that only existed briefly must not count the same as a value that was
-   * active for hours.
-   *
-   * @param {Array<object>} series - Current graph source series.
-   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
-   * @returns {object} Graph statistics.
-   */
-  calculateStatistics(series, statisticsRange) {
-    const sortedSeries = series
-      .filter((item) => item && Number.isFinite(Number(item.state)))
-      .concat()
-      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
-
-    if (sortedSeries.length === 0) {
-      return {};
-    }
-
-    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
-    const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
-    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
-    const values = visibleSeries.map((item) => Number(item.state));
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const minItem = visibleSeries.find((item) => Number(item.state) === min);
-    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
-    const minItemTime = new Date(minItem.last_changed).getTime();
-    const maxItemTime = new Date(maxItem.last_changed).getTime();
-    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
-    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
-    let weightedValue = 0;
-    let weightedDuration = 0;
-
-    visibleSeries.forEach((item, index) => {
-      const value = Number(item.state);
-      const itemStart = new Date(item.last_changed).getTime();
-      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
-      const startTime = Math.max(itemStart, rangeStart);
-      const endTime = Math.min(nextItemStart, rangeEnd);
-      const duration = Math.max(0, endTime - startTime);
-
-      weightedValue += value * duration;
-      weightedDuration += duration;
-    });
-
-    const avg = weightedValue / weightedDuration;
-
-    return { min, avg, max, min_time, max_time };
+    this.stats = this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
   }
 
   /**
