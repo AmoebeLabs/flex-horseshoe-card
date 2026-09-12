@@ -20,6 +20,7 @@ export default class SparklineSeries {
   constructor(config) {
     this.items = [];
     this.binPlan = undefined;
+    this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.updateConfig(config);
   }
 
@@ -146,6 +147,16 @@ export default class SparklineSeries {
     });
     this.hasExplicitSeries = hasExplicitSeries;
     this.binPlan = undefined;
+
+    // Keep the collection state aligned when runtime config retains existing
+    // items. Every item must be current before the collection is current.
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    this.dataState = currentItems.length !== this.items.length
+      ? SPARKLINE_DATA_STATE.NOT_LOADED
+      : dataItems.length > 0
+        ? SPARKLINE_DATA_STATE.HAS_DATA
+        : SPARKLINE_DATA_STATE.EMPTY;
   }
 
   /**
@@ -232,7 +243,7 @@ export default class SparklineSeries {
    * @param {object} configuredMargin - User-configured plot margin.
    * @param {number} columnSpacing - Horizontal spacing between grouped bars.
    * @param {number} rowSpacing - Vertical spacing used by bar geometry.
-   * @returns {object} Shared readiness, axes, and final margin state.
+   * @returns {object} Shared processed-data state, axes, and final margin state.
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
@@ -243,8 +254,9 @@ export default class SparklineSeries {
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
-        dataState: currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED,
+        dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
@@ -311,7 +323,8 @@ export default class SparklineSeries {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
     });
 
-    return { dataState: SPARKLINE_DATA_STATE.HAS_DATA, axisGraphs, axisMargin };
+    this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+    return { dataState: this.dataState, axisGraphs, axisMargin };
   }
 
   /**
@@ -332,8 +345,9 @@ export default class SparklineSeries {
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
-        dataState: currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED,
+        dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
@@ -387,7 +401,8 @@ export default class SparklineSeries {
       item.graph.update(item.rows);
     });
 
-    return { dataState: SPARKLINE_DATA_STATE.HAS_DATA, axisGraphs, axisMargin };
+    this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+    return { dataState: this.dataState, axisGraphs, axisMargin };
   }
 
   /**
@@ -414,6 +429,7 @@ export default class SparklineSeries {
       item.graph = undefined;
       item.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     });
+    this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
   }
 
   /** Stores the request state reported by the History owner for one item. */
@@ -428,9 +444,16 @@ export default class SparklineSeries {
 
   /** Runs all initialized graph engines against their own normalized rows. */
   updateGraphs() {
-    return this.items.map((item) => {
+    const dataStates = this.items.map((item) => {
       item.dataState = item.graph.update(item.rows);
       return item.dataState;
     });
+    const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
+    this.dataState = currentItems.length !== this.items.length
+      ? SPARKLINE_DATA_STATE.NOT_LOADED
+      : this.items.some((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA)
+        ? SPARKLINE_DATA_STATE.HAS_DATA
+        : SPARKLINE_DATA_STATE.EMPTY;
+    return dataStates;
   }
 }

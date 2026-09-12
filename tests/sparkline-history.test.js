@@ -510,7 +510,6 @@ test('a larger requested range keeps accepted rows until matching history arrive
   });
 
   assert.equal(changes.periodChanged, true);
-  assert.equal(requestFacts.loading, true);
   assert.equal(requestFacts.requestState, 'loading');
   assert.equal(requestFacts.preserveGraphWhileLoading, true);
   assert.equal(history.hasRows(item.id), true);

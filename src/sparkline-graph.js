@@ -387,7 +387,7 @@ export default class SparklineGraph {
    * processed data, a successful empty result, or has not been loaded yet.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
-   * @returns {string} Current processed-data state: not_loaded, data, or empty.
+   * @returns {string} Current processed-data state: not_loaded, has_data, or empty.
    */
   update(history) {
     if (history !== undefined) this._history = history;
