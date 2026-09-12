@@ -43,7 +43,36 @@ const calendarPeriod = (offset) => ({
 });
 
 /** Creates one History owner for a normalized Series item. */
-const historyFor = (plotPeriod, item, stateBandsStateMap) => new SparklineHistory(plotPeriod, stateBandsStateMap, [item]);
+const historyFor = (plotPeriod, item, stateBandsStateMap) => new SparklineHistory(plotPeriod, stateBandsStateMap, [item], true);
+
+/** Builds one bound numeric history Series for request-lifecycle tests. */
+const historyItem = (id, entityId, period) => ({
+  id,
+  entity: {
+    entity_id: entityId,
+    state: '12',
+    last_changed: '2026-09-12T12:00:00.000Z',
+  },
+  entityConfig: {},
+  rows: [],
+  config: {
+    id,
+    period,
+    history: {},
+    sparkline: { show: { chart_type: 'line' } },
+  },
+});
+
+/** Exposes explicit completion controls for overlapping HA request tests. */
+const deferredRequest = () => {
+  let accept;
+  let reject;
+  const promise = new Promise((resolve, rejectPromise) => {
+    accept = resolve;
+    reject = rejectPromise;
+  });
+  return { promise, accept, reject };
+};
 
 test('rolling current history uses the current shared plot and source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
@@ -214,4 +243,188 @@ test('unknown state-band history is skipped while valid transitions remain', () 
   );
 
   assert.deepEqual(rows.map((row) => row.haState), ['off', 'on']);
+});
+
+test('completed calendar history is reused for the same entity and absolute source day', async () => {
+  const item = historyItem('yesterday', 'sensor.energy', calendarPeriod(-1));
+  const history = historyFor(calendarPeriod(-1), item, {});
+  let apiCalls = 0;
+  const hass = {
+    callApi() {
+      apiCalls += 1;
+      return Promise.resolve([[{ state: '10', last_changed: '2026-09-11T12:00:00.000Z' }]]);
+    },
+  };
+  history.bindSeriesEntity(item);
+
+  const firstRequest = history.requestSeriesHistory(item, hass);
+  const firstResult = await firstRequest.promise;
+  history.finishAcceptedResult(item.id);
+  const repeatedRequest = history.requestSeriesHistory(item, hass);
+
+  assert.equal(firstResult.status, 'accepted');
+  assert.equal(repeatedRequest.started, false);
+  assert.equal(apiCalls, 1);
+});
+
+test('an older entity request cannot replace rows accepted for the current entity', async () => {
+  const item = historyItem('source', 'sensor.first', rollingPeriod(0));
+  const history = historyFor(rollingPeriod(0), item, {});
+  const firstRequest = deferredRequest();
+  const secondRequest = deferredRequest();
+  const requests = [firstRequest, secondRequest];
+  const hass = { callApi: () => requests.shift().promise };
+  history.bindSeriesEntity(item);
+
+  const firstDecision = history.requestSeriesHistory(item, hass);
+  item.entity = {
+    entity_id: 'sensor.second',
+    state: '22',
+    last_changed: '2026-09-12T12:00:00.000Z',
+  };
+  assert.equal(history.bindSeriesEntity(item), true);
+  const secondDecision = history.requestSeriesHistory(item, hass);
+
+  secondRequest.accept([[{ state: '20', last_changed: '2026-09-12T11:00:00.000Z' }]]);
+  const secondResult = await secondDecision.promise;
+  firstRequest.accept([[{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }]]);
+  const firstResult = await firstDecision.promise;
+
+  assert.equal(secondResult.status, 'accepted');
+  assert.equal(firstResult.status, 'stale');
+  assert.equal(history.getRows(item.id).at(-1).haState, '22');
+});
+
+test('a failed request waits before a later request can recover', async () => {
+  const nativeNow = Date.now;
+  let now = nativeNow();
+  Date.now = () => now;
+  const item = historyItem('retry', 'sensor.retry', rollingPeriod(0));
+  const history = historyFor(rollingPeriod(0), item, {});
+  let apiCalls = 0;
+  const hass = {
+    callApi() {
+      apiCalls += 1;
+      if (apiCalls === 1) return Promise.reject(new Error('temporary failure'));
+      return Promise.resolve([[{ state: '11', last_changed: '2026-09-12T11:00:00.000Z' }]]);
+    },
+  };
+  history.bindSeriesEntity(item);
+
+  try {
+    const failedResult = await history.requestSeriesHistory(item, hass).promise;
+    const immediateRetry = history.requestSeriesHistory(item, hass);
+    now = failedResult.retryAt;
+    const recoveredResult = await history.requestSeriesHistory(item, hass).promise;
+
+    assert.equal(failedResult.status, 'failed');
+    assert.equal(immediateRetry.started, false);
+    assert.equal(recoveredResult.status, 'accepted');
+    assert.equal(apiCalls, 2);
+  } finally {
+    Date.now = nativeNow;
+  }
+});
+
+test('a request completed after disconnect is inert', async () => {
+  const item = historyItem('disconnect', 'sensor.disconnect', rollingPeriod(0));
+  const history = historyFor(rollingPeriod(0), item, {});
+  const deferred = deferredRequest();
+  const hass = { callApi: () => deferred.promise };
+  history.bindSeriesEntity(item);
+
+  const request = history.requestSeriesHistory(item, hass);
+  history.disconnected();
+  deferred.accept([[{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }]]);
+  const result = await request.promise;
+
+  assert.equal(result.status, 'stale');
+  assert.equal(history.hasRows(item.id), false);
+  assert.equal(history.requiresHassUpdate(), false);
+});
+
+test('a calendar response crossing midnight is stale and requests the new absolute day', async () => {
+  const NativeDate = globalThis.Date;
+  let fixedNow = new NativeDate('2026-09-12T23:59:00.000Z').getTime();
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow] : args));
+    }
+
+    static now() {
+      return fixedNow;
+    }
+  };
+  const item = historyItem('midnight', 'sensor.midnight', calendarPeriod(0));
+  const history = historyFor(calendarPeriod(0), item, {});
+  const firstRequest = deferredRequest();
+  const secondRequest = deferredRequest();
+  const requests = [firstRequest, secondRequest];
+  const hass = { callApi: () => requests.shift().promise };
+  history.bindSeriesEntity(item);
+
+  try {
+    const firstDecision = history.requestSeriesHistory(item, hass);
+    fixedNow = new NativeDate('2026-09-13T00:01:00.000Z').getTime();
+    item.entity.last_changed = '2026-09-13T00:01:00.000Z';
+    firstRequest.accept([[{ state: '10', last_changed: '2026-09-12T23:00:00.000Z' }]]);
+    const staleResult = await firstDecision.promise;
+    const secondDecision = history.requestSeriesHistory(item, hass);
+    secondRequest.accept([[{ state: '11', last_changed: '2026-09-13T00:00:00.000Z' }]]);
+    const acceptedResult = await secondDecision.promise;
+
+    assert.equal(staleResult.status, 'stale');
+    assert.equal(staleResult.retryImmediately, true);
+    assert.equal(secondDecision.started, true);
+    assert.equal(acceptedResult.status, 'accepted');
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+});
+
+test('a larger requested range keeps accepted rows until matching history arrives', async () => {
+  const item = historyItem('expanded', 'sensor.expanded', rollingPeriod(0));
+  const history = historyFor(rollingPeriod(0), item, {});
+  history.bindSeriesEntity(item);
+  history.acceptHistoryRows(
+    item,
+    [{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }],
+    history.getSeriesRange(item),
+  );
+
+  item.config.period = {
+    type: 'rolling_window',
+    rolling_window: { offset: 0, duration: { hour: 48 } },
+  };
+  const changes = history.updateConfig(item.config.period, {}, [item], true);
+  const requestFacts = history.getRequestFacts(item.id);
+  const request = history.requestSeriesHistory(item, {
+    callApi: () => Promise.resolve([[{ state: '9', last_changed: '2026-09-11T12:00:00.000Z' }]]),
+  });
+
+  assert.equal(changes.periodChanged, true);
+  assert.equal(requestFacts.loading, true);
+  assert.equal(requestFacts.preserveGraphWhileLoading, true);
+  assert.equal(history.hasRows(item.id), true);
+  const result = await request.promise;
+  assert.equal(result.status, 'accepted');
+  assert.equal(result.rebuildGraphConfig, true);
+});
+
+test('an unevaluated dynamic duration does not calculate or request a history range', () => {
+  const period = {
+    type: 'rolling_window',
+    rolling_window: { offset: 0 },
+  };
+  const item = historyItem('dynamic', 'sensor.dynamic', period);
+  const history = new SparklineHistory(period, {}, [item], false);
+  history.bindSeriesEntity(item);
+  const request = history.requestSeriesHistory(item, {
+    callApi: () => {
+      throw new Error('history request must wait for the evaluated duration');
+    },
+  });
+
+  assert.equal(request.historyAvailable, false);
+  assert.equal(request.started, false);
 });

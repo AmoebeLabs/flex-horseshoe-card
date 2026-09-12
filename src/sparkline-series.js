@@ -139,13 +139,6 @@ export default class SparklineSeries {
         entityConfig: undefined,
         graph: undefined,
         rows: [],
-        historyPromise: undefined,
-        historyEntityId: undefined,
-        historyLoading: false,
-        historyRefreshAt: 0,
-        historyResynchronizationRequested: false,
-        preserveGraphWhileHistoryLoads: false,
-        historyPeriodSignature: JSON.stringify(effectiveConfig.period),
       };
     });
     this.hasExplicitSeries = hasExplicitSeries;
