@@ -64,7 +64,7 @@ test('reports processed data independently from graph geometry', () => {
   graph.history = [];
   assert.equal(graph.update(), 'empty');
   graph.history = [{ state: 1 }];
-  assert.equal(graph.update(), 'data');
+  assert.equal(graph.update(), 'has_data');
   assert.deepEqual(graph.xAxis, { start: new Date(0), end: new Date(1) });
 });
 
@@ -82,7 +82,7 @@ test('valid empty input clears every processed result from previous data', () =>
     { state: '8', haState: '8', last_changed: '2026-08-20T09:30:00.000Z' },
   ];
 
-  assert.equal(graph.update(rows), 'data');
+  assert.equal(graph.update(rows), 'has_data');
   graph.updateStatistics(rows, undefined, undefined);
   assert.ok(graph.coords.length > 0);
   assert.ok(graph.coordsMin.length > 0);

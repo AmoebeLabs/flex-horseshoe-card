@@ -586,7 +586,7 @@ test('area fade uses the fixed color belonging to each series', () => {
   const lineColors = ['#1565c0', '#d32f2f'];
   const makeItem = (id) => ({
     id,
-    dataState: 'data',
+    dataState: 'has_data',
     entity: { state: '20' },
     entityConfig: {},
     graph: { coords: [[0, 0, 20]], drawArea: { width: 80, height: 40 } },
@@ -665,7 +665,7 @@ test('explicit Cartesian gradients use each series graph scale', () => {
   const gradientCalls = [];
   const makeItem = (id, itemStyle) => ({
     id,
-    dataState: 'data',
+    dataState: 'has_data',
     graph: {
       computeGradient: (thresholds, logarithmic) => {
         gradientCalls.push([id, thresholds, logarithmic]);
@@ -704,7 +704,7 @@ test('cartesian line and area series render their independently enabled minmax e
   const calls = [];
   const makeItem = (id, chartType, showMinMax, color) => ({
     id,
-    dataState: 'data',
+    dataState: 'has_data',
     entity: { state: '10' },
     entityConfig: {},
     graph: {
@@ -875,7 +875,7 @@ test('radial area fade follows the visible zero radius', () => {
     sparklineSeries: {
       items: [{
         id: 'temperature',
-        dataState: 'data',
+        dataState: 'has_data',
         graph,
         config: {
           sparkline: {
@@ -897,7 +897,7 @@ test('radial series render all areas below every line and point', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const makeItem = (id, variant, color) => ({
     id,
-    dataState: 'data',
+    dataState: 'has_data',
     entity: { state: '30' },
     entityConfig: {},
     graph: {
@@ -1207,6 +1207,9 @@ test('accepted history keeps its update flag active through the card pipeline', 
     sparklineSeries: {
       items: [item],
       primaryItem: item,
+      setRequestState(item, requestState) {
+        item.requestState = requestState;
+      },
       setRows(item, rows) {
         item.rows = rows;
       },
@@ -1233,6 +1236,7 @@ test('accepted history keeps its update flag active through the card pipeline', 
   assert.deepEqual(updateFlagsSeenByCard, [true]);
   assert.equal(tool.requiresHassUpdate(), false);
   assert.equal(tool.historyLoading, false);
+  assert.equal(item.requestState, 'loaded');
 });
 
 test('accepted multi-day history builds and renders the configured line minmax envelope', async (context) => {
@@ -1320,8 +1324,140 @@ test('accepted multi-day history builds and renders the configured line minmax e
   tool.getRenderStyles = (styles) => styles;
   const rendered = tool.renderSeriesCartesian().values[0][0];
   assert.ok(item.graph.coordsMin.some((point, index) => point[2] !== item.graph.coordsMax[index][2]));
+  assert.equal(item.requestState, 'loaded');
+  assert.equal(item.dataState, 'has_data');
   assert.notEqual(minMaxPath, '');
   assert.match(rendered.values[1].strings.join(''), /sparkline-series-minmax/);
+});
+
+test('accepted empty history becomes loaded request state with empty processed data', async (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const entity = {
+    entity_id: 'sensor.no_history',
+    state: '24',
+    last_changed: new Date().toISOString(),
+  };
+  const card = {
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false, fakeData: false },
+    entities: [entity],
+    resolvedEntityConfigs: [{}],
+    _hass: {
+      locale: { language: 'en', time_format: 'language' },
+      config: { time_zone: 'UTC' },
+      callApi: async () => [],
+    },
+    requestUpdate() {},
+    setHass() {},
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+    },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+    },
+    cardEntities: { updateSparklineEntities() {} },
+    cardTools: { getBySection: () => [] },
+  };
+  const tool = new SparklineGraphTool(
+    {
+      id: 'empty-yesterday',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      width: 80,
+      height: 40,
+      period: {
+        type: 'calendar',
+        calendar: {
+          period: 'day',
+          offset: -1,
+          duration: { hour: 24 },
+          bins: { per_hour: 1, density: 'medium' },
+        },
+      },
+      sparkline: { show: { chart_type: 'line' } },
+    },
+    0,
+    { hasJavascriptTemplates: () => false },
+    'test-card',
+    card,
+  );
+  const item = tool.sparklineSeries.primaryItem;
+  item.entity = entity;
+  item.entityConfig = {};
+  tool.entity = entity;
+  tool.entityConfig = {};
+  tool.sparklineHistory.bindSeriesEntity(item);
+
+  await tool.fetchHistoryIfNeeded(item);
+
+  assert.equal(item.requestState, 'loaded');
+  assert.equal(item.dataState, 'empty');
+  assert.deepEqual(item.graph.coords, []);
+  assert.deepEqual(item.graph.statistics, {});
+});
+
+test('failed history changes request state without clearing processed data', () => {
+  const previousConsoleError = console.error;
+  const item = { id: 'temperature', requestState: 'loading', dataState: 'has_data' };
+  let cardUpdates = 0;
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    sparklineSeries: {
+      items: [item],
+      setRequestState(seriesItem, requestState) {
+        seriesItem.requestState = requestState;
+      },
+    },
+    sparklineHistory: {
+      getRequestFacts: () => ({ requestState: 'error' }),
+    },
+    card: {
+      requestUpdate() { cardUpdates += 1; },
+    },
+  });
+  console.error = () => {};
+
+  try {
+    tool.historyRequestCompleted({ status: 'failed', seriesId: item.id, error: new Error('temporary failure') });
+  } finally {
+    console.error = previousConsoleError;
+  }
+
+  assert.equal(item.requestState, 'error');
+  assert.equal(item.dataState, 'has_data');
+  assert.equal(cardUpdates, 1);
+});
+
+test('disconnect closes request state without clearing processed data', () => {
+  const item = { id: 'temperature', requestState: 'loading', dataState: 'has_data' };
+  let requestState = 'loading';
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    sparklineSeries: {
+      items: [item],
+      setRequestState(seriesItem, nextRequestState) {
+        seriesItem.requestState = nextRequestState;
+      },
+    },
+    sparklineHistory: {
+      disconnected() { requestState = 'closed'; },
+      getRequestFacts: () => ({ requestState }),
+    },
+  });
+
+  tool.disconnected();
+
+  assert.equal(item.requestState, 'closed');
+  assert.equal(item.dataState, 'has_data');
 });
 
 test('day and night resynchronization participates in the normal hass update contract', () => {
@@ -1459,7 +1595,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     max,
     coords: [[0, 0, min], [100, 0, max]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
-    update() { return 'data'; },
+    update() { return 'has_data'; },
     setSharedYAxisBounds(lowerBound, upperBound) {
       calls.push([min, lowerBound, upperBound]);
       this.min = lowerBound;
@@ -1581,7 +1717,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     coords: [[0, 0, 0], [100, 0, 10]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'data'; },
+    update() { return 'has_data'; },
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -1640,7 +1776,7 @@ test("multiple series wait for every graph before building shared geometry", () 
   const readyGraph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'data'; },
+    update() { return 'has_data'; },
     getPath() { pathRead = true; },
   };
   const loadingGraph = {
@@ -1678,7 +1814,7 @@ test('multiple series keep current data visible when another series is empty', (
     coords: [[0, 0, 10], [100, 0, 20]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'data'; },
+    update() { return 'has_data'; },
     setSharedYAxisBounds() {},
     setGraphAreas() {},
     calculateYCoordinates: (points) => points,
@@ -1741,7 +1877,7 @@ test('multiple series keep current data visible when another series is empty', (
   tool.updateCartesianSeriesGraphs();
 
   assert.equal(tool.graphReady, true);
-  assert.equal(dataItem.dataState, 'data');
+  assert.equal(dataItem.dataState, 'has_data');
   assert.equal(emptyItem.dataState, 'empty');
   assert.equal(dataPathReads, 1);
   assert.equal(emptyPathReads, 0);

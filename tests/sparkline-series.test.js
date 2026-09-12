@@ -57,7 +57,7 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   assert.deepEqual(series.primaryItem.config, graphConfig);
   assert.equal(series.primaryItem.graph.config, graphConfig);
   assert.deepEqual(series.primaryItem.rows, [{ state: 12 }]);
-  assert.equal(series.updateGraphs()[0], 'data');
+  assert.equal(series.updateGraphs()[0], 'has_data');
 
   series.clearGraphs();
 
@@ -266,14 +266,14 @@ test('request state changes independently from retained processed data', () => {
   const series = new SparklineSeries(graphConfig);
   const item = series.primaryItem;
 
-  item.dataState = 'data';
+  item.dataState = 'has_data';
   series.setRequestState(item, 'loading');
   assert.equal(item.requestState, 'loading');
-  assert.equal(item.dataState, 'data');
+  assert.equal(item.dataState, 'has_data');
 
   series.setRequestState(item, 'error');
   assert.equal(item.requestState, 'error');
-  assert.equal(item.dataState, 'data');
+  assert.equal(item.dataState, 'has_data');
 });
 
 test('valid data and valid empty form one current multi-series result', () => {
@@ -288,7 +288,7 @@ test('valid data and valid empty form one current multi-series result', () => {
     config: { geometry: { line_width: 1 } },
     min,
     max,
-    coords: state === 'data' ? [[0, 0, min], [100, 0, max]] : [],
+    coords: state === 'has_data' ? [[0, 0, min], [100, 0, max]] : [],
     axisArea: { x: 0, width: 100 },
     clearSharedYAxisBounds() {},
     update() { return state; },
@@ -299,7 +299,7 @@ test('valid data and valid empty form one current multi-series result', () => {
     setGraphAreas() {},
     getBars() { return []; },
   });
-  series.items[0].graph = graphFor('data', 10, 20);
+  series.items[0].graph = graphFor('has_data', 10, 20);
   series.items[1].graph = graphFor('empty', undefined, undefined);
 
   const result = series.updateCartesianGraphs(
@@ -309,8 +309,8 @@ test('valid data and valid empty form one current multi-series result', () => {
     4,
   );
 
-  assert.equal(result.dataState, 'data');
-  assert.deepEqual(series.items.map((item) => item.dataState), ['data', 'empty']);
+  assert.equal(result.dataState, 'has_data');
+  assert.deepEqual(series.items.map((item) => item.dataState), ['has_data', 'empty']);
   assert.equal(result.axisGraphs.primary, series.items[0].graph);
 });
 
@@ -325,7 +325,7 @@ test('multi-series coordination waits while one item is not loaded', () => {
   series.items[0].graph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'data'; },
+    update() { return 'has_data'; },
   };
   series.items[1].graph = {
     coords: [],
@@ -336,7 +336,7 @@ test('multi-series coordination waits while one item is not loaded', () => {
   const result = series.updateCartesianGraphs(() => {}, {}, 4, 4);
 
   assert.equal(result.dataState, 'not_loaded');
-  assert.deepEqual(series.items.map((item) => item.dataState), ['data', 'not_loaded']);
+  assert.deepEqual(series.items.map((item) => item.dataState), ['has_data', 'not_loaded']);
 });
 
 test('rejects explicit series without stable unique entity-bound ids', () => {
@@ -484,7 +484,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
     },
     update() {
       calls.push(['update', this.min, this.max]);
-      return 'data';
+      return 'has_data';
     },
   });
   const series = new SparklineSeries({
@@ -512,7 +512,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
 
   const result = series.updateRadialGraphs(() => axisMargin, configuredMargin);
 
-  assert.equal(result.dataState, 'data');
+  assert.equal(result.dataState, 'has_data');
   assert.deepEqual(series.items.map((item) => [item.graph.min, item.graph.max]), [[-5, 30], [-5, 30]]);
   assert.equal(calls.filter((call) => call[0] === 'areas').length, 2);
   assert.deepEqual(calls.filter((call) => call[0] === 'areas').map((call) => call[4]), [

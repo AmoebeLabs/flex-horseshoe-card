@@ -351,7 +351,9 @@ test('completed calendar history is reused for the same entity and absolute sour
   history.bindSeriesEntity(item);
 
   const firstRequest = history.requestSeriesHistory(item, hass);
+  assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
   const firstResult = await firstRequest.promise;
+  assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
   history.finishAcceptedResult(item.id);
   const repeatedRequest = history.requestSeriesHistory(item, hass);
 
@@ -405,10 +407,18 @@ test('a failed request waits before a later request can recover', async () => {
   history.bindSeriesEntity(item);
 
   try {
-    const failedResult = await history.requestSeriesHistory(item, hass).promise;
+    assert.equal(history.getRequestFacts(item.id).requestState, 'not_loaded');
+    const failedRequest = history.requestSeriesHistory(item, hass);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
+    const failedResult = await failedRequest.promise;
+    assert.equal(history.getRequestFacts(item.id).requestState, 'error');
     const immediateRetry = history.requestSeriesHistory(item, hass);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'error');
     now = failedResult.retryAt;
-    const recoveredResult = await history.requestSeriesHistory(item, hass).promise;
+    const recoveredRequest = history.requestSeriesHistory(item, hass);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
+    const recoveredResult = await recoveredRequest.promise;
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
 
     assert.equal(failedResult.status, 'failed');
     assert.equal(immediateRetry.started, false);
@@ -428,11 +438,14 @@ test('a request completed after disconnect is inert', async () => {
   history.bindSeriesEntity(item);
 
   const request = history.requestSeriesHistory(item, hass);
+  assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
   history.disconnected();
+  assert.equal(history.getRequestFacts(item.id).requestState, 'closed');
   deferred.accept([[{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }]]);
   const result = await request.promise;
 
   assert.equal(result.status, 'stale');
+  assert.equal(history.getRequestFacts(item.id).requestState, 'closed');
   assert.equal(history.hasRows(item.id), false);
   assert.equal(history.requiresHassUpdate(), false);
 });
@@ -498,6 +511,7 @@ test('a larger requested range keeps accepted rows until matching history arrive
 
   assert.equal(changes.periodChanged, true);
   assert.equal(requestFacts.loading, true);
+  assert.equal(requestFacts.requestState, 'loading');
   assert.equal(requestFacts.preserveGraphWhileLoading, true);
   assert.equal(history.hasRows(item.id), true);
   const result = await request.promise;
