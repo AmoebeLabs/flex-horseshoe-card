@@ -55,7 +55,7 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   assert.deepEqual(series.primaryItem.config, graphConfig);
   assert.equal(series.primaryItem.graph.config, graphConfig);
   assert.deepEqual(series.primaryItem.rows, [{ state: 12 }]);
-  assert.equal(series.updateGraphs()[0], true);
+  assert.equal(series.updateGraphs()[0], 'data');
 
   series.clearGraphs();
 
@@ -403,6 +403,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
     },
     update() {
       calls.push(['update', this.min, this.max]);
+      return 'data';
     },
   });
   const series = new SparklineSeries({

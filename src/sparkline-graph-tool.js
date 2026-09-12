@@ -1791,7 +1791,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
-      this.graphReady = this.sparklineSeries.updateGraphs()[0];
+      this.graphReady = this.sparklineSeries.updateGraphs()[0] === 'data';
 
       // An accepted history response can legitimately contain no numeric rows.
       // The engine then has no axis geometry, so no graph-dependent work follows.
@@ -1807,7 +1807,7 @@ export default class SparklineGraphTool extends BaseTool {
       const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
       if (graphAreasChanged) {
         this.axisMargin = axisMargin;
-        this.graphReady = this.sparklineSeries.updateGraphs()[0];
+        this.graphReady = this.sparklineSeries.updateGraphs()[0] === 'data';
       }
     }
     // Use the graph engine y-scale for every vertical introduction animation.

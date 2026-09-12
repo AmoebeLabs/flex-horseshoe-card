@@ -232,12 +232,13 @@ export default class SparklineSeries {
    * @returns {object} Shared readiness, axes, and final margin state.
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
+    const graphDataStates = new Map();
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.graph.update(item.rows);
+      graphDataStates.set(item, item.graph.update(item.rows));
     });
 
-    const readyItems = this.items.filter((item) => item.graph.coords.length > 0);
+    const readyItems = this.items.filter((item) => graphDataStates.get(item) === 'data');
     if (readyItems.length !== this.items.length) {
       return {
         ready: false,
@@ -320,12 +321,13 @@ export default class SparklineSeries {
    * @returns {object} Shared readiness, axes and final radial margin state.
    */
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
+    const graphDataStates = new Map();
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.graph.update(item.rows);
+      graphDataStates.set(item, item.graph.update(item.rows));
     });
 
-    const readyItems = this.items.filter((item) => item.graph.coords.length > 0);
+    const readyItems = this.items.filter((item) => graphDataStates.get(item) === 'data');
     if (readyItems.length !== this.items.length) {
       return {
         ready: false,

@@ -89,6 +89,7 @@ export default class SparklineGraph {
     this.setGraphAreas(axisMargin, configuredMargin, 0);
 
     this._history = undefined;
+    this.dataState = 'not_loaded';
     this.coords = [];
     this.bucketMeta = [];
     this.statistics = {};
@@ -381,17 +382,40 @@ export default class SparklineGraph {
   }
 
   /**
-   * Updates graph data and reports whether complete axis geometry is available.
+   * Updates graph data and reports whether the supplied input produced current
+   * processed data, a successful empty result, or has not been loaded yet.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
-   * @returns {boolean} True after axis geometry has been built; otherwise false.
+   * @returns {string} Current processed-data state: not_loaded, data, or empty.
    */
-  update(history = undefined) {
-    if (history) {
-      this._history = history;
+  update(history) {
+    if (history !== undefined) this._history = history;
+    if (this._history === undefined) {
+      this.dataState = 'not_loaded';
+      return this.dataState;
     }
-    if (!this._history) return false;
-    if (this._history.length === 0) return false;
+    if (this._history.length === 0) {
+      // Empty is a successful current result. Remove every processed value from
+      // the previous input so no consumer can mistake old geometry for data.
+      this.coords = [];
+      this.coordsMin = [];
+      this.coordsMax = [];
+      this.backgroundCoords = [];
+      this.bucketMeta = [];
+      this.statistics = {};
+      this.stateBandSegments = [];
+      this.stateBandTransitions = [];
+      this.xAxis = {};
+      this.yAxis = {};
+      this._min = undefined;
+      this._max = undefined;
+      this._endTime = 0;
+      this.calendarBucketStartMs = undefined;
+      this.calendarBucketCount = undefined;
+      this.visibleBucketCount = undefined;
+      this.dataState = 'empty';
+      return this.dataState;
+    }
 
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
@@ -401,7 +425,8 @@ export default class SparklineGraph {
       this.coords = [];
       this.bucketMeta = [];
       this.buildAxisGeometry();
-      return true;
+      this.dataState = 'data';
+      return this.dataState;
     }
 
     // Establish the time boundary before rows are assigned to buckets.
@@ -560,7 +585,8 @@ export default class SparklineGraph {
     if (this.config.y_axis.upper_bound !== undefined) this.max = Number(this.config.y_axis.upper_bound);
 
     this.buildAxisGeometry();
-    return true;
+    this.dataState = 'data';
+    return this.dataState;
   }
 
   /**

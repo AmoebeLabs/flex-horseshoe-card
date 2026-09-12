@@ -1454,7 +1454,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     max,
     coords: [[0, 0, min], [100, 0, max]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
-    update() {},
+    update() { return 'data'; },
     setSharedYAxisBounds(lowerBound, upperBound) {
       calls.push([min, lowerBound, upperBound]);
       this.min = lowerBound;
@@ -1576,7 +1576,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     coords: [[0, 0, 0], [100, 0, 10]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() {},
+    update() { return 'data'; },
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -1635,13 +1635,13 @@ test("multiple series wait for every graph before building shared geometry", () 
   const readyGraph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() {},
+    update() { return 'data'; },
     getPath() { pathRead = true; },
   };
   const loadingGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() {},
+    update() { return 'not_loaded'; },
   };
   const config = {
     period: { type: "real_time" },
