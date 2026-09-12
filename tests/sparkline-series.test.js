@@ -231,7 +231,7 @@ test('real-time and state-band series do not expose a derived bin duration', () 
   assert.deepEqual(stateBands.updateBinPlan(), { perHour: 1, durationHours: undefined });
 });
 
-test('runtime config updates keep history and graph state on the same series item', () => {
+test('runtime config updates keep rows and graph state on the same series item', () => {
   const series = new SparklineSeries({
     ...graphConfig,
     series: [{ id: 'temperature', entity_index: 0, color: '#42a5f5' }],
@@ -240,7 +240,6 @@ test('runtime config updates keep history and graph state on the same series ite
   const graph = { coords: [[1, 2, 3]] };
   const history = [{ state: 12 }];
   item.graph = graph;
-  item.historySeries = history;
   item.rows = history;
 
   series.updateConfig({
@@ -254,7 +253,6 @@ test('runtime config updates keep history and graph state on the same series ite
 
   assert.equal(series.items[0], item);
   assert.equal(series.items[0].graph, graph);
-  assert.equal(series.items[0].historySeries, history);
   assert.equal(series.items[0].rows, history);
   assert.equal(series.items[0].config.color, '#f9a825');
   assert.equal(series.items[0].config.sparkline.line.line_width, 2);
