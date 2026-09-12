@@ -1922,6 +1922,97 @@ test('one implicit item enters the cartesian series coordinator', () => {
   });
 });
 
+test('cartesian series exposes unchanged whole-period statistics after real graph processing', () => {
+  const config = {
+    entity_index: 0,
+    width: 100,
+    height: 50,
+    geometry: { line_width: 1, column_spacing: 4 },
+    period: {
+      type: 'rolling_window',
+      group_by: 'interval',
+      rolling_window: {
+        offset: 0,
+        duration: { hour: 4 },
+        bins: { per_hour: 1, density: 'medium' },
+      },
+    },
+    sparkline: {
+      show: { chart_type: 'line', chart_variant: 'line', item_style: 'auto', points: false, labels: { x: true, y: true } },
+      state_values: { aggregate_func: 'avg', smoothing: false, logarithmic: false },
+      line: { show_dots: false, show: { item_style: 'auto', minmax: false }, minmax: { show: { item_style: 'auto' } } },
+      area: { show_dots: false, show: { item_style: 'auto', minmax: false }, minmax: { show: { item_style: 'auto' } } },
+      dots: { radius: 1 },
+      radial: { arc_degrees: 360, rotate: 0, size: 50 },
+    },
+    x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
+    y_axis: { labels: { styles: { 'font-size': '10px' } } },
+  };
+  const series = new SparklineSeries(config);
+  const item = series.primaryItem;
+  const rangeStart = new Date('2026-09-12T08:00:00.000Z');
+  const rangeEnd = new Date('2026-09-12T12:00:00.000Z');
+  const rows = [
+    { state: 10, haState: '10', last_changed: '2026-09-12T07:00:00.000Z' },
+    { state: 20, haState: '20', last_changed: '2026-09-12T09:00:00.000Z' },
+    { state: 40, haState: '40', last_changed: '2026-09-12T11:00:00.000Z' },
+  ];
+
+  series.createGraph(
+    item,
+    100,
+    50,
+    { t: 0, r: 0, b: 0, l: 0 },
+    { t: 0, r: 0, b: 0, l: 0 },
+    config,
+    [],
+    [],
+    {},
+  );
+  item.graph._updateEndTime = () => { item.graph._endTime = rangeEnd; };
+  item.entity = { last_changed: rows.at(-1).last_changed };
+  item.historySeries = rows;
+  item.rows = rows;
+
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    config,
+    sparklineSeries: series,
+    card: { dev: { debug: false } },
+    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+    calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    getHistoryRange: () => ({
+      sourceRangeIsActive: true,
+      plotStart: rangeStart,
+      plotEnd: rangeEnd,
+      plotActiveEnd: rangeEnd,
+    }),
+    pruneLiveHistoryToActiveWindow: () => ({
+      start: rangeStart.getTime(),
+      end: rangeEnd.getTime(),
+    }),
+    area: [],
+    areaMinMax: [],
+    line: [],
+    points: [],
+    gradient: [],
+  });
+
+  tool.updateCartesianSeriesGraphs();
+
+  assert.deepEqual(item.stats, {
+    min: 10,
+    avg: 22.5,
+    max: 40,
+    min_time: rangeStart.toISOString(),
+    max_time: '2026-09-12T11:00:00.000Z',
+  });
+  assert.equal(tool.stats, item.stats);
+  assert.equal(item.graph.coords.length, 4);
+  assert.match(tool.line[0], /^M/);
+});
+
 test('radial barcode exposes only its radial time-axis presentation', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const calls = [];
