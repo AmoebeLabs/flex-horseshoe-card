@@ -112,12 +112,14 @@ export default class SparklineHistory {
       globalThis.clearTimeout(record.requestTimer);
       record.requestTimer = undefined;
       record.retryAt = 0;
-      record.resynchronizationRequested = true;
       record.acceptedResultPending = false;
 
       const requestedRangeIsMissing = item.config.period.type !== 'real_time'
         && periodDurationAvailable
         && !this.acceptedHistoryContainsRange(item.id, this.getSeriesRange(item), item.config.period.type);
+      // A smaller period can be rebuilt directly from the retained source rows.
+      // Only a period outside the accepted range requires Home Assistant history.
+      record.resynchronizationRequested = requestedRangeIsMissing;
       record.preserveGraphWhileLoading = requestedRangeIsMissing && record.rows !== undefined;
       if (item.config.period.type === 'real_time') record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
       else if (!periodDurationAvailable) record.requestState = SPARKLINE_REQUEST_STATE.NOT_LOADED;

@@ -518,6 +518,36 @@ test('a larger requested range keeps accepted rows until matching history arrive
   assert.equal(result.rebuildGraphConfig, true);
 });
 
+test('a smaller requested range reuses accepted history without loading again', () => {
+  const item = historyItem('reduced', 'sensor.reduced', {
+    type: 'rolling_window',
+    rolling_window: { offset: 0, duration: { hour: 48 } },
+  });
+  const history = historyFor(item.config.period, item, {});
+  history.bindSeriesEntity(item);
+  history.acceptHistoryRows(
+    item,
+    [{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }],
+    history.getSeriesRange(item),
+  );
+
+  item.config.period = {
+    type: 'rolling_window',
+    rolling_window: { offset: 0, duration: { hour: 1 } },
+  };
+  history.updateConfig(item.config.period, {}, [item], true, false);
+  const request = history.requestSeriesHistory(item, {
+    callApi: () => {
+      throw new Error('retained history must cover the smaller period');
+    },
+  });
+
+  assert.equal(request.started, false);
+  assert.equal(request.representedRange, true);
+  assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
+  assert.equal(history.getRequestFacts(item.id).resynchronizationRequested, false);
+});
+
 test('an unevaluated dynamic duration does not calculate or request a history range', () => {
   const period = {
     type: 'rolling_window',
