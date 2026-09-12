@@ -141,7 +141,7 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   get historyLoading() {
-    return this.sparklineSeries.items.some((item) => item.historyLoading);
+    return this.sparklineHistory.isLoading();
   }
 
   /**
@@ -724,7 +724,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.axisGraphs = { primary: undefined, secondary: undefined };
     this.config.svg = this.svg;
     this.stateBandsStateMap = this.config.sparkline.state_map;
-    this.sparklineHistory = new SparklineHistory(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items);
     this.gradeValues = [];
     this.gradeRanks = [];
 
@@ -735,6 +734,7 @@ export default class SparklineGraphTool extends BaseTool {
       const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
       this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
+    this.sparklineHistory = new SparklineHistory(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items, this.historyDurationReady);
 
     // Series selects and stores one bin layout before any graph is created.
     // Dynamic periods wait until their runtime values are available below.
@@ -1273,14 +1273,14 @@ export default class SparklineGraphTool extends BaseTool {
         sparklineId: this.config.id,
         periodType: this.config.period.type,
         durationHours: this.config.period.type === 'rolling_window' ? this.config.period.rolling_window.duration.hour : this.config.period.calendar.duration.hour,
-        historyResynchronizationRequested: this.sparklineSeries.primaryItem.historyResynchronizationRequested,
+        historyResynchronizationRequested: this.sparklineHistory.getRequestFacts(this.sparklineSeries.primaryItem.id).resynchronizationRequested,
       });
     }
 
     // Keep the accepted graph geometry and paths unchanged until the requested
     // larger history range has arrived. Rebuilding here would stretch the old
     // samples over the new period before that data exists.
-    if (this.sparklineSeries.primaryItem.preserveGraphWhileHistoryLoads) return;
+    if (this.sparklineHistory.preservesGraphWhileLoading()) return;
 
     // Determine the longest label produced by Home Assistant for the active locale.
     const localeKey = JSON.stringify([this.card._hass.locale, this.card._hass.config.time_zone]);
@@ -1346,45 +1346,21 @@ export default class SparklineGraphTool extends BaseTool {
     // Runtime templates can change shared sparkline settings. Each existing
     // series receives one effective config while its runtime data stays intact.
     this.sparklineSeries.updateConfig(this.config);
-    this.sparklineHistory.updateConfig(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items);
+    const historyConfigChanges = this.sparklineHistory.updateConfig(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items, this.historyDurationReady);
 
-    // A period belongs to each history source. When a runtime template changes
-    // one offset, only that source is invalidated; the shared plot period stays
-    // intact and the other series retain their accepted history.
-    if (this.configChanged) {
-      let anyHistoryPeriodChanged = false;
-
-      this.sparklineSeries.items.forEach((item) => {
-        const activeHistoryPeriodSignature = JSON.stringify(item.config.period);
-        const historyPeriodChanged = activeHistoryPeriodSignature !== item.historyPeriodSignature;
-        if (historyPeriodChanged) anyHistoryPeriodChanged = true;
-
-        if (historyPeriodChanged && (this.sparklineHistory.hasRows(item.id) || item.historyPromise)) {
-          item.historyResynchronizationRequested = true;
-
-          if (this.historyDurationReady && !this.sparklineHistory.acceptedHistoryContainsRange(item.id, this.sparklineHistory.getSeriesRange(item), item.config.period.type)) {
-            item.historyLoading = true;
-            item.preserveGraphWhileHistoryLoads = this.sparklineHistory.hasRows(item.id);
-            this.clearTooltip();
-          } else {
-            item.historyLoading = false;
-            item.preserveGraphWhileHistoryLoads = false;
-          }
-        }
-        item.historyPeriodSignature = activeHistoryPeriodSignature;
-      });
-      if (anyHistoryPeriodChanged) {
-        window.clearTimeout(this.binBoundaryTimer);
-        window.clearTimeout(this.calendarRangeTimer);
-      }
+    // A period change invalidates only History's source/request state. Existing
+    // graph geometry remains mounted while a missing expanded range is loaded.
+    if (historyConfigChanges.periodChanged) {
+      window.clearTimeout(this.binBoundaryTimer);
+      window.clearTimeout(this.calendarRangeTimer);
+      if (this.sparklineHistory.isLoading()) this.clearTooltip();
+      if (this.sparklineHistory.preservesGraphWhileLoading()) return;
     }
 
     if (!this.historyDurationReady) {
       window.clearTimeout(this.binBoundaryTimer);
       window.clearTimeout(this.calendarRangeTimer);
       this.sparklineSeries.items.forEach((item) => {
-        item.historyLoading = false;
-        item.preserveGraphWhileHistoryLoads = false;
         item.rows = [];
         this.sparklineHistory.clearSeries(item.id);
       });
@@ -1458,29 +1434,23 @@ export default class SparklineGraphTool extends BaseTool {
     const primaryItem = this.sparklineSeries.primaryItem;
     super.setState(primaryItem.entity, primaryItem.entityConfig);
 
-    // A series item owns all history associated with its current source. Apply
-    // the same reset and data selection to implicit and explicit items.
+    // History binds each normalized Series to its current source. GraphTool
+    // only selects the resulting rows for the graph collection.
     let sourceEntityChanged = false;
     this.sparklineSeries.items.forEach((item) => {
       const realTime = item.config.period.type === 'real_time';
-      const historyEntityChanged = item.historyEntityId !== undefined && item.historyEntityId !== item.entity.entity_id;
-      item.historyEntityId = item.entity.entity_id;
+      const historyEntityChanged = this.sparklineHistory.bindSeriesEntity(item);
 
       if (historyEntityChanged) {
         sourceEntityChanged = true;
-        this.sparklineHistory.clearSeries(item.id);
         item.rows = [];
-        item.historyRefreshAt = 0;
-        item.historyResynchronizationRequested = !realTime;
-        item.historyLoading = !realTime && this.historyDurationReady;
-        item.preserveGraphWhileHistoryLoads = false;
       }
 
       if (realTime) {
         item.rows = [{ state: this.getEntityNumericState(item, item.entity) }];
       } else if (!this.historyDurationReady) {
         item.rows = [];
-      } else if (this.sparklineHistory.hasRows(item.id) && !item.preserveGraphWhileHistoryLoads) {
+      } else if (this.sparklineHistory.hasRows(item.id) && !this.sparklineHistory.getRequestFacts(item.id).preserveGraphWhileLoading) {
         const range = this.sparklineHistory.getSeriesRange(item);
         this.sparklineHistory.addCurrentEntityState(item, range);
         item.rows = this.sparklineHistory.getRows(item.id);
@@ -1532,7 +1502,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
       this.fetchDayNightHistoryIfNeeded(sunEntity);
     }
-    if (historicalItems.length > 0 && historicalItems.every((item) => !item.preserveGraphWhileHistoryLoads)) {
+    if (historicalItems.length > 0 && !this.sparklineHistory.preservesGraphWhileLoading()) {
       this.scheduleBinBoundaryRefresh();
       this.scheduleCalendarRangeRefresh();
     }
@@ -1557,7 +1527,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     // State bands have no buckets. Their timer only advances the exact current
     // data end; all other chart types retain their normal bin-boundary timing.
-    const bucketMs = this.config.sparkline.show.chart_type === 'state_bands' ? this.getRefreshIntervalMs(this.config.sparkline.state_bands.update_interval) : (60 / this.primaryGraph.points) * 60 * 1000;
+    const bucketMs = this.config.sparkline.show.chart_type === 'state_bands' ? this.sparklineHistory.getIntervalMilliseconds(this.config.sparkline.state_bands.update_interval) : (60 / this.primaryGraph.points) * 60 * 1000;
     const now = Date.now();
     const delay = bucketMs - (now % bucketMs) + 10;
 
@@ -1602,11 +1572,7 @@ export default class SparklineGraphTool extends BaseTool {
         const acceptedRange = this.sparklineHistory.getAcceptedRange(item.id);
         const rangeChanged = range.start.getTime() !== acceptedRange.start || range.end.getTime() !== acceptedRange.end;
 
-        if (rangeChanged && item.historyPromise) {
-          item.historyPromise.finally(() => this.fetchHistoryIfNeeded(item));
-        } else if (rangeChanged) {
-          this.fetchHistoryIfNeeded(item);
-        }
+        if (rangeChanged) this.fetchHistoryIfNeeded(item);
       });
       if (this.config.sparkline.show.day_night) {
         const dayNightRange = this.getDayNightRange();
@@ -1623,6 +1589,7 @@ export default class SparklineGraphTool extends BaseTool {
   disconnected() {
     window.clearTimeout(this.binBoundaryTimer);
     window.clearTimeout(this.calendarRangeTimer);
+    this.sparklineHistory.disconnected();
   }
 
   /**
@@ -1630,10 +1597,7 @@ export default class SparklineGraphTool extends BaseTool {
    * the DOM. The next normal Home Assistant state pass performs the fetch.
    */
   connected() {
-    this.sparklineSeries.items.forEach((item) => {
-      const sourceRangeIsActive = item.config.period.type !== 'real_time' && this.sparklineHistory.getSeriesRange(item).sourceRangeIsActive;
-      if (this.sparklineHistory.hasRows(item.id) && sourceRangeIsActive) item.historyResynchronizationRequested = true;
-    });
+    this.sparklineHistory.connected();
     if (this.config.sparkline.show.day_night && this.dayNightHistory !== undefined) this.dayNightResynchronizationRequested = true;
   }
 
@@ -1648,26 +1612,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} True when existing history must be fetched again.
    */
   requiresHassUpdate() {
-    return this.dayNightResynchronizationRequested || this.sparklineSeries.items.some((item) => item.historyResynchronizationRequested);
-  }
-
-  /**
-   * Parses the SAK-style interval used by history resynchronization and state-band refreshes.
-   *
-   * @param {string|number} interval - Configured SAK-style interval.
-   * @returns {number} Refresh interval in milliseconds.
-   */
-  getRefreshIntervalMs(interval) {
-    if (typeof interval === 'number') return interval * 1000;
-
-    const match = interval.match(/^(\d+(?:\.\d+)?)(ms|s|sec|m|min|h|hour)$/);
-    const value = Number(match[1]);
-    const unit = match[2];
-
-    if (unit === 'ms') return value;
-    if (unit === 's' || unit === 'sec') return value * 1000;
-    if (unit === 'm' || unit === 'min') return value * 60 * 1000;
-    return value * 60 * 60 * 1000;
+    return this.dayNightResynchronizationRequested || this.sparklineHistory.requiresHassUpdate();
   }
 
   /**
@@ -1762,7 +1707,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     const requestEnd = new Date(Math.min(range.end.getTime(), Date.now()));
     const requestedPeriodSignature = this.dayNightPeriodSignature;
-    const path = this.buildHistoryPath('sun.sun', range.start, requestEnd);
+    const path = this.sparklineHistory.buildHistoryPath('sun.sun', range.start, requestEnd);
     this.dayNightHistoryPromise = this.card._hass
       .callApi('GET', path)
       .then((history) => {
@@ -1782,128 +1727,87 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds the Home Assistant history API path for this entity.
-   *
-   * @param {string} entityId - Source Home Assistant entity id.
-   * @param {Date} start - History start time.
-   * @param {Date} end - History end time.
-   * @returns {string} Home Assistant callApi path.
-   */
-  buildHistoryPath(entityId, start, end) {
-    const startTime = encodeURIComponent(start.toISOString());
-    const endTime = encodeURIComponent(end.toISOString());
-    const filterEntityId = encodeURIComponent(entityId);
-
-    return `history/period/${startTime}?filter_entity_id=${filterEntityId}&end_time=${endTime}&minimal_response&no_attributes`;
-  }
-
-  /**
-   * Fetches history when its normal deadline expires or when a calendar now
-   * represents a different concrete start/end range. Closed historical ranges
-   * are fetched once per represented local day.
+   * Asks History to fetch this Series when its absolute source is missing or
+   * due. GraphTool responds only to the loading and completion facts returned
+   * by that owner.
    *
    * @param {object} item - Series item with its current HA entity.
    */
   fetchHistoryIfNeeded(item) {
-    if (!this.historyDurationReady) return;
+    const request = this.sparklineHistory.requestSeriesHistory(item, this.card._hass);
+    if (!request.historyAvailable) return undefined;
 
-    const { config, entity } = item;
-    const now = Date.now();
-    const range = this.sparklineHistory.getSeriesRange(item);
-    const sourceRangeIsClosed = !range.sourceRangeIsActive;
-    const representedRange = this.sparklineHistory.acceptedHistoryContainsRange(item.id, range, item.config.period.type);
-    const periodicResynchronizationDue = config.history.refresh_interval !== undefined && now >= item.historyRefreshAt;
+    const requestFacts = this.sparklineHistory.getRequestFacts(item.id);
 
     if (this.card.dev.debug) {
       console.log('[FHS sparkline history decision]', {
         cardId: this.cardId,
-        sparklineId: config.id,
-        durationHours: config.period.type === 'rolling_window' ? config.period.rolling_window.duration.hour : config.period.calendar.duration.hour,
-        historyPromiseActive: item.historyPromise !== undefined,
+        sparklineId: item.config.id,
+        durationHours: item.config.period.type === 'rolling_window' ? item.config.period.rolling_window.duration.hour : item.config.period.calendar.duration.hour,
+        historyPromiseActive: requestFacts.requestPending,
         historyRows: this.sparklineHistory.getRows(item.id)?.length,
-        historyResynchronizationRequested: item.historyResynchronizationRequested,
-        representedRange,
-        rangeStart: range.start.toISOString(),
-        rangeEnd: range.end.toISOString(),
+        historyResynchronizationRequested: requestFacts.resynchronizationRequested,
+        representedRange: request.representedRange,
+        rangeStart: request.range.start.toISOString(),
+        rangeEnd: request.range.end.toISOString(),
       });
     }
 
-    if (item.historyPromise) return;
-    if (sourceRangeIsClosed && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
-    if (this.sparklineHistory.hasRows(item.id) && representedRange && !item.historyResynchronizationRequested && !periodicResynchronizationDue) return;
-
-    // Only missing ranges show a loading indicator. Periodic refreshes and
-    // reductions already have complete visible data and remain undimmed.
-    if (!representedRange) {
-      item.historyLoading = true;
+    if (request.loadingStarted) {
       this.clearTooltip();
       this.card.requestUpdate();
     }
+    if (request.started) return request.promise.then((result) => this.historyRequestCompleted(result));
+    return undefined;
+  }
 
-    const requestedHistoryEntityId = entity.entity_id;
-    const path = this.buildHistoryPath(requestedHistoryEntityId, range.start, range.end);
-    const requestedHistoryPeriodSignature = item.historyPeriodSignature;
-    // console.log('[fetchHistoryIfNeeded] range', range);
-    item.historyPromise = this.card._hass
-      .callApi('GET', path)
-      .then((history) => {
-        const historyRows = history.length === 0 ? [] : history[0];
-        const requestMatchesActivePeriod = requestedHistoryPeriodSignature === item.historyPeriodSignature;
-        const requestMatchesActiveEntity = requestedHistoryEntityId === item.historyEntityId;
+  /**
+   * Applies the presentation work caused by one History completion. Stale and
+   * failed requests never write Series rows or graph state.
+   *
+   * @param {object} result - Completion reported by SparklineHistory.
+   */
+  historyRequestCompleted(result) {
+    if (result.status === 'stale') {
+      if (result.retryImmediately) {
+        const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
+        this.fetchHistoryIfNeeded(item);
+      }
+      return;
+    }
+    if (result.status === 'failed') {
+      console.error('[FHS sparkline history request failed]', result.error);
+      this.card.requestUpdate();
+      return;
+    }
 
-        if (this.card.dev.debug) {
-          console.log('[FHS sparkline history response]', {
-            cardId: this.cardId,
-            sparklineId: config.id,
-            requestedRangeStart: range.start.toISOString(),
-            requestedRangeEnd: range.end.toISOString(),
-            historyRows: historyRows.length,
-            requestedEntityId: requestedHistoryEntityId,
-            requestMatchesActivePeriod,
-            requestMatchesActiveEntity,
-          });
-        }
+    const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
+    try {
+      // A preserved graph receives its new period geometry only after History
+      // has accepted records for that expanded range.
+      if (result.rebuildGraphConfig) this.updateRuntimeConfig();
 
-        // A local or global FHS input can change the period or source entity while
-        // this request is in flight. Ignore obsolete data; finally synchronizes
-        // the currently active entity and represented period.
-        if (!requestMatchesActivePeriod || !requestMatchesActiveEntity) return;
+      item.rows = result.rows;
+      this.updateGraphFromSeries();
+      this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
 
-        this.sparklineHistory.acceptHistoryRows(item, historyRows, range);
-        item.historyLoading = false;
+      if (this.card.dev.debug) {
+        console.log('[FHS sparkline history response]', {
+          cardId: this.cardId,
+          sparklineId: item.config.id,
+          requestedRangeStart: result.range.start.toISOString(),
+          requestedRangeEnd: result.range.end.toISOString(),
+          historyRows: result.rows.length,
+          requestedEntityId: item.entity.entity_id,
+        });
+      }
 
-        // The previous graph was deliberately kept intact during an expansion.
-        // Rebuild its geometry only after matching history has been accepted.
-        if (item.preserveGraphWhileHistoryLoads) {
-          item.preserveGraphWhileHistoryLoads = false;
-          this.updateRuntimeConfig();
-        }
-
-        item.rows = this.sparklineHistory.getRows(item.id);
-        this.updateGraphFromSeries();
-        this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
-        if (config.history.refresh_interval !== undefined) item.historyRefreshAt = Date.now() + this.getRefreshIntervalMs(config.history.refresh_interval);
-
-        item.historyResynchronizationRequested = true;
-        // Keep the history flag active during the synchronous card pipeline so
-        // its existing render decision sees the newly accepted graph data.
-        this.card.setHass(this.card._hass);
-        item.historyResynchronizationRequested = false;
-      })
-      .catch((error) => {
-        if (!item.historyResynchronizationRequested) {
-          item.historyLoading = false;
-          this.card.requestUpdate();
-        }
-        throw error;
-      })
-      .finally(() => {
-        item.historyPromise = undefined;
-
-        // A period or source entity may change while an earlier request is in
-        // flight. Fetch the active combination after that request has completed.
-        if (item.historyResynchronizationRequested) this.fetchHistoryIfNeeded(item);
-      });
+      // Plan 07 replaces this existing card continuation. History keeps its
+      // accepted-result fact active while that synchronous pipeline consumes it.
+      this.card.setHass(this.card._hass);
+    } finally {
+      this.sparklineHistory.finishAcceptedResult(result.seriesId);
+    }
   }
 
   /**

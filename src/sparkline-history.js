@@ -1,5 +1,6 @@
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const HISTORY_RETRY_MS = 30 * 1000;
 
 /**
  * Owns the source records and time windows used by one Sparkline tool.
@@ -15,10 +16,12 @@ export default class SparklineHistory {
    * @param {object} plotPeriod - Parent period defining the shared timeline.
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Normalized Sparkline Series items.
+   * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
    */
-  constructor(plotPeriod, stateBandsStateMap, seriesItems) {
+  constructor(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady) {
     this.seriesRecords = new Map();
-    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems);
+    this.connectedToCard = true;
+    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady);
   }
 
   /**
@@ -28,14 +31,23 @@ export default class SparklineHistory {
    * @param {object} plotPeriod - Parent period defining the shared timeline.
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Current normalized Sparkline Series items.
+   * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
+   * @returns {object} History changes that affect GraphTool scheduling.
    */
-  updateConfig(plotPeriod, stateBandsStateMap, seriesItems) {
+  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady) {
     this.plotPeriod = plotPeriod;
     this.stateBandsStateMap = stateBandsStateMap;
+    this.seriesItems = seriesItems;
+    this.historyDurationReady = historyDurationReady;
+    let periodChanged = false;
 
     const activeIds = new Set(seriesItems.map((item) => item.id));
     this.seriesRecords.forEach((record, id) => {
-      if (!activeIds.has(id)) this.seriesRecords.delete(id);
+      if (!activeIds.has(id)) {
+        // Removing a Series also makes every completion created for that source stale.
+        record.requestNumber += 1;
+        this.seriesRecords.delete(id);
+      }
     });
     seriesItems.forEach((item) => {
       if (!this.seriesRecords.has(item.id)) {
@@ -44,9 +56,41 @@ export default class SparklineHistory {
           rows: undefined,
           sourceRangeStart: undefined,
           sourceRangeEnd: undefined,
+          sourceKey: undefined,
+          acceptedSourceKey: undefined,
+          periodSignature: JSON.stringify(item.config.period),
+          requestNumber: 0,
+          requestPromise: undefined,
+          loading: false,
+          refreshAt: 0,
+          retryAt: 0,
+          resynchronizationRequested: false,
+          preserveGraphWhileLoading: false,
+          acceptedResultPending: false,
         });
+        return;
       }
+
+      const record = this.seriesRecords.get(item.id);
+      const periodSignature = JSON.stringify(item.config.period);
+      if (periodSignature === record.periodSignature) return;
+
+      periodChanged = true;
+      record.periodSignature = periodSignature;
+      record.requestNumber += 1;
+      record.requestPromise = undefined;
+      record.retryAt = 0;
+      record.resynchronizationRequested = true;
+      record.acceptedResultPending = false;
+
+      const requestedRangeIsMissing = item.config.period.type !== 'real_time'
+        && historyDurationReady
+        && !this.acceptedHistoryContainsRange(item.id, this.getSeriesRange(item), item.config.period.type);
+      record.loading = requestedRangeIsMissing;
+      record.preserveGraphWhileLoading = requestedRangeIsMissing && record.rows !== undefined;
     });
+
+    return { periodChanged };
   }
 
   /**
@@ -118,6 +162,268 @@ export default class SparklineHistory {
     };
   }
 
+  /**
+   * Binds a Series record to the Home Assistant source that supplies its rows.
+   * Changing the entity or configured attribute invalidates accepted rows and
+   * every in-flight completion for the previous source.
+   *
+   * @param {object} item - Series item with its current entity and entity config.
+   * @returns {boolean} True when an existing source was replaced.
+   */
+  bindSeriesEntity(item) {
+    const record = this.seriesRecords.get(item.id);
+    const sourceKey = JSON.stringify([item.entity.entity_id, item.entityConfig.attribute]);
+    const sourceChanged = record.sourceKey !== undefined && record.sourceKey !== sourceKey;
+
+    if (sourceChanged) {
+      this.clearSeries(item.id);
+      record.loading = item.config.period.type !== 'real_time' && this.historyDurationReady;
+      record.resynchronizationRequested = item.config.period.type !== 'real_time';
+    }
+
+    record.sourceKey = sourceKey;
+    return sourceChanged;
+  }
+
+  /** Returns request and preservation facts consumed by GraphTool presentation. */
+  getRequestFacts(seriesId) {
+    const record = this.seriesRecords.get(seriesId);
+    return {
+      loading: record.loading,
+      requestPending: record.requestPromise !== undefined,
+      preserveGraphWhileLoading: record.preserveGraphWhileLoading,
+      resynchronizationRequested: record.resynchronizationRequested,
+      retryAt: record.retryAt,
+    };
+  }
+
+  /** Returns whether at least one Series is waiting for missing history. */
+  isLoading() {
+    return this.seriesItems.some((item) => this.seriesRecords.get(item.id).loading);
+  }
+
+  /** Returns whether accepted graph data must remain unchanged during a request. */
+  preservesGraphWhileLoading() {
+    return this.seriesItems.some((item) => this.seriesRecords.get(item.id).preserveGraphWhileLoading);
+  }
+
+  /** Reports request work that must enter the next normal card update pass. */
+  requiresHassUpdate() {
+    return this.seriesItems.some((item) => {
+      const record = this.seriesRecords.get(item.id);
+      return record.resynchronizationRequested || record.acceptedResultPending;
+    });
+  }
+
+  /**
+   * Converts the configured history interval notation to milliseconds. The
+   * same conversion drives refresh deadlines now and timer scheduling later.
+   *
+   * @param {string|number} interval - Configured SAK-style interval.
+   * @returns {number} Interval in milliseconds.
+   */
+  getIntervalMilliseconds(interval) {
+    if (typeof interval === 'number') return interval * 1000;
+
+    const match = interval.match(/^(\d+(?:\.\d+)?)(ms|s|sec|m|min|h|hour)$/);
+    const value = Number(match[1]);
+    const unit = match[2];
+
+    if (unit === 'ms') return value;
+    if (unit === 's' || unit === 'sec') return value * 1000;
+    if (unit === 'm' || unit === 'min') return value * 60 * 1000;
+    return value * HOUR_MS;
+  }
+
+  /**
+   * Starts one HA history request when the source is missing, stale or due for
+   * refresh. History accepts matching rows itself; the returned promise only
+   * tells GraphTool what presentation work follows that result.
+   *
+   * @param {object} item - Bound Series item requesting its effective source.
+   * @param {object} hass - Home Assistant API client.
+   * @returns {object} Start decision, loading transition and completion promise.
+   */
+  requestSeriesHistory(item, hass) {
+    const record = this.seriesRecords.get(item.id);
+    if (!this.historyDurationReady) {
+      return {
+        historyAvailable: false,
+        started: false,
+        loadingStarted: false,
+      };
+    }
+
+    const range = this.getSeriesRange(item);
+    const representedRange = this.acceptedHistoryContainsRange(item.id, range, item.config.period.type);
+    const refreshDue = item.config.history.refresh_interval !== undefined && Date.now() >= record.refreshAt;
+    const sourceRangeIsClosed = !range.sourceRangeIsActive;
+
+    if (record.requestPromise !== undefined || record.acceptedResultPending || Date.now() < record.retryAt) {
+      return {
+        historyAvailable: true,
+        started: false,
+        loadingStarted: false,
+        representedRange,
+        range,
+      };
+    }
+    if (sourceRangeIsClosed && representedRange && !record.resynchronizationRequested && !refreshDue) {
+      return {
+        historyAvailable: true,
+        started: false,
+        loadingStarted: false,
+        representedRange,
+        range,
+      };
+    }
+    if (record.rows !== undefined && representedRange && !record.resynchronizationRequested && !refreshDue) {
+      return {
+        historyAvailable: true,
+        started: false,
+        loadingStarted: false,
+        representedRange,
+        range,
+      };
+    }
+
+    const loadingStarted = !representedRange && !record.loading;
+    if (!representedRange) {
+      record.loading = true;
+      record.preserveGraphWhileLoading = record.rows !== undefined;
+    }
+
+    const requestedSourceKey = record.sourceKey;
+    const requestedPeriodSignature = record.periodSignature;
+    const requestedRangeStart = range.sourceStart.getTime();
+    const requestedRangeEnd = range.sourceEnd.getTime();
+    const requestNumber = record.requestNumber + 1;
+    record.requestNumber = requestNumber;
+    const path = this.buildHistoryPath(item.entity.entity_id, range.sourceStart, range.sourceEnd);
+
+    const requestPromise = hass.callApi('GET', path).then(
+      (history) => {
+        const currentRecord = this.seriesRecords.get(item.id);
+        const requestOwnerStillMatches = this.connectedToCard
+          && currentRecord === record
+          && record.requestNumber === requestNumber
+          && record.sourceKey === requestedSourceKey
+          && record.periodSignature === requestedPeriodSignature;
+
+        if (!requestOwnerStillMatches) {
+          const retryImmediately = this.connectedToCard && currentRecord === record && record.requestNumber === requestNumber;
+          if (retryImmediately) {
+            record.requestPromise = undefined;
+            record.resynchronizationRequested = true;
+          }
+          return { status: 'stale', seriesId: item.id, retryImmediately };
+        }
+
+        const currentItem = this.seriesItems.find((seriesItem) => seriesItem.id === item.id);
+        const currentRange = this.getSeriesRange(currentItem);
+        const rangeStillMatches = item.config.period.type === 'calendar'
+          ? currentRange.sourceStart.getTime() === requestedRangeStart && currentRange.sourceEnd.getTime() === requestedRangeEnd
+          : range.sourceRangeIsActive
+            ? requestedRangeStart <= currentRange.sourceStart.getTime()
+            : true;
+        if (!rangeStillMatches) {
+          record.requestPromise = undefined;
+          record.resynchronizationRequested = true;
+          return { status: 'stale', seriesId: item.id, retryImmediately: true };
+        }
+
+        const historyRows = history.length === 0 ? [] : history[0];
+        const rebuildGraphConfig = record.preserveGraphWhileLoading;
+        this.acceptHistoryRows(currentItem, historyRows, range);
+        record.requestPromise = undefined;
+        record.loading = false;
+        record.retryAt = 0;
+        record.preserveGraphWhileLoading = false;
+        record.resynchronizationRequested = false;
+        record.acceptedResultPending = true;
+        if (currentItem.config.history.refresh_interval !== undefined) {
+          record.refreshAt = Date.now() + this.getIntervalMilliseconds(currentItem.config.history.refresh_interval);
+        }
+
+        return {
+          status: 'accepted',
+          seriesId: item.id,
+          rows: record.rows,
+          range,
+          rebuildGraphConfig,
+        };
+      },
+      (error) => {
+        const currentRecord = this.seriesRecords.get(item.id);
+        const requestStillMatches = this.connectedToCard
+          && currentRecord === record
+          && record.requestNumber === requestNumber
+          && record.sourceKey === requestedSourceKey
+          && record.periodSignature === requestedPeriodSignature;
+
+        if (!requestStillMatches) return { status: 'stale', seriesId: item.id, retryImmediately: false };
+
+        record.requestPromise = undefined;
+        record.loading = false;
+        record.retryAt = Date.now() + HISTORY_RETRY_MS;
+        record.resynchronizationRequested = true;
+        return { status: 'failed', seriesId: item.id, error, retryAt: record.retryAt };
+      },
+    );
+    record.requestPromise = requestPromise;
+
+    return {
+      historyAvailable: true,
+      started: true,
+      loadingStarted,
+      representedRange,
+      range,
+      promise: requestPromise,
+    };
+  }
+
+  /** Builds the Home Assistant history API path for one absolute source range. */
+  buildHistoryPath(entityId, start, end) {
+    const startTime = encodeURIComponent(start.toISOString());
+    const endTime = encodeURIComponent(end.toISOString());
+    const filterEntityId = encodeURIComponent(entityId);
+
+    return `history/period/${startTime}?filter_entity_id=${filterEntityId}&end_time=${endTime}&minimal_response&no_attributes`;
+  }
+
+  /** Marks an accepted result as published through the current GraphTool pipeline. */
+  finishAcceptedResult(seriesId) {
+    const record = this.seriesRecords.get(seriesId);
+    record.acceptedResultPending = false;
+  }
+
+  /** Invalidates requests while retaining accepted rows across a DOM disconnect. */
+  disconnected() {
+    this.connectedToCard = false;
+    this.seriesRecords.forEach((record) => {
+      record.requestNumber += 1;
+      record.requestPromise = undefined;
+      record.loading = false;
+      record.retryAt = 0;
+      record.resynchronizationRequested = false;
+      record.preserveGraphWhileLoading = false;
+      record.acceptedResultPending = false;
+    });
+  }
+
+  /** Marks active accepted sources for refresh when their card reconnects. */
+  connected() {
+    this.connectedToCard = true;
+    this.seriesItems.forEach((item) => {
+      if (item.config.period.type === 'real_time') return;
+
+      const record = this.seriesRecords.get(item.id);
+      if (record.rows !== undefined && this.getSeriesRange(item).sourceRangeIsActive) {
+        record.resynchronizationRequested = true;
+      }
+    });
+  }
+
   /** Returns whether this Series already has accepted source records. */
   hasRows(seriesId) {
     return this.seriesRecords.get(seriesId).rows !== undefined;
@@ -140,10 +446,19 @@ export default class SparklineHistory {
   /** Removes accepted source and prepared records after a source identity change. */
   clearSeries(seriesId) {
     const record = this.seriesRecords.get(seriesId);
+    record.requestNumber += 1;
+    record.requestPromise = undefined;
     record.sourceRows = undefined;
     record.rows = undefined;
     record.sourceRangeStart = undefined;
     record.sourceRangeEnd = undefined;
+    record.acceptedSourceKey = undefined;
+    record.loading = false;
+    record.refreshAt = 0;
+    record.retryAt = 0;
+    record.resynchronizationRequested = false;
+    record.preserveGraphWhileLoading = false;
+    record.acceptedResultPending = false;
   }
 
   /**
@@ -160,6 +475,7 @@ export default class SparklineHistory {
     record.sourceRows = historyRows.slice();
     record.sourceRangeStart = range.sourceStart.getTime();
     record.sourceRangeEnd = range.sourceEnd.getTime();
+    record.acceptedSourceKey = record.sourceKey;
 
     if (range.sourceRangeIsActive) this.addCurrentEntityState(item, range);
     else this.buildSeriesRows(item, range);
@@ -260,6 +576,7 @@ export default class SparklineHistory {
   acceptedHistoryContainsRange(seriesId, range, periodType) {
     const record = this.seriesRecords.get(seriesId);
     if (record.rows === undefined) return false;
+    if (record.acceptedSourceKey !== record.sourceKey) return false;
     if (range.sourceRangeIsActive) return record.sourceRangeStart <= range.sourceStart.getTime();
     if (periodType === 'rolling_window') return true;
     return record.sourceRangeStart <= range.sourceStart.getTime() && record.sourceRangeEnd >= range.sourceEnd.getTime();

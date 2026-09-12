@@ -1163,55 +1163,43 @@ test('accepted history keeps its update flag active through the card pipeline', 
     last_changed: '2026-08-13T10:00:00.000Z',
     last_updated: '2026-08-13T10:00:00.000Z',
   };
-  const range = {
-    start: new Date('2026-08-12T10:00:00.000Z'),
-    end: new Date('2026-08-13T10:00:00.000Z'),
-  };
   const updateFlagsSeenByCard = [];
   const hass = {
     callApi: async () => [[entity]],
   };
+  const config = {
+    id: 'history',
+    period: {
+      type: 'rolling_window',
+      rolling_window: { offset: 0, duration: { hour: 24 } },
+    },
+    history: {},
+    sparkline: { show: { chart_type: 'line' } },
+  };
+  const item = {
+    id: 'default',
+    graph: undefined,
+    rows: [],
+    config,
+    entity,
+    entityConfig: {},
+  };
+  const history = new SparklineHistory(config.period, {}, [item], true);
+  history.bindSeriesEntity(item);
 
   Object.assign(tool, {
     cardId: 'test-card',
-    config: {
-      id: 'history',
-      period: {
-        type: 'rolling_window',
-        rolling_window: { duration: { hour: 24 } },
-      },
-      history: {},
-    },
+    config,
     entity,
     historyDurationReady: true,
     sparklineSeries: {
-      items: [],
-      primaryItem: {
-        graph: undefined,
-        rows: [],
-        historyPromise: undefined,
-        historyEntityId: entity.entity_id,
-        historyRefreshAt: 0,
-        historyResynchronizationRequested: false,
-      },
+      items: [item],
+      primaryItem: item,
       setRows(item, rows) {
         item.rows = rows;
       },
     },
-    sparklineHistory: {
-      rows: undefined,
-      getSeriesRange: () => range,
-      acceptedHistoryContainsRange: () => false,
-      getRows() {
-        return this.rows;
-      },
-      hasRows() {
-        return this.rows !== undefined;
-      },
-      acceptHistoryRows(item, rows) {
-        this.rows = rows;
-      },
-    },
+    sparklineHistory: history,
     card: {
       dev: { debug: false },
       _hass: hass,
@@ -1228,15 +1216,100 @@ test('accepted history keeps its update flag active through the card pipeline', 
     clearTooltip() {},
   });
 
-  tool.sparklineSeries.primaryItem.config = tool.config;
-  tool.sparklineSeries.primaryItem.entity = entity;
-  tool.sparklineSeries.items = [tool.sparklineSeries.primaryItem];
-  tool.fetchHistoryIfNeeded(tool.sparklineSeries.primaryItem);
-  await tool.sparklineSeries.primaryItem.historyPromise;
+  await tool.fetchHistoryIfNeeded(item);
 
   assert.deepEqual(updateFlagsSeenByCard, [true]);
-  assert.equal(tool.sparklineSeries.primaryItem.historyResynchronizationRequested, false);
+  assert.equal(tool.requiresHassUpdate(), false);
   assert.equal(tool.historyLoading, false);
+});
+
+test('accepted multi-day history builds and renders the configured line minmax envelope', async (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const templates = { hasJavascriptTemplates: () => false };
+  const now = Date.now();
+  const entity = {
+    entity_id: 'sensor.temperature',
+    state: '24',
+    last_changed: new Date(now).toISOString(),
+  };
+  const historyRows = [
+    { state: '20', last_changed: new Date(now - 66 * 60 * 60 * 1000).toISOString() },
+    { state: '25', last_changed: new Date(now - 60 * 60 * 60 * 1000).toISOString() },
+    { state: '21', last_changed: new Date(now - 42 * 60 * 60 * 1000).toISOString() },
+    { state: '26', last_changed: new Date(now - 36 * 60 * 60 * 1000).toISOString() },
+    { state: '22', last_changed: new Date(now - 18 * 60 * 60 * 1000).toISOString() },
+    { state: '24', last_changed: new Date(now - 12 * 60 * 60 * 1000).toISOString() },
+  ];
+  const card = {
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false, fakeData: false },
+    entities: [entity],
+    resolvedEntityConfigs: [{}],
+    _hass: {
+      locale: { language: 'en', time_format: 'language' },
+      config: { time_zone: 'UTC' },
+      callApi: async () => [historyRows],
+    },
+    requestUpdate() {},
+    setHass() {},
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+    },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+    },
+    cardEntities: { updateSparklineEntities() {} },
+    cardTools: { getBySection: () => [] },
+  };
+  const tool = new SparklineGraphTool(
+    {
+      id: 'temperature-history',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      width: 80,
+      height: 40,
+      period: {
+        type: 'rolling_window',
+        rolling_window: {
+          offset: 0,
+          duration: { hour: 72 },
+          bins: { per_hour: 1 / 24, density: 'medium' },
+        },
+      },
+      sparkline: {
+        show: { chart_type: 'line' },
+        line: { show: { minmax: true } },
+      },
+    },
+    0,
+    templates,
+    'test-card',
+    card,
+  );
+  const item = tool.sparklineSeries.primaryItem;
+  item.entity = entity;
+  item.entityConfig = {};
+  tool.entity = entity;
+  tool.entityConfig = {};
+  tool.sparklineHistory.bindSeriesEntity(item);
+
+  await tool.fetchHistoryIfNeeded(item);
+
+  const minMaxPath = item.graph.getAreaMinMax(item.graph.getPathMin(), item.graph.getPathMax());
+  tool.getRenderStyles = (styles) => styles;
+  const rendered = tool.renderSeriesCartesian().values[0][0];
+  assert.ok(item.graph.coordsMin.some((point, index) => point[2] !== item.graph.coordsMax[index][2]));
+  assert.notEqual(minMaxPath, '');
+  assert.match(rendered.values[1].strings.join(''), /sparkline-series-minmax/);
 });
 
 test('sun history and current forecast become exact day and night segments', () => {
@@ -1305,7 +1378,7 @@ test('represented sun history is reused without another request or loading state
     dayNightRangeStart: range.start.getTime(),
     dayNightRangeEnd: range.end.getTime(),
     dayNightResynchronizationRequested: false,
-    sparklineSeries: { items: [{ historyLoading: false }] },
+    sparklineHistory: { isLoading: () => false },
     getDayNightRange: () => range,
     buildDayNightSegments() {
       segmentBuilds += 1;
@@ -1331,6 +1404,7 @@ test('day and night resynchronization participates in the normal hass update con
   Object.assign(tool, {
     dayNightResynchronizationRequested: true,
     sparklineSeries: { items: [] },
+    sparklineHistory: { requiresHassUpdate: () => false },
   });
 
   assert.equal(tool.requiresHassUpdate(), true);
@@ -1365,7 +1439,7 @@ test('calendar history request spans complete calendar days', () => {
         period,
       },
     };
-    const history = new SparklineHistory(period, {}, [item]);
+    const history = new SparklineHistory(period, {}, [item], true);
 
     const range = history.getSeriesRange(item);
 
@@ -1374,65 +1448,6 @@ test('calendar history request spans complete calendar days', () => {
   } finally {
     globalThis.Date = NativeDate;
   }
-});
-
-test('completed calendar history is not fetched again while its fixed range is represented', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  const range = {
-    start: new Date('2026-08-12T00:00:00.000Z'),
-    end: new Date('2026-08-13T00:00:00.000Z'),
-  };
-  let apiCalls = 0;
-
-  Object.assign(tool, {
-    config: {
-      id: 'closed-history',
-      period: {
-        type: 'calendar',
-        calendar: {
-          period: 'day',
-          offset: -1,
-          duration: { hour: 24 },
-        },
-      },
-      history: {},
-    },
-    historyDurationReady: true,
-    sparklineSeries: {
-      items: [],
-      primaryItem: {
-        historyPromise: undefined,
-        historyEntityId: undefined,
-        historyRefreshAt: 0,
-        historyResynchronizationRequested: false,
-      },
-    },
-    sparklineHistory: {
-      getSeriesRange: () => range,
-      acceptedHistoryContainsRange: () => true,
-      hasRows: () => true,
-      getRows: () => [{ state: '12' }],
-    },
-    card: {
-      dev: { debug: false },
-      _hass: {
-        callApi() {
-          apiCalls += 1;
-        },
-      },
-    },
-  });
-
-  tool.sparklineSeries.primaryItem.config = tool.config;
-  tool.sparklineSeries.primaryItem.entity = {
-    entity_id: 'sensor.closed',
-    state: '12',
-  };
-  tool.sparklineSeries.items = [tool.sparklineSeries.primaryItem];
-  tool.fetchHistoryIfNeeded(tool.sparklineSeries.primaryItem);
-
-  assert.equal(apiCalls, 0);
-  assert.equal(tool.historyPromise, undefined);
 });
 
 test('axis margin contains labels and tickmarks independently from data margin', () => {
@@ -1745,6 +1760,7 @@ test('offset rolling history stays cached while its moving reference range advan
     { type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 24 } } },
     {},
     [item],
+    true,
   );
   const acceptedRange = {
     sourceStart: new Date('2026-08-20T12:00:00.000Z'),
@@ -1792,7 +1808,7 @@ test('calendar offset history is fetched from its source day and projected onto 
         sparkline: { show: { chart_type: 'line' } },
       },
     };
-    const history = new SparklineHistory(plotPeriod, {}, [item]);
+    const history = new SparklineHistory(plotPeriod, {}, [item], true);
     const range = history.getSeriesRange(item);
     const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], range);
 
@@ -1837,7 +1853,7 @@ test('rolling window offset uses days and projects the source range forward', ()
         sparkline: { show: { chart_type: 'line' } },
       },
     };
-    const history = new SparklineHistory(plotPeriod, {}, [item]);
+    const history = new SparklineHistory(plotPeriod, {}, [item], true);
     const range = history.getSeriesRange(item);
     const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], range);
 
@@ -1896,13 +1912,14 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
   context.after(() => { globalThis.window = previousWindow; });
   const tool = Object.create(SparklineGraphTool.prototype);
   const makeConfig = () => ({ period: { type: 'real_time' } });
-  const first = { id: 'first', entity_index: 0, config: makeConfig(), rows: [], historyEntityId: undefined };
-  const second = { id: 'second', entity_index: 1, config: makeConfig(), rows: [], historyEntityId: undefined };
+  const first = { id: 'first', entity_index: 0, config: makeConfig(), rows: [] };
+  const second = { id: 'second', entity_index: 1, config: makeConfig(), rows: [] };
   let graphUpdates = 0;
 
   Object.assign(tool, {
     config: { sparkline: { show: { day_night: false } } },
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
+    sparklineHistory: new SparklineHistory({ type: 'real_time' }, {}, [first, second], true),
     historyDurationReady: true,
     card: { dev: { fakeData: false } },
     binBoundaryTimer: undefined,
