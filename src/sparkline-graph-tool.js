@@ -1674,7 +1674,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.svg.column_spacing,
       this.svg.row_spacing,
     );
-    this.graphReady = coordinatedGraphs.ready;
+    this.graphReady = coordinatedGraphs.dataState === 'data';
     if (!this.graphReady) {
       return;
     }
@@ -1687,6 +1687,10 @@ export default class SparklineGraphTool extends BaseTool {
     this.points = [];
     this.gradient = [];
     this.sparklineSeries.items.forEach((item, index) => {
+      // A current empty result participates in shared coordination but has no
+      // geometry to add to the visible series collection.
+      if (item.dataState !== 'data') return;
+
       const { graph, config } = item;
       const chartType = config.sparkline.show.chart_type;
       if (['line', 'area'].includes(chartType)) {
@@ -1730,7 +1734,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.axisGraphs = axisGraphs;
       return this.calculateRadialAxisMargin(axisGraphs);
     }, this.configuredGraphMargin);
-    this.graphReady = coordinatedGraphs.ready;
+    this.graphReady = coordinatedGraphs.dataState === 'data';
     if (!this.graphReady) {
       return;
     }
@@ -5305,7 +5309,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesBars() {
     return svg`
       ${this.sparklineSeries.items.map((item, index) => {
-        if (item.config.sparkline.show.chart_type !== 'bar') return '';
+        if (item.dataState !== 'data' || item.config.sparkline.show.chart_type !== 'bar') return '';
 
         const { config } = item;
         const color = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
@@ -5425,7 +5429,8 @@ export default class SparklineGraphTool extends BaseTool {
     return this.sparklineSeries.items.map((item) => {
       const { config, graph } = item;
       if (
-        config.sparkline.show.chart_type !== 'radial'
+        item.dataState !== 'data'
+        || config.sparkline.show.chart_type !== 'radial'
         || config.sparkline.colorstops.colors.length === 0
         || ![
           config.sparkline.show.item_style,
@@ -5473,7 +5478,7 @@ export default class SparklineGraphTool extends BaseTool {
       const layerItemStyles = chartType === 'line'
         ? [config.sparkline.line.show.item_style, config.sparkline.line.minmax.show.item_style]
         : [config.sparkline.line.show.item_style, config.sparkline.area.show.item_style, config.sparkline.area.minmax.show.item_style];
-      if (!['line', 'area'].includes(chartType) || !layerItemStyles.includes('colorstopgradient')) return '';
+      if (item.dataState !== 'data' || !['line', 'area'].includes(chartType) || !layerItemStyles.includes('colorstopgradient')) return '';
 
       const gradient = graph.computeGradient(
         computeThresholds(config.sparkline.colorstops.colors, config.sparkline.colorstops_transition),
@@ -5498,7 +5503,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesRadialAreaMasks() {
     return this.sparklineSeries.items.map((item) => {
       const { config, graph } = item;
-      if (config.sparkline.show.chart_type !== 'radial' || config.sparkline.show.chart_variant !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+      if (item.dataState !== 'data' || config.sparkline.show.chart_type !== 'radial' || config.sparkline.show.chart_variant !== 'area' || config.sparkline.show.fill !== 'fade') return '';
 
       const geometry = graph.getRadialGeometry();
       const zero = Math.min(graph.max, Math.max(graph.min, 0));
@@ -5540,7 +5545,7 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesAreaGradients() {
     return this.sparklineSeries.items.map((item, index) => {
       const { config, graph } = item;
-      if (config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
+      if (item.dataState !== 'data' || config.sparkline.show.chart_type !== 'area' || config.sparkline.show.fill !== 'fade') return '';
 
       const gradientId = `series-area-fade-${this.cardId}-${this.index}-${item.id}`;
       const maskId = `series-area-fade-mask-${this.cardId}-${this.index}-${item.id}`;
@@ -5581,6 +5586,8 @@ export default class SparklineGraphTool extends BaseTool {
   renderSeriesCartesian() {
     return svg`
       ${this.sparklineSeries.items.map((item, index) => {
+        if (item.dataState !== 'data') return '';
+
         const { config, graph } = item;
         const chartType = config.sparkline.show.chart_type;
         const automaticColor = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
@@ -5655,6 +5662,8 @@ export default class SparklineGraphTool extends BaseTool {
    */
   renderSeriesRadial() {
     const seriesLayers = this.sparklineSeries.items.map((item, index) => {
+      if (item.dataState !== 'data') return undefined;
+
       const { config, graph } = item;
       const variant = config.sparkline.show.chart_variant;
       const seriesColor = config.color ?? item.entityConfig.color;
@@ -5706,7 +5715,7 @@ export default class SparklineGraphTool extends BaseTool {
         currentValue,
         index,
       };
-    });
+    }).filter((layer) => layer !== undefined);
 
     return svg`
       ${seriesLayers.map((layer) =>

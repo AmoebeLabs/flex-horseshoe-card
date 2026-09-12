@@ -586,6 +586,7 @@ test('area fade uses the fixed color belonging to each series', () => {
   const lineColors = ['#1565c0', '#d32f2f'];
   const makeItem = (id) => ({
     id,
+    dataState: 'data',
     entity: { state: '20' },
     entityConfig: {},
     graph: { coords: [[0, 0, 20]], drawArea: { width: 80, height: 40 } },
@@ -664,6 +665,7 @@ test('explicit Cartesian gradients use each series graph scale', () => {
   const gradientCalls = [];
   const makeItem = (id, itemStyle) => ({
     id,
+    dataState: 'data',
     graph: {
       computeGradient: (thresholds, logarithmic) => {
         gradientCalls.push([id, thresholds, logarithmic]);
@@ -702,6 +704,7 @@ test('cartesian line and area series render their independently enabled minmax e
   const calls = [];
   const makeItem = (id, chartType, showMinMax, color) => ({
     id,
+    dataState: 'data',
     entity: { state: '10' },
     entityConfig: {},
     graph: {
@@ -872,6 +875,7 @@ test('radial area fade follows the visible zero radius', () => {
     sparklineSeries: {
       items: [{
         id: 'temperature',
+        dataState: 'data',
         graph,
         config: {
           sparkline: {
@@ -893,6 +897,7 @@ test('radial series render all areas below every line and point', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const makeItem = (id, variant, color) => ({
     id,
+    dataState: 'data',
     entity: { state: '30' },
     entityConfig: {},
     graph: {
@@ -1661,6 +1666,87 @@ test("multiple series wait for every graph before building shared geometry", () 
 
   assert.equal(tool.graphReady, false);
   assert.equal(pathRead, false);
+});
+
+test('multiple series keep current data visible when another series is empty', () => {
+  let dataPathReads = 0;
+  let emptyPathReads = 0;
+  const dataGraph = {
+    config: { geometry: { line_width: 1 } },
+    min: 10,
+    max: 20,
+    coords: [[0, 0, 10], [100, 0, 20]],
+    drawArea: { x: 0, y: 0, width: 100, height: 50 },
+    clearSharedYAxisBounds() {},
+    update() { return 'data'; },
+    setSharedYAxisBounds() {},
+    setGraphAreas() {},
+    calculateYCoordinates: (points) => points,
+    getPath() {
+      dataPathReads += 1;
+      return 'M 0 0 L 100 50';
+    },
+    updateStatistics() {},
+  };
+  const emptyGraph = {
+    coords: [],
+    clearSharedYAxisBounds() {},
+    update() { return 'empty'; },
+    getPath() {
+      emptyPathReads += 1;
+      throw new Error('empty graph has no path');
+    },
+    updateStatistics() {},
+  };
+  const makeConfig = () => ({
+    period: { type: 'real_time' },
+    sparkline: {
+      show: { chart_type: 'line', line: true, points: false },
+      line: { show_dots: false },
+      area: { show_dots: false },
+      dots: { radius: 1 },
+    },
+    y_axis: {},
+  });
+  const dataItem = {
+    id: 'data',
+    y_axis_id: 'primary',
+    config: makeConfig(),
+    graph: dataGraph,
+    rows: [{ state: 10 }],
+    entity: { last_changed: '2026-09-12T10:00:00.000Z' },
+  };
+  const emptyItem = {
+    id: 'empty',
+    y_axis_id: 'primary',
+    config: makeConfig(),
+    graph: emptyGraph,
+    rows: [],
+    entity: { last_changed: '2026-09-12T10:00:00.000Z' },
+  };
+  const tool = Object.create(SparklineGraphTool.prototype);
+  Object.assign(tool, {
+    sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [dataItem, emptyItem] }),
+    card: { dev: { debug: false } },
+    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+    calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    area: [],
+    areaMinMax: [],
+    line: [],
+    points: [],
+    gradient: [],
+  });
+
+  tool.updateCartesianSeriesGraphs();
+
+  assert.equal(tool.graphReady, true);
+  assert.equal(dataItem.dataState, 'data');
+  assert.equal(emptyItem.dataState, 'empty');
+  assert.equal(dataPathReads, 1);
+  assert.equal(emptyPathReads, 0);
+  assert.equal(tool.line[0], 'M 0 0 L 100 50');
+  assert.equal(tool.line[1], undefined);
 });
 
 
