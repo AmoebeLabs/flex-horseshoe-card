@@ -1693,7 +1693,6 @@ test("multiple series wait for every graph before building shared geometry", () 
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
-    stats: { stale: true },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
@@ -1702,7 +1701,6 @@ test("multiple series wait for every graph before building shared geometry", () 
   tool.updateCartesianSeriesGraphs();
 
   assert.equal(tool.graphReady, false);
-  assert.deepEqual(tool.stats, {});
   assert.equal(pathRead, false);
 });
 
@@ -2001,16 +1999,115 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
 
   tool.updateCartesianSeriesGraphs();
 
-  assert.deepEqual(item.stats, {
+  assert.deepEqual(item.graph.statistics, {
     min: 10,
     avg: 22.5,
     max: 40,
     min_time: rangeStart.toISOString(),
     max_time: '2026-09-12T11:00:00.000Z',
   });
-  assert.equal(tool.stats, item.stats);
   assert.equal(item.graph.coords.length, 4);
   assert.match(tool.line[0], /^M/);
+});
+
+test('publishes all derived values from their graph, series and period owners', () => {
+  const makeItem = (id, statistics) => ({
+    id,
+    rows: [{ state: statistics.avg }],
+    graph: { statistics },
+    config: {
+      period: {
+        type: 'rolling_window',
+        rolling_window: { duration: { hour: 24 } },
+      },
+      sparkline: {
+        show: { chart_type: 'line' },
+        state_values: { aggregate_func: 'avg' },
+      },
+    },
+  });
+  const primary = makeItem('default', {
+    min: 10,
+    avg: 20,
+    max: 30,
+    min_time: '2026-09-12T08:00:00.000Z',
+    max_time: '2026-09-12T11:00:00.000Z',
+  });
+  const comparison = makeItem('yesterday', {
+    min: 8,
+    avg: 18,
+    max: 28,
+    min_time: '2026-09-11T08:00:00.000Z',
+    max_time: '2026-09-11T11:00:00.000Z',
+  });
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    graphReady: true,
+    historyDurationReady: true,
+    sparklineSeries: {
+      primaryItem: primary,
+      items: [primary, comparison],
+      binPlan: { perHour: 2, durationHours: 0.5 },
+    },
+  });
+
+  assert.deepEqual(tool.getSeriesResult(undefined), {
+    min: 10,
+    avg: 20,
+    max: 30,
+    min_time: '2026-09-12T08:00:00.000Z',
+    max_time: '2026-09-12T11:00:00.000Z',
+    duration: 24,
+    bin_duration: 0.5,
+    aggregate_func: 'avg',
+  });
+  assert.deepEqual(tool.getSeriesResult('yesterday'), {
+    min: 8,
+    avg: 18,
+    max: 28,
+    min_time: '2026-09-11T08:00:00.000Z',
+    max_time: '2026-09-11T11:00:00.000Z',
+    duration: 24,
+    bin_duration: 0.5,
+    aggregate_func: 'avg',
+  });
+});
+
+test('real-time and state-band results omit metadata that does not apply', () => {
+  const realTime = {
+    id: 'default',
+    rows: [{ state: 12 }],
+    graph: { statistics: { min: 12, avg: 12, max: 12, min_time: 'now', max_time: 'now' } },
+    config: {
+      period: { type: 'real_time' },
+      sparkline: { show: { chart_type: 'bar' }, state_values: { aggregate_func: 'last' } },
+    },
+  };
+  const stateBands = {
+    id: 'default',
+    rows: [{ state: 1 }],
+    graph: { statistics: { min: 0, avg: 0.5, max: 1, min_time: 'start', max_time: 'end' } },
+    config: {
+      period: { type: 'rolling_window', rolling_window: { duration: { hour: 12 } } },
+      sparkline: { show: { chart_type: 'state_bands' }, state_values: { aggregate_func: 'avg' } },
+    },
+  };
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    graphReady: true,
+    historyDurationReady: true,
+    sparklineSeries: { primaryItem: realTime, items: [realTime], binPlan: { perHour: undefined, durationHours: undefined } },
+  });
+
+  const realTimeResult = tool.getSeriesResult(undefined);
+  assert.equal(realTimeResult.min, 12);
+  assert.equal(realTimeResult.duration, undefined);
+  assert.equal(realTimeResult.bin_duration, undefined);
+  assert.equal(realTimeResult.aggregate_func, undefined);
+
+  tool.sparklineSeries = { primaryItem: stateBands, items: [stateBands], binPlan: { perHour: 1, durationHours: undefined } };
+  const stateBandResult = tool.getSeriesResult(undefined);
+  assert.equal(stateBandResult.duration, 12);
+  assert.equal(stateBandResult.bin_duration, undefined);
+  assert.equal(stateBandResult.aggregate_func, undefined);
 });
 
 test('radial barcode exposes only its radial time-axis presentation', () => {
