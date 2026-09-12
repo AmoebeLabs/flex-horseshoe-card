@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import SparklineGraphTool from '../src/sparkline-graph-tool.js';
+import SparklineHistory from '../src/sparkline-history.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -25,7 +25,8 @@ const withFixedTime = (isoTime, timeZone, callback) => {
     callback(NativeDate);
   } finally {
     globalThis.Date = NativeDate;
-    process.env.TZ = previousTimeZone;
+    if (previousTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimeZone;
   }
 };
 
@@ -41,12 +42,14 @@ const calendarPeriod = (offset) => ({
   calendar: { period: 'day', offset, duration: { hour: 24 } },
 });
 
+/** Creates one History owner for a normalized Series item. */
+const historyFor = (plotPeriod, item, stateBandsStateMap) => new SparklineHistory(plotPeriod, stateBandsStateMap, [item]);
+
 test('rolling current history uses the current shared plot and source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = { period: rollingPeriod(0) };
-
-    const range = tool.getHistoryRange({ config: { period: rollingPeriod(0) } });
+    const item = { id: 'default', config: { period: rollingPeriod(0) } };
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
 
     assert.equal(range.plotStart.toISOString(), '2026-09-11T12:30:00.000Z');
     assert.equal(range.plotEnd.toISOString(), '2026-09-12T12:30:00.000Z');
@@ -58,17 +61,18 @@ test('rolling current history uses the current shared plot and source window', (
 
 test('a series rolling offset selects yesterday and projects it onto the shared current window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = { period: rollingPeriod(0) };
     const item = {
+      id: 'yesterday',
+      entity: { state: '13', last_changed: '2026-09-12T12:00:00.000Z' },
+      entityConfig: {},
       config: {
         period: rollingPeriod(-1),
         sparkline: { show: { chart_type: 'line' } },
       },
     };
-
-    const range = tool.getHistoryRange(item);
-    const rows = tool.buildHistorySeries(item, [{ state: '12', last_changed: '2026-09-11T10:00:00.000Z' }], {}, range);
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-09-11T10:00:00.000Z' }], range);
 
     assert.equal(range.sourceStart.toISOString(), '2026-09-10T12:30:00.000Z');
     assert.equal(range.sourceEnd.toISOString(), '2026-09-11T12:30:00.000Z');
@@ -80,12 +84,11 @@ test('a series rolling offset selects yesterday and projects it onto the shared 
   });
 });
 
-test('a parent rolling offset moves both the shared plot and inherited source window', { todo: 'fixed by Plan 02 SparklineHistory time ownership' }, () => {
+test('a parent rolling offset moves both the shared plot and inherited source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = { period: rollingPeriod(-1) };
-
-    const range = tool.getHistoryRange({ config: { period: rollingPeriod(-1) } });
+    const item = { id: 'default', config: { period: rollingPeriod(-1) } };
+    const history = historyFor(rollingPeriod(-1), item, {});
+    const range = history.getSeriesRange(item);
 
     assert.equal(range.plotStart.toISOString(), '2026-09-10T12:30:00.000Z');
     assert.equal(range.plotEnd.toISOString(), '2026-09-11T12:30:00.000Z');
@@ -95,12 +98,11 @@ test('a parent rolling offset moves both the shared plot and inherited source wi
   });
 });
 
-test('combined parent and series rolling offsets retain both absolute source selections', { todo: 'fixed by Plan 02 SparklineHistory time ownership' }, () => {
+test('combined parent and series rolling offsets retain both absolute source selections', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = { period: rollingPeriod(-1) };
-
-    const range = tool.getHistoryRange({ config: { period: rollingPeriod(-2) } });
+    const item = { id: 'two-days-ago', config: { period: rollingPeriod(-2) } };
+    const history = historyFor(rollingPeriod(-1), item, {});
+    const range = history.getSeriesRange(item);
 
     assert.equal(range.plotStart.toISOString(), '2026-09-10T12:30:00.000Z');
     assert.equal(range.plotEnd.toISOString(), '2026-09-11T12:30:00.000Z');
@@ -113,12 +115,11 @@ test('combined parent and series rolling offsets retain both absolute source sel
   ['spring DST day contains 23 real hours', '2026-03-29T12:00:00.000+02:00', 23],
   ['autumn DST day contains 25 real hours', '2026-10-25T12:00:00.000+01:00', 25],
 ].forEach(([name, now, elapsedHours]) => {
-  test(`calendar ${name}`, { todo: 'fixed by Plan 02 local-calendar boundaries' }, () => {
+  test(`calendar ${name}`, () => {
     withFixedTime(now, 'Europe/Amsterdam', () => {
-      const tool = Object.create(SparklineGraphTool.prototype);
-      tool.config = { period: calendarPeriod(0) };
-
-      const range = tool.getHistoryRange({ config: { period: calendarPeriod(0) } });
+      const item = { id: 'default', config: { period: calendarPeriod(0) } };
+      const history = historyFor(calendarPeriod(0), item, {});
+      const range = history.getSeriesRange(item);
 
       assert.equal(range.plotStart.getHours(), 0);
       assert.equal(range.plotEnd.getHours(), 0);
@@ -127,40 +128,88 @@ test('combined parent and series rolling offsets retain both absolute source sel
   });
 });
 
-test('active history includes a newer current HA sample exactly once', { todo: 'fixed by Plan 02 history record ownership' }, () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  const item = { config: { sparkline: { show: { chart_type: 'line' } } } };
+test('active history includes a newer current HA sample exactly once', () => {
   const currentEntity = { state: '13', last_changed: '2026-09-12T12:00:00.000Z' };
-  const range = { rollingOffsetDays: 0, sourceRangeIsActive: true };
+  const item = {
+    id: 'default',
+    entity: currentEntity,
+    entityConfig: {},
+    config: { period: rollingPeriod(0), sparkline: { show: { chart_type: 'line' } } },
+  };
+  const history = historyFor(rollingPeriod(0), item, {});
+  const range = history.getSeriesRange(item);
   const historyRows = [
     { state: '12', last_changed: '2026-09-12T11:00:00.000Z' },
     { state: '13', last_changed: '2026-09-12T12:00:00.000Z' },
   ];
 
-  const rows = tool.buildHistorySeries(item, historyRows, currentEntity, range);
+  const rows = history.acceptHistoryRows(item, historyRows, range);
 
   assert.equal(rows.filter((row) => row.source_time === currentEntity.last_changed).length, 1);
 });
 
-test('unknown state-band history is skipped while valid transitions remain', { todo: 'fixed by Plan 02 history record ownership' }, () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  tool.stateBandsStateMap = {
+test('active rolling pruning follows the parent plot offset', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = {
+      id: 'today-on-yesterday',
+      entity: { state: '13', last_changed: '2026-09-12T12:30:00.000Z' },
+      entityConfig: {},
+      rows: [],
+      config: {
+        period: rollingPeriod(0),
+        sparkline: { show: { chart_type: 'line' } },
+      },
+    };
+    const history = historyFor(rollingPeriod(-1), item, {});
+    const range = history.getSeriesRange(item);
+    history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-09-11T12:30:00.000Z' }], range);
+
+    const statisticsRange = history.pruneActiveRows(item, 4);
+
+    assert.equal(new Date(statisticsRange.start).toISOString(), '2026-09-10T12:45:00.000Z');
+    assert.equal(new Date(statisticsRange.end).toISOString(), '2026-09-11T12:30:00.000Z');
+  });
+});
+
+test('closed historical ranges exclude the current HA sample', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = {
+      id: 'yesterday',
+      entity: { state: '13', last_changed: '2026-09-12T12:00:00.000Z' },
+      entityConfig: {},
+      config: { period: rollingPeriod(-1), sparkline: { show: { chart_type: 'line' } } },
+    };
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-09-11T10:00:00.000Z' }], range);
+
+    assert.deepEqual(rows.map((row) => row.haState), ['12']);
+  });
+});
+
+test('unknown state-band history is skipped while valid transitions remain', () => {
+  const stateBandsStateMap = {
     map: [
       { state: 'off', value: 0 },
       { state: 'on', value: 1 },
     ],
   };
-  const item = { config: { sparkline: { show: { chart_type: 'state_bands' } } } };
-  const range = { rollingOffsetDays: 0, sourceRangeIsActive: false };
+  const item = {
+    id: 'states',
+    entity: { state: 'on', last_changed: '2026-09-12T12:00:00.000Z' },
+    entityConfig: {},
+    config: { period: rollingPeriod(-1), sparkline: { show: { chart_type: 'state_bands' } } },
+  };
+  const history = historyFor(rollingPeriod(0), item, stateBandsStateMap);
+  const range = history.getSeriesRange(item);
 
-  const rows = tool.buildHistorySeries(
+  const rows = history.acceptHistoryRows(
     item,
     [
       { state: 'off', last_changed: '2026-09-12T10:00:00.000Z' },
       { state: 'unknown', last_changed: '2026-09-12T11:00:00.000Z' },
       { state: 'on', last_changed: '2026-09-12T12:00:00.000Z' },
     ],
-    {},
     range,
   );
 
