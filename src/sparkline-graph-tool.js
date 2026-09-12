@@ -5356,9 +5356,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG loading indicator or an empty template.
    */
   renderHistoryLoadingSpinner() {
-    // A background refresh does not replace the complete presentation already
-    // on screen. Show loading only while no processed graph can be interacted with.
-    if (!this.historyLoading || this.sparklineSeries.dataState === SPARKLINE_DATA_STATE.HAS_DATA) return svg``;
+    // Keep retained graph geometry visible and interactive while the spinner
+    // indicates that the newly requested history range is still loading.
+    if (!this.historyLoading) return svg``;
 
     const centerX = this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width / 2;
     const centerY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height / 2;
