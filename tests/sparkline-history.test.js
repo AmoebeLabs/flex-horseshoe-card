@@ -42,8 +42,15 @@ const calendarPeriod = (offset) => ({
   calendar: { period: 'day', offset, duration: { hour: 24 } },
 });
 
+/** Supplies inert GraphTool continuations when a test exercises History alone. */
+const historyEvents = () => ({
+  binBoundaryReached() {},
+  seriesHistoryDue() {},
+  dayNightHistoryDue() {},
+});
+
 /** Creates one History owner for a normalized Series item. */
-const historyFor = (plotPeriod, item, stateBandsStateMap) => new SparklineHistory(plotPeriod, stateBandsStateMap, [item], true);
+const historyFor = (plotPeriod, item, stateBandsStateMap) => new SparklineHistory(plotPeriod, stateBandsStateMap, [item], true, false, historyEvents());
 
 /** Builds one bound numeric history Series for request-lifecycle tests. */
 const historyItem = (id, entityId, period) => ({
@@ -245,6 +252,92 @@ test('unknown state-band history is skipped while valid transitions remain', () 
   assert.deepEqual(rows.map((row) => row.haState), ['off', 'on']);
 });
 
+test('sun history and the current forecast become exact day and night segments', async () => {
+  const NativeDate = globalThis.Date;
+  const fixedNow = new NativeDate('2026-09-02T12:00:00.000Z').getTime();
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow] : args));
+    }
+
+    static now() {
+      return fixedNow;
+    }
+  };
+  const period = calendarPeriod(0);
+  const item = historyItem('temperature', 'sensor.temperature', period);
+  const history = new SparklineHistory(period, {}, [item], true, true, historyEvents());
+  history.bindDayNightEntity({
+    state: 'above_horizon',
+    last_changed: '2026-09-02T06:13:00.000Z',
+    attributes: {
+      next_rising: '2026-09-03T06:15:00.000Z',
+      next_setting: '2026-09-02T18:47:00.000Z',
+    },
+  });
+
+  try {
+    const request = history.requestDayNightHistory({
+      callApi: () => Promise.resolve([[
+        { state: 'below_horizon', last_changed: '2026-09-02T00:00:00.000Z' },
+        { state: 'above_horizon', last_changed: '2026-09-02T06:13:00.000Z' },
+      ]]),
+    });
+    const result = await request.promise;
+
+    assert.equal(result.status, 'accepted');
+    assert.deepEqual(
+      history.getDayNightSegments().map((segment) => ({
+        state: segment.state,
+        start: segment.start.toISOString(),
+        end: segment.end.toISOString(),
+      })),
+      [
+        { state: 'night', start: '2026-09-02T00:00:00.000Z', end: '2026-09-02T06:13:00.000Z' },
+        { state: 'day', start: '2026-09-02T06:13:00.000Z', end: '2026-09-02T18:47:00.000Z' },
+        { state: 'night', start: '2026-09-02T18:47:00.000Z', end: '2026-09-03T00:00:00.000Z' },
+      ],
+    );
+  } finally {
+    history.disconnected();
+    globalThis.Date = NativeDate;
+  }
+});
+
+test('represented sun history is reused for the same closed calendar range', async () => {
+  const period = calendarPeriod(-1);
+  const item = historyItem('temperature', 'sensor.temperature', period);
+  const history = new SparklineHistory(period, {}, [item], true, true, historyEvents());
+  history.bindDayNightEntity({
+    state: 'above_horizon',
+    last_changed: '2026-09-12T06:00:00.000Z',
+    attributes: {
+      next_rising: '2026-09-13T06:00:00.000Z',
+      next_setting: '2026-09-12T18:00:00.000Z',
+    },
+  });
+  let apiCalls = 0;
+  const hass = {
+    callApi() {
+      apiCalls += 1;
+      return Promise.resolve([[
+        { state: 'below_horizon', last_changed: history.getDayNightRange().start.toISOString() },
+      ]]);
+    },
+  };
+
+  try {
+    const firstRequest = history.requestDayNightHistory(hass);
+    await firstRequest.promise;
+    const repeatedRequest = history.requestDayNightHistory(hass);
+
+    assert.equal(repeatedRequest.started, false);
+    assert.equal(apiCalls, 1);
+  } finally {
+    history.disconnected();
+  }
+});
+
 test('completed calendar history is reused for the same entity and absolute source day', async () => {
   const item = historyItem('yesterday', 'sensor.energy', calendarPeriod(-1));
   const history = historyFor(calendarPeriod(-1), item, {});
@@ -322,6 +415,7 @@ test('a failed request waits before a later request can recover', async () => {
     assert.equal(recoveredResult.status, 'accepted');
     assert.equal(apiCalls, 2);
   } finally {
+    history.disconnected();
     Date.now = nativeNow;
   }
 });
@@ -396,7 +490,7 @@ test('a larger requested range keeps accepted rows until matching history arrive
     type: 'rolling_window',
     rolling_window: { offset: 0, duration: { hour: 48 } },
   };
-  const changes = history.updateConfig(item.config.period, {}, [item], true);
+  const changes = history.updateConfig(item.config.period, {}, [item], true, false);
   const requestFacts = history.getRequestFacts(item.id);
   const request = history.requestSeriesHistory(item, {
     callApi: () => Promise.resolve([[{ state: '9', last_changed: '2026-09-11T12:00:00.000Z' }]]),
@@ -417,7 +511,7 @@ test('an unevaluated dynamic duration does not calculate or request a history ra
     rolling_window: { offset: 0 },
   };
   const item = historyItem('dynamic', 'sensor.dynamic', period);
-  const history = new SparklineHistory(period, {}, [item], false);
+  const history = new SparklineHistory(period, {}, [item], false, false, historyEvents());
   history.bindSeriesEntity(item);
   const request = history.requestSeriesHistory(item, {
     callApi: () => {
@@ -427,4 +521,237 @@ test('an unevaluated dynamic duration does not calculate or request a history ra
 
   assert.equal(request.historyAvailable, false);
   assert.equal(request.started, false);
+});
+
+test('an active source schedules the next exact bin boundary inside History', () => {
+  const nativeNow = Date.now;
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const timers = new Map();
+  let nextTimer = 1;
+  let binBoundaries = 0;
+  Date.now = () => new Date('2026-09-12T12:07:30.000Z').getTime();
+  globalThis.setTimeout = (callback, delay) => {
+    const timer = nextTimer;
+    nextTimer += 1;
+    timers.set(timer, { callback, delay });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => timers.delete(timer);
+
+  const period = rollingPeriod(0);
+  const item = historyItem('active', 'sensor.active', period);
+  const history = new SparklineHistory(period, {}, [item], true, false, {
+    binBoundaryReached() { binBoundaries += 1; },
+    seriesHistoryDue() {},
+    dayNightHistoryDue() {},
+  });
+
+  try {
+    history.scheduleTimeBoundaryUpdates('line', '1s', 4);
+    const timer = [...timers.values()][0];
+    assert.equal(timer.delay, 7 * 60 * 1000 + 30 * 1000 + 10);
+
+    timer.callback();
+    assert.equal(binBoundaries, 1);
+  } finally {
+    history.disconnected();
+    Date.now = nativeNow;
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  }
+});
+
+test('calendar refresh uses the next real local midnight across spring DST', () => {
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const delays = [];
+  globalThis.setTimeout = (callback, delay) => {
+    delays.push(delay);
+    return delays.length;
+  };
+  globalThis.clearTimeout = () => {};
+
+  try {
+    withFixedTime('2026-03-29T00:30:00.000+01:00', 'Europe/Amsterdam', () => {
+      const period = calendarPeriod(0);
+      const item = historyItem('calendar', 'sensor.calendar', period);
+      const history = new SparklineHistory(period, {}, [item], true, false, historyEvents());
+      history.scheduleTimeBoundaryUpdates('line', '1s', 1);
+
+      assert.ok(delays.includes(22.5 * HOUR_MS + 10));
+      history.disconnected();
+    });
+  } finally {
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  }
+});
+
+test('a failed Series request emits one retry only when its History timer expires', async () => {
+  const nativeNow = Date.now;
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const timers = new Map();
+  const dueSeries = [];
+  let nextTimer = 1;
+  Date.now = () => new Date('2026-09-12T12:00:00.000Z').getTime();
+  globalThis.setTimeout = (callback, delay) => {
+    const timer = nextTimer;
+    nextTimer += 1;
+    timers.set(timer, { callback, delay });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => timers.delete(timer);
+
+  const period = rollingPeriod(0);
+  const item = historyItem('retry-timer', 'sensor.retry_timer', period);
+  const history = new SparklineHistory(period, {}, [item], true, false, {
+    binBoundaryReached() {},
+    seriesHistoryDue(seriesId) { dueSeries.push(seriesId); },
+    dayNightHistoryDue() {},
+  });
+
+  try {
+    history.bindSeriesEntity(item);
+    const result = await history.requestSeriesHistory(item, {
+      callApi: () => Promise.reject(new Error('temporary failure')),
+    }).promise;
+    const timer = [...timers.values()][0];
+
+    assert.equal(result.status, 'failed');
+    assert.equal(timer.delay, 30 * 1000);
+    assert.deepEqual(dueSeries, []);
+
+    timer.callback();
+    assert.deepEqual(dueSeries, ['retry-timer']);
+  } finally {
+    history.disconnected();
+    Date.now = nativeNow;
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  }
+});
+
+test('a bin boundary at midnight leaves the calendar boundary active', () => {
+  const NativeDate = globalThis.Date;
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const fixedNow = new NativeDate('2026-09-12T23:45:00.000Z').getTime();
+  const timers = new Map();
+  let nextTimer = 1;
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [fixedNow] : args));
+    }
+
+    static now() {
+      return fixedNow;
+    }
+  };
+  globalThis.setTimeout = (callback, delay) => {
+    const timer = nextTimer;
+    nextTimer += 1;
+    timers.set(timer, { callback, delay });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => timers.delete(timer);
+
+  const period = calendarPeriod(0);
+  const item = historyItem('midnight-timers', 'sensor.midnight_timers', period);
+  const history = new SparklineHistory(period, {}, [item], true, false, historyEvents());
+
+  try {
+    history.scheduleTimeBoundaryUpdates('line', '1s', 4);
+    const binTimer = history.binBoundaryTimer;
+    const calendarTimer = history.calendarRangeTimer;
+    assert.equal(timers.get(binTimer).delay, timers.get(calendarTimer).delay);
+
+    const binCallback = timers.get(binTimer).callback;
+    timers.delete(binTimer);
+    binCallback();
+
+    assert.equal(timers.has(calendarTimer), true);
+  } finally {
+    history.disconnected();
+    globalThis.Date = NativeDate;
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  }
+});
+
+test('a failed day and night request retries through its separate History timer', async () => {
+  const nativeNow = Date.now;
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const timers = new Map();
+  let nextTimer = 1;
+  let dayNightRequestsDue = 0;
+  Date.now = () => new Date('2026-09-12T12:00:00.000Z').getTime();
+  globalThis.setTimeout = (callback, delay) => {
+    const timer = nextTimer;
+    nextTimer += 1;
+    timers.set(timer, { callback, delay });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => timers.delete(timer);
+
+  const period = rollingPeriod(0);
+  const item = historyItem('sun-retry', 'sensor.sun_retry', period);
+  const history = new SparklineHistory(period, {}, [item], true, true, {
+    binBoundaryReached() {},
+    seriesHistoryDue() {},
+    dayNightHistoryDue() { dayNightRequestsDue += 1; },
+  });
+  history.bindDayNightEntity({
+    state: 'above_horizon',
+    last_changed: '2026-09-12T06:00:00.000Z',
+    attributes: {
+      next_rising: '2026-09-13T06:01:00.000Z',
+      next_setting: '2026-09-12T18:30:00.000Z',
+    },
+  });
+
+  try {
+    const result = await history.requestDayNightHistory({
+      callApi: () => Promise.reject(new Error('temporary sun failure')),
+    }).promise;
+    const timer = [...timers.values()][0];
+
+    assert.equal(result.status, 'failed');
+    assert.equal(timer.delay, 30 * 1000);
+    assert.equal(dayNightRequestsDue, 0);
+
+    timer.callback();
+    assert.equal(dayNightRequestsDue, 1);
+  } finally {
+    history.disconnected();
+    Date.now = nativeNow;
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  }
+});
+
+test('a day and night response completed after disconnect is inert', async () => {
+  const period = rollingPeriod(0);
+  const item = historyItem('sun-disconnect', 'sensor.sun_disconnect', period);
+  const history = new SparklineHistory(period, {}, [item], true, true, historyEvents());
+  const deferred = deferredRequest();
+  history.bindDayNightEntity({
+    state: 'above_horizon',
+    last_changed: '2026-09-12T06:00:00.000Z',
+    attributes: {
+      next_rising: '2026-09-13T06:01:00.000Z',
+      next_setting: '2026-09-12T18:30:00.000Z',
+    },
+  });
+
+  const request = history.requestDayNightHistory({ callApi: () => deferred.promise });
+  history.disconnected();
+  deferred.accept([[{ state: 'below_horizon', last_changed: '2026-09-11T18:30:00.000Z' }]]);
+  const result = await request.promise;
+
+  assert.equal(result.status, 'stale');
+  assert.deepEqual(history.getDayNightSegments(), []);
+  assert.equal(history.requiresHassUpdate(), false);
 });
