@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import SparklineSeries from '../src/sparkline-series.js';
 import SparklineGraph from '../src/sparkline-graph.js';
+import SparklineHistory from '../src/sparkline-history.js';
 
 test('dynamic sparkline config preserves zero thresholds and clamps a calendar day', () => {
   const previousWindow = globalThis.window;
@@ -301,6 +302,18 @@ test('real-time graded creates one current-value graph without historical bins',
   assert.equal(tool.config.period.type, 'real_time');
   assert.equal(tool.primaryGraph.points, 1);
   assert.equal(tool.primaryGraph.hours, 1);
+
+  const currentEntity = {
+    entity_id: 'sensor.awair_score',
+    state: '42',
+    last_changed: '2026-09-12T12:00:00.000Z',
+  };
+  tool.entity = currentEntity;
+  tool.sparklineSeries.primaryItem.entity = currentEntity;
+  tool.sparklineSeries.primaryItem.entityConfig = {};
+  tool.sparklineSeries.primaryItem.rows = [{ state: 42 }];
+
+  assert.doesNotThrow(() => tool.updateGraphFromSeries());
 
   const historicalConfig = structuredClone(config);
   historicalConfig.id = 'awair-graded-history';
@@ -1177,15 +1190,26 @@ test('accepted history keeps its update flag active through the card pipeline', 
         graph: undefined,
         rows: [],
         historyPromise: undefined,
-        historySeries: undefined,
-        historyRangeStart: undefined,
-        historyRangeEnd: undefined,
         historyEntityId: entity.entity_id,
         historyRefreshAt: 0,
         historyResynchronizationRequested: false,
       },
       setRows(item, rows) {
         item.rows = rows;
+      },
+    },
+    sparklineHistory: {
+      rows: undefined,
+      getSeriesRange: () => range,
+      acceptedHistoryContainsRange: () => false,
+      getRows() {
+        return this.rows;
+      },
+      hasRows() {
+        return this.rows !== undefined;
+      },
+      acceptHistoryRows(item, rows) {
+        this.rows = rows;
       },
     },
     card: {
@@ -1200,10 +1224,6 @@ test('accepted history keeps its update flag active through the card pipeline', 
         updateFlagsSeenByCard.push(tool.requiresHassUpdate());
       },
     },
-    getHistoryRange: () => range,
-    acceptedHistoryContainsRange: () => false,
-    buildHistorySeries: (rows) => rows,
-    addCurrentEntityToHistory() {},
     updateGraphFromSeries() {},
     clearTooltip() {},
   });
@@ -1331,19 +1351,23 @@ test('calendar history request spans complete calendar days', () => {
   };
 
   try {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = {
-      period: {
-        type: 'calendar',
-        calendar: {
-          period: 'day',
-          offset: 0,
-          duration: { hour: 48 },
-        },
+    const period = {
+      type: 'calendar',
+      calendar: {
+        period: 'day',
+        offset: 0,
+        duration: { hour: 48 },
       },
     };
+    const item = {
+      id: 'default',
+      config: {
+        period,
+      },
+    };
+    const history = new SparklineHistory(period, {}, [item]);
 
-    const range = tool.getHistoryRange({ config: tool.config });
+    const range = history.getSeriesRange(item);
 
     assert.equal(range.start.getTime(), new NativeDate('2026-08-13T00:00:00').getTime());
     assert.equal(range.end.getTime(), new NativeDate('2026-08-15T00:00:00').getTime());
@@ -1378,15 +1402,17 @@ test('completed calendar history is not fetched again while its fixed range is r
       items: [],
       primaryItem: {
         historyPromise: undefined,
-        historySeries: [{ state: '12' }],
-        historyRangeStart: range.start.getTime(),
-        historyRangeEnd: range.end.getTime(),
         historyEntityId: undefined,
         historyRefreshAt: 0,
         historyResynchronizationRequested: false,
       },
     },
-    getHistoryRange: () => range,
+    sparklineHistory: {
+      getSeriesRange: () => range,
+      acceptedHistoryContainsRange: () => true,
+      hasRows: () => true,
+      getRows: () => [{ state: '12' }],
+    },
     card: {
       dev: { debug: false },
       _hass: {
@@ -1706,20 +1732,34 @@ test("multiple series wait for every graph before building shared geometry", () 
 
 
 test('offset rolling history stays cached while its moving reference range advances', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
   const item = {
-    config: { period: { type: 'rolling_window' } },
-    historySeries: [{ state: '12' }],
-    historyRangeStart: new Date('2026-08-20T12:00:00.000Z').getTime(),
-    historyRangeEnd: new Date('2026-08-21T12:00:00.000Z').getTime(),
+    id: 'yesterday',
+    entity: { state: '12', last_changed: '2026-08-21T12:00:00.000Z' },
+    entityConfig: {},
+    config: {
+      period: { type: 'rolling_window', rolling_window: { offset: -1, duration: { hour: 24 } } },
+      sparkline: { show: { chart_type: 'line' } },
+    },
   };
-  const range = {
-    start: new Date('2026-08-20T12:01:00.000Z'),
-    end: new Date('2026-08-21T12:01:00.000Z'),
+  const history = new SparklineHistory(
+    { type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 24 } } },
+    {},
+    [item],
+  );
+  const acceptedRange = {
+    sourceStart: new Date('2026-08-20T12:00:00.000Z'),
+    sourceEnd: new Date('2026-08-21T12:00:00.000Z'),
+    rollingOffsetDays: -1,
     sourceRangeIsActive: false,
   };
+  const nextRange = {
+    sourceStart: new Date('2026-08-20T12:01:00.000Z'),
+    sourceEnd: new Date('2026-08-21T12:01:00.000Z'),
+    sourceRangeIsActive: false,
+  };
+  history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-08-21T10:00:00.000Z' }], acceptedRange);
 
-  assert.equal(tool.acceptedHistoryContainsRange(item, range), true);
+  assert.equal(history.acceptedHistoryContainsRange(item.id, nextRange, 'rolling_window'), true);
 });
 
 test('calendar offset history is fetched from its source day and projected onto the reference day', () => {
@@ -1736,14 +1776,14 @@ test('calendar offset history is fetched from its source day and projected onto 
   };
 
   try {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = {
-      period: {
-        type: 'calendar',
-        calendar: { period: 'day', offset: 0, duration: { hour: 24 } },
-      },
+    const plotPeriod = {
+      type: 'calendar',
+      calendar: { period: 'day', offset: 0, duration: { hour: 24 } },
     };
     const item = {
+      id: 'yesterday',
+      entity: { state: '13', last_changed: '2026-08-14T12:00:00.000Z' },
+      entityConfig: {},
       config: {
         period: {
           type: 'calendar',
@@ -1752,8 +1792,9 @@ test('calendar offset history is fetched from its source day and projected onto 
         sparkline: { show: { chart_type: 'line' } },
       },
     };
-    const range = tool.getHistoryRange(item);
-    const rows = tool.buildHistorySeries(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], { state: '13' }, range);
+    const history = new SparklineHistory(plotPeriod, {}, [item]);
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], range);
 
     assert.equal(range.sourceRangeIsActive, false);
     assert.equal(range.sourceStart.getTime(), new NativeDate('2026-08-13T00:00:00').getTime());
@@ -1780,14 +1821,14 @@ test('rolling window offset uses days and projects the source range forward', ()
   };
 
   try {
-    const tool = Object.create(SparklineGraphTool.prototype);
-    tool.config = {
-      period: {
-        type: 'rolling_window',
-        rolling_window: { offset: 0, duration: { hour: 24 } },
-      },
+    const plotPeriod = {
+      type: 'rolling_window',
+      rolling_window: { offset: 0, duration: { hour: 24 } },
     };
     const item = {
+      id: 'yesterday',
+      entity: { state: '13', last_changed: '2026-08-14T12:00:00.000Z' },
+      entityConfig: {},
       config: {
         period: {
           type: 'rolling_window',
@@ -1796,8 +1837,9 @@ test('rolling window offset uses days and projects the source range forward', ()
         sparkline: { show: { chart_type: 'line' } },
       },
     };
-    const range = tool.getHistoryRange(item);
-    const rows = tool.buildHistorySeries(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], { state: '13' }, range);
+    const history = new SparklineHistory(plotPeriod, {}, [item]);
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, [{ state: '12', last_changed: '2026-08-13T09:30:00.000Z' }], range);
 
     assert.equal(range.sourceRangeIsActive, false);
     assert.equal(range.sourceStart.toISOString(), '2026-08-12T12:30:00.000Z');
@@ -1969,7 +2011,6 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
   );
   item.graph._updateEndTime = () => { item.graph._endTime = rangeEnd; };
   item.entity = { last_changed: rows.at(-1).last_changed };
-  item.historySeries = rows;
   item.rows = rows;
 
   const tool = Object.create(SparklineGraphTool.prototype);
@@ -1980,16 +2021,19 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    getHistoryRange: () => ({
-      sourceRangeIsActive: true,
-      plotStart: rangeStart,
-      plotEnd: rangeEnd,
-      plotActiveEnd: rangeEnd,
-    }),
-    pruneLiveHistoryToActiveWindow: () => ({
-      start: rangeStart.getTime(),
-      end: rangeEnd.getTime(),
-    }),
+    sparklineHistory: {
+      getSeriesRange: () => ({
+        sourceRangeIsActive: true,
+        plotStart: rangeStart,
+        plotEnd: rangeEnd,
+        plotActiveEnd: rangeEnd,
+      }),
+      hasRows: () => true,
+      pruneActiveRows: () => ({
+        start: rangeStart.getTime(),
+        end: rangeEnd.getTime(),
+      }),
+    },
     area: [],
     areaMinMax: [],
     line: [],
