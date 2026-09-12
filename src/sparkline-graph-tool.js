@@ -734,7 +734,18 @@ export default class SparklineGraphTool extends BaseTool {
       const initialHistoryDuration = this.config.period.type === 'real_time' ? 1 : Number(this.config.period[this.config.period.type].duration.hour);
       this.historyDurationReady = this.config.period.type === 'real_time' || (Number.isFinite(initialHistoryDuration) && initialHistoryDuration > 0);
     }
-    this.sparklineHistory = new SparklineHistory(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items, this.historyDurationReady);
+    this.sparklineHistory = new SparklineHistory(
+      this.config.period,
+      this.stateBandsStateMap,
+      this.sparklineSeries.items,
+      this.historyDurationReady,
+      this.config.sparkline.show.day_night,
+      {
+        binBoundaryReached: () => this.historyBinBoundaryReached(),
+        seriesHistoryDue: (seriesId) => this.historySeriesRequestDue(seriesId),
+        dayNightHistoryDue: () => this.fetchDayNightHistoryIfNeeded(),
+      },
+    );
 
     // Series selects and stores one bin layout before any graph is created.
     // Dynamic periods wait until their runtime values are available below.
@@ -784,16 +795,6 @@ export default class SparklineGraphTool extends BaseTool {
     this.activeX = undefined;
     this.dragging = false;
     this.elements = {};
-    this.binBoundaryTimer = undefined;
-    this.calendarRangeTimer = undefined;
-    this.dayNightHistory = undefined;
-    this.dayNightHistoryPromise = undefined;
-    this.dayNightRangeStart = undefined;
-    this.dayNightRangeEnd = undefined;
-    this.dayNightPeriodSignature = JSON.stringify([this.config.sparkline.show.day_night, this.config.period]);
-    this.dayNightSunSignature = undefined;
-    this.dayNightResynchronizationRequested = false;
-    this.dayNightSegments = [];
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
@@ -1161,22 +1162,6 @@ export default class SparklineGraphTool extends BaseTool {
         throw new Error('[sparklines] show.day_night does not support future calendar offsets');
       }
 
-      const activeDayNightPeriodSignature = JSON.stringify([this.config.sparkline.show.day_night, this.config.period]);
-      if (activeDayNightPeriodSignature !== this.dayNightPeriodSignature) {
-        this.dayNightHistory = undefined;
-        this.dayNightRangeStart = undefined;
-        this.dayNightRangeEnd = undefined;
-        this.dayNightSegments = [];
-        this.dayNightResynchronizationRequested = this.config.sparkline.show.day_night;
-        this.dayNightPeriodSignature = activeDayNightPeriodSignature;
-      }
-      if (!this.config.sparkline.show.day_night) {
-        this.dayNightHistory = undefined;
-        this.dayNightRangeStart = undefined;
-        this.dayNightRangeEnd = undefined;
-        this.dayNightSegments = [];
-        this.dayNightResynchronizationRequested = false;
-      }
     }
 
     // A calendar day always spans at least one complete day. A duration can
@@ -1346,20 +1331,22 @@ export default class SparklineGraphTool extends BaseTool {
     // Runtime templates can change shared sparkline settings. Each existing
     // series receives one effective config while its runtime data stays intact.
     this.sparklineSeries.updateConfig(this.config);
-    const historyConfigChanges = this.sparklineHistory.updateConfig(this.config.period, this.stateBandsStateMap, this.sparklineSeries.items, this.historyDurationReady);
+    const historyConfigChanges = this.sparklineHistory.updateConfig(
+      this.config.period,
+      this.stateBandsStateMap,
+      this.sparklineSeries.items,
+      this.historyDurationReady,
+      this.config.sparkline.show.day_night,
+    );
 
     // A period change invalidates only History's source/request state. Existing
     // graph geometry remains mounted while a missing expanded range is loaded.
     if (historyConfigChanges.periodChanged) {
-      window.clearTimeout(this.binBoundaryTimer);
-      window.clearTimeout(this.calendarRangeTimer);
       if (this.sparklineHistory.isLoading()) this.clearTooltip();
       if (this.sparklineHistory.preservesGraphWhileLoading()) return;
     }
 
     if (!this.historyDurationReady) {
-      window.clearTimeout(this.binBoundaryTimer);
-      window.clearTimeout(this.calendarRangeTimer);
       this.sparklineSeries.items.forEach((item) => {
         item.rows = [];
         this.sparklineHistory.clearSeries(item.id);
@@ -1460,16 +1447,12 @@ export default class SparklineGraphTool extends BaseTool {
     });
 
     if (sourceEntityChanged) {
-      window.clearTimeout(this.binBoundaryTimer);
-      window.clearTimeout(this.calendarRangeTimer);
+      this.sparklineHistory.stopTimeBoundaryUpdates();
       this.clearTooltip();
     }
 
     const historicalItems = this.sparklineSeries.items.filter((item) => item.config.period.type !== 'real_time');
-    if (historicalItems.length === 0) {
-      window.clearTimeout(this.binBoundaryTimer);
-      window.clearTimeout(this.calendarRangeTimer);
-    }
+    if (historicalItems.length === 0) this.sparklineHistory.stopTimeBoundaryUpdates();
 
     if (this.sparklineSeries.items.some((item) => item.rows.length > 0)) {
       this.updateGraphFromSeries();
@@ -1481,114 +1464,39 @@ export default class SparklineGraphTool extends BaseTool {
     historicalItems.forEach((item) => this.fetchHistoryIfNeeded(item));
     if (this.config.sparkline.show.day_night) {
       const sunEntity = this.card._hass.states['sun.sun'];
-      const sunSignature = JSON.stringify([
-        sunEntity.state,
-        sunEntity.last_changed,
-        sunEntity.attributes.next_rising,
-        sunEntity.attributes.next_setting,
-      ]);
-      if (sunSignature !== this.dayNightSunSignature) {
-        this.dayNightSunSignature = sunSignature;
-        if (this.dayNightHistory !== undefined) {
-          const dayNightRange = this.getDayNightRange();
-          if (dayNightRange.sourceRangeIsActive) {
-            this.dayNightHistory.push({
-              state: sunEntity.state,
-              last_changed: sunEntity.last_changed,
-            });
-          }
-          this.buildDayNightSegments(sunEntity);
-        }
-      }
-      this.fetchDayNightHistoryIfNeeded(sunEntity);
+      this.sparklineHistory.bindDayNightEntity(sunEntity);
+      this.fetchDayNightHistoryIfNeeded();
     }
     if (historicalItems.length > 0 && !this.sparklineHistory.preservesGraphWhileLoading()) {
-      this.scheduleBinBoundaryRefresh();
-      this.scheduleCalendarRangeRefresh();
+      this.sparklineHistory.scheduleTimeBoundaryUpdates(
+        this.config.sparkline.show.chart_type,
+        this.config.sparkline.state_bands.update_interval,
+        this.sparklineSeries.binPlan.perHour,
+      );
     }
     this.updateLegendTextTools();
   }
 
   /**
-   * Advances active history charts when wall-clock time enters a new bucket.
-   * No history is fetched here: the graph carries its last value into the new
-   * bucket, recalculates local statistics, and lets the card's normal hass
-   * pipeline propagate those statistics to tools that reference them.
+   * Applies the existing GraphTool presentation continuation after History has
+   * reported an elapsed bin. Plan 07 will replace the remaining card setHass
+   * continuation; History itself remains independent from the parent card.
    */
-  scheduleBinBoundaryRefresh() {
-    window.clearTimeout(this.binBoundaryTimer);
-    const sourceRangeIsActive = this.sparklineSeries.items.some((item) => item.config.period.type !== 'real_time' && this.sparklineHistory.getSeriesRange(item).sourceRangeIsActive);
-
-    // Only an active source range needs an advancing visible bucket. Offset
-    // sources are complete comparison data and remain unchanged between fetches.
-    if (!sourceRangeIsActive) return;
-
-    if (!this.entity) return;
-
-    // State bands have no buckets. Their timer only advances the exact current
-    // data end; all other chart types retain their normal bin-boundary timing.
-    const bucketMs = this.config.sparkline.show.chart_type === 'state_bands' ? this.sparklineHistory.getIntervalMilliseconds(this.config.sparkline.state_bands.update_interval) : (60 / this.primaryGraph.points) * 60 * 1000;
-    const now = Date.now();
-    const delay = bucketMs - (now % bucketMs) + 10;
-
-    this.binBoundaryTimer = window.setTimeout(() => {
-      // Advancing time creates the new graph bucket. SparklineGraph carries the
-      // previous value visually across an empty bucket, but retained source rows
-      // remain unchanged until Home Assistant supplies a real state update.
-
-      this.updateGraphFromSeries();
-      if (this.tooltipVisible && this.pointerEvent) {
-        this.updateActivePointer(this.pointerEvent);
-      }
-      // A bin boundary advances the in-memory graph without fetching history.
-      // Refresh local statistics and their bound tools from the recalculated series.
-      if (this.config.sparkline.show.day_night && this.dayNightHistory !== undefined) {
-        this.buildDayNightSegments(this.card._hass.states['sun.sun']);
-      }
-      this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
-      this.card.setHass(this.card._hass);
-      this.scheduleBinBoundaryRefresh();
-    }, delay);
+  historyBinBoundaryReached() {
+    this.updateGraphFromSeries();
+    if (this.tooltipVisible && this.pointerEvent) this.updateActivePointer(this.pointerEvent);
+    this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
+    this.card.setHass(this.card._hass);
   }
 
-  /**
-   * Schedules the next calendar range check at local midnight. The callback
-   * recalculates from the current local date because suspended browsers may run
-   * it later than the originally scheduled transition.
-   */
-  scheduleCalendarRangeRefresh() {
-    window.clearTimeout(this.calendarRangeTimer);
-
-    if (this.config.period.type !== 'calendar') return;
-
-    const now = new Date();
-    const nextMidnight = new Date(now);
-    nextMidnight.setHours(24, 0, 0, 0);
-    const delay = nextMidnight.getTime() - now.getTime() + 10;
-
-    this.calendarRangeTimer = window.setTimeout(() => {
-      this.sparklineSeries.items.forEach((item) => {
-        const range = this.sparklineHistory.getSeriesRange(item);
-        const acceptedRange = this.sparklineHistory.getAcceptedRange(item.id);
-        const rangeChanged = range.start.getTime() !== acceptedRange.start || range.end.getTime() !== acceptedRange.end;
-
-        if (rangeChanged) this.fetchHistoryIfNeeded(item);
-      });
-      if (this.config.sparkline.show.day_night) {
-        const dayNightRange = this.getDayNightRange();
-        const dayNightRangeChanged = dayNightRange.start.getTime() !== this.dayNightRangeStart || dayNightRange.end.getTime() !== this.dayNightRangeEnd;
-        if (dayNightRangeChanged) this.fetchDayNightHistoryIfNeeded(this.card._hass.states['sun.sun']);
-      }
-      this.scheduleCalendarRangeRefresh();
-    }, delay);
+  /** Starts a History-owned refresh or retry for the selected Series. */
+  historySeriesRequestDue(seriesId) {
+    const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === seriesId);
+    this.fetchHistoryIfNeeded(item);
   }
 
-  /**
-   * Stops timers owned by this sparkline tool when its parent card disconnects.
-   */
+  /** Delegates card disconnection so History can invalidate requests and timers. */
   disconnected() {
-    window.clearTimeout(this.binBoundaryTimer);
-    window.clearTimeout(this.calendarRangeTimer);
     this.sparklineHistory.disconnected();
   }
 
@@ -1598,7 +1506,6 @@ export default class SparklineGraphTool extends BaseTool {
    */
   connected() {
     this.sparklineHistory.connected();
-    if (this.config.sparkline.show.day_night && this.dayNightHistory !== undefined) this.dayNightResynchronizationRequested = true;
   }
 
   /** Marks existing history for resynchronization after an HA reconnect. */
@@ -1612,118 +1519,32 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} True when existing history must be fetched again.
    */
   requiresHassUpdate() {
-    return this.dayNightResynchronizationRequested || this.sparklineHistory.requiresHassUpdate();
+    return this.sparklineHistory.requiresHassUpdate();
   }
 
   /**
-   * Returns the parent plot range used by the one shared day/night layer.
-   * Individual comparison-series offsets deliberately do not select another
-   * sun timeline.
-   *
-   * @returns {object} Visible start/end and active-range state.
+   * Delegates the auxiliary sun request to History and applies only the visual
+   * update or error reporting that follows its completion.
    */
-  getDayNightRange() {
-    const range = this.sparklineHistory.getSeriesRange({ config: this.config });
-    return {
-      start: range.plotStart,
-      end: range.plotEnd,
-      sourceRangeIsActive: range.sourceRangeIsActive,
-    };
+  fetchDayNightHistoryIfNeeded() {
+    const request = this.sparklineHistory.requestDayNightHistory(this.card._hass);
+    if (request.started) return request.promise.then((result) => this.dayNightHistoryRequestCompleted(result));
+    return undefined;
   }
 
-  /**
-   * Converts historical horizon states and the current Sun forecast into
-   * continuous, clipped day/night periods. Forecast attributes are only used
-   * for the remaining part of the active calendar day.
-   *
-   * @param {object} sunEntity - Current Home Assistant sun.sun state.
-   */
-  buildDayNightSegments(sunEntity) {
-    const range = this.getDayNightRange();
-    const rangeStart = range.start.getTime();
-    const rangeEnd = range.end.getTime();
-    const horizonStates = this.dayNightHistory.map((row) => ({
-      state: row.state === 'above_horizon' ? 'day' : 'night',
-      time: new Date(row.last_changed).getTime(),
-    }));
-
-    if (range.sourceRangeIsActive) {
-      horizonStates.push({
-        state: sunEntity.state === 'above_horizon' ? 'day' : 'night',
-        time: new Date(sunEntity.last_changed).getTime(),
-      });
+  /** Applies presentation work after History completes an auxiliary sun request. */
+  dayNightHistoryRequestCompleted(result) {
+    if (result.status === 'stale') {
+      if (result.retryImmediately) this.fetchDayNightHistoryIfNeeded();
+      return;
     }
-
-    if (this.config.period.type === 'calendar' && Number(this.config.period.calendar.offset) === 0) {
-      horizonStates.push(
-        { state: 'day', time: new Date(sunEntity.attributes.next_rising).getTime() },
-        { state: 'night', time: new Date(sunEntity.attributes.next_setting).getTime() },
-      );
-    }
-
-    horizonStates.sort((first, second) => first.time - second.time);
-    const transitions = [];
-    horizonStates.forEach((horizonState) => {
-      if (horizonState.time > rangeEnd) return;
-      const previous = transitions[transitions.length - 1];
-      if (previous && previous.state === horizonState.state) return;
-      transitions.push(horizonState);
-    });
-
-    this.dayNightSegments = [];
-    transitions.forEach((transition, index) => {
-      const start = Math.max(rangeStart, transition.time);
-      const end = Math.min(rangeEnd, index < transitions.length - 1 ? transitions[index + 1].time : rangeEnd);
-      if (start >= end) return;
-
-      this.dayNightSegments.push({
-        state: transition.state,
-        start: new Date(start),
-        end: new Date(end),
-      });
-    });
-  }
-
-  /**
-   * Loads the horizon-state history represented by the parent sparkline
-   * period. The auxiliary request never changes graph loading state or clears
-   * already rendered series.
-   *
-   * @param {object} sunEntity - Current Home Assistant sun.sun state.
-   */
-  fetchDayNightHistoryIfNeeded(sunEntity) {
-    const range = this.getDayNightRange();
-    const representedRange =
-      this.dayNightHistory !== undefined &&
-      (this.config.period.type === 'rolling_window'
-        ? this.dayNightRangeStart <= range.start.getTime()
-        : this.dayNightRangeStart === range.start.getTime() && this.dayNightRangeEnd === range.end.getTime());
-
-    if (this.dayNightHistoryPromise) return;
-    if (representedRange && !this.dayNightResynchronizationRequested) {
-      this.buildDayNightSegments(sunEntity);
+    if (result.status === 'failed') {
+      console.error('[FHS sparkline day/night history request failed]', result.error);
+      this.card.requestUpdate();
       return;
     }
 
-    const requestEnd = new Date(Math.min(range.end.getTime(), Date.now()));
-    const requestedPeriodSignature = this.dayNightPeriodSignature;
-    const path = this.sparklineHistory.buildHistoryPath('sun.sun', range.start, requestEnd);
-    this.dayNightHistoryPromise = this.card._hass
-      .callApi('GET', path)
-      .then((history) => {
-        if (requestedPeriodSignature !== this.dayNightPeriodSignature) return;
-
-        this.dayNightHistory = history.length === 0 ? [] : history[0];
-        this.dayNightRangeStart = range.start.getTime();
-        this.dayNightRangeEnd = range.end.getTime();
-        this.dayNightResynchronizationRequested = false;
-        this.buildDayNightSegments(sunEntity);
-        this.card.requestUpdate();
-      })
-      .finally(() => {
-        this.dayNightHistoryPromise = undefined;
-        if (this.dayNightResynchronizationRequested) this.fetchDayNightHistoryIfNeeded(this.card._hass.states['sun.sun']);
-      });
+    this.card.requestUpdate();
   }
 
   /**
@@ -3700,9 +3521,10 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {object|string} Lit SVG day/night layer or an empty result.
    */
   renderDayNightLayer() {
-    if (!this.config.sparkline.show.day_night || this.dayNightSegments.length === 0 || !this.graphReady) return '';
+    const dayNightSegments = this.sparklineHistory.getDayNightSegments();
+    if (!this.config.sparkline.show.day_night || dayNightSegments.length === 0 || !this.graphReady) return '';
 
-    const range = this.getDayNightRange();
+    const range = this.sparklineHistory.getDayNightRange();
     const dayNightConfig = {
       mode: this.config.sparkline.day_night.mode,
       position: this.config.sparkline.day_night.position,
@@ -3712,7 +3534,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     return svg`
       <g class='sparkline-day-night' pointer-events='none'>
-        ${this.dayNightSegments.map((segment) => {
+        ${dayNightSegments.map((segment) => {
           const geometry = this.primaryGraph.getTimeRangeGeometry(segment.start, segment.end, range.start, range.end, dayNightConfig);
           const styles = this.getRenderStyles(this.config.sparkline.day_night[segment.state].styles);
 

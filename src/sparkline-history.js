@@ -17,11 +17,31 @@ export default class SparklineHistory {
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Normalized Sparkline Series items.
    * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
+   * @param {boolean} dayNightEnabled - Whether this History owner also maintains sun history.
+   * @param {object} events - GraphTool continuations for due requests and elapsed bins.
    */
-  constructor(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady) {
+  constructor(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled, events) {
     this.seriesRecords = new Map();
     this.connectedToCard = true;
-    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady);
+    this.events = events;
+    this.binBoundaryTimer = undefined;
+    this.calendarRangeTimer = undefined;
+    this.refreshTiming = undefined;
+    this.dayNightRecord = {
+      rows: undefined,
+      rangeStart: undefined,
+      rangeEnd: undefined,
+      periodSignature: undefined,
+      sunSignature: undefined,
+      sunEntity: undefined,
+      segments: [],
+      requestNumber: 0,
+      requestPromise: undefined,
+      requestTimer: undefined,
+      retryAt: 0,
+      resynchronizationRequested: false,
+    };
+    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled);
   }
 
   /**
@@ -32,13 +52,15 @@ export default class SparklineHistory {
    * @param {object} stateBandsStateMap - Valid categorical states and graph values.
    * @param {Array<object>} seriesItems - Current normalized Sparkline Series items.
    * @param {boolean} historyDurationReady - Whether the evaluated history period can be requested.
+   * @param {boolean} dayNightEnabled - Whether sun history belongs to this Sparkline.
    * @returns {object} History changes that affect GraphTool scheduling.
    */
-  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady) {
+  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, historyDurationReady, dayNightEnabled) {
     this.plotPeriod = plotPeriod;
     this.stateBandsStateMap = stateBandsStateMap;
     this.seriesItems = seriesItems;
     this.historyDurationReady = historyDurationReady;
+    this.dayNightEnabled = dayNightEnabled;
     let periodChanged = false;
 
     const activeIds = new Set(seriesItems.map((item) => item.id));
@@ -46,6 +68,7 @@ export default class SparklineHistory {
       if (!activeIds.has(id)) {
         // Removing a Series also makes every completion created for that source stale.
         record.requestNumber += 1;
+        globalThis.clearTimeout(record.requestTimer);
         this.seriesRecords.delete(id);
       }
     });
@@ -61,6 +84,7 @@ export default class SparklineHistory {
           periodSignature: JSON.stringify(item.config.period),
           requestNumber: 0,
           requestPromise: undefined,
+          requestTimer: undefined,
           loading: false,
           refreshAt: 0,
           retryAt: 0,
@@ -79,6 +103,8 @@ export default class SparklineHistory {
       record.periodSignature = periodSignature;
       record.requestNumber += 1;
       record.requestPromise = undefined;
+      globalThis.clearTimeout(record.requestTimer);
+      record.requestTimer = undefined;
       record.retryAt = 0;
       record.resynchronizationRequested = true;
       record.acceptedResultPending = false;
@@ -89,6 +115,25 @@ export default class SparklineHistory {
       record.loading = requestedRangeIsMissing;
       record.preserveGraphWhileLoading = requestedRangeIsMissing && record.rows !== undefined;
     });
+
+    const dayNightPeriodSignature = JSON.stringify([dayNightEnabled, plotPeriod]);
+    if (dayNightPeriodSignature !== this.dayNightRecord.periodSignature) {
+      // A changed parent period selects another absolute sun range. The old
+      // completion and retry deadline cannot write into that replacement range.
+      globalThis.clearTimeout(this.dayNightRecord.requestTimer);
+      this.dayNightRecord.requestNumber += 1;
+      this.dayNightRecord.rows = undefined;
+      this.dayNightRecord.rangeStart = undefined;
+      this.dayNightRecord.rangeEnd = undefined;
+      this.dayNightRecord.segments = [];
+      this.dayNightRecord.requestPromise = undefined;
+      this.dayNightRecord.requestTimer = undefined;
+      this.dayNightRecord.retryAt = 0;
+      this.dayNightRecord.resynchronizationRequested = dayNightEnabled;
+      this.dayNightRecord.periodSignature = dayNightPeriodSignature;
+    }
+
+    if (periodChanged || !historyDurationReady) this.stopTimeBoundaryUpdates();
 
     return { periodChanged };
   }
@@ -209,10 +254,113 @@ export default class SparklineHistory {
 
   /** Reports request work that must enter the next normal card update pass. */
   requiresHassUpdate() {
-    return this.seriesItems.some((item) => {
+    return this.dayNightRecord.resynchronizationRequested || this.seriesItems.some((item) => {
       const record = this.seriesRecords.get(item.id);
       return record.resynchronizationRequested || record.acceptedResultPending;
     });
+  }
+
+  /**
+   * Schedules the next visible bucket and local-calendar boundary. Repeated HA
+   * state updates recalculate the same absolute deadlines instead of extending
+   * them, so normal entity traffic cannot postpone a graph transition.
+   *
+   * @param {string} chartType - Active parent chart type.
+   * @param {string|number} stateBandsInterval - Exact state-band update interval.
+   * @param {number} binsPerHour - Shared Series bin density.
+   */
+  scheduleTimeBoundaryUpdates(chartType, stateBandsInterval, binsPerHour) {
+    this.refreshTiming = { chartType, stateBandsInterval, binsPerHour };
+    globalThis.clearTimeout(this.binBoundaryTimer);
+    globalThis.clearTimeout(this.calendarRangeTimer);
+    this.binBoundaryTimer = undefined;
+    this.calendarRangeTimer = undefined;
+
+    if (!this.connectedToCard || !this.historyDurationReady) return;
+
+    const historicalItems = this.seriesItems.filter((item) => item.config.period.type !== 'real_time');
+    if (historicalItems.length === 0) return;
+
+    this.scheduleNextBinBoundary();
+    this.scheduleNextCalendarBoundary();
+  }
+
+  /** Schedules only the next active-source bin transition. */
+  scheduleNextBinBoundary() {
+    globalThis.clearTimeout(this.binBoundaryTimer);
+    this.binBoundaryTimer = undefined;
+    const historicalItems = this.seriesItems.filter((item) => item.config.period.type !== 'real_time');
+    const activeSourceExists = historicalItems.some((item) => item.entity !== undefined && this.getSeriesRange(item).sourceRangeIsActive);
+    if (!activeSourceExists) return;
+
+    // State bands advance at their exact configured interval. Every numeric
+    // graph advances at the shared bin boundary selected by Series.
+    const bucketMs = this.refreshTiming.chartType === 'state_bands'
+      ? this.getIntervalMilliseconds(this.refreshTiming.stateBandsInterval)
+      : HOUR_MS / this.refreshTiming.binsPerHour;
+    const now = Date.now();
+    const delay = bucketMs - (now % bucketMs) + 10;
+
+    this.binBoundaryTimer = globalThis.setTimeout(() => {
+      this.binBoundaryTimer = undefined;
+      if (this.dayNightEnabled && this.dayNightRecord.rows !== undefined) this.buildDayNightSegments();
+      this.events.binBoundaryReached();
+      this.scheduleNextBinBoundary();
+    }, delay);
+  }
+
+  /** Schedules only the next local-calendar range transition. */
+  scheduleNextCalendarBoundary() {
+    globalThis.clearTimeout(this.calendarRangeTimer);
+    this.calendarRangeTimer = undefined;
+    if (this.plotPeriod.type !== 'calendar') return;
+
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const delay = nextMidnight.getTime() - now.getTime() + 10;
+
+    this.calendarRangeTimer = globalThis.setTimeout(() => {
+      this.calendarRangeTimer = undefined;
+
+      // A local date transition changes absolute calendar ranges. History
+      // identifies exactly which retained sources no longer cover that day.
+      this.seriesItems.forEach((item) => {
+        if (item.config.period.type === 'real_time') return;
+
+        const range = this.getSeriesRange(item);
+        const record = this.seriesRecords.get(item.id);
+        const rangeChanged = range.sourceStart.getTime() !== record.sourceRangeStart || range.sourceEnd.getTime() !== record.sourceRangeEnd;
+        if (rangeChanged) this.events.seriesHistoryDue(item.id);
+      });
+
+      if (this.dayNightEnabled) {
+        const range = this.getDayNightRange();
+        const rangeChanged = range.start.getTime() !== this.dayNightRecord.rangeStart || range.end.getTime() !== this.dayNightRecord.rangeEnd;
+        if (rangeChanged) this.events.dayNightHistoryDue();
+      }
+
+      this.scheduleNextCalendarBoundary();
+    }, delay);
+  }
+
+  /**
+   * Schedules one retry or configured refresh against the current Series
+   * identity. Source/config replacement clears the timer before it can emit.
+   *
+   * @param {object} item - Current normalized Series item.
+   * @param {number} requestAt - Absolute request deadline in milliseconds.
+   */
+  scheduleSeriesHistoryRequest(item, requestAt) {
+    const record = this.seriesRecords.get(item.id);
+    globalThis.clearTimeout(record.requestTimer);
+
+    record.requestTimer = globalThis.setTimeout(() => {
+      record.requestTimer = undefined;
+      record.retryAt = 0;
+      record.resynchronizationRequested = true;
+      this.events.seriesHistoryDue(item.id);
+    }, Math.max(0, requestAt - Date.now()));
   }
 
   /**
@@ -233,6 +381,198 @@ export default class SparklineHistory {
     if (unit === 's' || unit === 'sec') return value * 1000;
     if (unit === 'm' || unit === 'min') return value * 60 * 1000;
     return value * HOUR_MS;
+  }
+
+  /**
+   * Binds the current sun state and forecast to the separate day/night source.
+   * A changed HA sun value rebuilds presentation segments from retained history
+   * without modifying normal numeric Series records.
+   *
+   * @param {object} sunEntity - Current Home Assistant sun.sun entity.
+   */
+  bindDayNightEntity(sunEntity) {
+    const sunSignature = JSON.stringify([
+      sunEntity.state,
+      sunEntity.last_changed,
+      sunEntity.attributes.next_rising,
+      sunEntity.attributes.next_setting,
+    ]);
+
+    this.dayNightRecord.sunEntity = sunEntity;
+    if (sunSignature === this.dayNightRecord.sunSignature) return;
+
+    this.dayNightRecord.sunSignature = sunSignature;
+    if (this.dayNightRecord.rows !== undefined) this.buildDayNightSegments();
+  }
+
+  /** Returns the parent plot range represented by the shared day/night layer. */
+  getDayNightRange() {
+    const range = this.getSeriesRange({ config: { period: this.plotPeriod } });
+    return {
+      start: range.plotStart,
+      end: range.plotEnd,
+      sourceRangeIsActive: range.sourceRangeIsActive,
+    };
+  }
+
+  /** Returns the clipped sun intervals consumed by GraphTool rendering. */
+  getDayNightSegments() {
+    return this.dayNightRecord.segments;
+  }
+
+  /** Returns day/night request facts for lifecycle and integration tests. */
+  getDayNightRequestFacts() {
+    return {
+      requestPending: this.dayNightRecord.requestPromise !== undefined,
+      retryAt: this.dayNightRecord.retryAt,
+      resynchronizationRequested: this.dayNightRecord.resynchronizationRequested,
+      rangeStart: this.dayNightRecord.rangeStart,
+      rangeEnd: this.dayNightRecord.rangeEnd,
+    };
+  }
+
+  /**
+   * Converts historical horizon states and the current Sun forecast into
+   * continuous, clipped day/night periods on the parent plot timeline.
+   */
+  buildDayNightSegments() {
+    const range = this.getDayNightRange();
+    const rangeStart = range.start.getTime();
+    const rangeEnd = range.end.getTime();
+    const sunEntity = this.dayNightRecord.sunEntity;
+    const horizonStates = this.dayNightRecord.rows.map((row) => ({
+      state: row.state === 'above_horizon' ? 'day' : 'night',
+      time: new Date(row.last_changed).getTime(),
+    }));
+
+    if (range.sourceRangeIsActive) {
+      horizonStates.push({
+        state: sunEntity.state === 'above_horizon' ? 'day' : 'night',
+        time: new Date(sunEntity.last_changed).getTime(),
+      });
+    }
+
+    if (this.plotPeriod.type === 'calendar' && Number(this.plotPeriod.calendar.offset) === 0) {
+      horizonStates.push(
+        { state: 'day', time: new Date(sunEntity.attributes.next_rising).getTime() },
+        { state: 'night', time: new Date(sunEntity.attributes.next_setting).getTime() },
+      );
+    }
+
+    horizonStates.sort((first, second) => first.time - second.time);
+    const transitions = [];
+    horizonStates.forEach((horizonState) => {
+      if (horizonState.time > rangeEnd) return;
+      const previous = transitions[transitions.length - 1];
+      if (previous && previous.state === horizonState.state) return;
+      transitions.push(horizonState);
+    });
+
+    const segments = [];
+    transitions.forEach((transition, index) => {
+      const start = Math.max(rangeStart, transition.time);
+      const end = Math.min(rangeEnd, index < transitions.length - 1 ? transitions[index + 1].time : rangeEnd);
+      if (start >= end) return;
+
+      segments.push({
+        state: transition.state,
+        start: new Date(start),
+        end: new Date(end),
+      });
+    });
+    this.dayNightRecord.segments = segments;
+  }
+
+  /**
+   * Requests the separate sun history represented by the parent period. The
+   * accepted rows build only the background intervals and never enter numeric
+   * Series loading or bin processing.
+   *
+   * @param {object} hass - Home Assistant API client.
+   * @returns {object} Start decision and completion promise.
+   */
+  requestDayNightHistory(hass) {
+    const record = this.dayNightRecord;
+    const range = this.getDayNightRange();
+    const representedRange = record.rows !== undefined
+      && (this.plotPeriod.type === 'rolling_window'
+        ? record.rangeStart <= range.start.getTime()
+        : record.rangeStart === range.start.getTime() && record.rangeEnd === range.end.getTime());
+
+    if (record.requestPromise !== undefined || Date.now() < record.retryAt) {
+      return { started: false, representedRange, range };
+    }
+    if (representedRange && !record.resynchronizationRequested) {
+      this.buildDayNightSegments();
+      return { started: false, representedRange, range };
+    }
+
+    const requestEnd = new Date(Math.min(range.end.getTime(), Date.now()));
+    const requestedPeriodSignature = record.periodSignature;
+    const requestedRangeStart = range.start.getTime();
+    const requestedRangeEnd = range.end.getTime();
+    const requestNumber = record.requestNumber + 1;
+    record.requestNumber = requestNumber;
+    const path = this.buildHistoryPath('sun.sun', range.start, requestEnd);
+
+    const requestPromise = hass.callApi('GET', path).then(
+      (history) => {
+        const requestOwnerStillMatches = this.connectedToCard
+          && record.requestNumber === requestNumber
+          && record.periodSignature === requestedPeriodSignature;
+        if (!requestOwnerStillMatches) {
+          return { status: 'stale', retryImmediately: false };
+        }
+
+        const currentRange = this.getDayNightRange();
+        const rangeStillMatches = this.plotPeriod.type === 'calendar'
+          ? currentRange.start.getTime() === requestedRangeStart && currentRange.end.getTime() === requestedRangeEnd
+          : range.sourceRangeIsActive
+            ? requestedRangeStart <= currentRange.start.getTime()
+            : true;
+        if (!rangeStillMatches) {
+          record.requestPromise = undefined;
+          record.resynchronizationRequested = true;
+          return { status: 'stale', retryImmediately: true };
+        }
+
+        globalThis.clearTimeout(record.requestTimer);
+        record.rows = history.length === 0 ? [] : history[0];
+        record.rangeStart = range.start.getTime();
+        record.rangeEnd = range.end.getTime();
+        record.requestPromise = undefined;
+        record.requestTimer = undefined;
+        record.retryAt = 0;
+        record.resynchronizationRequested = false;
+        this.buildDayNightSegments();
+        return { status: 'accepted', range };
+      },
+      (error) => {
+        const requestStillMatches = this.connectedToCard
+          && record.requestNumber === requestNumber
+          && record.periodSignature === requestedPeriodSignature;
+        if (!requestStillMatches) return { status: 'stale', retryImmediately: false };
+
+        record.requestPromise = undefined;
+        record.retryAt = Date.now() + HISTORY_RETRY_MS;
+        record.resynchronizationRequested = true;
+        globalThis.clearTimeout(record.requestTimer);
+        record.requestTimer = globalThis.setTimeout(() => {
+          record.requestTimer = undefined;
+          record.retryAt = 0;
+          this.events.dayNightHistoryDue();
+        }, HISTORY_RETRY_MS);
+        return { status: 'failed', error, retryAt: record.retryAt };
+      },
+    );
+    record.requestPromise = requestPromise;
+
+    return {
+      started: true,
+      representedRange,
+      range,
+      promise: requestPromise,
+    };
   }
 
   /**
@@ -299,6 +639,8 @@ export default class SparklineHistory {
     const requestedRangeEnd = range.sourceEnd.getTime();
     const requestNumber = record.requestNumber + 1;
     record.requestNumber = requestNumber;
+    globalThis.clearTimeout(record.requestTimer);
+    record.requestTimer = undefined;
     const path = this.buildHistoryPath(item.entity.entity_id, range.sourceStart, range.sourceEnd);
 
     const requestPromise = hass.callApi('GET', path).then(
@@ -335,7 +677,9 @@ export default class SparklineHistory {
         const historyRows = history.length === 0 ? [] : history[0];
         const rebuildGraphConfig = record.preserveGraphWhileLoading;
         this.acceptHistoryRows(currentItem, historyRows, range);
+        globalThis.clearTimeout(record.requestTimer);
         record.requestPromise = undefined;
+        record.requestTimer = undefined;
         record.loading = false;
         record.retryAt = 0;
         record.preserveGraphWhileLoading = false;
@@ -343,6 +687,7 @@ export default class SparklineHistory {
         record.acceptedResultPending = true;
         if (currentItem.config.history.refresh_interval !== undefined) {
           record.refreshAt = Date.now() + this.getIntervalMilliseconds(currentItem.config.history.refresh_interval);
+          this.scheduleSeriesHistoryRequest(currentItem, record.refreshAt);
         }
 
         return {
@@ -367,6 +712,7 @@ export default class SparklineHistory {
         record.loading = false;
         record.retryAt = Date.now() + HISTORY_RETRY_MS;
         record.resynchronizationRequested = true;
+        this.scheduleSeriesHistoryRequest(item, record.retryAt);
         return { status: 'failed', seriesId: item.id, error, retryAt: record.retryAt };
       },
     );
@@ -400,15 +746,24 @@ export default class SparklineHistory {
   /** Invalidates requests while retaining accepted rows across a DOM disconnect. */
   disconnected() {
     this.connectedToCard = false;
+    this.stopTimeBoundaryUpdates();
     this.seriesRecords.forEach((record) => {
+      globalThis.clearTimeout(record.requestTimer);
       record.requestNumber += 1;
       record.requestPromise = undefined;
+      record.requestTimer = undefined;
       record.loading = false;
       record.retryAt = 0;
       record.resynchronizationRequested = false;
       record.preserveGraphWhileLoading = false;
       record.acceptedResultPending = false;
     });
+    globalThis.clearTimeout(this.dayNightRecord.requestTimer);
+    this.dayNightRecord.requestNumber += 1;
+    this.dayNightRecord.requestPromise = undefined;
+    this.dayNightRecord.requestTimer = undefined;
+    this.dayNightRecord.retryAt = 0;
+    this.dayNightRecord.resynchronizationRequested = false;
   }
 
   /** Marks active accepted sources for refresh when their card reconnects. */
@@ -421,7 +776,21 @@ export default class SparklineHistory {
       if (record.rows !== undefined && this.getSeriesRange(item).sourceRangeIsActive) {
         record.resynchronizationRequested = true;
       }
+      if (item.config.history.refresh_interval !== undefined && record.rows !== undefined) {
+        this.scheduleSeriesHistoryRequest(item, record.refreshAt);
+      }
     });
+    if (this.dayNightEnabled && this.dayNightRecord.rows !== undefined) {
+      this.dayNightRecord.resynchronizationRequested = true;
+    }
+  }
+
+  /** Stops wall-clock boundaries while retaining accepted source rows. */
+  stopTimeBoundaryUpdates() {
+    globalThis.clearTimeout(this.binBoundaryTimer);
+    globalThis.clearTimeout(this.calendarRangeTimer);
+    this.binBoundaryTimer = undefined;
+    this.calendarRangeTimer = undefined;
   }
 
   /** Returns whether this Series already has accepted source records. */
@@ -446,8 +815,10 @@ export default class SparklineHistory {
   /** Removes accepted source and prepared records after a source identity change. */
   clearSeries(seriesId) {
     const record = this.seriesRecords.get(seriesId);
+    globalThis.clearTimeout(record.requestTimer);
     record.requestNumber += 1;
     record.requestPromise = undefined;
+    record.requestTimer = undefined;
     record.sourceRows = undefined;
     record.rows = undefined;
     record.sourceRangeStart = undefined;
