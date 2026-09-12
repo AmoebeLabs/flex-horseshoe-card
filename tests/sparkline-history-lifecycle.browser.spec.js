@@ -111,7 +111,7 @@ test('History cancels every owned timer when its card disconnects', async ({ pag
   });
 });
 
-test('a pending series clears the current tooltip and active indicator', async ({ page }) => {
+test('a pending refresh keeps retained tooltip interaction active', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
@@ -143,6 +143,16 @@ test('a pending series clears the current tooltip and active indicator', async (
               activePoint: 4,
               activeX: 36,
               elements: { tooltip, activeIndicator: indicator },
+              mouseEventToPoint: () => ({ x: 20, y: 20 }),
+              pointToGraphX: (point) => point.x,
+              snapPointerXToGraphPoint: (x) => x,
+              getPointIndexFromX: () => 2,
+              updateTooltipFromPointIndex() {
+                this.tooltip = { index: 2, title: '10:00' };
+                this.tooltipVisible = true;
+              },
+              updateTooltipContentDom() {},
+              updateTooltipPositionDom() {},
             });
 
             tool.updateActivePointer(new PointerEvent('pointermove', { clientX: 20, clientY: 20 }));
@@ -168,10 +178,10 @@ test('a pending series clears the current tooltip and active indicator', async (
 
   expect(pageErrors).toEqual([]);
   expect(await page.evaluate(() => window.sparklineTooltipStateResult)).toEqual({
-    tooltipVisible: false,
-    activePoint: undefined,
-    activeX: undefined,
-    tooltipDisplay: 'none',
-    indicatorVisibility: 'hidden',
+    tooltipVisible: true,
+    activePoint: 4,
+    activeX: 20,
+    tooltipDisplay: 'block',
+    indicatorVisibility: 'visible',
   });
 });
