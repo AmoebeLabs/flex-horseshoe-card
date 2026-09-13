@@ -1,0 +1,8 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Flexible Horseshoe Card",
+  "description": "Flexible Horseshoe Card for Home Assistant",
+  "folders": [
+    "docs/docs"
+  ]
+}
