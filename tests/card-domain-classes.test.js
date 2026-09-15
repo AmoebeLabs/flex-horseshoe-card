@@ -473,10 +473,22 @@ test('CardConfig expands calculated constants and independent deep refs', () => 
       spacing: 4,
       width: 'calc(spacing * 2)',
       visual: { width: 'calc(spacing + 1)', styles: { fill: 'red' } },
+      geometry: {
+        horseshoe: {
+          radius: 40,
+          styles: { stroke: 'blue' },
+        },
+      },
+      diameter: 'calc(geometry.horseshoe.radius * 2)',
     },
     layout: {
       controls: [
-        { width: 'calc(width + 2)', visual: 'ref(visual)' },
+        {
+          width: 'calc(width + 2)',
+          radius: 'ref(geometry.horseshoe.radius)',
+          horseshoe: 'ref(geometry.horseshoe)',
+          visual: 'ref(visual)',
+        },
         { visual: 'ref(visual)' },
       ],
     },
@@ -485,7 +497,14 @@ test('CardConfig expands calculated constants and independent deep refs', () => 
   cardConfig.compileStaticValues(config);
 
   assert.equal(config.constants.width, 8);
+  assert.equal(config.constants.diameter, 80);
   assert.equal(config.layout.controls[0].width, 10);
+  assert.equal(config.layout.controls[0].radius, 40);
+  assert.deepEqual(config.layout.controls[0].horseshoe, {
+    radius: 40,
+    styles: { stroke: 'blue' },
+  });
+  assert.notEqual(config.layout.controls[0].horseshoe, config.constants.geometry.horseshoe);
   assert.equal(config.layout.controls[0].visual.width, 5);
   assert.notEqual(config.layout.controls[0].visual, config.layout.controls[1].visual);
   config.layout.controls[0].visual.styles.fill = 'blue';

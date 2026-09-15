@@ -40,11 +40,91 @@ export default class CardConfig {
 
   /** Expands constants, deep-cloned ref() values and static calc() expressions. */
   compileStaticValues(config) {
+    const constantIdentifierPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
     const isCalcExpression = (value) => typeof value === 'string' && value.startsWith('calc(') && value.endsWith(')');
+
+    /*
+     * Resolve JavaScript-like constant paths:
+     *
+     *   ref(theme.colors.warning)
+     *   ref(geometry.horseshoe.radius)
+     *
+     * Each path segment must be a normal JavaScript-style identifier.
+     * Arrays are deliberately not traversed: foo[0].bar is not part of
+     * the static constant path syntax.
+     */
+    const resolveConstantPath = (path, constants) => {
+      const parts = path.split('.');
+
+      if (parts.length === 0 || parts.some((part) => !constantIdentifierPattern.test(part))) {
+        throw new Error(`Invalid static constant path '${path}'`);
+      }
+
+      let resolved = constants;
+
+      parts.forEach((part) => {
+        if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved) || !Object.prototype.hasOwnProperty.call(resolved, part)) {
+          throw new Error(`Static ref '${path}' not found`);
+        }
+
+        resolved = resolved[part];
+      });
+
+      return resolved;
+    };
+
+    /*
+     * Build the part of a constant that is useful inside calc().
+     *
+     * calc() is numeric, so strings, booleans, arrays and other values are
+     * not exposed to the expression scope. Nested numeric objects are retained:
+     *
+     *   constants:
+     *     geometry:
+     *       horseshoe:
+     *         radius: 45
+     *
+     * becomes:
+     *
+     *   geometry.horseshoe.radius
+     *
+     * inside calc().
+     */
+    const buildCalcScopeValue = (value) => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+      }
+
+      const result = Object.create(null);
+
+      Object.entries(value).forEach(([key, entry]) => {
+        // Non-identifier config keys may still exist inside reusable fragments,
+        // but cannot be addressed through JavaScript-style dot notation.
+        if (!constantIdentifierPattern.test(key)) return;
+
+        const calcValue = buildCalcScopeValue(entry);
+
+        if (calcValue !== undefined) {
+          result[key] = calcValue;
+        }
+      });
+
+      return Object.keys(result).length > 0 ? result : undefined;
+    };
+
+    /*
+     * Resolve static calc() expressions recursively.
+     */
     const calculateValue = (value, constants) => {
       if (isCalcExpression(value)) {
         const expression = value.slice(5, -1).trim();
-        if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) throw new Error(`Invalid static calc expression '${value}'`);
+
+        if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(expression)) {
+          throw new Error(`Invalid static calc expression '${value}'`);
+        }
+
         const calcScope = {
           ...constants,
           sin: Math.sin,
@@ -59,51 +139,95 @@ export default class CardConfig {
           sqrt: Math.sqrt,
           PI: Math.PI,
         };
+
         // eslint-disable-next-line no-new-func
         const result = Function(...Object.keys(calcScope), `"use strict"; return (${expression});`)(...Object.values(calcScope));
+
         if (typeof result !== 'number' || !Number.isFinite(result)) {
           throw new Error(`Static calc expression '${value}' did not return a finite number`);
         }
+
         return result;
       }
 
       if (Array.isArray(value)) {
         const evaluatedArray = value.map((entry) => calculateValue(entry, constants));
-        if (value[SameAs.STATIC_REF_MARKER]) Object.defineProperty(evaluatedArray, SameAs.STATIC_REF_MARKER, { value: true });
+
+        if (value[SameAs.STATIC_REF_MARKER]) {
+          Object.defineProperty(evaluatedArray, SameAs.STATIC_REF_MARKER, { value: true });
+        }
+
         return evaluatedArray;
       }
+
       if (value && typeof value === 'object') {
         Object.entries(value).forEach(([key, entry]) => {
           value[key] = calculateValue(entry, constants);
         });
       }
+
       return value;
     };
 
-    const calcConstants = { zpos: { ...DEFAULT_ZPOS } };
+    /*
+     * Compile constants in declaration order.
+     *
+     * Top-level constant names use JavaScript-style identifiers. This makes '.'
+     * unambiguous: it always means "go one level deeper".
+     *
+     * Later constants may use earlier numeric constants or earlier nested
+     * numeric constant namespaces in calc().
+     */
+    const calcConstants = {
+      zpos: { ...DEFAULT_ZPOS },
+    };
+
     const constants = config.constants ?? {};
+
     Object.entries(constants).forEach(([key, value]) => {
+      if (!constantIdentifierPattern.test(key)) {
+        throw new Error(`Invalid constant name '${key}'; use letters, numbers and underscores, and do not use '.'`);
+      }
+
       constants[key] = calculateValue(value, calcConstants);
-      if (typeof constants[key] === 'number' && Number.isFinite(constants[key])) calcConstants[key] = constants[key];
+
+      const calcValue = buildCalcScopeValue(constants[key]);
+
+      if (calcValue !== undefined) {
+        calcConstants[key] = calcValue;
+      }
     });
 
+    /*
+     * Replace ref() expressions throughout the complete configuration.
+     *
+     * Scalars are inserted directly.
+     * Objects and arrays are deep-cloned so every ref() receives its own copy.
+     */
     const replaceRefs = (value) => {
       if (typeof value === 'string' && value.startsWith('ref(') && value.endsWith(')')) {
-        const refName = value.slice(4, -1).trim();
-        if (!(refName in constants)) throw new Error(`Static ref '${refName}' not found`);
-        const constant = constants[refName];
-        const resolvedRef = constant && typeof constant === 'object'
-          ? Merge.mergeDeep(Array.isArray(constant) ? [] : {}, constant)
-          : constant;
-        if (resolvedRef && typeof resolvedRef === 'object') Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, { value: true });
+        const refPath = value.slice(4, -1).trim();
+        const constant = resolveConstantPath(refPath, constants);
+
+        const resolvedRef = constant && typeof constant === 'object' ? Merge.mergeDeep(Array.isArray(constant) ? [] : {}, constant) : constant;
+
+        if (resolvedRef && typeof resolvedRef === 'object') {
+          Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, { value: true });
+        }
+
         return resolvedRef;
       }
-      if (Array.isArray(value)) return value.map((entry) => replaceRefs(entry));
+
+      if (Array.isArray(value)) {
+        return value.map((entry) => replaceRefs(entry));
+      }
+
       if (value && typeof value === 'object') {
         Object.entries(value).forEach(([key, entry]) => {
           value[key] = replaceRefs(entry);
         });
       }
+
       return value;
     };
 
@@ -340,20 +464,7 @@ export default class CardConfig {
   /** Validates every configured tap, hold and double-tap action. */
   validateActionConfigs(config) {
     const gestureProperties = ['tap_action', 'hold_action', 'double_tap_action'];
-    const validActions = [
-      'none',
-      'more-info',
-      'toggle',
-      'perform-action',
-      'call-service',
-      'navigate',
-      'url',
-      'assist',
-      'fire-dom-event',
-      'increment',
-      'decrement',
-      'select-option',
-    ];
+    const validActions = ['none', 'more-info', 'toggle', 'perform-action', 'call-service', 'navigate', 'url', 'assist', 'fire-dom-event', 'increment', 'decrement', 'select-option'];
 
     const visit = (value, configPath) => {
       if (Array.isArray(value)) {
