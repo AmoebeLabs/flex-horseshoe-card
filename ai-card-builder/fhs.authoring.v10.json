@@ -1,0 +1,167 @@
+{
+  "card/constants.yaml": {
+    "constants": {
+      "ref_syntax": "ref(name)",
+      "calc_syntax": "calc(name + other_name)",
+      "note": "Constants are addressed directly by name; there is no const. prefix."
+    }
+  },
+  "common/dynamic-values.yaml": {
+    "coordinate_system": {
+      "name": "FHS logical coordinate system",
+      "standard_card": "A 1/1 card is authored as a 100 x 100 logical canvas.",
+      "origin": "0,0 is the top-left of the logical card; x grows right and y grows down.",
+      "center": [
+        50,
+        50
+      ],
+      "edges": {
+        "left_x": 0,
+        "right_x": 100,
+        "top_y": 0,
+        "bottom_y": 100
+      },
+      "internal_svg": "The runtime base SVG dimension is 200. Normal logical dimensions are converted with logical/100*200, so 1 logical unit = 2 internal SVG units.",
+      "aspectratio": "Aspect ratio multiplies the reference dimensions. 2/1 yields a 400 x 200 internal SVG viewBox, corresponding to a 200 x 100 logical canvas.",
+      "examples": [
+        {
+          "description": "Center an ungrouped item",
+          "xpos": 50,
+          "ypos": 50
+        },
+        {
+          "description": "Place an item one quarter from the left and halfway down",
+          "xpos": 25,
+          "ypos": 50
+        }
+      ]
+    },
+    "typography": {
+      "base_internal_font_size": 12,
+      "base_svg_dimension": 200,
+      "logical_em_equivalent": 6,
+      "rule": "For normal FHS text, 1em corresponds to approximately 6 logical units on the standard 100-unit card; 2em is approximately 12 logical units.",
+      "warning": "CSS/em font sizes are not raw FHS width/height numbers. Do not interpret 1em as 1 logical unit."
+    },
+    "dimension_spaces": {
+      "fhs-logical": "Positions and most geometry use the 100-unit logical reference scale.",
+      "raw-svg": "A few legacy fields use internal SVG units directly; those fields are explicitly marked.",
+      "css-style": "CSS/SVG style properties such as font-size and stroke-width use their own style semantics.",
+      "degrees": "Rotation and angular path values are expressed in degrees."
+    }
+  },
+  "common/reuse.yaml": {
+    "reuse": {
+      "rule": "Prefer symbolic layout over repeated literals.",
+      "constants_when": [
+        "the same value or configuration block is used more than once",
+        "row items share one y coordinate",
+        "column items share one x coordinate",
+        "positions form a regular sequence",
+        "colors, color stops, styles, dimensions, margins, or gaps repeat"
+      ],
+      "calc_when": "Use named start/spacing constants for regular rows, columns, and repeated spacing.",
+      "ref_semantics": "A ref() is the referenced value. Inside same_as it replaces that exact inherited path rather than deep-merging with it.",
+      "same_as_semantics": "When same_as is present, fields normally required on a standalone item may be inherited and therefore omitted locally.",
+      "delta_semantics": "same_as_d<field> is generated only for known numeric/delta-capable fields and accepts a static numeric offset, ref(), or calc()."
+    }
+  },
+  "common/state-map.yaml": {
+    "state_map": {
+      "purpose": "Shared public FHS state-to-display/value mapping contract used by tools that explicitly support state_map.",
+      "note": "Entry fields differ by consumer; keep the shared container permissive until the consumer-specific contracts are fully documented."
+    }
+  },
+  "layout/circles.yaml": {
+    "circles": {
+      "preferred_radius": "radius_percent",
+      "legacy_radius": "Supported for compatibility; legacy radius is raw SVG units. Preserve size with radius_percent = radius / 2."
+    }
+  },
+  "layout/controls.yaml": {
+    "control_content": {
+      "icon_item_size": {
+        "context": "content.content_horizontal.items[] or content.content_vertical.items[] with type: icon",
+        "field": "size",
+        "meaning": "Percentage of the control content cell, converted internally to IconTool icon_size_percent.",
+        "warning": "Do not rename this field to icon_size; ControlContent reads item.size."
+      }
+    }
+  },
+  "layout/groups.yaml": {
+    "groups": {
+      "design_reason": "Groups use 50,50 as their local no-offset position so a newly grouped item remains visible at the group center. Authors can design grouped content around the middle instead of around 0,0 where part of it could fall outside the card.",
+      "neutral_item_position": [
+        50,
+        50
+      ],
+      "formula": {
+        "x": "final_x = group.xpos + item.xpos - 50",
+        "y": "final_y = group.ypos + item.ypos - 50"
+      },
+      "nested_groups": "The same 50-centered formula is applied recursively to parent groups.",
+      "examples": [
+        {
+          "group": {
+            "xpos": 30,
+            "ypos": 40
+          },
+          "item": {
+            "xpos": 50,
+            "ypos": 50
+          },
+          "final": [
+            30,
+            40
+          ]
+        },
+        {
+          "group": {
+            "xpos": 30,
+            "ypos": 40
+          },
+          "item": {
+            "xpos": 60,
+            "ypos": 45
+          },
+          "final": [
+            40,
+            35
+          ]
+        }
+      ]
+    }
+  },
+  "layout/icons.yaml": {
+    "icons": {
+      "sizing": {
+        "size": "current generic font-size-based alias",
+        "icon_size": "current font-size-based sizing intended to match text visually",
+        "icon_size_percent": "current geometric sizing relative to the SVG/card",
+        "precedence": "icon_size_percent > icon_size > size",
+        "note": "Do not replace control content-items[].type=icon size with icon_size; that is a different public interface."
+      }
+    }
+  },
+  "ai/card-builder.yaml": {
+    "ai_card_builder": {
+      "authority": {
+        "schema": "Use the matching fhs.schema.vN.json as the authoritative public FHS syntax/structure contract.",
+        "semantics": "Use schema description fields for field meaning.",
+        "relationships": "Use x-fhs-relationships for activation, inheritance, overrides, fallbacks, references and cross-field effects.",
+        "internet": "Do not replace or mix this contract with syntax inferred from other Home Assistant cards or conflicting internet examples."
+      },
+      "existing_cards": {
+        "rule": "Preserve valid existing configuration and make the smallest coherent change required by the user.",
+        "reuse": "Prefer existing entity bindings, ids, templates, same_as, constants, ref(), calc() and inherited configuration over unnecessary duplication."
+      },
+      "color_stops": {
+        "shared_model": "Entity-level color_stops may be consumed by color-stop-aware tools through entity_index when the relevant show mode activates them.",
+        "preferred_reusable_shape": "When the color model includes a shared numeric domain, prefer color_stops.scales.default together with colors so scale and palette travel as one reusable model.",
+        "compatibility": "Compact color-stop mappings/lists remain valid; do not reject them merely because the explicit reusable object form is preferred for authoring."
+      },
+      "uncertainty": "If requested behavior cannot be derived from the schema, descriptions or relationships, say that it is not established by the supplied FHS definition instead of inventing a field.",
+      "design_choices": "Clearly distinguish schema/runtime facts from reasonable visual choices such as xpos/ypos, spacing, dimensions and font sizes."
+    }
+  }
+}
