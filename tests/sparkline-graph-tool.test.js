@@ -2418,11 +2418,19 @@ test('history spinner follows only explicit loading request state', () => {
 test('retained presentation renders a loading spinner without disabling interaction', () => {
   const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
     sparklineSeries: {
-      items: [{ requestState: 'loading', dataState: 'has_data' }],
+      items: [{
+        requestState: 'loading',
+        dataState: 'has_data',
+        graph: {
+          drawArea: { x: 0, y: 0, width: 100, height: 50 },
+        },
+      }],
+      primaryItem: {
+        graph: {
+          drawArea: { x: 0, y: 0, width: 100, height: 50 },
+        },
+      },
       dataState: 'has_data',
-    },
-    primaryGraph: {
-      drawArea: { x: 0, y: 0, width: 100, height: 50 },
     },
     config: {
       sparkline: {
@@ -2435,7 +2443,7 @@ test('retained presentation renders a loading spinner without disabling interact
   });
 
   const spinner = tool.renderHistoryLoadingSpinner();
-  assert.match(spinner.strings.join(''), /sparkline-history-loading/);
+  assert.match(spinner.strings.join(''), /sparkline-history-spinner/);
 });
 
 test('real-time and state-band results omit metadata that does not apply', () => {
