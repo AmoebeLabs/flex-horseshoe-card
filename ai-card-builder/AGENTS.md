@@ -9,7 +9,7 @@ Always use the highest numeric version for which both files exist in this direct
 - `fhs.schema.vN.json`
 - `fhs.authoring.vN.json`
 
-The schema and authoring file must use the same version number. If v10 and v11 are both present, use v11. Only use an older version when the user explicitly requests that version.
+The schema and authoring file must use the same version number. If v11 and v12 are both present, use v12. Only use an older version when the user explicitly requests that version.
 
 ## Source of truth
 
@@ -29,7 +29,17 @@ Do not infer FHS syntax from Swiss Army Knife Card, Mushroom, button-card, gauge
 
 Do not invent fields, nesting, modes, or relationships. If requested behavior cannot be derived from the supplied schema, descriptions, relationships, or authoring file, say that it is not established by the supplied FHS definition.
 
-## v11 runtime-parity rules
+## External knowledge and standards
+
+The FHS v12 schema, relationships, and authoring file are authoritative for FHS configuration syntax and behavior.
+
+External sources may be used to understand general concepts such as Home Assistant entity terminology, JavaScript language semantics, and SVG/CSS presentation properties. They must never be used to invent, extend, replace, or override FHS fields, nesting, enum values, relationships, or runtime context.
+
+Similarity is not compatibility. A feature that looks like a Home Assistant helper or another custom card feature does not inherit that product's configuration syntax unless the FHS contract explicitly says so.
+
+FHS visual tools render primarily as SVG. Standard SVG/CSS presentation knowledge is appropriate inside documented FHS style fields. Do not introduce HTML elements or HTML-only layout assumptions such as flex/grid merely because `styles` uses CSS-like properties.
+
+## v12 runtime-parity rules
 
 ### Sparkline
 
@@ -44,6 +54,60 @@ For `layout.sparklines[]`:
 - treat grid, axis, tickmarks, and labels as independent show switches, limited only by the selected chart family's axis capabilities.
 
 For radial series, `chart_variant` is `line`, `area`, or `dots`. Radial series share the parent `sparkline.radial` geometry.
+
+`chart_variant` and `chart_viz` are not universal selectors. Use the v12 selector matrix:
+- `barcode`: optional `chart_variant` = `audio`, `stalactites`, or `stalagmites`; omit `chart_viz`;
+- `graded`: optional `chart_variant` = `rank_order`; omit `chart_viz`;
+- `radial`: `chart_variant` = `line`, `area`, or `dots`; omit `chart_viz`;
+- `radial_barcode`: `chart_variant` = `fixed`, `sunburst`, `sunburst_centered`, `sunburst_outward`, or `sunburst_inward`; `chart_viz` = `bar`, `flower`, `flower2`, or `rice_grain`;
+- other chart families: omit both selectors.
+
+When a selector is not meaningful, omit the field. Do not invent placeholders such as `default`, `none`, or `standard`.
+
+### Browser-local FHS entities
+
+`fhs_input_number`, `fhs_input_boolean`, and `fhs_input_select` are entity domains, not complete entity ids and not control child blocks.
+
+Define them as ordinary root `entities[]` entries using normal `domain.object_id` syntax:
+
+```yaml
+entities:
+  - entity: fhs_input_number.horseshoe_width
+    initial: 6
+    min: 2
+    max: 20
+    step: 1
+    scope: card
+```
+
+Bind controls through `entity_index`. Do not author `controls[].fhs_input_number:` or a bare `entity: fhs_input_number`.
+
+Use FHS-local inputs for settings that belong only to the card/browser. Use a Home Assistant helper when automations, other dashboards, or other devices need the same value.
+
+### JavaScript templates
+
+Treat the documented JavaScript context as a runtime API:
+
+- `state`: current bound item's resolved state/attribute;
+- `entity`: complete current bound entity;
+- `entities`: resolved FHS card entity list, including configured FHS-local inputs;
+- `entity_slots`: slot name to entity-index arrays;
+- `states`: Home Assistant `hass.states`;
+  when reading `states['domain.object_id']`, also list that HA entity in root `entities[]` so its changes update the card;
+- `hass`: Home Assistant frontend object;
+- `constants`: resolved card constants;
+- `item`: current FHS item context;
+- `user`: current Home Assistant user.
+
+`entities` and `states` are not aliases. Read an FHS-local input through `entities[index].state` (or a named slot), not by assuming it exists in `states`.
+
+Do not invent context interfaces such as `tools.<id>.value`. General JavaScript language features are allowed, but the available FHS context is only what v12 documents.
+
+A JavaScript template returns the complete value for the containing YAML field. Its result must satisfy that field's documented type/value semantics.
+
+### Slider numeric metadata
+
+For sliders, `interaction` is for pointer/write behavior such as `update_interval` and `haptic`. Numeric `min`, `max`, and `step` belong to `scale` or to the bound numeric entity. Do not author `interaction.step`.
 
 ### Constants
 
@@ -74,6 +138,26 @@ Generic actions do not include `increment`, `decrement`, or `set-value`.
 - `mask` may be one name or an array; arrays are nested in order;
 - masks are applied before the clip;
 - `soft_arc` derives geometry from the first arc in its referenced clip.
+
+## Mandatory final validation pass
+
+Generation is not validation.
+
+After creating or modifying a complete FHS configuration, and before returning it to the user, perform a separate final validation pass using the matching v12 files as authority. Re-read the completed configuration as a whole and correct violations before output.
+
+Check at least:
+
+1. every field exists in the schema and is at the correct hierarchy level;
+2. required discriminators and required fields are present;
+3. static enum/selector values are valid for the selected type or chart family;
+4. relevant `x-fhs-relationships` are satisfied, including activation, references, inheritance, overrides and fallbacks;
+5. `entity_index`, slots, ids, `same_as`, `ref()`, `calc()`, gradients and control bindings resolve coherently;
+6. FHS-local entities use complete `domain.object_id` syntax and live under `entities[]`;
+7. JavaScript uses only documented template context values and returns a valid value for the receiving field;
+8. numeric control metadata is placed on the bound entity or documented control scale, not guessed into interaction fields;
+9. one part of the final configuration does not contradict another.
+
+Validation must use the supplied FHS specification, not the model's recollection of FHS, Home Assistant, an internet example, or the configuration it just generated. If behavior cannot be established from the v12 contract, state the uncertainty instead of inventing a solution.
 
 ## Existing FHS cards
 
