@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generator/generate.mjs definitions generated"
+  },
+  "devDependencies": {
+    "yaml": "^2.8.1"
+  }
+}

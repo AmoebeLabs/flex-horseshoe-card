@@ -1,0 +1,142 @@
+namespace: layout
+definitions:
+  rectangles:
+    type: array
+    items:
+      $ref: layout.rectangle
+    description: Public FHS schema definition for layout rectangles.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  rectangle:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          width:
+            anyOf:
+              - $ref: common.dynamicNumber
+              - $ref: common.itemReference
+            description: Width used by this object. Unless a more specific description says otherwise, layout 
+              geometry uses FHS logical units where 100 equals the width of a 1/1 reference card.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-dimension
+          height:
+            anyOf:
+              - $ref: common.dynamicNumber
+              - $ref: common.itemReference
+            description: Height used by this object. Unless a more specific description says otherwise, layout
+              geometry uses FHS logical units where 100 equals the height of a 1/1 reference card.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-dimension
+          fit:
+            $ref: common.fitReference
+            description: Reference to another item whose measured geometry determines this item size/fit. This
+              allows a background or shape to follow rendered content.
+            x-fhs-semantic-source: schema-context-v8
+          radius:
+            $ref: common.rectangleRadius
+            description: Radius used by this object. See the containing tool description for whether it is a 
+              normal FHS logical dimension or a legacy/raw SVG value.
+            x-fhs-semantic-source: schema-context-v8
+          fill_mask:
+            anyOf:
+              - const: auto
+              - $ref: common.nonNegativeNumber
+            description: Controls the inner fill mask used to keep translucent fill and stroke from visually 
+              blending. auto lets FHS derive the mask inset.
+            x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Rectangle shape positioned on the FHS logical 100-unit reference canvas.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    rectangle:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8
+        width:
+          anyOf:
+            - $ref: common.dynamicNumber
+            - type: object
+              properties:
+                section:
+                  type: string
+                  description: Layout section containing the referenced item, for example states, texts or 
+                    rectangles.
+                  x-fhs-semantic-source: schema-context-v8
+                item_id:
+                  description: ID of the referenced layout item.
+                  x-fhs-semantic-source: schema-context-v8
+                padding:
+                  $ref: common.dynamicNumber
+                  description: Extra spacing around the referenced/contained geometry. Units follow the 
+                    containing geometry; ordinary layout dimensions use the 100-unit FHS logical scale.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: false
+          description: Width used by this object. Unless a more specific description says otherwise, layout 
+            geometry uses FHS logical units where 100 equals the width of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension
+        height:
+          anyOf:
+            - $ref: common.dynamicNumber
+            - type: object
+              properties:
+                section:
+                  type: string
+                  description: Layout section containing the referenced item, for example states, texts or 
+                    rectangles.
+                  x-fhs-semantic-source: schema-context-v8
+                item_id:
+                  description: ID of the referenced layout item.
+                  x-fhs-semantic-source: schema-context-v8
+                padding:
+                  $ref: common.dynamicNumber
+                  description: Extra spacing around the referenced/contained geometry. Units follow the 
+                    containing geometry; ordinary layout dimensions use the 100-unit FHS logical scale.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: false
+          description: Height used by this object. Unless a more specific description says otherwise, layout 
+            geometry uses FHS logical units where 100 equals the height of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension

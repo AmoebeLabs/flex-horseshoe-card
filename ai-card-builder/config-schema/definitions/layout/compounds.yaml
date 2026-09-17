@@ -1,0 +1,172 @@
+namespace: layout
+definitions:
+  compounds:
+    type: array
+    items:
+      $ref: layout.compound
+    description: Public FHS schema definition for layout compounds.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  compound:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse and cross-item
+          references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      same_as:
+        description: ID of an earlier item in the same section to inherit with FHS same_as. Local fields override the inherited
+          object; nested object overrides may be partial because FHS merges them deeply.
+        x-fhs-semantic-source: schema-context-v8
+      same_as_replace:
+        type: array
+        items:
+          type: string
+        description: List of inherited paths that should be replaced rather than deep-merged by same_as processing.
+        x-fhs-semantic-source: schema-context-v8
+      entity_index:
+        $ref: common.entityIndex
+        description: Index or named entity slot selecting one configured card entity for this item.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: entity-index
+        examples:
+        - 0
+        - 1
+      xpos:
+        $ref: common.dynamicNumber
+        description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+          left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+          + item.xpos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      ypos:
+        $ref: common.dynamicNumber
+        description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+          top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+          + item.ypos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      group:
+        description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50 produces no
+          offset and appears at the group position; values above or below 50 move relative to that group center.'
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 internal
+          SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is approximately 6 logical
+          units.
+        x-fhs-semantic-source: schema-context-v8
+      color_stops:
+        $ref: common.colorStops
+        description: FHS color-stop definition used to map numeric or string entity states to colors and optional styles.
+        x-fhs-semantic-source: schema-context-v8
+      horseshoes:
+        type: array
+        items:
+          $ref: layout.horseshoe
+        description: Current horseshoe/progress gauge items.
+        x-fhs-semantic-source: schema-context-v8
+      horseshoes_v2:
+        type: array
+        items:
+          $ref: layout.horseshoe
+        description: Compatibility alias for horseshoe items.
+        x-fhs-semantic-source: schema-context-v8
+      states:
+        type: array
+        items:
+          $ref: layout.state
+        description: Entity-state text items.
+        x-fhs-semantic-source: schema-context-v8
+      texts:
+        type: array
+        items:
+          $ref: layout.text
+        description: Free/multipart text items.
+        x-fhs-semantic-source: schema-context-v8
+      names:
+        type: array
+        items:
+          $ref: layout.name
+        description: Entity-name text items.
+        x-fhs-semantic-source: schema-context-v8
+      areas:
+        type: array
+        items:
+          $ref: layout.area
+        description: Entity-area text items.
+        x-fhs-semantic-source: schema-context-v8
+      circles:
+        type: array
+        items:
+          $ref: layout.circle
+        description: Circle shapes.
+        x-fhs-semantic-source: schema-context-v8
+      arcs:
+        type: array
+        items:
+          $ref: layout.arc
+        description: Arc shapes.
+        x-fhs-semantic-source: schema-context-v8
+      rectangles:
+        type: array
+        items:
+          $ref: layout.rectangle
+        description: Rectangle shapes.
+        x-fhs-semantic-source: schema-context-v8
+      polygons:
+        type: array
+        items:
+          $ref: layout.polygon
+        description: Polygon shapes.
+        x-fhs-semantic-source: schema-context-v8
+      lines:
+        type: array
+        items:
+          $ref: layout.line
+        description: Current generic line items.
+        x-fhs-semantic-source: schema-context-v8
+      hlines:
+        type: array
+        items:
+          $ref: layout.line
+        description: Legacy horizontal line items.
+        x-fhs-semantic-source: schema-context-v8
+      vlines:
+        type: array
+        items:
+          $ref: layout.line
+        description: Legacy vertical line items.
+        x-fhs-semantic-source: schema-context-v8
+      icons:
+        type: array
+        items:
+          $ref: layout.icon
+        description: Icon items.
+        x-fhs-semantic-source: schema-context-v8
+      sparklines:
+        type: array
+        items:
+          $ref: layout.sparkline
+        description: Historical chart items.
+        x-fhs-semantic-source: schema-context-v8
+      controls:
+        type: array
+        items:
+          $ref: layout.control
+        description: Interactive controls.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Container that applies common configuration to a collection of child FHS layout tools.
+    x-fhs-semantic-source: schema-semantic-pass-v8

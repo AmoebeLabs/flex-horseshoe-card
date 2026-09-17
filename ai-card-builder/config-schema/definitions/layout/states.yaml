@@ -1,0 +1,114 @@
+namespace: layout
+definitions:
+  states:
+    type: array
+    items:
+      $ref: layout.state
+    description: Public FHS schema definition for layout states.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  state:
+    allOf:
+      - $ref: common.textBase
+      - type: object
+        properties:
+          show:
+            type: object
+            properties:
+              uom:
+                anyOf:
+                  - enum:
+                      - none
+                      - end
+                      - top
+                      - bottom
+                  - $ref: common.javascript
+                description: Unit-of-measurement display configuration for state-derived text.
+                x-fhs-semantic-source: schema-context-v8
+              item_style:
+                description: Visual style/mode selector for the containing tool.
+                x-fhs-semantic-source: schema-context-v8
+            additionalProperties: true
+            description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+            x-fhs-semantic-source: schema-context-v8
+          uom:
+            type: object
+            additionalProperties: true
+            description: Unit-of-measurement display configuration for state-derived text.
+            x-fhs-semantic-source: schema-context-v8
+          state_map:
+            $ref: common.stateMap
+            description: Maps textual/entity states to derived values or labels for StateTool rendering, 
+              including state_value mappings used with numeric color stops.
+            x-fhs-semantic-source: schema-context-v8
+          format:
+            description: State formatting mode or object-form formatting options. String modes follow the 
+              current StateTool formatter; object form carries detailed number/raw-state formatting options.
+            anyOf:
+              - type: object
+                additionalProperties: true
+              - enum:
+                  - relative
+                  - total
+                  - datetime
+                  - datetime-short
+                  - datetime-short_with-year
+                  - datetime_seconds
+                  - datetime-numeric
+                  - date
+                  - date_month
+                  - date_month_year
+                  - date-short
+                  - date-numeric
+                  - date_weekday
+                  - date_weekday_day
+                  - date_weekday-short
+                  - time
+                  - time-24h
+                  - time-24h_date-short
+                  - time_weekday
+                  - time_seconds
+                  - brightness
+                  - brightness_pct
+                  - duration
+            x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout state.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    state:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8
+        show:
+          anyOf:
+            - type: object
+              additionalProperties: true
+            - $ref: common.ref
+            - $ref: common.javascript
+            - type: object
+              properties:
+                uom:
+                  anyOf:
+                    - enum:
+                        - none
+                        - end
+                        - top
+                        - bottom
+                    - $ref: common.javascript
+                  description: Unit-of-measurement display configuration for state-derived text.
+                  x-fhs-semantic-source: schema-context-v8
+                item_style:
+                  description: Visual style/mode selector for the containing tool.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        max_characters:
+          $ref: common.dynamicNumber
+          description: Configuration field `max_characters` for layout state. Its accepted shape and values 
+            are defined by this schema node.
+          x-fhs-semantic-source: schema-contract-v8

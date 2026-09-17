@@ -1,0 +1,100 @@
+namespace: layout
+definitions:
+  masks:
+    type: object
+    additionalProperties:
+      $ref: layout.mask
+    description: Public FHS schema definition for layout masks.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  mask:
+    type: object
+    properties:
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 
+          12 internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 
+          1em is approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+      rectangles:
+        type: array
+        items:
+          $ref: common.definitionRectangle
+        description: Rectangle primitives painted into this named SVG mask.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      circles:
+        type: array
+        items:
+          $ref: common.definitionCircle
+        description: Circle primitives painted into this named SVG mask.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      arcs:
+        type: array
+        items:
+          $ref: common.definitionArc
+        description: Arc primitives painted into this named SVG mask.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      soft_arc:
+        $ref: layout.softArc
+        description: Soft-edge arc mask configuration.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout mask.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  softArc:
+    type: object
+    properties:
+      clip:
+        type: string
+        description: Name of one layout.clips definition. ref()/JavaScript may resolve to this string before 
+          rendering.
+        x-fhs-semantic-source: runtime-verified-v11
+      edge:
+        $ref: layout.softArcFade
+        description: Fade definition for the arc edge.
+        x-fhs-semantic-source: schema-context-v8
+      chord:
+        $ref: layout.softArcFade
+        description: Fade definition for the closing chord.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+      - clip
+      - edge
+      - chord
+    additionalProperties: false
+    description: Public FHS schema definition for layout softArc.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  softArcFade:
+    type: object
+    properties:
+      stops_start:
+        $ref: common.dynamicNumber
+        description: Start position for generated fade stops.
+        x-fhs-semantic-source: schema-context-v8
+      stops:
+        type: array
+        items:
+          type: object
+          properties:
+            offset:
+              $ref: common.dynamicNumber
+              description: Offset applied by the containing feature. Units depend on that feature and are 
+                documented in its definition when different from normal FHS logical units.
+              x-fhs-semantic-source: schema-context-v8
+            opacity:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: Opacity from 0 (transparent) to 1 (opaque).
+              x-fhs-semantic-source: schema-context-v8
+              x-fhs-unit: ratio-0-1
+          required:
+            - offset
+            - opacity
+          additionalProperties: false
+        description: Ordered SVG gradient/fade stops.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+      - stops_start
+    additionalProperties: false
+    description: Public FHS schema definition for layout softArcFade.
+    x-fhs-semantic-source: schema-semantic-pass-v8

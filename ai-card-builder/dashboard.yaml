@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+import json
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+schema = json.loads((ROOT / "config-schema/generated/fhs.schema.json").read_text())
+r = schema["x-fhs-relationships"]
+assert r["non_validating"] is True
+assert set(r["vocabulary"]) == {"provides","requires","activates","overrides","fallback","references","affects"}
+by_id = {x["id"]: x for x in r["relations"]}
+assert by_id["entity-color-stops-provide-palette"]["type"] == "provides"
+assert by_id["layout-item-style-activates-color-stops"]["when"]["in"] == ["colorstop","colorstopsegments","colorstopinterpolated"]
+assert by_id["item-color-stops-override-entity-palette"]["type"] == "overrides"
+assert by_id["horseshoe-style-activates-color-stops"]["type"] == "activates"
+assert by_id["fit-references-item-geometry"]["type"] == "references"
+assert by_id["group-affects-position"]["type"] == "affects"
+assert by_id["state-uom-show-activates-uom"]["type"] == "activates"
+assert by_id["state-format-decimals-max-overrides-default"]["type"] == "overrides"
+assert by_id["horseshoe-background-width-fallback"]["type"] == "fallback"
+assert by_id["item-action-overrides-entity-action"]["type"] == "overrides"
+assert by_id["slider-range-variant-requires-two-values"]["type"] == "requires"
+assert by_id["nested-group-affects-position"]["from"] == "layout.groups[].parent"
+print(f"behavior-schema-tests: OK ({len(by_id)} relations)")

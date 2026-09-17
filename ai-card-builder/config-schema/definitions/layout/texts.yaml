@@ -1,0 +1,241 @@
+namespace: layout
+definitions:
+  texts:
+    type: array
+    items:
+      $ref: layout.text
+    description: Public FHS schema definition for layout texts.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  text:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          text:
+            anyOf:
+              - type: string
+              - type: number
+              - $ref: common.javascript
+              - $ref: common.ref
+              - $ref: layout.textPart
+              - type: array
+                items:
+                  anyOf:
+                    - type: string
+                    - type: number
+                    - $ref: layout.textPart
+            description: Text value or text-content configuration rendered by this tool/control.
+            x-fhs-semantic-source: schema-context-v8
+          localize_tag:
+            description: Home Assistant localization key resolved to display text before FHS text 
+              overflow/fitting is applied.
+            x-fhs-semantic-source: schema-context-v8
+          text_overflow:
+            type: object
+            properties:
+              mode:
+                enum:
+                  - wrap
+                  - ellipsis
+                  - fit
+                description: Mode selector for the containing configuration.
+                x-fhs-semantic-source: schema-context-v8
+              wrap:
+                $ref: layout.textOverflowMode
+                description: Wrapping configuration used when text_overflow.mode is wrap.
+                x-fhs-semantic-source: schema-context-v8
+              ellipsis:
+                $ref: layout.textOverflowMode
+                description: Ellipsis limit/configuration used to shorten overflowing text.
+                x-fhs-semantic-source: schema-context-v8
+              fit:
+                $ref: layout.textOverflowFit
+                description: Reference to another item whose measured geometry determines this item size/fit. 
+                  This allows a background or shape to follow rendered content.
+                x-fhs-semantic-source: schema-context-v8
+            additionalProperties: false
+            description: 'Text overflow strategy: wrapping, ellipsis or font fitting.'
+            x-fhs-semantic-source: schema-context-v8
+        required:
+          - text
+    unevaluatedProperties: false
+    description: Free/multipart text tool positioned in the FHS logical coordinate system.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  textPart:
+    type: object
+    properties:
+      type:
+        enum:
+          - text
+          - name
+          - area
+          - state
+        description: Multipart text source type. text is literal/configured content; name, area and state 
+          reference the corresponding FHS layout source/tool semantics.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      value:
+        description: Mapped or submitted value used by the containing state map, option or control.
+        x-fhs-semantic-source: schema-context-v8
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse 
+          and cross-item references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      entity_index:
+        $ref: common.entityIndex
+        description: Index or named entity slot selecting one configured card entity for this item.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: entity-index
+        examples:
+          - 0
+          - 1
+      new_line:
+        description: Starts this multipart text part on a new line.
+        x-fhs-semantic-source: schema-context-v8
+      dx:
+        $ref: common.dynamicNumber
+        description: Horizontal offset applied to the current text/content position.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-offset
+      dy:
+        $ref: common.dynamicNumber
+        description: Vertical offset applied to the current text/content position.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-offset
+      localize_tag:
+        description: Home Assistant localization key resolved to display text before FHS text overflow/fitting
+          is applied.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 
+          12 internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 
+          1em is approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+      source_styles:
+        $ref: common.dynamicBoolean
+        description: Whether styles from a referenced source text/state/name/area tool are preserved.
+        x-fhs-semantic-source: schema-context-v8
+      uom:
+        type: object
+        additionalProperties: true
+        description: Unit-of-measurement display configuration for state-derived text.
+        x-fhs-semantic-source: schema-context-v8
+      show:
+        type: object
+        additionalProperties: true
+        description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+        x-fhs-semantic-source: schema-context-v8
+      state_map:
+        type: object
+        additionalProperties: true
+        description: Maps entity/string states to numeric values, labels, ranks, icons or other 
+          state-dependent data. state_value is commonly used to convert textual states into numeric values for
+          color stops or geometry.
+        x-fhs-semantic-source: schema-context-v8
+      color_stops:
+        $ref: common.colorStops
+        description: FHS color-stop definition used to map numeric or string entity states to colors and 
+          optional styles.
+        x-fhs-semantic-source: schema-context-v8
+      animation_id:
+        description: Identifier selecting an animation/style entry for this item.
+        x-fhs-semantic-source: schema-context-v8
+      ellipsis:
+        $ref: common.dynamicNumber
+        description: Ellipsis limit/configuration used to shorten overflowing text.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: One part of multipart text, which may be literal text or reference a name, area or state 
+      source.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  textOverflowMode:
+    type: object
+    properties:
+      characters:
+        $ref: common.positiveNumber
+        description: Maximum character count used by this overflow mode.
+        x-fhs-semantic-source: schema-context-v8
+      max_width:
+        $ref: common.positiveNumber
+        description: Maximum rendered width. For FHS text geometry this is expressed in logical card units on 
+          the 100-unit reference scale.
+        x-fhs-semantic-source: schema-context-v8
+      max_lines:
+        $ref: common.positiveNumber
+        description: Maximum number of wrapped text lines.
+        x-fhs-semantic-source: schema-context-v8
+      dy:
+        $ref: common.dynamicNumber
+        description: Vertical offset applied to the current text/content position.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-offset
+    additionalProperties: false
+    description: Public FHS schema definition for layout textOverflowMode.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  textOverflowFit:
+    type: object
+    properties:
+      max_width:
+        $ref: common.positiveNumber
+        description: Maximum rendered width. For FHS text geometry this is expressed in logical card units on 
+          the 100-unit reference scale.
+        x-fhs-semantic-source: schema-context-v8
+      min_font_size:
+        description: Minimum CSS/em font size allowed while fitting text. FHS text has a 12-internal-unit base
+          on a 200-unit SVG viewBox, equivalent to about 6 logical units on the standard 100-unit card; 
+          therefore 1em is approximately 6 logical units.
+        x-fhs-unit: css-font-size
+        examples:
+          - 0.7em
+          - 1em
+        x-fhs-semantic-source: runtime-verified-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout textOverflowFit.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    text:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

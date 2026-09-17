@@ -1,0 +1,171 @@
+namespace: common
+definitions:
+  javascript:
+    type: string
+    pattern: ^\s*\[\[\[[\s\S]*\]\]\]\s*$
+    description: FHS runtime JavaScript template enclosed by [[[ and ]]]. The expression returns the complete 
+      value for the containing YAML field and must use only documented template context values. General 
+      JavaScript language features are allowed, but undeclared FHS context objects must not be invented.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+    x-fhs-template-context:
+      state:
+        meaning: Resolved state or selected attribute for the entity bound to the current item.
+        source: current item entity_index/attribute
+        shape: scalar resolved state/attribute value; convert with Number(...) when numeric arithmetic is 
+          required
+      entity:
+        meaning: Complete resolved entity bound to the current item.
+        source: current item entity_index
+        shape: '{ entity_id, state, attributes, ... } entity-like object'
+      entities:
+        meaning: Resolved FHS card entity-state list in entities[] order.
+        includes: Configured Home Assistant entities and configured FHS-local entities.
+        usage: Use entities[index].state or entities[entity_slots.name[0]].state for card entities.
+        shape: array of entity-like objects in root entities[] order
+      entity_slots:
+        meaning: Mapping from configured slot names to entity indexes.
+        shape: object whose values are arrays of indexes
+      states:
+        meaning: Home Assistant state registry.
+        source: hass.states
+        important: This is not an alias for entities. Do not assume browser-local FHS entities exist in 
+          states.
+        shape: object/map keyed by Home Assistant entity_id; values are HA state objects
+        reactivity: When a template reads a Home Assistant entity through states['domain.object_id'], also 
+          include that entity in the card entities list so its state changes trigger card updates.
+      hass:
+        meaning: Home Assistant frontend hass object available to the card.
+      constants:
+        meaning: Resolved card constants available to the template.
+        shape: object matching the resolved card constants namespace
+      item:
+        meaning: Current configured/normalized FHS item context.
+        usage: Read current item configuration/context; do not mutate it as a persistence mechanism.
+      user:
+        meaning: Current Home Assistant user.
+    x-fhs-template-rules:
+      return_value: Return the complete value consumed by the containing YAML field; the returned value must 
+        satisfy that field's documented type/enum semantics.
+      availability: JavaScript is authorable only where the schema explicitly accepts common.javascript or 
+        another documented dynamic value contract.
+      no_invented_context: Do not invent context APIs such as tools.<id>.value unless explicitly documented by
+        the FHS specification.
+      entities_vs_states: Use entities for configured card entities including FHS-local inputs; use states for
+        Home Assistant hass.states.
+  ref:
+    type: string
+    pattern: ^\s*ref\([^()]+\)\s*$
+    description: Whole-value static reference written as ref(path). The path starts at card-level constants 
+      and may traverse nested object properties with dot notation, for example ref(theme.colors.warning). 
+      Every path segment must be a JavaScript-style identifier; array-index traversal is not supported. 
+      Referenced objects/arrays are deep-cloned.
+    x-fhs-semantic-source: runtime-verified-v11
+  calc:
+    type: string
+    pattern: ^\s*calc\([\s\S]+\)\s*$
+    description: Static numeric expression evaluated from card-level constants.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  dynamicNumber:
+    anyOf:
+      - type: number
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    description: Public FHS schema definition for common dynamicNumber.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  nonNegativeNumber:
+    anyOf:
+      - type: number
+        minimum: 0
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    description: Public FHS schema definition for common nonNegativeNumber.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  positiveNumber:
+    anyOf:
+      - type: number
+        exclusiveMinimum: 0
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    description: Public FHS schema definition for common positiveNumber.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  dynamicInteger:
+    anyOf:
+      - type: integer
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    description: Public FHS schema definition for common dynamicInteger.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  dynamicBoolean:
+    description: FHS boolean-like value. Public boolean fields may be represented as true/false or numeric 
+      0/1, including static/dynamic expressions.
+    anyOf:
+      - type: boolean
+      - enum:
+          - 0
+          - 1
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  dynamicString:
+    type: string
+    description: Public FHS schema definition for common dynamicString.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  entityIndex:
+    anyOf:
+      - type: integer
+        minimum: 0
+      - type: string
+        pattern: ^[A-Za-z_][A-Za-z0-9_]*\[\d+\]$
+      - $ref: common.ref
+      - $ref: common.calc
+      - $ref: common.javascript
+    description: Public FHS schema definition for common entityIndex.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  aspectRatio:
+    type: string
+    pattern: ^\s*(?:\d+(?:\.\d+)?)/(?:(?:\d+(?:\.\d+)?))\s*$
+    default: 1/1
+    description: Width/height ratio. The 1/1 reference card is 100 x 100 percent; 2/1 extends the logical 
+      canvas to 200 x 100.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  coordinate_system:
+    name: FHS logical coordinate system
+    standard_card: A 1/1 card is authored as a 100 x 100 logical canvas.
+    origin: 0,0 is the top-left of the logical card; x grows right and y grows down.
+    center:
+      - 50
+      - 50
+    edges:
+      left_x: 0
+      right_x: 100
+      top_y: 0
+      bottom_y: 100
+    internal_svg: The runtime base SVG dimension is 200. Normal logical dimensions are converted with 
+      logical/100*200, so 1 logical unit = 2 internal SVG units.
+    aspectratio: Aspect ratio multiplies the reference dimensions. 2/1 yields a 400 x 200 internal SVG 
+      viewBox, corresponding to a 200 x 100 logical canvas.
+    examples:
+      - description: Center an ungrouped item
+        xpos: 50
+        ypos: 50
+      - description: Place an item one quarter from the left and halfway down
+        xpos: 25
+        ypos: 50
+  typography:
+    base_internal_font_size: 12
+    base_svg_dimension: 200
+    logical_em_equivalent: 6
+    rule: For normal FHS text, 1em corresponds to approximately 6 logical units on the standard 100-unit card;
+      2em is approximately 12 logical units.
+    warning: CSS/em font sizes are not raw FHS width/height numbers. Do not interpret 1em as 1 logical unit.
+  dimension_spaces:
+    fhs-logical: Positions and most geometry use the 100-unit logical reference scale.
+    raw-svg: A few legacy fields use internal SVG units directly; those fields are explicitly marked.
+    css-style: CSS/SVG style properties such as font-size and stroke-width use their own style semantics.
+    degrees: Rotation and angular path values are expressed in degrees.

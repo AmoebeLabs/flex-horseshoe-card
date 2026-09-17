@@ -1,0 +1,12 @@
+namespace: layout
+definitions:
+  areas:
+    type: array
+    items:
+      $ref: layout.area
+    description: Public FHS schema definition for layout areas.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  area:
+    $ref: common.textBase
+    description: Public FHS schema definition for layout area.
+    x-fhs-semantic-source: schema-semantic-pass-v8

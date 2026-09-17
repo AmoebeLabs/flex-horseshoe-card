@@ -1,0 +1,76 @@
+authoring:
+  ai_card_builder:
+    authority:
+      schema: Use the matching fhs.schema.vN.json as the authoritative public FHS syntax/structure contract.
+      semantics: Use schema description fields for field meaning.
+      relationships: Use x-fhs-relationships for activation, inheritance, overrides, fallbacks, references and
+        cross-field effects.
+      internet: Do not replace or mix this contract with syntax inferred from other Home Assistant cards or 
+        conflicting internet examples.
+      external_standards: External sources may explain general Home Assistant, SVG/CSS and JavaScript 
+        concepts, but they must never invent, extend or override FHS configuration syntax, nesting, values or 
+        relationships.
+      similarity: Similarity to Home Assistant or another card does not imply configuration compatibility.
+      svg_css: General SVG/CSS presentation semantics may be used only inside FHS fields that accept styling.
+      javascript: General JavaScript language semantics may be used, but the available FHS template context is
+        only the context explicitly documented by v12.
+    existing_cards:
+      rule: Preserve valid existing configuration and make the smallest coherent change required by the user.
+      reuse: Prefer existing entity bindings, ids, templates, same_as, constants, ref(), calc() and inherited 
+        configuration over unnecessary duplication.
+    color_stops:
+      shared_model: Entity-level color_stops may be consumed by color-stop-aware tools through entity_index 
+        when the relevant show mode activates them.
+      preferred_reusable_shape: When the color model includes a shared numeric domain, prefer 
+        color_stops.scales.default together with colors so scale and palette travel as one reusable model.
+      compatibility: Compact color-stop mappings/lists remain valid; do not reject them merely because the 
+        explicit reusable object form is preferred for authoring.
+    uncertainty: If requested behavior cannot be derived from schema, descriptions, relationships or authoring
+      guidance, say it is not established by the supplied FHS definition instead of inventing a field.
+    design_choices: Clearly distinguish schema/runtime facts from reasonable visual choices such as xpos/ypos,
+      spacing, dimensions and font sizes.
+    runtime_parity_v11:
+      sparkline:
+        - Put graph show/family configuration inside layout.sparklines[].sparkline.
+        - Keep period/x_axis/y_axis/series at the sparkline item root.
+        - Use duration.hour only.
+        - For explicit series, put graph overrides under series[].sparkline.
+      actions: Do not use increment/decrement as generic actions; only number controls translate those local 
+        shorthands. Slider set-value is likewise slider-local.
+      gradients: Reference layout.gradients with gradient(name), never a raw unscoped url(#name). Numeric 
+        objectBoundingBox coordinates/stops use 0..100 percentage semantics.
+      constants: Use dotted JavaScript-like paths for nested constants, e.g. ref(theme.colors.warning) and 
+        calc(geometry.radius * 2). Dots are traversal separators.
+    runtime_parity_v12:
+      local_entities: fhs_input_number, fhs_input_boolean and fhs_input_select are domains. Define 
+        domain.object_id entries under entities[] and bind controls through entity_index.
+      javascript: entities is the FHS card entity list including local inputs; states is hass.states. Do not 
+        invent template context APIs.
+      sparkline_selectors: Use the selector matrix. Omit non-applicable chart_variant/chart_viz fields.
+      slider: interaction owns update_interval/haptic; numeric min/max/step belong to scale or the bound 
+        entity.
+      styling: FHS tools are SVG-based. SVG/CSS presentation semantics are allowed; HTML-only layout 
+        assumptions are not implied.
+    final_validation:
+      mandatory: true
+      rule: Generation is not validation. After generating or modifying a complete FHS configuration, perform 
+        a separate final pass against the matching schema, relationships and authoring contract before 
+        returning it.
+      checks:
+        - Every field exists and is at the correct hierarchy level.
+        - Required discriminators/fields are present and static enum values are valid.
+        - Relevant x-fhs-relationships have been resolved.
+        - References such as entity_index, slots, ids, same_as, ref(), calc(), gradients and control bindings 
+          are coherent.
+        - Chart/control discriminator-dependent fields are valid for the selected family/type.
+        - JavaScript uses only documented context values and returns a value valid for the receiving field.
+        - FHS-local entities use domain.object_id syntax and are read through the FHS entity context where 
+          appropriate.
+        - One part of the generated configuration does not contradict another.
+        - Unestablished behavior is reported as uncertain instead of invented.
+authoring_root:
+  x-fhs-authoring-release:
+    version: 12
+    source_commit: 429273b63c880607f984b8e2eef62067ba8dc843
+    source_version: 5.4.7-dev.32
+    purpose: Interpretation-gap closure and explicit validation guidance paired with fhs.schema.v12.json.

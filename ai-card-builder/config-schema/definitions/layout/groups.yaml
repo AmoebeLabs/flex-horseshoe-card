@@ -1,0 +1,127 @@
+namespace: layout
+definitions:
+  groups:
+    type: array
+    items:
+      $ref: layout.group
+    description: List of local coordinate frames used to position, scale, filter or hide related layout items 
+      together.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  group:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse 
+          and cross-item references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      parent:
+        description: 'Optional parent group id. Nested groups use the same 50,50-neutral rule as items: effective
+          position = parent position + child group position - 50.'
+        examples:
+          - main
+        x-fhs-semantic-source: runtime-verified-v8
+      xpos:
+        $ref: common.dynamicNumber
+        description: Absolute horizontal position of the group center in the parent group logical space. 50 is
+          neutral relative to the parent. A top-level group at 30 is centered at card x=30.
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+          - 30
+          - 50
+          - 70
+        x-fhs-semantic-source: runtime-verified-v8
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      ypos:
+        $ref: common.dynamicNumber
+        description: Absolute vertical position of the group center in the parent group logical space. 50 is 
+          neutral relative to the parent. A top-level group at 40 is centered at card y=40.
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+          - 30
+          - 50
+          - 70
+        x-fhs-semantic-source: runtime-verified-v8
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      scale:
+        anyOf:
+          - $ref: common.dynamicNumber
+          - type: object
+            properties:
+              x:
+                $ref: common.dynamicNumber
+                description: Horizontal coordinate or offset in the coordinate space defined by the containing
+                  object.
+                x-fhs-semantic-source: schema-context-v8
+              y:
+                $ref: common.dynamicNumber
+                description: Vertical coordinate or offset in the coordinate space defined by the containing 
+                  object.
+                x-fhs-semantic-source: schema-context-v8
+            additionalProperties: false
+        description: Scale factor for this group or geometry. A scalar applies uniformly; x/y values allow 
+          independent horizontal and vertical scaling where supported.
+        x-fhs-semantic-source: schema-context-v8
+      visibility:
+        anyOf:
+          - enum:
+              - visible
+              - hidden
+          - $ref: common.javascript
+        description: Controls whether the item/group is visible. Hidden layout tools remain part of the normal
+          lifecycle but are not visibly rendered.
+        x-fhs-semantic-source: schema-context-v8
+      color_filter:
+        type: object
+        additionalProperties: true
+        description: Optional FHS color-filter configuration applied in the normal card/group/item filter 
+          cascade.
+        x-fhs-semantic-source: schema-context-v8
+      same_as:
+        description: ID of an earlier item in the same section to inherit with FHS same_as. Local fields 
+          override the inherited object; nested object overrides may be partial because FHS merges them 
+          deeply.
+        x-fhs-semantic-source: schema-context-v8
+      same_as_replace:
+        type: array
+        items:
+          type: string
+        description: List of inherited paths that should be replaced rather than deep-merged by same_as 
+          processing.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: A reusable local coordinate frame. Groups are intentionally centered on local 50,50 so items 
+      can be designed around the middle and remain visible when first grouped.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  groups:
+    design_reason: Groups use 50,50 as their local no-offset position so a newly grouped item remains visible 
+      at the group center. Authors can design grouped content around the middle instead of around 0,0 where 
+      part of it could fall outside the card.
+    neutral_item_position:
+      - 50
+      - 50
+    formula:
+      x: final_x = group.xpos + item.xpos - 50
+      y: final_y = group.ypos + item.ypos - 50
+    nested_groups: The same 50-centered formula is applied recursively to parent groups.
+    examples:
+      - group:
+          xpos: 30
+          ypos: 40
+        item:
+          xpos: 50
+          ypos: 50
+        final:
+          - 30
+          - 40
+      - group:
+          xpos: 30
+          ypos: 40
+        item:
+          xpos: 60
+          ypos: 45
+        final:
+          - 40
+          - 35

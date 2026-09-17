@@ -1,0 +1,20 @@
+authoring:
+  styles:
+    rendering_model: FHS visual tools are SVG-based.
+    external_knowledge: General SVG/CSS presentation-property knowledge may be used to choose and explain 
+      style properties.
+    boundary: SVG/CSS knowledge does not create FHS fields and does not imply HTML layout semantics. Do not 
+      mix HTML element/layout assumptions into SVG tools unless a specific FHS feature explicitly documents 
+      them.
+    good_examples:
+      - fill
+      - stroke
+      - stroke-width
+      - stroke-linecap
+      - opacity
+      - font-size
+      - text-anchor
+    do_not_infer:
+      - display:flex
+      - justify-content
+      - grid-template-columns

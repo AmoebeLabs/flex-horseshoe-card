@@ -1,0 +1,7 @@
+namespace: card
+definitions:
+  palettes:
+    type: object
+    additionalProperties: true
+    description: Public FHS schema definition for card palettes.
+    x-fhs-semantic-source: schema-semantic-pass-v8

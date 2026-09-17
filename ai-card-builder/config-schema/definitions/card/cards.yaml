@@ -1,0 +1,7 @@
+namespace: card
+definitions:
+  cards:
+    type: array
+    items: {}
+    description: Public FHS schema definition for card cards.
+    x-fhs-semantic-source: schema-semantic-pass-v8

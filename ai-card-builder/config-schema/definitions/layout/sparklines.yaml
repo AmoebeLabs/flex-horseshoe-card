@@ -1,0 +1,1064 @@
+%YAML 1.2
+---
+namespace: layout
+definitions:
+  sparklines:
+    type: array
+    items:
+      $ref: layout.sparkline
+    description: Public FHS schema definition for layout sparklines.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparkline:
+    allOf:
+    - $ref: common.baseTool
+    - type: object
+      properties:
+        xpos:
+          $ref: common.dynamicNumber
+          description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+            left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+            + item.xpos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        ypos:
+          $ref: common.dynamicNumber
+          description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+            top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+            + item.ypos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        yposc:
+          $ref: common.dynamicNumber
+          description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 100-unit 
+            logical and group-local coordinate rules as ypos.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 25
+          - 50
+          - 75
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        width:
+          $ref: common.positiveNumber
+          description: Width used by this object. Unless a more specific description says otherwise, layout geometry 
+            uses FHS logical units where 100 equals the width of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension
+        height:
+          $ref: common.positiveNumber
+          description: Height used by this object. Unless a more specific description says otherwise, layout geometry 
+            uses FHS logical units where 100 equals the height of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension
+        margin:
+          $ref: common.nonNegativeNumber
+          description: Outer graph margin in FHS logical units.
+          x-fhs-semantic-source: schema-context-v8
+        history:
+          type: object
+          additionalProperties: true
+          description: History-fetch/processing configuration for the sparkline.
+          x-fhs-semantic-source: schema-context-v8
+        period:
+          $ref: layout.sparklinePeriod
+          description: History period/window configuration for this sparkline or series.
+          x-fhs-semantic-source: schema-context-v8
+        sparkline:
+          $ref: layout.sparklineOptions
+          description: Nested graph rendering/options configuration for the sparkline tool.
+          x-fhs-semantic-source: schema-context-v8
+        x_axis:
+          $ref: layout.sparklineAxis
+          description: X-axis configuration.
+          x-fhs-semantic-source: schema-context-v8
+        y_axis:
+          $ref: layout.sparklineAxis
+          description: Y-axis configuration.
+          x-fhs-semantic-source: schema-context-v8
+        series:
+          type: array
+          items:
+            $ref: layout.sparklineSeries
+          description: Additional sparkline series definitions.
+          x-fhs-semantic-source: schema-context-v8
+        show: false
+        color_stops: false
+        colorstop: false
+        colorstopsegments: false
+        colorstopinterpolated: false
+    unevaluatedProperties: false
+    description: Sparkline layout item. period, x_axis, y_axis and series are item-level configuration; graph rendering 
+      configuration belongs under the nested sparkline block. Do not place show/line/area/bar/etc. directly on 
+      layout.sparklines[].
+    x-fhs-semantic-source: runtime-verified-v11
+  sparklineOptions:
+    type: object
+    properties:
+      state_values:
+        type: object
+        properties:
+          logarithmic:
+            $ref: common.dynamicBoolean
+            description: Whether logarithmic scaling is enabled for graph values.
+            x-fhs-semantic-source: schema-context-v8
+          value_factor:
+            $ref: common.dynamicNumber
+            description: Multiplier applied to graph values.
+            x-fhs-semantic-source: schema-context-v8
+          aggregate_func:
+            description: Aggregation function applied to sparkline history samples/bins.
+            x-fhs-semantic-source: schema-context-v8
+          smoothing:
+            $ref: common.dynamicBoolean
+            description: Smoothing mode/amount for the sparkline series.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: How sparkline history samples are aggregated/transformed into graph values.
+        x-fhs-semantic-source: schema-context-v8
+      line_color:
+        description: Rendered graph line color.
+        x-fhs-semantic-source: schema-context-v8
+      color_stops:
+        $ref: common.colorStops
+        description: FHS color-stop definition used to map numeric or string entity states to colors and optional 
+          styles.
+        x-fhs-semantic-source: schema-context-v8
+      state_map:
+        $ref: common.stateMap
+        description: Maps entity/string states to numeric values, labels, ranks, icons or other state-dependent data. 
+          state_value is commonly used to convert textual states into numeric values for color stops or geometry.
+        x-fhs-semantic-source: schema-context-v8
+      colorstops:
+        type: object
+        deprecated: true
+        additionalProperties: true
+        description: Normalized/runtime color-stop representation. Prefer public color_stops in authored YAML unless 
+          this field is explicitly documented for the containing feature.
+        x-fhs-semantic-source: schema-context-v8
+      colorstops_transition:
+        anyOf:
+        - enum:
+          - smooth
+          - hard
+        - $ref: common.javascript
+        description: Color-stop transition mode. Current FHS modes are smooth and hard.
+        x-fhs-semantic-source: schema-context-v8
+      dots:
+        type: object
+        properties:
+          radius:
+            $ref: common.dynamicNumber
+            description: Radius used by this object. See the containing tool description for whether it is a normal FHS 
+              logical dimension or a legacy/raw SVG value.
+            x-fhs-semantic-source: schema-context-v8
+          styles:
+            $ref: common.styles
+            description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 
+              internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is 
+              approximately 6 logical units.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Configuration for the 'dots' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      line:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'line' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      area:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'area' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      bar:
+        type: object
+        properties:
+          orientation:
+            enum:
+            - horizontal
+            - vertical
+            description: Orientation or axis mode used by this item. Allowed values and exact geometry depend on the 
+              containing tool.
+            x-fhs-semantic-source: schema-context-v8
+          background:
+            type: object
+            additionalProperties: true
+            description: Background visualization/style configuration.
+            x-fhs-semantic-source: schema-context-v8
+          foreground:
+            type: object
+            additionalProperties: true
+            description: Foreground visualization/style configuration.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Configuration for the 'bar' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      equalizer:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'equalizer' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      graded:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'graded' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      barcode:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'barcode' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      state_bands:
+        type: object
+        additionalProperties: true
+        description: Configuration for the 'state_bands' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      radial:
+        type: object
+        properties:
+          rotate:
+            $ref: common.dynamicNumber
+            description: Rotation in degrees.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+            - 0
+            - 90
+            - 180
+          arc_degrees:
+            $ref: common.positiveNumber
+            description: Angular extent in degrees. Positive and negative values follow the direction conventions of the
+              containing tool.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+            - 90
+            - 180
+            - 270
+            - 360
+          size:
+            $ref: common.positiveNumber
+            description: Size used by the containing item. Its unit is context-specific; see the containing definition 
+              description.
+            x-fhs-semantic-source: schema-context-v8
+          background:
+            type: object
+            additionalProperties: true
+            description: Background visualization/style configuration.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Configuration for the 'radial' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      radial_barcode:
+        type: object
+        properties:
+          rotate:
+            $ref: common.dynamicNumber
+            description: Rotation in degrees.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+            - 0
+            - 90
+            - 180
+          arc_degrees:
+            $ref: common.positiveNumber
+            description: Angular extent in degrees. Positive and negative values follow the direction conventions of the
+              containing tool.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+            - 90
+            - 180
+            - 270
+            - 360
+          size:
+            $ref: common.positiveNumber
+            description: Size used by the containing item. Its unit is context-specific; see the containing definition 
+              description.
+            x-fhs-semantic-source: schema-context-v8
+          line_width:
+            $ref: common.nonNegativeNumber
+            description: Rendered graph line width.
+            x-fhs-semantic-source: schema-context-v8
+          face:
+            type: object
+            additionalProperties: true
+            description: Graph face/background styling configuration.
+            x-fhs-semantic-source: schema-context-v8
+          background:
+            type: object
+            additionalProperties: true
+            description: Background visualization/style configuration.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Configuration for the 'radial_barcode' sparkline graph family, nested under sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      tooltip:
+        type: object
+        additionalProperties: true
+        description: Sparkline tooltip configuration.
+        x-fhs-semantic-source: schema-context-v8
+      day_night:
+        type: object
+        properties:
+          mode:
+            enum:
+            - background
+            - band
+            description: Mode selector for the containing configuration.
+            x-fhs-semantic-source: schema-context-v8
+          position:
+            enum:
+            - top
+            - bottom
+            description: Position configuration for this label/chart element.
+            x-fhs-semantic-source: schema-context-v8
+          size:
+            $ref: common.positiveNumber
+            description: Size used by the containing item. Its unit is context-specific; see the containing definition 
+              description.
+            x-fhs-semantic-source: schema-context-v8
+          offset:
+            $ref: common.dynamicNumber
+            description: Offset applied by the containing feature. Units depend on that feature and are documented in 
+              its definition when different from normal FHS logical units.
+            x-fhs-semantic-source: schema-context-v8
+          day:
+            type: object
+            additionalProperties: true
+            description: Number of days in this duration.
+            x-fhs-semantic-source: schema-context-v8
+          night:
+            type: object
+            additionalProperties: true
+            description: Night-period display configuration.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: false
+        description: Day/night display or shading configuration.
+        x-fhs-semantic-source: schema-context-v8
+      legend:
+        type: object
+        additionalProperties: true
+        description: Sparkline legend configuration.
+        x-fhs-semantic-source: schema-context-v8
+      show:
+        type: object
+        properties:
+          chart_type:
+            anyOf:
+            - enum:
+              - line
+              - area
+              - bar
+              - dots
+              - equalizer
+              - state_bands
+              - graded
+              - barcode
+              - radial
+              - radial_barcode
+            - $ref: common.javascript
+            description: Sparkline chart type selector.
+            x-fhs-semantic-source: schema-context-v8
+          chart_variant:
+            anyOf:
+            - enum:
+              - audio
+              - stalactites
+              - stalagmites
+              - rank_order
+              - line
+              - area
+              - dots
+              - fixed
+              - sunburst
+              - sunburst_centered
+              - sunburst_outward
+              - sunburst_inward
+            - $ref: common.javascript
+            description: Optional selector whose valid static values depend on show.chart_type. Omit it entirely for 
+              chart families that do not define a variant.
+            x-fhs-semantic-source: runtime-verified-v12
+          item_style:
+            description: Visual style/mode selector for the containing tool.
+            x-fhs-semantic-source: schema-context-v8
+          background:
+            $ref: common.dynamicBoolean
+            description: Background visualization/style configuration.
+            x-fhs-semantic-source: schema-context-v8
+          day_night:
+            $ref: common.dynamicBoolean
+            description: Day/night display or shading configuration.
+            x-fhs-semantic-source: schema-context-v8
+          points:
+            $ref: common.dynamicBoolean
+            description: Number of points/samples used by this path or chart feature.
+            x-fhs-semantic-source: schema-context-v8
+          line:
+            $ref: common.dynamicBoolean
+            description: Line-chart configuration.
+            x-fhs-semantic-source: schema-context-v8
+          area: false
+          grid:
+            anyOf:
+            - $ref: common.dynamicBoolean
+            - $ref: layout.sparklineAxisShow
+            description: Sparkline grid configuration.
+            x-fhs-semantic-source: schema-context-v8
+          axis:
+            anyOf:
+            - $ref: common.dynamicBoolean
+            - $ref: layout.sparklineAxisShow
+            description: Axis configuration.
+            x-fhs-semantic-source: schema-context-v8
+          tickmarks:
+            anyOf:
+            - $ref: common.dynamicBoolean
+            - $ref: layout.sparklineAxisShow
+            description: Sparkline tickmark configuration.
+            x-fhs-semantic-source: schema-context-v8
+          labels:
+            anyOf:
+            - $ref: common.dynamicBoolean
+            - $ref: layout.sparklineAxisShow
+            description: Sparkline label configuration.
+            x-fhs-semantic-source: schema-context-v8
+          legend:
+            $ref: common.dynamicBoolean
+            description: Sparkline legend configuration.
+            x-fhs-semantic-source: schema-context-v8
+          xlabels_at:
+            description: Placement mode for x-axis labels.
+            x-fhs-semantic-source: schema-context-v8
+          ylabels_at:
+            description: Placement mode for y-axis labels.
+            x-fhs-semantic-source: schema-context-v8
+          chart_viz:
+            anyOf:
+            - enum:
+              - bar
+              - flower
+              - flower2
+              - rice_grain
+            - $ref: common.javascript
+            description: Optional radial_barcode segment-shape selector. Omit for other chart families.
+            x-fhs-semantic-source: runtime-verified-v12
+          fill:
+            anyOf:
+            - enum:
+              - solid
+              - fade
+            - $ref: common.javascript
+            description: Fill presentation for area/bar-style rendering. 'fade' creates the fade treatment; otherwise 
+              fill is solid.
+            x-fhs-semantic-source: runtime-verified-v11
+        additionalProperties: false
+        description: 'Sparkline graph selectors. chart_type is the primary discriminator. chart_variant and chart_viz are
+          chart-family-specific selectors, not universal placeholders: omit them when the selected family does not define
+          them. Do not invent default/none/standard values.'
+        x-fhs-semantic-source: runtime-verified-v11
+        allOf:
+        - if:
+            properties:
+              chart_type:
+                const: barcode
+            required:
+            - chart_type
+          then:
+            properties:
+              chart_variant:
+                anyOf:
+                - enum:
+                  - audio
+                  - stalactites
+                  - stalagmites
+                - $ref: common.javascript
+              chart_viz: false
+        - if:
+            properties:
+              chart_type:
+                const: graded
+            required:
+            - chart_type
+          then:
+            properties:
+              chart_variant:
+                anyOf:
+                - const: rank_order
+                - $ref: common.javascript
+              chart_viz: false
+        - if:
+            properties:
+              chart_type:
+                const: radial
+            required:
+            - chart_type
+          then:
+            properties:
+              chart_variant:
+                anyOf:
+                - enum:
+                  - line
+                  - area
+                  - dots
+                - $ref: common.javascript
+              chart_viz: false
+        - if:
+            properties:
+              chart_type:
+                const: radial_barcode
+            required:
+            - chart_type
+          then:
+            properties:
+              chart_variant:
+                anyOf:
+                - enum:
+                  - fixed
+                  - sunburst
+                  - sunburst_centered
+                  - sunburst_outward
+                  - sunburst_inward
+                - $ref: common.javascript
+              chart_viz:
+                anyOf:
+                - enum:
+                  - bar
+                  - flower
+                  - flower2
+                  - rice_grain
+                - $ref: common.javascript
+        - if:
+            properties:
+              chart_type:
+                enum:
+                - line
+                - area
+                - bar
+                - dots
+                - equalizer
+                - state_bands
+            required:
+            - chart_type
+          then:
+            properties:
+              chart_variant: false
+              chart_viz: false
+        x-fhs-selector-matrix:
+          line:
+            chart_variant: omit
+            chart_viz: omit
+          area:
+            chart_variant: omit
+            chart_viz: omit
+          bar:
+            chart_variant: omit
+            chart_viz: omit
+          dots:
+            chart_variant: omit
+            chart_viz: omit
+          equalizer:
+            chart_variant: omit
+            chart_viz: omit
+          state_bands:
+            chart_variant: omit
+            chart_viz: omit
+          barcode:
+            chart_variant:
+            - audio
+            - stalactites
+            - stalagmites
+            chart_viz: omit
+          graded:
+            chart_variant:
+            - rank_order
+            chart_viz: omit
+          radial:
+            chart_variant:
+            - line
+            - area
+            - dots
+            chart_viz: omit
+          radial_barcode:
+            chart_variant:
+            - fixed
+            - sunburst
+            - sunburst_centered
+            - sunburst_outward
+            - sunburst_inward
+            chart_viz:
+            - bar
+            - flower
+            - flower2
+            - rice_grain
+      animate:
+        $ref: common.dynamicBoolean
+        description: Whether the containing visualization animates supported transitions.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 
+          internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is 
+          approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+      y_axis:
+        type: object
+        additionalProperties: true
+        description: Y-axis configuration.
+        x-fhs-semantic-source: schema-context-v8
+      labels:
+        type: object
+        additionalProperties: true
+        description: Sparkline label configuration.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout sparklineOptions.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklineSeries:
+    type: object
+    properties:
+      id:
+        type: string
+        minLength: 1
+        description: Unique non-empty series id within this sparkline.
+        x-fhs-semantic-source: runtime-verified-v11
+      entity_index:
+        $ref: common.entityIndex
+        description: Entity supplying this series. Explicit series require an entity_index.
+        x-fhs-semantic-source: runtime-verified-v11
+      y_axis_id:
+        enum:
+        - primary
+        - secondary
+        description: Y-axis group used by this series. Defaults to primary.
+        x-fhs-semantic-source: runtime-verified-v11
+      period:
+        $ref: layout.sparklineSeriesPeriod
+        description: Per-series historical offset override. Only the parent-selected calendar/rolling_window offset may 
+          be overridden.
+        x-fhs-semantic-source: runtime-verified-v11
+      sparkline:
+        $ref: layout.sparklineSeriesOptions
+        description: Per-series graph overrides. chart_type/chart_variant/item_style and graph-family options are nested
+          here, matching the parent sparkline block.
+        x-fhs-semantic-source: runtime-verified-v11
+      color:
+        type: string
+        description: Optional fixed series color used to distinguish series.
+        x-fhs-semantic-source: runtime-verified-v11
+      name:
+        type: string
+        description: Optional display name for this series, for example in a legend.
+        x-fhs-semantic-source: runtime-verified-v11
+      styles:
+        $ref: common.styles
+        description: Optional series-level styles retained by the effective merged series config.
+        x-fhs-semantic-source: runtime-verified-v11
+      chart_type: false
+      chart_variant: false
+      show: false
+      line: false
+      area: false
+      dots: false
+      bar: false
+      radial: false
+      equalizer: false
+      graded: false
+      barcode: false
+      state_bands: false
+      radial_barcode: false
+      color_stops: false
+    required:
+    - id
+    - entity_index
+    additionalProperties: true
+    description: One explicit sparkline series. The complete parent sparkline item is inherited, then this object is 
+      deep-merged over it. Graph overrides live under series[].sparkline; root chart_type/show/line/area forms from v10 
+      were not runtime syntax.
+    x-fhs-semantic-source: runtime-verified-v11
+  sparklineAxis:
+    type: object
+    additionalProperties: true
+    description: Public FHS schema definition for layout sparklineAxis.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklineAxisShow:
+    type: object
+    properties:
+      x:
+        $ref: common.dynamicBoolean
+        description: Horizontal coordinate or offset in the coordinate space defined by the containing object.
+        x-fhs-semantic-source: schema-context-v8
+      y:
+        $ref: common.dynamicBoolean
+        description: Vertical coordinate or offset in the coordinate space defined by the containing object.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout sparklineAxisShow.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklineBins:
+    type: object
+    properties:
+      per_hour:
+        anyOf:
+        - const: auto
+        - $ref: common.positiveNumber
+        description: Requested number of history bins per hour.
+        x-fhs-semantic-source: schema-context-v8
+      density:
+        anyOf:
+        - enum:
+          - low
+          - medium
+          - high
+        - $ref: common.javascript
+        description: Bin/segment density preset. It controls how many visual bins are used for density-aware chart 
+          modes.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout sparklineBins.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklineDuration:
+    type: object
+    properties:
+      hour:
+        $ref: common.dynamicNumber
+        description: History duration in hours. Current SparklineHistory/graph runtime consumes duration.hour; express 
+          days as 24, 48, etc. hours.
+        x-fhs-semantic-source: runtime-verified-v11
+    required:
+    - hour
+    additionalProperties: false
+    description: Sparkline history duration. Current runtime supports the public hour field only.
+    x-fhs-semantic-source: runtime-verified-v11
+  sparklinePeriod:
+    type: object
+    properties:
+      type:
+        anyOf:
+        - enum:
+          - real_time
+          - rolling_window
+          - calendar
+        - $ref: common.javascript
+        description: History-period mode selector. rolling_window uses a moving duration; calendar uses calendar-aligned
+          ranges.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      group_by:
+        description: Calendar grouping unit/strategy for history retrieval.
+        x-fhs-semantic-source: schema-context-v8
+      calendar:
+        $ref: layout.sparklinePeriodMode
+        description: Calendar-aligned history period configuration.
+        x-fhs-semantic-source: schema-context-v8
+      rolling_window:
+        $ref: layout.sparklinePeriodMode
+        description: Rolling-window history period configuration.
+        x-fhs-semantic-source: schema-context-v8
+      real_time:
+        anyOf:
+        - $ref: common.dynamicBoolean
+        - $ref: layout.sparklinePeriodMode
+        description: Real-time history/update configuration; current schema accepts the runtime-supported boolean/object
+          forms.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for layout sparklinePeriod.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklinePeriodMode:
+    type: object
+    properties:
+      period:
+        description: History period/window configuration for this sparkline or series.
+        x-fhs-semantic-source: schema-context-v8
+      offset:
+        $ref: common.dynamicNumber
+        description: Offset applied by the containing feature. Units depend on that feature and are documented in its 
+          definition when different from normal FHS logical units.
+        x-fhs-semantic-source: schema-context-v8
+      duration:
+        $ref: layout.sparklineDuration
+        description: Time duration configuration for the containing history period.
+        x-fhs-semantic-source: schema-context-v8
+      bins:
+        $ref: layout.sparklineBins
+        description: History binning configuration.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for layout sparklinePeriodMode.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sparklineSeriesOptions:
+    allOf:
+    - $ref: layout.sparklineOptions
+    - type: object
+      properties:
+        show:
+          type: object
+          properties:
+            chart_type:
+              anyOf:
+              - enum:
+                - line
+                - area
+                - dots
+                - bar
+                - radial
+              - $ref: common.javascript
+              description: Explicit-series chart type. Current runtime supports line, area, dots, bar or radial.
+              x-fhs-semantic-source: runtime-verified-v11
+            chart_variant:
+              anyOf:
+              - enum:
+                - line
+                - area
+                - dots
+              - $ref: common.javascript
+              description: For radial explicit series, variant is line, area or dots.
+              x-fhs-semantic-source: runtime-verified-v11
+          additionalProperties: true
+          description: Per-series graph show selectors, limited to the explicit-series chart families supported by 
+            current runtime.
+          x-fhs-semantic-source: runtime-verified-v11
+    description: Per-series graph overrides with the explicit-series chart-family restrictions enforced by current 
+      runtime.
+    x-fhs-semantic-source: runtime-verified-v11
+  sparklineSeriesPeriod:
+    type: object
+    properties:
+      calendar:
+        type: object
+        properties:
+          offset:
+            $ref: common.dynamicNumber
+            description: Series-specific calendar offset.
+            x-fhs-semantic-source: runtime-verified-v11
+        additionalProperties: false
+        description: Calendar-period series override containing only a series-specific offset.
+        x-fhs-semantic-source: runtime-verified-v11
+      rolling_window:
+        type: object
+        properties:
+          offset:
+            $ref: common.dynamicNumber
+            description: Series-specific rolling-window offset.
+            x-fhs-semantic-source: runtime-verified-v11
+        additionalProperties: false
+        description: Rolling-window series override containing only a series-specific offset.
+        x-fhs-semantic-source: runtime-verified-v11
+    minProperties: 1
+    additionalProperties: false
+    description: Series period override. Current runtime permits only offset in the parent-selected historical period 
+      branch.
+    x-fhs-semantic-source: runtime-verified-v11
+authoring:
+  sparklines:
+    hierarchy:
+      item_root:
+      - entity_index
+      - xpos
+      - ypos
+      - width
+      - height
+      - margin
+      - period
+      - x_axis
+      - y_axis
+      - series
+      - sparkline
+      graph_block: All graph rendering families and graph show selectors live under sparkline:.
+      do_not_place_at_root:
+      - show
+      - line
+      - area
+      - bar
+      - dots
+      - equalizer
+      - graded
+      - barcode
+      - state_bands
+      - radial
+      - radial_barcode
+      - color_stops
+    minimal_example:
+      entity_index: 0
+      period:
+        type: rolling_window
+        rolling_window:
+          duration:
+            hour: 24
+      sparkline:
+        show:
+          chart_type: area
+          line: true
+        area:
+          styles:
+            opacity: 0.25
+    duration: 'Current runtime consumes duration.hour only. Use hour: 24 for one day, not day: 1.'
+    chart_types:
+    - line
+    - area
+    - bar
+    - dots
+    - equalizer
+    - state_bands
+    - graded
+    - barcode
+    - radial
+    - radial_barcode
+    chart_type_rule: sparkline.show.chart_type is the primary discriminator and selects sparkline.<chart_type> 
+      configuration.
+    radial:
+      variant_rule: For chart_type radial, sparkline.show.chart_variant must be line, area or dots.
+      geometry: Configure shared radial geometry at parent sparkline.radial.
+    radial_barcode:
+      chart_variant:
+      - fixed
+      - sunburst
+      - sunburst_centered
+      - sunburst_outward
+      - sunburst_inward
+      chart_viz:
+      - bar
+      - flower
+      - flower2
+      - rice_grain
+    axes:
+      independent_toggles:
+      - show.grid.x/y
+      - show.axis.x/y
+      - show.tickmarks.x/y
+      - show.labels.x/y
+      important: labels/tickmarks/grid do not require show.axis to be true. Each layer is toggled independently.
+      availability:
+        x_and_y:
+        - line
+        - area
+        - bar
+        - dots
+        - equalizer
+        - state_bands
+        - radial
+        x_only:
+        - barcode
+        - radial_barcode
+        none:
+        - graded
+      config_blocks: x_axis and y_axis style/configure available axis layers; they do not enable them.
+    show:
+      line: Controls the line layer for compatible line/area/radial variants.
+      points: Adds point geometry; line.show_dots and area.show_dots can also activate dots.
+      fill:
+      - solid
+      - fade
+      legend: Activates sparkline.legend and reserves graph area.
+      day_night: Requires calendar/rolling_window; not real_time. Positive future calendar offset is unsupported.
+      area_warning: 'Do not use show.area. Current runtime selects the area surface through chart_type: area; v10 exposed
+        show.area but runtime does not consume it.'
+    series:
+      nesting: Per-series graph overrides also live under series[].sparkline, not at series root.
+      required:
+      - id
+      - entity_index
+      chart_types:
+      - line
+      - area
+      - dots
+      - bar
+      - radial
+      inheritance: Each explicit series deep-merges over the complete parent sparkline configuration.
+      period_override: A series may override only offset inside the active calendar/rolling_window period branch.
+      y_axis_id:
+      - primary
+      - secondary
+      radial: Radial series cannot mix with cartesian series; parent chart_type must be radial and shared radial 
+        geometry stays on the parent.
+    selector_matrix:
+      line:
+        chart_variant: omit
+        chart_viz: omit
+      area:
+        chart_variant: omit
+        chart_viz: omit
+      bar:
+        chart_variant: omit
+        chart_viz: omit
+      dots:
+        chart_variant: omit
+        chart_viz: omit
+      equalizer:
+        chart_variant: omit
+        chart_viz: omit
+      state_bands:
+        chart_variant: omit
+        chart_viz: omit
+      barcode:
+        chart_variant:
+        - audio
+        - stalactites
+        - stalagmites
+        chart_viz: omit
+      graded:
+        chart_variant:
+        - rank_order
+        chart_viz: omit
+      radial:
+        chart_variant:
+        - line
+        - area
+        - dots
+        chart_viz: omit
+      radial_barcode:
+        chart_variant:
+        - fixed
+        - sunburst
+        - sunburst_centered
+        - sunburst_outward
+        - sunburst_inward
+        chart_viz:
+        - bar
+        - flower
+        - flower2
+        - rice_grain
+    selector_rule: chart_variant and chart_viz are not universal selectors. If the selected chart_type does not define a
+      selector, omit the field entirely. Never invent placeholder values such as default, none or standard.
+    barcode:
+      chart_variant:
+      - audio
+      - stalactites
+      - stalagmites
+      chart_viz: omit
+    graded:
+      chart_variant:
+      - rank_order
+      chart_viz: omit
+generation:
+  reuse_overrides:
+    sparkline:
+      exclude_properties:
+      - color_stops
+      - colorstop
+      - colorstopinterpolated
+      - colorstopsegments
+      - show
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50 produces
+            no offset and appears at the group position; values above or below 50 move relative to that group center.'
+          x-fhs-semantic-source: schema-context-v8
+        period:
+          $ref: layout.sparklinePeriod
+          description: History period/window configuration for this sparkline or series.
+          x-fhs-semantic-source: schema-context-v8

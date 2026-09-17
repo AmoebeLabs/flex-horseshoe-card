@@ -1,0 +1,10 @@
+namespace: layout
+definitions:
+  horseshoes_v2:
+    type: array
+    items:
+      $ref: layout.horseshoe
+    deprecated: true
+    x-fhs-prefer: horseshoes
+    description: Public FHS schema definition for layout horseshoes v2.
+    x-fhs-semantic-source: schema-semantic-pass-v8

@@ -1,0 +1,7 @@
+namespace: card
+definitions:
+  colorFilter:
+    type: object
+    additionalProperties: true
+    description: Public FHS schema definition for card colorFilter.
+    x-fhs-semantic-source: schema-semantic-pass-v8

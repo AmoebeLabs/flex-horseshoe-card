@@ -1,0 +1,43 @@
+namespace: common
+definitions:
+  sameAsDelta:
+    anyOf:
+      - type: number
+      - $ref: common.ref
+      - $ref: common.calc
+    description: Static numeric offset applied by same_as_d<field> after inheritance is merged.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sameAsFields:
+    type: object
+    properties:
+      same_as:
+        description: ID of an earlier item in the same section to inherit with FHS same_as. Local fields 
+          override the inherited object; nested object overrides may be partial because FHS merges them 
+          deeply.
+        x-fhs-semantic-source: schema-context-v8
+      same_as_replace:
+        type: array
+        items:
+          type: string
+        description: List of inherited paths that should be replaced rather than deep-merged by same_as 
+          processing.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for common sameAsFields.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  reuse:
+    rule: Prefer symbolic layout over repeated literals.
+    constants_when:
+      - the same value or configuration block is used more than once
+      - row items share one y coordinate
+      - column items share one x coordinate
+      - positions form a regular sequence
+      - colors, color stops, styles, dimensions, margins, or gaps repeat
+    calc_when: Use named start/spacing constants for regular rows, columns, and repeated spacing.
+    ref_semantics: A ref() is the referenced value. Inside same_as it replaces that exact inherited path 
+      rather than deep-merging with it.
+    same_as_semantics: When same_as is present, fields normally required on a standalone item may be inherited
+      and therefore omitted locally.
+    delta_semantics: same_as_d<field> is generated only for known numeric/delta-capable fields and accepts a 
+      static numeric offset, ref(), or calc().

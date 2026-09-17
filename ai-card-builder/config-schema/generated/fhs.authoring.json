@@ -1,0 +1,711 @@
+{
+  "ai/card-builder.yaml": {
+    "ai_card_builder": {
+      "authority": {
+        "schema": "Use the matching fhs.schema.vN.json as the authoritative public FHS syntax/structure contract.",
+        "semantics": "Use schema description fields for field meaning.",
+        "relationships": "Use x-fhs-relationships for activation, inheritance, overrides, fallbacks, references and cross-field effects.",
+        "internet": "Do not replace or mix this contract with syntax inferred from other Home Assistant cards or conflicting internet examples.",
+        "external_standards": "External sources may explain general Home Assistant, SVG/CSS and JavaScript concepts, but they must never invent, extend or override FHS configuration syntax, nesting, values or relationships.",
+        "similarity": "Similarity to Home Assistant or another card does not imply configuration compatibility.",
+        "svg_css": "General SVG/CSS presentation semantics may be used only inside FHS fields that accept styling.",
+        "javascript": "General JavaScript language semantics may be used, but the available FHS template context is only the context explicitly documented by v12."
+      },
+      "existing_cards": {
+        "rule": "Preserve valid existing configuration and make the smallest coherent change required by the user.",
+        "reuse": "Prefer existing entity bindings, ids, templates, same_as, constants, ref(), calc() and inherited configuration over unnecessary duplication."
+      },
+      "color_stops": {
+        "shared_model": "Entity-level color_stops may be consumed by color-stop-aware tools through entity_index when the relevant show mode activates them.",
+        "preferred_reusable_shape": "When the color model includes a shared numeric domain, prefer color_stops.scales.default together with colors so scale and palette travel as one reusable model.",
+        "compatibility": "Compact color-stop mappings/lists remain valid; do not reject them merely because the explicit reusable object form is preferred for authoring."
+      },
+      "uncertainty": "If requested behavior cannot be derived from schema, descriptions, relationships or authoring guidance, say it is not established by the supplied FHS definition instead of inventing a field.",
+      "design_choices": "Clearly distinguish schema/runtime facts from reasonable visual choices such as xpos/ypos, spacing, dimensions and font sizes.",
+      "runtime_parity_v11": {
+        "sparkline": [
+          "Put graph show/family configuration inside layout.sparklines[].sparkline.",
+          "Keep period/x_axis/y_axis/series at the sparkline item root.",
+          "Use duration.hour only.",
+          "For explicit series, put graph overrides under series[].sparkline."
+        ],
+        "actions": "Do not use increment/decrement as generic actions; only number controls translate those local shorthands. Slider set-value is likewise slider-local.",
+        "gradients": "Reference layout.gradients with gradient(name), never a raw unscoped url(#name). Numeric objectBoundingBox coordinates/stops use 0..100 percentage semantics.",
+        "constants": "Use dotted JavaScript-like paths for nested constants, e.g. ref(theme.colors.warning) and calc(geometry.radius * 2). Dots are traversal separators."
+      },
+      "runtime_parity_v12": {
+        "local_entities": "fhs_input_number, fhs_input_boolean and fhs_input_select are domains. Define domain.object_id entries under entities[] and bind controls through entity_index.",
+        "javascript": "entities is the FHS card entity list including local inputs; states is hass.states. Do not invent template context APIs.",
+        "sparkline_selectors": "Use the selector matrix. Omit non-applicable chart_variant/chart_viz fields.",
+        "slider": "interaction owns update_interval/haptic; numeric min/max/step belong to scale or the bound entity.",
+        "styling": "FHS tools are SVG-based. SVG/CSS presentation semantics are allowed; HTML-only layout assumptions are not implied."
+      },
+      "final_validation": {
+        "mandatory": true,
+        "rule": "Generation is not validation. After generating or modifying a complete FHS configuration, perform a separate final pass against the matching schema, relationships and authoring contract before returning it.",
+        "checks": [
+          "Every field exists and is at the correct hierarchy level.",
+          "Required discriminators/fields are present and static enum values are valid.",
+          "Relevant x-fhs-relationships have been resolved.",
+          "References such as entity_index, slots, ids, same_as, ref(), calc(), gradients and control bindings are coherent.",
+          "Chart/control discriminator-dependent fields are valid for the selected family/type.",
+          "JavaScript uses only documented context values and returns a value valid for the receiving field.",
+          "FHS-local entities use domain.object_id syntax and are read through the FHS entity context where appropriate.",
+          "One part of the generated configuration does not contradict another.",
+          "Unestablished behavior is reported as uncertain instead of invented."
+        ]
+      }
+    }
+  },
+  "card/constants.yaml": {
+    "constants": {
+      "purpose": "Centralize repeated scalar values, arrays and complete configuration fragments.",
+      "top_level_name_pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "name_rule": "Use JavaScript-style identifier names. A dot is reserved for nested property traversal and is not allowed inside a top-level constant name.",
+      "ref_syntax": "ref(path.to.value)",
+      "ref_examples": [
+        "ref(geometry.horseshoe.radius)",
+        "ref(theme.styles.value)",
+        "ref(colors.warning)"
+      ],
+      "ref_semantics": "ref() is a whole-value expression. Scalars are inserted directly; objects/arrays are deep-cloned so separate ref() uses are independent.",
+      "ref_limits": "Every dot-path segment must be an identifier. Array indexing such as ref(items[0].value) is not supported.",
+      "calc_syntax": "calc(geometry.horseshoe.radius * 2)",
+      "calc_numeric_only": true,
+      "calc_scope": "Numeric top-level constants and nested numeric object paths already available in declaration order.",
+      "calc_builtins": [
+        "sin",
+        "cos",
+        "tan",
+        "abs",
+        "round",
+        "floor",
+        "ceil",
+        "min",
+        "max",
+        "sqrt",
+        "PI"
+      ],
+      "declaration_order": "Later constants may calculate from earlier numeric constants/namespaces. Do not depend on a later constant or on the object currently being built.",
+      "complete_value_only": "Neither ref() nor calc() performs string interpolation; the complete configured value must be the expression.",
+      "example": {
+        "constants": {
+          "geometry": {
+            "horseshoe": {
+              "radius": 45,
+              "width": 6
+            }
+          },
+          "textStyles": {
+            "value": {
+              "font-size": "2em",
+              "font-weight": "bold"
+            }
+          },
+          "diameter": "calc(geometry.horseshoe.radius * 2)"
+        },
+        "usage": {
+          "radius": "ref(geometry.horseshoe.radius)",
+          "styles": "ref(textStyles.value)"
+        }
+      }
+    }
+  },
+  "common/actions.yaml": {
+    "actions": {
+      "generic_actions": [
+        "none",
+        "more-info",
+        "toggle",
+        "perform-action",
+        "call-service",
+        "navigate",
+        "url",
+        "assist",
+        "fire-dom-event",
+        "select-option"
+      ],
+      "ordered_actions": "actions[] executes sequentially in configured order.",
+      "target_precedence": "Explicit action.entity overrides the bound item/entity target. Otherwise source_entity_index redirects the selected entity when configured.",
+      "tap_default": "A bound entity with no configured tap action defaults to more-info when that target supports it.",
+      "number_control_shorthand": {
+        "actions": [
+          "increment",
+          "decrement"
+        ],
+        "scope": "Only number-control minus/plus tap_action configuration.",
+        "translation": "Translated to perform-action <bound-entity-domain>.increment/decrement.",
+        "warning": "Do not author increment/decrement as generic tap/hold/double-tap actions elsewhere."
+      },
+      "slider_shorthand": {
+        "action": "set-value",
+        "scope": "layout.controls[type=slider].set_value_action",
+        "translation": "Translated to perform-action <bound-entity-domain>.set_value with the active slider value.",
+        "custom_single": "For a custom action, value_field gives the target field path receiving the active value.",
+        "custom_range": "value_fields maps target field paths to lower or upper."
+      }
+    }
+  },
+  "common/dynamic-values.yaml": {
+    "coordinate_system": {
+      "name": "FHS logical coordinate system",
+      "standard_card": "A 1/1 card is authored as a 100 x 100 logical canvas.",
+      "origin": "0,0 is the top-left of the logical card; x grows right and y grows down.",
+      "center": [
+        50,
+        50
+      ],
+      "edges": {
+        "left_x": 0,
+        "right_x": 100,
+        "top_y": 0,
+        "bottom_y": 100
+      },
+      "internal_svg": "The runtime base SVG dimension is 200. Normal logical dimensions are converted with logical/100*200, so 1 logical unit = 2 internal SVG units.",
+      "aspectratio": "Aspect ratio multiplies the reference dimensions. 2/1 yields a 400 x 200 internal SVG viewBox, corresponding to a 200 x 100 logical canvas.",
+      "examples": [
+        {
+          "description": "Center an ungrouped item",
+          "xpos": 50,
+          "ypos": 50
+        },
+        {
+          "description": "Place an item one quarter from the left and halfway down",
+          "xpos": 25,
+          "ypos": 50
+        }
+      ]
+    },
+    "typography": {
+      "base_internal_font_size": 12,
+      "base_svg_dimension": 200,
+      "logical_em_equivalent": 6,
+      "rule": "For normal FHS text, 1em corresponds to approximately 6 logical units on the standard 100-unit card; 2em is approximately 12 logical units.",
+      "warning": "CSS/em font sizes are not raw FHS width/height numbers. Do not interpret 1em as 1 logical unit."
+    },
+    "dimension_spaces": {
+      "fhs-logical": "Positions and most geometry use the 100-unit logical reference scale.",
+      "raw-svg": "A few legacy fields use internal SVG units directly; those fields are explicitly marked.",
+      "css-style": "CSS/SVG style properties such as font-size and stroke-width use their own style semantics.",
+      "degrees": "Rotation and angular path values are expressed in degrees."
+    }
+  },
+  "common/javascript-templates.yaml": {
+    "javascript_templates": {
+      "purpose": "Runtime calculation/selection inside fields that explicitly accept JavaScript templates.",
+      "syntax": "[[[ ... ]]]",
+      "return_contract": "Return the complete value for the containing YAML field. The returned value must be valid for that field.",
+      "context": {
+        "state": {
+          "meaning": "Resolved state or selected attribute for the entity bound to the current item.",
+          "source": "current item entity_index/attribute",
+          "shape": "scalar resolved state/attribute value; convert with Number(...) when numeric arithmetic is required"
+        },
+        "entity": {
+          "meaning": "Complete resolved entity bound to the current item.",
+          "source": "current item entity_index",
+          "shape": "{ entity_id, state, attributes, ... } entity-like object"
+        },
+        "entities": {
+          "meaning": "Resolved FHS card entity-state list in entities[] order.",
+          "includes": "Configured Home Assistant entities and configured FHS-local entities.",
+          "usage": "Use entities[index].state or entities[entity_slots.name[0]].state for card entities.",
+          "shape": "array of entity-like objects in root entities[] order"
+        },
+        "entity_slots": {
+          "meaning": "Mapping from configured slot names to entity indexes.",
+          "shape": "object whose values are arrays of indexes"
+        },
+        "states": {
+          "meaning": "Home Assistant state registry.",
+          "source": "hass.states",
+          "important": "This is not an alias for entities. Do not assume browser-local FHS entities exist in states.",
+          "shape": "object/map keyed by Home Assistant entity_id; values are HA state objects",
+          "reactivity": "When a template reads a Home Assistant entity through states['domain.object_id'], also include that entity in the card entities list so its state changes trigger card updates."
+        },
+        "hass": {
+          "meaning": "Home Assistant frontend hass object available to the card."
+        },
+        "constants": {
+          "meaning": "Resolved card constants available to the template.",
+          "shape": "object matching the resolved card constants namespace"
+        },
+        "item": {
+          "meaning": "Current configured/normalized FHS item context.",
+          "usage": "Read current item configuration/context; do not mutate it as a persistence mechanism."
+        },
+        "user": {
+          "meaning": "Current Home Assistant user."
+        }
+      },
+      "rules": {
+        "entities_vs_states": "entities is the FHS card entity list and includes configured FHS-local inputs; states is hass.states and represents Home Assistant entities.",
+        "local_input_example": "For a configured fhs_input_number at entity index 1, read the current numeric value with Number(entities[1].state).",
+        "slot_example": "Prefer entities[entity_slots.<slot>[0]].state when a stable named slot is available.",
+        "no_invented_api": "Do not invent tools.<id>.value or other context objects not listed here.",
+        "where_allowed": "Use JavaScript only where the matching schema field explicitly accepts common.javascript or another dynamic-value contract.",
+        "states_reactivity": "If a template reads states['domain.object_id'], include the same Home Assistant entity in the root entities list so updates to it trigger a card update."
+      }
+    }
+  },
+  "common/reuse.yaml": {
+    "reuse": {
+      "rule": "Prefer symbolic layout over repeated literals.",
+      "constants_when": [
+        "the same value or configuration block is used more than once",
+        "row items share one y coordinate",
+        "column items share one x coordinate",
+        "positions form a regular sequence",
+        "colors, color stops, styles, dimensions, margins, or gaps repeat"
+      ],
+      "calc_when": "Use named start/spacing constants for regular rows, columns, and repeated spacing.",
+      "ref_semantics": "A ref() is the referenced value. Inside same_as it replaces that exact inherited path rather than deep-merging with it.",
+      "same_as_semantics": "When same_as is present, fields normally required on a standalone item may be inherited and therefore omitted locally.",
+      "delta_semantics": "same_as_d<field> is generated only for known numeric/delta-capable fields and accepts a static numeric offset, ref(), or calc()."
+    }
+  },
+  "common/state-map.yaml": {
+    "state_map": {
+      "purpose": "Shared public FHS state-to-display/value mapping contract used by tools that explicitly support state_map.",
+      "note": "Entry fields differ by consumer; keep the shared container permissive until the consumer-specific contracts are fully documented."
+    }
+  },
+  "common/svg-css-styles.yaml": {
+    "styles": {
+      "rendering_model": "FHS visual tools are SVG-based.",
+      "external_knowledge": "General SVG/CSS presentation-property knowledge may be used to choose and explain style properties.",
+      "boundary": "SVG/CSS knowledge does not create FHS fields and does not imply HTML layout semantics. Do not mix HTML element/layout assumptions into SVG tools unless a specific FHS feature explicitly documents them.",
+      "good_examples": [
+        "fill",
+        "stroke",
+        "stroke-width",
+        "stroke-linecap",
+        "opacity",
+        "font-size",
+        "text-anchor"
+      ],
+      "do_not_infer": [
+        "display:flex",
+        "justify-content",
+        "grid-template-columns"
+      ]
+    }
+  },
+  "layout/circles.yaml": {
+    "circles": {
+      "preferred_radius": "radius_percent",
+      "legacy_radius": "Supported for compatibility; legacy radius is raw SVG units. Preserve size with radius_percent = radius / 2."
+    }
+  },
+  "layout/controls.yaml": {
+    "control_content": {
+      "icon_item_size": {
+        "context": "content.content_horizontal.items[] or content.content_vertical.items[] with type: icon",
+        "field": "size",
+        "meaning": "Percentage of the control content cell, converted internally to IconTool icon_size_percent.",
+        "warning": "Do not rename this field to icon_size; ControlContent reads item.size."
+      }
+    },
+    "slider": {
+      "selectors": {
+        "show.item_variant": [
+          "single",
+          "range"
+        ],
+        "show.item_viz": [
+          "linear",
+          "circular"
+        ],
+        "show.item_style": [
+          "ha"
+        ]
+      },
+      "viz_blocks": "show.item_viz selects the matching linear or circular nested configuration.",
+      "scale": "min/max/step default to bound entity attributes min/max/step and may be explicitly overridden in slider.scale.",
+      "single": "Runtime creates one internal value binding from slider entity_index.",
+      "range": "Requires exactly two values; values[0].entity_index becomes the slider primary entity_index.",
+      "value_display": "value.show controls StateTool value labels.",
+      "write_action": "set_value_action defaults to local action set-value; custom actions may use value_field/value_fields.",
+      "interaction": {
+        "allowed": [
+          "update_interval",
+          "haptic"
+        ],
+        "rule": "Do not put step in interaction. step belongs to the bound numeric entity or slider.scale.step."
+      }
+    },
+    "number": {
+      "contract": "Current number control is show.item_variant: stepper + show.item_viz: buttons.",
+      "local_actions": "Default minus/plus use local decrement/increment shorthands translated to bound-domain perform-action. Do not treat them as generic actions.",
+      "content_layout": "content.mode selects content_horizontal or content_vertical."
+    },
+    "browser_local_inputs": {
+      "domains": {
+        "fhs_input_number": "browser-local numeric entity",
+        "fhs_input_boolean": "browser-local on/off entity",
+        "fhs_input_select": "browser-local option entity"
+      },
+      "entity_id_rule": "These names are domains, not complete entity ids. Define them in entities[] using domain.object_id, e.g. entity: fhs_input_number.horseshoe_width.",
+      "placement": "FHS-local inputs are normal entries under the root entities list, never nested inside a control.",
+      "binding": "Bind toggle/select/number/slider controls through entity_index exactly like any other configured card entity.",
+      "local_preference": "Use an FHS-local input when the setting belongs only to the card/browser. Use a Home Assistant helper when automations, other dashboards or other devices need the same value.",
+      "scope": {
+        "card": "separate value per card instance",
+        "global": "shared among FHS cards in the current browser",
+        "persist": "with global scope, restore after browser reload"
+      },
+      "template_read": "Read current local state through the JavaScript entities context, e.g. Number(entities[index].state); do not assume it exists in hass.states."
+    }
+  },
+  "layout/gradients-masks-clips.yaml": {
+    "gradients": {
+      "reference": "Use gradient(name) in a style paint property. Do not author raw url(#name); FHS scopes generated SVG ids per card.",
+      "numeric_coordinates": {
+        "objectBoundingBox": "Numbers are percentages 0..100. 50 means 50%, not 0.5.",
+        "userSpaceOnUse": "Numbers are normal FHS logical dimensions converted to internal SVG units."
+      },
+      "stops": "Numeric stop.offset is a percentage 0..100."
+    },
+    "clips": {
+      "reference": "item.clip references one layout.clips name.",
+      "relative": "Shape dxpos/dypos makes the definition item-relative and FHS emits an item-specific SVG definition."
+    },
+    "masks": {
+      "reference": "item.mask may be one name or an array of names.",
+      "multiple": "Mask arrays are nested in order; each mask constrains the previous result.",
+      "layer_order": "Masks are applied first, then clip wraps the masked result.",
+      "soft_arc": "soft_arc.clip references a clip whose first arc supplies geometry; runtime expands it into separate edge and chord fade masks."
+    }
+  },
+  "layout/groups.yaml": {
+    "groups": {
+      "design_reason": "Groups use 50,50 as their local no-offset position so a newly grouped item remains visible at the group center. Authors can design grouped content around the middle instead of around 0,0 where part of it could fall outside the card.",
+      "neutral_item_position": [
+        50,
+        50
+      ],
+      "formula": {
+        "x": "final_x = group.xpos + item.xpos - 50",
+        "y": "final_y = group.ypos + item.ypos - 50"
+      },
+      "nested_groups": "The same 50-centered formula is applied recursively to parent groups.",
+      "examples": [
+        {
+          "group": {
+            "xpos": 30,
+            "ypos": 40
+          },
+          "item": {
+            "xpos": 50,
+            "ypos": 50
+          },
+          "final": [
+            30,
+            40
+          ]
+        },
+        {
+          "group": {
+            "xpos": 30,
+            "ypos": 40
+          },
+          "item": {
+            "xpos": 60,
+            "ypos": 45
+          },
+          "final": [
+            40,
+            35
+          ]
+        }
+      ]
+    }
+  },
+  "layout/horseshoes.yaml": {
+    "horseshoes": {
+      "show": {
+        "horseshoe": "false removes/filters the gauge tool; true/default activates it.",
+        "horseshoe_style": "Selects state-path paint mode.",
+        "scale_style": "Selects scale-path paint mode.",
+        "horseshoe_background": "Activates horseshoe_background. Defining the background block alone does not show it.",
+        "labels_at": "Activates/places horseshoe labels; default none.",
+        "state_progress": "Controls active state/progress path.",
+        "state_marker": "Activates horseshoe_marker.",
+        "tickmarks": "Primary tickmark selector. Boolean controls both; {major, minor} controls layers independently.",
+        "ticks": "Legacy fallback only when tickmarks is absent.",
+        "scale_tickmarks": "Legacy compatibility input that can synthesize major tickmarks."
+      },
+      "scale_precedence": "Explicit horseshoe_scale.min/max override color_stops.scales.default min/max; final fallback is 0..100.",
+      "scale_type": "horseshoe_scale.type spline/splineorg requires horseshoe_scale.spline.",
+      "path_types": [
+        "arc",
+        "line",
+        "rectangle",
+        "polygon",
+        "wave",
+        "spiral",
+        "infinity"
+      ],
+      "path_rule": "path.type selects shape-specific geometry. Keep placement at the horseshoe item level and shape-specific geometry under path.",
+      "marker": {
+        "path": "attach_to path defaults to shape circle when icon/shape are absent; size falls back to horseshoe_state.width.",
+        "center": "attach_to center requires icon and requires path.type arc.",
+        "exclusive": "icon and shape cannot both be configured."
+      },
+      "bar_modes": [
+        "normal",
+        "bidirectional",
+        "bidirectional_symmetrical",
+        "bidirectional_linear",
+        "absolute"
+      ],
+      "absolute": "Requires scale min <= 0 and max > 0; explicit zero_ratio is invalid.",
+      "zero_ratio": "bidirectional/bidirectional_symmetrical default to 0.5; otherwise non-absolute modes derive it from scale min/max.",
+      "string_state_labels": "horseshoe_state.mode stringstate_mode/stringstate_level selects the matching horseshoe_labels sub-block and uses state mapping."
+    }
+  },
+  "layout/icons.yaml": {
+    "icons": {
+      "sizing": {
+        "size": "current generic font-size-based alias",
+        "icon_size": "current font-size-based sizing intended to match text visually",
+        "icon_size_percent": "current geometric sizing relative to the SVG/card",
+        "precedence": "icon_size_percent > icon_size > size",
+        "note": "Do not replace control content-items[].type=icon size with icon_size; that is a different public interface."
+      }
+    }
+  },
+  "layout/sparklines.yaml": {
+    "sparklines": {
+      "hierarchy": {
+        "item_root": [
+          "entity_index",
+          "xpos",
+          "ypos",
+          "width",
+          "height",
+          "margin",
+          "period",
+          "x_axis",
+          "y_axis",
+          "series",
+          "sparkline"
+        ],
+        "graph_block": "All graph rendering families and graph show selectors live under sparkline:.",
+        "do_not_place_at_root": [
+          "show",
+          "line",
+          "area",
+          "bar",
+          "dots",
+          "equalizer",
+          "graded",
+          "barcode",
+          "state_bands",
+          "radial",
+          "radial_barcode",
+          "color_stops"
+        ]
+      },
+      "minimal_example": {
+        "entity_index": 0,
+        "period": {
+          "type": "rolling_window",
+          "rolling_window": {
+            "duration": {
+              "hour": 24
+            }
+          }
+        },
+        "sparkline": {
+          "show": {
+            "chart_type": "area",
+            "line": true
+          },
+          "area": {
+            "styles": {
+              "opacity": 0.25
+            }
+          }
+        }
+      },
+      "duration": "Current runtime consumes duration.hour only. Use hour: 24 for one day, not day: 1.",
+      "chart_types": [
+        "line",
+        "area",
+        "bar",
+        "dots",
+        "equalizer",
+        "state_bands",
+        "graded",
+        "barcode",
+        "radial",
+        "radial_barcode"
+      ],
+      "chart_type_rule": "sparkline.show.chart_type is the primary discriminator and selects sparkline.<chart_type> configuration.",
+      "radial": {
+        "variant_rule": "For chart_type radial, sparkline.show.chart_variant must be line, area or dots.",
+        "geometry": "Configure shared radial geometry at parent sparkline.radial."
+      },
+      "radial_barcode": {
+        "chart_variant": [
+          "fixed",
+          "sunburst",
+          "sunburst_centered",
+          "sunburst_outward",
+          "sunburst_inward"
+        ],
+        "chart_viz": [
+          "bar",
+          "flower",
+          "flower2",
+          "rice_grain"
+        ]
+      },
+      "axes": {
+        "independent_toggles": [
+          "show.grid.x/y",
+          "show.axis.x/y",
+          "show.tickmarks.x/y",
+          "show.labels.x/y"
+        ],
+        "important": "labels/tickmarks/grid do not require show.axis to be true. Each layer is toggled independently.",
+        "availability": {
+          "x_and_y": [
+            "line",
+            "area",
+            "bar",
+            "dots",
+            "equalizer",
+            "state_bands",
+            "radial"
+          ],
+          "x_only": [
+            "barcode",
+            "radial_barcode"
+          ],
+          "none": [
+            "graded"
+          ]
+        },
+        "config_blocks": "x_axis and y_axis style/configure available axis layers; they do not enable them."
+      },
+      "show": {
+        "line": "Controls the line layer for compatible line/area/radial variants.",
+        "points": "Adds point geometry; line.show_dots and area.show_dots can also activate dots.",
+        "fill": [
+          "solid",
+          "fade"
+        ],
+        "legend": "Activates sparkline.legend and reserves graph area.",
+        "day_night": "Requires calendar/rolling_window; not real_time. Positive future calendar offset is unsupported.",
+        "area_warning": "Do not use show.area. Current runtime selects the area surface through chart_type: area; v10 exposed show.area but runtime does not consume it."
+      },
+      "series": {
+        "nesting": "Per-series graph overrides also live under series[].sparkline, not at series root.",
+        "required": [
+          "id",
+          "entity_index"
+        ],
+        "chart_types": [
+          "line",
+          "area",
+          "dots",
+          "bar",
+          "radial"
+        ],
+        "inheritance": "Each explicit series deep-merges over the complete parent sparkline configuration.",
+        "period_override": "A series may override only offset inside the active calendar/rolling_window period branch.",
+        "y_axis_id": [
+          "primary",
+          "secondary"
+        ],
+        "radial": "Radial series cannot mix with cartesian series; parent chart_type must be radial and shared radial geometry stays on the parent."
+      },
+      "selector_matrix": {
+        "line": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "area": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "bar": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "dots": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "equalizer": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "state_bands": {
+          "chart_variant": "omit",
+          "chart_viz": "omit"
+        },
+        "barcode": {
+          "chart_variant": [
+            "audio",
+            "stalactites",
+            "stalagmites"
+          ],
+          "chart_viz": "omit"
+        },
+        "graded": {
+          "chart_variant": [
+            "rank_order"
+          ],
+          "chart_viz": "omit"
+        },
+        "radial": {
+          "chart_variant": [
+            "line",
+            "area",
+            "dots"
+          ],
+          "chart_viz": "omit"
+        },
+        "radial_barcode": {
+          "chart_variant": [
+            "fixed",
+            "sunburst",
+            "sunburst_centered",
+            "sunburst_outward",
+            "sunburst_inward"
+          ],
+          "chart_viz": [
+            "bar",
+            "flower",
+            "flower2",
+            "rice_grain"
+          ]
+        }
+      },
+      "selector_rule": "chart_variant and chart_viz are not universal selectors. If the selected chart_type does not define a selector, omit the field entirely. Never invent placeholder values such as default, none or standard.",
+      "barcode": {
+        "chart_variant": [
+          "audio",
+          "stalactites",
+          "stalagmites"
+        ],
+        "chart_viz": "omit"
+      },
+      "graded": {
+        "chart_variant": [
+          "rank_order"
+        ],
+        "chart_viz": "omit"
+      }
+    }
+  },
+  "x-fhs-authoring-release": {
+    "version": 12,
+    "source_commit": "429273b63c880607f984b8e2eef62067ba8dc843",
+    "source_version": "5.4.7-dev.32",
+    "purpose": "Interpretation-gap closure and explicit validation guidance paired with fhs.schema.v12.json."
+  }
+}

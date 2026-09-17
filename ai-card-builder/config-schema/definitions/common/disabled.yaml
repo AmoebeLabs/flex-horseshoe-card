@@ -1,0 +1,6 @@
+namespace: common
+definitions:
+  disabled:
+    description: Config-time disabled flag using FHS boolean semantics; textual true/false are not part of the public schema.
+    $ref: common.dynamicBoolean
+    x-fhs-semantic-source: schema-semantic-pass-v8

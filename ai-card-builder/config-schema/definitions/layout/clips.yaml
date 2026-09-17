@@ -1,0 +1,38 @@
+namespace: layout
+definitions:
+  clips:
+    type: object
+    additionalProperties:
+      $ref: layout.clip
+    description: Public FHS schema definition for layout clips.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  clip:
+    type: object
+    properties:
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 internal
+          SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is approximately 6 logical
+          units.
+        x-fhs-semantic-source: schema-context-v8
+      rectangles:
+        type: array
+        items:
+          $ref: common.definitionRectangle
+        description: Rectangle primitives defining this named SVG clip path.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      circles:
+        type: array
+        items:
+          $ref: common.definitionCircle
+        description: Circle primitives defining this named SVG clip path.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      arcs:
+        type: array
+        items:
+          $ref: common.definitionArc
+        description: Arc primitives defining this named SVG clip path.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout clip.
+    x-fhs-semantic-source: schema-semantic-pass-v8

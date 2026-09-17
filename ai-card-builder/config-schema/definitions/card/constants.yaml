@@ -1,0 +1,63 @@
+namespace: card
+definitions:
+  constants:
+    type: object
+    description: Named reusable scalar values, arrays, or complete configuration fragments. Top-level constant
+      names are JavaScript-style identifiers. ref(path) can traverse nested object properties with dot 
+      notation; calc(expression) can use numeric top-level constants and nested numeric object paths.
+    additionalProperties: true
+    x-fhs-semantic-source: runtime-verified-v11
+    propertyNames:
+      pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+      description: Top-level constant names use JavaScript-style identifiers. A dot is reserved for nested 
+        path traversal in ref() and calc(), not for a literal constant name.
+      x-fhs-semantic-source: runtime-verified-v11
+authoring:
+  constants:
+    purpose: Centralize repeated scalar values, arrays and complete configuration fragments.
+    top_level_name_pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+    name_rule: Use JavaScript-style identifier names. A dot is reserved for nested property traversal and is 
+      not allowed inside a top-level constant name.
+    ref_syntax: ref(path.to.value)
+    ref_examples:
+      - ref(geometry.horseshoe.radius)
+      - ref(theme.styles.value)
+      - ref(colors.warning)
+    ref_semantics: ref() is a whole-value expression. Scalars are inserted directly; objects/arrays are 
+      deep-cloned so separate ref() uses are independent.
+    ref_limits: Every dot-path segment must be an identifier. Array indexing such as ref(items[0].value) is 
+      not supported.
+    calc_syntax: calc(geometry.horseshoe.radius * 2)
+    calc_numeric_only: true
+    calc_scope: Numeric top-level constants and nested numeric object paths already available in declaration 
+      order.
+    calc_builtins:
+      - sin
+      - cos
+      - tan
+      - abs
+      - round
+      - floor
+      - ceil
+      - min
+      - max
+      - sqrt
+      - PI
+    declaration_order: Later constants may calculate from earlier numeric constants/namespaces. Do not depend 
+      on a later constant or on the object currently being built.
+    complete_value_only: Neither ref() nor calc() performs string interpolation; the complete configured value
+      must be the expression.
+    example:
+      constants:
+        geometry:
+          horseshoe:
+            radius: 45
+            width: 6
+        textStyles:
+          value:
+            font-size: 2em
+            font-weight: bold
+        diameter: calc(geometry.horseshoe.radius * 2)
+      usage:
+        radius: ref(geometry.horseshoe.radius)
+        styles: ref(textStyles.value)

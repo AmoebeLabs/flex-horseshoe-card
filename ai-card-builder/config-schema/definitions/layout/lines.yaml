@@ -1,0 +1,108 @@
+namespace: layout
+definitions:
+  lines:
+    type: array
+    items:
+      $ref: layout.line
+    description: Public FHS schema definition for layout lines.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  line:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          orientation:
+            anyOf:
+              - enum:
+                  - horizontal
+                  - vertical
+                  - fromto
+              - $ref: common.javascript
+            description: Orientation or axis mode used by this item. Allowed values and exact geometry depend 
+              on the containing tool.
+            x-fhs-semantic-source: schema-context-v8
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          length:
+            $ref: common.dynamicNumber
+            description: Length of this geometry in FHS logical units unless the containing object documents 
+              another coordinate space.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-dimension
+          start:
+            $ref: common.coordinate
+            description: Explicit start position/anchor for this geometry.
+            x-fhs-semantic-source: schema-context-v8
+          end:
+            $ref: common.coordinate
+            description: Explicit end position/anchor for this geometry.
+            x-fhs-semantic-source: schema-context-v8
+          x1:
+            $ref: common.dynamicNumber
+            description: First/start horizontal coordinate. For normal FHS geometry this uses the 100-unit 
+              logical card/group coordinate space.
+            x-fhs-semantic-source: schema-context-v8
+          y1:
+            $ref: common.dynamicNumber
+            description: First/start vertical coordinate. For normal FHS geometry this uses the 100-unit 
+              logical card/group coordinate space.
+            x-fhs-semantic-source: schema-context-v8
+          x2:
+            $ref: common.dynamicNumber
+            description: Second/end horizontal coordinate. For normal FHS geometry this uses the 100-unit 
+              logical card/group coordinate space.
+            x-fhs-semantic-source: schema-context-v8
+          y2:
+            $ref: common.dynamicNumber
+            description: Second/end vertical coordinate. For normal FHS geometry this uses the 100-unit 
+              logical card/group coordinate space.
+            x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Line shape. Horizontal/vertical forms use xpos/ypos plus length; fromto uses explicit 
+      start/end coordinates.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    line:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

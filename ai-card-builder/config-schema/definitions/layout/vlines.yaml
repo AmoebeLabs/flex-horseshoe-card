@@ -1,0 +1,10 @@
+namespace: layout
+definitions:
+  vlines:
+    type: array
+    items:
+      $ref: layout.line
+    deprecated: true
+    x-fhs-prefer: lines with orientation vertical
+    description: Public FHS schema definition for layout vlines.
+    x-fhs-semantic-source: schema-semantic-pass-v8

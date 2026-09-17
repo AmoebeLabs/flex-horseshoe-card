@@ -1,0 +1,18 @@
+authoring:
+  gradients:
+    reference: Use gradient(name) in a style paint property. Do not author raw url(#name); FHS scopes 
+      generated SVG ids per card.
+    numeric_coordinates:
+      objectBoundingBox: Numbers are percentages 0..100. 50 means 50%, not 0.5.
+      userSpaceOnUse: Numbers are normal FHS logical dimensions converted to internal SVG units.
+    stops: Numeric stop.offset is a percentage 0..100.
+  clips:
+    reference: item.clip references one layout.clips name.
+    relative: Shape dxpos/dypos makes the definition item-relative and FHS emits an item-specific SVG 
+      definition.
+  masks:
+    reference: item.mask may be one name or an array of names.
+    multiple: Mask arrays are nested in order; each mask constrains the previous result.
+    layer_order: Masks are applied first, then clip wraps the masked result.
+    soft_arc: soft_arc.clip references a clip whose first arc supplies geometry; runtime expands it into 
+      separate edge and chord fade masks.

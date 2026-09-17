@@ -1,0 +1,22 @@
+namespace: common
+definitions:
+  stateMap:
+    type: object
+    properties:
+      map:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+        description: Ordered state-map entries used by the selected state_map type.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: State mapping used to translate categorical/string states into values, ranks, labels or 
+      visual data.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  state_map:
+    purpose: Shared public FHS state-to-display/value mapping contract used by tools that explicitly support 
+      state_map.
+    note: Entry fields differ by consumer; keep the shared container permissive until the consumer-specific 
+      contracts are fully documented.

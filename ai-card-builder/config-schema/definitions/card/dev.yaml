@@ -1,0 +1,18 @@
+namespace: card
+definitions:
+  dev:
+    anyOf:
+    - type: object
+      properties:
+        debug:
+          $ref: common.dynamicBoolean
+          description: Enables FHS debug output/features.
+          x-fhs-semantic-source: schema-context-v8
+        performance:
+          $ref: common.dynamicBoolean
+          description: Enables/configures FHS performance diagnostics.
+          x-fhs-semantic-source: schema-context-v8
+      additionalProperties: true
+    - type: 'null'
+    description: Public FHS schema definition for card dev.
+    x-fhs-semantic-source: schema-semantic-pass-v8

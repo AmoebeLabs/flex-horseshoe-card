@@ -1,0 +1,74 @@
+namespace: common
+definitions:
+  colorStops:
+    description: Compact FHS, explicit-array, SAK-style, mode-specific, ref(), and JavaScript forms are accepted.
+    anyOf:
+    - $ref: common.ref
+    - $ref: common.javascript
+    - type: array
+      items:
+        type: object
+        additionalProperties: true
+    - type: object
+      properties:
+        colors:
+          $ref: common.colorStopColors
+          description: Color-stop entries or color mapping used by this color-stop definition.
+          x-fhs-semantic-source: schema-context-v8
+        scales:
+          type: object
+          additionalProperties: true
+          description: Optional named/alternate scales associated with this color-stop definition.
+          x-fhs-semantic-source: schema-context-v8
+        modes:
+          type: object
+          additionalProperties: true
+          description: Optional mode-specific color-stop configuration.
+          x-fhs-semantic-source: schema-context-v8
+        gap:
+          $ref: common.dynamicNumber
+          description: Gap or spacing value used by the containing feature.
+          x-fhs-semantic-source: schema-context-v8
+      additionalProperties: true
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  colorStopColors:
+    anyOf:
+    - type: object
+      additionalProperties: true
+    - type: array
+      items:
+        anyOf:
+        - $ref: common.colorStopEntry
+        - type: object
+          additionalProperties: true
+    - $ref: common.ref
+    - $ref: common.javascript
+    description: Public FHS schema definition for common colorStopColors.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  colorStopEntry:
+    type: object
+    properties:
+      value:
+        description: Mapped or submitted value used by the containing state map, option or control.
+        x-fhs-semantic-source: schema-context-v8
+      state:
+        description: State value matched against the current entity state.
+        x-fhs-semantic-source: schema-context-v8
+      color:
+        description: Color value used by this stop, gradient, scale or marker.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 internal
+          SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is approximately 6 logical
+          units.
+        x-fhs-semantic-source: schema-context-v8
+      label:
+        description: Optional human-readable label for this mapped value or control.
+        x-fhs-semantic-source: schema-context-v8
+      rank:
+        description: Optional ordered rank associated with a state-map/color-stop entry.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for common colorStopEntry.
+    x-fhs-semantic-source: schema-semantic-pass-v8

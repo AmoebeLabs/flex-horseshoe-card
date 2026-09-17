@@ -1,0 +1,935 @@
+%YAML 1.2
+---
+namespace: layout
+definitions:
+  controls:
+    type: array
+    items:
+      $ref: layout.control
+    description: Public FHS schema definition for layout controls.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  control:
+    oneOf:
+    - allOf:
+      - properties:
+          type:
+            const: toggle
+            description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+              or slider.'
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+      - $ref: layout.controlToggle
+    - allOf:
+      - properties:
+          type:
+            const: select
+            description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+              or slider.'
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+      - $ref: layout.controlSelect
+    - allOf:
+      - properties:
+          type:
+            const: number
+            description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+              or slider.'
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+      - $ref: layout.controlNumber
+    - allOf:
+      - properties:
+          type:
+            const: button
+            description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+              or slider.'
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+      - $ref: layout.controlButton
+    - allOf:
+      - properties:
+          type:
+            const: slider
+            description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+              or slider.'
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+      - $ref: layout.controlSlider
+    description: Interactive control item. The type discriminator selects toggle, select, number, button or slider.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlBase:
+    allOf:
+    - $ref: common.baseTool
+    - type: object
+      properties:
+        type:
+          enum:
+          - toggle
+          - select
+          - number
+          - button
+          - slider
+          description: Control type. This is the discriminator that selects the matching 
+            toggle/select/number/button/slider configuration.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        xpos:
+          $ref: common.dynamicNumber
+          description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+            left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+            + item.xpos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        ypos:
+          $ref: common.dynamicNumber
+          description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+            top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+            + item.ypos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        yposc:
+          $ref: common.dynamicNumber
+          description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 100-unit 
+            logical and group-local coordinate rules as ypos.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 25
+          - 50
+          - 75
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        width:
+          $ref: common.dynamicNumber
+          description: Width used by this object. Unless a more specific description says otherwise, layout geometry 
+            uses FHS logical units where 100 equals the width of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension
+        height:
+          $ref: common.dynamicNumber
+          description: Height used by this object. Unless a more specific description says otherwise, layout geometry 
+            uses FHS logical units where 100 equals the height of a 1/1 reference card.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-dimension
+        orientation:
+          anyOf:
+          - enum:
+            - horizontal
+            - vertical
+          - $ref: common.javascript
+          description: Orientation or axis mode used by this item. Allowed values and exact geometry depend on the 
+            containing tool.
+          x-fhs-semantic-source: schema-context-v8
+        visibility:
+          anyOf:
+          - enum:
+            - visible
+            - hidden
+            - unavailable
+          - $ref: common.javascript
+          description: Controls whether the item/group is visible. Hidden layout tools remain part of the normal 
+            lifecycle but are not visibly rendered.
+          x-fhs-semantic-source: schema-context-v8
+        label:
+          $ref: layout.controlLabel
+          description: Optional human-readable label for this mapped value or control.
+          x-fhs-semantic-source: schema-context-v8
+        unavailable:
+          type: object
+          additionalProperties: true
+          description: Visual/content overrides used when the bound entity/control is unavailable.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        background:
+          type: object
+          additionalProperties: true
+          description: Background visualization/style configuration.
+          x-fhs-semantic-source: schema-context-v8
+        content:
+          type: object
+          description: 'Control content configuration. In explicit content_horizontal/content_vertical items, an item with
+            type: icon uses size as its cell-relative percentage; this is not layout.icons[].icon_size.'
+          additionalProperties: true
+          x-fhs-semantic-source: schema-context-v8
+        animation:
+          type: object
+          additionalProperties: true
+          description: Control transition/animation configuration, including duration/easing and state-specific visual 
+            changes where supported.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        padding:
+          type: object
+          additionalProperties: true
+          description: Extra spacing around the referenced/contained geometry. Units follow the containing geometry; 
+            ordinary layout dimensions use the 100-unit FHS logical scale.
+          x-fhs-semantic-source: schema-context-v8
+        gap:
+          $ref: common.dynamicNumber
+          description: Gap or spacing value used by the containing feature.
+          x-fhs-semantic-source: schema-context-v8
+      required:
+      - type
+    description: Properties shared by interactive controls, including logical placement/size, content, label and 
+      actions.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlLabel:
+    type: object
+    properties:
+      position:
+        enum:
+        - start
+        - end
+        - top
+        - bottom
+        description: Position configuration for this label/chart element.
+        x-fhs-semantic-source: schema-context-v8
+      gap:
+        $ref: common.dynamicNumber
+        description: Gap or spacing value used by the containing feature.
+        x-fhs-semantic-source: schema-context-v8
+      offset:
+        type: object
+        properties:
+          x:
+            $ref: common.dynamicNumber
+            description: Horizontal coordinate or offset in the coordinate space defined by the containing object.
+            x-fhs-semantic-source: schema-context-v8
+          y:
+            $ref: common.dynamicNumber
+            description: Vertical coordinate or offset in the coordinate space defined by the containing object.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: false
+        description: Offset applied by the containing feature. Units depend on that feature and are documented in its 
+          definition when different from normal FHS logical units.
+        x-fhs-semantic-source: schema-context-v8
+      entity_index:
+        $ref: common.entityIndex
+        description: Index or named entity slot selecting one configured card entity for this item.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: entity-index
+        examples:
+        - 0
+        - 1
+      text:
+        description: Text value or text-content configuration rendered by this tool/control.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 
+          internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is 
+          approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+      tap_action:
+        $ref: common.action
+        description: Action executed for a tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for layout controlLabel.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlToggle:
+    allOf:
+    - $ref: layout.controlBase
+    - type: object
+      properties:
+        show:
+          type: object
+          properties:
+            item_variant:
+              enum:
+              - switch
+              description: Variant selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_viz:
+              enum:
+              - default
+              description: Visualization selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_style:
+              enum:
+              - ha
+              - ios
+              - industrial
+              description: Visual style/mode selector for the containing tool.
+              x-fhs-semantic-source: schema-context-v8
+          additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        ha:
+          type: object
+          additionalProperties: true
+          description: 'Visual configuration for the Home Assistant-style toggle appearance selected by show.item_style: ha.'
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        ios:
+          type: object
+          additionalProperties: true
+          description: 'Visual configuration for the iOS-style toggle appearance selected by show.item_style: ios.'
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        industrial:
+          type: object
+          additionalProperties: true
+          description: 'Visual configuration for the industrial-style toggle appearance selected by show.item_style: industrial.'
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        track:
+          type: object
+          additionalProperties: true
+          description: Track visualization/configuration for this control.
+          x-fhs-semantic-source: schema-context-v8
+        thumb:
+          type: object
+          additionalProperties: true
+          description: Thumb/indicator visualization for this control.
+          x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout controlToggle.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlSelect:
+    allOf:
+    - $ref: layout.controlBase
+    - type: object
+      properties:
+        show:
+          type: object
+          properties:
+            item_variant:
+              enum:
+              - segmented
+              description: Variant selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_viz:
+              enum:
+              - viz_button
+              - viz_line
+              description: Visualization selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_style:
+              enum:
+              - filled_round
+              - filled_square
+              - outlined_round
+              - outlined_square
+              description: Visual style/mode selector for the containing tool.
+              x-fhs-semantic-source: schema-context-v8
+            separator:
+              $ref: common.dynamicBoolean
+              description: Separator visualization/configuration between select options.
+              x-fhs-semantic-source: schema-context-v8
+          additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        option_map:
+          type: array
+          items:
+            $ref: layout.controlSelectOption
+          description: Explicit option definitions for a select control.
+          x-fhs-semantic-source: schema-context-v8
+        track:
+          type: object
+          additionalProperties: true
+          description: Track visualization/configuration for this control.
+          x-fhs-semantic-source: schema-context-v8
+        separator:
+          type: object
+          additionalProperties: true
+          description: Separator visualization/configuration between select options.
+          x-fhs-semantic-source: schema-context-v8
+        viz_button:
+          type: object
+          additionalProperties: true
+          description: Button-style visualization configuration for select segments.
+          x-fhs-semantic-source: schema-context-v8
+        viz_line:
+          type: object
+          additionalProperties: true
+          description: Line-style visualization configuration for select segments.
+          x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout controlSelect.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlSelectOption:
+    type: object
+    properties:
+      value:
+        description: Mapped or submitted value used by the containing state map, option or control.
+        x-fhs-semantic-source: schema-context-v8
+      state:
+        description: State value matched against the current entity state.
+        x-fhs-semantic-source: schema-context-v8
+      text:
+        description: Text value or text-content configuration rendered by this tool/control.
+        x-fhs-semantic-source: schema-context-v8
+      icon:
+        description: 'Icon value or icon source. Home Assistant mdi: icons and entity-derived icons are supported where the
+          containing tool allows them.'
+        x-fhs-semantic-source: schema-context-v8
+      disabled:
+        description: Disables this configured item/entity when true/1. FHS also accepts ref(), calc() and JavaScript 
+          forms allowed by common.disabled.
+        x-fhs-semantic-source: schema-context-v8
+      content:
+        type: object
+        additionalProperties: true
+        description: Content configuration rendered inside this control/option.
+        x-fhs-semantic-source: schema-context-v8
+      text_config:
+        type: object
+        additionalProperties: true
+        description: Optional text rendering overrides for this select option.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      icon_config:
+        type: object
+        additionalProperties: true
+        description: Optional icon rendering overrides for this select option.
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      tap_action:
+        $ref: common.action
+        description: Action executed for a tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      hold_action:
+        $ref: common.action
+        description: Action executed for a hold gesture.
+        x-fhs-semantic-source: schema-context-v8
+      double_tap_action:
+        $ref: common.action
+        description: Action executed for a double-tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+    - value
+    additionalProperties: true
+    description: Public FHS schema definition for layout controlSelectOption.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlNumber:
+    allOf:
+    - $ref: layout.controlBase
+    - type: object
+      properties:
+        show:
+          type: object
+          properties:
+            item_variant:
+              enum:
+              - stepper
+              description: Variant selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_viz:
+              enum:
+              - buttons
+              description: Visualization selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_style:
+              enum:
+              - filled_round
+              - filled_square
+              - outlined_round
+              - outlined_square
+              description: Visual style/mode selector for the containing tool.
+              x-fhs-semantic-source: schema-context-v8
+          additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout controlNumber.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlButton:
+    allOf:
+    - $ref: layout.controlBase
+    - type: object
+      properties:
+        show:
+          type: object
+          additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        button:
+          type: object
+          additionalProperties: true
+          description: 'Button visualization/configuration for a type: button control.'
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout controlButton.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  controlSlider:
+    allOf:
+    - $ref: layout.controlBase
+    - type: object
+      properties:
+        show:
+          type: object
+          properties:
+            item_variant:
+              anyOf:
+              - enum:
+                - single
+                - range
+              - $ref: common.javascript
+              description: Variant selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_viz:
+              anyOf:
+              - enum:
+                - linear
+                - circular
+              - $ref: common.javascript
+              description: Visualization selector for the containing control.
+              x-fhs-semantic-source: schema-context-v8
+            item_style:
+              anyOf:
+              - const: ha
+              - $ref: common.javascript
+              description: Current slider visual style selector; static value is ha.
+              x-fhs-semantic-source: runtime-verified-v12
+          additionalProperties: false
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        track:
+          type: object
+          additionalProperties: true
+          description: Track visualization/configuration for this control.
+          x-fhs-semantic-source: schema-context-v8
+        thumb:
+          type: object
+          additionalProperties: true
+          description: Thumb/indicator visualization for this control.
+          x-fhs-semantic-source: schema-context-v8
+        values:
+          type: array
+          items:
+            type: object
+            properties:
+              entity_index:
+                $ref: common.entityIndex
+                description: Index or named entity slot selecting one configured card entity for this item.
+                x-fhs-semantic-source: schema-context-v8
+                x-fhs-unit: entity-index
+                examples:
+                - 0
+                - 1
+            additionalProperties: true
+          description: Entity bindings/value channels used by the slider. Range sliders can bind more than one value; 
+            each entry may select its own entity_index.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        value:
+          type: object
+          additionalProperties: true
+          description: Mapped or submitted value used by the containing state map, option or control.
+          x-fhs-semantic-source: schema-context-v8
+        interaction:
+          $ref: layout.sliderInteraction
+          description: Pointer/write interaction configuration for the slider.
+          x-fhs-semantic-source: runtime-verified-v12
+        scale:
+          $ref: layout.sliderScale
+          description: Slider numeric domain. min/max/step default to attributes on the bound entity.
+          x-fhs-semantic-source: runtime-verified-v12
+        linear:
+          type: object
+          additionalProperties: true
+          description: 'Linear slider visualization selected by show.item_viz: linear.'
+          x-fhs-semantic-source: runtime-verified-v11
+        circular:
+          type: object
+          additionalProperties: true
+          description: 'Circular slider visualization selected by show.item_viz: circular.'
+          x-fhs-semantic-source: runtime-verified-v11
+        set_value_action:
+          $ref: layout.sliderAction
+          description: Action executed when the slider writes a value. Defaults to the slider-local set-value shorthand.
+          x-fhs-semantic-source: runtime-verified-v11
+    unevaluatedProperties: false
+    description: Public FHS schema definition for layout controlSlider.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  sliderAction:
+    anyOf:
+    - $ref: common.action
+    - type: object
+      properties:
+        action:
+          const: set-value
+          description: Slider-local shorthand translated to <bound-entity-domain>.set_value.
+          x-fhs-semantic-source: runtime-verified-v11
+        value_field:
+          type: string
+          description: Destination field path receiving the active slider value for a custom action.
+          x-fhs-semantic-source: runtime-verified-v11
+        value_fields:
+          type: object
+          additionalProperties:
+            enum:
+            - lower
+            - upper
+          description: For range sliders, maps destination field paths to the lower or upper current value.
+          x-fhs-semantic-source: runtime-verified-v11
+      required:
+      - action
+      additionalProperties: true
+    description: Slider write action. set-value is a slider-local shorthand; generic actions may additionally use 
+      value_field/value_fields to inject current slider values.
+    x-fhs-semantic-source: runtime-verified-v11
+  sliderInteraction:
+    type: object
+    properties:
+      update_interval:
+        $ref: common.nonNegativeNumber
+        description: Minimum write interval in milliseconds while dragging. Zero allows immediate writes.
+        x-fhs-semantic-source: runtime-verified-v12
+      haptic:
+        type: string
+        description: Home Assistant haptic event name emitted for slider interaction.
+        x-fhs-semantic-source: runtime-verified-v12
+    additionalProperties: false
+    description: Slider pointer/write interaction options. Numeric min/max/step do not belong here; they come from 
+      slider.scale or the bound numeric entity.
+    x-fhs-semantic-source: runtime-verified-v12
+  sliderScale:
+    type: object
+    properties:
+      min:
+        anyOf:
+        - $ref: common.dynamicNumber
+        - type: object
+          properties:
+            attribute:
+              type: string
+              description: Name of the bound entity attribute that supplies this slider scale value.
+              x-fhs-semantic-source: runtime-verified-v12
+          required:
+          - attribute
+          additionalProperties: false
+        description: 'Slider minimum. Defaults to {attribute: min} on the primary bound entity.'
+        x-fhs-semantic-source: runtime-verified-v12
+      max:
+        anyOf:
+        - $ref: common.dynamicNumber
+        - type: object
+          properties:
+            attribute:
+              type: string
+              description: Name of the bound entity attribute that supplies this slider scale value.
+              x-fhs-semantic-source: runtime-verified-v12
+          required:
+          - attribute
+          additionalProperties: false
+        description: 'Slider maximum. Defaults to {attribute: max} on the primary bound entity.'
+        x-fhs-semantic-source: runtime-verified-v12
+      step:
+        anyOf:
+        - $ref: common.dynamicNumber
+        - type: object
+          properties:
+            attribute:
+              type: string
+              description: Name of the bound entity attribute that supplies this slider scale value.
+              x-fhs-semantic-source: runtime-verified-v12
+          required:
+          - attribute
+          additionalProperties: false
+        description: 'Slider step. Defaults to {attribute: step} on the primary bound entity.'
+        x-fhs-semantic-source: runtime-verified-v12
+    additionalProperties: false
+    description: Slider numeric domain. By default min/max/step are read from attributes of the primary bound numeric 
+      entity; explicit values may override them.
+    x-fhs-semantic-source: runtime-verified-v12
+authoring:
+  control_content:
+    icon_item_size:
+      context: 'content.content_horizontal.items[] or content.content_vertical.items[] with type: icon'
+      field: size
+      meaning: Percentage of the control content cell, converted internally to IconTool icon_size_percent.
+      warning: Do not rename this field to icon_size; ControlContent reads item.size.
+  slider:
+    selectors:
+      show.item_variant:
+      - single
+      - range
+      show.item_viz:
+      - linear
+      - circular
+      show.item_style:
+      - ha
+    viz_blocks: show.item_viz selects the matching linear or circular nested configuration.
+    scale: min/max/step default to bound entity attributes min/max/step and may be explicitly overridden in 
+      slider.scale.
+    single: Runtime creates one internal value binding from slider entity_index.
+    range: Requires exactly two values; values[0].entity_index becomes the slider primary entity_index.
+    value_display: value.show controls StateTool value labels.
+    write_action: set_value_action defaults to local action set-value; custom actions may use value_field/value_fields.
+    interaction:
+      allowed:
+      - update_interval
+      - haptic
+      rule: Do not put step in interaction. step belongs to the bound numeric entity or slider.scale.step.
+  number:
+    contract: 'Current number control is show.item_variant: stepper + show.item_viz: buttons.'
+    local_actions: Default minus/plus use local decrement/increment shorthands translated to bound-domain 
+      perform-action. Do not treat them as generic actions.
+    content_layout: content.mode selects content_horizontal or content_vertical.
+  browser_local_inputs:
+    domains:
+      fhs_input_number: browser-local numeric entity
+      fhs_input_boolean: browser-local on/off entity
+      fhs_input_select: browser-local option entity
+    entity_id_rule: 'These names are domains, not complete entity ids. Define them in entities[] using domain.object_id, e.g.
+      entity: fhs_input_number.horseshoe_width.'
+    placement: FHS-local inputs are normal entries under the root entities list, never nested inside a control.
+    binding: Bind toggle/select/number/slider controls through entity_index exactly like any other configured card 
+      entity.
+    local_preference: Use an FHS-local input when the setting belongs only to the card/browser. Use a Home Assistant 
+      helper when automations, other dashboards or other devices need the same value.
+    scope:
+      card: separate value per card instance
+      global: shared among FHS cards in the current browser
+      persist: with global scope, restore after browser reload
+    template_read: Read current local state through the JavaScript entities context, e.g. Number(entities[index].state);
+      do not assume it exists in hass.states.
+generation:
+  reuse_overrides:
+    control:
+      exclude_properties:
+      - circular
+      - linear
+      - scale
+      - set_value_action
+      properties:
+        type:
+          anyOf:
+          - const: toggle
+          - enum:
+            - toggle
+            - select
+            - number
+            - button
+            - slider
+          - anyOf:
+            - const: select
+            - enum:
+              - toggle
+              - select
+              - number
+              - button
+              - slider
+          - anyOf:
+            - const: number
+            - enum:
+              - toggle
+              - select
+              - number
+              - button
+              - slider
+          - anyOf:
+            - const: button
+            - enum:
+              - toggle
+              - select
+              - number
+              - button
+              - slider
+          - anyOf:
+            - const: slider
+            - enum:
+              - toggle
+              - select
+              - number
+              - button
+              - slider
+          description: 'Control discriminator. Selects exactly one public control contract: toggle, select, number, button
+            or slider.'
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50 produces
+            no offset and appears at the group position; values above or below 50 move relative to that group center.'
+          x-fhs-semantic-source: schema-context-v8
+        visibility:
+          anyOf:
+          - enum:
+            - visible
+            - hidden
+          - $ref: common.javascript
+          - anyOf:
+            - enum:
+              - visible
+              - hidden
+              - unavailable
+            - $ref: common.javascript
+          description: Controls whether the item/group is visible. Hidden layout tools remain part of the normal 
+            lifecycle but are not visibly rendered.
+          x-fhs-semantic-source: schema-context-v8
+        show:
+          anyOf:
+          - type: object
+            additionalProperties: true
+          - $ref: common.ref
+          - $ref: common.javascript
+          - type: object
+            properties:
+              item_variant:
+                enum:
+                - switch
+                description: Variant selector for the containing control.
+                x-fhs-semantic-source: schema-context-v8
+              item_viz:
+                enum:
+                - default
+                description: Visualization selector for the containing control.
+                x-fhs-semantic-source: schema-context-v8
+              item_style:
+                enum:
+                - ha
+                - ios
+                - industrial
+                description: Visual style/mode selector for the containing tool.
+                x-fhs-semantic-source: schema-context-v8
+            additionalProperties: true
+          - anyOf:
+            - type: object
+              additionalProperties: true
+            - $ref: common.ref
+            - $ref: common.javascript
+            - type: object
+              properties:
+                item_variant:
+                  enum:
+                  - segmented
+                  description: Variant selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_viz:
+                  enum:
+                  - viz_button
+                  - viz_line
+                  description: Visualization selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_style:
+                  enum:
+                  - filled_round
+                  - filled_square
+                  - outlined_round
+                  - outlined_square
+                  description: Visual style/mode selector for the containing tool.
+                  x-fhs-semantic-source: schema-context-v8
+                separator:
+                  $ref: common.dynamicBoolean
+                  description: Separator visualization/configuration between select options.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: true
+          - anyOf:
+            - type: object
+              additionalProperties: true
+            - $ref: common.ref
+            - $ref: common.javascript
+            - type: object
+              properties:
+                item_variant:
+                  enum:
+                  - stepper
+                  description: Variant selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_viz:
+                  enum:
+                  - buttons
+                  description: Visualization selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_style:
+                  enum:
+                  - filled_round
+                  - filled_square
+                  - outlined_round
+                  - outlined_square
+                  description: Visual style/mode selector for the containing tool.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: true
+          - anyOf:
+            - type: object
+              additionalProperties: true
+            - $ref: common.ref
+            - $ref: common.javascript
+          - anyOf:
+            - type: object
+              additionalProperties: true
+            - $ref: common.ref
+            - $ref: common.javascript
+            - type: object
+              properties:
+                item_variant:
+                  anyOf:
+                  - enum:
+                    - single
+                    - range
+                  - $ref: common.javascript
+                  description: Variant selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_viz:
+                  anyOf:
+                  - enum:
+                    - linear
+                    - circular
+                  - $ref: common.javascript
+                  description: Visualization selector for the containing control.
+                  x-fhs-semantic-source: schema-context-v8
+                item_style:
+                  description: Visual style/mode selector for the containing tool.
+                  x-fhs-semantic-source: schema-context-v8
+              additionalProperties: true
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8
+        unavailable:
+          type: object
+          additionalProperties: true
+          description: Configuration field `unavailable` for layout control. Its accepted shape and values are defined 
+            by this schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        animation:
+          type: object
+          additionalProperties: true
+          description: Configuration field `animation` for layout control. Its accepted shape and values are defined by 
+            this schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        ha:
+          type: object
+          additionalProperties: true
+          description: Configuration field `ha` for layout control. Its accepted shape and values are defined by this 
+            schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        ios:
+          type: object
+          additionalProperties: true
+          description: Configuration field `ios` for layout control. Its accepted shape and values are defined by this 
+            schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        industrial:
+          type: object
+          additionalProperties: true
+          description: Configuration field `industrial` for layout control. Its accepted shape and values are defined by
+            this schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        button:
+          type: object
+          additionalProperties: true
+          description: Configuration field `button` for layout control. Its accepted shape and values are defined by 
+            this schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        values:
+          type: array
+          items:
+            type: object
+            properties:
+              entity_index:
+                $ref: common.entityIndex
+                description: Index or named entity slot selecting one configured card entity for this item.
+                x-fhs-semantic-source: schema-context-v8
+                x-fhs-unit: entity-index
+                examples:
+                - 0
+                - 1
+            additionalProperties: true
+          description: Configuration field `values` for layout control. Its accepted shape and values are defined by 
+            this schema node.
+          x-fhs-semantic-source: schema-contract-v8
+        interaction:
+          type: object
+          additionalProperties: true
+          description: Configuration field `interaction` for layout control. Its accepted shape and values are defined 
+            by this schema node.
+          x-fhs-semantic-source: schema-contract-v8

@@ -1,0 +1,189 @@
+namespace: common
+definitions:
+  baseTool:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse 
+          and cross-item references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      template:
+        $ref: card.templateUse
+        description: Template reference merged into this configuration before normal runtime use.
+        x-fhs-semantic-source: schema-context-v8
+      entity_index:
+        $ref: common.entityIndex
+        description: Index or named entity slot selecting one configured card entity for this item.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: entity-index
+        examples:
+          - 0
+          - 1
+      entity:
+        type: string
+        description: Home Assistant entity id used as this configuration source.
+        x-fhs-semantic-source: schema-context-v8
+      group:
+        description: 'ID of the layout group containing this item. Author items around local 50,50: 50,50 is deliberately
+          the no-offset position so a newly grouped item remains visible at the group center instead of being pushed
+          off-card.'
+        examples:
+          - main
+        x-fhs-semantic-source: runtime-verified-v8
+      zpos:
+        $ref: common.dynamicNumber
+        description: Absolute FHS layer position. Larger zpos values render later/above lower layers; section 
+          defaults are used when omitted.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: layer-index
+        examples:
+          - 100
+          - 900
+      dzpos:
+        $ref: common.dynamicNumber
+        description: Relative addition to the resolved zpos, useful for moving an item slightly above or below
+          its section/default layer without replacing the base zpos.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: layer-offset
+        examples:
+          - -1
+          - 1
+      disabled:
+        $ref: common.disabled
+        description: Disables this configured item/entity when true/1. FHS also accepts ref(), calc() and 
+          JavaScript forms allowed by common.disabled.
+        x-fhs-semantic-source: schema-context-v8
+      visibility:
+        anyOf:
+          - enum:
+              - visible
+              - hidden
+          - $ref: common.javascript
+        description: Controls whether the item/group is visible. Hidden layout tools remain part of the normal
+          lifecycle but are not visibly rendered.
+        x-fhs-semantic-source: schema-context-v8
+      flip:
+        anyOf:
+          - enum:
+              - none
+              - x
+              - y
+              - both
+          - $ref: common.javascript
+        description: Optional horizontal and/or vertical mirroring of the rendered item.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 
+          12 internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 
+          1em is approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+      color_filter:
+        anyOf:
+          - type: object
+            additionalProperties: true
+          - $ref: common.ref
+          - $ref: common.javascript
+        description: Optional FHS color-filter configuration applied in the normal card/group/item filter 
+          cascade.
+        x-fhs-semantic-source: schema-context-v8
+      color_stops:
+        $ref: common.colorStops
+        description: FHS color-stop definition used to map numeric or string entity states to colors and 
+          optional styles.
+        x-fhs-semantic-source: schema-context-v8
+      show:
+        anyOf:
+          - type: object
+            additionalProperties: true
+          - $ref: common.ref
+          - $ref: common.javascript
+        description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+        x-fhs-semantic-source: schema-context-v8
+      colorstop:
+        type: object
+        properties:
+          fill:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG fill for this mode.
+            x-fhs-semantic-source: schema-context-v8
+          stroke:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG stroke for this mode.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Rendering options for hard color-stop mode.
+        x-fhs-semantic-source: schema-context-v8
+      colorstopsegments:
+        type: object
+        properties:
+          fill:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG fill for this mode.
+            x-fhs-semantic-source: schema-context-v8
+          stroke:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG stroke for this mode.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Rendering options for segmented color-stop mode.
+        x-fhs-semantic-source: schema-context-v8
+      colorstopinterpolated:
+        type: object
+        properties:
+          fill:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG fill for this mode.
+            x-fhs-semantic-source: schema-context-v8
+          stroke:
+            type: boolean
+            description: Whether the selected color/style is applied to SVG stroke for this mode.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: true
+        description: Rendering options for interpolated/smooth color-stop mode.
+        x-fhs-semantic-source: schema-context-v8
+      animation_id:
+        description: Identifier selecting an animation/style entry for this item.
+        x-fhs-semantic-source: schema-context-v8
+      clip:
+        type: string
+        description: Name of one layout.clips definition. ref()/JavaScript may resolve to this string before 
+          rendering.
+        x-fhs-semantic-source: runtime-verified-v11
+      mask:
+        anyOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+            minItems: 1
+        description: One mask name or an ordered array of mask names from layout.masks. Multiple masks are 
+          nested in order so each constrains the previous result.
+        x-fhs-semantic-source: runtime-verified-v11
+      tap_action:
+        $ref: common.action
+        description: Action executed for a tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      hold_action:
+        $ref: common.action
+        description: Action executed for a hold gesture.
+        x-fhs-semantic-source: schema-context-v8
+      double_tap_action:
+        $ref: common.action
+        description: Action executed for a double-tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      same_as:
+        description: ID of an earlier item in the same section to inherit with FHS same_as. Local fields 
+          override the inherited object; nested object overrides may be partial because FHS merges them 
+          deeply.
+        x-fhs-semantic-source: schema-context-v8
+      same_as_replace:
+        type: array
+        items:
+          type: string
+        description: List of inherited paths that should be replaced rather than deep-merged by same_as 
+          processing.
+        x-fhs-semantic-source: schema-context-v8
+    description: Properties shared by normal FHS layout tools, including entity binding, group placement, 
+      layering, styles, actions and reuse.
+    x-fhs-semantic-source: schema-semantic-pass-v8

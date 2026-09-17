@@ -1,0 +1,56 @@
+namespace: common
+definitions:
+  textBase:
+    allOf:
+    - $ref: common.baseTool
+    - type: object
+      properties:
+        xpos:
+          $ref: common.dynamicNumber
+          description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+            left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+            + item.xpos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        ypos:
+          $ref: common.dynamicNumber
+          description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+            top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+            + item.ypos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        yposc:
+          $ref: common.dynamicNumber
+          description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 100-unit logical
+            and group-local coordinate rules as ypos.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 25
+          - 50
+          - 75
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        ellipsis:
+          $ref: common.dynamicNumber
+          description: Ellipsis limit/configuration used to shorten overflowing text.
+          x-fhs-semantic-source: schema-context-v8
+        max_characters:
+          $ref: common.dynamicNumber
+          description: Maximum number of characters displayed by this text helper before its existing ellipsis behavior shortens
+            the value.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+    description: Public FHS schema definition for common textBase.
+    x-fhs-semantic-source: schema-semantic-pass-v8

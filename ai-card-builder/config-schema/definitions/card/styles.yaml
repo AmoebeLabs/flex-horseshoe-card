@@ -1,0 +1,6 @@
+namespace: card
+definitions:
+  styles:
+    $ref: common.styles
+    description: Public FHS schema definition for card styles.
+    x-fhs-semantic-source: schema-semantic-pass-v8

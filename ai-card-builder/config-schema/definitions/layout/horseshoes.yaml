@@ -1,0 +1,585 @@
+%YAML 1.2
+---
+namespace: layout
+definitions:
+  horseshoes:
+    type: array
+    items:
+      $ref: layout.horseshoe
+    description: Public FHS schema definition for layout horseshoes.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  horseshoe:
+    allOf:
+    - $ref: common.baseTool
+    - type: object
+      properties:
+        xpos:
+          $ref: common.dynamicNumber
+          description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+            left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+            + item.xpos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        ypos:
+          $ref: common.dynamicNumber
+          description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+            top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+            + item.ypos - 50.'
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 0
+          - 50
+          - 100
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        yposc:
+          $ref: common.dynamicNumber
+          description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 100-unit 
+            logical and group-local coordinate rules as ypos.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: fhs-logical-coordinate
+          examples:
+          - 25
+          - 50
+          - 75
+          x-fhs-coordinate-space: card-or-group-logical
+          x-fhs-group-neutral: 50
+        radius:
+          $ref: common.dynamicNumber
+          description: Radius used by this object. See the containing tool description for whether it is a normal FHS 
+            logical dimension or a legacy/raw SVG value.
+          x-fhs-semantic-source: schema-context-v8
+        tickmarks_radius:
+          $ref: common.dynamicNumber
+          description: Radius used for horseshoe tickmark placement on the normal FHS logical scale.
+          x-fhs-semantic-source: schema-context-v8
+        arc_degrees:
+          $ref: common.dynamicNumber
+          description: Angular extent in degrees. Positive and negative values follow the direction conventions of the 
+            containing tool.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: degrees
+          examples:
+          - 90
+          - 180
+          - 270
+          - 360
+        start_angle:
+          $ref: common.dynamicNumber
+          description: Starting angle in degrees for the path or gauge.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: degrees
+          examples:
+          - 0
+          - 90
+        rotate:
+          $ref: common.dynamicNumber
+          description: Rotation in degrees.
+          x-fhs-semantic-source: schema-context-v8
+          x-fhs-unit: degrees
+          examples:
+          - 0
+          - 90
+          - 180
+        bar_mode:
+          anyOf:
+          - enum:
+            - normal
+            - bidirectional
+            - bidirectional_symmetrical
+            - bidirectional_linear
+            - absolute
+          - $ref: common.javascript
+          description: Horseshoe progress interpretation mode, including normal and bidirectional variants.
+          x-fhs-semantic-source: schema-context-v8
+        zero_ratio:
+          $ref: common.dynamicNumber
+          description: Normalized position of zero used by bidirectional horseshoe modes.
+          x-fhs-semantic-source: schema-context-v8
+        path:
+          description: Horseshoe path geometry. Define the path object directly, or use ref(name) to reuse a path object
+            from card-level constants. The Python/schema validator validates ref() as authoring syntax; FHS JavaScript 
+            resolves the referenced object.
+          anyOf:
+          - $ref: layout.horseshoePath
+          - $ref: common.ref
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_position:
+          type: object
+          additionalProperties: true
+          description: Horseshoe-specific position configuration retained inside the horseshoe tool.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_scale:
+          $ref: layout.horseshoeScale
+          description: Scale/range configuration used to interpret entity values along this horseshoe.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_state:
+          type: object
+          additionalProperties: true
+          description: State/progress rendering configuration for this horseshoe.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_marker:
+          $ref: layout.horseshoeMarker
+          description: Optional marker rendered on/around the horseshoe path.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_background:
+          type: object
+          additionalProperties: true
+          description: Background rendering configuration for the horseshoe.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_labels:
+          type: object
+          additionalProperties: true
+          description: Label rendering configuration for the horseshoe.
+          x-fhs-semantic-source: schema-context-v8
+        horseshoe_tickmarks:
+          anyOf:
+          - type: object
+            additionalProperties: true
+          - type: 'null'
+          description: Tickmark rendering configuration for the horseshoe.
+          x-fhs-semantic-source: schema-context-v8
+        state_map:
+          $ref: common.stateMap
+          description: Maps entity/string states to numeric values, labels, ranks, icons or other state-dependent data. 
+            state_value is commonly used to convert textual states into numeric values for color stops or geometry.
+          x-fhs-semantic-source: schema-context-v8
+        debug_state_map:
+          deprecated: true
+          x-fhs-prefer: remove this debug-only field
+          description: Deprecated debug-only horseshoe state-map field. Do not use it for new authored cards.
+          x-fhs-semantic-source: runtime-or-schema-verified-v8
+        show:
+          type: object
+          properties:
+            horseshoe:
+              $ref: common.dynamicBoolean
+              description: Whether the horseshoe itself is shown.
+              x-fhs-semantic-source: schema-context-v8
+            horseshoe_style:
+              description: Visual mode/style selector for the horseshoe.
+              x-fhs-semantic-source: schema-context-v8
+            labels_at:
+              description: Placement mode for horseshoe labels.
+              x-fhs-semantic-source: schema-context-v8
+            state_progress:
+              $ref: common.dynamicBoolean
+              description: Whether state progress is rendered.
+              x-fhs-semantic-source: schema-context-v8
+            state_marker:
+              $ref: common.dynamicBoolean
+              description: Whether the state marker is rendered.
+              x-fhs-semantic-source: schema-context-v8
+            item_style:
+              description: Visual style/mode selector for the containing tool.
+              x-fhs-semantic-source: schema-context-v8
+            horseshoe_background:
+              description: Background mode selector. Defining horseshoe_background alone does not show it; this selector
+                activates the configured background.
+              x-fhs-semantic-source: runtime-verified-v11
+            scale_style:
+              description: Color/style mode applied to the scale path.
+              x-fhs-semantic-source: runtime-verified-v11
+            tickmarks:
+              anyOf:
+              - $ref: common.dynamicBoolean
+              - type: object
+                properties:
+                  major:
+                    $ref: common.dynamicBoolean
+                    description: Whether major horseshoe tickmarks are shown.
+                    x-fhs-semantic-source: runtime-verified-v11
+                  minor:
+                    $ref: common.dynamicBoolean
+                    description: Whether minor horseshoe tickmarks are shown.
+                    x-fhs-semantic-source: runtime-verified-v11
+                additionalProperties: false
+              description: Primary tickmark visibility selector. A boolean controls both layers; an object can 
+                independently enable/disable major and minor tickmarks.
+              x-fhs-semantic-source: runtime-verified-v11
+            ticks:
+              $ref: common.dynamicBoolean
+              deprecated: true
+              x-fhs-prefer: show.tickmarks
+              description: Legacy tickmark visibility fallback used only when show.tickmarks is absent.
+              x-fhs-semantic-source: runtime-verified-v11
+            scale_tickmarks:
+              $ref: common.dynamicBoolean
+              deprecated: true
+              x-fhs-prefer: show.tickmarks
+              description: Legacy compatibility switch that can synthesize major tickmark configuration from 
+                horseshoe_scale.
+              x-fhs-semantic-source: runtime-verified-v11
+          additionalProperties: true
+          description: Horseshoe visibility and rendering selectors.
+          x-fhs-semantic-source: runtime-verified-v11
+    unevaluatedProperties: false
+    description: Horseshoe/progress gauge layout item with configurable path geometry, scale, state, labels, marker and 
+      tickmarks.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  horseshoePath:
+    type: object
+    description: Geometry followed by the horseshoe gauge. Rectangle and polygon path positions are numbered clockwise; 
+      direction controls traversal without changing that numbering.
+    properties:
+      type:
+        description: 'Shape followed by the horseshoe: arc, line, rectangle, polygon, wave, spiral or infinity. Shape-specific
+          fields in this same object define its geometry.'
+        enum:
+        - arc
+        - line
+        - rectangle
+        - polygon
+        - wave
+        - spiral
+        - infinity
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      radius:
+        $ref: common.dynamicNumber
+        description: Radius used by this object. See the containing tool description for whether it is a normal FHS 
+          logical dimension or a legacy/raw SVG value.
+        x-fhs-semantic-source: schema-context-v8
+      radius_x:
+        $ref: common.dynamicNumber
+        description: Horizontal radius in FHS logical units for an elliptical path.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      radius_y:
+        $ref: common.dynamicNumber
+        description: Vertical radius in FHS logical units for an elliptical path.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      arc_degrees:
+        $ref: common.dynamicNumber
+        description: Angular extent in degrees. Positive and negative values follow the direction conventions of the 
+          containing tool.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+        examples:
+        - 90
+        - 180
+        - 270
+        - 360
+      degrees:
+        $ref: common.dynamicNumber
+        description: Angle or angular extent in degrees.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+      start_angle:
+        $ref: common.dynamicNumber
+        description: Starting angle in degrees for the path or gauge.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+        examples:
+        - 0
+        - 90
+      length:
+        $ref: common.dynamicNumber
+        description: Length of this geometry in FHS logical units unless the containing object documents another 
+          coordinate space.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      angle:
+        $ref: common.dynamicNumber
+        description: Angle in degrees.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+      width:
+        $ref: common.dynamicNumber
+        description: Outside width of rectangle or polygon path in FHS layout units.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      height:
+        $ref: common.dynamicNumber
+        description: Outside height of rectangle or polygon path in FHS layout units.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      sides:
+        $ref: common.dynamicInteger
+        description: Number of polygon sides. Polygon side/corner positions run from 0 through sides, with the closing 
+          position equal to sides.
+        x-fhs-semantic-source: schema-context-v8
+      start:
+        $ref: common.dynamicNumber
+        description: Start position on a rectangle or polygon path. Positions are numbered clockwise. For a rectangle, 
+          0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left, and 4 closes back at 0. Decimal values select a point 
+          along the following side.
+        x-fhs-semantic-source: schema-context-v8
+      end:
+        $ref: common.dynamicNumber
+        description: End position on a rectangle or polygon path using the same clockwise numbering as start. Together 
+          with direction, this selects which route around the shape is followed.
+        x-fhs-semantic-source: schema-context-v8
+      top:
+        $ref: common.dynamicNumber
+        description: Path position that faces upward. Rectangles and even-sided polygons normally use 0.5 so the middle 
+          of side 0-to-1 is at the top; odd-sided polygons normally use 0 so corner 0 faces upward.
+        x-fhs-semantic-source: schema-context-v8
+      direction:
+        description: Traversal direction from start toward end. clockwise follows increasing path positions; 
+          counterclockwise follows decreasing positions and wraps across the closing position when needed. Position 
+          numbering itself always remains clockwise.
+        enum:
+        - clockwise
+        - counterclockwise
+        x-fhs-semantic-source: schema-context-v8
+      waves:
+        $ref: common.dynamicNumber
+        description: Number of waves/cycles for a wave path.
+        x-fhs-semantic-source: schema-context-v8
+      amplitude:
+        $ref: common.dynamicNumber
+        description: Wave amplitude for a wave path.
+        x-fhs-semantic-source: schema-context-v8
+      radius_inner:
+        $ref: common.dynamicNumber
+        description: Inner path radius in FHS logical units.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      radius_outer:
+        $ref: common.dynamicNumber
+        description: Outer path radius in FHS logical units.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      points:
+        $ref: common.dynamicInteger
+        description: Number of points/samples used by this path or chart feature.
+        x-fhs-semantic-source: schema-context-v8
+      turns:
+        $ref: common.dynamicNumber
+        description: Number of turns used by a spiral path.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  horseshoeScale:
+    type: object
+    properties:
+      min:
+        $ref: common.dynamicNumber
+        description: Minimum value for the containing scale, entity or control.
+        x-fhs-semantic-source: schema-context-v8
+      max:
+        $ref: common.dynamicNumber
+        description: Maximum value for the containing scale, entity or control.
+        x-fhs-semantic-source: schema-context-v8
+      width:
+        $ref: common.dynamicNumber
+        description: Stroke width of the horseshoe scale/path, not the width of the card or a 100-unit layout box.
+        x-fhs-unit: svg-style-dimension
+        x-fhs-semantic-source: runtime-verified-v8
+      color:
+        description: Color value used by this stop, gradient, scale or marker.
+        x-fhs-semantic-source: schema-context-v8
+      linecap:
+        description: SVG stroke line-cap style used by the horseshoe scale/path.
+        x-fhs-semantic-source: schema-context-v8
+      type:
+        enum:
+        - linear
+        - spline
+        - splineorg
+        description: 'Scale interpolation mode used to map values onto the horseshoe: linear or one of the supported spline
+          modes.'
+        x-fhs-semantic-source: runtime-or-schema-verified-v8
+      spline:
+        type: object
+        additionalProperties: true
+        description: Spline configuration used when the horseshoe scale type is a spline variant.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 
+          internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is 
+          approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for layout horseshoeScale.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  horseshoeMarker:
+    type: object
+    properties:
+      attach_to:
+        enum:
+        - path
+        - center
+        description: Selects whether the horseshoe marker attaches to the path or the center.
+        x-fhs-semantic-source: schema-context-v8
+      shape:
+        enum:
+        - circle
+        - triangle
+        description: Marker shape.
+        x-fhs-semantic-source: schema-context-v8
+      icon:
+        description: 'Icon value or icon source. Home Assistant mdi: icons and entity-derived icons are supported where the
+          containing tool allows them.'
+        x-fhs-semantic-source: schema-context-v8
+      rotate:
+        $ref: common.dynamicNumber
+        description: Rotation in degrees.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+        examples:
+        - 0
+        - 90
+        - 180
+      offset:
+        $ref: common.dynamicNumber
+        description: Offset applied by the containing feature. Units depend on that feature and are documented in its 
+          definition when different from normal FHS logical units.
+        x-fhs-semantic-source: schema-context-v8
+      size:
+        $ref: common.positiveNumber
+        description: Size used by the containing item. Its unit is context-specific; see the containing definition 
+          description.
+        x-fhs-semantic-source: schema-context-v8
+      aspectratio:
+        $ref: common.positiveNumber
+        description: Width/height aspect ratio. The normal 1/1 logical card is 100 x 100; an aspect ratio 2/1 produces a
+          200 x 100 logical canvas while retaining the same 100-unit reference scale.
+        x-fhs-semantic-source: schema-context-v8
+      start_offset:
+        $ref: common.dynamicNumber
+        description: Offset from the start of the containing path.
+        x-fhs-semantic-source: schema-context-v8
+      end_offset:
+        $ref: common.dynamicNumber
+        description: Offset from the end of the containing path.
+        x-fhs-semantic-source: schema-context-v8
+      styles:
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 
+          internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is 
+          approximately 6 logical units.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: Public FHS schema definition for layout horseshoeMarker.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  horseshoes:
+    show:
+      horseshoe: false removes/filters the gauge tool; true/default activates it.
+      horseshoe_style: Selects state-path paint mode.
+      scale_style: Selects scale-path paint mode.
+      horseshoe_background: Activates horseshoe_background. Defining the background block alone does not show it.
+      labels_at: Activates/places horseshoe labels; default none.
+      state_progress: Controls active state/progress path.
+      state_marker: Activates horseshoe_marker.
+      tickmarks: Primary tickmark selector. Boolean controls both; {major, minor} controls layers independently.
+      ticks: Legacy fallback only when tickmarks is absent.
+      scale_tickmarks: Legacy compatibility input that can synthesize major tickmarks.
+    scale_precedence: Explicit horseshoe_scale.min/max override color_stops.scales.default min/max; final fallback is 
+      0..100.
+    scale_type: horseshoe_scale.type spline/splineorg requires horseshoe_scale.spline.
+    path_types:
+    - arc
+    - line
+    - rectangle
+    - polygon
+    - wave
+    - spiral
+    - infinity
+    path_rule: path.type selects shape-specific geometry. Keep placement at the horseshoe item level and shape-specific 
+      geometry under path.
+    marker:
+      path: attach_to path defaults to shape circle when icon/shape are absent; size falls back to 
+        horseshoe_state.width.
+      center: attach_to center requires icon and requires path.type arc.
+      exclusive: icon and shape cannot both be configured.
+    bar_modes:
+    - normal
+    - bidirectional
+    - bidirectional_symmetrical
+    - bidirectional_linear
+    - absolute
+    absolute: Requires scale min <= 0 and max > 0; explicit zero_ratio is invalid.
+    zero_ratio: bidirectional/bidirectional_symmetrical default to 0.5; otherwise non-absolute modes derive it from 
+      scale min/max.
+    string_state_labels: horseshoe_state.mode stringstate_mode/stringstate_level selects the matching horseshoe_labels 
+      sub-block and uses state mapping.
+generation:
+  reuse_overrides:
+    horseshoe:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50 produces
+            no offset and appears at the group position; values above or below 50 move relative to that group center.'
+          x-fhs-semantic-source: schema-context-v8
+        show:
+          anyOf:
+          - type: object
+            additionalProperties: true
+          - $ref: common.ref
+          - $ref: common.javascript
+          - type: object
+            properties:
+              horseshoe:
+                $ref: common.dynamicBoolean
+                description: Whether the horseshoe itself is shown.
+                x-fhs-semantic-source: schema-context-v8
+              horseshoe_style:
+                description: Visual mode/style selector for the horseshoe.
+                x-fhs-semantic-source: schema-context-v8
+              labels_at:
+                description: Placement mode for horseshoe labels.
+                x-fhs-semantic-source: schema-context-v8
+              state_progress:
+                $ref: common.dynamicBoolean
+                description: Whether state progress is rendered.
+                x-fhs-semantic-source: schema-context-v8
+              state_marker:
+                $ref: common.dynamicBoolean
+                description: Whether the state marker is rendered.
+                x-fhs-semantic-source: schema-context-v8
+              item_style:
+                description: Visual style/mode selector for the containing tool.
+                x-fhs-semantic-source: schema-context-v8
+              horseshoe_background:
+                description: Background mode selector. Defining horseshoe_background alone does not show it; this 
+                  selector activates the configured background.
+                x-fhs-semantic-source: runtime-verified-v11
+              scale_style:
+                description: Color/style mode applied to the scale path.
+                x-fhs-semantic-source: runtime-verified-v11
+              tickmarks:
+                anyOf:
+                - $ref: common.dynamicBoolean
+                - type: object
+                  properties:
+                    major:
+                      $ref: common.dynamicBoolean
+                      description: Whether major horseshoe tickmarks are shown.
+                      x-fhs-semantic-source: runtime-verified-v11
+                    minor:
+                      $ref: common.dynamicBoolean
+                      description: Whether minor horseshoe tickmarks are shown.
+                      x-fhs-semantic-source: runtime-verified-v11
+                  additionalProperties: false
+                description: Primary tickmark visibility selector. A boolean controls both layers; an object can 
+                  independently enable/disable major and minor tickmarks.
+                x-fhs-semantic-source: runtime-verified-v11
+              ticks:
+                $ref: common.dynamicBoolean
+                deprecated: true
+                x-fhs-prefer: show.tickmarks
+                description: Legacy tickmark visibility fallback used only when show.tickmarks is absent.
+                x-fhs-semantic-source: runtime-verified-v11
+              scale_tickmarks:
+                $ref: common.dynamicBoolean
+                deprecated: true
+                x-fhs-prefer: show.tickmarks
+                description: Legacy compatibility switch that can synthesize major tickmark configuration from 
+                  horseshoe_scale.
+                x-fhs-semantic-source: runtime-verified-v11
+            additionalProperties: true
+            description: Horseshoe visibility and rendering selectors.
+            x-fhs-semantic-source: runtime-verified-v11
+          description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
+          x-fhs-semantic-source: schema-context-v8

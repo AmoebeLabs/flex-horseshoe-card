@@ -1,0 +1,6 @@
+namespace: layout
+definitions:
+  aspectratio:
+    $ref: common.aspectRatio
+    description: Public FHS schema definition for layout aspectratio.
+    x-fhs-semantic-source: schema-semantic-pass-v8

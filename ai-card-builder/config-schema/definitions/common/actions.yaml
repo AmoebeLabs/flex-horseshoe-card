@@ -1,0 +1,133 @@
+namespace: common
+definitions:
+  action:
+    anyOf:
+      - $ref: common.javascript
+      - type: object
+        properties:
+          action:
+            anyOf:
+              - enum:
+                  - none
+                  - more-info
+                  - toggle
+                  - perform-action
+                  - call-service
+                  - navigate
+                  - url
+                  - assist
+                  - fire-dom-event
+                  - select-option
+              - $ref: common.javascript
+            description: Generic Home Assistant/FHS action type. increment/decrement are not generic actions; 
+              they are local shorthand accepted only by number-control minus/plus button configuration and are
+              translated to perform-action at runtime.
+            x-fhs-semantic-source: schema-context-v8
+          actions:
+            type: array
+            items:
+              $ref: common.action
+            description: Ordered list of actions executed by this action configuration.
+            x-fhs-semantic-source: schema-context-v8
+          haptic:
+            description: Optional haptic feedback request associated with the action.
+            x-fhs-semantic-source: schema-context-v8
+          perform_action:
+            description: Home Assistant perform-action/service identifier.
+            x-fhs-semantic-source: schema-context-v8
+          service:
+            description: Legacy/compatible Home Assistant service identifier for a service action.
+            x-fhs-semantic-source: schema-context-v8
+          target:
+            description: Home Assistant action target selector.
+            x-fhs-semantic-source: schema-context-v8
+          data:
+            description: Action data payload.
+            x-fhs-semantic-source: schema-context-v8
+          service_data:
+            description: Service-call data payload.
+            x-fhs-semantic-source: schema-context-v8
+          navigation_path:
+            description: Home Assistant navigation path used by a navigate action.
+            x-fhs-semantic-source: schema-context-v8
+          url_path:
+            description: URL opened by a url action.
+            x-fhs-semantic-source: schema-context-v8
+          option:
+            description: Option passed to a select-option action.
+            x-fhs-semantic-source: schema-context-v8
+          value_field:
+            description: Field name used by actions/controls that submit a value.
+            x-fhs-semantic-source: schema-context-v8
+          entity:
+            description: Explicit entity target. When present it overrides the entity bound through 
+              entity_index/source_entity_index.
+            x-fhs-semantic-source: runtime-verified-v11
+          navigation_replace:
+            description: For navigate actions, replace the current browser history entry instead of pushing a 
+              new one.
+            x-fhs-semantic-source: runtime-verified-v11
+          pipeline_id:
+            description: Assist pipeline id passed to Home Assistant for an assist action.
+            x-fhs-semantic-source: runtime-verified-v11
+          start_listening:
+            description: Whether an assist action should immediately start listening.
+            x-fhs-semantic-source: runtime-verified-v11
+          value_fields:
+            description: Slider range-action mapping from target field paths to lower/upper slider values. 
+              This is slider-specific action augmentation.
+            x-fhs-semantic-source: runtime-verified-v11
+        additionalProperties: true
+    description: Generic Home Assistant/FHS gesture action configuration. Supported generic actions are none, 
+      more-info, toggle, perform-action, call-service, navigate, url, assist, fire-dom-event and 
+      select-option. actions[] executes in order.
+    x-fhs-semantic-source: runtime-verified-v11
+  actionFields:
+    type: object
+    properties:
+      tap_action:
+        $ref: common.action
+        description: Action executed for a tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      hold_action:
+        $ref: common.action
+        description: Action executed for a hold gesture.
+        x-fhs-semantic-source: schema-context-v8
+      double_tap_action:
+        $ref: common.action
+        description: Action executed for a double-tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: true
+    description: Public FHS schema definition for common actionFields.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  actions:
+    generic_actions:
+      - none
+      - more-info
+      - toggle
+      - perform-action
+      - call-service
+      - navigate
+      - url
+      - assist
+      - fire-dom-event
+      - select-option
+    ordered_actions: actions[] executes sequentially in configured order.
+    target_precedence: Explicit action.entity overrides the bound item/entity target. Otherwise 
+      source_entity_index redirects the selected entity when configured.
+    tap_default: A bound entity with no configured tap action defaults to more-info when that target supports 
+      it.
+    number_control_shorthand:
+      actions:
+        - increment
+        - decrement
+      scope: Only number-control minus/plus tap_action configuration.
+      translation: Translated to perform-action <bound-entity-domain>.increment/decrement.
+      warning: Do not author increment/decrement as generic tap/hold/double-tap actions elsewhere.
+    slider_shorthand:
+      action: set-value
+      scope: layout.controls[type=slider].set_value_action
+      translation: Translated to perform-action <bound-entity-domain>.set_value with the active slider value.
+      custom_single: For a custom action, value_field gives the target field path receiving the active value.
+      custom_range: value_fields maps target field paths to lower or upper.

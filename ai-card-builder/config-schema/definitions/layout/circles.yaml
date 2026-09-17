@@ -1,0 +1,91 @@
+namespace: layout
+definitions:
+  circles:
+    type: array
+    items:
+      $ref: layout.circle
+    description: Public FHS schema definition for layout circles.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  circle:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          radius:
+            $ref: common.dynamicNumber
+            deprecated: true
+            x-fhs-prefer: radius_percent
+            description: Legacy radius in raw internal SVG units, not on the normal 100-unit logical scale. 
+              For a static numeric migration that preserves visual size, use radius_percent = radius / 2.
+            x-fhs-migration:
+              target: radius_percent
+              operation: divide-by-2
+            x-fhs-unit: raw-svg-unit
+            examples:
+              - 20
+            x-fhs-semantic-source: runtime-verified-v8
+          radius_percent:
+            $ref: common.dynamicNumber
+            description: Preferred circle radius in FHS logical units. On a standard 1/1 card, 10 is one tenth
+              of the 100-unit reference width/height; FHS converts it to 20 internal SVG units.
+            x-fhs-unit: fhs-logical-dimension
+            examples:
+              - 10
+              - 25
+            x-fhs-semantic-source: runtime-verified-v8
+    unevaluatedProperties: false
+    description: Circle shape. Prefer radius_percent for current authoring; legacy radius uses raw internal 
+      SVG units.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  circles:
+    preferred_radius: radius_percent
+    legacy_radius: Supported for compatibility; legacy radius is raw SVG units. Preserve size with 
+      radius_percent = radius / 2.
+generation:
+  reuse_overrides:
+    circle:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

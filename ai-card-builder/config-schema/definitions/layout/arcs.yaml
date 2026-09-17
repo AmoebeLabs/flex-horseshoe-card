@@ -1,0 +1,98 @@
+namespace: layout
+definitions:
+  arcs:
+    type: array
+    items:
+      $ref: layout.arc
+    description: Public FHS schema definition for layout arcs.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  arc:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          radius:
+            $ref: common.dynamicNumber
+            description: Radius used by this object. See the containing tool description for whether it is a 
+              normal FHS logical dimension or a legacy/raw SVG value.
+            x-fhs-semantic-source: schema-context-v8
+          arc_degrees:
+            $ref: common.dynamicNumber
+            description: Angular extent in degrees. Positive and negative values follow the direction 
+              conventions of the containing tool.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+              - 90
+              - 180
+              - 270
+              - 360
+          rotate:
+            $ref: common.dynamicNumber
+            description: Rotation in degrees.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+              - 0
+              - 90
+              - 180
+          flip:
+            anyOf:
+              - enum:
+                  - none
+                  - x
+                  - y
+                  - both
+              - $ref: common.javascript
+            description: Optional horizontal and/or vertical mirroring of the rendered item.
+            x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Closed chord arc shape. Position and radius use FHS logical units; angles use degrees.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    arc:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

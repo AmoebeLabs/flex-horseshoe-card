@@ -1,0 +1,132 @@
+namespace: layout
+definitions:
+  icons:
+    type: array
+    items:
+      $ref: layout.icon
+    description: Public FHS schema definition for layout icons.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  icon:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          icon:
+            description: 'Icon value or icon source. Home Assistant mdi: icons and entity-derived icons are supported
+              where the containing tool allows them.'
+            x-fhs-semantic-source: schema-context-v8
+          state_map:
+            $ref: common.stateMap
+            description: Maps entity/string states to numeric values, labels, ranks, icons or other 
+              state-dependent data. state_value is commonly used to convert textual states into numeric values
+              for color stops or geometry.
+            x-fhs-semantic-source: schema-context-v8
+          icon_size_percent:
+            $ref: common.dynamicNumber
+            description: Geometric icon size in FHS logical units relative to the 100-unit reference canvas. 
+              Use this when you want size to follow card geometry rather than text/font scale. It has highest 
+              runtime sizing priority.
+            x-fhs-conflicts-with:
+              - icon_size
+              - size
+            x-fhs-precedence: icon_size_percent
+            x-fhs-unit: fhs-logical-dimension
+            examples:
+              - 10
+              - 20
+            x-fhs-semantic-source: runtime-verified-v8
+          icon_size:
+            $ref: common.dynamicNumber
+            description: Typographic icon-size multiplier based on the FHS base font (12 internal SVG units). 
+              This is useful when an icon should visually scale like text. icon_size_percent has higher 
+              priority.
+            x-fhs-conflicts-with: size
+            x-fhs-precedence: icon_size
+            examples:
+              - 2
+              - 3
+            x-fhs-semantic-source: runtime-verified-v8
+          size:
+            $ref: common.dynamicNumber
+            description: Supported generic typographic icon-size multiplier. It uses the same font-based 
+              sizing family as icon_size. If both are set, icon_size wins; icon_size_percent wins over both.
+            examples:
+              - 2
+              - 3.5
+            x-fhs-semantic-source: runtime-verified-v8
+          rotate:
+            $ref: common.dynamicNumber
+            description: Rotation in degrees.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: degrees
+            examples:
+              - 0
+              - 90
+              - 180
+          align:
+            enum:
+              - center
+              - start
+              - end
+            description: Alignment of the icon/content relative to its configured position.
+            x-fhs-semantic-source: schema-context-v8
+    unevaluatedProperties: false
+    description: Icon layout tool with three supported sizing interfaces. icon_size_percent is geometric; 
+      icon_size and size are font-based.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+authoring:
+  icons:
+    sizing:
+      size: current generic font-size-based alias
+      icon_size: current font-size-based sizing intended to match text visually
+      icon_size_percent: current geometric sizing relative to the SVG/card
+      precedence: icon_size_percent > icon_size > size
+      note: Do not replace control content-items[].type=icon size with icon_size; that is a different public 
+        interface.
+generation:
+  reuse_overrides:
+    icon:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

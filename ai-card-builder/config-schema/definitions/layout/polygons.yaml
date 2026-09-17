@@ -1,0 +1,103 @@
+namespace: layout
+definitions:
+  polygons:
+    type: array
+    items:
+      $ref: layout.polygon
+    description: Public FHS schema definition for layout polygons.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  polygon:
+    allOf:
+      - $ref: common.baseTool
+      - type: object
+        properties:
+          xpos:
+            $ref: common.dynamicNumber
+            description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width:
+              0 is the left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local
+              position: final_x = group.xpos + item.xpos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          ypos:
+            $ref: common.dynamicNumber
+            description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height:
+              0 is the top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local
+              position: final_y = group.ypos + item.ypos - 50.'
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 0
+              - 50
+              - 100
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          yposc:
+            $ref: common.dynamicNumber
+            description: Alternative vertical centre coordinate used by current FHS runtime. It uses the same 
+              100-unit logical and group-local coordinate rules as ypos.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-coordinate
+            examples:
+              - 25
+              - 50
+              - 75
+            x-fhs-coordinate-space: card-or-group-logical
+            x-fhs-group-neutral: 50
+          sides:
+            anyOf:
+              - type: integer
+                minimum: 3
+              - $ref: common.javascript
+            description: Number of polygon sides. A polygon requires at least three sides.
+            x-fhs-semantic-source: schema-context-v8
+          width:
+            $ref: common.positiveNumber
+            description: Width used by this object. Unless a more specific description says otherwise, layout 
+              geometry uses FHS logical units where 100 equals the width of a 1/1 reference card.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-dimension
+          height:
+            $ref: common.positiveNumber
+            description: Height used by this object. Unless a more specific description says otherwise, layout
+              geometry uses FHS logical units where 100 equals the height of a 1/1 reference card.
+            x-fhs-semantic-source: schema-context-v8
+            x-fhs-unit: fhs-logical-dimension
+          radius:
+            $ref: common.nonNegativeNumber
+            description: Radius used by this object. See the containing tool description for whether it is a 
+              normal FHS logical dimension or a legacy/raw SVG value.
+            x-fhs-semantic-source: schema-context-v8
+          top:
+            $ref: common.dynamicNumber
+            description: Top/reference position or polygon/path orientation value used by the containing 
+              geometry.
+            x-fhs-semantic-source: schema-context-v8
+          fill_mask:
+            anyOf:
+              - const: auto
+              - $ref: common.nonNegativeNumber
+            description: Controls the inner fill mask used to keep translucent fill and stroke from visually 
+              blending. auto lets FHS derive the mask inset.
+            x-fhs-semantic-source: schema-context-v8
+        required:
+          - sides
+          - width
+          - height
+    unevaluatedProperties: false
+    description: Regular polygon shape positioned and sized in FHS logical units.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+generation:
+  reuse_overrides:
+    polygon:
+      properties:
+        group:
+          description: 'Layout group that owns this item. Group-local authoring is centered on 50,50: item 50,50
+            produces no offset and appears at the group position; values above or below 50 move relative to that
+            group center.'
+          x-fhs-semantic-source: schema-context-v8

@@ -1,0 +1,98 @@
+namespace: card
+definitions:
+  layout:
+    type: object
+    properties:
+      aspectratio:
+        $ref: layout.aspectratio
+        description: Width/height aspect ratio. The normal 1/1 logical card is 100 x 100; an aspect ratio 2/1 produces a 200
+          x 100 logical canvas while retaining the same 100-unit reference scale.
+        x-fhs-semantic-source: schema-context-v8
+      groups:
+        $ref: layout.groups
+        description: Local coordinate/transform groups.
+        x-fhs-semantic-source: schema-context-v8
+      compounds:
+        $ref: layout.compounds
+        description: Compound collections of layout tools.
+        x-fhs-semantic-source: schema-context-v8
+      gradients:
+        $ref: layout.gradients
+        description: Named SVG gradients.
+        x-fhs-semantic-source: schema-context-v8
+      clips:
+        $ref: layout.clips
+        description: Named clip-path definitions.
+        x-fhs-semantic-source: schema-context-v8
+      masks:
+        $ref: layout.masks
+        description: Named mask definitions.
+        x-fhs-semantic-source: schema-context-v8
+      horseshoes:
+        $ref: layout.horseshoes
+        description: Current horseshoe/progress gauge items.
+        x-fhs-semantic-source: schema-context-v8
+      horseshoes_v2:
+        $ref: layout.horseshoes_v2
+        description: Compatibility alias for horseshoe items.
+        x-fhs-semantic-source: schema-context-v8
+      states:
+        $ref: layout.states
+        description: Entity-state text items.
+        x-fhs-semantic-source: schema-context-v8
+      texts:
+        $ref: layout.texts
+        description: Free/multipart text items.
+        x-fhs-semantic-source: schema-context-v8
+      names:
+        $ref: layout.names
+        description: Entity-name text items.
+        x-fhs-semantic-source: schema-context-v8
+      areas:
+        $ref: layout.areas
+        description: Entity-area text items.
+        x-fhs-semantic-source: schema-context-v8
+      circles:
+        $ref: layout.circles
+        description: Circle shapes.
+        x-fhs-semantic-source: schema-context-v8
+      arcs:
+        $ref: layout.arcs
+        description: Arc shapes.
+        x-fhs-semantic-source: schema-context-v8
+      rectangles:
+        $ref: layout.rectangles
+        description: Rectangle shapes.
+        x-fhs-semantic-source: schema-context-v8
+      polygons:
+        $ref: layout.polygons
+        description: Polygon shapes.
+        x-fhs-semantic-source: schema-context-v8
+      lines:
+        $ref: layout.lines
+        description: Current generic line items.
+        x-fhs-semantic-source: schema-context-v8
+      hlines:
+        $ref: layout.hlines
+        description: Legacy horizontal line items.
+        x-fhs-semantic-source: schema-context-v8
+      vlines:
+        $ref: layout.vlines
+        description: Legacy vertical line items.
+        x-fhs-semantic-source: schema-context-v8
+      icons:
+        $ref: layout.icons
+        description: Icon items.
+        x-fhs-semantic-source: schema-context-v8
+      sparklines:
+        $ref: layout.sparklines
+        description: Historical chart items.
+        x-fhs-semantic-source: schema-context-v8
+      controls:
+        $ref: layout.controls
+        description: Interactive controls.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: All visual FHS layout sections. Geometry is authored against the logical FHS coordinate system; a 1/1 card
+      uses 100 x 100 logical units.
+    x-fhs-semantic-source: schema-semantic-pass-v8

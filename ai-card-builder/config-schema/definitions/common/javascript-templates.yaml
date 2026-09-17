@@ -1,0 +1,53 @@
+authoring:
+  javascript_templates:
+    purpose: Runtime calculation/selection inside fields that explicitly accept JavaScript templates.
+    syntax: '[[[ ... ]]]'
+    return_contract: Return the complete value for the containing YAML field. The returned value must be valid
+      for that field.
+    context:
+      state:
+        meaning: Resolved state or selected attribute for the entity bound to the current item.
+        source: current item entity_index/attribute
+        shape: scalar resolved state/attribute value; convert with Number(...) when numeric arithmetic is 
+          required
+      entity:
+        meaning: Complete resolved entity bound to the current item.
+        source: current item entity_index
+        shape: '{ entity_id, state, attributes, ... } entity-like object'
+      entities:
+        meaning: Resolved FHS card entity-state list in entities[] order.
+        includes: Configured Home Assistant entities and configured FHS-local entities.
+        usage: Use entities[index].state or entities[entity_slots.name[0]].state for card entities.
+        shape: array of entity-like objects in root entities[] order
+      entity_slots:
+        meaning: Mapping from configured slot names to entity indexes.
+        shape: object whose values are arrays of indexes
+      states:
+        meaning: Home Assistant state registry.
+        source: hass.states
+        important: This is not an alias for entities. Do not assume browser-local FHS entities exist in 
+          states.
+        shape: object/map keyed by Home Assistant entity_id; values are HA state objects
+        reactivity: When a template reads a Home Assistant entity through states['domain.object_id'], also 
+          include that entity in the card entities list so its state changes trigger card updates.
+      hass:
+        meaning: Home Assistant frontend hass object available to the card.
+      constants:
+        meaning: Resolved card constants available to the template.
+        shape: object matching the resolved card constants namespace
+      item:
+        meaning: Current configured/normalized FHS item context.
+        usage: Read current item configuration/context; do not mutate it as a persistence mechanism.
+      user:
+        meaning: Current Home Assistant user.
+    rules:
+      entities_vs_states: entities is the FHS card entity list and includes configured FHS-local inputs; 
+        states is hass.states and represents Home Assistant entities.
+      local_input_example: For a configured fhs_input_number at entity index 1, read the current numeric value
+        with Number(entities[1].state).
+      slot_example: Prefer entities[entity_slots.<slot>[0]].state when a stable named slot is available.
+      no_invented_api: Do not invent tools.<id>.value or other context objects not listed here.
+      where_allowed: Use JavaScript only where the matching schema field explicitly accepts common.javascript 
+        or another dynamic-value contract.
+      states_reactivity: If a template reads states['domain.object_id'], include the same Home Assistant 
+        entity in the root entities list so updates to it trigger a card update.

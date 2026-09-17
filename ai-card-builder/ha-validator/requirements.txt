@@ -1,0 +1,6 @@
+{
+  "grid_options": "Home Assistant Sections/Grid card placement metadata",
+  "view_layout": "Lovelace/custom layout placement metadata outside the FHS public contract",
+  "visibility": "Home Assistant card visibility metadata outside the FHS public contract",
+  "style": "card-mod root-level card styling metadata outside the FHS public contract"
+}

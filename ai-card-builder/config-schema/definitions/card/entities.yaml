@@ -1,0 +1,139 @@
+namespace: card
+definitions:
+  entities:
+    type: array
+    items:
+      $ref: card.entity
+    description: Public FHS schema definition for card entities.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  entity:
+    type: object
+    properties:
+      template:
+        $ref: card.templateUse
+        description: Template reference merged into this configuration before normal runtime use.
+        x-fhs-semantic-source: schema-context-v8
+      entity:
+        type: string
+        description: Entity id in normal domain.object_id form. Home Assistant entities use their HA domain 
+          (for example sensor.living_room_temperature). Browser-local FHS entities use the domains 
+          fhs_input_number, fhs_input_boolean, or fhs_input_select and MUST also include a user-defined 
+          object_id, for example fhs_input_number.horseshoe_width. The bare domain name is not a complete 
+          entity id.
+        x-fhs-semantic-source: schema-context-v8
+        pattern: ^[a-z0-9_]+\.[a-z0-9_]+$
+        x-fhs-entity-id-contract:
+          syntax: <domain>.<object_id>
+          fhs_local_domains:
+            - fhs_input_number
+            - fhs_input_boolean
+            - fhs_input_select
+          examples:
+            - sensor.living_room_temperature
+            - fhs_input_number.horseshoe_width
+            - fhs_input_boolean.show_labels
+            - fhs_input_select.chart_type
+          invalid_examples:
+            - fhs_input_number
+            - fhs_input_boolean
+            - fhs_input_select
+      slot:
+        type: string
+        pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+        description: Named entity slot that can be addressed by slot[index] syntax where supported.
+        x-fhs-semantic-source: schema-context-v8
+      attribute:
+        description: Optional Home Assistant entity attribute to use instead of the entity state.
+        x-fhs-semantic-source: schema-context-v8
+      name:
+        description: Optional display name or template name, depending on context.
+        x-fhs-semantic-source: schema-context-v8
+      area:
+        description: Area-chart configuration or area-related graph configuration.
+        x-fhs-semantic-source: schema-context-v8
+      icon:
+        description: 'Icon value or icon source. Home Assistant mdi: icons and entity-derived icons are supported
+          where the containing tool allows them.'
+        x-fhs-semantic-source: schema-context-v8
+      unit:
+        description: Unit-of-measurement override for the configured entity.
+        x-fhs-semantic-source: schema-context-v8
+      decimals:
+        description: Number of decimal places used for numeric display formatting.
+        x-fhs-semantic-source: schema-context-v8
+      convert:
+        description: Named FHS state converter applied before final display formatting.
+        x-fhs-semantic-source: schema-context-v8
+      format:
+        description: Display-format selector or formatting configuration for this value.
+        x-fhs-semantic-source: schema-context-v8
+      disabled:
+        $ref: common.disabled
+        description: Disables this configured item/entity when true/1. FHS also accepts ref(), calc() and 
+          JavaScript forms allowed by common.disabled.
+        x-fhs-semantic-source: schema-context-v8
+      color_stops:
+        $ref: common.colorStops
+        description: FHS color-stop definition used to map numeric or string entity states to colors and 
+          optional styles.
+        x-fhs-semantic-source: schema-context-v8
+      initial:
+        description: Initial value used when applicable. For FHS-local input entities this is the initial 
+          browser-local state.
+        x-fhs-semantic-source: schema-context-v8
+      min:
+        description: Minimum numeric value. On fhs_input_number entities this belongs to the entity definition
+          and is exposed to numeric controls as entity metadata.
+        x-fhs-semantic-source: schema-context-v8
+      max:
+        description: Maximum numeric value. On fhs_input_number entities this belongs to the entity definition
+          and is exposed to numeric controls as entity metadata.
+        x-fhs-semantic-source: schema-context-v8
+      step:
+        description: Numeric step size. On fhs_input_number entities this belongs to the entity definition; it
+          is not a slider interaction option.
+        x-fhs-semantic-source: schema-context-v8
+      options:
+        type: array
+        description: Allowed option values. For fhs_input_select this is the browser-local option list.
+        x-fhs-semantic-source: schema-context-v8
+      scope:
+        enum:
+          - card
+          - global
+        description: Scope for FHS-local input entities. card keeps a value per card instance; global shares 
+          the value between FHS cards in the current browser.
+        x-fhs-semantic-source: schema-context-v8
+      persist:
+        type: boolean
+        description: For FHS-local inputs, restores a global-scoped value after browser reload when true.
+        x-fhs-semantic-source: schema-context-v8
+      local:
+        type: boolean
+        description: Marks an entity as local/derived inside FHS rather than a normal Home Assistant entity 
+          source.
+        x-fhs-semantic-source: schema-context-v8
+      tap_action:
+        $ref: common.action
+        description: Action executed for a tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      hold_action:
+        $ref: common.action
+        description: Action executed for a hold gesture.
+        x-fhs-semantic-source: schema-context-v8
+      double_tap_action:
+        $ref: common.action
+        description: Action executed for a double-tap gesture.
+        x-fhs-semantic-source: schema-context-v8
+      state_map:
+        type: object
+        additionalProperties: true
+        description: Maps entity/string states to numeric values, labels, ranks, icons or other 
+          state-dependent data. state_value is commonly used to convert textual states into numeric values for
+          color stops or geometry.
+        x-fhs-semantic-source: schema-context-v8
+    additionalProperties: false
+    description: One Home Assistant or FHS-local entity source used by layout items through entity_index. 
+      FHS-local inputs are defined as ordinary entries in entities[]; their domain is part of the entity id, 
+      not a nested configuration key.
+    x-fhs-semantic-source: schema-semantic-pass-v8

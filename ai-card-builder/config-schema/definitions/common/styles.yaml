@@ -1,0 +1,45 @@
+namespace: common
+definitions:
+  styles:
+    description: FHS style config for SVG-rendered visual tools. Accepts dictionary, list/string shorthand, 
+      ref(), or a runtime JavaScript template where supported. General SVG/CSS presentation-property knowledge
+      may be used, but HTML elements and HTML-only layout assumptions must not be introduced unless a specific
+      FHS feature explicitly supports them.
+    anyOf:
+      - type: object
+        additionalProperties: true
+      - type: array
+      - type: string
+      - type: 'null'
+      - const: false
+    x-fhs-semantic-source: schema-semantic-pass-v8
+    x-fhs-style-semantics:
+      font-size:
+        unit: CSS font size, normally em
+        fhs_reference: 1em ~= 6 FHS logical units on the standard 100 x 100 card
+        runtime_basis: FONT_SIZE=12 internal units, SVG_DEFAULT_DIMENSIONS=200
+        examples:
+          - 0.7em
+          - 1em
+          - 1.4em
+          - 2em
+      stroke-width:
+        unit: SVG/CSS style dimension
+        note: This is style space, not automatically the same semantic unit as FHS layout width/height.
+      rendering_model:
+        primary_surface: SVG
+        allowed_external_semantics: Standard SVG/CSS presentation-property semantics
+        warning: CSS knowledge may explain valid SVG presentation properties, but must not create new FHS 
+          configuration fields or imply HTML layout behavior.
+        examples:
+          - fill
+          - stroke
+          - stroke-width
+          - stroke-linecap
+          - opacity
+          - font-size
+          - text-anchor
+        html_layout_not_implied:
+          - display:flex
+          - justify-content
+          - grid-template-columns

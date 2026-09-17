@@ -1,0 +1,12 @@
+namespace: layout
+definitions:
+  names:
+    type: array
+    items:
+      $ref: layout.name
+    description: Public FHS schema definition for layout names.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  name:
+    $ref: common.textBase
+    description: Public FHS schema definition for layout name.
+    x-fhs-semantic-source: schema-semantic-pass-v8

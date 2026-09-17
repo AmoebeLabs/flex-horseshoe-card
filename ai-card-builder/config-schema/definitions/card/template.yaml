@@ -1,0 +1,23 @@
+namespace: card
+definitions:
+  templateUse:
+    anyOf:
+    - type: string
+    - type: object
+      properties:
+        name:
+          type: string
+          description: Optional display name or template name, depending on context.
+          x-fhs-semantic-source: schema-context-v8
+        variables:
+          type: array
+          items:
+            type: object
+            minProperties: 1
+          description: Values supplied to the referenced FHS template.
+          x-fhs-semantic-source: schema-context-v8
+      required:
+      - name
+      additionalProperties: false
+    description: Public FHS schema definition for card templateUse.
+    x-fhs-semantic-source: schema-semantic-pass-v8

@@ -1,0 +1,140 @@
+namespace: common
+definitions:
+  definitionRectangle:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse and cross-item
+          references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      xpos: &id001
+        $ref: common.dynamicNumber
+        description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+          left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+          + item.xpos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      ypos: &id002
+        $ref: common.dynamicNumber
+        description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+          top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+          + item.ypos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      dxpos: &id003
+        $ref: common.dynamicNumber
+        description: Horizontal offset added to a referenced or base position.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-offset
+      dypos: &id004
+        $ref: common.dynamicNumber
+        description: Vertical offset added to a referenced or base position.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-offset
+      styles: &id005
+        $ref: common.styles
+        description: SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 internal
+          SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is approximately 6 logical
+          units.
+        x-fhs-semantic-source: schema-context-v8
+      width:
+        $ref: common.dynamicNumber
+        description: Width used by this object. Unless a more specific description says otherwise, layout geometry uses FHS
+          logical units where 100 equals the width of a 1/1 reference card.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      height:
+        $ref: common.dynamicNumber
+        description: Height used by this object. Unless a more specific description says otherwise, layout geometry uses FHS
+          logical units where 100 equals the height of a 1/1 reference card.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+      radius:
+        $ref: common.rectangleRadius
+        description: Radius used by this object. See the containing tool description for whether it is a normal FHS logical
+          dimension or a legacy/raw SVG value.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+    - width
+    - height
+    additionalProperties: false
+    description: Public FHS schema definition for common definitionRectangle.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  definitionCircle:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse and cross-item
+          references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      xpos: *id001
+      ypos: *id002
+      dxpos: *id003
+      dypos: *id004
+      styles: *id005
+      radius:
+        $ref: common.dynamicNumber
+        description: Radius used by this object. See the containing tool description for whether it is a normal FHS logical
+          dimension or a legacy/raw SVG value.
+        x-fhs-semantic-source: schema-context-v8
+      radius_percent:
+        $ref: common.dynamicNumber
+        description: Radius in FHS logical units on the normal 100-unit reference scale. FHS converts logical dimensions to
+          the internal SVG viewBox at 2 SVG units per logical unit.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-dimension
+    additionalProperties: false
+    description: Public FHS schema definition for common definitionCircle.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  definitionArc:
+    type: object
+    properties:
+      id:
+        description: Stable identifier for this configuration item within its section. IDs are used by reuse and cross-item
+          references such as same_as, fit and item_id.
+        x-fhs-semantic-source: schema-context-v8
+      xpos: *id001
+      ypos: *id002
+      dxpos: *id003
+      dypos: *id004
+      styles: *id005
+      radius:
+        $ref: common.dynamicNumber
+        description: Radius used by this object. See the containing tool description for whether it is a normal FHS logical
+          dimension or a legacy/raw SVG value.
+        x-fhs-semantic-source: schema-context-v8
+      arc_degrees:
+        $ref: common.dynamicNumber
+        description: Angular extent in degrees. Positive and negative values follow the direction conventions of the containing
+          tool.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+        examples:
+        - 90
+        - 180
+        - 270
+        - 360
+      rotate:
+        $ref: common.dynamicNumber
+        description: Rotation in degrees.
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: degrees
+        examples:
+        - 0
+        - 90
+        - 180
+    additionalProperties: false
+    description: Public FHS schema definition for common definitionArc.
+    x-fhs-semantic-source: schema-semantic-pass-v8

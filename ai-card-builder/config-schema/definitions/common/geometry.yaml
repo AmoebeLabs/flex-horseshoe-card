@@ -1,0 +1,138 @@
+namespace: common
+definitions:
+  coordinate:
+    type: object
+    properties:
+      x:
+        $ref: common.dynamicNumber
+        description: Horizontal coordinate or offset in the coordinate space defined by the containing object.
+        x-fhs-semantic-source: schema-context-v8
+      y:
+        $ref: common.dynamicNumber
+        description: Vertical coordinate or offset in the coordinate space defined by the containing object.
+        x-fhs-semantic-source: schema-context-v8
+      xpos:
+        $ref: common.dynamicNumber
+        description: 'Horizontal position in FHS logical coordinates. A 1/1 card uses a 100-unit reference width: 0 is the
+          left edge, 50 the center and 100 the right edge. Inside a group, 50 is the neutral local position: final_x = group.xpos
+          + item.xpos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+      ypos:
+        $ref: common.dynamicNumber
+        description: 'Vertical position in FHS logical coordinates. A 1/1 card uses a 100-unit reference height: 0 is the
+          top edge, 50 the center and 100 the bottom edge. Inside a group, 50 is the neutral local position: final_y = group.ypos
+          + item.ypos - 50.'
+        x-fhs-semantic-source: schema-context-v8
+        x-fhs-unit: fhs-logical-coordinate
+        examples:
+        - 0
+        - 50
+        - 100
+        x-fhs-coordinate-space: card-or-group-logical
+        x-fhs-group-neutral: 50
+    additionalProperties: false
+    description: Coordinate object used by geometry that needs an explicit point.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  itemReference:
+    type: object
+    properties:
+      section:
+        type: string
+        description: Layout section containing the referenced item, for example states, texts or rectangles.
+        x-fhs-semantic-source: schema-context-v8
+      item_id:
+        description: ID of the referenced layout item.
+        x-fhs-semantic-source: schema-context-v8
+      padding:
+        $ref: common.dynamicNumber
+        description: Extra spacing around the referenced/contained geometry. Units follow the containing geometry; ordinary
+          layout dimensions use the 100-unit FHS logical scale.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+    - section
+    - item_id
+    additionalProperties: false
+    description: Reference to another layout item, optionally with padding, for geometry reuse.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  fitReference:
+    type: object
+    properties:
+      section:
+        type: string
+        description: Layout section containing the referenced item, for example states, texts or rectangles.
+        x-fhs-semantic-source: schema-context-v8
+      item_id:
+        description: ID of the referenced layout item.
+        x-fhs-semantic-source: schema-context-v8
+      padding:
+        type: object
+        properties:
+          x:
+            $ref: common.dynamicNumber
+            description: Horizontal coordinate or offset in the coordinate space defined by the containing object.
+            x-fhs-semantic-source: schema-context-v8
+          y:
+            $ref: common.dynamicNumber
+            description: Vertical coordinate or offset in the coordinate space defined by the containing object.
+            x-fhs-semantic-source: schema-context-v8
+        additionalProperties: false
+        description: Extra spacing around the referenced/contained geometry. Units follow the containing geometry; ordinary
+          layout dimensions use the 100-unit FHS logical scale.
+        x-fhs-semantic-source: schema-context-v8
+    required:
+    - section
+    - item_id
+    additionalProperties: false
+    description: Reference to another layout item whose measured size is used for fitting geometry.
+    x-fhs-semantic-source: schema-semantic-pass-v8
+  rectangleRadius:
+    anyOf:
+    - $ref: common.dynamicNumber
+    - type: object
+      properties:
+        all:
+          $ref: common.dynamicNumber
+          description: Applies the same rectangle corner radius to all corners.
+          x-fhs-semantic-source: schema-context-v8
+        left:
+          $ref: common.dynamicNumber
+          description: Applies the configured value to the left-side corners/edge in this rectangle-radius configuration.
+          x-fhs-semantic-source: schema-context-v8
+        right:
+          $ref: common.dynamicNumber
+          description: Applies the configured value to the right-side corners/edge in this rectangle-radius configuration.
+          x-fhs-semantic-source: schema-context-v8
+        top:
+          $ref: common.dynamicNumber
+          description: Top/reference position or polygon/path orientation value used by the containing geometry.
+          x-fhs-semantic-source: schema-context-v8
+        bottom:
+          $ref: common.dynamicNumber
+          description: Applies the configured value to the bottom-side corners/edge in this rectangle-radius configuration.
+          x-fhs-semantic-source: schema-context-v8
+        top_left:
+          $ref: common.dynamicNumber
+          description: Top-left rectangle corner radius.
+          x-fhs-semantic-source: schema-context-v8
+        top_right:
+          $ref: common.dynamicNumber
+          description: Top-right rectangle corner radius.
+          x-fhs-semantic-source: schema-context-v8
+        bottom_left:
+          $ref: common.dynamicNumber
+          description: Bottom-left rectangle corner radius.
+          x-fhs-semantic-source: schema-context-v8
+        bottom_right:
+          $ref: common.dynamicNumber
+          description: Bottom-right rectangle corner radius.
+          x-fhs-semantic-source: schema-context-v8
+      additionalProperties: false
+    description: Public FHS schema definition for common rectangleRadius.
+    x-fhs-semantic-source: schema-semantic-pass-v8

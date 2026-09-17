@@ -1,0 +1,10 @@
+namespace: layout
+definitions:
+  hlines:
+    type: array
+    items:
+      $ref: layout.line
+    deprecated: true
+    x-fhs-prefer: lines with orientation horizontal
+    description: Public FHS schema definition for layout hlines.
+    x-fhs-semantic-source: schema-semantic-pass-v8
