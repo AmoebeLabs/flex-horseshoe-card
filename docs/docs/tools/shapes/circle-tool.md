@@ -6,129 +6,108 @@ tags:
   - Circle
   - Card tools
 ---
-
 # Circle
 
-A circle adds a round visual element to a card. Use it as an indicator, background, outline, status marker, or decorative element.
+A Circle is a round visual shape that can be placed anywhere on a card. It can be used as a background, ring, dot, badge, highlight, or another decorative/structural element around other content.
 
-<!-- Add circle examples here. -->
+This page shows how to place and size a Circle, choose its fill and border, understand the preferred and legacy radius forms, and optionally let its color follow an entity value.
 
-## :material-horseshoe: Basic configuration
+## :material-horseshoe: Add a Circle
+
+Use a Circle for a round marker, background, border, status indicator, or decorative element.
 
 ```yaml linenums="1"
 layout:
   circles:
-    - id: status
-      xpos: 50
-      ypos: 50
-      radius: 25
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius_percent: 20  # Radius on the normal card coordinate scale
       styles:
-        fill: none
-        stroke: var(--primary-color)
-        stroke-width: 2
+        fill: var(--card-background-color)  # Fill color of this item
+        stroke: var(--divider-color)  # Border color
 ```
 
-`xpos` and `ypos` position the center.
+## :material-horseshoe: Choose the size
+
+For new configurations, prefer `radius_percent`. Despite its historical name, it follows the normal card coordinate scale, so the size is easy to relate to the rest of the layout:
+
+```yaml linenums="1"
+layout:
+  circles:
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius_percent: 20  # Radius on the normal card coordinate scale
+```
+
+Older cards can use legacy `radius`, which is kept for compatibility and uses the older Circle sizing scale:
+
+```yaml linenums="1"
+layout:
+  circles:
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 40  # Legacy radius; 40 gives the same size as radius_percent: 20
+```
+
+Use one radius method, not both. If both are present, `radius_percent` takes precedence.
+
+## :material-horseshoe: Fill the Circle or show only the border
+
+A Circle can use a fill, a border, or both, depending on whether it should look like a solid surface or a ring.
+
+```yaml linenums="1"
+layout:
+  circles:
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius_percent: 20  # Radius on the normal card coordinate scale
+      styles:
+        fill: none  # Keep the inside transparent; draw only the border
+        stroke: var(--primary-color)  # Border color
+        stroke-width: 2  # Border thickness
+```
+
+## :material-horseshoe: Change color with an entity
+
+Add `entity_index`, `color_stops`, and the matching `item_style` when the Circle color should follow a value or state. See [Color stops](../../appearance/color-stops.md).
 
 ## :material-horseshoe: Configuration options
 
-| Field | Required | Description |
-| --- | :---: | --- |
-| `xpos` | Yes | Horizontal position of the center |
-| `ypos` | Yes | Vertical position of the center |
-| `radius` | One radius | Radius in SVG units |
-| `radius_percent` | One radius | Radius relative to the card |
-| `entity_index` | No | Entity used by state-dependent colors and actions |
-| `styles` | No | Fill, outline, and opacity |
-| `color_stops` | No | Value- or state-based colors |
+A Circle always needs a position and a visible radius. Choose **one** radius method; do not configure both. `radius_percent` is the preferred current form. `radius` remains available for existing cards and uses the older sizing scale.
 
-Use either `radius` or `radius_percent`.
+### Position the Circle
 
-## :material-horseshoe: Choose the radius
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `xpos` | number | Yes | — | Horizontal position of the Circle center. `50` is the center of the card. |
+| `ypos` | number | Yes | — | Vertical position of the Circle center. `50` is the center of the card. |
 
-=== "Fixed radius"
+### Size the Circle with `radius_percent`
 
-    ```yaml linenums="1"
-    - xpos: 50
-      ypos: 50
-      radius: 25
-    ```
+Use this method for new configurations.
 
-=== "Percentage radius"
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `radius_percent` | number | Yes | — | Circle radius on the normal card coordinate scale. On a 1/1 card, `10` is one tenth of the 100-unit reference size. |
 
-    ```yaml linenums="1"
-    - xpos: 50
-      ypos: 50
-      radius_percent: 25
-    ```
+### Size the Circle with legacy `radius`
 
-Use `radius_percent` when the circle should scale with the card.
+Use this only when maintaining existing YAML that already uses `radius`.
 
-## :material-horseshoe: Fill and outline
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `radius` | number | Yes | — | Legacy radius using the older Circle sizing scale. For the same static size, `radius_percent` is half the legacy `radius` value. |
 
-| Style | Use |
-| --- | --- |
-| `fill` | Inside color |
-| `stroke` | Outline color |
-| `stroke-width` | Outline width |
-| `opacity` | Opacity of the complete circle |
-| `fill-opacity` | Opacity of the fill |
-| `stroke-opacity` | Opacity of the outline |
+### Options for every Circle
 
-## :material-horseshoe: Color from an entity
-
-Connect the circle to an entity and select a color-stop style:
-
-=== "Outline color"
-
-    ```yaml linenums="1"
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      radius: 20
-
-      show:
-        item_style: colorstop
-
-      color_stops:
-        colors:
-          - value: 0
-            color: green
-          - value: 50
-            color: orange
-          - value: 100
-            color: red
-    ```
-
-=== "Filled circle"
-
-    ```yaml linenums="1"
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      radius: 20
-
-      show:
-        item_style: colorstopinterpolated
-
-      colorstopinterpolated:
-        fill: true
-        stroke: false
-
-      color_stops:
-        colors:
-          - value: 0
-            color: green
-          - value: 50
-            color: orange
-          - value: 100
-            color: red
-    ```
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `entity_index` | entity index | No | Not set | Selects an entity when the Circle color, visibility, or action should follow that entity. |
+| `styles` | mapping | No | Default Circle style | Sets the fill, border (`stroke`), opacity, and other SVG/CSS appearance. |
+| `color_stops` | mapping | No | Not set | Changes Circle colors from an entity value or state. |
 
 ## :material-horseshoe: Related
 
-- [Arc](arc-tool.md)
-- [Line](line-tool.md)
-- [Rectangle](rectangle-tool.md)
-- [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
+- [Shapes](shapes-overview.md)
+- [Appearance](../../appearance/appearance-overview.md)
 - [Color stops](../../appearance/color-stops.md)

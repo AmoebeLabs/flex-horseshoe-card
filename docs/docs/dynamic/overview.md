@@ -6,19 +6,22 @@ tags:
   - Dynamic configuration
   - Templates
 ---
-
 # Dynamic configuration
 
-Most cards can start with normal YAML. Use dynamic configuration when several settings should share one value, positions should be calculated, or the card should respond to changing entity states.
+Most card configuration can stay as normal fixed YAML. Dynamic configuration is only needed when a value must be calculated, reused, or changed from live Home Assistant data while the card is running.
 
-## :material-horseshoe: Choose the simplest option
+This page is a short guide to the available methods and points you to JavaScript templates, Reuse, or card templates depending on what you want to change.
 
-| You want to | Use |
-| --- | --- |
-| Reuse a fixed value or configuration block | `constants` and `ref()` |
-| Calculate a position, size, or spacing value | `calc()` |
-| Change a value when an entity changes | [JavaScript templates](javascript-templates.md) |
-| Reuse a complete tool definition | [`same_as`](../reuse/reuse-introduction.md) |
-| Reuse a complete card design | [Card templates](../card-templates/card-templates-overview.md) |
+## :material-horseshoe: Change a value when an entity changes
 
-Start with normal YAML and add only the feature needed for the result.
+Use a [JavaScript template](javascript-templates.md) when a label, style, position, visibility setting, chart type, or another supported value should respond to a state or attribute.
+
+## :material-horseshoe: Reuse a fixed value or block
+
+Use [Reuse](../reuse/reuse-introduction.md) for fixed shared values, copied items, calculated positions, and complete card templates. Those values do not need JavaScript simply because they are reused.
+
+## :material-horseshoe: Related
+
+- [JavaScript templates](javascript-templates.md)
+- [Reuse](../reuse/reuse-introduction.md)
+- [Visibility](../interaction/visibility.md)

@@ -7,304 +7,121 @@ tags:
   - Entity
   - Card tools
 ---
-
 # Icon
 
-An icon gives an entity a recognizable visual place on the card. Use it to show an entity icon, a custom MDI icon, or an image anywhere in the layout.
+The Icon tool adds a visual symbol to a card. It can use the icon Home Assistant already knows for an entity, another MDI icon, or an external SVG/image, and it can also change with the entity state.
 
-Flexible Horseshoe Card can use a Home Assistant entity icon, a configured MDI icon, or an SVG, PNG, JPG, or other supported image.
+This page shows how to choose the icon source, size and align it, rotate it, change it by state, and apply fixed or value-based colors.
 
-<!-- Icon examples image -->
+## :material-horseshoe: Show the entity icon
 
-## :material-horseshoe: Basic configuration
+Use the Icon tool when the Home Assistant entity icon provides a compact visual identity for the item.
 
-Add icons under `layout.icons`:
+```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature  # Home Assistant entity used by this card
 
-=== "Entity icon"
+layout:
+  icons:
+    - entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+```
 
-    ```yaml linenums="1"
-    entities:
-      - entity: light.living_room
+## :material-horseshoe: Choose another icon
 
-    layout:
-      icons:
-        - id: light-icon
-          entity_index: 0
-          xpos: 50
-          ypos: 50
-          icon_size: 3
-    ```
+Override the icon when the Home Assistant default does not represent the purpose of this card clearly enough.
 
-    Without an explicit `icon`, Flexible Horseshoe Card uses the icon of the selected Home Assistant entity.
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
 
-=== "MDI icon"
+layout:
+  icons:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      icon: mdi:thermometer  # Icon shown to the user
+```
+The entity definition can also override the icon when every Icon tool using that entity should use the same icon.
 
-    ```yaml linenums="1"
-    layout:
-      icons:
-        - id: menu-icon
-          icon: mdi:dots-vertical
-          xpos: 50
-          ypos: 50
-          icon_size: 3
-    ```
+## :material-horseshoe: Use an image or SVG
 
-    A configured icon does not require an entity.
+For a Home Assistant/MDI icon, set `icon` to its icon name, for example `mdi:thermometer`. For an external SVG or image, use CSS-style `url(...)` syntax. A URL ending in `.svg` is loaded as SVG; other URLs are shown as images.
+
+```yaml linenums="1"
+layout:
+  icons:
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      icon: url(/local/icons/temperature.svg)  # External SVG shown by this Icon tool
+      icon_size_percent: 18  # Geometric icon size on the card's 100-unit scale
+```
+
+Keep the source in the same Icon tool so its size, position, and alignment remain together.
+
+## :material-horseshoe: Change size and position
+
+Adjust size and position when the icon needs to fit the surrounding text, gauge, or control.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  icons:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 35  # Vertical position; 50 = center of the card
+      icon_size: 4
+```
+`align` controls where the icon is anchored around its position: `center` centers it on the configured position, `start` anchors its start side there, and `end` anchors its end side there.
+
+## :material-horseshoe: Rotate the icon
+
+Rotate an icon when direction itself carries meaning, such as an arrow or orientation indicator.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  icons:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      rotate: 90  # Rotate the result by 90°
+```
+## :material-horseshoe: Change the icon by state
+
+Use `state_map` when different entity states should use different icons. This keeps the state-to-icon choices together with the Icon tool.
+
+## :material-horseshoe: Change the icon color
+
+Use `styles` for a fixed appearance or `color_stops` when the color should follow the entity value/state.
 
 ## :material-horseshoe: Configuration options
 
-| Field               | Required | Default            | Description                             |
-| ------------------- | :------: | ------------------ | --------------------------------------- |
-| `xpos`              |    Yes   |                    | Horizontal icon position                |
-| `ypos`              |    Yes   |                    | Vertical icon position                  |
-| `entity_index`      |    No    | Not set            | Entity whose icon and state can be used |
-| `icon`              |    No    | Entity icon        | MDI icon or `url(...)` SVG/image        |
-| `icon_size`         |    No    |                    | Relative icon size                      |
-| `icon_size_percent` |    No    | Not set            | Icon size relative to the card          |
-| `align`             |    No    | `center`           | `start`, `center`, or `end`             |
-| `rotate`            |    No    | `0`                | Icon rotation in degrees                |
-| `state_map`         |    No    | Not set            | Selects an icon based on entity state   |
-| `styles`            |    No    | Default icon style | SVG and CSS styling                     |
-| `color_stops`       |    No    | Not set            | Colors the icon from the entity state   |
 
-## :material-horseshoe: Choose the icon
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
 
-Set `icon` when you want to use a specific icon instead of the Home Assistant entity icon:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: mdi:thermometer
-      xpos: 50
-      ypos: 50
-      icon_size: 3
-```
-
-You can also configure an icon on the entity:
-
-```yaml linenums="1"
-entities:
-  - entity: sensor.living_room_temperature
-    icon: mdi:home-thermometer
-```
-
-An `icon` configured directly on the Icon tool takes priority over the entity icon.
-
-## :material-horseshoe: SVG and image files
-
-Use `url(...)` to display an SVG or image instead of an MDI icon.
-
-=== "SVG"
-    ```yaml linenums="1"
-    layout:
-      icons:
-        - icon: url(/local/icons/weather.svg)
-          xpos: 50
-          ypos: 50
-          icon_size: 4
-    ```
-
-=== "PNG"
-
-    ```yaml linenums="1"
-    layout:
-      icons:
-        - icon: url(/local/images/weather.png)
-          xpos: 50
-          ypos: 50
-          icon_size: 4
-    ```
-
-=== "JPG"
-
-    ```yaml linenums="1"
-    layout:
-      icons:
-        - icon: url(/local/images/background.jpg)
-          xpos: 50
-          ypos: 50
-          icon_size: 4
-    ```
-
-The URL can also point to an external image:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: url(https://example.com/images/weather.png)
-      xpos: 50
-      ypos: 50
-      icon_size: 4
-```
-
-This makes the Icon tool useful for both Home Assistant icons and custom graphics.
-
-## :material-horseshoe: Size and position
-
-Position an icon with `xpos` and `ypos`.
-
-Use `icon_size` for the regular relative icon size:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: mdi:fan
-      xpos: 50
-      ypos: 50
-      icon_size: 4
-```
-
-Use `icon_size_percent` when the icon should scale relative to the card:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: mdi:fan
-      xpos: 50
-      ypos: 50
-      icon_size_percent: 20
-```
-
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for more about the card coordinate system.
-
-## :material-horseshoe: Alignment
-
-Use `align` to control how the icon is positioned around `xpos`:
-
-=== "Start"
-
-    ```yaml linenums="1"
-    - icon: mdi:thermometer
-      xpos: 20
-      ypos: 50
-      icon_size: 3
-      align: start
-    ```
-
-=== "Center"
-    ```yaml linenums="1"
-    - icon: mdi:thermometer
-      xpos: 50
-      ypos: 50
-      icon_size: 3
-      align: center
-    ```
-
-=== "End"
-
-    ```yaml linenums="1"
-    - icon: mdi:thermometer
-      xpos: 80
-      ypos: 50
-      icon_size: 3
-      align: end
-    ```
-
-## :material-horseshoe: Rotate an icon
-
-Use `rotate` to rotate the icon:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: mdi:arrow-up
-      xpos: 50
-      ypos: 50
-      icon_size: 3
-      rotate: 90
-```
-
-## :material-horseshoe: Change the icon by state
-
-Use `state_map` when different entity states should display different icons:
-
-```yaml linenums="1"
-entities:
-  - entity: light.living_room
-
-layout:
-  icons:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      icon_size: 4
-
-      state_map:
-        map:
-          - state: "on"
-            icon: mdi:lightbulb-on
-
-          - state: "off"
-            icon: mdi:lightbulb-off
-```
-
-A `default` entry can provide a fallback when no other state matches:
-
-```yaml linenums="1"
-state_map:
-  map:
-    - state: "on"
-      icon: mdi:lightbulb-on
-
-    - state: "off"
-      icon: mdi:lightbulb-off
-
-    - state: default
-      icon: mdi:lightbulb-question
-```
-
-## :material-horseshoe: Icon appearance
-
-Use `styles` to change the appearance of an icon:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - icon: mdi:fan
-      xpos: 50
-      ypos: 50
-      icon_size: 4
-      styles:
-        fill: var(--primary-color)
-        opacity: 0.8
-```
-
-See [Styling](../../appearance/styling.md) for the complete styling guide.
-
-## :material-horseshoe: Color from an entity
-
-When an icon is connected to an entity, color stops can change its color from the entity state:
-
-```yaml linenums="1"
-layout:
-  icons:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      icon_size: 4
-
-      show:
-        item_style: colorstop
-
-      color_stops:
-        colors:
-          0: green
-          50: orange
-          100: red
-```
-
-See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `xpos`, `ypos` | number | Yes | — | Position of the icon. |
+| `entity_index` | entity index | No | `0` for an entity-derived icon; otherwise Not set | Chooses the entity whose icon and state are used. If you do not configure `icon` or `state_map`, omitting this field uses the first configured entity. |
+| `icon` | string | No | Entity icon | Home Assistant/MDI icon name such as `mdi:thermometer`, or an external SVG/image in `url(...)` form. |
+| `size` | number | No | `2` | Font-based icon-size multiplier used when neither `icon_size` nor `icon_size_percent` is set. |
+| `icon_size` | number | No | Not set | Font-based icon-size multiplier. It overrides `size`. |
+| `icon_size_percent` | number | No | Not set | Geometric icon size on the card's 100-unit scale. It overrides both `icon_size` and `size`. |
+| `align` | `start`, `center`, `end` | No | `center` | Anchors the icon by its start side, center, or end side. |
+| `rotate` | number | No | `0` | Rotation in degrees. |
+| `state_map` | mapping | No | Not set | Changes icon from entity state. |
+| `styles` | mapping | No | Default icon style | Icon appearance. |
+| `color_stops` | mapping | No | Not set | Changes color from entity value/state. |
 
 ## :material-horseshoe: Related
 
-* [State](entity-state-tool.md)
-* [Name](entity-name-tool.md)
-* [Area](entity-area-tool.md)
-* [Entities](../../card-basics/entities.md)
-* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
-* [Styling](../../appearance/styling.md)
-* [Color stops](../../appearance/color-stops.md)
-* [Color filters](../../appearance/color-filters.md)
-* [Actions](../../interaction/actions.md)
-* [Animations](../../interaction/animations.md)
-* [Reuse™](../../reuse/reuse-introduction.md)
+- [Entities](../../card-basics/entities.md)
+- [State](entity-state-tool.md)
+- [Color stops](../../appearance/color-stops.md)
+- [JavaScript templates](../../dynamic/javascript-templates.md)

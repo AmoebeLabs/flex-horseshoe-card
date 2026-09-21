@@ -7,383 +7,304 @@ tags:
 - Horseshoe
 - Scale
 ---
+# Horseshoe value and progress
 
-# Horseshoe scale and state
+A Horseshoe needs a value range and a rule for turning the current entity value into visible progress along its path. The scale defines where values belong, while the state/progress settings define how the active part of the path is drawn.
 
-The scale defines the value range and base geometry of the horseshoe. The state layer shows the current value within that range. Styling them separately makes it possible to keep the scale subtle while giving the active value more visual emphasis.
+This page shows how to set the range, use linear or spline mapping, change progress width and direction, and handle positive/negative or mapped-state displays.
 
-## :material-horseshoe: Scale configuration
+## :material-horseshoe: Set the value range
 
-Use `horseshoe_scale` to define the value range and appearance of the base arc.
-
-| Field          | Default                           | Description                                                    |
-| :------------- | :-------------------------------- | :------------------------------------------------------------- |
-| `min`          | Color-stop scale or `0`           | Defines the lowest value on the scale.                         |
-| `max`          | Color-stop scale or `100`         | Defines the highest value on the scale.                        |
-| `type`         | `linear`                          | Chooses how values are mapped to angles.                       |
-| `spline`       |                                   | Provides the spline definition required by spline scale types. |
-| `width`        | `6`                               | Controls the width of the scale arc.                           |
-| `color`        | `var(--primary-background-color)` | Applies the base scale color.                                  |
-| `linecap`      | `round`                           | Chooses the shape of the scale ends.                           |
-| `color_filter` |                                   | Applies an optional shared color filter.                       |
-| `styles`       |                                   | Applies SVG styles to the scale layer.                         |
+The scale range tells the Horseshoe where the minimum and maximum values sit on its path, so the current value can be placed correctly.
 
 ```yaml linenums="1"
-horseshoe_scale:
-  min: 0
-  max: 100
-  type: linear
-  width: 6
-  linecap: round
-  styles:
-    - fill: var(--divider-color)
-    - opacity: 0.5
-```
+entities:
+  - entity: sensor.example_1  # Entity used by this example
 
-When `color_stops.scales.default` defines a minimum and maximum, the horseshoe uses that range automatically. Explicit `horseshoe_scale.min` or `horseshoe_scale.max` values override the corresponding color-stop values. If neither is configured, the range falls back to `0` through `100`.
-
-A linear scale is the best choice for most gauges. Use a spline scale only when the spacing needs to follow a verified spline definition. Tick marks, labels, and the state arc all use the same mapping, so they remain aligned.
-
-## :material-horseshoe: State configuration
-
-Use `horseshoe_state` to control the active value layer.
-
-| Field              | Default                | Description                                                   |
-| :----------------- | :--------------------- | :------------------------------------------------------------ |
-| `width`            | `12`                   | Controls the width of the active state arc.                   |
-| `color`            | `var(--primary-color)` | Applies a fixed state color.                                  |
-| `linecap`          | `round`                | Chooses the shape of the state ends.                          |
-| `mode`             | `value`                | Chooses how the state is rendered.                            |
-| `segment_gap`      | `2`                    | Defines the space between applicable state segments.          |
-| `inactive_opacity` |                        | Controls the opacity of inactive segments in segmented modes. |
-| `state_map`        |                        | Maps non-numeric states to numeric render values.             |
-| `animation`        |                        | Controls the transition between state values.                 |
-| `color_filter`     |                        | Applies an optional shared color filter.                      |
-| `styles`           |                        | Applies SVG styles to the state layer.                        |
-
-```yaml linenums="1"
-horseshoe_state:
-  width: 12
-  mode: value
-  linecap: round
-  styles:
-    - fill: var(--primary-color)
-```
-
-## :material-horseshoe: Show the current value with a marker
-
-A marker makes the current value visible at one exact position. It can replace the filled state path, mark the end of that path, or become a pointer from the center of a circular gauge.
-
-Choose the result with two independent `show` options:
-
-| Result | `state_progress` | `state_marker` |
-| --- | :---: | :---: |
-| Filled path | `true` | `false` |
-| Marker without a filled path | `false` | `true` |
-| Filled path ending in a marker | `true` | `true` |
-| Scale without a state indication | `false` | `false` |
-
-`state_progress` is `true` by default. `state_marker` is `false` by default, so existing horseshoes keep their normal filled state path.
-
-### Mark the value on the path
-
-This configuration replaces the filled state path with a circle at the current value:
-
-```yaml linenums="1"
 layout:
   horseshoes:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      radius: 40
-      arc_degrees: 270
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 42  # Distance from the center to the Horseshoe path
+
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+```
+Values at or below `min` start at the beginning of the scale; values at or above `max` reach the end.
+
+## :material-horseshoe: Change the visible thickness
+
+Use the scale width for the base path and the state width for the current-value progress:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      radius: 42  # Distance from the center to the Horseshoe path
+
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+        width: 6  # Thickness of the base scale path
+
+      horseshoe_state:
+        width: 12  # Thickness of the active value/progress path
+```
+These widths change the drawing thickness; they do not change the Horseshoe radius.
+
+## :material-horseshoe: Show progress normally
+
+`bar_mode: normal` shows the value from the start of the scale toward the end. This is the normal choice for values such as percentage, temperature, storage, or load.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      bar_mode: normal  # Choose where progress starts and in which direction it grows
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+```
+## :material-horseshoe: Show positive and negative values
+
+Use a bidirectional mode when values can move in both directions around zero, such as importing/exporting power or charging/discharging.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      bar_mode: bidirectional  # Choose where progress starts and in which direction it grows
+
+      horseshoe_scale:
+        min: -5000  # Value at the start of the scale
+        max: 5000  # Value at the end of the scale
+```
+The five `bar_mode` values are:
+
+- `normal` — progress grows from the scale minimum toward the maximum.
+- `bidirectional` — progress grows away from zero. The zero position can be set with `zero_ratio`; when it is omitted the card derives the position from the configured scale.
+- `bidirectional_symmetrical` — zero is in the center and positive/negative progress grows away from that center.
+- `bidirectional_linear` — positive and negative progress grows away from zero with a linear distribution along each side.
+- `absolute` — the visible progress shows the magnitude from the start of the Horseshoe path. The signed entity value is still available for the displayed state and color selection. `horseshoe_scale.min` must be `<= 0`, `horseshoe_scale.max` must be `> 0`, and `zero_ratio` must not be set.
+
+`zero_ratio` applies to `bidirectional`, `bidirectional_symmetrical`, and `bidirectional_linear`; do not set it with `normal` or `absolute`.
+
+## :material-horseshoe: Use a non-linear scale
+
+Use `horseshoe_scale.type` when equal value differences should not always take equal visual space. A spline scale can emphasize part of the range while keeping the complete value range visible.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 14  # Value at the end of the scale
+        type: spline
+        spline:
+          anchors:
+            - value: 5      # The value 5...
+              position: 0.2 # ...is placed at 20% of the visible path
+            - value: 8      # The value 8...
+              position: 0.8 # ...is placed at 80% of the visible path
+```
+Here, values from 5 to 8 use most of the visible path, while the ranges below 5 and above 8 use less space. `linear` gives equal value differences equal visible distance. `spline` follows the configured anchors with a smooth curve that keeps their order without overshooting them. `splineorg` uses the older spline behavior kept for existing configurations and can produce a different curve between the same anchors.
+
+## :material-horseshoe: Show named states as a level
+
+Use the Horseshoe state modes together with `state_map` when textual states such as `low`, `medium`, and `high` should occupy positions or levels on the path.
+
+Use `stringstate_mode` when only the segment for the current mapped state should be active. Use `stringstate_level` when the current segment and every earlier/lower mapped segment should be active. Both modes use the order of the entries in `state_map.map`; keep the matching label configuration with the same state mapping so the visible text follows the active segment.
+
+## :material-horseshoe: Add a background behind the gauge
+
+A background path can make the complete gauge range remain visible even when the active progress covers only part of it.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      horseshoe_scale: {}  # Required scale block; uses the default 0–100 linear scale
 
       show:
-        state_progress: false
-        state_marker: true
+        horseshoe_background: fixed
 
+      horseshoe_background:
+        width: 16  # Thickness of the background path
+        color: var(--divider-color)
+```
+Defining `horseshoe_background` alone does not show it; select the background mode under `show` as well.
+
+`show.horseshoe_background` accepts these values:
+
+- `none` — hides the background. This is the default.
+- `fixed` — uses the configured background color/styles across the complete path.
+- `colorstopsegments` — divides the background into hard color-stop sections.
+- `lineargradient` — spreads the configured colors evenly across the complete path.
+- `colorstopgradient` — positions the gradient colors according to their configured scale values.
+
+The tick and label background selectors use the same five values. Their own page explains the corresponding `horseshoe_tickmarks.background` and `horseshoe_labels.background` settings.
+
+## :material-horseshoe: Choose how progress is colored
+
+Use `show.horseshoe_style` to choose how the active progress path is colored. The default is `fixed`.
+
+| Value | Visible result |
+| --- | --- |
+| `fixed` | Uses `horseshoe_state.color` and the configured state styles for the complete active progress. |
+| `colorstop` | Uses one discrete color-stop color for the current value; the complete active progress uses that color. |
+| `colorstopinterpolated` | Blends between neighboring color stops for the current value; the complete active progress uses the resulting color. |
+| `colorstopsegments` | Divides the active progress into hard color-stop sections at their configured values. |
+| `autominmax` | Uses one interpolated current-value color between the automatic minimum and maximum endpoint colors. |
+| `minmaxgradient` | Draws a gradient across the active progress between the endpoint colors of the active value range. |
+| `lineargradient` | Draws all applicable configured colors across the active progress at equal visual spacing; the numeric distances between color-stop values do not change that spacing. |
+| `colorstopgradient` | Draws a continuous gradient whose colors are positioned by their configured values, including non-linear scale mapping. |
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
       horseshoe_scale:
         min: 0
         max: 100
-        width: 6
-
-      horseshoe_state:
-        width: 10
+      show:
+        horseshoe_style: colorstopgradient  # Place gradient colors at their configured scale values
+      color_stops:
+        colors:
+          - value: 0
+            color: green
+          - value: 40
+            color: orange
+          - value: 100
+            color: red
 ```
 
-No `horseshoe_marker` block is needed for this basic result. The default marker is a circle with the same size as `horseshoe_state.width`.
+## :material-horseshoe: Choose how the base scale is colored
 
-A path marker works on every horseshoe path shape. It follows an arc, line, rectangle, polygon, wave, spiral, or infinity path and moves to the current value.
+Use `show.scale_style` for the complete base scale behind the active progress.
 
-### Add a marker to the filled path
-
-Show both options when the marker should emphasize the end of the filled path. This example uses an icon and gives it a contrasting fill and border:
+| Value | Visible result |
+| --- | --- |
+| `fixed` | Uses `horseshoe_scale.color` across the complete scale. This is the default. |
+| `colorstopsegments` | Divides the complete scale into hard color-stop sections. |
+| `lineargradient` | Spreads the configured colors evenly across the complete path, regardless of the numeric distance between their values. |
+| `colorstopgradient` | Positions gradient colors according to their configured values and the active scale mapping. |
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
 layout:
   horseshoes:
     - entity_index: 0
-      xpos: 50
-      ypos: 50
-      path:
-        type: rectangle
-        width: 72
-        height: 48
-        radius: 5
-
-      show:
-        state_progress: true
-        state_marker: true
-
       horseshoe_scale:
         min: 0
         max: 100
-        width: 6
-
-      horseshoe_state:
-        width: 8
-
-      horseshoe_marker:
-        attach_to: path
-        icon: mdi:dots-horizontal
-        size: 9
-        offset: 0
-        styles:
-          - fill: var(--card-background-color)
-          - stroke: var(--primary-text-color)
-          - stroke-width: 1
-```
-
-`offset: 0` keeps the marker centered on the path. Positive and negative values move it to either side, which is useful when the marker should remain beside the progress path instead of covering it.
-
-### Point to the value from the center
-
-A center marker turns an arc into a dial or VU-style gauge. The icon starts near the center and points toward the current value:
-
-```yaml linenums="1"
-layout:
-  horseshoes:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      radius: 40
-      arc_degrees: 270
-
       show:
-        state_progress: false
-        state_marker: true
-
-      horseshoe_scale:
-        min: 0
-        max: 100
-        width: 6
-
-      horseshoe_state:
-        width: 8
-
-      horseshoe_marker:
-        attach_to: center
-        icon: mdi:arrow-up-thin
-        rotate: 0
-        aspectratio: 8
-        start_offset: 3
-        end_offset: -2
-        styles:
-          - fill: var(--primary-text-color)
-          - opacity: 0.8
+        scale_style: colorstopsegments  # Show hard color ranges across the complete base scale
+      color_stops:
+        colors:
+          - value: 0
+            color: green
+          - value: 50
+            color: orange
+          - value: 100
+            color: red
 ```
 
-Center attachment is available for arc paths. `start_offset` moves the beginning away from the center. A negative `end_offset` stops the pointer before the scale; a positive value extends it beyond the scale. Increase `aspectratio` to make the pointer narrower.
+## :material-horseshoe: Animate value changes
 
-An icon that naturally points upward uses `rotate: 0`. Use `rotate` to correct another icon before it follows the value. For example, `mdi:bow-arrow` points diagonally and uses `rotate: -45`.
+Use the supported Horseshoe animation settings when the progress should animate between values. For state-triggered CSS animation of complete items, see [Animations](../../interaction/animations.md).
 
-### Choose the marker shape
+## :material-horseshoe: Configuration reference
 
-| Source | Configuration | Result |
-| --- | --- | --- |
-| Circle | `shape: circle` | A round marker; this is the default for a path marker without an icon. |
-| Triangle | `shape: triangle` | An arrow-like marker that follows the path. |
-| Home Assistant icon | `icon: mdi:icon-name` | Uses any available Home Assistant or MDI icon. |
-| External SVG | `icon: url(/local/icons/marker.svg)` | Uses an SVG file as the marker. |
-| Image | `icon: url(/local/images/marker.png)` | Uses a PNG, WebP, or JPEG image. |
+### Linear scale
 
-Configure either `shape` or `icon`, not both. A center marker requires an icon.
+A linear scale is the default. Equal differences in value use equal distances on the Horseshoe.
 
-### Marker appearance
-
-Without marker styles, the marker uses the same current-state color, color stops, color filter, opacity, and animation as `horseshoe_state`. It therefore changes together with the filled state path.
-
-`horseshoe_marker.styles` gives the marker its own appearance when it needs to remain visible on top of the progress path:
-
-```yaml linenums="1"
-horseshoe_marker:
-  attach_to: path
-  shape: circle
-  size: 9
-  styles:
-    - fill: var(--card-background-color)
-    - stroke: var(--primary-text-color)
-    - stroke-width: 1
-```
-
-### Marker options
-
-| Field | Applies to | Required | Default | Description |
+| Field | Type | Required | Default | Description |
 | --- | --- | :---: | --- | --- |
-| `attach_to` | All markers | No | `path` | Places the marker on the path or, with `center`, between the center and an arc. |
-| `shape` | Path | No | `circle` when no icon is configured | Chooses `circle` or `triangle`. |
-| `icon` | Path and center | Center only | None | Uses a Home Assistant icon or `url(...)` file instead of a built-in shape. |
-| `size` | Path | No | `horseshoe_state.width` | Sets the marker length or circle diameter. |
-| `aspectratio` | Icons and triangle | No | `1` | Controls the marker proportions; larger values make it narrower. |
-| `rotate` | Icons and triangle | No | `0` | Corrects the marker's natural direction in degrees. |
-| `offset` | Path | No | `0` | Moves the marker to either side of the path. |
-| `start_offset` | Center | No | `0` | Moves the pointer start away from or behind the center. |
-| `end_offset` | Center | No | `0` | Stops the pointer before the scale or extends it beyond the scale. |
-| `styles` | All markers | No | Current `horseshoe_state` appearance | Gives the marker explicit SVG styles. |
+| `min` | number | No | Color-stop scale or `0` | Value at the beginning of the scale. |
+| `max` | number | No | Color-stop scale or `100` | Value at the end of the scale. |
+| `type` | `linear` | No | `linear` | Keeps equal value differences equally spaced. Use the separate Spline scale form for `spline` or `splineorg`. |
 
-See the [state-marker showcase](https://github.com/AmoebeLabs/flex-horseshoe-card/blob/master/examples/view-fhs-horseshoe-state-markers.yaml) for complete arc, line, rectangle, and center-pointer cards.
+### Spline scale
 
-## :material-horseshoe: State modes
+Use a spline only when part of the value range needs more or less visible space than another part.
 
-The selected mode determines whether the current state appears as one continuous arc or as a set of discrete segments.
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `type` | `spline`, `splineorg` | Yes | — | `spline` uses the current smooth anchor mapping; `splineorg` uses the older spline behavior kept for existing configurations. |
+| `spline` | mapping | Yes | — | Defines how values are redistributed along the visible path. |
+| `min` | number | No | Color-stop scale or `0` | Value at the beginning of the complete scale. |
+| `max` | number | No | Color-stop scale or `100` | Value at the end of the complete scale. |
 
-| Mode                | Use                                                                           |
-| :------------------ | :---------------------------------------------------------------------------- |
-| `value`             | Displays a continuous active arc from the scale minimum to the current value. |
-| `segment`           | Displays the state as discrete mapped segments.                               |
-| `stringstate_mode`  | Maps string states to mutually exclusive segments.                            |
-| `stringstate_level` | Maps string states to ordered levels.                                         |
+### Scale appearance
 
-String-state modes require a state map. Labels can use the same mapping, which keeps the visible text synchronized with the active segment.
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `width` | number | No | `6` | Thickness of the base scale path. |
+| `color` | color | No | `var(--primary-background-color)` | Fixed base-path color. |
+| `linecap` | string / mapping | No | `round` | Shape of the path ends. |
+| `color_filter` | mapping | No | Not set | Transforms the calculated scale color without changing the underlying value. |
+| `styles` | mapping | No | Not set | Adds SVG/CSS appearance overrides. |
 
-```yaml linenums="1"
-horseshoe_state:
-  mode: stringstate_level
-  state_map:
-    map:
-      - state: low
-        value: 1
-      - state: medium
-        value: 2
-      - state: high
-        value: 3
-```
+### Current-value progress
 
-## :material-horseshoe: Normal and bidirectional bars
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `width` | number | No | `12` | Thickness of the active value/progress path. |
+| `color` | color | No | `var(--primary-color)` | Fixed active-path color. |
+| `linecap` | string / mapping | No | `round` | Shape of the active path ends. |
+| `mode` | `value`, `segment`, `stringstate_mode`, `stringstate_level` | No | `value` | `value` draws normal numeric progress; `segment` divides `state_map` into equal sections and activates the matching section; `stringstate_mode` activates only the current mapped string-state section; `stringstate_level` activates the current mapped section and every earlier section. |
+| `segment_gap` | number | No | `0` | Space between visible segments in `segment`, `stringstate_mode`, and `stringstate_level`; `0` leaves adjacent segments touching. |
+| `inactive_opacity` | number | No | Not set | Makes inactive segments lighter or more transparent when that mode draws inactive segments. |
+| `state_map` | mapping | No | Not set | Maps named entity states to the numeric level/position used by string-state modes. |
+| `animation` | mapping | No | Default progress animation | Controls how the active path moves from the previous value to the new value. |
+| `color_filter` | mapping | No | Not set | Transforms the active color without changing the progress value. |
+| `styles` | mapping | No | Not set | Adds SVG/CSS appearance overrides. |
 
-Configure `bar_mode` on the horseshoe item itself because it affects the geometry shared by both the scale and the state.
+### Color selectors
 
-| Mode                        | Behavior                                                       |
-| :-------------------------- | :------------------------------------------------------------- |
-| `normal`                    | Grows from the scale minimum toward the current value.                |
-| `bidirectional`             | Grows away from the calculated or configured zero position.           |
-| `bidirectional_symmetrical` | Uses the center of the scale as the zero position.                    |
-| `bidirectional_linear`      | Displays the bidirectional value with linear segment geometry.        |
-| `absolute`                  | Grows from the arc start using the active signed branch's magnitude. |
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `show.horseshoe_style` | `fixed`, `colorstop`, `colorstopinterpolated`, `colorstopsegments`, `autominmax`, `minmaxgradient`, `lineargradient`, `colorstopgradient` | No | `fixed` | Chooses how the active progress path is colored. The visible result of every value is listed above. |
+| `show.scale_style` | `fixed`, `colorstopsegments`, `lineargradient`, `colorstopgradient` | No | `fixed` | Chooses the color treatment of the complete base scale. |
+| `show.horseshoe_background` | `none`, `fixed`, `colorstopsegments`, `lineargradient`, `colorstopgradient` | No | `none` | Chooses whether the background is hidden, fixed-color, segmented, evenly graduated, or positioned by color-stop values. |
 
-When the scale range crosses zero, the default `zero_ratio` is calculated from `horseshoe_scale.min` and `horseshoe_scale.max`. Set `zero_ratio` manually only when the visual zero position should differ from the numeric ratio.
+### Bar modes
 
-### Absolute bars
-
-`bar_mode: absolute` keeps the entity value signed for state text and color-stop selection, but draws its magnitude from the physical start of the horseshoe. Do not configure `zero_ratio` for this mode.
-
-A `0..max` scale shares one magnitude range between both signs. With `min: 0` and `max: 15`, both `-5` and `+5` fill one third of the arc. Signed color stops remain independent, so those values can still use different colors.
-
-A scale that crosses zero gives each sign its own complete arc. With `min: -10` and `max: 40`, `-5` fills half of the negative branch while `+5` fills one eighth of the positive branch. The active branch also supplies scale/background colors, ticks, and magnitude labels. At exactly zero, the positive branch is active.
-
-`absolute` uses the configured linear, `spline`, or `splineorg` mapping independently for each branch and supports every continuous horseshoe color style.
-
-```yaml linenums="1"
-bar_mode: absolute
-
-horseshoe_scale:
-  min: -10
-  max: 40
-  type: linear
-
-color_stops:
-  - -10: green
-  - 0: gray
-  - 5: orange
-  - 40: red
-```
-
-## :material-horseshoe: Background layer
-
-`horseshoe_background` adds an optional arc behind the full gauge. Enable it with `show.horseshoe_background`, then configure its geometry and appearance separately.
-
-| Field          | Description                                                              |
-| :------------- | :----------------------------------------------------------------------- |
-| `width`        | Controls the width of the background arc.                                |
-| `offset`       | Moves the background inward or outward relative to the horseshoe radius. |
-| `gap`          | Adds space between segmented color-stop background parts.                |
-| `color_filter` | Applies an optional shared color filter.                                 |
-| `styles`       | Applies SVG styles to the background layer.                              |
-
-```yaml linenums="1"
-show:
-  horseshoe_background: fixed
-
-horseshoe_background:
-  width: 16
-  offset: 0
-  styles:
-    - fill: var(--divider-color)
-    - opacity: 0.2
-```
-
-## :material-horseshoe: State colors
-
-Use `show.horseshoe_style` to control how the horseshoe is colored.
-
-| Style                    | What it does                                                      |
-| :----------------------- | :---------------------------------------------------------------- |
-| `fixed`                  | Uses a single fixed color.                                        |
-| `autominmax`             | Changes the horseshoe color as the value moves through the scale. |
-| `colorstop`              | Uses the color that matches the current value range.              |
-| `colorstopinterpolated`  | Interpolates the current state color between adjacent color stops. |
-| `colorstopsegments`      | Displays each color range as a separate solid segment.            |
-| `minmaxgradient`         | Creates a continuous minimum/zero/maximum gradient over the active horseshoe. |
-| `colorstopgradient`      | Creates a smooth gradient from all configured color stops.        |
-| `lineargradient`         | Distributes all configured colors evenly over the rendered range. |
-
-`colorstopgradient` uses every configured color stop. For example, with blue at `0`, yellow at `50`, and red at `100`, the gradient runs from blue through yellow to red. The horseshoe reveals that gradient up to the current value.
-
-For a normal bar, `lineargradient` distributes every configured color evenly over the active horseshoe. The numeric distance between color-stop values does not affect their visual spacing.
-
-For a bidirectional bar, `lineargradient` creates separate gradients for negative and positive values. Each side distributes its applicable colors evenly between the outer scale value and zero. Add a color stop at `0` to control the center color, or let Flexible Horseshoe Card calculate it from the surrounding stops.
-
-```yaml linenums="1"
-bar_mode: bidirectional
-
-show:
-  horseshoe_style: lineargradient
-
-horseshoe_scale:
-  min: -5
-  max: 5
-
-color_stops:
-  colors:
-    -5: red
-    0: gray
-    5: green
-```
-
-In this example, negative values use a gray-to-red gradient, while positive values use a gray-to-green gradient. When the scale extends below or above zero, define at least one color stop on each side that should display a gradient.
-
-
-The same color stops can also be reused by backgrounds and tick marks. See [Color Stops](../../appearance/color-stops.md) for the complete syntax.
-
-## :material-horseshoe: Animation
-
-State changes can animate from the previous value to the new one. Configure this behavior under `horseshoe_state.animation`. General animation concepts and reusable definitions are covered in [Animations](../../interaction/animations.md).
-
-Animation affects only the transition between valid states. The scale range, state map, and color-stop settings still determine the final geometry and color.
+| Mode | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `normal` | mode | No | Default | Progress grows from the start of the scale toward the current value. |
+| `bidirectional` | mode | No | Not set | Progress grows away from zero; `zero_ratio` can set the zero position, otherwise it is derived from the scale. |
+| `bidirectional_symmetrical` | mode | No | Not set | Places zero in the center; positive and negative progress grows away from that center. |
+| `bidirectional_linear` | mode | No | Not set | Positive and negative progress grows away from zero with a linear distribution along each side. |
+| `absolute` | mode | No | Not set | Shows magnitude from the start of the path while keeping the signed value available for displayed state/color. Requires scale `min <= 0`, `max > 0`, and no `zero_ratio`. |
 
 ## :material-horseshoe: Related documentation
 
-* [Horseshoe Gauges](horseshoe-overview.md)
-* [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md)
-* [Color Stops](../../appearance/color-stops.md)
-* [Color Filters](../../appearance/color-filters.md)
+- [Horseshoe overview](horseshoe-overview.md)
+- [Markers](horseshoe-markers.md)
+- [Tick marks and labels](horseshoe-tick-marks-and-labels.md)
+- [Color stops](../../appearance/color-stops.md)

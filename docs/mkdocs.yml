@@ -277,7 +277,7 @@ nav:
           - Slider: tools/controls/slider-tool.md
           - Toggle: tools/controls/toggle-tool.md
 
-      - Browser-local inputs:
+      - Local input entities:
           - Overview: tools/controls/browser-local-inputs.md
           - Boolean: tools/controls/fhs-input-boolean.md
           - Number: tools/controls/fhs-input-number.md

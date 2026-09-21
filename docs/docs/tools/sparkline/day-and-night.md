@@ -7,97 +7,99 @@ tags:
   - Day and night
   - Sun
 ---
-
 # Day and night
 
-A day-and-night layer shows when the sun is above or below the horizon. It makes daily patterns easier to recognize in values such as temperature, power, light level, or humidity.
+The Day and night layer adds daylight and nighttime information to a Sparkline. The card uses Home Assistant's `sun.sun` times and aligns them with the same history period as the graph, which makes daily patterns easier to relate to sunrise and sunset.
 
-The layer uses the `sun.sun` entity from Home Assistant. It follows the selected sparkline period and works with Cartesian charts, radial charts, and radial barcodes.
+This page shows how to use day/night as a graph background or separate band/ring and how to position and style that layer.
 
-<!-- Add a day-and-night sparkline screenshot here. -->
+## :material-horseshoe: Show day and night behind the graph
 
-## :material-horseshoe: Basic configuration
-
-Enable the layer in `sparkline.show` and choose the appearance of day and night:
+Use the background mode when daylight context should sit behind the data without taking extra graph space.
 
 ```yaml linenums="1"
-sparkline:
-  show:
-    chart_type: area
-    day_night: true
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-  day_night:
-    day:
-      styles:
-        - fill: rgba(255, 214, 64, 0.12)
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          chart_type: area  # Draw the history as a filled area
+          day_night: true  # Show daylight and nighttime on the graph
 
-    night:
-      styles:
-        - fill: rgba(0, 0, 0, 0.25)
+        day_night:
+          day:
+            styles:
+              - fill: rgba(255, 214, 64, 0.12)  # Color used for daylight periods
+          night:
+            styles:
+              - fill: rgba(0, 0, 0, 0.25)  # Color used for nighttime periods
 ```
+The graph itself remains visible above the background.
 
-This fills the graph background. The graph, grid, axes, tick marks, and labels remain visible above it.
+## :material-horseshoe: Show a separate day/night band
 
-## :material-horseshoe: Show a separate band
-
-A band keeps the day and night colors separate from the graph values. On a normal graph it becomes a strip at the top or bottom of the graph. On a radial chart or radial barcode it becomes a separate ring inside the graph.
+Use a band when day/night information should remain visually separate from the data itself.
 
 ```yaml linenums="1"
-sparkline:
-  show:
-    day_night: true
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-  day_night:
-    mode: band
-    position: bottom
-    size: 4
-    offset: -1
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          day_night: true  # Show daylight and nighttime on the graph
 
-    day:
-      styles:
-        - fill: rgba(255, 214, 64, 0.7)
-
-    night:
-      styles:
-        - fill: rgba(0, 0, 0, 0.7)
+        day_night:
+          mode: band
+          position: bottom  # Place this element at the bottom
+          size: 4      # Thickness of the day/night band or radial ring
+          offset: -1   # Move 1 unit inward; positive values move outward
 ```
+On a normal graph this creates a strip. On a radial graph/barcode it creates a separate ring.
 
-The band stays inside the existing graph area. It does not make the complete sparkline larger or reserve additional space around the axes.
+## :material-horseshoe: Move or resize the band
+
+Use:
+
+- `position` for top/bottom on Cartesian graphs;
+- `size` for band/ring thickness;
+- `offset` to move it inward or outward.
+
+## :material-horseshoe: Choose the history period
+
+A calendar period is useful when the graph should follow complete days, including today's sunrise and sunset. A rolling window shows the recorded day/night sections inside a moving range.
 
 ## :material-horseshoe: Configuration options
 
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `show.day_night` | boolean | No | `false` | Shows the day-and-night layer. |
-| `day_night.mode` | string | No | `background` | Use `background` to color the graph area or `band` for a separate strip or ring. |
-| `day_night.position` | string | No | `bottom` | Places a Cartesian band at the `top` or `bottom`. |
-| `day_night.size` | number | No | `4` | Sets the width of a band or radial ring. |
-| `day_night.offset` | number | No | `0` | Moves a band or ring outward with a positive value or inward with a negative value. |
-| `day_night.day.styles` | styles | No | transparent | Styles the daylight periods. |
-| `day_night.night.styles` | styles | No | theme divider color | Styles the nighttime periods. |
-
-## :material-horseshoe: Choose a period
-
-Use a `calendar` period to show complete days, including today's expected sunrise and sunset:
-
-```yaml linenums="1"
-period:
-  type: calendar
-  calendar:
-    duration:
-      hour: 24
-
-sparkline:
-  show:
-    day_night: true
-```
-
-A `rolling_window` shows the recorded day and night periods within the moving time window.
+| `sparkline.show.day_night` | boolean | No | `false` | Shows the day/night layer. |
+| `sparkline.day_night.mode` | `background`, `band` | No | `background` | `background` shades day/night behind the graph; `band` draws a separate day/night band or radial ring. |
+| `sparkline.day_night.position` | `top`, `bottom` | No | `bottom` | Places a Cartesian day/night band above or below the graph. |
+| `sparkline.day_night.size` | number | No | `4` | Band/ring thickness. |
+| `sparkline.day_night.offset` | number | No | `0` | Positive moves the band/ring outward; negative inward. |
+| `sparkline.day_night.day.styles` | mapping | No | Transparent | Day appearance. |
+| `sparkline.day_night.night.styles` | mapping | No | Theme divider color | Night appearance. |
 
 ## :material-horseshoe: Related
 
-- [History periods and bins](sparkline-history-periods-and-bins.md)
+- [History period](sparkline-history-periods-and-bins.md)
 - [Axes and grid](axes-and-grid.md)
 - [Radial chart](radial-chart.md)
-- [Radial barcode](radial-barcode.md)
 - [Styling](../../appearance/styling.md)

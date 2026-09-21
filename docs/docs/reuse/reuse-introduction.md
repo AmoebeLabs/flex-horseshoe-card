@@ -6,109 +6,101 @@ tags:
   - Reuse
   - YAML
 ---
-
 # Reuse™
 
-Reuse™ helps when a card repeats the same visual idea: several similar tools, one shared style, a regular row of items, or the same card design for several rooms. Define the shared part once, then change only what is different.
+Reuse keeps repeated card YAML in one place. It can copy one layout item, repeat a visual arrangement, reuse a shared value or style, or reuse an entire card design depending on how much of the configuration is the same.
 
-Start with normal YAML for the first item. Add reuse when copying that item would make the card harder to read or maintain.
+This page starts from what you want to repeat and shows which reuse method fits that job.
 
-## :material-horseshoe: Reuse one layout item
+## :material-horseshoe: Reuse one item
 
-Use `same_as` when the next item should look like an earlier item but appears elsewhere on the card.
+Use `same_as` when another item should start with the same configuration:
 
 ```yaml linenums="1"
 layout:
-  circles:
-    - id: left-status   # Full definition of first circle
-      xpos: 35
-      ypos: 50
-      radius: 4
+  rectangles:
+    - id: panel  # Name this item so it can be referenced later
+      xpos: 25  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      width: 35  # Width in card coordinates
+      height: 30  # Height in card coordinates
+      radius: 4  # Radius of this shape
       styles:
-        fill: var(--primary-color)
+        fill: none  # Keep the inside transparent; draw only the border
+        stroke: var(--divider-color)  # Border or line color
 
-    - id: right-status  # Second circle copies the first
-      same_as: left-status
-      xpos: 65          # And overrides the xpos
+    - same_as: panel  # Start with the settings from panel
+      xpos: 75  # Horizontal position; 50 = center of the card
 ```
 
-The second circle keeps the first circle's size and styling while using its own position. The [Reuse reference](reuse-reference.md) lists the available settings when a copied item needs a different position, size, entity, or nested block.
+The second Rectangle keeps the first Rectangle's settings and changes only its position.
 
-## :material-horseshoe: Build a regular row
+## :material-horseshoe: Repeat an arrangement
 
-Use `same_as_d...` when each next item should keep the same design but move by a fixed amount. This is useful for room buttons, sensor icons, repeated gauges, or any row where the next item also uses the next entity.
+Use groups together with reused items when the same small layout should appear in several places, for example several room summaries.
+
+See [Groups](../card-basics/groups.md) and the [Reusable YAML card examples](reuse-card-examples.md).
+
+## :material-horseshoe: Reuse a value or style
+
+Use `constants` and `ref()` when several items need the same fixed value or block:
 
 ```yaml linenums="1"
 constants:
-  room_start_x: 20        # Starting xpos
-  room_column_width: 30   # Width of each column
+  dividerStyle:
+    stroke: var(--divider-color)  # Border or line color
+    stroke-width: 2  # Border or line thickness
 
 layout:
-  icons:
-    - id: room-1          # Full definition of icon
-      entity_index: 0
-      xpos: calc(room_start_x)
-      ypos: 50
-      icon_size: 2
-
-    - id: room-2          # Icon 2 copies first
-      same_as: room-1
-      same_as_dxpos: calc(room_column_width)  # Shifts xpos to the right
-      same_as_dentity_index: 1          # and uses the next entity index
-
-    - id: room-3          # Icon 3 copies second
-      same_as: room-2
-      same_as_dxpos: calc(room_column_width)  # Shifts xpos to the right
-      same_as_dentity_index: 1          # and uses the next entity index
+  lines:
+    - orientation: horizontal  # Arrange it from left to right
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 40  # Vertical position; 50 = center of the card
+      length: 80  # Length of the line
+      styles: ref(dividerStyle)
 ```
 
-`room_column_width` defines the spacing once. `same_as_dxpos` uses that shared value for every next icon, while `same_as_dentity_index` makes every icon use the next entity in the card’s entity list. The same pattern works for vertical spacing, size changes, radii, and line lengths.
+## :material-horseshoe: Keep positions and spacing related
 
-![Electricity card with one total and three reused phase horseshoe gauges](../assets/screenshots/fhs-card-32b-electricity--dark.webp)
+Use `calc()` when a value is easier to understand as a relationship:
 
-This card shows one fully configured Total horseshoe and three phase horseshoes that reuse it with calculated horizontal offsets. [Open the complete Card 32 example](reuse-card-examples.md#example-card-32) for the full configuration.
+```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+  - entity: sensor.example_2  # Entity used by this example
 
-## :material-horseshoe: Choose the right approach
+constants:
+  centerX: 50
+  gap: 12  # Space between these visible parts
 
-| You want to... | Use |
+layout:
+  states:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: calc(centerX - gap)  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+    - entity_index: 1  # Use entity 1 from entities: (0 = first entity)
+      xpos: calc(centerX + gap)  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+```
+## :material-horseshoe: Reuse a complete card design
+
+Use a [Card template](../card-templates/card-templates-overview.md) when the complete card layout should be used for several entities or rooms.
+
+## :material-horseshoe: Choose the reuse method
+
+Choose the reuse method from what you want to repeat: a complete item, a value/block, or calculated configuration.
+
+| You want to repeat | Use |
 | --- | --- |
-| Show another tool that is almost the same | `same_as` |
-| Build a regular row, column, or entity sequence from one base item | `same_as_d...` |
-| Use one color, size, style, or configuration block in several places | `constants` and `ref()` |
-| Keep positions, sizes, or spacing visibly related | `calc()` |
-| Build a regular pattern from one item and calculated offsets | `same_as` with `calc()` |
-| Use the same complete card design more than once | [Card templates](../card-templates/card-templates-overview.md) |
-
-## :material-horseshoe: Reuse a shared value or style
-
-```yaml linenums="1"
-constants:
-  status_style:
-    fill: var(--primary-color)
-    stroke: var(--divider-color)
-    stroke-width: 1
-
-layout:
-  circles:
-    - xpos: 35
-      ypos: 50
-      radius: 4
-      styles: ref(status_style)
-
-    - xpos: 65
-      ypos: 50
-      radius: 4
-      styles: ref(status_style)
-```
-
-Changing `status_style` updates every item that uses it. The [Reuse reference](reuse-reference.md) lists the available syntax for shared values, styles, and calculations.
-
-## :material-horseshoe: Continue with complete examples
-
-Use the [Reusable YAML card examples](reuse-card-examples.md) to see these features combined in complete cards. Keep the [Reuse reference](reuse-reference.md) nearby when you need an exact field or syntax reminder.
+| One layout item | `same_as` |
+| The same arrangement in another place | Groups + `same_as` |
+| A fixed number/style/configuration block | `constants` + `ref()` |
+| A calculated position/size/spacing | `calc()` |
+| A complete card design | Card template |
 
 ## :material-horseshoe: Related
 
 - [Reusable YAML card examples](reuse-card-examples.md)
 - [Reuse reference](reuse-reference.md)
 - [Card templates](../card-templates/card-templates-overview.md)
+- [Groups](../card-basics/groups.md)

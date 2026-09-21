@@ -5,70 +5,49 @@ description: Create compact Home Assistant cards with horseshoes, entity values,
 tags:
   - Introduction
 ---
-
 # Introduction to the Flexible Horseshoe Card
 
-The Flexible Horseshoe Card is a highly customizable Home Assistant card for visualizing and controlling entity data. Cards can range from a simple horseshoe gauge to complete interactive displays with multiple entities, history graphs, controls, and other visual elements.
+Flexible Horseshoe Card is a Home Assistant dashboard card for building compact visual cards from the pieces you need. A card can combine current values, names, icons, shapes, Horseshoe gauges, history graphs, and interactive controls in one layout.
 
-Card size, layout, and the position and appearance of individual tools can all be configured. Reusable templates make it possible to create consistent cards without repeating the same configuration.
+This introduction shows how those pieces fit together and where to start when you want to build your first card.
 
-## :material-horseshoe: From a simple gauge to advanced visualizations
+## :material-horseshoe: What you can build
 
-The card started with the horseshoe gauge shown in the second image below.
+Use Flexible Horseshoe Card when you want to:
 
-!!! success "All cards are available as card templates in my Home Assistant repository"
-    Each card has a card number that you can use to find its template in my [Home Assistant Config repository](https://github.com/AmoebeLabs/home-assistant-config/tree/master/lovelace/fhs_sys_templates).
+- show one or more Home Assistant entities;
+- show a value on a Horseshoe gauge;
+- show history as a Sparkline graph;
+- combine values, icons, text, and shapes in one card;
+- add buttons, toggles, selectors, number controls, or sliders;
+- reuse the same design for other entities.
 
+The [Examples](../examples/overview.md) show complete cards built from these pieces.
 
-Horseshoes can have different sizes and radii, with detailed tick marks and labels.
+## :material-horseshoe: Place things where you want them
 
-![Flexible Horseshoe Examples Overview](../assets/screenshots/fhs-horseshoe-examples-overview.png)
+Every visible item has its own position. A normal square card uses a `0` to `100` coordinate system, with `50, 50` in the center.
 
-More specialized horseshoes can also show non-numerical states, as in this Kleenex Pollen Radar example:
+You can place items individually or put related items in a group and move them together.
 
-![Kleenex Pollen Radar card with horseshoe gauges for textual pollen states](../assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp)
+See [Positioning and sizing](../card-basics/positioning-and-sizing.md) and [Groups](../card-basics/groups.md).
 
-Sparkline graphs show current and historical values over time. [Several graph types](../tools/sparkline/sparkline-overview.md) are available.
+## :material-horseshoe: Use Home Assistant information
 
-The example shows the full sparkline functionality, including axes, labels, and a grid. These elements are optional, so a graph can also be used as a simple sparkline to provide additional historical context.
+Add Home Assistant entities under `entities:`. The card can use their state, name, area, icon, unit, precision, and localization.
 
-![Awair study temperature history shown as a daily area chart](../assets/screenshots/fhs-card-study-temperature-area-day--dark.webp)
+You normally only override those values when this card should show something differently.
 
-The card also supports [tap actions](../interaction/interaction-overview.md) and [predefined controls](../tools/controls/controls-overview.md), so values can be displayed and controlled from the same card.
+See [Entities](../card-basics/entities.md).
 
-[Predefined controls](../tools/controls/controls-overview.md) make it possible to build interactive cards, such as the Awair card below that shows data from three Awair Elements. Check [this page](../examples/demo-cards/demo-card-awair-many.md) for this advanced card.
+## :material-horseshoe: Reuse a design
 
-{{ loop_video(
-"fhs-demo-card-awair-selectable--dark.mp4",
-"Interactive Awair showcase built with Flexible Horseshoe Card in Home Assistant",
-"A complete demonstration of the Flexible Horseshoe Card using three Awair Elements. Select a room and sensor to explore their current values, history, and history duration.",
-"fhs-card-awair-selectable--dark.png",
-"2026-08-15",
-"PT0M30S",
-"720px") }}
+When several cards or items use the same design, you do not have to repeat the complete YAML. The card can reuse an item, shared settings, or a complete card template.
 
-
-## :material-horseshoe: Flexible layouts
-
-Each tool has its own position, size, and appearance. Tools can be combined freely, allowing the same card to be used for a compact gauge, a larger dashboard element, or a more detailed interactive display.
-
-Groups can be used to position related tools together.
-
-## :material-horseshoe: Built around Home Assistant
-
-Flexible Horseshoe Card uses Home Assistant entities and can follow their names, units, precision, icons, areas, locale, themes, and actions.
-
-This means a card can start with the information already available in Home Assistant and only override what needs to look or behave differently.
-
-## :material-horseshoe: Reuse card designs
-
-Reusable templates and shared configuration help keep larger configurations manageable.
-
-A design can be created once and reused for different entities while keeping the same layout and appearance.
+See [Reuse](../reuse/reuse-introduction.md).
 
 ## :material-horseshoe: Start here
 
-1. [Install the card](installation.md).
-2. [Build your first horseshoe](your-first-card.md).
-3. [Choose card tools](../tools/tools-overview.md).
-4. Explore the [examples](../examples/overview.md).
+1. [Install Flexible Horseshoe Card](installation.md).
+2. [Create your first card](your-first-card.md).
+3. Use [Card tools](../tools/tools-overview.md) to add the information or control you need.

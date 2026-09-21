@@ -6,28 +6,28 @@ tags:
   - Card templates
   - Reuse
 ---
-
 # Card templates
 
-Card templates let you define a card design once and use it with different entities, labels, scales, or other values.
+A card template is a reusable complete card design. Instead of copying the same layout for every room or sensor, the template contains the shared card and each instance supplies only the values that are different.
 
-Use a template when several cards share the same structure. Use [`same_as`](../reuse/reuse-introduction.md) when repetition only occurs inside one card.
+This section explains when card templates are useful, how templates are organized, and where to continue for creating templates and passing variables into them.
 
-## :material-horseshoe: Template catalogs
+## :material-horseshoe: Reuse a complete card design
 
-Flexible Horseshoe Card reads two Lovelace template catalogs:
+A template contains the shared card once. Each card instance then supplies only what is different.
 
-| Catalog | Use |
-| --- | --- |
-| `fhs_sys_templates` | Templates supplied and maintained with your Flexible Horseshoe Card setup |
-| `fhs_user_templates` | Your own templates and overrides |
+See [Using card templates](using-card-templates.md) for a complete example.
 
-A user template with the same name takes priority over a system template.
+## :material-horseshoe: Change selected values per card
 
-Templates can be available to one view or to the complete dashboard.
+Use [Template variables](template-variables.md) for the parts that differ, such as the entity, label, minimum/maximum value, or another setting.
 
-## :material-horseshoe: Continue
+## :material-horseshoe: Keep distributed and personal templates separate
+
+The card supports system and user template catalogs. Keep personal templates in the user catalog so distributed/system templates can be updated independently.
+
+## :material-horseshoe: Related
 
 - [Using card templates](using-card-templates.md)
 - [Template variables](template-variables.md)
-- [JavaScript templates](../dynamic/javascript-templates.md)
+- [Reuse](../reuse/reuse-introduction.md)

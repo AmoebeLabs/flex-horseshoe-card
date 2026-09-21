@@ -7,181 +7,242 @@ tags:
 - Horseshoe
 - Labels
 ---
-
 # Horseshoe tick marks and labels
 
-Tick marks and labels follow the horseshoe scale automatically. This keeps numeric divisions, text labels, and the current value aligned, whether the gauge uses a linear or spline scale.
+Tick marks and labels add readable scale information around a Horseshoe. Ticks divide the scale into visible positions. Labels show the values or named states that belong to those positions.
 
-## :material-horseshoe: Enable ticks and labels
+This page shows how to add major and minor ticks, choose which values receive labels, move ticks and labels relative to the path, change label direction and spacing, and add label backgrounds or badges.
 
-Enable configured tick marks with `show.tickmarks`. Use `show.labels_at` to choose which scale values receive a label.
+<!-- One comparison image can show default, moved outward, and horizontal labels. -->
 
-```yaml linenums="1"
-show:
-  tickmarks: true
-  labels_at: ticks_major
+## :material-horseshoe: Add major tick marks
 
-horseshoe_tickmarks:
-  ticks_major:
-    ticksize: 10
-    width: 4
-    thickness: 2
-
-horseshoe_labels:
-  offset: 12
-  orientation: horizontal
-```
-
-Set tickmarks to false to hide both layers, or use an object to control
-the configured layers independently:
+Major ticks provide the main readable scale intervals, for example every 10 units on a 0–100 gauge.
 
 ```yaml linenums="1"
-show:
-  tickmarks:
-    major: true
-    minor: false
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      radius: 42  # Distance from the center to the Horseshoe path
+      tickmarks_radius: 43  # Place ticks at radius 43 instead of the Horseshoe radius 42
+
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+
+      show:
+        tickmarks:
+          major: true
+
+      horseshoe_tickmarks:
+        ticks_major:
+          ticksize: 10  # Draw a major tick every 10 scale units
+          width: 5  # Length of each major tick away from the tick radius
+          thickness: 2  # Thickness of each major tick along the path
 ```
+`ticksize: 10` creates a major tick every 10 units on this scale.
 
-## :material-horseshoe: Major and minor ticks
+## :material-horseshoe: Add minor tick marks
 
-Major and minor ticks are configured separately, so each layer can use its own spacing, size, color, and styling. When a minor tick falls on the same value as a major tick, it is automatically omitted from the minor layer.
-
-| Field        | Description                                                       |
-| :----------- | :---------------------------------------------------------------- |
-| `ticksize`   | Defines the numeric interval between consecutive ticks.           |
-| `width`      | Controls the radial width of each tick.                           |
-| `thickness`  | Controls the arc length of each tick.                             |
-| `offset`     | Moves the ticks inward or outward relative to `tickmarks_radius`. |
-| `shape`      | Chooses the tick shape; use `circle` for circular tick points.    |
-| `radius`     | Sets the circle radius when `shape` is `circle`.                  |
-| `color`      | Applies a fixed tick color.                                       |
-| `color_mode` | Chooses fixed, color-stop, or color-stop-gradient coloring.       |
-| `styles`     | Applies SVG styles to the complete tick layer.                    |
+Minor ticks add intermediate scale positions when the major intervals alone are too coarse.
 
 ```yaml linenums="1"
-horseshoe_tickmarks:
-  ticks_major:
-    ticksize: 10
-    width: 5
-    thickness: 2
-    offset: 0
-    color_mode: colorstop
-    styles:
-      - opacity: 0.9
+entities:
+  - entity: sensor.example_1  # Entity used by this example
 
-  ticks_minor:
-    ticksize: 2
-    width: 2
-    thickness: 1
-    offset: 0
-    styles:
-      - fill: var(--secondary-text-color)
-      - opacity: 0.5
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+
+      show:
+        tickmarks:
+          major: true
+          minor: true
+
+      horseshoe_tickmarks:
+        ticks_major:
+          ticksize: 10  # Draw a major tick every 10 scale units
+          width: 5  # Length of each major tick away from the tick radius
+          thickness: 2  # Thickness of each major tick along the path
+
+        ticks_minor:
+          ticksize: 2  # Draw a minor tick every 2 scale units
+          width: 2  # Length of each minor tick away from the tick radius
+          thickness: 1  # Thickness of each minor tick along the path
 ```
+Minor ticks that coincide with major ticks are not drawn twice.
 
-On spline scales, minor tick spacing adjusts automatically in compressed parts of the scale to prevent overlap.
+## :material-horseshoe: Move the tick marks
 
-## :material-horseshoe: Tick background
+Use the tick `offset` when the ticks should move inward or outward relative to their normal radius. Use `tickmarks_radius` on the Horseshoe when the complete tick-mark layer needs another base radius.
 
-Enable the tick background with `show.tick_background`. The background band uses the same underlying radius as the tick geometry, which keeps both layers aligned.
+## :material-horseshoe: Add labels
 
-| Field    | Description                                    |
-| :------- | :--------------------------------------------- |
-| `width`  | Controls the width of the background band.     |
-| `offset` | Moves the background inward or outward.        |
-| `gap`    | Adds space between segmented background parts. |
-| `styles` | Applies SVG styles to the background layer.    |
+Choose which values should receive labels with `show.labels_at`:
 
 ```yaml linenums="1"
-show:
-  tickmarks: true
-  tick_background: fixed
+entities:
+  - entity: sensor.example_1  # Entity used by this example
 
-horseshoe_tickmarks:
-  background:
-    width: 6
-    styles:
-      - fill: var(--divider-color)
-      - opacity: 0.2
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+
+      show:
+        labels_at: ticks_major  # Choose which scale values receive a label
+        tickmarks: true
+
+      horseshoe_tickmarks:
+        ticks_major:
+          ticksize: 10  # Draw a major tick every 10 scale units
+
+      horseshoe_labels:
+        offset: 12  # Distance of the labels from the Horseshoe radius
 ```
+## :material-horseshoe: Choose which values get labels
 
-## :material-horseshoe: Label sources
+Labels do not have to be shown at every possible value; choose the set that makes the scale readable without crowding it.
 
-Use `show.labels_at` to choose which scale values are displayed as labels.
+| `labels_at` | Labels shown |
+| --- | --- |
+| `none` | No labels |
+| `minmax` | Minimum and maximum |
+| `minmax0` | Minimum, zero, and maximum |
+| `colorstop` / `colorstops` | Color-stop/scale boundaries |
+| `ticks_major` | Major tick values |
+| `both` | Color-stop and major-tick labels |
+| `segment` / `stringstate` | Labels from mapped states |
 
-| Value                       | Labels shown                                 |
-| :-------------------------- | :------------------------------------------- |
-| `none`                      | No labels.                                   |
-| `minmax`                    | The scale minimum and maximum.               |
-| `minmax0`                   | The minimum, zero, and maximum.              |
-| `colorstop` or `colorstops` | Scale boundaries and configured color stops. |
-| `ticks_major`               | Every configured major tick value.           |
-| `both`                      | Color-stop labels and major tick labels.     |
-| `segment` or `stringstate`  | Labels from the configured state map.        |
+## :material-horseshoe: Move the labels
 
-Duplicate values are removed before label positions are calculated. Use `horseshoe_labels.distance_min` to hide labels that would otherwise appear too close together in value space.
-
-## :material-horseshoe: Label configuration
-
-| Field               | Default    | Description                                                     |
-| :------------------ | :--------- | :-------------------------------------------------------------- |
-| `offset`            | `12`       | Sets the radial distance from the horseshoe radius.             |
-| `distance_min`      | `0`        | Defines the minimum value difference between visible labels.    |
-| `orientation`       | `arc`      | Chooses how the text is oriented relative to the horseshoe.     |
-| `arc_size`          | Calculated | Defines the amount of arc available to each label.              |
-| `ellipsis`          |            | Controls truncation when a label exceeds its available arc.     |
-| `stringstate_mode`  |            | Defines role-based styles for mutually exclusive string states. |
-| `stringstate_level` |            | Defines role-based styles for ordered string-state levels.      |
-| `color_filter`      |            | Applies an optional shared color filter.                        |
-| `styles`            |            | Applies SVG text styles to all labels.                          |
+Use `horseshoe_labels.offset` to move the label layer inward or outward:
 
 ```yaml linenums="1"
-horseshoe_labels:
-  offset: 12
-  distance_min: 5
-  orientation: horizontal
-  styles:
-    - fill: var(--primary-text-color)
-    - font-size: 0.65em
+entities:
+  - entity: sensor.example  # Entity displayed by this Horseshoe
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use the first entity configured above
+      horseshoe_scale: {}  # Required scale block; uses the default 0–100 linear scale
+      xpos: 50  # Horizontal center of the Horseshoe
+      ypos: 50  # Vertical center of the Horseshoe
+      show:
+        labels_at: minmax  # Show Horseshoe labels so the setting is visible
+      horseshoe_labels:
+        offset: 16  # Increase the distance between labels and the Horseshoe path
 ```
+## :material-horseshoe: Change the label direction
 
-## :material-horseshoe: Label backgrounds and badges
+Use `horseshoe_labels.orientation` to choose the label direction. `arc` follows the Horseshoe path and is the default. `horizontal` keeps every label level on the card instead of following the curve.
 
-Label backgrounds use the same fixed or color-stop model as other horseshoe layers. Enable them with `show.label_background`, then configure the band under `horseshoe_labels.background`.
+## :material-horseshoe: Keep enough space between labels
 
-Badges appear behind individual labels when `show.label_badges` is enabled. Their size, fill, border, padding, and additional styles can be configured under `horseshoe_labels.badges`.
+Use `distance_min` when labels would otherwise appear too close together:
 
 ```yaml linenums="1"
-show:
-  labels_at: ticks_major
-  label_background: fixed
-  label_badges: true
+entities:
+  - entity: sensor.example  # Entity displayed by this Horseshoe
 
-horseshoe_labels:
-  background:
-    width: 8
-    gap: 1
-    styles:
-      - fill: var(--card-background-color)
+layout:
+  horseshoes:
+    - entity_index: 0  # Use the first entity configured above
+      horseshoe_scale: {}  # Required scale block; uses the default 0–100 linear scale
+      xpos: 50  # Horizontal center of the Horseshoe
+      ypos: 50  # Vertical center of the Horseshoe
+      show:
+        labels_at: minmax  # Show Horseshoe labels so the setting is visible
+      horseshoe_labels:
+        distance_min: 10  # Do not show labels whose values are closer than 10 units
+```
+This keeps the label layer readable by requiring a minimum value distance between visible labels.
 
-  badges:
-    radius: 6
-    color: var(--card-background-color)
-    border_color: var(--divider-color)
-    padding: 1
+## :material-horseshoe: Add a label background or badge
+
+Use `show.label_background` for a band behind the label layer. `none` hides the band, `fixed` uses the configured background color, `colorstopsegments` divides the band into hard color-stop sections, `lineargradient` spreads the configured colors evenly across the path, and `colorstopgradient` places the gradient colors at their configured scale values. Configure the band under `horseshoe_labels.background`.
+
+Set `show.label_badges: true` to draw a badge behind every individual label; `false` leaves the text without badges. Horizontal labels use circular badges, while labels that follow the path use capsule-shaped badges. Configure their size and appearance under `horseshoe_labels.badges`.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.example  # Entity whose value is shown by the Horseshoe
+
+layout:
+  horseshoes:
+    - entity_index: 0  # Use the first configured entity
+      horseshoe_scale: {}  # Required scale block; uses the default 0–100 linear scale
+      show:
+        labels_at: ticks_major
+        label_background: fixed
+        label_badges: true
+      horseshoe_tickmarks:
+        ticks_major:
+          ticksize: 10
+      horseshoe_labels:
+        orientation: horizontal
+        background:
+          width: 8
+          styles:
+            fill: var(--divider-color)
+            opacity: 0.2
+        badges:
+          radius: 6
+          color: var(--card-background-color)
+          border_color: var(--divider-color)
 ```
 
-## :material-horseshoe: Mapped-state labels
+## :material-horseshoe: Configuration options
 
-For `stringstate_mode` and `stringstate_level`, labels come from the configured state map and are positioned within the corresponding state segment.
+### Major or minor tick layer
 
-Role-specific styles can distinguish the previous, current, and following states without changing the underlying segment geometry.
+When you define `ticks_major` or `ticks_minor` yourself, the interval, length, and thickness are the three values that define that visible tick layer.
 
-Keep the state map with the horseshoe state configuration, and use the label settings only for visible text and styling. This keeps each label aligned with the same mapped state as its active segment.
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `ticksize` | number | Yes | — | Value interval between neighboring ticks; for example `10` places ticks at 0, 10, 20, and so on. |
+| `width` | number | Yes | — | Length of each tick away from its base radius. |
+| `thickness` | number | Yes | — | Thickness of each tick along the path. |
+| `offset` | number | No | `0` | Moves the complete tick layer relative to `tickmarks_radius`: positive outward, negative inward. |
+| `shape` | `line`, `circle` | No | `line` | `line` draws a short tick across the path; `circle` draws a circular point. |
+| `radius` | number | No | `width / 2` for circles | Radius of a circular tick when `shape: circle` is used. |
+| `color` | color | No | Tick style color | Fixed tick color. |
+| `color_mode` | `fixed`, `colorstop`, `colorstopinterpolated` | No | `fixed` | `fixed` uses `color`/`styles`; `colorstop` uses the discrete color-stop color for that tick value; `colorstopinterpolated` blends between neighboring color stops. |
+| `styles` | mapping | No | Not set | Adds SVG/CSS appearance overrides to the tick layer. |
+
+### Label visibility and background
+
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `show.labels_at` | `none`, `minmax`, `minmax0`, `colorstop`, `colorstops`, `ticks_major`, `both`, `segment`, `stringstate` | No | `none` | Chooses the label source; the visible result of each value is listed above. |
+| `show.label_background` | `none`, `fixed`, `colorstopsegments`, `lineargradient`, `colorstopgradient` | No | `none` | Chooses whether the label band is hidden, fixed-color, divided into hard color-stop sections, or shown as an even/value-positioned gradient. |
+| `show.label_badges` | boolean | No | `false` | `true` draws a badge behind every label; `false` shows only the text. |
+
+### Labels
+
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `offset` | number | No | `12` | Moves labels relative to the Horseshoe path: positive outward, negative inward. |
+| `distance_min` | number | No | `0` | Hides labels that would represent values closer together than this minimum difference. |
+| `orientation` | `arc`, `horizontal` | No | `arc` | `arc` follows the Horseshoe path; `horizontal` keeps every label level on the card. |
+| `arc_size` | number | No | Calculated | Amount of path space available to each label. |
+| `ellipsis` | number | No | `0` / no truncation | Shortens a label after the configured character limit. |
+| `stringstate_mode` | mapping | No | Not set | Appearance used for labels generated by `stringstate_mode`. |
+| `stringstate_level` | mapping | No | Not set | Appearance used for labels generated by `stringstate_level`. |
+| `color_filter` | mapping | No | Not set | Transforms the label color without changing the label value. |
+| `styles` | mapping | No | Default label style | Sets font, color, alignment, and other label appearance. |
 
 ## :material-horseshoe: Related documentation
 
-* [Horseshoe Gauges](horseshoe-overview.md)
-* [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-* [Color Stops](../../appearance/color-stops.md)
-* [CSS Styling](../../appearance/styling.md)
+- [Horseshoe overview](horseshoe-overview.md)
+- [Value and progress](horseshoe-scale-and-state.md)
+- [Markers](horseshoe-markers.md)
+- [Color stops](../../appearance/color-stops.md)

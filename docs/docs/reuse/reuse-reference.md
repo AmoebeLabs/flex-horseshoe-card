@@ -6,195 +6,148 @@ tags:
 - Reuse
 - Reference
 ---
-
 # Reuse™ reference
 
-Use this page when a Reuse™ overview example shows a feature you want to adjust for your own layout.
+The Reuse reference contains the exact syntax behind reuse features. It covers `same_as`, delta fields, replacement rules, `constants`, `ref()`, and `calc()` after you have already decided which technique you need.
 
-For the practical starting points, see the [Reuse overview](reuse-introduction.md). For complete cards, see [Reusable YAML card examples](reuse-card-examples.md).
+This page explains those settings precisely and links back to the Reuse overview and complete examples for the functional starting points.
 
-## :material-horseshoe: Choose the setting that matches the result
+## :material-horseshoe: Choose the setting
+
+Start with the result you want, then use the corresponding reuse setting shown here.
 
 | You want to... | Use |
 | --- | --- |
-| Show another item with the same appearance | `same_as` |
-| Move, resize, or use the next entity for a copied item | `same_as_d...` |
-| Remove a copied list or block before adding a new one | `same_as_replace` |
-| Use the same number, style, or configuration block several times | `constants` with `ref()` |
-| Keep positions, sizes, and spacing visibly related | `calc()` |
+| Start another item from the same configuration | `same_as` |
+| Move/resize/change entity by a relative amount | `same_as_d...` |
+| Replace a copied nested list or block | `same_as_replace` |
+| Reuse a fixed number/style/configuration block | `constants` with `ref()` |
+| Calculate a position, size, or spacing | `calc()` |
 
-## :material-horseshoe: Supported sections
+## :material-horseshoe: Reuse another item with `same_as`
 
-Use `same_as` in these layout item sections:
-
-| Section      | Typical use                                            |
-| :----------- | :----------------------------------------------------- |
-| `areas`      | Reuse area definitions.                                |
-| `circles`    | Reuse circle positions, dimensions, and styles.        |
-| `hlines`     | Reuse horizontal line geometry and styles.             |
-| `horseshoes` | Reuse horseshoe geometry, scales, labels, and styling. |
-| `icons`      | Reuse icon positions, sizing, and styles.              |
-| `names`      | Reuse name positions and text styles.                  |
-| `states`     | Reuse state positions and text styles.                 |
-| `vlines`     | Reuse vertical line geometry and styles.               |
-
-## :material-horseshoe: `same_as`
-
-Use `same_as` to inherit an earlier item from the same section.
-
-`same_as` combines the copied item's configuration with the settings written on the new item. That is why a copied item can keep the same styling and only change its position or entity.
+Use `same_as` to start another visible item from the same configuration and then change only the settings that differ.
 
 ```yaml linenums="1"
-same_as: <id>
+layout:
+  rectangles:
+    - id: first  # Name this item so it can be referenced later
+      xpos: 25  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      width: 30  # Width in card coordinates
+      height: 20  # Height in card coordinates
+
+    - id: second  # Name this item so it can be referenced later
+      same_as: first  # Start with the settings from first
+      xpos: 75  # Horizontal position; 50 = center of the card
 ```
 
-| Setting | What it does |
-| :------ | :----------- |
-| `same_as` | Uses an earlier item from the same tool list as the starting point. |
-| Normal fields, such as `xpos` or `styles` | Give the copied item its own position, size, text, or style. |
-| Named `id` values | Keep larger layouts readable when items are reordered. |
+`same_as` can only refer to an item that appears earlier in the same layout section. Every item receives an ID. If you omit `id`, the card uses that item's zero-based position in its own section as a text ID: `"0"`, `"1"`, `"2"`, and so on. Numbering starts again in each layout section. When you set `id` yourself, use that name instead.
 
-### Use named IDs
+## :material-horseshoe: Change a reused numeric value by an offset
 
-You can use the item number when a list is very small, but named IDs make repeated layouts easier to read.
+Use `same_as_d<field>` when a reused item should add a numeric offset to a value it inherits. The target field must already exist on the reused item, and only numeric fields supported by that tool can be changed this way.
+
+For example, `same_as_dxpos` adds to the inherited `xpos`, `same_as_dwidth` adds to `width`, and `same_as_dentity_index` adds to the inherited numeric entity index. The offset can be a number, `ref(...)`, or `calc(...)`.
 
 ```yaml linenums="1"
-hlines:
-  - xpos: 50      # id: "0"
-    ypos: 64
+layout:
+  rectangles:
+    - id: panel
+      xpos: 30  # Horizontal position of the first Rectangle
+      ypos: 50  # Vertical position of the first Rectangle
+      width: 24  # Width inherited by the second Rectangle
+      height: 18  # Height inherited by the second Rectangle
 
-  - same_as: 0    # refers to id "0"
-    ypos: 75
+    - same_as: panel  # Start with all settings from panel
+      same_as_dxpos: 40  # 30 + 40 = xpos 70
+      same_as_dwidth: 6  # 24 + 6 = width 30
 ```
 
-### Move or resize a copied item
+The exact `same_as_d<field>` names depend on the tool. A field that is not numeric for that tool cannot be changed with a delta.
 
-Use a delta field to add a numeric offset to an inherited value.
+## :material-horseshoe: Replace a copied nested block
+
+Use `same_as_replace` when a copied field must be replaced instead of combined with the inherited field. Each entry can be a top-level field such as `color_stops` or a nested path such as `color_stops.colors`.
 
 ```yaml linenums="1"
-same_as_d<field>: <number>
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+  - entity: sensor.example_2  # Entity used by this example
+
+layout:
+  horseshoes:
+    - id: temperature  # Name this item so it can be referenced later
+      entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      horseshoe_scale: {}  # Required scale block; uses the default 0–100 linear scale
+      xpos: 35  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 20  # Distance from the center to the Horseshoe path
+      color_stops:
+        colors:
+          0: "#42a5f5"
+          25: "#ef5350"
+
+    - id: humidity  # Name this item so it can be referenced later
+      entity_index: 1  # Use entity 1 from entities: (0 = first entity)
+      same_as: temperature  # Start with the settings from temperature
+      same_as_replace:
+        - color_stops.colors  # Replace only the inherited colors list
+      color_stops:
+        colors:
+          0: "#66bb6a"
+          70: "#ffca28"
 ```
 
-| Delta field | Use it to... |
-| :--- | :--- |
-| `same_as_dxpos` | Move the copied item horizontally. |
-| `same_as_dypos` | Move the copied item vertically. |
-| `same_as_dwidth` | Make the copied item wider or narrower. |
-| `same_as_dheight` | Make the copied item taller or shorter. |
-| `same_as_dlength` | Change the length of a copied line. |
-| `same_as_dradius` | Change the radius of a copied circle, arc, or horseshoe. |
-| `same_as_dentity_index` | Make the copied item use the next entity. |
+Because only `color_stops.colors` is replaced, other inherited `color_stops` settings remain in place.
 
-Use `calc()` in a delta when the distance should use a named spacing value or another visible relationship.
+## :material-horseshoe: Reuse a value or block with `constants` and `ref()`
 
-### Replace a copied list or block
-
-`same_as_replace` replaces a copied list or block. In this configuration, `humidity.color_stops` replaces `temperature.color_stops`:
+Use a constant when the same value or configuration block is needed in several places and should be changed from one definition.
 
 ```yaml linenums="1"
-horseshoes:
-  - id: temperature
-    entity_index: 0
-    xpos: 35
-    ypos: 50
-    radius: 20
-    color_stops:
-      colors:
-        0: '#42a5f5'
-        25: '#ef5350'
+constants:
+  lineStyle:
+    stroke: var(--disabled-text-color)  # Border or line color
+    stroke-width: 2  # Border or line thickness
 
-  - id: humidity
-    entity_index: 1
-    same_as: temperature
-    same_as_replace:
-      - color_stops
-    color_stops:
-      colors:
-        0: '#66bb6a'
-        70: '#ffca28'
+layout:
+  lines:
+    - orientation: horizontal  # Arrange it from left to right
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 64  # Vertical position; 50 = center of the card
+      length: 85  # Length of the line
+      styles: ref(lineStyle)
 ```
 
-The humidity horseshoe keeps `xpos`, `ypos`, and `radius` from temperature. `humidity.color_stops` replaces `temperature.color_stops`.
+Constant names must start with a letter or underscore and can then contain letters, numbers, and underscores. Do not put dots in a constant name.
 
-Use this for a complete nested setting, not for one ordinary value such as `xpos`, `radius`, or `entity_index`. Those values can be written directly on the copied item.
+`ref()` can insert a single value, a list, or a complete configuration block. Use dot notation to select a value inside a nested constant, for example `ref(theme.warning.stroke)`. Dot notation selects named properties; it does not use array indexes such as `[0]`. Each inserted list/object is copied, so changing an inherited block elsewhere does not change the constant itself.
 
-## :material-horseshoe: `constants`
+## :material-horseshoe: Calculate a value with `calc()`
 
-Use `constants` to give a shared number, style, or configuration block a readable name.
+Use `calc()` when a configuration value can be derived from another reusable value instead of being repeated manually.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
 constants:
   centerX: 50
-  lineStep: 11
-  lineStyle:
-    stroke: var(--disabled-text-color)
-    stroke-width: 2
+  gap: 4  # Space between these visible parts
+
+layout:
+  states:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: calc(centerX - gap)  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
 ```
+`calc()` must produce one finite number. It can use numeric constants and numeric values inside nested constant objects. A constant calculated with `calc()` can use numeric constants declared earlier in the `constants:` block. Strings, booleans, and lists are not available inside `calc()`.
 
-Use `ref()` to place that named value or block in an item. Use the name directly in `calc()` when it describes a position, size, or spacing relationship.
-
-## :material-horseshoe: `calc()`
-
-Use `calc()` when a position, size, or spacing is easier to understand as a relationship than as a final number.
-
-```yaml linenums="1"
-xpos: calc(50 - 4)
-```
-
-| You can use | Example |
-| :--- | :--- |
-| Numbers and named constants | `calc(center_x + column_gap)` |
-| Arithmetic and parentheses | `calc((50 - 4) / 2)` |
-| The functions listed below | `calc(sin(PI / 2))` |
-
-### Supported operators
-
-| Operator | Description    | Example              | Result |
-| :------- | :------------- | :------------------- | :----- |
-| `+`      | Addition       | `calc(50 + 4)`       | `54`   |
-| `-`      | Subtraction    | `calc(50 - 4)`       | `46`   |
-| `*`      | Multiplication | `calc(4 * 20)`       | `80`   |
-| `/`      | Division       | `calc(100 / 4)`      | `25`   |
-| `**`     | Exponentiation | `calc(2 ** 3)`       | `8`    |
-| `()`     | Grouping       | `calc((50 - 4) / 2)` | `23`   |
-
-### Supported functions and constants
-
-| Function or constant | Description                                    | Example             | Result       |
-| :------------------- | :--------------------------------------------- | :------------------ | :----------- |
-| `sin()`              | Calculates the sine of an angle in radians.    | `calc(sin(PI / 2))` | `1`          |
-| `cos()`              | Calculates the cosine of an angle in radians.  | `calc(cos(0))`      | `1`          |
-| `tan()`              | Calculates the tangent of an angle in radians. | `calc(tan(0))`      | `0`          |
-| `abs()`              | Returns the absolute value.                    | `calc(abs(-10))`    | `10`         |
-| `round()`            | Rounds to the nearest integer.                 | `calc(round(10.6))` | `11`         |
-| `floor()`            | Rounds down to the nearest integer.            | `calc(floor(10.9))` | `10`         |
-| `ceil()`             | Rounds up to the nearest integer.              | `calc(ceil(10.1))`  | `11`         |
-| `min()`              | Returns the lowest value.                      | `calc(min(10, 20))` | `10`         |
-| `max()`              | Returns the highest value.                     | `calc(max(10, 20))` | `20`         |
-| `sqrt()`             | Returns the square root.                       | `calc(sqrt(16))`    | `4`          |
-| `PI`                 | Provides the mathematical constant π.          | `calc(PI)`          | `3.14159...` |
-
-## :material-horseshoe: `ref()`
-
-Use `ref()` to insert a value or configuration fragment from `constants`.
-
-```yaml linenums="1"
-constants:
-  lineStyle:
-    stroke: var(--disabled-text-color)
-    stroke-width: 2
-
-hlines:
-  - xpos: 50
-    ypos: 64
-    length: 85
-    styles: ref(lineStyle)
-```
-
-`ref()` is useful for shared styles, color stops, dimensions, positions, and other fixed card settings.
+Supported operators are `+`, `-`, `*`, `/`, `**`, and parentheses. Supported functions/constants are `sin()`, `cos()`, `tan()`, `abs()`, `round()`, `floor()`, `ceil()`, `min()`, `max()`, `sqrt()`, and `PI`.
 
 ## :material-horseshoe: Related documentation
 
-* [Reuse overview](reuse-introduction.md)
-* [Reusable YAML card examples](reuse-card-examples.md)
-* [JavaScript templates](../dynamic/javascript-templates.md)
+- [Reuse overview](reuse-introduction.md)
+- [Reusable YAML card examples](reuse-card-examples.md)
+- [Card templates](../card-templates/card-templates-overview.md)
