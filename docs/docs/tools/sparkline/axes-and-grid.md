@@ -7,116 +7,159 @@ tags:
   - Axes
   - Grid
 ---
-
 # Axes and grid
 
-Line, area, dots, bar, radial, equalizer, and state-bands charts can show automatic axes and grid lines.
+A Sparkline can stay minimal, or it can add axes, grid lines, tick marks, and labels when the reader needs exact time and value references. The X-axis represents time and the Y-axis represents values or mapped states; radial charts use the same idea around and across the circle.
 
-Show the X-axis when the user needs to identify times and the Y-axis when values or named states need a visible scale. Grid lines make it easier to compare a point with both axes.
+This page shows how to turn those elements on, style their labels, reserve graph space, and use a secondary Y-axis for another series.
 
-<!-- Add a chart with labeled X and Y display elements here. -->
+## :material-horseshoe: Show time and value axes
 
-## :material-horseshoe: Show both axes
-
-```yaml linenums="1"
-sparkline:
-  show:
-    grid:
-      x: true
-      y: true
-    axis:
-      x: true
-      y: true
-    tickmarks:
-      x: true
-      y: true
-    labels:
-      x: true
-      y: true
-```
-
-The X-axis represents time. The Y-axis represents values or mapped states. On a radial chart, time follows the outer arc and values run outward from the center.
-
-## :material-horseshoe: Configuration options
-
-| Option | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `show.grid.x`, `show.grid.y` | boolean | No | `false` | Shows grid lines for either axis. |
-| `show.axis.x`, `show.axis.y` | boolean | No | `false` | Shows the X-axis or Y-axis. |
-| `show.tickmarks.x`, `show.tickmarks.y` | boolean | No | `false` | Shows tick marks along an axis. |
-| `show.labels.x`, `show.labels.y` | boolean | No | `false` | Shows calculated time or value labels. |
-| `x_axis` | mapping | No | default X-axis styling | Adjusts X-axis labels and appearance. |
-| `y_axis` | mapping | No | default Y-axis styling | Adjusts Y-axis labels and appearance. |
-| `margin` | number or mapping | No | `0` | Adds space around the plotted data. |
-| `series[].y_axis_id` | string | No | `primary` | Assigns a series to the `primary` or `secondary` Y-axis. |
-
-## :material-horseshoe: Style labels
+Add axes when the graph needs readable time and value references rather than only showing its overall shape.
 
 ```yaml linenums="1"
-x_axis:
-  labels:
-    styles:
-      font-size: 0.5em
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-y_axis:
-  labels:
-    styles:
-      font-size: 0.5em
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          axis:
+            x: true  # Show the time axis
+            y: true  # Show the value axis
+          tickmarks:
+            x: true  # Show tick marks on the time axis
+            y: true  # Show tick marks on the value axis
+          labels:
+            x: true  # Show labels on the time axis
+            y: true  # Show labels on the value axis
 ```
+The X-axis represents time. The Y-axis represents values or mapped states.
 
-## :material-horseshoe: Use the complete value range
+## :material-horseshoe: Add grid lines
 
-Hide the Y-axis labels when the chart should give its values as much visual space as possible. The lowest visible value then starts at one edge of the graph and the highest visible value reaches the other edge.
+Grid lines make it easier to compare a point in the graph with a time or value position on an axis.
 
 ```yaml linenums="1"
-sparkline:
-  show:
-    labels:
-      y: false
-```
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-Grid lines, tick marks, and the Y-axis can remain visible. They stay evenly spaced across the graph:
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          grid:
+            x: true  # Show time-grid lines
+            y: true  # Show value-grid lines
+```
+Enable X and Y independently so the graph only shows the guides you need.
+
+## :material-horseshoe: Style axis labels
+
+Change label styling when axis text is too prominent, too small, or does not fit the surrounding card design.
 
 ```yaml linenums="1"
-sparkline:
-  show:
-    grid:
-      y: true
-    axis:
-      y: true
-    tickmarks:
-      y: true
-    labels:
-      y: false
-```
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-Show the Y-axis labels when readable scale values are more important than using the complete graph height or radial width.
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      x_axis:
+        labels:
+          styles:
+            font-size: 0.5em  # Size of the displayed text
+
+      y_axis:
+        labels:
+          styles:
+            font-size: 0.5em  # Size of the displayed text
+```
+## :material-horseshoe: Use more of the graph for the data
+
+Hide Y-axis labels when the plotted values should use as much vertical/radial room as possible:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          labels:
+            y: false  # Hide labels on the value axis
+```
+The grid, axis, and tick marks can stay visible without the labels.
 
 ## :material-horseshoe: Use two Y-axes
 
-Assign series with different units or ranges to separate axes. Keep related series on the same axis so their vertical positions remain comparable.
+Assign each series to `primary` or `secondary`:
 
 ```yaml linenums="1"
-series:
-  - id: temperature
-    entity_index: 0
-    color: "#42a5f5"
-    y_axis_id: primary
+entities:
+  - entity: sensor.temperature  # First graph series
+  - entity: sensor.humidity  # Second graph series
 
-  - id: humidity
-    entity_index: 1
-    color: "#66bb6a"
-    y_axis_id: secondary
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      series:
+        - id: temperature  # Name this series inside the graph
+          entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+          y_axis_id: primary  # Use the primary Y-axis for this series
+
+        - id: humidity  # Name this series inside the graph
+          entity_index: 1  # Use entity 1 from entities: (0 = first entity)
+          y_axis_id: secondary  # Use the secondary Y-axis for this series
 ```
+Use this when the series have different units or very different ranges.
 
-Cartesian charts show the primary axis on the left and the secondary axis on the right. Radial charts place them at separate sides of the configured arc.
+## :material-horseshoe: Add extra space around the graph
 
-## :material-horseshoe: Graph spacing
+Use the Sparkline `margin` when labels, points, or bars need more room inside the configured graph size.
 
-The graph reserves room for visible labels, tick marks, axes, bars, and dots. Use the sparkline `margin` when you want additional space around the plotted data.
+## :material-horseshoe: Configuration options
+
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `sparkline.show.grid.x`, `sparkline.show.grid.y` | boolean | No | `false` | Adds horizontal and/or vertical guide lines so graph positions are easier to compare with an axis. |
+| `sparkline.show.axis.x`, `sparkline.show.axis.y` | boolean | No | `false` | Shows the time and/or value axis when the graph needs readable reference scales. |
+| `sparkline.show.tickmarks.x`, `sparkline.show.tickmarks.y` | boolean | No | `false` | Adds small marks at the positions used by the corresponding axis scale. |
+| `sparkline.show.labels.x`, `sparkline.show.labels.y` | boolean | No | `false` | Shows readable time/value text at the selected axis positions. |
+| `x_axis` | mapping | No | Default X-axis appearance | X-axis/label styling. |
+| `y_axis` | mapping | No | Default Y-axis appearance | Y-axis/label styling. |
+| `margin` | number/mapping | No | `0` | Adds room between the plotted data and graph edges when labels, ticks, or other edge content would otherwise collide. |
+| `series[].y_axis_id` | `primary`, `secondary` | No | `primary` | `primary` uses the main value axis; `secondary` uses the separately scaled second value axis. |
 
 ## :material-horseshoe: Related
 
-- [Line, area, dots, and bars](sparkline-overview.md#chart-types)
+- [Sparkline overview](sparkline-overview.md)
+- [Multiple series](multiple-series.md)
 - [Radial chart](radial-chart.md)
-- [History periods and bins](sparkline-history-periods-and-bins.md)

@@ -1,120 +1,103 @@
 ---
 template: main.html
-title: Flexible Horseshoe Card input boolean
-description: Add a browser-local on/off setting to a Flexible Horseshoe Card.
+title: Local input boolean
+description: Add a local on/off setting to a Flexible Horseshoe Card.
 tags:
   - Controls
   - Flexible Horseshoe Card inputs
   - Boolean
 ---
+# Local input boolean
 
-# Flexible Horseshoe Card input boolean
+A local input boolean is a local on/off value that can be used by the card like an entity state. It is useful for choices that only affect the card, such as showing labels, enabling a grid, or revealing an extra layer, without creating a Home Assistant helper.
 
-An Flexible Horseshoe Card input boolean adds an on/off setting directly to a Flexible Horseshoe Card. Use it for choices that belong to the card, such as showing labels, displaying a grid, enabling an extra layer, or switching part of the card on and off.
+A local input boolean is not created in Home Assistant. Its entity ID must start with `fhs_input_boolean.`, which tells the card to create and manage the value locally.
 
-The value is stored in the current browser and does not require a Home Assistant helper. Use a Home Assistant [Input boolean](https://www.home-assistant.io/integrations/input_boolean/) instead when automations, other dashboards, or other devices need the same setting.
+This page shows how to define the boolean, control it, use its `on`/`off` state elsewhere in the card, and optionally keep the value after a reload.
 
-## :material-horseshoe: Basic configuration
+## :material-horseshoe: Add an on/off value
 
-Add the input to the card's `entities` list. Its entity ID must start with `fhs_input_boolean.`.
+Use a local boolean when the card needs to remember a local true/false choice without a Home Assistant helper.
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_boolean.show_labels
-    initial: true
-    scope: card
+  - entity: fhs_input_boolean.show_labels  # Create or use this local input
+    initial: true  # Value used when this local input is created
+    scope: card  # Keep this value inside this card
 ```
 
-Connect a toggle control to the input:
+The state is exposed as `on` or `off`.
+
+## :material-horseshoe: Change it with a Toggle
+
+A Toggle is the direct visual control for changing a local boolean between on and off.
 
 ```yaml linenums="1"
+entities:
+  - entity: fhs_input_boolean.option_1  # Local on/off value used by the example
+    initial: false
+
 layout:
   controls:
-    - id: show-labels
-      type: toggle
-      entity_index: 0
-      xpos: 50
-      ypos: 85
-      width: 24
-      show:
-        item_variant: switch
-        item_viz: default
-        item_style: ha
+    - id: show-labels  # Name this item so it can be referenced later
+      type: toggle  # Create a toggle control
+      entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 85  # Vertical position; 50 = center of the card
+      width: 24  # Width of the complete control
 ```
+## :material-horseshoe: Use the value in the card
 
-The toggle now changes the value between `on` and `off`.
-
-## :material-horseshoe: Configuration options
-
-| Option | Description |
-| --- | --- |
-| `entity` | A unique entity ID starting with `fhs_input_boolean.`. |
-| `initial` | Initial value: `true` or `false`. |
-| `scope: card` | Keeps a separate value for this card. |
-| `scope: global` | Shares the value with Flexible Horseshoe Card cards in the current browser. |
-| `persist: true` | Restores a global value after the browser reloads. |
-| `name` | Name shown by tools that display the entity name. |
-| `icon` | Icon shown by tools that display the entity icon. |
-
-See [Entities](../../card-basics/entities.md) for slots and other entity settings.
-
-## :material-horseshoe: Use the value in a card
-
-Flexible Horseshoe Card exposes the value as the state `on` or `off`. A JavaScript template can use that state to change what the card displays.
-
-This example shows a text label only while the input is on:
+This example only shows a Text item while the input is on:
 
 ```yaml linenums="1"
+entities:
+  - entity: fhs_input_boolean.option_1  # Local on/off value used by the example
+    initial: false
+
 layout:
   texts:
-    - id: scale-labels
-      entity_index: 0
-      text: Scale labels
-      xpos: 50
-      ypos: 65
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      text: Scale labels  # Text shown to the user
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 65  # Vertical position; 50 = center of the card
       visibility: |
         [[[
           return state === 'on' ? 'visible' : 'hidden';
         ]]]
 ```
+## :material-horseshoe: Change the value from an action
 
-The same pattern can show a complete [group](../../card-basics/groups.md), change a graph option, or select a different visualization.
-
-## :material-horseshoe: List of actions
-
-A toggle control changes the input directly. Buttons and other actionable tools can use these actions:
+Available actions:
 
 | Action | Result |
 | --- | --- |
-| `fhs_input_boolean.toggle` | Changes `on` to `off`, or `off` to `on`. |
-| `fhs_input_boolean.turn_on` | Sets the value to `on`. |
-| `fhs_input_boolean.turn_off` | Sets the value to `off`. |
+| `fhs_input_boolean.toggle` | Toggles on/off |
+| `fhs_input_boolean.turn_on` | Sets on |
+| `fhs_input_boolean.turn_off` | Sets off |
 
-```yaml linenums="1"
-tap_action:
-  action: perform-action
-  perform_action: fhs_input_boolean.toggle
-  target:
-    entity_id: fhs_input_boolean.show_labels
-```
+## :material-horseshoe: Share or persist the value
 
-## :material-horseshoe: Keep the value after reloading
+Use `scope: global` to share the value with other cards in this Home Assistant client. Add `persist: true` to restore a global value after reloading.
 
-Use `scope: global` with `persist: true` when the choice should remain active after reloading the dashboard:
+## :material-horseshoe: Configuration options
 
-```yaml linenums="1"
-entities:
-  - entity: fhs_input_boolean.compact_view
-    initial: false
-    scope: global
-    persist: true
-```
 
-Every Flexible Horseshoe Card card in the current browser that defines `fhs_input_boolean.compact_view` receives the same value. Other browsers and devices keep their own value.
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entity` | string | Yes | — | Unique ID starting with `fhs_input_boolean.`. |
+| `initial` | boolean | No | `false` / `off` | Value used when the local input is first created; omit it to start in the off state. |
+| `scope` | `card`, `global` | No | `card` | `card` keeps a separate value per card; `global` shares the value between cards in this Home Assistant client. |
+| `persist` | boolean | No | `false` | Restores the value after a client reload; it can only be enabled with `scope: global`. |
+| `name` | string | No | Entity ID suffix | Display name exposed by the local entity. |
+| `icon` | string | No | `mdi:toggle-switch` | Icon exposed by the local entity. |
+| `tap_action` | action | No | `none` | Default tap action inherited by a layout item that uses this local entity and does not define its own tap action. |
 
 ## :material-horseshoe: Related
 
-- [Toggle control](toggle-tool.md)
-- [Browser-local inputs](browser-local-inputs.md)
+- [Toggle](toggle-tool.md)
+- [Local input entities](browser-local-inputs.md)
 - [Visibility](../../interaction/visibility.md)
 - [JavaScript templates](../../dynamic/javascript-templates.md)

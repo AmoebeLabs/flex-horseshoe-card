@@ -7,100 +7,61 @@ tags:
   - Entity
   - Card tools
 ---
-
 # Name
 
-A name shows the name of a Home Assistant entity anywhere on the card. Use it for a clear label beside a value, icon, graph, or control.
+The Name tool displays the name connected to an entity. By default it shows the Home Assistant entity name. You can also give the entity a fixed name or build a name from its entity, device, area, floor, and fixed text.
 
-By default, Flexible Horseshoe Card uses the default (short) entity name from Home Assistant. When the entity configuration selects an attribute, it uses the translated attribute name instead. You can provide your own name in the entity configuration.
+This page shows how to choose the displayed name in `entities:`, place it with `layout.names`, style it, shorten long names, and optionally color it from the entity value.
 
-<!-- Name examples image -->
+## :material-horseshoe: Show the entity name
 
-## :material-horseshoe: Basic configuration
-
-Add names under `layout.names`:
+Add the entity under `entities:` and refer to it from `layout.names` with `entity_index`:
 
 ```yaml linenums="1"
-entities:
+entities:  # Entities used by this example
   - entity: sensor.living_room_temperature
 
 layout:
   names:
-    - id: temperature-name
-      entity_index: 0
+    - entity_index: 0
       xpos: 50
       ypos: 50
 ```
 
-`entity_index` selects the entity whose name is displayed.
+With no `name:` override, Home Assistant supplies the displayed entity name.
 
-`xpos` and `ypos` position the name on the card.
+## :material-horseshoe: Use a fixed name
 
-## :material-horseshoe: Configuration options
-
-| Field          | Required | Description                           |
-| -------------- | :------: | ------------------------------------- |
-| `entity_index` |    Yes   | Entity whose name is displayed        |
-| `xpos`         |    Yes   | Horizontal position on the card       |
-| `ypos`         |    Yes   | Vertical position on the card         |
-| `ellipsis`     |    No    | Maximum displayed name length         |
-| `styles`       |    No    | Text styling                          |
-| `color_stops`  |    No    | Colors the name from the entity state |
-
-## :material-horseshoe: Use a custom name
-
-Set `name` on the entity when the card should display another name:
-
-=== "Home Assistant name"
-    Home Assistant returns the entity name as the name by default
-    ```yaml linenums="1"
-    entities:
-      - entity: sensor.living_room_temperature
-
-    layout:
-      names:
-        - entity_index: 0
-          xpos: 50
-          ypos: 50
-    ```
-
-=== "Custom name"
-
-    ```yaml linenums="1"
-    entities:
-      - entity: sensor.living_room_temperature
-        name: Living room
-
-    layout:
-      names:
-        - entity_index: 0
-          xpos: 50
-          ypos: 50
-    ```
-
-    The configured `name` takes priority over the name supplied by Home Assistant.
-
-## :material-horseshoe: Choose what the name shows
-
-!!! info ":octicons-tag-24: Available for custom cards since Home Assistant 2026.4!"
-    The Flexible Horseshoe Card therefore requires this version as the minimal version.
-
-A short name is useful when a card shows one entity. When several rooms or devices show the same measurement, add more context so each label remains recognizable.
-
-Put the following name parts in the order they should appear:
-
-| Type | default | What the user sees |
-| --- | --- |--- |
-| `entity` | Yes | Short entity name, such as `Temperature` |
-| `device` | No | Device name, such as `Awair Element` |
-| `area` | No | Area name, such as `Living room` |
-| `floor` | No | Floor name, such as `Ground floor` |
-| `text` | No | Text supplied in the card configuration |
-
-This example distinguishes equal measurements from different rooms:
+Set `name` on the entity when this card should use fixed text instead of the Home Assistant name:
 
 ```yaml linenums="1"
-entities:
+entities:  # Entities used by this example
+  - entity: sensor.living_room_temperature
+    name: Room temperature
+
+layout:
+  names:
+    - entity_index: 0
+      xpos: 50
+      ypos: 50
+```
+
+## :material-horseshoe: Build a name from several parts
+
+Home Assistant lets you assemble the displayed entities name from several parts, in the order you list them:
+
+| Type | What is shown |
+| --- | --- |
+| `entity` | The entity name, for example `Temperature`. |
+| `device` | The device name, for example `Awair Element`. |
+| `area` | The area name, for example `Living room`. |
+| `floor` | The floor name, for example `Ground floor`. |
+| `text` | The fixed text from the `text` field. |
+
+Put these parts under `entities[].name`.
+
+```yaml linenums="1"
+entities:  # Entities used by this example
   - entity: sensor.living_room_temperature
     name:
       - type: area
@@ -115,117 +76,63 @@ layout:
       ypos: 50
 ```
 
-The resulting label can be `Living room - Temperature`. Home Assistant supplies the current area, floor, device, and entity names, so those parts follow changes made in Home Assistant. Literal `text` remains exactly as configured.
+This can display `Living room - Temperature`. Home Assistant supplies the current entity, device, area, and floor names. A `text` part remains exactly as configured.
 
-A plain string is still the simplest choice when the complete label should be fixed:
+## :material-horseshoe: Position and align the name
+
+Position the name with `xpos` and `ypos`. Use `text-anchor` to control horizontal alignment: `start` starts the text at `xpos`, `middle` centers it on `xpos`, and `end` ends it at `xpos`.
 
 ```yaml linenums="1"
-entities:
+entities:  # Entities used by this example
   - entity: sensor.living_room_temperature
-    name: Indoor temperature
-```
 
-## :material-horseshoe: Position and alignment
-
-Position the name with `xpos` and `ypos`:
-
-```yaml linenums="1"
 layout:
   names:
     - entity_index: 0
-      xpos: 10
-      ypos: 90
+      xpos: 20
+      ypos: 50
       styles:
         text-anchor: start
 ```
 
-Use `text-anchor` to control horizontal alignment:
-
-* `start` — text starts at `xpos`
-* `middle` — text is centered on `xpos`
-* `end` — text ends at `xpos`
-
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for the card coordinate system.
-
-## :material-horseshoe: Text appearance
-
-Use `styles` to change the appearance of the name:
-
-```yaml linenums="1"
-layout:
-  names:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      styles:
-        font-size: 1.4em
-        font-weight: bold
-        text-transform: none
-        fill: var(--secondary-text-color)
-        opacity: 0.8
-```
-
-Common styles include:
-
-| Property         | Use                  |
-| ---------------- | -------------------- |
-| `font-size`      | Text size            |
-| `font-weight`    | Text weight          |
-| `text-anchor`    | Horizontal alignment |
-| `text-transform` | Text capitalization  |
-| `fill`           | Text color           |
-| `opacity`        | Text opacity         |
-
-See [Styling](../../appearance/styling.md) for the complete styling guide.
-
-## :material-horseshoe: Shorten long names
+## :material-horseshoe: Shorten a long name
 
 Use `ellipsis` to limit the displayed name length:
 
 ```yaml linenums="1"
+entities:  # Entities used by this example
+  - entity: sensor.living_room_temperature
+
 layout:
   names:
     - entity_index: 0
       xpos: 50
       ypos: 50
-      ellipsis: 20
+      ellipsis: 18
 ```
 
-Names longer than the configured length are shortened with an ellipsis.
+Names longer than the configured length are shortened with an ellipsis. `max_characters` is an alternative field with the same effect. If both `max_characters` and `ellipsis` are set, `max_characters` is used.
 
-## :material-horseshoe: Color from the entity
+## :material-horseshoe: Change color with the entity
 
-A name can change color based on the state of its entity:
+Add `color_stops` when the displayed name should change color with the selected entity value or state. See [Color stops](../../appearance/color-stops.md).
 
-```yaml linenums="1"
-layout:
-  names:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
+## :material-horseshoe: Configuration options
 
-      show:
-        item_style: colorstop
+`Required` applies to this `layout.names` item. `Not set` means the card adds no explicit value when the option is omitted.
 
-      color_stops:
-        colors:
-          0: green
-          50: orange
-          100: red
-```
-
-Color stops are applied to the text.
-
-See [Color stops](../../appearance/color-stops.md) for ranges, gradients, palettes, and interpolation.
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `entity_index` | entity index | No | `0` | Chooses which configured entity name is displayed; when omitted, the first configured entity is used. |
+| `xpos`, `ypos` | number | No | `0` | Position of the name; omitted coordinates place it at the top-left reference position. |
+| `max_characters` | number | No | Not set | Maximum displayed character count. If both truncation fields are set, this value takes precedence. |
+| `ellipsis` | number | No | Not set | Alternative character limit for shortening a long displayed name with `...`. |
+| `styles` | mapping | No | Default name style | Sets text size, weight, alignment, color, opacity, and other text appearance. |
+| `color_stops` | mapping | No | Not set | Changes the text color from the selected entity value or state. |
 
 ## :material-horseshoe: Related
 
-* [Area](entity-area-tool.md)
-* [State](entity-state-tool.md)
-* [Text](../shapes/text-tool.md)
-* [Entities](../../card-basics/entities.md)
-* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
-* [Styling](../../appearance/styling.md)
-* [Color stops](../../appearance/color-stops.md)
-* [Actions](../../interaction/actions.md)
-* [Animations](../../interaction/animations.md)
+- [Entities](../../card-basics/entities.md)
+- [State](entity-state-tool.md)
+- [Area](entity-area-tool.md)
+- [Text](../shapes/text-tool.md)

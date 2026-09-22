@@ -8,28 +8,39 @@ tags:
   - Visibility
   - Animations
 ---
-
 # Interaction and behavior
 
-Cards can do more than show information. A tap can open details or run an action. Items can appear, disappear, or change when information changes. Controls add buttons, toggles, selectors, number steppers, and sliders directly to a card.
+Interaction and behavior cover the parts of a card that do something instead of only displaying information. Items can react to taps, appear or disappear from a state, animate, or provide controls that change values directly.
 
-| Goal | Use |
-| --- | --- |
-| Open details, toggle an entity, navigate, or run an action | [Actions](actions.md) |
-| Show, hide, or disable a tool based on the current card state | [Visibility](visibility.md) |
-| Change or animate a tool when an entity reaches a state | [Animations](animations.md) |
-| Add buttons, toggles, selectors, steppers, or sliders to the card | [Interactive controls](../tools/controls/controls-overview.md) |
+This section introduces actions, visibility, animations, and interactive controls so you can choose the behavior you need.
 
-## :material-horseshoe: Interactive controls
+## :material-horseshoe: Make something happen when it is tapped
 
-Controls are extra visible tools for changing a value or making a choice directly in the card. Buttons, toggles, selectors, number steppers, and sliders are documented under [Card tools > Interactive controls](../tools/controls/controls-overview.md):
+Use an action when a tap, hold, or double tap should open details, toggle an entity, run a Home Assistant action, navigate, open a URL, or start Assist.
 
-| Control | Use |
-| --- | --- |
-| [Button](../tools/controls/button-tool.md) | Run a tap, hold, or double-tap action. |
-| [Number](../tools/controls/number-tool.md) | Increase or decrease a numeric value. |
-| [Select](../tools/controls/select-tool.md) | Choose one option from a visible list. |
-| [Slider](../tools/controls/slider-tool.md) | Set one numeric value or a lower and upper value. |
-| [Toggle](../tools/controls/toggle-tool.md) | Change an entity or Flexible Horseshoe Card input between on and off. |
+See [Actions](actions.md).
 
-Use [Actions](actions.md) to configure what a button or actionable tool does. Use [browser-local Flexible Horseshoe Card inputs](../tools/controls/browser-local-inputs.md) when a control should change only Flexible Horseshoe Card cards in the current browser.
+## :material-horseshoe: Show, hide, or disable something
+
+Use visibility when an item or group should appear only in a certain situation, or when a control should temporarily be unavailable.
+
+See [Visibility](visibility.md).
+
+## :material-horseshoe: Animate a state change
+
+Use animations when an item should visibly react to a matching entity state.
+
+See [Animations](animations.md).
+
+## :material-horseshoe: Let the user change a value
+
+Buttons, toggles, selectors, number controls, and sliders are visible controls inside the card.
+
+See [Interactive controls](../tools/controls/controls-overview.md).
+
+## :material-horseshoe: Related
+
+- [Actions](actions.md)
+- [Visibility](visibility.md)
+- [Animations](animations.md)
+- [Interactive controls](../tools/controls/controls-overview.md)

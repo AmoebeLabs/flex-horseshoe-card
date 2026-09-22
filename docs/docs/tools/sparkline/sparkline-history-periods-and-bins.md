@@ -7,218 +7,257 @@ tags:
 - Sparkline
 - History
 ---
-
 # Sparkline history periods and bins
 
-The period defines the time range shown by a sparkline. Bins divide that range into equal intervals and determine how much detail the graph preserves. The aggregate function then chooses whether each interval displays its average, minimum, maximum, or another supported value.
+Every Sparkline first needs a history period: the span of time whose data should be shown. The card can follow a moving window, a calendar period such as today or yesterday, or a single realtime value. It then groups that history into intervals so the graph keeps the right amount of detail.
 
-Set `period.type` to the range you want to display, then configure the corresponding settings block.
+This page shows how to choose the period, move it backward in time, change the amount of detail, choose how values are combined, and understand when the history updates.
 
-Use a rolling window to follow the latest measurements, a calendar period to show today or an earlier day, and realtime when only the current state matters.
+## :material-horseshoe: Show the latest 24 hours
 
-<!-- Add rolling-window and calendar-period screenshots here. -->
-
-## :material-horseshoe: Basic configuration
-
-This example follows the latest 24 hours and lets Flexible Horseshoe Card choose a suitable level of detail:
+Use a rolling window when the graph should always end at the present and keep the same amount of recent history visible.
 
 ```yaml linenums="1"
-period:
-  type: rolling_window
-  rolling_window:
-    duration:
-      hour: 24
-    bins:
-      per_hour: auto
-      density: medium
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-sparkline:
-  state_values:
-    aggregate_func: avg
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: rolling_window  # Always show the latest moving time range
+        rolling_window:
+          duration:
+            hour: 24  # Show 24 hours of history
+          bins:
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: medium  # Choose low, medium, or high detail when intervals are automatic
 ```
+A rolling window always follows the latest configured duration.
+
+## :material-horseshoe: Show today
+
+Use a calendar day when the graph should stay aligned to local midnight-to-midnight boundaries instead of sliding continuously.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: calendar  # Follow a calendar period such as today or yesterday
+        calendar:
+          period: day  # Use one calendar day as the period
+          offset: 0  # Use the current calendar period
+          duration:
+            hour: 24  # Show 24 hours of history
+          bins:
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: medium  # Choose low, medium, or high detail when intervals are automatic
+```
+The X-axis covers the complete local calendar day. Values fill in up to the current interval.
+
+## :material-horseshoe: Show yesterday
+
+Use a negative calendar offset when the graph should show a completed earlier period rather than the current day.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: calendar  # Follow a calendar period such as today or yesterday
+        calendar:
+          period: day  # Use one calendar day as the period
+          offset: -1  # Move back 1 calendar period(s); -1 = previous period
+          duration:
+            hour: 24  # Show 24 hours of history
+          bins:
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: medium  # Choose low, medium, or high detail when intervals are automatic
+```
+Use more negative offsets for earlier completed calendar periods.
+
+## :material-horseshoe: Show another moving duration
+
+Change the duration inside `rolling_window`:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: rolling_window  # Always show the latest moving time range
+        rolling_window:
+          duration:
+            hour: 6  # Show 6 hours of history
+          bins:
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: medium  # Choose low, medium, or high detail when intervals are automatic
+```
+Changing graph width or height does not change the selected history period.
+
+## :material-horseshoe: Show only the current value
+
+Use realtime mode when the selected chart type should represent only the current state:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: real_time  # Use only the current value; no history timeline
+```
+## :material-horseshoe: Show more or less detail
+
+For normal use, keep automatic bins and change `density`:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      period:
+        type: rolling_window
+        rolling_window:
+          duration:
+            hour: 24
+          bins:
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: high  # Choose low, medium, or high detail when intervals are automatic
+```
+Use:
+
+- `low` for fewer displayed intervals;
+- `medium` for the normal balance;
+- `high` for more detail.
+
+Set `per_hour` to a number only when you deliberately need an exact interval.
+
+| `per_hour` | Interval |
+| ---: | --- |
+| `0.0416667` | 24 hours |
+| `0.0833333` | 12 hours |
+| `0.125` | 8 hours |
+| `0.1666667` | 6 hours |
+| `0.25` | 4 hours |
+| `0.5` | 2 hours |
+| `1` | 60 minutes |
+| `2` | 30 minutes |
+| `3` | 20 minutes |
+| `4` | 15 minutes |
+| `6` | 10 minutes |
+| `12` | 5 minutes |
+
+## :material-horseshoe: Choose what each interval represents
+
+Use `aggregate_func` to choose which value from each interval is drawn:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        state_values:
+          aggregate_func: avg  # Use the avg value from each time interval
+```
+The available aggregation values are:
+
+- `avg` — arithmetic mean of all values in the interval.
+- `median` — middle value of the interval after sorting its values.
+- `max` — highest value in the interval.
+- `min` — lowest value in the interval.
+- `first` — first value in the interval.
+- `last` — last value in the interval.
+- `sum` — sum of all values in the interval.
+- `delta` — highest value minus lowest value in the interval.
+- `diff` — last value minus first value in the interval.
+
+Use `smoothing` when a line or area should flow smoothly between intervals instead of connecting them with straight segments.
+
+Use `logarithmic` when very large values make smaller values almost disappear in the graph. It compresses the value range so both small and large changes remain easier to see.
+
+## :material-horseshoe: Keep short peaks visible
+
+Use more bins when short changes should remain visible. Use fewer bins when you want a calmer overall trend. The aggregation function then decides which value represents every displayed interval.
+
+## :material-horseshoe: State bands use actual state changes
+
+`state_bands` uses the real times at which the entity changed state rather than creating visual segments from the configured number of bins. Its `update_interval` controls how often an ongoing current state extends toward the current time.
+
+## :material-horseshoe: When the graph updates
+
+Current rolling and calendar periods update as new Home Assistant states arrive and as time moves into a new interval. Completed calendar periods remain unchanged until the selected calendar offset points to another date.
+
+Dates and boundaries use the local Home Assistant/browser time zone.
 
 ## :material-horseshoe: Configuration options
 
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `period.type` | string | No | `calendar` | Uses `real_time`, `rolling_window`, or `calendar`. |
-| `duration` | duration | No | `hour: 24` | Chooses how much history the graph displays. |
-| `offset` | number | No | `0` | Moves a rolling or calendar period back by a number of days. Negative values select earlier periods. |
-| `bins.per_hour` | number or `auto` | No | `auto` | Uses an exact number of bins per hour or lets Flexible Horseshoe Card choose the interval. |
-| `bins.density` | string | No | `medium` | Chooses `low`, `medium`, or `high` detail when `bins.per_hour` is `auto`. |
-| `state_values.aggregate_func` | string | No | `avg` | Chooses the value represented by each interval. |
-| `state_values.smoothing` | boolean | No | `true` | Uses smooth or straight connections for line and area charts. |
-| `state_values.logarithmic` | boolean | No | `false` | Uses a logarithmic value scale where supported. |
-
-!!! tip "Keep automatic bins"
-
-    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then adapts the interval to the graph width, duration, chart type, and selected density. Configure a number only when the graph must use a fixed interval.
-
-## :material-horseshoe: Period types
-
-| Type                              | Use                                         | What you see                                                                            |
-| :-------------------------------- | :------------------------------------------ | :-------------------------------------------------------------------------------------- |
-| `real_time`                       | Display only the latest value.              | A single live state without a timeline.                                                 |
-| `rolling_window`                  | Follow the most recent configured duration. | The full range moves forward with the current time.                                     |
-| `calendar` with `offset: 0`       | Follow the active calendar period.          | The axis covers the full period, while values continue up to the current interval.      |
-| `calendar` with a negative offset | Display a completed calendar period.        | The selected historical period remains unchanged until the local calendar date changes. |
-
-## :material-horseshoe: Realtime
-
-Realtime mode displays only the latest value and does not include a timeline. Use it with chart types that can represent a single live state.
-
-```yaml linenums="1"
-period:
-  type: real_time
-```
-
-Choose realtime when only the current state matters. Use `rolling_window` or `calendar` for charts that need to show a trend over time.
-
-## :material-horseshoe: Rolling window
-
-A rolling window always covers the most recent configured duration. Its bins align with the selected interval, and the final bin represents the current active interval.
-
-```yaml linenums="1"
-period:
-  type: rolling_window
-  rolling_window:
-    duration:
-      hour: 24
-    bins:
-      per_hour: auto
-      density: medium
-```
-
-This example automatically chooses a suitable interval for the latest 24 hours. As time moves forward, older bins leave the range and a new current bin is added.
-
-## :material-horseshoe: Calendar range
-
-Calendar mode follows calendar boundaries, such as local midnight at the start of a day.
-
-```yaml linenums="1"
-period:
-  type: calendar
-  calendar:
-    period: day
-    offset: 0
-    duration:
-      hour: 24
-    bins:
-      per_hour: auto
-      density: medium
-```
-
-For the current day, the X-axis spans the full 24-hour period. Values continue to appear up to the current interval as the day progresses.
-
-Use a negative offset to display a completed calendar period:
-
-```yaml linenums="1"
-period:
-  type: calendar
-  calendar:
-    period: day
-    offset: -1
-    duration:
-      hour: 24
-    bins:
-      per_hour: 2
-```
-
-A completed calendar period remains unchanged throughout the day. When the local date changes, the same offset points to the next corresponding historical period.
-
-## :material-horseshoe: Duration
-
-Duration determines how much time the graph covers. Hours work well for compact daily and multi-day history graphs.
-
-Changing the graph’s width or height does not affect the selected time range. In automatic mode, the configured width helps Flexible Horseshoe Card choose how many bins fit comfortably. A manually configured `bins.per_hour` remains unchanged when the graph size changes.
-
-## :material-horseshoe: Bins per hour
-
-By default, Flexible Horseshoe Card chooses `bins.per_hour` automatically from the duration, configured graph width, chart type, and selected density:
-
-```yaml linenums="1"
-bins:
-  per_hour: auto
-  density: medium
-```
-
-Use `low` for a calmer graph with fewer bins, `medium` for the normal balance, or `high` to retain more detail. Line and area charts can display more detail than charts that draw every bin as a separate shape. Radial barcodes use the available circumference of the graph.
-
-Automatic mode selects one of these intervals:
-
-| `per_hour` | Bin duration |
-| :--------- | :----------- |
-| `0.0416667` | 24 hours     |
-| `0.0833333` | 12 hours     |
-| `0.125`     | 8 hours      |
-| `0.1666667` | 6 hours      |
-| `0.25`     | 4 hours      |
-| `0.5`      | 2 hours      |
-| `1`        | 60 minutes   |
-| `2`        | 30 minutes   |
-| `3`        | 20 minutes   |
-| `4`        | 15 minutes   |
-| `6`        | 10 minutes   |
-| `12`       | 5 minutes    |
-
-Set `per_hour` to a number when you need an exact interval:
-
-```yaml linenums="1"
-bins:
-  per_hour: 30
-```
-
-A numeric value always takes precedence over `density`, so this example keeps two-minute bins at every duration and width. Using more bins preserves shorter peaks and dips, but also creates a denser graph. Using fewer bins produces a calmer view because more measurements are combined into each displayed value.
-
-### State bands and bins
-
-The `state_bands` chart uses the actual times at which the entity changed state. Its segments are therefore independent of the configured number of bins.
-
-`state_bands.update_interval` determines how often the end of an unchanged current state advances toward the current time.
-
-## :material-horseshoe: Aggregation
-
-Configure aggregation and value handling under `state_values`.
-
-| Field            | Default | Description                                              |
-| :--------------- | :------ | :------------------------------------------------------- |
-| `aggregate_func` | `avg`   | Chooses which value is displayed for each time interval. |
-| `value_factor`   | `0`     | Applies an optional multiplier to the displayed values.  |
-| `smoothing`      | `true`  | Uses smooth connections for line and area charts.        |
-| `logarithmic`    | `false` | Uses a logarithmic Y-axis for supported chart types.     |
-
-```yaml linenums="1"
-sparkline:
-  state_values:
-    aggregate_func: avg
-    smoothing: true
-    logarithmic: false
-```
-
-The tooltip and derived Flexible Horseshoe Card entities use the minimum, average, and maximum values from the selected time interval.
-
-## :material-horseshoe: Empty and active bins
-
-A time interval without measurements has no minimum, average, or maximum tooltip values, even when the line itself appears continuous.
-
-Rolling-window graphs and current calendar graphs update automatically when Home Assistant provides a new state. The graph, tooltip, and minimum, average, and maximum values then reflect the updated current interval.
-
-## :material-horseshoe: Time zones and boundaries
-
-Dates and times follow the local Home Assistant or browser time zone. Midnight therefore marks the transition to the next local day.
-
-A rolling window follows a continuously moving time range. A calendar graph follows the selected local calendar period. For the current day, the X-axis already spans the full day, even though later intervals do not yet contain data.
-
-## :material-horseshoe: When history updates
-
-When the card opens, the graph loads the selected period. Current periods continue to update as Home Assistant provides new states and advance whenever a new time interval begins.
-
-A completed calendar period remains unchanged during the day. At the next local day transition, an offset such as `-1` points to a different date, and the graph updates to show that period.
-
-Returning to a view after it has been inactive also refreshes the graph when the requested period has changed.
+| `period.type` | `real_time`, `rolling_window`, `calendar` | No | `calendar` | `real_time` uses only the current value; `rolling_window` uses a moving duration; `calendar` aligns the graph to local calendar-day boundaries. |
+| `period.calendar.period` | `day` | No | `day` | Uses local midnight-to-midnight day boundaries for calendar history. |
+| `period.calendar.offset` | number | No | `0` | Selects a calendar day relative to today: `0` is today, `-1` yesterday, `-2` two days ago. |
+| `period.calendar.duration.hour` | number | No | `24` | Calendar history duration in hours. A calendar day is at least 24 hours; use multiples of 24 for several days. |
+| `period.calendar.bins.per_hour` | number / `auto` | No | `auto` | Exact or automatic number of displayed intervals per hour for calendar history. |
+| `period.calendar.bins.density` | `low`, `medium`, `high` | No | `medium` | With automatic bins, `low` uses fewer intervals, `medium` the normal balance, and `high` more intervals/detail. |
+| `period.rolling_window.offset` | number | No | `0` | Shifts the moving window by whole days: `0` ends now, `-1` shifts it one day earlier. |
+| `period.rolling_window.duration.hour` | number | No | `24` | Length of the moving history window in hours. |
+| `period.rolling_window.bins.per_hour` | number / `auto` | No | `auto` | Exact or automatic number of displayed intervals per hour for rolling history. |
+| `period.rolling_window.bins.density` | `low`, `medium`, `high` | No | `medium` | With automatic bins, `low` uses fewer intervals, `medium` the normal balance, and `high` more intervals/detail. |
+| `sparkline.state_values.aggregate_func` | `avg`, `median`, `max`, `min`, `first`, `last`, `sum`, `delta`, `diff` | No | `avg` | Chooses which value from every time interval is drawn. The meanings of all values are listed above. |
+| `sparkline.state_values.smoothing` | boolean | No | `true` | Uses smooth connections between intervals; set it to `false` when straight connections show changes more clearly. |
+| `sparkline.state_values.logarithmic` | boolean | No | `false` | Compresses a wide value range so smaller values remain visible next to much larger values. |
 
 ## :material-horseshoe: Related documentation
 
-* [Sparkline Graphs](sparkline-overview.md)
-* [Sparkline Cartesian Charts and Axes](axes-and-grid.md)
-* [Sparkline Specialized Charts](sparkline-overview.md#chart-types)
+- [Sparkline overview](sparkline-overview.md)
+- [Multiple series](multiple-series.md)
+- [Axes and grid](axes-and-grid.md)

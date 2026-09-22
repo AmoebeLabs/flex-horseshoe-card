@@ -7,148 +7,167 @@ tags:
 - Horseshoe
 - Gauge
 ---
-
 # Horseshoe gauges
 
-A horseshoe gauge displays an entity value around a circular or partial-circle scale. Use it to make a current value easy to read at a glance, with colors, tick marks, labels, and a background where needed.
+A Horseshoe is a gauge that maps an entity value onto an arc or another path. The path provides the visual scale, while the current value can be shown as progress, a marker, labels, colors, or a combination of those elements.
 
-Horseshoes use the card coordinate system. On a `100 × 100` card, the position `50, 50` marks the center. Wider or taller cards can use coordinates above `100` along their longer dimension.
+This page builds the basic Horseshoe, explains its position, radius, arc, and value range, and introduces the other Horseshoe topics you can add afterward.
 
-| The old and mighty Horseshoe | |
-| - | - |
-| ![Flexible Horseshoe Card - Your First Horseshoe](../../assets/screenshots/fhs-your-first-card-horseshoe.png) | ![Flexible Horseshoe Card - Template Card #036 with Horseshoe and Sparkline](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)|
+## :material-horseshoe: Add a basic Horseshoe
 
-
-| More Horseshoes | | |
-| - | - | - |
-| ![Flexible Horseshoe Card - Template Card #020 with Horseshoe Power](../../assets/screenshots/fhs-card-20-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #020v2 with Horseshoe Power](../../assets/screenshots/fhs-card-20o-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #022 with Horseshoe Power](../../assets/screenshots/fhs-card-22-electricity--dark.webp) |
-| ![Flexible Horseshoe Card - Template Card #024 with Horseshoe Power](../../assets/screenshots/fhs-card-24-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #026 with Horseshoe Power](../../assets/screenshots/fhs-card-26-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #027 with Horseshoe Power](../../assets/screenshots/fhs-card-27-electricity--dark.webp) |
-| ![Flexible Horseshoe Card - Template Card #030 with Horseshoe Power](../../assets/screenshots/fhs-card-30b-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #032 with Horseshoe Power](../../assets/screenshots/fhs-card-32b-electricity--dark.webp) | ![Flexible Horseshoe Card - Template Card #033 with Horseshoe Power](../../assets/screenshots/fhs-card-33-electricity--dark.webp) |
-
-| Wide(r) cards showing textual states | |
-| - | - |
-| ![](../../assets/screenshots/fhs-card-52-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-card-53-kleenex-pollen-radar--dark.webp) |
-| ![](../../assets/screenshots/fhs-card-54-kleenex-pollen-radar--dark.webp) | ![](../../assets/screenshots/fhs-card-55-kleenex-pollen-radar--dark.webp) |
-
-## :material-horseshoe: Basic configuration
-
-Add gauges to `layout.horseshoes`, connect each one to an entity through `entity_index`, and define its numeric range under `horseshoe_scale`.
+A basic Horseshoe needs an entity and a value scale; the remaining settings mainly change its geometry and presentation.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.cpu_usage  # Home Assistant entity used by this card
+
 layout:
   horseshoes:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-      radius: 42
-      arc_degrees: 260
+    - entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 42  # Distance from the center to the Horseshoe path
+      arc_degrees: 260  # Draw 260° of the full 360° circle
 
       horseshoe_scale:
-        min: 0
-        max: 100
-
-      horseshoe_state:
-        width: 12
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
 ```
 
-The entity index refers to the matching item in the card-level `entities` list. See [Entity Definitions](../../card-basics/entities.md) for details on configuring entities.
+`radius` sets the size of the normal circular Horseshoe. `arc_degrees` controls how much of the circle is used. `min` and `max` define the value range.
 
-## :material-horseshoe: Horseshoe anatomy
+The normal position settings are `xpos` and `ypos`. Existing configurations can also use `horseshoe_position` with `xpos`/`ypos` or `cx`/`cy`; those values supply the same Horseshoe center when the top-level position is omitted.
 
-A horseshoe consists of several layers that can be shown, hidden, and styled independently.
+## :material-horseshoe: Change how the value is shown
 
-| Layer                | Configuration                                       | Purpose                                                        |
-| :------------------- | :-------------------------------------------------- | :------------------------------------------------------------- |
-| Horseshoe background | `horseshoe_background`                              | Adds an optional arc behind the full gauge.                    |
-| Scale                | `horseshoe_scale`                                   | Defines the value range, geometry, width, and base appearance. |
-| State progress       | `horseshoe_state`                                   | Fills the path up to the current entity value or mapped state. |
-| State marker         | `horseshoe_marker`                                  | Marks the current value on the path or points to it from the center. |
-| Tick background      | `horseshoe_tickmarks.background`                    | Adds an optional background behind the tick layer.             |
-| Tick marks           | `horseshoe_tickmarks.ticks_major` and `ticks_minor` | Places numeric divisions along the scale.                      |
-| Label background     | `horseshoe_labels.background`                       | Adds an optional background behind the labels.                 |
-| Labels               | `horseshoe_labels`                                  | Places numeric values or mapped-state text around the scale.   |
+The current value normally grows from the start of the scale. Bidirectional modes instead let positive and negative values grow from zero, which is useful for values such as power flow, deviation, or temperature difference. You can also change the scale mapping and the thickness of the base and active paths.
 
-Scale and state behavior are covered in [Horseshoe Scale and State](horseshoe-scale-and-state.md). For tick marks and labels, see [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md).
+See [Value and progress](horseshoe-scale-and-state.md) for the complete choices.
 
-## :material-horseshoe: Position and geometry
+## :material-horseshoe: Add colors
 
-| Field              | Default                       | Description                                               |
-| :----------------- | :---------------------------- | :-------------------------------------------------------- |
-| `entity_index`     |                               | Selects an entity from the card-level `entities` list.    |
-| `xpos`             | `50`                          | Positions the horizontal center in Flexible Horseshoe Card card coordinates.  |
-| `ypos`             | `50`                          | Positions the vertical center in Flexible Horseshoe Card card coordinates.    |
-| `radius`           | `45`                          | Defines the radius used by the scale and state layers.    |
-| `tickmarks_radius` | `43`                          | Defines the base radius used for tick marks.              |
-| `arc_degrees`      | `260`                         | Controls the total visible arc in degrees.                |
-| `start_angle`      | Calculated from `arc_degrees` | Sets the angle at which the horseshoe begins.             |
-| `bar_mode`         | `normal`                      | Chooses how the state arc grows across the scale.         |
-| `zero_ratio`       | Calculated from the scale     | Sets the zero position for supported bidirectional modes. |
-| `flip`             |                               | Flips the rendered layout along the selected axis.        |
-| `same_as`          |                               | Reuses another horseshoe definition.                      |
-
-A horseshoe can also inherit its position from a group. See [Positioning and Groups](../../card-basics/positioning-and-sizing.md) and [Groups Section](../../card-basics/groups.md).
-
-The gauge can follow a rectangle, polygon, line, wave, spiral, or infinity symbol instead of an arc. See [Horseshoe path shapes](horseshoe-path-shapes.md) for examples and configuration.
-
-## :material-horseshoe: Show options
-
-Visibility and presentation settings are grouped under `show`.
-
-| Field                  | Default | Description                                       |
-| :--------------------- | :------ | :------------------------------------------------ |
-| `horseshoe`            | `true`  | Shows or hides the entire horseshoe.              |
-| `horseshoe_style`      | `fixed` | Chooses fixed or color-stop-based state coloring. |
-| `state_progress`       | `true`  | Fills the path from its start to the current value. |
-| `state_marker`         | `false` | Shows the current value with a marker.            |
-| `horseshoe_background` | `none`  | Chooses the horseshoe background mode.            |
-| `tickmarks`            |         | Shows the configured major and minor tick marks.  |
-| `tick_background`      | `none`  | Chooses the tick background mode.                 |
-| `labels_at`            | `none`  | Chooses which scale values receive a label.       |
-| `label_background`     | `none`  | Chooses the label background mode.                |
-| `label_badges`         |         | Shows label badges when they are configured.      |
-
-Older configurations may still contain `ticks` or `scale_tickmarks`. New configurations should use the current horseshoe fields documented on these pages.
-
-## :material-horseshoe: Color stops
-
-Color stops can affect the horseshoe, backgrounds, tick marks, and labels. Use `colorstop` to display one color at a time, `colorstopgradient` to move through the configured colors at their numeric positions, or `lineargradient` to distribute all configured colors evenly over the rendered range.
+Use value colors when the gauge should communicate meaning such as normal, warning, and critical at a glance.
 
 ```yaml linenums="1"
-show:
-  horseshoe_style: colorstopgradient
+entities:
+  - entity: sensor.cpu_usage  # Home Assistant entity used by this card
 
-color_stops:
-  colors:
-    0: '#3498db'
-    60: '#2ecc71'
-    80: '#f1c40f'
-    100: '#e74c3c'
+layout:
+  horseshoes:
+    - entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 42  # Distance from the center to the Horseshoe path
+      arc_degrees: 260  # Draw 260° of the full 360° circle
+
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+
+      color_stops:
+        colors:
+          0: green
+          60: orange
+          90: red
+
+      show:
+        horseshoe_style: colorstopinterpolated
 ```
 
-Reusable definitions, light and dark mode colors, and transition behavior are explained in [Color Stops](../../appearance/color-stops.md).
+See [Color stops](../../appearance/color-stops.md) for the shared color system.
 
-## :material-horseshoe: Styling
+## :material-horseshoe: Add tick marks and labels
 
-Each horseshoe layer has its own `styles` collection, allowing the scale, state, backgrounds, ticks, and labels to be styled separately.
+Add ticks and labels when the viewer needs to read approximate values from the gauge rather than only see its progress.
 
 ```yaml linenums="1"
-horseshoe_scale:
-  styles:
-    - opacity: 0.35
+entities:
+  - entity: sensor.example_1  # Entity used by this example
 
-horseshoe_state:
-  styles:
-    - opacity: 1
-    - filter: drop-shadow(0 0 1px var(--primary-color))
+layout:
+  horseshoes:
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 42  # Distance from the center to the Horseshoe path
+      tickmarks_radius: 43  # Put the ticks 1 unit outside the Horseshoe radius of 42
+
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 100  # Value at the end of the scale
+
+      show:
+        tickmarks: true
+        labels_at: ticks_major  # Choose which scale values receive a label
+
+      horseshoe_tickmarks:
+        ticks_major:
+          ticksize: 10  # Draw a major tick every 10 scale units
+
+      horseshoe_labels:
+        offset: 12  # Distance of the labels from the Horseshoe radius
 ```
+See [Tick marks and labels](horseshoe-tick-marks-and-labels.md) to position, style, and space them.
 
-Common SVG properties include `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, and `stroke-opacity`. See [CSS Styling](../../appearance/styling.md) and [Color Filters](../../appearance/color-filters.md) for shared styling behavior.
+## :material-horseshoe: Mark the current value
+
+Add a marker when you want a point, triangle, icon, or center pointer to show exactly where the current value is.
+
+See [Markers](horseshoe-markers.md).
+
+## :material-horseshoe: Use another path shape
+
+The Horseshoe does not have to be circular. It can follow a line, rectangle, polygon, wave, spiral, or infinity path.
+
+See [Path shapes](horseshoe-path-shapes.md).
+
+## :material-horseshoe: Visual guide
+
+The Horseshoe can combine several visible parts:
+
+- the base scale/path;
+- current-value progress;
+- an optional background;
+- tick marks;
+- labels;
+- a current-value marker.
+
+One annotated overview image is enough here to identify those parts. The detail pages explain how to use each one.
+
+<!-- Keep/add one annotated Horseshoe overview image here. -->
+
+## :material-horseshoe: Configuration reference
+
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Field / block | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entity_index` | entity index | No | `0` | Chooses the entity used by the Horseshoe; when omitted, the first configured entity is used. |
+| `xpos` | number | No | `50` | Horizontal center; values below `50` move the Horseshoe left and values above `50` move it right. |
+| `ypos` | number | No | `50` | Vertical center; values below `50` move the Horseshoe up and values above `50` move it down. |
+| `yposc` | number | No | Not set | Alternative vertical-center coordinate on the same 0–100 scale. When set, it is used instead of `ypos`. |
+| `horseshoe_position` | mapping | No | Not set | Alternative Horseshoe center block. Use `xpos`/`ypos` or `cx`/`cy` inside it when top-level `xpos`/`ypos` are not used. |
+| `radius` | number | No | `45` | Distance from the center to the normal circular Horseshoe path; larger values make the gauge larger. |
+| `tickmarks_radius` | number | No | `43` | Distance from the center to the tick-mark layer, so it can sit inside or outside the main path. |
+| `arc_degrees` | number | No | `260` | Amount of the circle used by the normal arc path; `360` makes a complete circle. |
+| `start_angle` | number | No | Calculated from `arc_degrees` | Rotates where the circular path begins when the automatically centered start position is not suitable. |
+| `bar_mode` | `normal`, `bidirectional`, `bidirectional_symmetrical`, `bidirectional_linear`, `absolute` | No | `normal` | Chooses where progress starts and how it grows. The Value and progress page explains the visible behavior of all five values. |
+| `zero_ratio` | number | No | Calculated from scale | Places the zero point for `bidirectional`, `bidirectional_symmetrical`, and `bidirectional_linear`; normally the card derives it from the configured minimum and maximum. |
+| `horseshoe_scale` | mapping | Yes | — | Required scale block. Its `min`, `max`, and `type` fields have their own defaults, so an empty `horseshoe_scale: {}` still creates the default 0–100 linear scale. |
+| `horseshoe_state` | mapping | No | Defaults applied | Controls the active part of the path that shows the current value. |
+| `horseshoe_marker` | mapping | No | Defaults applied | Adds a shape, icon, or center pointer at the current value position. |
+| `horseshoe_tickmarks` | mapping | No | Not set | Adds major and/or minor scale marks so values can be read more precisely. |
+| `horseshoe_labels` | mapping | No | Defaults applied | Shows selected scale values as text around or near the path. |
+| `horseshoe_background` | mapping | No | Not set | Optional background settings; activate with `show.horseshoe_background`. |
+| `path` | mapping | No | Standard `arc` | Uses another path shape instead of the normal circular Horseshoe. |
+| `show` | mapping | No | Defaults applied | Controls which Horseshoe layers are visible and which color modes they use; the detail pages describe the values for each nested setting. |
+| `same_as` | string | No | Not set | Reuses another Horseshoe definition. |
 
 ## :material-horseshoe: Related documentation
 
-* [Horseshoe Scale and State](horseshoe-scale-and-state.md)
-* [Horseshoe Tick Marks and Labels](horseshoe-tick-marks-and-labels.md)
-* [Horseshoe Path Shapes](horseshoe-path-shapes.md)
-* [Color Stops](../../appearance/color-stops.md)
-* [Animations](../../interaction/animations.md)
-* [Reusable YAML Card Examples](../../reuse/reuse-introduction.md)
+- [Value and progress](horseshoe-scale-and-state.md)
+- [Markers](horseshoe-markers.md)
+- [Tick marks and labels](horseshoe-tick-marks-and-labels.md)
+- [Path shapes](horseshoe-path-shapes.md)
+- [Color stops](../../appearance/color-stops.md)

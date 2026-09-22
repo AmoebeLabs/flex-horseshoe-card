@@ -11,407 +11,279 @@ tags:
 ---
 # Entity definitions
 
-Entities are configured in the `entities` section of the Flexible Horseshoe Card.
+The `entities:` section tells the card which Home Assistant data a card can use. An entry can be a normal entity, an attribute, or a local input. The same entry can also define how that data should be shown in this card.
 
-In most cases, the only required field is the Home Assistant entity ID. The card can then use metadata already available in Home Assistant, including the entity name, area, icon, unit, precision, state formatting, and localization.
+This page shows how to add entities, refer to them with `entity_index`, select attributes, and override names, units, icons, and formatting. It also explains the optional `slot` setting.
 
-A minimal entity definition can therefore remain very small:
+## :material-horseshoe: Add an entity
 
-```yaml linenums="1"
-entities:
-  - entity: sensor.memory_use_percent
-```
-
-Where available, the card uses Home Assistant metadata automatically. Names, areas, states, numbers, and units follow the language and locale configured in Home Assistant.
-
-You can override these defaults when needed. For example, you can provide a custom name or icon, change the number of decimals, display an attribute instead of the main state, or use a JavaScript template to calculate a dynamic value.
-
-## :material-horseshoe: Basic usage
-
-A basic definition points to a single entity:
+Add an entity when the card needs a Home Assistant state, attribute, name, icon, or other entity information.
 
 ```yaml linenums="1"
 entities:
-  - entity: sensor.memory_use_percent
+  - entity: sensor.memory_use_percent  # Home Assistant entity used by this card
 ```
 
-You can also define multiple entities. Layout sections such as `states`, `names`, `areas`, and `icons` refer to them by `entity_index`.
+The card uses Home Assistant information such as the entity name, icon, area, unit, precision, and localized state where possible.
 
-```yaml title="Entities" linenums="1"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-    - entity: sensor.dsmr_reading_phase_currently_delivered_l1
-    - entity: sensor.dsmr_reading_phase_currently_delivered_l2
-    - entity: sensor.dsmr_reading_phase_currently_delivered_l3
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-```
+## :material-horseshoe: Add several entities
 
-The first entry has index `0`, the second has index `1`, and so on.
+Add multiple entities when different parts of the same card need data from different Home Assistant entities.
 
-## :material-horseshoe: Sparkline values as entities
-
-A sparkline can make its statistics and active history settings available as regular card entities. Add only the values you want to use to `entities`, then refer to them by `entity:` or by their normal `entity_index` from states, names, icons, texts, or other layout items.
-
-The entity ID starts with `fhs_sparkline`, followed by the sparkline `id` and the requested value:
-
-```yaml title="Sparkline entities" linenums="1"
+```yaml linenums="1"
 entities:
-  - entity: sensor.temperature
-  - entity: fhs_sparkline.temperature_history_min
-  - entity: fhs_sparkline.temperature_history_avg
-  - entity: fhs_sparkline.temperature_history_max
-  - entity: fhs_sparkline.temperature_history_duration
-  - entity: fhs_sparkline.temperature_history_bin_duration
-  - entity: fhs_sparkline.temperature_history_aggregate_func
+  - entity: sensor.living_room_temperature  # First entity: entity_index 0
+  - entity: sensor.living_room_humidity     # Second entity: entity_index 1
+```
+
+Use `entity_index` when a layout item needs one of those entities. The index follows the order in `entities:`: the first entity is `0`, the second is `1`, and so on.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature  # entity_index 0
+  - entity: sensor.living_room_humidity     # entity_index 1
 
 layout:
-  sparklines:
-    - id: temperature_history
-      entity_index: 0
-      # Remaining sparkline configuration
-
   states:
-    - id: minimum
-      entity: fhs_sparkline.temperature_history_min
-      xpos: 20
-      ypos: 85
-    - id: average
-      entity: fhs_sparkline.temperature_history_avg
-      xpos: 50
-      ypos: 85
-    - id: maximum
-      entity: fhs_sparkline.temperature_history_max
-      xpos: 80
-      ypos: 85
+    - entity_index: 0  # Use the first entity: living-room temperature
+      xpos: 35         # Horizontal position; 50 = center of the card
+      ypos: 50         # Vertical position; 50 = center of the card
+
+    - entity_index: 1  # Use the second entity: living-room humidity
+      xpos: 65
+      ypos: 50
 ```
 
-The available values are:
+## :material-horseshoe: Use an optional entity slot
 
-| Suffix | Value |
-| :-- | :-- |
-| `min` | Minimum value in the displayed period |
-| `avg` | Average value in the displayed period |
-| `max` | Maximum value in the displayed period |
-| `min_time` | Time at which the minimum occurred |
-| `max_time` | Time at which the maximum occurred |
-| `duration` | Active history duration, shown in minutes, hours, or days |
-| `bin_duration` | Actual duration of each bin, shown in minutes, hours, or days |
-| `aggregate_func` | Function used for each bin, such as `avg`, `min`, `max`, or `median` |
+Normally, use numeric `entity_index` values such as `0`, `1`, and `2` to select entities.
 
+`slot` is an optional setting that gives a group of entities a name. You can then use that name with an index, such as `room[0]` or `room[1]`, instead of keeping track of the entity's position in the complete `entities:` list.
 
-When a sparkline declares explicit series, insert the series ID before the
-value suffix. The default single-series names above remain unchanged:
+For example, I use slots on larger cards when I otherwise lose track of which numeric index belongs to which entity. You may use them for any other reason that makes your own configuration easier to read.
+
+The number between brackets is the position **inside that slot**, starting at zero. `room[0]` is the first entity in the `room` slot, `room[1]` is the second, and `room[2]` is the third.
 
 ```yaml linenums="1"
 entities:
-  - entity: sensor.temperature
-  - entity: sensor.humidity
-  - entity: fhs_sparkline.climate_today_avg
-  - entity: fhs_sparkline.climate_yesterday_room_avg
+  - entity: sensor.living_room_temperature
+    slot: room  # Start the room slot; this entity is room[0]
+
+  - entity: sensor.living_room_humidity
+                # No new slot: this entity is room[1]
+
+  - entity: sensor.living_room_co2
+                # Still in room: this entity is room[2]
+
+  - entity: sensor.outdoor_temperature
+    slot: outdoor  # Start another slot; this entity is outdoor[0]
 
 layout:
-  sparklines:
-    - id: climate
-      entity_index: 0
-      series:
-        - id: today
-          entity_index: 0
-        - id: yesterday_room
-          entity_index: 1
+  states:
+    - entity_index: room[0]  # Living-room temperature
+      xpos: 30
+      ypos: 50
+
+    - entity_index: room[1]  # Living-room humidity
+      xpos: 50
+      ypos: 50
+
+    - entity_index: outdoor[0]  # Outdoor temperature
+      xpos: 70
+      ypos: 50
 ```
 
-The resulting names are `fhs_sparkline.<sparkline_id>_<series_id>_<value>`.
-The series ID is matched against the declared configuration, so underscores in
-that ID remain unambiguous. Each derived value uses the source entity and the
-statistics of its own series.
+A `slot:` starts a named group. The following entities stay in that group until another `slot:` starts a new one.
 
-A direct `entity:` reference is independent of list order. Card templates can place these entries in `default_entities` so every template instance receives the local values without changing the indices of entities supplied by the card.
+### Use slots in a card template
 
-Flexible Horseshoe Card automatically connects these values to the source entity used by the matching sparkline. Units, number formatting, and More info actions therefore continue to use that source sensor. You do not configure a separate source index.
+If a card that uses slots is turned into a template, keep those slot names with the template. The template continues to use addresses such as `room[0]` and `room[1]`, so every use of that template must supply the expected entities through those same slot names and in the expected order.
 
-Duration and bin size use Home Assistant duration formatting. For example, a bin duration of `0.5` hours is displayed as a localized duration with zero hours and thirty minutes. A setting that does not apply to the active graph type is shown using Home Assistant's translated **Unavailable** state.
+For example, this template uses `room[0]` for temperature and `room[1]` for humidity:
 
-## :material-horseshoe: Entity metadata from Home Assistant
+```yaml linenums="1"
+fhs_user_templates:
+  templates:
+    room_summary:
+      template:
+        type: card
 
-The card uses Home Assistant metadata wherever possible. This keeps the YAML concise and helps the card remain consistent with the rest of your dashboard.
+      card:
+        default_entities:
+          - entity: "[[temperature_entity]]"
+            slot: room  # room[0]: temperature
 
-The following values can usually be obtained automatically:
+          - entity: "[[humidity_entity]]"
+                       # room[1]: humidity
 
-| Value | Description |
-| :---- | :---------- |
-| Name | Friendly name assigned to the entity |
-| Area | Home Assistant area assigned to the entity |
-| State | Current entity state |
-| Unit | Unit of measurement, such as `kWh`, `W`, `%`, or `°C` |
-| Precision | Number formatting or precision defined for the entity |
-| Icon | Entity icon, including state-based icons where supported |
-| Icon color | State-based icon color when Home Assistant provides one |
-| Localization | Translated names and states, plus locale-aware number formatting |
+        layout:
+          states:
+            - entity_index: room[0]  # Use the temperature entity
+              xpos: 40
+              ypos: 50
 
-You usually do not need to repeat the name, unit, icon, or precision unless this card should display the entity differently.
-
-## :material-horseshoe: Displaying an entity
-
-You can override Home Assistant metadata directly in the entity definition:
-
-```yaml title="Displaying an entity" linenums="1"
-entities:
-  - entity: sensor.memory_use_percent
-    decimals: 0
-    icon: mdi:memory
-    name: '5: RAM Usage'
-    area: Hestia
+            - entity_index: room[1]  # Use the humidity entity
+              xpos: 60
+              ypos: 50
 ```
 
-This example uses a custom name, icon, area, and precision instead of relying entirely on the Home Assistant defaults.
+Because the template itself refers to `room[0]` and `room[1]`, those positions keep the same meaning every time the template is used.
 
-## :material-horseshoe: Displaying an attribute
 
-An entity definition can display an attribute instead of the main state. This is useful for entities that expose several related values, such as weather entities.
+## :material-horseshoe: Use an attribute
 
-```yaml title="Displaying an attribute" linenums="1"
-entities:
-  - entity: weather.dark_sky
-    attribute: temperature
-    units: '°C'
-    icon: mdi:temperature
-    decimals: 1
-    name: 'Temperature'
-```
-
-You can also define multiple attributes from the same entity as separate entries:
-
-```yaml title="Entities with attributes" linenums="1"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: weather.zoefdehaas
-      attribute: temperature
-    - entity: weather.zoefdehaas
-      attribute: humidity
-    - entity: weather.zoefdehaas
-      attribute: pressure
-    - entity: sun.sun
-      attribute: elevation
-    - entity: sun.sun
-      attribute: azimuth
-```
-
-Each entry receives its own `entity_index`, even when several entries refer to the same Home Assistant entity.
-
-## :material-horseshoe: Overriding entity values
-
-The card can use Home Assistant defaults automatically, but you can override them in the `entities` section:
-
-```yaml title="Entities with overrides" linenums="1"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.dsmr_reading_electricity_currently_delivered
-      name: "Total"
-      decimals: 2
-      icon: mdi:fire
-      area: house
-```
-
-Common reasons to override values include:
-
-- using a shorter name on a compact card;
-- displaying fewer or more decimals;
-- choosing a card-specific icon;
-- placing an entity under a different area label;
-- giving an attribute its own name and unit.
-
-## :material-horseshoe: Shared color stops
-
-Define `color_stops` on an entity when several layout items should use the same thresholds and colors:
+Use `attribute` when the value you want is an attribute instead of the main state:
 
 ```yaml linenums="1"
 entities:
-  - entity: sensor.temperature
-    color_stops:
-      colors:
-        0: blue
-        18: green
-        25: orange
-        30: red
+  - entity: weather.home  # Home Assistant entity used by this card
+    attribute: temperature  # Use this attribute instead of the main weather state
 ```
 
-A layout item uses these colors after selecting `show.item_style: colorstop` or `show.item_style: colorstopgradient`. Entity-level color stops remain inactive for items that do not select either mode. A `color_stops` definition on the layout item overrides the entity definition for that item.
+Several attributes from the same Home Assistant entity can be added as separate entries.
 
-## :material-horseshoe: Overriding entity formatting
+## :material-horseshoe: Change how an entity is shown
 
-[:octicons-tag-24: v5.4.7-dev.7][github-releases]
+Override Home Assistant defaults only when this card needs another presentation:
 
-The `format` option overrides the default Home Assistant formatting for an entity.
-
-=== "Remove separator"
-
-    ```yaml title="Remove separator and limit decimals" linenums="1" hl_lines="7-10"
-    - type: custom:flex-horseshoe-card
-      entities:
-        - entity: sensor.dsmr_reading_electricity_currently_delivered
-          name: "Total"
-          icon: mdi:fire
-          area: house
-          format:
-            separator: false    # Remove the thousands separator
-            decimals_min: 0     # Minimum number of decimals
-            decimals_max: 2     # Maximum number of decimals
-    ```
-
-=== "Display raw state"
-
-    ```yaml title="Display raw entity state as received from integration" linenums="1" hl_lines="7-9"
-    - type: custom:flex-horseshoe-card
-      entities:
-        - entity: sensor.dsmr_reading_electricity_currently_delivered
-          name: "Total"
-          icon: mdi:fire
-          area: house
-          format:
-            raw_state_keep: true  # Keep the raw state without formatting
-            raw_state_clean: true # Remove underscores from the raw state
-    ```
-
-=== "Use specific locale"
-
-    ```yaml title="Specify locale for translations and formatting" linenums="1" hl_lines="7-10"
-    - type: custom:flex-horseshoe-card
-      entities:
-        - entity: sensor.dsmr_reading_electricity_currently_delivered
-          name: "Total"
-          icon: mdi:fire
-          area: house
-          format:
-            locale: 'nl-NL' # Force Dutch translations and formatting
-    ```
-
-## :material-horseshoe: Dynamic entity values
-
-Some entity fields can use JavaScript templates. This allows parts of the entity definition to change in response to current entity states.
-
-Use this when a name, icon, area, unit, or another supported value should be calculated dynamically instead of remaining fixed.
-
-For example, the `name` can depend on the state of another entity:
-
-```yaml title="Dynamic entity name" linenums="1"
-- type: custom:flex-horseshoe-card
-  entities:
-    - entity: sensor.memory_use_percent
-      name: |
-        [[[
-          const name = entities[1].state === 'on'
-            ? '11: One Bulb ON'
-            : '11: One Bulb OFF';
-          return name;
-        ]]]
-      tap_action:
-        action: more-info
-
-    - entity: light.livingroom_light_duo_left_light
-      name: 'hall'
-      icon: mdi:lightbulb
-      tap_action:
-        action: perform-action
-        perform_action: light.toggle
-        target:
-          entity_id: light.livingroom_light_duo_left_light
-```
-
-Here, the first entity changes its displayed name according to whether the second entity is `on`.
-
-Supported icon fields can also use templates:
-
-```yaml title="Dynamic entity icon" linenums="1"
+```yaml linenums="1"
 entities:
-  - entity: sensor.dsmr_reading_electricity_currently_delivered
-    icon: |
-      [[[
-        const value = Number(state);
-        return value >= 0.4
-          ? 'mdi:flash'
-          : 'mdi:flash-off';
-      ]]]
+  - entity: sensor.memory_use_percent  # Home Assistant entity used by this card
+    name: Memory  # Name shown to the user
+    icon: mdi:memory  # Icon shown to the user
+    decimals: 0  # Number of decimals to display
+    unit: "%"  # Unit shown with the value
 ```
 
-Templates in the `entities` section use the same `[[[ ... ]]]` syntax as other JavaScript templates in the card.
+You can change the name, icon, area, unit, or precision without changing the original Home Assistant entity.
 
-!!! info "Dynamic values are evaluated during updates"
-    JavaScript templates are dynamic. They can react to entity states and may be evaluated again whenever the card updates.
+## :material-horseshoe: Change number and state formatting
 
-    This differs from static reuse features such as `same_as`, `calc()`, `constants`, and `ref()`, which are resolved during card setup.
+Use `format` when the normal Home Assistant formatting is not what this card needs:
 
-For details about JavaScript templates, available variables, and reusable template variables, see the templating documentation.
+```yaml linenums="1"
+entities:
+  - entity: sensor.energy_total  # Home Assistant entity used by this card
+    format:
+      separator: true  # Show number grouping separators
+      decimals_min: 0  # Minimum number of decimals to display
+      decimals_max: 2  # Maximum number of decimals to display
+```
 
-## :material-horseshoe: Available entity options
+For raw textual states:
 
-| Name | Type | Required | Description |
-| :--- | :---: | :------: | :---------- |
-| `entity` | string | :material-check: | Home Assistant entity ID or a local `fhs_input_number`, `fhs_input_select`, or `fhs_input_boolean` ID |
-| `attribute` | string | :material-close: | Attribute to display instead of the main entity state |
-| `unit` | string | :material-close: | Unit displayed for the entity or attribute; can use a JavaScript template where supported |
-| `decimals` | number | :material-close: | Number of decimals used to format the value |
-| `name` | string or Home Assistant name list | :material-close: | Custom name that overrides the automatic short entity or attribute name; can use a JavaScript template where supported |
-| `area` | string | :material-close: | Custom area that overrides the Home Assistant area for this card; can use a JavaScript template where supported |
-| `icon` | string | :material-close: | Custom icon, image, SVG, or JavaScript template |
-| `format` | object | :material-close: | Custom formatting options for the entity state |
-| `tap_action` | object | :material-close: | Action performed when the entity is clicked or tapped |
-| `hold_action` | object | :material-close: | Action performed when the entity is held |
-| `double_tap_action` | object | :material-close: | Action performed when the entity is double tapped |
-| `initial` | number/string/boolean | :material-close: | Initial value for a local Flexible Horseshoe Card input; a select defaults to its first option and a boolean defaults to `off` |
-| `options` | list | :material-check: select only | Non-empty list of unique strings available to an `fhs_input_select` |
-| `min` | number | :material-close: | Lowest value accepted by a local `fhs_input_number` |
-| `max` | number | :material-close: | Highest value accepted by a local `fhs_input_number` |
-| `step` | number | :material-close: | Increment/decrement amount for a local `fhs_input_number`; default: `1` |
-| `scope` | string | :material-close: | Keeps a local input in one card or shares it with all Flexible Horseshoe Card cards in the current browser tab; default: `card` |
-| `persist` | boolean | :material-close: | Restores a global local input after a page reload; default: `false` |
+```yaml linenums="1"
+entities:
+  - entity: sensor.mode  # Home Assistant entity used by this card
+    format:
+      raw_state_keep: true  # Show the raw Home Assistant state
+      raw_state_clean: true  # Replace underscores in the raw state with spaces
+```
 
-## :material-horseshoe: Available entity format options
+See [Localization and formatting](../localization/overview.md) for locale-aware names, units, numbers, and states.
 
-[:octicons-tag-24: v5.4.7-dev.7][github-releases]
+## :material-horseshoe: Convert a value before it is displayed
 
-| Name | Type | Required | Description |
-| :--- | :---: | :------: | :---------- |
-| `separator` | boolean | :material-close: | Enables or disables the separator in a numeric state |
-| `decimals_min` | number | :material-close: | Minimum number of decimals used to format the value |
-| `decimals_max` | number | :material-close: | Maximum number of decimals used to format the value |
-| `raw_state_keep` | boolean | :material-close: | Keeps the raw entity state and prevents normal formatting or translation |
-| `raw_state_clean` | boolean | :material-close: | Removes underscores from the raw entity state |
-| `locale` | string | :material-close: | Locale used to display and format the entity |
+Use `convert` when the source value itself must be changed before the normal display formatting is applied.
 
-## :material-horseshoe: Icon options
+| Value | Result |
+| --- | --- |
+| `brightness_pct` | Converts a 0–255 brightness value to a percentage. |
+| `multiply(n)` | Multiplies the value by `n`; for example `multiply(100)`. |
+| `divide(n)` | Divides the value by `n`; for example `divide(1000)`. |
+| `rgb_csv` | Converts a supported light color attribute to `r,g,b` text. |
+| `rgb_hex` | Converts a supported light color attribute to hexadecimal color text. |
 
-When no icon is specified, the card uses the Home Assistant entity icon where possible.
+```yaml linenums="1"
+entities:
+  - entity: sensor.power_kw  # Source entity
+    convert: multiply(1000)  # Convert kW to W before display formatting
+    unit: W                  # Show the converted unit in this card
+```
 
-You can override it with an MDI icon, external image, external SVG, or JavaScript template.
+The `rgb_csv` and `rgb_hex` converters are for light color attributes and use the light's current Home Assistant color information.
 
-| Icon type | Example | Description |
-| :-------- | :------ | :---------- |
-| MDI icon | `icon: mdi:lightbulb` | Uses a Material Design icon |
-| External image | `icon: url(/local/icons/icon-image.png)` | Uses an image file as the icon |
-| External SVG | `icon: url(/local/icons/icon-svg.svg)` | Uses an SVG file as the icon |
-| JavaScript template | `icon: \|` with `[[[ ... ]]]` | Returns the icon dynamically |
+## :material-horseshoe: Put shared actions on an entity
 
-## :material-horseshoe: Actions and local controls
+You can set `tap_action`, `hold_action`, or `double_tap_action` on an entity entry. A layout item using that entity uses its own action when one is configured; otherwise it can use the corresponding entity action. If neither the item nor the entity defines a tap action, a normal Home Assistant entity opens `more-info` on tap.
 
-Entities support `tap_action`, `hold_action`, and `double_tap_action` using the current Home Assistant dashboard action format. An individual layout item can override the action configured on its entity. Flexible Horseshoe Card also supports ordered action lists, Companion-app haptic feedback, and browser-local number, select, and boolean inputs.
+```yaml linenums="1"
+entities:
+  - entity: light.living_room  # Entity used by layout items
+    tap_action:
+      action: toggle           # Used by bound items that do not define their own tap_action
 
-See [Actions and Local Controls](../interaction/actions.md) for the available actions and complete examples.
+layout:
+  icons:
+    - entity_index: 0          # This Icon inherits the entity tap action
+      xpos: 50
+      ypos: 50
+```
 
-## :material-horseshoe: Entity layout elements
+See [Actions](../interaction/actions.md) for all generic action values.
 
-Defining an entity does not automatically display every part of it. The `entities` section defines the data source, while the layout sections determine what appears and where it is positioned.
+## :material-horseshoe: Add shared state mapping or colors
 
-| Entity part | Layout section | Description |
-| :---------- | :------------- | :---------- |
-| Area | `areas` | Displays the Home Assistant area or a custom area |
-| Name | `names` | Displays the entity name or a custom name |
-| State | `states` | Displays the entity state, including its unit and decimals |
-| Icon | `icons` | Displays the entity icon or a standalone icon |
+`state_map` stores state-dependent values such as numeric mappings, labels, ranks, or icons for features that use mapped states. `color_stops` stores value/state-to-color rules at the entity level so bound tools can use the same color definition. The feature page that consumes the mapping explains which map fields it needs.
 
-For detailed configuration of `areas`, `names`, `states`, and `icons`, see [Tools](../tools/tools-overview.md).
+## :material-horseshoe: Local input entity fields
 
-For translated names and states, localized units, state colors, and number formatting, see [Localization](../localization/overview.md).
+Local input entities use the same root `entities:` list but are created by the card rather than by Home Assistant. They must use one of these domains: `fhs_input_number.*`, `fhs_input_boolean.*`, or `fhs_input_select.*`. They are not added to Home Assistant's state machine.
 
-<!--- External References... --->
+`scope` and `persist` work the same for all three types: `scope: card` keeps a separate value in one card, `scope: global` shares the value with other cards in the same Home Assistant client, and `persist: true` can restore only a global value on that client/device. The `local` flag is set automatically and normally should not be entered yourself.
+
+| Local input type | Type-specific fields |
+| --- | --- |
+| `fhs_input_number.*` | `initial` is required and numeric. `min`/`max` are optional bounds, `step` defaults to `1`, `unit` defaults to empty, and `decimals` defaults to `0`. |
+| `fhs_input_boolean.*` | `initial` is optional and defaults to `false` / `off`. |
+| `fhs_input_select.*` | `options` is required and must contain unique non-empty text values. `initial` defaults to the first option and must be one of the configured options. |
+
+See [Local input entities](../tools/controls/browser-local-inputs.md) and the Number, Boolean, and Select input pages for complete examples.
+
+## :material-horseshoe: Configuration options
+
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entity` | string | Yes | — | Home Assistant entity ID or local input ID. |
+| `slot` | string | No | `Not set` | Gives this entity and the following entities a group name so items can use addresses such as `room[0]`. |
+| `attribute` | string | No | Entity state | Uses an attribute instead of the main state. |
+| `unit` | string | No | Home Assistant unit | Overrides the unit for this card. |
+| `decimals` | number | No | Home Assistant precision | Overrides the displayed numeric precision. |
+| `name` | string/list | No | Home Assistant name | Overrides the automatic Home Assistant name. |
+| `area` | string | No | Home Assistant area | Overrides the Home Assistant area for this card. |
+| `icon` | string | No | Home Assistant icon | Overrides the Home Assistant icon. |
+| `convert` | string | No | Not set | Converts the source value before display formatting. Accepted converters are listed above. |
+| `format` | object/string | No | Home Assistant/card formatting | Overrides normal state formatting. |
+| `state_map` | mapping | No | Not set | Supplies state-dependent values, labels, ranks, icons, or numeric mappings to features that use mapped states. |
+| `color_stops` | mapping | No | Not set | Supplies entity-level value/state colors to bound tools. |
+| `disabled` | boolean / dynamic value | No | `false` | Disables this entity entry when true. |
+| `tap_action` | action | No | `more-info` for a normal Home Assistant entity | Tap action used by layout items that select this entity and do not define their own tap action. |
+| `hold_action` | action | No | Not set | Hold action used by layout items that select this entity and do not define their own hold action. |
+| `double_tap_action` | action | No | Not set | Double-tap action used by layout items that select this entity and do not define their own double-tap action. |
+| `template` | template reference | No | Not set | Merges a configured template into this entity entry before local values override it. |
+
+### Format options
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `separator` | boolean | No | Home Assistant number formatting | Enables or disables digit grouping for numeric values. |
+| `decimals_min` | integer | No | Home Assistant precision | Minimum number of decimal places shown. |
+| `decimals_max` | integer | No | Home Assistant precision | Maximum number of decimal places shown. |
+| `raw_state_keep` | boolean | No | `false` | Shows the raw entity state instead of normal Home Assistant formatting/localization. |
+| `raw_state_clean` | boolean | No | `false` | Replaces underscores with spaces when `raw_state_keep` is enabled. |
+| `locale` | string | No | Home Assistant locale | Uses a specific locale for this entity, for example `nl-NL`. |
+
+## :material-horseshoe: Related
+
+- [State](../tools/entities/entity-state-tool.md)
+- [Name](../tools/entities/entity-name-tool.md)
+- [Area](../tools/entities/entity-area-tool.md)
+- [Icon](../tools/entities/entity-icon-tool.md)
+- [Local input entities](../tools/controls/browser-local-inputs.md)
+- [Localization and formatting](../localization/overview.md)
+- [JavaScript templates](../dynamic/javascript-templates.md)
+
 [github-releases]: https://github.com/amoebelabs/flex-horseshoe-card/releases/

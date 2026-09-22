@@ -6,53 +6,42 @@ tags:
   - Sparkline
   - Radial barcode
 ---
-
 # Radial barcode chart
 
-A radial barcode arranges colored time bins around a circle. Use it for compact circular history displays and clock-like daily views.
+A Radial barcode is a circular form of Sparkline history. Each time interval becomes a colored segment around an arc or circle, so time is read around the ring instead of from left to right.
 
-Like a linear barcode, color carries the value or state. The radial layout also lets you choose how each interval extends inward or outward and which shape it uses.
+This page shows how to select the Radial barcode, choose its inward/outward variant and segment shape, control the arc and spacing, apply value colors, and add a time scale around the ring.
 
-<!-- Add radial barcode variant screenshots here. -->
+![Flexible Horseshoe radial barcode example](../../assets/screenshots/fhs-card-study-temperature-week-radial_barcode-flower--dark.webp)
 
-![Flexible Horseshoe sparkline equalizer example](../../assets/screenshots/fhs-card-study-temperature-week-radial_barcode-flower--dark.webp)
+## :material-horseshoe: Show a radial barcode
 
-
-## :material-horseshoe: Basic configuration
-
-This example arranges the latest 24 hours around a circular flower:
+Use a radial barcode when each time interval should be a separate segment arranged around an arc.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
 layout:
   sparklines:
-    - id: temperature-radial
-      entity_index: 0
-      xpos: 50
-      ypos: 50
-      width: 70
-      height: 70
-
-      period:
-        type: rolling_window
-        rolling_window:
-          duration:
-            hour: 24
-          bins:
-            per_hour: auto
-            density: medium
-
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
       sparkline:
         show:
-          chart_type: radial_barcode
-          chart_variant: sunburst_outward
-          chart_viz: flower
-        radial:
-          arc_degrees: 270
-          rotate: -135
+          chart_type: radial_barcode  # Show colored time intervals around a circle
+          chart_variant: sunburst_outward  # Use the sunburst_outward variant of this chart type
+          chart_viz: flower  # Draw each interval with the flower visualization
+
         radial_barcode:
-          size: 15
-          line_width: 0.02
-          column_spacing: 0.2
+          arc_degrees: 270  # Draw 270° of the full 360° circle
+          rotate: -135  # Rotate the result by -135°
+          size: 15  # Radial width used to draw the values
+          line_width: 0.02  # Thickness of the graph line
+          column_spacing: 0.2  # Space between neighboring time intervals
+
         color_stops:
           colors:
             0: "#1565c0"
@@ -61,61 +50,27 @@ layout:
             28: "#f9a825"
             35: "#d32f2f"
 ```
+## :material-horseshoe: Choose how values grow in the ring
 
-## :material-horseshoe: Configuration options
+Set `chart_variant`:
 
-| Option | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `show.chart_type` | string | No | `line` | Set to `radial_barcode` to display a radial barcode. |
-| `show.chart_variant` | string | No | standard ring | Chooses alignment and inward or outward direction. |
-| `show.chart_viz` | string | No | standard segment | Chooses the shape used for every interval. |
-| `radial.arc_degrees` | number | No | `360` | Sets how much of the circle is used. |
-| `radial.rotate` | number | No | `0` | Rotates the first interval around the center. |
-| `radial_barcode.size` | number | No | `5` | Sets the radial depth available to the intervals. |
-| `radial_barcode.line_width` | number | No | `0` | Sets the stroke width used by the interval shapes. |
-| `radial_barcode.column_spacing` | number | No | `1` | Sets the angular space between intervals. |
-| `show.grid.x` | boolean | No | `false` | Shows time spokes behind the barcode. |
-| `show.axis.x` | boolean | No | `false` | Shows the outer time arc. |
-| `show.tickmarks.x` | boolean | No | `false` | Shows time marks around the outer edge. |
-| `show.labels.x` | boolean | No | `false` | Shows time labels around the barcode. |
-| `x_axis.labels.orientation` | string | No | `horizontal` | Displays time labels horizontally or along the arc. |
-| `color_stops` | mapping | No | none | Assigns colors to numeric ranges or named states. |
-| `bins.per_hour` | number or `auto` | No | `auto` | Chooses how many history intervals fit around the circle. |
+| Variant | Result |
+| --- | --- |
+| `fixed` | Every segment has the same radial depth |
+| `sunburst` / `sunburst_centered` | Values grow inward and outward |
+| `sunburst_outward` | Values grow outward |
+| `sunburst_inward` | Values grow inward |
 
-!!! tip "Keep automatic bins"
+## :material-horseshoe: Choose the segment shape
 
-    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then uses the visible arc length, duration, and density to choose a suitable number of radial segments.
+Set `chart_viz`:
 
-## :material-horseshoe: Basic radial barcode
-
-```yaml linenums="1"
-sparkline:
-  show:
-    chart_type: radial_barcode
-    chart_variant: sunburst_outward
-    chart_viz: flower
-
-  radial:
-    arc_degrees: 270
-    rotate: -135
-
-  radial_barcode:
-    size: 15
-    line_width: 0.02
-    column_spacing: 0.2
-
-  color_stops:
-    colors:
-      0: "#1565c0"
-      18: "#42a5f5"
-      24: "#66bb6a"
-      28: "#f9a825"
-      35: "#d32f2f"
-```
-
-## :material-horseshoe: Choose the chart appearance
-
-Choose the chart type, then how values should occupy its ring, and finally the visible form of every segment.
+| Visualization | Result |
+| --- | --- |
+| `bar` | Straight radial bars |
+| `flower` | Rounded petal-like segments |
+| `flower2` | Second flower shape |
+| `rice_grain` | Rounded seed-like segments |
 
 {{ loop_video(
   "fhs-demo-card-sparkline-radial-barcode-showcase.webm",
@@ -126,58 +81,66 @@ Choose the chart type, then how values should occupy its ring, and finally the v
   "PT0M20S",
   "720px") }}
 
-### Chart
+## :material-horseshoe: Change the ring size and spacing
 
-| `chart_type` value | Visible result |
-| --- | --- |
-| `radial_barcode` | Arranges the history around a circle. |
-
-### Variant
-
-| `chart_variant` value | Visible result |
-| --- | --- |
-| `fixed` | A regular ring: every segment has the same radial depth. |
-| `sunburst` or `sunburst_centered` | Values grow equally toward the inside and outside of the ring. |
-| `sunburst_outward` | Values grow outward from the inner edge of the ring. |
-| `sunburst_inward` | Values grow inward from the outer edge of the ring. |
-
-### Visualization
-
-| `chart_viz` value | Visible result |
-| --- | --- |
-| `bar` | Straight radial bars. This is the normal barcode appearance. |
-| `flower` | Rounded petal-like segments. |
-| `flower2` | A second rounded flower appearance. |
-| `rice_grain` | Rounded seed-like segments. |
-
-Use the radial barcode showcase to compare the shapes and directions visually.
+Use `radial_barcode.size`, `line_width`, and `column_spacing` to change the radial depth, segment stroke, and gap between intervals.
 
 ## :material-horseshoe: Add a time scale
 
-Time labels and marks can be shown around the barcode:
+Add the radial time scale when the viewer needs to know where particular times sit around the arc.
 
 ```yaml linenums="1"
-sparkline:
-  show:
-    chart_type: radial_barcode
-    axis:
-      x: true
-    tickmarks:
-      x: true
-    labels:
-      x: true
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-x_axis:
-  labels:
-    orientation: arc
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          chart_type: radial_barcode  # Show colored time intervals around a circle
+          axis:
+            x: true  # Show the time axis
+          tickmarks:
+            x: true  # Show tick marks on the time axis
+          labels:
+            x: true  # Show labels on the time axis
+
+      x_axis:
+        labels:
+          orientation: arc  # Follow the circular time axis instead of keeping labels horizontal
 ```
+## :material-horseshoe: Configuration options
 
-Set `show.grid.x: true` when time spokes should continue through the barcode ring.
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `sparkline.show.chart_type` | `radial_barcode` | Yes | `line` | Set this to `radial_barcode` to select this chart family; omitting it leaves the Sparkline as the default Line chart. |
+| `sparkline.show.chart_variant` | `fixed`, `sunburst`, `sunburst_centered`, `sunburst_outward`, `sunburst_inward` | No | `fixed` appearance when omitted | `fixed` keeps every segment at full ring depth; `sunburst` and `sunburst_centered` vary depth around the ring center; `sunburst_outward` grows outward; `sunburst_inward` grows inward. |
+| `sparkline.show.chart_viz` | `bar`, `flower`, `flower2`, `rice_grain` | No | `bar` | `bar` uses straight ring segments; `flower` and `flower2` use rounded petal shapes; `rice_grain` rounds both sides into a seed-like shape. |
+| `sparkline.radial_barcode.arc_degrees` | number | No | `360` | Amount of the circle used by the radial barcode; values must be greater than `0` and at most `360`. |
+| `sparkline.radial_barcode.rotate` | number | No | `0` | Rotates where the radial barcode starts around the circle. |
+| `sparkline.radial_barcode.size` | number | No | `5` | Radial depth. |
+| `sparkline.radial_barcode.line_width` | number | No | `0` | Segment stroke width. |
+| `sparkline.radial_barcode.column_spacing` | number | No | `1` | Angular gap between intervals. |
+| `sparkline.show.grid.x` | boolean | No | `false` | `true` shows time-grid spokes; `false` hides them. |
+| `sparkline.show.axis.x` | boolean | No | `false` | `true` shows the outer time-axis arc; `false` hides it. |
+| `sparkline.show.tickmarks.x` | boolean | No | `false` | `true` shows time-axis tick marks; `false` hides them. |
+| `sparkline.show.labels.x` | boolean | No | `false` | `true` shows time labels; `false` hides them. |
+| `x_axis.labels.orientation` | `horizontal`, `arc` | No | `horizontal` | `horizontal` keeps time labels level; `arc` makes them follow the radial time axis. |
+| `sparkline.color_stops` | mapping | No | Not set | Value/state colors. |
+| `period.calendar.bins.per_hour` / `period.rolling_window.bins.per_hour` | number/`auto` | No | `auto` | Controls how many angular history segments are drawn per hour; more bins preserve shorter changes. |
 
 ## :material-horseshoe: Related
 
 - [Radial chart](radial-chart.md)
 - [Barcode](barcode.md)
 - [Color stops](../../appearance/color-stops.md)
-- [History periods and bins](sparkline-history-periods-and-bins.md)
+- [History period](sparkline-history-periods-and-bins.md)
 - [Examples](../../examples/overview.md)

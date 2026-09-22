@@ -6,68 +6,90 @@ tags:
   - Card tools
   - Layout
 ---
-
 # Card tools
 
-Card tools are the elements you add to a Flexible Horseshoe Card. Choose the tools you want to show, then position and style each one independently.
+Card tools are the visible building blocks placed under an `layout:`. Some show current entity information, some add visual shapes, Horseshoes show values on a scale, Sparklines show history, and controls let the user change something.
 
-<!-- Add a labeled overview image of the available tool families here. -->
+This page introduces those tool groups and shows where each type is added so you can choose the tool that matches what you want to put on the card.
 
-## :material-horseshoe: Available tools
+## :material-horseshoe: Entity information
 
-| You want to show | Use |
+Use these tools to show information that Home Assistant already knows about an entity:
+
+| You want to show... | Tool |
 | --- | --- |
-| Current state, name, area, or icon | [Entity tools](entities/entity-state-tool.md) |
-| A line, circle, arc, rectangle, polygon, or custom text | [Shapes](shapes/shapes-overview.md) |
-| A value on a circular scale | [Horseshoe](horseshoe/horseshoe-overview.md) |
-| Entity history or statistics | [Sparkline](sparkline/sparkline-overview.md) |
-| A button, toggle, selector, stepper, or slider | [Interactive controls](controls/controls-overview.md) |
+| Current value or state | [State](entities/entity-state-tool.md) |
+| Entity, device, area, or floor name | [Name](entities/entity-name-tool.md) |
+| Area | [Area](entities/entity-area-tool.md) |
+| Icon | [Icon](entities/entity-icon-tool.md) |
 
-## :material-horseshoe: Add tools to the layout
+## :material-horseshoe: Shapes and text
 
-Each tool belongs to a named list under `layout`:
+Use shapes to add backgrounds, borders, separators, highlights, labels, or other visual parts:
+
+- [Rectangle](shapes/rectangle-tool.md)
+- [Circle](shapes/circle-tool.md)
+- [Line](shapes/line-tool.md)
+- [Arc](shapes/arc-tool.md)
+- [Polygon](shapes/polygon-tool.md)
+- [Text](shapes/text-tool.md)
+
+See [Shapes](shapes/shapes-overview.md) for an overview.
+
+## :material-horseshoe: Show a value on a gauge
+
+Use a [Horseshoe](horseshoe/horseshoe-overview.md) to show the current value along an arc or another path. Add tick marks, labels, markers, colors, or another path when needed.
+
+## :material-horseshoe: Show history
+
+Use a [Sparkline graph](sparkline/sparkline-overview.md) to show how one or more entities changed over time. Choose a line, area, dots, bars, barcode, radial chart, state bands, or another supported graph type.
+
+## :material-horseshoe: Add controls
+
+Use [Interactive controls](controls/controls-overview.md) when someone should be able to change something directly from the card:
+
+- Button
+- Toggle
+- Select
+- Number
+- Slider
+
+## :material-horseshoe: Add a tool to the layout
+
+Each tool lives in its matching section under `layout:`:
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.example_1  # Entity used by this example
+
 layout:
   icons:
-    - entity_index: 0
-      xpos: 50
-      ypos: 25
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 30  # Vertical position; 50 = center of the card
 
   states:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
+    - entity_index: 0  # Use entity 0 from entities: (0 = first entity)
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
 
-  circles:
-    - xpos: 50
-      ypos: 50
-      radius: 30
-  #
-  # Etcetera
-  #
+  rectangles:
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 70  # Vertical position; 50 = center of the card
+      width: 40  # Width in card coordinates
+      height: 10  # Height in card coordinates
 ```
+The page for each tool shows what you can do with that tool and the complete configuration options at the end.
 
-Tools can share an entity, use different entities, or remain independent of entity data.
+## :material-horseshoe: Item IDs
 
-## :material-horseshoe: Configure a tool
+Every normal layout item receives an `id`. You can set a readable ID yourself when another feature needs to refer to that item. If you omit it, the card generates a text ID from the item's zero-based position inside its own layout section: the first item gets `"0"`, the second `"1"`, then `"2"`, and so on. Numbering starts again in every section.
 
-Start with the page for the item you want to add. Continue with these guides when you want to change how it behaves:
-
-| Goal | Guide |
-| --- | --- |
-| Place an item on the card | [Positioning and sizing](../card-basics/positioning-and-sizing.md) |
-| Arrange several items together | [Groups](../card-basics/groups.md) |
-| Change colors, fonts, or outlines | [Styling](../appearance/styling.md) |
-| Show colors based on a value or state | [Color stops](../appearance/color-stops.md) |
-| Run something when an item is tapped | [Actions](../interaction/actions.md) |
-| Show or hide an item | [Visibility](../interaction/visibility.md) |
-| Reuse a repeated item | [Reuse](../reuse/reuse-introduction.md) |
+For example, the first Rectangle and the first State can both have the automatically generated ID `"0"` because they belong to different layout sections. Use an explicit ID when you want a stable readable reference for features such as `same_as`.
 
 ## :material-horseshoe: Related
 
 - [Card overview](../card-basics/card-overview.md)
 - [Positioning and sizing](../card-basics/positioning-and-sizing.md)
-- [Styling](../appearance/styling.md)
-- [Actions](../interaction/actions.md)
-- [Reuse](../reuse/reuse-introduction.md)
+- [Appearance](../appearance/appearance-overview.md)
+- [Interaction and behavior](../interaction/interaction-overview.md)

@@ -8,64 +8,35 @@ tags:
   - Colors
   - Palettes
 ---
-
 # Appearance
 
-Customize how card tools look without changing what they display or how they behave.
+Appearance controls how a card looks after you have decided what information and controls the card should contain. It covers the shared visual choices that can be used by many different tools, rather than the behavior of one specific tool.
 
-You can change individual styles, make colors respond to entity values, reuse color palettes, or apply color filters to visual elements.
+This section shows how to style items, change colors from values or states, reuse palettes, and transform existing colors with filters.
 
-## :material-horseshoe: Choose what you want to change
+## :material-horseshoe: Change the normal appearance
 
-| I want to...                                                       | Use                               |
-| ------------------------------------------------------------------ | --------------------------------- |
-| Change colors, fonts, strokes, opacity, or other visual properties | [Styling](styling.md)             |
-| Change colors based on an entity value or state                    | [Color stops](color-stops.md)     |
-| Reuse a predefined set of colors                                   | [Palettes](palettes.md)           |
-| Modify colors using filters                                        | [Color filters](color-filters.md) |
+Use [Styling](styling.md) for fixed colors, fills, borders, text size, opacity, and Home Assistant theme variables.
 
-## :material-horseshoe: Styling
+## :material-horseshoe: Change color with a value or state
 
-Use styles to control the normal appearance of a tool.
+Use [Color stops](color-stops.md) when the color should follow a numeric value or named state.
 
-Depending on the tool, this can include properties such as:
+## :material-horseshoe: Reuse the same colors on several cards
 
-* fill and stroke colors
-* line width and opacity
-* font size and weight
-* text alignment
-* visibility and other SVG or CSS properties
+Use [Palettes](palettes.md) when several cards should use one shared external color set, including light and dark variants.
 
-[Learn about styling](styling.md)
+## :material-horseshoe: Transform existing colors
 
-## :material-horseshoe: Color stops
+Use [Color filters](color-filters.md) to make existing colors lighter, darker, less saturated, monochrome, grayscale, or otherwise adjusted without redefining every color.
 
-Color stops make a tool change color according to an entity value or state.
+## :material-horseshoe: Use these options on a tool
 
-They can be used for discrete ranges, smooth transitions, gradients, and other value-based coloring.
+Each tool page shows the short example that belongs to that tool. For example, the Rectangle page shows how to color a Rectangle from an entity value, while this section explains the shared color system once.
 
-[Learn about color stops](color-stops.md)
+## :material-horseshoe: Related
 
-## :material-horseshoe: Palettes
-
-Palettes provide reusable color collections.
-
-Use them when several tools or cards should share the same colors without repeating those colors throughout the configuration.
-
-[Learn about palettes](palettes.md)
-
-## :material-horseshoe: Color filters
-
-Color filters modify the rendered colors of supported visual elements.
-
-They can be used for effects such as changing brightness, saturation, hue, or other color characteristics.
-
-[Learn about color filters](color-filters.md)
-
-## :material-horseshoe: Appearance on tool pages
-
-Each Card Tool page shows the appearance options that are most useful for that specific tool.
-
-For example, the Circle page shows how to change its fill and outline, while the Icon page shows how to change its icon color.
-
-The shared concepts themselves are documented here only once.
+- [Styling](styling.md)
+- [Color stops](color-stops.md)
+- [Palettes](palettes.md)
+- [Color filters](color-filters.md)

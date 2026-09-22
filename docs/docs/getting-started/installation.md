@@ -9,9 +9,9 @@ tags:
 
 # Installation
 
-The recommended way to install the Flexible Horseshoe Card is through HACS. This keeps the setup straightforward and makes future updates easier to manage.
+Before a card can be used in a Home Assistant dashboard, the Flexible Horseshoe Card JavaScript resource must be installed and available to the dashboard. HACS is the recommended installation method, while manual installation is available when you prefer to manage the file yourself.
 
-Manual installation is also available when you prefer to manage the card files yourself.
+This page walks through both methods and shows how to verify that Home Assistant recognizes the card.
 
 !!! info "Home Assistant version"
 
@@ -51,7 +51,7 @@ Add the following resource definition:
 
 ```yaml linenums="1"
 resources:
-  - url: /local/flex-horseshoe-card.js
+  - url: /local/flex-horseshoe-card.js  # URL loaded or opened here
     type: module
 ```
 
@@ -70,7 +70,7 @@ After adding or replacing the file, refresh the browser cache so Home Assistant 
 After installing the resource, add a card with:
 
 ```yaml linenums="1"
-type: custom:flex-horseshoe-card
+type: custom:flex-horseshoe-card  # Home Assistant must recognize this custom card type
 ```
 
 If Home Assistant recognizes the custom card, the installation is complete.

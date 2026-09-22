@@ -7,207 +7,257 @@ tags:
 - Sparkline
 - History
 ---
-
 # Sparkline graphs
 
-According to the internet, a sparkline is a very small, simple data visualization designed to show a trend over time at a glance. Unlike traditional charts, it strips away all non-essential elements to maximize information density.
+A Sparkline shows how an entity changed over time inside a card. You choose which history period to show and how that history should be drawn, from a minimal line or area to bars, color bands, radial graphs, and other chart forms.
 
-A "true" sparkline therefore has no axes, no grid and no labels.
+This page builds a basic Sparkline and introduces the main Sparkline topics: history periods, chart types, multiple series, axes and labels, and day/night information.
 
-### From basic sparklines...
-An example of such a true sparkline is shown in the next example: an extended horseshoe with a simple sparkline to show the trend over the last 24 hours.
+### From a minimal Sparkline...
+
+An area sparkline over a 24 hour period as part of a horseshoe:
 
 ![Flexible Horseshoe Card #036 with Horseshoe and minimal sparkline](../../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)
 
-A variant on this shows the radial sparkline chart (card #037) with variants showing minimal and maximal values (left) en the average values (right). Both show history for 6 days on the radial sparkline, and the current day on the horizontal sparkline in the middle.
+An area sparkline from today as period as part of a simple card with icon, name and state:
 
-![Flexible Horseshoe Card #037 with Horseshoe, minimal sparkline for today and 6-day radial sparkline history](../../assets/screenshots/fhs-card-037-horseshoe-sparkline-power.png)
+![Flexible Horseshoe Card with state and minimal sparkline](../../assets/screenshots/fhs-true-sparkline-example.png)
 
-Another example (card #061) shows a minimal card with an icon, sensor, state and a sparkline for today:
+An bars sparkline (Card #062) from today as period as part of a simple card with icon, name and state:
 
-![Flexible Horseshoe Card #061 with icon, name, state and minimal sparkline](../../assets/screenshots/fhs-true-sparkline-example.png)
-![](../../assets/screenshots/fhs-card-061-sensor-icon-name-state-history-b.png)
+![Flexible Horseshoe Card #062 with state and minimal sparkline](../../assets/screenshots/fhs-card-061-sensor-icon-name-state-history-b.png)
 
-And last but not least, card #062 which is even more compact than card #061
 
-![Flexible Horseshoe Card #062 with icon, name, state and minimal sparkline](../../assets/screenshots/fhs-card-062-sensor-icon-name-state-history.png)
+### ...to graphs with more information
 
-### ...to more variations with axes, tick marks and labels
-The Flexible Horseshoe Sparkline implementation is not limited to these "true" sparklines: you can add a grid, tick marks and labels to the sparkline graph.
+Sparklines can also show axes, labels, multiple series, day/night information, value ranges, and several different graph forms.
 
-This makes it easier in larger sparkline graphs to see how an entity value changes over time. Use it to follow a recent trend, see today's progress, compare rooms or sensors, or show when a named state was active.
+| Area | Barcode | Bars |
+| :---: | :---: | :---: |
+| ![Area](../../assets/screenshots/fhs-card-area-study-score--dark.webp) | ![Barcode](../../assets/screenshots/fhs-card-barcode_audio-study-voc--dark.webp) | ![Bars](../../assets/screenshots/fhs-card-bars-study-co2--dark.webp) |
+| Dots | Equalizer | State bands |
+| ![Dots](../../assets/screenshots/fhs-card-dots-study-humidity--dark.webp) | ![Equalizer](../../assets/screenshots/fhs-card-equalizer-study-temperature--dark.webp) | ![State bands](../../assets/screenshots/fhs-card-state_band-pollen-kruiden--dark.webp) |
 
-Choose the time period, level of detail, and chart type that fit the information you want to see. A graph can remain compact and visual, or include axes, labels, statistics, a legend, and a tooltip for closer inspection.
+## :material-horseshoe: Add a basic Sparkline
 
-|                                                          Area                                                         |                                                           Barcode - Audio                                                          |                                                                Bars                                                                |
-| :-------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------: |
-|   ![Flexible Horseshoe Card - Sparkline Area Chart](../../assets/screenshots/fhs-card-area-study-score--dark.webp)  |    ![Flexible Horseshoe Card - Sparkline Barcode Chart](../../assets/screenshots/fhs-card-barcode_audio-study-voc--dark.webp)    |          ![Flexible Horseshoe Card - Sparkline Bars Chart](../../assets/screenshots/fhs-card-bars-study-co2--dark.webp)          |
-|                                                          Dots                                                         |                                                              Equalizer                                                             |                                                             State band                                                             |
-| ![Flexible Horseshoe Card - Sparkline Dots Chart](../../assets/screenshots/fhs-card-dots-study-humidity--dark.webp) | ![Flexible Horseshoe Card - Sparkline Equalizer Chart](../../assets/screenshots/fhs-card-equalizer-study-temperature--dark.webp) | ![Flexible Horseshoe Card - Sparkline State Bands Chart](../../assets/screenshots/fhs-card-state_band-pollen-kruiden--dark.webp) |
-
-## :material-horseshoe: Basic usage
-
-Add graphs to `layout.sparklines` and connect each one to an entity through `entity_index`.
+A basic Sparkline turns one entity’s recent history into a compact graph inside the card.
 
 ```yaml linenums="1"
 entities:
-  - entity: sensor.living_room_temperature
-    slot: temperature
+  - entity: sensor.living_room_temperature  # Home Assistant entity used by this card
 
 layout:
   sparklines:
-    - id: temperature-history
-      entity_index: temperature[0]
-      xpos: 50
-      ypos: 50
-      width: 80
-      height: 35
+    - id: temperature-history  # Name this item so it can be referenced later
+      entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      width: 80  # Width of the graph
+      height: 35  # Height of the graph
 
       period:
-        type: rolling_window
+        type: rolling_window  # Always show the latest moving time range
         rolling_window:
           duration:
-            hour: 24
+            hour: 24  # Show 24 hours of history
           bins:
-            per_hour: auto
-            density: medium
+            per_hour: auto  # Let the card choose a readable time interval automatically
+            density: medium  # Choose low, medium, or high detail when intervals are automatic
 
       sparkline:
         state_values:
-          aggregate_func: avg
+          aggregate_func: avg  # Use the avg value from each time interval
         show:
-          chart_type: area
+          chart_type: line  # Draw the history as a connected line
 ```
 
-The entity index refers to the card-level `entities` list. Statistics and tooltip values use the formatting settings of the connected entity.
+This shows the latest 24 hours as a line. The card chooses a suitable interval automatically.
 
-This example shows the average temperature for the latest 24 hours. Flexible Horseshoe Card chooses a readable number of time bins for the available graph width.
+## :material-horseshoe: Choose the history period
 
-When the entity does not have a slot, use its numeric position in the card's entity list:
+Use the period that matches the history you want to see:
+
+- latest 24 hours or another moving range;
+- today;
+- yesterday or another earlier calendar period;
+- realtime/current value only;
+- more or less detail inside the same period.
+
+See [History period](sparkline-history-periods-and-bins.md).
+
+## :material-horseshoe: Choose how the graph is shown
+
+The chart type changes the visual form, not the entity or period.
+
+| `sparkline.show.chart_type` | What it shows |
+| --- | --- |
+| `line` — [Line](line-chart.md) | A connected trend line. |
+| `area` — [Area](area-chart.md) | A trend with a filled area. |
+| `bar` — [Bar](bar-chart.md) | One bar per interval. |
+| `dots` — [Dots](dots-chart.md) | One point per interval. |
+| `equalizer` — [Equalizer](equalizer.md) | Stacked value levels. |
+| `state_bands` — [State bands](state-bands.md) | Named states over time. |
+| `graded` — [Graded](graded.md) | Ordered value grades/ranges. |
+| `barcode` — [Barcode](barcode.md) | Color-coded history without a value height. |
+| `radial` — [Radial](radial-chart.md) | Line, area, or dots around an arc. |
+| `radial_barcode` — [Radial barcode](radial-barcode.md) | Color-coded history around a circle. |
+
+## :material-horseshoe: Show multiple series
+
+Use `series:` when one graph should contain several entities or several periods from the same entity. In that form the history sources are defined inside `series`, so the top-level `entity_index` used by a single-source Sparkline is not needed.
+
+See [Multiple series](multiple-series.md) for names, colors, legends, period overrides, and Y-axes.
+
+## :material-horseshoe: Add axes, grid, and labels
+
+Axes are optional. Add only the parts that help read the graph:
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
 layout:
   sparklines:
-    - entity_index: 0
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          chart_type: line  # Draw the history as a connected line
+          grid:
+            x: true  # Show time-grid lines
+            y: true  # Show value-grid lines
+          axis:
+            x: true  # Show the time axis
+            y: true  # Show the value axis
+          tickmarks:
+            x: true  # Show tick marks on the time axis
+            y: true  # Show tick marks on the value axis
+          labels:
+            x: true  # Show labels on the time axis
+            y: true  # Show labels on the value axis
+```
+See [Axes and grid](axes-and-grid.md).
+
+## :material-horseshoe: Show day and night
+
+Add daylight/nighttime as a background or separate band when that helps explain a daily pattern. See [Day and night](day-and-night.md).
+
+## :material-horseshoe: Use Sparkline values elsewhere in the card
+
+A Sparkline can make calculated values available to other tools in the same card. Add the values you want to `entities:` as `fhs_sparkline.*` entities, then use their `entity_index` like any other entity configured for the card.
+
+These are **FHS-generated entities**. They exist only inside the card and are not Home Assistant entities.
+
+For a Sparkline with `id: temperature_history`, the entity name is built from the Sparkline ID and the value you want to use:
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Home Assistant entity whose history is shown by the Sparkline
+  - entity: fhs_sparkline.temperature_history_min  # FHS entity containing the Sparkline minimum
+  - entity: fhs_sparkline.temperature_history_avg  # FHS entity containing the Sparkline average
+  - entity: fhs_sparkline.temperature_history_max  # FHS entity containing the Sparkline maximum
+
+layout:
+  sparklines:
+    - id: temperature_history  # This ID becomes part of each fhs_sparkline entity name
+      entity_index: 0  # Use sensor.temperature as the Sparkline history source
+
+  states:
+    - entity_index: 1  # Show the generated minimum value
+      xpos: 20  # Horizontal position; 50 = center of the card
+      ypos: 85  # Vertical position; 50 = center of the card
+    - entity_index: 2  # Show the generated average value
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 85  # Vertical position; 50 = center of the card
+    - entity_index: 3  # Show the generated maximum value
+      xpos: 80  # Horizontal position; 50 = center of the card
+      ypos: 85  # Vertical position; 50 = center of the card
 ```
 
-## :material-horseshoe: Choose a setup
+The available value suffixes are:
 
-Start by deciding what the graph should help you understand:
+| Suffix | Value |
+| --- | --- |
+| `min` | Lowest value in the Sparkline data. |
+| `avg` | Average value in the Sparkline data. |
+| `max` | Highest value in the Sparkline data. |
+| `min_time` | Time at which the minimum value occurs. |
+| `max_time` | Time at which the maximum value occurs. |
+| `duration` | Duration of the active historical period. |
+| `bin_duration` | Duration represented by one displayed history bin. |
+| `aggregate_func` | Aggregation function used for the history bins, such as `avg`, `min`, or `max`. |
 
-| Goal                                           | Recommended setup                                   |
-| :--------------------------------------------- | :-------------------------------------------------- |
-| Show the latest trend                          | Use `rolling_window` with a `line` or `area` chart. |
-| Show today's progress                          | Use `calendar` with `offset: 0`.                    |
-| Compare a completed day                        | Use `calendar` with a negative offset.              |
-| Preserve short peaks                           | Increase the number of bins per hour.               |
-| Show a calmer overall trend                    | Use fewer bins per hour with `aggregate_func: avg`. |
-| Show threshold changes instead of exact height | Use `barcode` or `radial_barcode` with color stops. |
-| Show when named states were active             | Use `state_bands` with a state map.                 |
-| Compare values during daylight and nighttime   | Add a [day-and-night layer](day-and-night.md).      |
+### Values from an explicit series
 
-For the current calendar period, the X-axis spans the full period while the graph fills up to the current time. A rolling window moves continuously and always shows the latest configured duration.
+When the Sparkline contains a `series:` list, each series has its own `id`. That series ID is added between the Sparkline ID and the value suffix.
 
-## :material-horseshoe: Chart types
+This example defines a series with `id: bedroom` and exposes its minimum as `fhs_sparkline.room_history_bedroom_min`:
 
-| Chart type       | Geometry             | Typical use                                             |
-| :--------------- | :------------------- | :------------------------------------------------------ |
-| `line`           | Cartesian            | A compact view of changes over time.                    |
-| `area`           | Cartesian            | A trend with a filled area for greater visual emphasis. |
-| `dots`           | Cartesian            | One separate point for each time bin.                   |
-| `bar`            | Cartesian            | One vertical bar for each time bin.                     |
-| `equalizer`      | Binned levels        | A stacked level display for every bin.                  |
-| `graded`         | Binned levels        | Grade-based or traffic-light-style values.              |
-| `radial`         | Circular values      | Line, area, or dots history arranged around an arc.      |
-| `state_bands`    | Categorical timeline | The duration and transitions of mapped states.          |
-| `barcode`        | Linear bins          | A dense color history without a Y-axis.                 |
-| `radial_barcode` | Circular bins        | Time bins arranged around a circle.                     |
+```yaml linenums="1"
+entities:
+  - entity: sensor.living_room_temperature  # History source for the first series
+  - entity: sensor.bedroom_temperature  # History source for the second series
+  - entity: fhs_sparkline.room_history_bedroom_min  # FHS entity containing the bedroom-series minimum
 
-### Display support
+layout:
+  sparklines:
+    - id: room_history  # Sparkline ID used in the generated FHS entity name
+      series:
+        - id: living_room  # First series ID
+          entity_index: 0  # Use sensor.living_room_temperature
+        - id: bedroom  # Second series ID
+          entity_index: 1  # Use sensor.bedroom_temperature
 
-| Chart type       | X-axis | Y-axis |   Grid  |      Axis labels     | Tooltip |
-| :--------------- | :----: | :----: | :-----: | :------------------: | :-----: |
-| `line`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
-| `area`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
-| `dots`           |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
-| `bar`            |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
-| `equalizer`      |   Yes  |   Yes  | X and Y |        X and Y       |    No   |
-| `graded`         |   No   |   No   |    No   |          No          |    No   |
-| `radial`         |   Yes  |   Yes  | X and Y |        X and Y       |   Yes   |
-| `state_bands`    |   Yes  |   Yes  | X and Y | X times and Y states |   Yes   |
-| `barcode`        |   Yes  |   No   |  X only |        X only        |   Yes   |
-| `radial_barcode` |   No   |   No   |    No   |          No          |   Yes   |
+  states:
+    - entity_index: 2  # Show the generated minimum for the bedroom series
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 85  # Vertical position; 50 = center of the card
+```
 
-Points can be added to line and area charts. Choose the standalone `dots` chart when every time bin should appear as an individual point without a connecting line.
+The naming pattern for an explicit series is `fhs_sparkline.<sparkline_id>_<series_id>_<value>`.
 
-Line, area, dots, and bar charts use Cartesian coordinates. A [radial chart](radial-chart.md) provides line, area, and dots around a circular arc. Equalizer, graded, state bands, barcode, and radial barcode each have their own chart page.
+See [Multiple series](multiple-series.md) for how to configure series themselves.
 
-## :material-horseshoe: Position and size
+## :material-horseshoe: Configuration reference
 
-| Field          | Default | Description                                                                                               |
-| :------------- | :------ | :-------------------------------------------------------------------------------------------------------- |
-| `entity_index` |         | Selects the entity used by the graph.                                                                     |
-| `xpos`         | `50`    | Positions the horizontal center in Flexible Horseshoe Card card coordinates.                                                  |
-| `ypos`         | `50`    | Positions the vertical center in Flexible Horseshoe Card card coordinates.                                                    |
-| `width`        | `25`    | Defines the graph width in Flexible Horseshoe Card card coordinates.                                                          |
-| `height`       | `25`    | Defines the graph height in Flexible Horseshoe Card card coordinates.                                                         |
-| `margin`       | `0`     | Reserves inner space around the graph; accepts one value or separate top, right, bottom, and left values. |
-| `same_as`      |         | Reuses another sparkline definition.                                                                      |
+A Sparkline can get its history from one top-level entity or from an explicit `series` list. Keep those two entry methods separate; after the history source is chosen, the same graph options apply to both.
 
-Margins reserve space within the configured graph area. Cartesian labels and tick marks use this space. Increasing the graph’s outer size does not change the requested history period or number of bins.
+### One history source
 
-## :material-horseshoe: Configure the graph
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `entity_index` | entity index | No | `0` | Entity whose history is shown; for a single-source Sparkline, omitting this field uses the first configured entity. |
 
-| Field                         | Description                                                              |
-| :---------------------------- | :----------------------------------------------------------------------- |
-| `period`                      | Chooses realtime, rolling-window, or calendar data.                      |
-| `state_values`                | Controls aggregation, smoothing, value factors, and logarithmic display. |
-| `show`                        | Chooses the chart type and which graph elements are visible.             |
-| `line_color`                  | Defines graph colors when no entity color or color stop applies.         |
-| `color_stops`                 | Defines value-based graph colors.                                        |
-| `colorstops_transition`       | Uses hard or smooth transitions between color stops.                     |
-| `tooltip.styles`              | Adjusts the appearance of the interactive tooltip.                       |
-| `show.legend`                 | Shows one color marker and label for every declared series.                |
-| `legend`                      | Positions and styles the separate legend area.                            |
-| `day_night`                   | Styles daylight and nighttime as a background or separate band.           |
-| `line` and `area`             | Control the styling of line and area charts.                             |
-| `state_map` and `state_bands` | Map named states and control the appearance of a state bands chart.      |
+### Multiple history sources or periods
 
-## :material-horseshoe: Show options
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `series` | list | Yes | — | Defines two or more graph series, or several periods of the same entity. Each series contains its own source/settings. |
 
-| Field                           | Description                                         |
-| :------------------------------ | :-------------------------------------------------- |
-| `chart_type`                    | Chooses the visible chart type.                     |
-| `line`                          | Shows the line layer where supported.               |
-| `area`                          | Shows the area layer where supported.               |
-| `grid.x` and `grid.y`           | Display the automatic grid for each supported axis. |
-| `axis.x` and `axis.y`           | Display each supported axis independently.          |
-| `tickmarks.x` and `tickmarks.y` | Display tick marks for each supported axis.         |
-| `labels.x` and `labels.y`       | Display labels for each supported axis.             |
-| `points`                        | Adds one point for each graph bin.                  |
-| `fill`                          | Chooses the supported fill or fade behavior.        |
+### Options for every Sparkline
 
-Not every option is available for every chart type. Radial barcode charts, for example, use a circular layout and therefore do not display a conventional X-axis or vertical indicator.
-
-For line, area, and bar charts, both axes are calculated automatically. Use the individual `x` and `y` settings to choose which elements are visible; there is no need to define tick intervals or scale boundaries manually.
-
-Existing configurations that use a boolean value, such as `axis: true`, continue to display both supported axes.
-
-## :material-horseshoe: Color stops and statistics
-
-Each bin keeps the values needed to calculate its aggregate and statistics. The tooltip can display the bin’s date or time together with its minimum, average, and maximum values. Number formatting and units come from the connected entity.
-
-Statistics and active graph settings can also be added to the card's `entities` list. This makes values such as the displayed minimum, selected history duration, automatically calculated bin size, and aggregation function available to ordinary states and texts. See [Sparkline values as entities](../../card-basics/entities.md) for the available names and a complete example.
-
-Color stops may apply to an entire path or to individual bins, depending on the chart type. Barcode and radial barcode charts calculate a color for each bin, while line and area charts can use a gradient across the visible value range.
-
-See [Color Stops](../../appearance/color-stops.md) for reusable color definitions and transition modes.
+| Field | Type | Required | Default | Description |
+| --- | --- | :---: | --- | --- |
+| `xpos` | number | No | `50` | Horizontal position of the graph center. |
+| `ypos` | number | No | `50` | Vertical position of the graph center. |
+| `width` | number | No | `25` | Graph width. |
+| `height` | number | No | `25` | Graph height. |
+| `margin` | number / mapping | No | `0` | Adds space between the graph data and the graph area's edges when labels or marks need room. |
+| `period` | mapping | No | Calendar / 24 hours | Chooses which history range is loaded and how it is divided into intervals. |
+| `sparkline` | mapping | No | Defaults applied | Chooses chart type, value aggregation, colors, and chart-specific appearance. |
+| `x_axis` | mapping | No | Default axis appearance | Configures the time axis when it is shown. |
+| `y_axis` | mapping | No | Default axis appearance | Configures the value axis when it is shown. |
+| `sparkline.legend` | mapping | No | Hidden | Configures the series legend; `sparkline.show.legend` makes it visible. |
+| `same_as` | string | No | Not set | Reuses another Sparkline definition and lets this item override only the differences. |
 
 ## :material-horseshoe: Related documentation
 
-* [Sparkline History Periods and Bins](sparkline-history-periods-and-bins.md)
-* [Sparkline Cartesian Charts and Axes](axes-and-grid.md)
-* [Day and Night](day-and-night.md)
-* [Sparkline Specialized Charts](sparkline-overview.md#chart-types)
-* [Entity Definitions](../../card-basics/entities.md)
-* [Color Stops](../../appearance/color-stops.md)
+- [History period](sparkline-history-periods-and-bins.md)
+- [Chart types](#choose-how-the-graph-is-shown)
+- [Multiple series](multiple-series.md)
+- [Axes and grid](axes-and-grid.md)
+- [Day and night](day-and-night.md)
+- [Color stops](../../appearance/color-stops.md)

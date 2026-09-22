@@ -6,94 +6,87 @@ tags:
   - Sparkline
   - Dots chart
 ---
-
 # Dots chart
 
-A dots chart shows every time bin as a separate point without connecting the values.
+A Dots chart is one way to draw Sparkline history. Each displayed time interval appears as a separate point with no connecting line, so individual values and gaps remain visible.
 
-Use it when individual observations matter more than a continuous trend or when gaps between values should remain visible.
+This page shows how to select the Dots chart, control point size, choose the history detail, and combine dots with the shared Sparkline axes and labels.
 
-<!-- Add a dots chart screenshot here. -->
 ![Flexible Horseshoe Sparkline dots chart example](../../assets/screenshots/fhs-card-dots-study-humidity--dark.webp)
 
 See: [Sparkline History Template Card #060]
 
-  [Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml
+## :material-horseshoe: Show a dots chart
 
-
-## :material-horseshoe: Basic configuration
-
-This example shows the latest day and lets Flexible Horseshoe Card choose a suitable number of points:
+Use dots when each aggregated interval should remain a separate visible sample with no line connecting it to the next.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
 layout:
   sparklines:
-    - id: humidity-dots
-      entity_index: 0
-      xpos: 50
-      ypos: 50
-      width: 80
-      height: 35
-
-      period:
-        type: rolling_window
-        rolling_window:
-          duration:
-            hour: 24
-          bins:
-            per_hour: auto
-            density: medium
-
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
       sparkline:
-        state_values:
-          aggregate_func: avg
+        show:
+          chart_type: dots  # Draw one point for each time interval
+        dots:
+          radius: 1  # Size of each point
+```
+## :material-horseshoe: Make the points larger or smaller
+
+Change the dot radius when points are hard to see or visually overpower the graph.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
         show:
           chart_type: dots
         dots:
-          radius: 1
+          radius: 0.75  # Size of each point
 ```
+The period/bins determine how many points are shown. Smaller points leave more visual room when there are many intervals.
+
+## :material-horseshoe: Choose the value shown by each point
+
+Use `state_values.aggregate_func` when each interval should show its average, minimum, maximum, or another supported aggregate.
+
+## :material-horseshoe: Add axes and labels
+
+Dots supports the normal Sparkline axes, grid, tick marks, and labels. See [Axes and grid](axes-and-grid.md).
 
 ## :material-horseshoe: Configuration options
 
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `show.chart_type` | string | No | `line` | Set to `dots` to display a dots chart. |
-| `dots.radius` | number | No | `2` | Sets the radius of every point. |
-| `state_values.aggregate_func` | string | No | `avg` | Chooses the value represented by each point, such as `avg`, `min`, or `max`. |
-| `bins.per_hour` | number or `auto` | No | `auto` | Chooses how many points can appear within each hour. |
-| `show.axis.x`, `show.axis.y` | boolean | No | `false` | Shows the time or value axis. |
-| `show.labels.x`, `show.labels.y` | boolean | No | `false` | Shows labels along the enabled axes. |
-| `series[].color` | color | No | automatic palette | Gives each series a recognizable fixed color. |
-
-!!! tip "Keep automatic bins"
-
-    Leave `bins.per_hour` set to `auto` for normal use. Flexible Horseshoe Card then chooses a suitable interval from the graph width, duration, chart type, and `bins.density`. Set a number only when you deliberately need a fixed number of points per hour.
-
-## :material-horseshoe: Basic dots chart
-
-```yaml linenums="1"
-sparkline:
-  show:
-    chart_type: dots
-
-  dots:
-    radius: 1
-```
-
-The history period and bins determine how many dots are shown.
-
-## :material-horseshoe: Choose the detail level
-
-Smaller dots allow more bins to remain readable. Larger dots emphasize individual values.
-
-```yaml linenums="1"
-sparkline:
-  dots:
-    radius: 0.75
-```
+| `sparkline.show.chart_type` | `dots` | Yes | `line` | Set this to `dots` to select this chart family; omitting it leaves the Sparkline as the default Line chart. |
+| `sparkline.dots.radius` | number | No | `2` | Size of every point; increase it when individual samples are hard to see and reduce it when points overlap. |
+| `sparkline.state_values.aggregate_func` | `avg`, `median`, `max`, `min`, `first`, `last`, `sum`, `delta`, `diff` | No | `avg` | Chooses the value represented by each historical point; see History periods and bins for the meaning of each choice. |
+| `period.calendar.bins.per_hour` / `period.rolling_window.bins.per_hour` | number/`auto` | No | `auto` | Number of points/time interval. |
+| `sparkline.show.axis.x`, `sparkline.show.axis.y` | boolean | No | `false` | Shows time and/or value axes when the position of each point needs a readable reference. |
+| `sparkline.show.labels.x`, `sparkline.show.labels.y` | boolean | No | `false` | Shows the corresponding time/value labels next to the axes. |
+| `series[].color` | color | No | Automatic palette | Per-series color. |
 
 ## :material-horseshoe: Related
 
 - [Line chart](line-chart.md)
 - [Bar chart](bar-chart.md)
-- [History periods and bins](sparkline-history-periods-and-bins.md)
+- [History period](sparkline-history-periods-and-bins.md)
+
+[Sparkline History Template Card #060]: https://github.com/AmoebeLabs/home-assistant-config/blob/master/lovelace/fhs_sys_templates/templates/51-cards/060-069/fhs-card-060-sensor-history-min-avg-max.yaml

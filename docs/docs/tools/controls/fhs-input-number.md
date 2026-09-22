@@ -1,133 +1,105 @@
 ---
 template: main.html
-title: Flexible Horseshoe Card input number
-description: Add a browser-local adjustable number to a Flexible Horseshoe Card.
+title: Local input number
+description: Add a local adjustable number to a Flexible Horseshoe Card.
 tags:
   - Controls
   - Flexible Horseshoe Card inputs
   - Number
 ---
+# Local input number
 
-# Flexible Horseshoe Card input number
+A local input number is a local numeric value that can be used by the card like an entity state. It is useful for settings such as a history duration, threshold, scale limit, size, or offset when Home Assistant does not need to own that value.
 
-An Flexible Horseshoe Card input number adds an adjustable numeric setting directly to a Flexible Horseshoe Card. Use it for a history duration, scale boundary, threshold, offset, width, or any other number used by the card.
+A local input number is not created in Home Assistant. Its entity ID must start with `fhs_input_number.`, which tells the card to create and manage the value locally.
 
-The value is stored in the current browser and does not require a Home Assistant helper. Use a Home Assistant [Input number](https://www.home-assistant.io/integrations/input_number/) instead when automations, other dashboards, or other devices need the same value.
+This page shows how to define its range and step, change it with controls or actions, use the number elsewhere in the card, and optionally persist it on this Home Assistant client.
 
-## :material-horseshoe: Basic configuration
+## :material-horseshoe: Add a number
 
-Add the input to the card's `entities` list. Its entity ID must start with `fhs_input_number.`.
+Use a local input number when the card needs a local numeric value. Add `min` and/or `max` only when the value needs limits; without them the value is unbounded in that direction.
 
 ```yaml linenums="1"
 entities:
-  - entity: fhs_input_number.history_days
+  - entity: fhs_input_number.history_days  # Create or use this local input
+    initial: 1  # Value used when this local input is created
+    min: 1
+    max: 14
+    step: 1  # Amount added or removed by each adjustment
+    unit: d  # Unit shown with the value
+    scope: card  # Keep this value inside this card
+```
+
+## :material-horseshoe: Change it with a Number control or Slider
+
+Connect a [Number control](number-tool.md) for minus/plus steps or a [Slider](slider-tool.md) for direct dragging.
+
+## :material-horseshoe: Use the value in the card
+
+Read the state in a JavaScript template and convert it to a number when needed:
+
+```yaml linenums="1"
+entities:
+  - entity: fhs_input_number.history_days  # Local number used to choose the history length
     initial: 1
     min: 1
     max: 14
-    step: 1
-    unit: d
-    scope: card
-```
+  - entity: sensor.temperature  # Entity whose history is graphed
 
-Connect a number control to the input:
-
-```yaml linenums="1"
 layout:
-  controls:
-    - id: history-days
-      type: number
-      entity_index: 0
+  sparklines:
+    - entity_index: 1  # Graph the temperature entity
       xpos: 50
-      ypos: 85
-      width: 32
-      height: 10
-      show:
-        item_variant: stepper
-        item_viz: buttons
-        item_style: outlined_round
+      ypos: 50
+      width: 80
+      height: 35
+      # Convert the selected number of days to hours for the Sparkline.
+      period:
+        rolling_window:
+          duration:
+            hour: |
+              [[[
+                return Number(entities[0].state) * 24;
+              ]]]
 ```
+## :material-horseshoe: Change the value from an action
 
-Use a [slider control](slider-tool.md) instead when the user should adjust the value by dragging along a range.
-
-## :material-horseshoe: Configuration options
-
-| Option | Description |
-| --- | --- |
-| `entity` | A unique entity ID starting with `fhs_input_number.`. |
-| `initial` | Value assigned when the input is created. |
-| `min` | Lowest value the input can contain. |
-| `max` | Highest value the input can contain. |
-| `step` | Amount added or removed by each adjustment. |
-| `unit` | Unit shown with the value. |
-| `decimals` | Number of decimal places shown for the value. |
-| `scope: card` | Keeps a separate value for this card. |
-| `scope: global` | Shares the value with Flexible Horseshoe Card cards in the current browser. |
-| `persist: true` | Restores a global value after the browser reloads. |
-| `name` | Name shown by tools that display the entity name. |
-| `icon` | Icon shown by tools that display the entity icon. |
-
-See [Entities](../../card-basics/entities.md) for slots and other entity settings.
-
-## :material-horseshoe: Use the value in a card
-
-The input state contains the current value. Convert it to a number when using it in a calculation.
-
-This example converts a number of days to the hours used by a sparkline history period:
-
-```yaml linenums="1"
-period:
-  rolling_window:
-    duration:
-      hour: |
-        [[[
-          return Number(entities[0].state) * 24;
-        ]]]
-```
-
-The same pattern can change a scale, threshold, size, position, or other numeric card setting.
-
-## :material-horseshoe: List of actions
-
-Number and slider controls change the value directly. Buttons and other actionable tools can use these actions:
+Actions can update the local number when the value should change from another control instead of a Number or Slider control.
 
 | Action | Result |
 | --- | --- |
-| `fhs_input_number.set_value` | Sets the input to a specific value. |
-| `fhs_input_number.increment` | Adds one configured step. |
-| `fhs_input_number.decrement` | Removes one configured step. |
+| `fhs_input_number.set_value` | Sets a specific value |
+| `fhs_input_number.increment` | Adds one step |
+| `fhs_input_number.decrement` | Removes one step |
 
-```yaml linenums="1"
-tap_action:
-  action: perform-action
-  perform_action: fhs_input_number.set_value
-  target:
-    entity_id: fhs_input_number.history_days
-  data:
-    value: 7
-```
+The result stays within `min` and `max`.
 
-The value remains within the configured `min` and `max`.
+## :material-horseshoe: Share or persist the value
 
-## :material-horseshoe: Keep the value after reloading
+Use `scope: global` to share the number with cards in this Home Assistant client. Add `persist: true` to restore the global value after a reload.
 
-Use `scope: global` with `persist: true` when the number should remain active after reloading the dashboard:
+## :material-horseshoe: Configuration options
 
-```yaml linenums="1"
-entities:
-  - entity: fhs_input_number.history_days
-    initial: 1
-    min: 1
-    max: 14
-    step: 1
-    scope: global
-    persist: true
-```
 
-Every Flexible Horseshoe Card card in the current browser that defines `fhs_input_number.history_days` receives the same value. Other browsers and devices keep their own value.
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entity` | string | Yes | — | Unique ID starting with `fhs_input_number.`. |
+| `initial` | number | Yes | — | Initial numeric value. |
+| `min`, `max` | number | No | Not set | Optional lower and upper limits. When both are set, `min` must be lower than `max`; `initial` must fall inside the configured limits. Omit either bound when the value should remain unbounded in that direction. |
+| `step` | number | No | `1` | Amount added or removed by an increment/decrement action or step control; it must be greater than zero. |
+| `unit` | string | No | Empty | Unit shown with the local number; omit it when the value has no unit. |
+| `decimals` | integer | No | `0` | Number of decimal places used when this local number is displayed. |
+| `scope` | `card`, `global` | No | `card` | `card` keeps a separate value per card; `global` shares the value between cards in this Home Assistant client. |
+| `persist` | boolean | No | `false` | Restores the value after a client reload; it can only be enabled with `scope: global`. |
+| `name` | string | No | Entity ID suffix | Display name exposed by the local entity. |
+| `icon` | string | No | Not set | Optional icon exposed by the local entity. |
+| `tap_action` | action | No | `none` | Default tap action inherited by a layout item that uses this local entity and does not define its own tap action. |
 
 ## :material-horseshoe: Related
 
 - [Number control](number-tool.md)
-- [Slider control](slider-tool.md)
-- [Browser-local inputs](browser-local-inputs.md)
+- [Slider](slider-tool.md)
+- [Local input entities](browser-local-inputs.md)
 - [JavaScript templates](../../dynamic/javascript-templates.md)

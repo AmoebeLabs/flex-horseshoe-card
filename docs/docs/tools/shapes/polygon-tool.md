@@ -7,105 +7,64 @@ tags:
   - Shapes
   - Card tools
 ---
-
 # Polygon
 
-A polygon adds a shape with three or more sides to your card. Use polygons as backgrounds, borders, status surfaces, or together with a polygon-shaped horseshoe.
+A Polygon is a multi-sided shape such as a triangle, square, pentagon, or hexagon. It can be used as a background, badge, indicator, frame, or as a matching shape behind another card element.
 
-## :material-horseshoe: When to use a polygon
+This page shows how to choose the number of sides, size and orient the Polygon, round its corners, style it, and use it together with a Horseshoe.
 
-Use a polygon when you want a shape such as a triangle, pentagon, or hexagon.
+## :material-horseshoe: Add a Polygon
 
-For a simple four-sided shape, use a [Rectangle](../shapes/rectangle-tool.md) instead. To create a gauge that follows the outline of a polygon, use a [Horseshoe with a polygon path](../../tools/horseshoe/horseshoe-path-shapes.md).
+A Polygon creates a triangle, hexagon, or another multi-sided shape. `width` and `height` can be set independently, so the shape can also be stretched horizontally or vertically.
 
-## :material-horseshoe: Example
-
-**[IMAGE: simple hexagon centered on a card]**
-
-This example creates a hexagon in the center of the card:
-
-```yaml
+```yaml linenums="1"
 layout:
   polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 6      # An hexagon
-      width: 80     # With width...
-      height: 55    # ..and height
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      sides: 6  # Number of sides of the polygon
+      width: 60  # Width in card coordinates
+      height: 52  # Height in card coordinates
+      styles:
+        fill: none  # Keep the inside transparent; draw only the border
+        stroke: var(--primary-color)  # Border color
 ```
 
-Polygons are added under `layout.polygons`.
+## :material-horseshoe: Choose the number of sides
 
-The position is set with `xpos` and `ypos`. The number of sides determines the basic shape, while `width` and `height` determine its size.
+Change `sides` to create another regular shape:
 
-## :material-horseshoe: Basic configuration
+- `3` — triangle
+- `4` — quadrilateral
+- `6` — hexagon
+- higher values — more sides
 
-### Number of sides
+## :material-horseshoe: Change the size and corners
 
-Use `sides` to choose the shape.
+Use `width` and `height` to size the Polygon. Use `radius` to round its corners; `0` keeps them sharp.
 
-```yaml
+```yaml linenums="1"
 layout:
   polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 5
-      width: 80
-      height: 80
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      sides: 6  # Number of sides of the polygon
+      width: 70  # Width in card coordinates
+      height: 60  # Height in card coordinates
+      radius: 4  # Radius of this shape
 ```
 
-**[IMAGE: triangle, pentagon and hexagon next to each other, labelled 3 / 5 / 6 sides]**
+## :material-horseshoe: Choose what faces upward
 
-A polygon requires at least three sides.
+`top` selects which point on the Polygon faces the top of the card.
 
-!!! info "Odd-sided polygons point upward by default. Even-sided polygons have a horizontal side at the top."
+For example:
 
-### Size
+- `top: 0` places corner `0` at the top;
+- `top: 0.5` places the middle of the first side at the top;
+- decimal values choose a position along a side.
 
-`width` and `height` set the outside dimensions of the polygon.
-
-Use the same value for both to keep the shape evenly proportioned:
-
-```yaml
-width: 80
-height: 80
-```
-
-Use different values to make it wider or taller:
-
-```yaml
-width: 80
-height: 55
-```
-
-**[IMAGE: same hexagon at 80×80 and 80×55]**
-
-### Rounded corners
-
-Use `radius` to round the corners:
-
-```yaml
-layout:
-  polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 6
-      width: 80
-      height: 55
-      radius: 4
-```
-
-Omit `radius`, or use `0`, for sharp corners.
-
-**[IMAGE: same polygon with radius 0 and radius 4]**
-
-## :material-horseshoe:  Orientation
-
-Use `top` to choose which corner or side of the polygon faces upward.
-
-Corners are numbered clockwise.
-
-**[IMAGE/DIAGRAM: triangle and hexagon with corner numbers]**
+Use `top` to choose whether a point or a flat side faces upward.
 
 For a triangle and hexagon:
 
@@ -121,151 +80,64 @@ Triangle              Hexagon
                        4 --- 3
 ```
 
-`top: 0` places corner `0` at the top:
+## :material-horseshoe: Fill the Polygon or show only the border
 
-```yaml
-top: 0
-```
+Use `styles` to control the fill, border (`stroke`), border width, opacity, and other appearance.
 
-`top: 0.5` places the middle of the side between corners `0` and `1` at the top:
+A thick or partly transparent border can look darker where the fill continues underneath it. `fill_mask` prevents that visual overlap by stopping the fill farther inward.
 
-```yaml
-top: 0.5
-```
+## :material-horseshoe: Prevent the fill and border from visually overlapping
 
-Decimal values select a position along the side toward the next corner. For example, `top: 0.1` selects a point ten percent of the way from corner `0` to corner `1`.
+When a Polygon has both a fill and a border, part of the border lies inside the Polygon. If the fill continues underneath that part, opacity can make the border look darker or heavier than intended.
 
+The default `fill_mask: auto` stops the fill at the inside edge of the border. You normally leave it unchanged. Set a larger value only when you deliberately want the fill to stop farther inward and create extra visible space. `0` allows the fill to continue underneath the border; negative values are not supported.
 
-| Value | Result |
-| --- | --- |
-| `top: 0` | Corner `0` faces upward. |
-| `top: 0.5` | The middle of the side from `0` to `1` faces upward. |
-| `top: 0.1` | The point ten percent along the side from `0` to `1` faces upward. |
-
-**[IMAGE: same hexagon with top: 0 and top: 0.5 side by side]**
-
-## :material-horseshoe: Styling
-
-Use `styles` to change the fill, outline, opacity, and other SVG properties.
-
-```yaml
+```yaml linenums="1"
 layout:
   polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 6
-      width: 80
-      height: 55
-      radius: 4
+    - xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      sides: 6  # Draw a six-sided Polygon
+      width: 60  # Outside width
+      height: 52  # Outside height
       styles:
-        fill: var(--primary-color)
-        fill-opacity: 0.2
-        stroke: var(--primary-color)
-        stroke-width: 1
+        fill: var(--primary-color)  # Fill color
+        fill-opacity: 0.25  # Make the fill partly transparent
+        stroke: var(--primary-color)  # Border color
+        stroke-opacity: 0.5  # Make the border partly transparent
+        stroke-width: 4  # Thick borders make overlap easier to notice
+      fill_mask: auto  # Keep the fill from visually stacking underneath the border
 ```
 
-**[IMAGE: styled hexagon produced by this configuration]**
+## :material-horseshoe: Use the same shape for a Horseshoe path
 
-See [Styling] for the available styling options.
+A Horseshoe can use a polygon-shaped path. See [Horseshoe path shapes](../horseshoe/horseshoe-path-shapes.md).
 
-## :material-horseshoe: Using a polygon with a horseshoe
+## :material-horseshoe: Change color or behavior with an entity
 
-A polygon can be used as the background for a horseshoe with a polygon path.
-
-**[IMAGE: existing polygon + matching horseshoe example]**
-
-Use the same position, size, number of sides, corner radius, and `top` value for both shapes:
-
-```yaml
-layout:
-  polygons:
-    - xpos: 50
-      ypos: 50
-      sides: 6
-      width: 80
-      height: 55
-      radius: 4
-      top: 0.5
-      styles:
-        fill: var(--primary-color)
-        fill-opacity: 0.12
-
-  horseshoes:
-    - entity_index: 0
-      xpos: 50
-      ypos: 50
-
-      path:
-        type: polygon
-        sides: 6
-        width: 80
-        height: 55
-        radius: 4
-        top: 0.5
-
-      horseshoe_scale:
-        min: 0
-        max: 100
-```
-
-The polygon and horseshoe now follow exactly the same outline.
-
-See [Horseshoe path shapes] for partial polygon gauges and direction settings.
-
-## :material-horseshoe: Entity-based appearance and interaction
-
-A polygon does not need an entity.
-
-Add `entity_index` when its appearance or behavior should depend on an entity:
-
-```yaml
-entity_index: 0
-```
-
-This can be used with:
-
-* [Color stops](../../appearance/color-stops.md)
-* [Color filters](../../appearance/color-filters.md)
-* [Actions](../../interaction/actions.md)
-* [Animations](../../interaction/animations.md)
+Add `entity_index` when the Polygon should use an entity for color, visibility, actions, or other supported behavior. See [Color stops](../../appearance/color-stops.md) and [Interaction](../../interaction/interaction-overview.md).
 
 ## :material-horseshoe: Configuration options
 
-| Field          | Required | Default               | Description                                              |
-| -------------- | -------- | --------------------- | -------------------------------------------------------- |
-| `xpos`         | Yes      |                       | Horizontal center position.                              |
-| `ypos`         | Yes      |                       | Vertical center position.                                |
-| `sides`        | Yes      |                       | Number of sides. Must be `3` or greater.                 |
-| `width`        | Yes      |                       | Outer width of the polygon.                              |
-| `height`       | Yes      |                       | Outer height of the polygon.                             |
-| `radius`       | No       | `0`                   | Corner radius.                                           |
-| `top`          | No       | Depends on `sides`    | Position on the polygon that faces upward.               |
-| `fill_mask`    | No       | `auto`                | Removes fill beneath the inside part of the outline.     |
-| `entity_index` | No       |                       | Entity used for value-dependent appearance and behavior. |
-| `styles`       | No       | Default polygon style | SVG styling for the polygon.                             |
-| `color_stops`  | No       |                       | Colors the polygon based on an entity value.             |
 
-### `top` defaults
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
 
-* Odd number of sides: `0`
-* Even number of sides: `0.5`
-
-### `fill_mask`
-
-Polygons support the same fill and outline (stroke) styles as rectangles. When both have opacity set, `fill_mask: auto` prevents their colors from becoming darker where they overlap. If you set the fill_mask to a negative number, the inside of the filled polygon becomes smaller: you see the background between the outline (stroke) and the filled inside of the polygon.
-
-
-## :material-horseshoe: Styling and interaction
-
-Connect a polygon through `entity_index` when its color or behavior should follow an entity. Continue with [Color stops](../../appearance/color-stops.md), [Color filters](../../appearance/color-filters.md), [Actions](../../interaction/actions.md), and [Animations](../../interaction/animations.md).
-
-The [complete polygon and horseshoe example](https://github.com/AmoebeLabs/flex-horseshoe-card/blob/master/examples/fhs-card-polygon-horseshoe-v1.yaml) combines a filled polygon, a matching gauge, a state, and a slider.
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `xpos` | number | Yes | — | Horizontal center position. |
+| `ypos` | number | Yes | — | Vertical center position. |
+| `sides` | integer | Yes | — | Number of sides; must be 3 or greater. |
+| `width` | number | Yes | — | Outer width. |
+| `height` | number | Yes | — | Outer height. |
+| `radius` | number | No | `0` | Corner radius. |
+| `top` | number | No | `0` odd sides / `0.5` even sides | Chooses which corner or side faces upward; the default keeps odd and even polygons visually upright. |
+| `fill_mask` | `auto` / number ≥ 0 | No | `auto` | Controls where the fill ends relative to the border. `0` lets it continue underneath the border; `auto` stops it at the inside edge; larger values move it farther inward. |
+| `entity_index` | entity index | No | Not set | Entity used for value-dependent appearance and behavior. |
+| `styles` | mapping | No | Default polygon style | Sets the fill, border (`stroke`), border width, opacity, and other visible Polygon styling. |
+| `color_stops` | mapping | No | Not set | Colors the polygon based on an entity value. |
 
 ## :material-horseshoe: Related
 
-* [Horseshoe path shapes](../horseshoe/horseshoe-path-shapes.md)
-* [Rectangle](../shapes/rectangle-tool.md)
-* [Positioning and sizing](../../card-basics/positioning-and-sizing.md)
-* [Styling](../../appearance/styling.md)
-* [Reuse™](../../reuse/reuse-introduction.md)
-
+- [Shapes](shapes-overview.md)
+- [Horseshoe path shapes](../horseshoe/horseshoe-path-shapes.md)
+- [Color stops](../../appearance/color-stops.md)

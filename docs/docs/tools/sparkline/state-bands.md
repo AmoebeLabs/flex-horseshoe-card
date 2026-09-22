@@ -6,126 +6,123 @@ tags:
   - Sparkline
   - State bands
 ---
-
 # State bands
 
-A state-bands chart shows when an entity was in each named state and how long that state lasted. Use it for named conditions rather than numeric trends.
+State bands are a Sparkline chart type for entities whose history consists of named states instead of meaningful numeric values. The graph shows which state was active at each time and how long it lasted, which suits modes, occupancy, alarms, doors, or other categorical history.
 
-It works well for heating modes, occupancy, machine states, alarms, doors, or another entity where duration and transitions matter more than a numeric trend.
+This page shows how to map named states to visible levels, color those states, and add time/state axes and labels.
 
-The state band sparkline is inspired by the Sleep Cycle visualizations from Apple Health and others.
-
-<!-- Add a state-bands chart screenshot here. -->
 ![Flexible Horseshoe sparkline state band example](../../assets/screenshots/fhs-card-state_band-pollen-kruiden--dark.webp)
 
-## :material-horseshoe: Basic configuration
+## :material-horseshoe: Show named states over time
 
-This example shows when a climate system was off, heating, or cooling:
+Use state bands for entities whose history consists of named states such as `off`, `heating`, or `open` rather than continuous numbers.
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
 layout:
   sparklines:
-    - id: climate-states
-      entity_index: 0
-      xpos: 50
-      ypos: 50
-      width: 80
-      height: 35
-
-      period:
-        type: rolling_window
-        rolling_window:
-          duration:
-            hour: 24
-
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
       sparkline:
         show:
-          chart_type: state_bands
+          chart_type: state_bands  # Show named states over time
         state_map:
           map:
             - state: "off"
               label: Off
-              value: 0
+              value: 0  # Vertical level used for the off state
             - state: heating
               label: Heating
-              value: 1
+              value: 1  # Vertical level used for the heating state
             - state: cooling
               label: Cooling
-              value: 2
+              value: 2  # Vertical level used for the cooling state
 ```
+Each mapped state receives a visible label and vertical level.
+
+## :material-horseshoe: Add colors to the states
+
+Give each named state a color when the timeline should be readable without inspecting every text label.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          chart_type: state_bands
+        color_stops:
+          colors:
+            - state: "off"  # Use this color when the state is off
+              color: var(--disabled-text-color)  # Color used for this value or state
+              rank: 0  # Order of this named state in the visual scale
+            - state: heating  # Use this color when the state is heating
+              color: var(--error-color)  # Color used for this value or state
+              rank: 1  # Order of this named state in the visual scale
+            - state: cooling  # Use this color when the state is cooling
+              color: var(--info-color)  # Color used for this value or state
+              rank: 2  # Order of this named state in the visual scale
+```
+## :material-horseshoe: Show time and state labels
+
+Add labels when the viewer needs to identify both when a state occurred and which state level is being shown.
+
+```yaml linenums="1"
+entities:
+  - entity: sensor.temperature  # Entity whose history is graphed
+
+layout:
+  sparklines:
+    - xpos: 50  # Horizontal center of the graph
+      ypos: 50  # Vertical center of the graph
+      width: 80  # Graph width in card coordinates
+      height: 35  # Graph height in card coordinates
+      entity_index: 0  # Use the first entity configured above
+      sparkline:
+        show:
+          chart_type: state_bands
+          axis:
+            x: true  # Show the time axis
+            y: true  # Show the value axis
+          labels:
+            x: true  # Show labels on the time axis
+            y: true  # Show labels on the value axis
+```
+## :material-horseshoe: Keep the current state extending to now
+
+`state_bands.update_interval` controls how often an unchanged current state extends toward the current time. The normal default is `5min`.
 
 ## :material-horseshoe: Configuration options
 
+
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
+
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `show.chart_type` | string | No | `line` | Set to `state_bands` to display a categorical state timeline. |
-| `state_map.map[].state` | string | Yes | - | Matches a Home Assistant state. |
-| `state_map.map[].label` | string | No | state value | Sets the state label shown on the Y-axis. |
-| `state_map.map[].value` | number | Yes | - | Sets the vertical level of the state. |
-| `state_bands.update_interval` | duration | No | `5min` | Optional refresh interval for an ongoing current state. Leave the default for normal use. |
-| `color_stops` | mapping | No | none | Assigns a color to every named state. |
-| `show.axis.x`, `show.axis.y` | boolean | No | `false` | Shows the time or state axis. |
-| `show.labels.x`, `show.labels.y` | boolean | No | `false` | Shows labels along the enabled axes. |
-
-## :material-horseshoe: Basic state bands
-
-```yaml linenums="1"
-sparkline:
-  show:
-    chart_type: state_bands
-
-  state_map:
-    map:
-      - state: "off"
-        label: Off
-        value: 0
-      - state: heating
-        label: Heating
-        value: 1
-      - state: cooling
-        label: Cooling
-        value: 2
-
-```
-
-Each map entry gives a state its visible label and vertical level.
-
-## :material-horseshoe: Add state colors
-
-```yaml linenums="1"
-color_stops:
-  colors:
-    - state: "off"
-      color: var(--disabled-text-color)
-      rank: 0
-    - state: heating
-      color: var(--error-color)
-      rank: 1
-    - state: cooling
-      color: var(--info-color)
-      rank: 2
-```
-
-## :material-horseshoe: Show axes and labels
-
-State bands can show time on the X-axis and state labels on the Y-axis:
-
-```yaml linenums="1"
-sparkline:
-  show:
-    axis:
-      x: true
-      y: true
-    labels:
-      x: true
-      y: true
-    tickmarks:
-      x: true
-      y: true
-```
+| `sparkline.show.chart_type` | `state_bands` | Yes | `line` | Set this to `state_bands` to select this chart family; omitting it leaves the Sparkline as the default Line chart. |
+| `sparkline.state_map.map[].state` | string | Yes | — | Home Assistant state to match. |
+| `sparkline.state_map.map[].label` | string | No | State text | Visible state label. |
+| `sparkline.state_map.map[].value` | number | Yes | — | Vertical state level. |
+| `sparkline.state_bands.update_interval` | duration | No | `5min` | Refresh interval for an ongoing state. |
+| `sparkline.color_stops` | mapping | No | Not set | Gives each named state its own color so the history can be recognized without reading every label. |
+| `sparkline.show.axis.x/y` | boolean | No | `false` | Shows the time axis and/or the state-level axis when those references help interpret the bands. |
+| `sparkline.show.labels.x/y` | boolean | No | `false` | Shows readable time and/or state labels next to the corresponding axes. |
 
 ## :material-horseshoe: Related
 
 - [Axes and grid](axes-and-grid.md)
 - [Color stops](../../appearance/color-stops.md)
-- [History periods and bins](sparkline-history-periods-and-bins.md)
+- [History period](sparkline-history-periods-and-bins.md)

@@ -7,163 +7,132 @@ tags:
   - Button
   - Actions
 ---
-
 # Button control
 
-A button gives the user a clear command inside the card. Use it to open entity details, toggle an entity, navigate to another view, open a URL, or perform a Home Assistant action.
+A Button is an interactive control that performs an action when the user presses it. It can open entity details, toggle an entity, call a Home Assistant action, navigate to another view, or work without an entity when the action already contains its own target.
 
-A button can use the entity connected through `entity_index`, or it can act without an entity when its action already contains a target, path, or URL. See [Actions](../../interaction/actions.md) for all supported actions.
+This page shows how to add a button, choose its content and appearance, and connect tap, hold, or double-tap actions.
 
-<!-- Add a button control screenshot here. -->
+## :material-horseshoe: Add a Button
 
-## :material-horseshoe: Basic configuration
-
-This button opens the more-info dialog for the first card entity:
+This button opens more information for the selected entity:
 
 ```yaml linenums="1"
 entities:
-  - entity: light.living_room
+  - entity: light.living_room  # Home Assistant entity used by this card
 
 layout:
   controls:
-    - id: light-details
-      type: button
-      entity_index: 0
-      xpos: 50
-      ypos: 80
-      width: 42
-      height: 12
-
-      show:
-        item_variant: default
-        item_viz: viz_button
-        item_style: outlined_round
+    - id: light-details  # Name this item so it can be referenced later
+      type: button  # Create a button control
+      entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 80  # Vertical position; 50 = center of the card
+      width: 42  # Width of the complete control
+      height: 12  # Height of the complete control
 
       content:
-        mode: content_horizontal
+        mode: content_horizontal  # Arrange the button content as horizontal
         content_horizontal:
-          gap: 2
+          gap: 2  # Space between these visible parts
           icon:
-            icon: mdi:information-outline
+            icon: mdi:information-outline  # Icon shown to the user
           text:
-            text: Details
+            text: Details  # Text shown to the user
 
       tap_action:
-        action: more-info
+        action: more-info  # Open Home Assistant More info
 ```
 
-!!! info "Entity and action settings"
+## :material-horseshoe: Show text, an icon, or both
 
-    `entity_index: 0` connects the button to the first entry in `entities`. The button can omit `entity_index` when its action already specifies a target, path, or URL. See [Entities](../../card-basics/entities.md) for entity indexes and optional slots, and [Actions](../../interaction/actions.md) for action configuration.
+Choose the content arrangement with `content.mode`:
+
+| Mode | Result |
+| --- | --- |
+| `content_text` | Text centered in the button |
+| `content_icon` | Icon centered in the button |
+| `content_horizontal` | Icon/text/items next to each other |
+| `content_vertical` | Icon/text/items above and below each other |
+
+For a Button, the content direction is controlled by `content.mode`: use `content_horizontal` or `content_vertical`. The separate `orientation` field is not used by the current Button control.
+
+## :material-horseshoe: Change the Button appearance
+
+Choose a complete button surface or a quieter indicator-line visualization:
+
+```yaml linenums="1"
+entities:
+  - entity: light.living_room  # Entity controlled by this example
+
+layout:
+  controls:
+    - type: button  # Create a button control
+      entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal center of the control
+      ypos: 50  # Vertical center of the control
+      show:
+        item_variant: default  # Use the default control variant
+        item_viz: viz_button  # Use the viz_button visualization
+        item_style: outlined_round  # Use the outlined_round appearance/color mode
+```
+`show.item_style` accepts:
+
+- `filled_round` — filled Button with rounded corners.
+- `filled_square` — filled Button with square corners.
+- `outlined_round` — outlined Button with rounded corners.
+- `outlined_square` — outlined Button with square corners.
+
+`show.item_viz` accepts `viz_button` and `viz_line`. `viz_button` uses the complete Button surface for its active/inactive appearance. `viz_line` keeps the Button clickable but shows the state emphasis as an indicator line. `show.item_variant` currently has one value: `default`.
+
+## :material-horseshoe: Use tap, hold, or double tap
+
+A Button can define `tap_action`, `hold_action`, and `double_tap_action` independently. See [Actions](../../interaction/actions.md) for the supported actions.
+
+## :material-horseshoe: Use a Button without an entity
+
+No `entity_index` is needed when the action already contains everything it needs:
+
+```yaml linenums="1"
+layout:
+  controls:
+    - id: open-energy  # Name this item so it can be referenced later
+      type: button  # Create a button control
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 80  # Vertical position; 50 = center of the card
+      width: 42  # Width of the complete control
+      height: 12  # Height of the complete control
+      content:
+        mode: content_text  # Arrange the button content as text
+        content_text:
+          text: Energy  # Text shown to the user
+      tap_action:
+        action: navigate  # Open another dashboard path
+        navigation_path: /energy  # Dashboard path to open
+```
 
 ## :material-horseshoe: Configuration options
 
-| Option | Description |
-| --- | --- |
-| `type: button` | Adds a button control. |
-| `entity_index` | Entity used by the button content and by actions such as `more-info` or `toggle`. |
-| `xpos`, `ypos` | Position of the button in the card. |
-| `width`, `height` | Size of the button. |
-| `orientation` | Arranges the button horizontally or vertically. |
-| `content` | Text, icon, entity information, or compact visual content shown inside the button. |
-| `show.item_viz` | Shows a complete button with `viz_button` or an active indicator with `viz_line`. |
-| `show.item_style` | Uses `filled_round`, `filled_square`, `outlined_round`, or `outlined_square`. |
-| `tap_action` | Action performed when the user taps the button. |
-| `hold_action` | Action performed when the user holds the button. |
-| `double_tap_action` | Action performed when the user double-taps the button. |
-| `label` | Optional text positioned beside or above the button. |
-| `visibility` | Shows, hides, or disables the button. |
 
-See [Positioning and sizing](../../card-basics/positioning-and-sizing.md) for coordinates and dimensions.
+`Required` applies to the specific form described by that table: **Yes** means you need the field for that form; **No** means you can leave it out. `Not set` means the card adds no explicit value when the option is omitted.
 
-## :material-horseshoe: Button content
-
-A button can show text, an icon, or both. Choose the arrangement with `content.mode`:
-
-| Mode | Content |
-| --- | --- |
-| `content_text` | Text centered in the button. |
-| `content_icon` | An icon centered in the button. |
-| `content_horizontal` | Icon and text arranged next to each other. |
-| `content_vertical` | Icon and text arranged above and below each other. |
-
-For a compact status display, horizontal and vertical content can also contain an `items` list with entity values or visual tools:
-
-```yaml linenums="1"
-content:
-  mode: content_vertical
-  content_vertical:
-    padding:
-      x: 1
-      y:
-        top: 1
-        bottom: 1
-    gap: 1
-    items:
-      - id: icon
-        type: icon
-        size: 40
-      - id: value
-        type: state
-        styles:
-          font-size: 0.6em
-      - id: status
-        type: line
-        length: 5
-```
-
-The content is visual. Tapping anywhere on the button performs the button action.
-
-## :material-horseshoe: Button appearance
-
-Use `viz_button` for a conventional button surface. Use `viz_line` when the button should keep a quieter background and indicate its active state with a line.
-
-=== "Filled and round"
-
-    ```yaml linenums="1"
-    show:
-      item_variant: default
-      item_viz: viz_button
-      item_style: filled_round
-    ```
-
-=== "Outlined and round"
-
-    ```yaml linenums="1"
-    show:
-      item_variant: default
-      item_viz: viz_button
-      item_style: outlined_round
-    ```
-
-=== "Indicator line"
-
-    ```yaml linenums="1"
-    show:
-      item_variant: default
-      item_viz: viz_line
-      item_style: outlined_round
-    ```
-
-## :material-horseshoe: Button without an entity
-
-An entity is not needed when the action already identifies what should happen:
-
-```yaml linenums="1"
-- id: open-energy
-  type: button
-  xpos: 50
-  ypos: 80
-  width: 42
-  height: 12
-  content:
-    mode: content_text
-    content_text:
-      text: Energy
-  tap_action:
-    action: navigate
-    navigation_path: /energy
-```
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `type: button` | string | Yes | — | Selects the Button control. |
+| `entity_index` | entity index | No | Not set | Entity used by content and entity-based actions. |
+| `xpos`, `ypos` | number | Yes | — | Position of the Button center on the card. |
+| `width` | number | No | `20` | Width of the complete clickable Button. |
+| `height` | number | No | `10` | Height of the complete clickable Button. |
+| `content` | mapping | No | `content_horizontal` | Text, icon, entity information, or compact visual content. `content.mode` selects `content_text`, `content_icon`, `content_horizontal`, or `content_vertical`. |
+| `background` | mapping | No | Radius `2` | Sets the complete Button surface radius and base styles before the selected visual style/state is applied. |
+| `show.item_variant` | `default` | No | `default` | Uses the current Button form. |
+| `show.item_viz` | `viz_button`, `viz_line` | No | `viz_button` | `viz_button` emphasizes the full Button surface; `viz_line` emphasizes an indicator line. |
+| `show.item_style` | `filled_round`, `filled_square`, `outlined_round`, `outlined_square` | No | `filled_square` | Chooses filled/outlined surfaces with rounded/square corners. |
+| `tap_action` | mapping | No | `toggle` | Action run when the Button is tapped; the default toggles the selected entity. |
+| `hold_action` | mapping | No | Not set | Optional separate action run when the Button is held. |
+| `double_tap_action` | mapping | No | Not set | Optional separate action run when the Button is double-tapped. |
+| `label` | mapping | No | Not set | Optional label beside/above the Button. |
+| `visibility` | `visible`, `hidden`, `unavailable` / template | No | `visible` | `visible` shows the Button normally, `hidden` hides it, and `unavailable` shows its unavailable appearance and prevents normal interaction. |
 
 ## :material-horseshoe: Related
 

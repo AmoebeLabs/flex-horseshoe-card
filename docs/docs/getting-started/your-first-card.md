@@ -7,78 +7,55 @@ tags:
   - Horseshoe
   - YAML
 ---
-
 # Your first card
 
-Create a horseshoe gauge that shows an entity icon, its current state in the center and the name below.
+Your first card only needs one entity and a few visible items. Building one working card first shows the basic relationship between `entities:` and `layout:` before you add more features.
 
-<!-- Add a screenshot of the completed first card here. -->
+This page builds a simple Horseshoe card with an entity value, icon, and name, then points to the topics you can add next.
+
 ![Your First Horseshoe Card](../assets/screenshots/fhs-your-first-card-horseshoe.png)
 
 ## :material-horseshoe: Add the card
 
-Open a dashboard in edit mode, add a Manual card, and enter:
+Open a dashboard in edit mode, add a **Manual** card, and enter:
 
 ```yaml linenums="1"
 type: custom:flex-horseshoe-card
 
 entities:
-  - entity: sensor.__your_temperature_sensor__
-    name: Temperature
+  - entity: sensor.__your_temperature_sensor__  # Home Assistant entity used by this card
+
 layout:
-  aspectratio: 1/1      # Square card (default)
-
   horseshoes:
-    - entity_index: 0
-      xpos: 50          # In center of square card (100 x 100)
-      ypos: 50
-      radius: 45
-      horseshoe_scale:
-        min: 0
-        max: 40
-      show:
-        horseshoe_style: colorstop
-      color_stops:
-        colors:
-          0: "#42a5f5"
-          20: "#66bb6a"
-          30: "#f9a825"
-          40: "#d32f2f"
+    - entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 50  # Vertical position; 50 = center of the card
+      radius: 45  # Distance from the center to the Horseshoe path
+      arc_degrees: 260  # Draw 260° of the full 360° circle
 
-  icons:
-    - entity_index: 0
-      xpos: 50
-      ypos: 30
-      icon_size: 3
+      horseshoe_scale:
+        min: 0  # Value at the start of the scale
+        max: 40  # Value at the end of the scale
 
   states:
-    - entity_index: 0
-      xpos: 50
-      ypos: 57
-      styles:
-        font-size: 2.5em
-        font-weight: bold
-
-  names:
-    - entity_index: 0
-      xpos: 50
-      ypos: 95
-      styles:
-        text-transform: none
+    - entity_index: 0  # Use the first entity configured above
+      xpos: 50  # Horizontal position; 50 = center of the card
+      ypos: 55  # Vertical position; 50 = center of the card
 ```
 
-Replace `sensor.__your_temperature_sensor__` with an entity from your Home Assistant instance.
+Replace `sensor.__your_temperature_sensor__` with one of your own entities.
 
-The horseshoe fills according to the entity state. Its color follows the configured color stops.
+The Horseshoe shows the entity value between `0` and `40`. The State tool shows the same value in the center.
 
-## :material-horseshoe: Continue building
+## :material-horseshoe: Add more to the card
 
-There are so many more possibilities with this card, so keep building!
+From here, choose what you want to add:
+
+- [Add an icon, name, area, or state](../tools/tools-overview.md#entity-information)
+- [Change the Horseshoe](../tools/horseshoe/horseshoe-overview.md)
+- [Show history](../tools/sparkline/sparkline-overview.md)
+- [Add shapes](../tools/shapes/shapes-overview.md)
+- [Add controls](../tools/controls/controls-overview.md)
+- [Change colors and appearance](../appearance/appearance-overview.md)
 
 ![Flexible Horseshoe Card #36 with horseshoe and sparkline](../assets/screenshots/fhs-card-036-horseshoe-sparkline-power.png)
-
-- [Card overview](../card-basics/card-overview.md)
-- [Entities](../card-basics/entities.md)
-- [Positioning and sizing](../card-basics/positioning-and-sizing.md)
-- [Horseshoe gauges](../tools/horseshoe/horseshoe-overview.md)
-- [Color stops](../appearance/color-stops.md)
