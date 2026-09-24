@@ -2248,7 +2248,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     { state: 40, haState: '40', last_changed: '2026-09-12T11:00:00.000Z' },
   ];
 
-  series.createGraph(
+  series.configureGraph(
     item,
     100,
     50,

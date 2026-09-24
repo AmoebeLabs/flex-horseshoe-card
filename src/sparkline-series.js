@@ -409,7 +409,9 @@ export default class SparklineSeries {
   }
 
   /**
-   * Replaces the graph for one series after static or runtime config changed.
+   * Updates the graph for one series after static or runtime config changed.
+   * Keeping its instance also keeps the processed bins available when the
+   * effective source and bucket plan have not changed.
    *
    * @param {object} item - Coordinator-owned series item.
    * @param {number} width - SVG graph width.
@@ -421,8 +423,12 @@ export default class SparklineSeries {
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - State-band mapping for the graph engine.
    */
-  createGraph(item, width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap) {
-    item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+  configureGraph(item, width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap) {
+    if (item.graph === undefined) {
+      item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+    } else {
+      item.graph.updateGraphConfig(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+    }
     item.dataState = item.graph.dataState;
   }
 

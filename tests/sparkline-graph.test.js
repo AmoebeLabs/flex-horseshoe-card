@@ -202,6 +202,72 @@ test('geometry uses processed bucket values without reducing history again', () 
   assert.notDeepEqual(graph.coords.map((point) => point[0]), originalX);
 });
 
+test('processed buckets survive geometry changes but refresh for bins, source rows and time', () => {
+  const config = createGraphConfig();
+  const graph = createGraph(config);
+  const rows = [
+    { state: 4, last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: 8, last_changed: '2026-08-20T10:30:00.000Z' },
+  ];
+  let endTime = '2026-08-20T12:00:00.000Z';
+  graph._updateEndTime = () => { graph._endTime = new Date(endTime); };
+  const aggregateBuckets = graph.aggregateBuckets.bind(graph);
+  let aggregationCount = 0;
+  graph.aggregateBuckets = (buckets) => {
+    aggregationCount += 1;
+    return aggregateBuckets(buckets);
+  };
+
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+  const processedValues = graph.processedValues;
+  const resizedConfig = structuredClone(config);
+  resizedConfig.y_axis.lower_bound = 0;
+  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, resizedConfig, [], [], {});
+  graph.processData(rows);
+  graph.calculateGeometry();
+  assert.equal(aggregationCount, 1);
+  assert.strictEqual(graph.processedValues, processedValues);
+  assert.equal(graph.width, 180);
+  const firstStatistics = graph.updateStatistics(rows, { start: Date.parse('2026-08-20T08:30:00.000Z'), end: Date.parse('2026-08-20T11:00:00.000Z') });
+  const laterStatistics = graph.updateStatistics(rows, { start: Date.parse('2026-08-20T08:30:00.000Z'), end: Date.parse('2026-08-20T12:00:00.000Z') });
+  assert.notEqual(firstStatistics.avg, laterStatistics.avg);
+  assert.equal(aggregationCount, 1);
+
+  const rebinnedConfig = structuredClone(resizedConfig);
+  rebinnedConfig.period.rolling_window.bins.per_hour = 2;
+  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, rebinnedConfig, [], [], {});
+  graph.processData(rows);
+  assert.equal(aggregationCount, 2);
+
+  endTime = '2026-08-20T12:30:00.000Z';
+  graph.processData(rows);
+  assert.equal(aggregationCount, 3);
+
+  graph.processData([...rows, { state: 12, last_changed: '2026-08-20T11:30:00.000Z' }]);
+  assert.equal(aggregationCount, 4);
+});
+
+test('switching through state bands cannot revive old numeric buckets', () => {
+  const lineConfig = createGraphConfig();
+  const graph = createGraph(lineConfig);
+  const margin = { l: 0, t: 0, r: 0, b: 0 };
+  const rows = [{ state: 4, last_changed: '2026-08-20T08:30:00.000Z' }];
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  graph.processData(rows);
+  const previousValues = graph.processedValues;
+
+  const bandsConfig = createGraphConfig({ chartType: 'state_bands' });
+  graph.updateGraphConfig(120, 100, margin, margin, bandsConfig, [], [], { map: [{ state: 'low', value: 0 }, { state: 'high', value: 1 }] });
+  graph.processData(rows);
+  assert.deepEqual(graph.processedValues, []);
+
+  graph.updateGraphConfig(120, 100, margin, margin, lineConfig, [], [], {});
+  graph.processData(rows);
+  assert.deepEqual(graph.processedValues, previousValues);
+  assert.notStrictEqual(graph.processedValues, previousValues);
+});
+
 test('single-bucket aggregate functions retain their meaning', () => {
   const graph = createGraph();
   const rows = [{ state: '8' }, { state: '2' }, { state: '11' }, { state: '5' }];

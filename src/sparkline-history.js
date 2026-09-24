@@ -947,7 +947,16 @@ export default class SparklineHistory {
       });
     });
 
-    record.rows = preparedRows;
+    // Normal HA updates may rebuild the same prepared history. Keep its array
+    // identity when the graph-relevant values and timestamps did not change,
+    // so Graph can reuse its already aggregated buckets.
+    const previousRows = record.rows;
+    const rowsUnchanged = previousRows !== undefined
+      && previousRows.length === preparedRows.length
+      && preparedRows.every((row, index) => row.state === previousRows[index].state
+        && row.haState === previousRows[index].haState
+        && row.last_changed === previousRows[index].last_changed);
+    if (!rowsUnchanged) record.rows = preparedRows;
     return record.rows;
   }
 

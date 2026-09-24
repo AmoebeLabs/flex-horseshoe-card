@@ -72,24 +72,12 @@ export default class SparklineGraph {
       diff: this._diff,
     };
 
-    this.config = config;
-
-    this.width = width;
-    this.height = height;
-
-    // graphArea is the complete SVG viewport. The engine owns every area used
-    // for chart geometry; the tool only supplies the measured outer axis space.
     this.graphArea = {};
-    this.graphArea.x = 0;
-    this.graphArea.y = 0;
-    this.graphArea.width = width - 2 * this.graphArea.x;
-    this.graphArea.height = height - 2 * this.graphArea.y;
-
     this.axisArea = {};
     this.dataArea = {};
-    this.setGraphAreas(axisMargin, configuredMargin, 0);
-
     this._history = undefined;
+    this.processedRows = undefined;
+    this.processedDataKey = undefined;
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.processedValues = [];
     this.processedMinValues = [];
@@ -103,6 +91,32 @@ export default class SparklineGraph {
     this.yAxis = {};
     this._max = 0;
     this._min = 0;
+    this.sharedYAxisBounds = undefined;
+    this.updateGraphConfig(width, height, axisMargin, configuredMargin, config, gradeValues, gradeRanks, stateMap);
+  }
+
+  /**
+   * Applies the current graph configuration without discarding its processed
+   * bins. The next data pass compares the effective period, bucket and source
+   * inputs before deciding whether those bins are still usable.
+   *
+   * @param {number} width - SVG graph width.
+   * @param {number} height - SVG graph height.
+   * @param {object} axisMargin - Outer axis and label space.
+   * @param {object} configuredMargin - User-configured plot margin.
+   * @param {object} config - Validated graph configuration.
+   * @param {Array<number>} gradeValues - Numeric grade boundaries.
+   * @param {Array<object>} gradeRanks - Visual grade ranges.
+   * @param {object} stateMap - State-band mapping.
+   */
+  updateGraphConfig(width, height, axisMargin, configuredMargin, config, gradeValues, gradeRanks, stateMap) {
+    this.config = config;
+    this.width = width;
+    this.height = height;
+    // graphArea is the complete SVG viewport; the tool supplies only the
+    // measured outer axis space for the next geometry calculation.
+    this.graphArea = { x: 0, y: 0, width, height };
+    this.setGraphAreas(axisMargin, configuredMargin, 0);
     this.sharedYAxisBounds = undefined;
     // Real-time retains the original one-value graph contract and has no
     // duration or bins. Historical period types use their configured range.
@@ -434,12 +448,16 @@ export default class SparklineGraph {
       this.calendarBucketCount = undefined;
       this.visibleBucketCount = undefined;
       this.dataState = SPARKLINE_DATA_STATE.EMPTY;
+      this.processedRows = this._history;
+      this.processedDataKey = undefined;
       return this.dataState;
     }
 
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
     if (this.config.sparkline.show.chart_type === 'state_bands') {
+      this.processedRows = undefined;
+      this.processedDataKey = undefined;
       this.dataMin = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.dataMax = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.processedValues = [];
@@ -510,6 +528,25 @@ export default class SparklineGraph {
         break;
     }
 
+    // The visible end and calendar bucket count can advance even when HA has
+    // supplied no new rows. Geometry and paint settings are intentionally not
+    // part of this key, so a resize with the same bins reuses the data result.
+    const chartType = this.config.sparkline.show.chart_type;
+    const graphFamily = chartType === 'radial' ? this.config.sparkline.show.chart_variant : chartType;
+    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line.show.minmax === true : graphFamily === 'area' && this.config.sparkline.area.show.minmax === true;
+    const processedDataKey = JSON.stringify([
+      this.config.period,
+      this.hours,
+      this.points,
+      this.aggregateFuncName,
+      graphFamily,
+      showMinMax,
+      this._endTime.getTime(),
+      this.calendarBucketStartMs,
+      this.visibleBucketCount,
+    ]);
+    if (this.processedRows === this._history && this.processedDataKey === processedDataKey) return this.dataState;
+
     // The real-time series already is its single graph bucket. Only historical
     // period types require timestamp-based reduction into buckets.
     const histGroups = this.config.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
@@ -563,10 +600,6 @@ export default class SparklineGraph {
 
     // Calculate min/max samples only for the active graph family.
     // Line settings must not leak into area, and area settings must not leak into line.
-    const chartType = this.config.sparkline.show.chart_type;
-    const graphFamily = chartType === 'radial' ? this.config.sparkline.show.chart_variant : chartType;
-    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line.show.minmax === true : graphFamily === 'area' && this.config.sparkline.area.show.minmax === true;
-
     if (['line', 'area'].includes(graphFamily) && showMinMax) {
       const prevFunction = this._calcPoint;
       this._calcPoint = this.aggregateFuncMap.min;
@@ -580,6 +613,8 @@ export default class SparklineGraph {
       this.dataMax = Math.max(...this.processedMaxValues.map((value) => Number(value)));
     }
 
+    this.processedRows = this._history;
+    this.processedDataKey = processedDataKey;
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
     return this.dataState;
   }

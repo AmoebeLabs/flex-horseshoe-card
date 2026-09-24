@@ -41,7 +41,7 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   assert.equal(series.primaryItem.requestState, 'not_loaded');
   assert.equal(series.primaryItem.dataState, 'not_loaded');
 
-  series.createGraph(
+  series.configureGraph(
     series.primaryItem,
     120,
     100,
@@ -62,6 +62,70 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   series.clearGraphs();
 
   assert.equal(series.primaryItem.graph, undefined);
+});
+
+test('runtime graph configuration keeps the same graph and its processed values', () => {
+  const series = new SparklineSeries(graphConfig);
+  const item = series.primaryItem;
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  series.configureGraph(item, 120, 100, margin, margin, graphConfig, [], [], {});
+  const graph = item.graph;
+  const rows = [{ state: 12 }];
+  graph.processData(rows);
+  const processedValues = graph.processedValues;
+
+  series.configureGraph(item, 180, 100, margin, margin, structuredClone(graphConfig), [], [], {});
+  assert.strictEqual(item.graph, graph);
+  assert.strictEqual(item.graph.processedValues, processedValues);
+  assert.equal(item.graph.width, 180);
+});
+
+test('auto density reuses processed data until resizing changes its effective bin plan', () => {
+  const config = structuredClone(graphConfig);
+  config.width = 120;
+  config.height = 100;
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 24 }, bins: { per_hour: 'auto', density: 'medium' } },
+  };
+  const series = new SparklineSeries(config);
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: 4, last_changed: '2026-08-20T00:00:00.000Z' },
+    { state: 8, last_changed: '2026-08-20T10:00:00.000Z' },
+  ];
+
+  const useWidth = (width) => {
+    config.width = width;
+    series.updateConfig(config);
+    const { perHour } = series.updateBinPlan();
+    const effectiveConfig = structuredClone(series.primaryItem.config);
+    effectiveConfig.period.rolling_window.bins.per_hour = perHour;
+    series.configureGraph(series.primaryItem, width, 100, margin, margin, effectiveConfig, [], [], {});
+    return perHour;
+  };
+
+  assert.equal(useWidth(120), 4);
+  const graph = series.primaryItem.graph;
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-21T00:00:00.000Z'); };
+  const aggregateBuckets = graph.aggregateBuckets.bind(graph);
+  let aggregationCount = 0;
+  graph.aggregateBuckets = (buckets) => {
+    aggregationCount += 1;
+    return aggregateBuckets(buckets);
+  };
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+
+  assert.equal(useWidth(130), 4);
+  assert.strictEqual(series.primaryItem.graph, graph);
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+
+  assert.equal(useWidth(300), 12);
+  graph.processData(rows);
+  assert.equal(aggregationCount, 2);
 });
 
 
@@ -251,7 +315,7 @@ test('shared Cartesian scale processes historical rows once per real series grap
   const processingCounts = [];
 
   series.items.forEach((item, index) => {
-    series.createGraph(item, 120, 100, { t: 0, r: 0, b: 0, l: 0 }, { t: 5, r: 5, b: 5, l: 5 }, item.config, [], [], {});
+    series.configureGraph(item, 120, 100, { t: 0, r: 0, b: 0, l: 0 }, { t: 5, r: 5, b: 5, l: 5 }, item.config, [], [], {});
     item.graph._updateEndTime = () => {
       item.graph._endTime = new Date('2026-08-20T12:00:00.000Z');
     };
