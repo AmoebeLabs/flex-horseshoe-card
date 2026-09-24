@@ -145,6 +145,33 @@ test('rolling history becomes fixed buckets with carry-forward metadata', () => 
   assert.equal(graph.max, 20);
 });
 
+test('the first rolling bucket keeps its latest zero value when earlier samples are negative', () => {
+  const graph = createGraph();
+  graph._updateEndTime = () => {
+    graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+  };
+  graph.buildAxisGeometry = () => {};
+
+  graph.update([
+    { state: '-4', haState: '-4', last_changed: '2026-08-20T07:50:00.000Z' },
+    { state: '-2', haState: '-2', last_changed: '2026-08-20T08:15:00.000Z' },
+    { state: '0', haState: '0', last_changed: '2026-08-20T08:45:00.000Z' },
+    { state: '5', haState: '5', last_changed: '2026-08-20T09:20:00.000Z' },
+  ]);
+
+  assert.deepEqual(graph.coords.map((point) => point[V]), [0, 5, 5, 5]);
+  assert.deepEqual(graph.bucketMeta[0], {
+    index: 0,
+    start: new Date('2026-08-20T08:00:00.000Z'),
+    end: new Date('2026-08-20T09:00:00.000Z'),
+    value: 0,
+    min: 0,
+    avg: 0,
+    max: 0,
+    count: 1,
+  });
+});
+
 test('single-bucket aggregate functions retain their meaning', () => {
   const graph = createGraph();
   const rows = [{ state: '8' }, { state: '2' }, { state: '11' }, { state: '5' }];
