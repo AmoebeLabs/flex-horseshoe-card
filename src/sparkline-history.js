@@ -1011,6 +1011,8 @@ export default class SparklineHistory {
     });
 
     record.sourceRows = precedingRow ? [precedingRow, ...activeRows] : activeRows;
+    // The retained source covers the current window after older rows are pruned.
+    record.sourceRangeStart = Math.max(record.sourceRangeStart, range.sourceStart.getTime());
     this.buildSeriesRows(item, range);
     item.rows = record.rows;
 
