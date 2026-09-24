@@ -136,8 +136,11 @@ Assert no stale path/coords/tooltip/statistics.
 ### Data/geometry boundaries
 
 - new data processes affected data once;
-- resize/margins: zero history requests/reaggregation, geometry recalculates;
-- theme/color: zero history/reaggregation and normal geometry rebuild, paint updates;
+- resize/margins with unchanged effective bins and time window: zero history requests/reaggregation, geometry recalculates;
+- resize that changes automatic bins: reaggregate retained rows; request history only if source coverage changes;
+- time-window or active-bin change: refresh the affected processed result even if source rows are unchanged;
+- pure theme/color changes: zero history/reaggregation and normal geometry rebuild, paint updates;
+- measurement-affecting style changes: recalculate geometry without reaggregation when data inputs are unchanged;
 - pointer move: zero normal graph data/geometry rebuild.
 
 Exact initialization call counts may differ because DOM measurement can require a follow-up. Assert functional boundaries rather than brittle internals.
@@ -241,7 +244,7 @@ Run focused tests during a plan. Before a plan is complete:
 - run full Node suite;
 - run affected Chromium suite;
 - run required WebKit cases for touched SVG/interaction/lifecycle code;
-- run build + ESLint.
+- run build + Biome lint.
 
 Before the complete series is merged, run the full configured browser matrix and representative soak cases.
 
