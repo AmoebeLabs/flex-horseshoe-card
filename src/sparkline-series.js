@@ -248,7 +248,8 @@ export default class SparklineSeries {
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.dataState = item.graph.update(item.rows);
+      item.dataState = item.graph.processData(item.rows);
+      if (item.dataState === SPARKLINE_DATA_STATE.HAS_DATA) item.graph.calculateGeometry();
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
@@ -280,15 +281,16 @@ export default class SparklineSeries {
 
       axisItems.forEach((item) => {
         item.graph.setSharedYAxisBounds(lowerBound, upperBound, configuredLowerBoundItem !== undefined, configuredUpperBoundItem !== undefined);
-        item.graph.update(item.rows);
       });
     });
 
     const barItems = dataItems.filter((item) => item.config.sparkline.show.chart_type === 'bar');
     dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
-      item.graph.update(item.rows);
     });
+    // Bar overflow needs positions at the measured axis margin before the
+    // shared visual extent is known. Other chart families wait for final area.
+    barItems.forEach((item) => item.graph.calculateGeometry());
 
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
     dataItems.forEach((item) => {
@@ -317,7 +319,7 @@ export default class SparklineSeries {
 
     dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
-      item.graph.update(item.rows);
+      item.graph.calculateGeometry();
     });
     barItems.forEach((item) => {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
@@ -339,7 +341,8 @@ export default class SparklineSeries {
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
     this.items.forEach((item) => {
       item.graph.clearSharedYAxisBounds();
-      item.dataState = item.graph.update(item.rows);
+      item.dataState = item.graph.processData(item.rows);
+      if (item.dataState === SPARKLINE_DATA_STATE.HAS_DATA) item.graph.calculateGeometry();
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
@@ -369,7 +372,7 @@ export default class SparklineSeries {
 
       axisItems.forEach((item) => {
         item.graph.setSharedYAxisBounds(lowerBound, upperBound, configuredLowerBoundItem !== undefined, configuredUpperBoundItem !== undefined);
-        item.graph.update(item.rows);
+        item.graph.buildAxisGeometry();
       });
     });
 
@@ -398,7 +401,7 @@ export default class SparklineSeries {
 
     dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
-      item.graph.update(item.rows);
+      item.graph.calculateGeometry();
     });
 
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;

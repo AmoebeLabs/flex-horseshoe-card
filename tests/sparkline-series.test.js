@@ -233,6 +233,55 @@ test('real-time and state-band series do not expose a derived bin duration', () 
   assert.deepEqual(stateBands.updateBinPlan(), { perHour: 1, durationHours: undefined });
 });
 
+test('shared Cartesian scale processes historical rows once per real series graph', () => {
+  const config = {
+    ...graphConfig,
+    period: {
+      type: 'rolling_window',
+      group_by: 'interval',
+      rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+    },
+    series: [
+      { id: 'temperature', entity_index: 0 },
+      { id: 'humidity', entity_index: 1 },
+    ],
+  };
+  const series = new SparklineSeries(config);
+  const values = [[4, 8], [10, 20]];
+  const processingCounts = [];
+
+  series.items.forEach((item, index) => {
+    series.createGraph(item, 120, 100, { t: 0, r: 0, b: 0, l: 0 }, { t: 5, r: 5, b: 5, l: 5 }, item.config, [], [], {});
+    item.graph._updateEndTime = () => {
+      item.graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+    };
+    series.setRows(item, values[index].map((value, valueIndex) => ({
+      state: String(value),
+      haState: String(value),
+      last_changed: `2026-08-20T0${valueIndex + 8}:30:00.000Z`,
+    })));
+    const processData = item.graph.processData.bind(item.graph);
+    processingCounts[index] = 0;
+    item.graph.processData = (rows) => {
+      processingCounts[index] += 1;
+      return processData(rows);
+    };
+  });
+
+  const result = series.updateCartesianGraphs(
+    () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    { t: 5, r: 5, b: 5, l: 5 },
+    4,
+    4,
+  );
+
+  assert.equal(result.dataState, 'has_data');
+  assert.deepEqual(processingCounts, [1, 1]);
+  assert.deepEqual(series.items.map((item) => item.graph.coords.map((point) => point[2])), [[4, 8, 8, 8], [10, 20, 20, 20]]);
+  assert.equal(series.items[0].graph.min, series.items[1].graph.min);
+  assert.equal(series.items[0].graph.max, series.items[1].graph.max);
+});
+
 test('runtime config updates keep rows and graph state on the same series item', () => {
   const series = new SparklineSeries({
     ...graphConfig,
@@ -277,6 +326,7 @@ test('request state changes independently from retained processed data', () => {
 });
 
 test('valid data and valid empty form one current multi-series result', () => {
+  const processCalls = [];
   const series = new SparklineSeries({
     ...graphConfig,
     series: [
@@ -291,7 +341,11 @@ test('valid data and valid empty form one current multi-series result', () => {
     coords: state === 'has_data' ? [[0, 0, min], [100, 0, max]] : [],
     axisArea: { x: 0, width: 100 },
     clearSharedYAxisBounds() {},
-    update() { return state; },
+    processData() {
+      processCalls.push(state);
+      return state;
+    },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -310,6 +364,7 @@ test('valid data and valid empty form one current multi-series result', () => {
   );
 
   assert.equal(result.dataState, 'has_data');
+  assert.deepEqual(processCalls, ['has_data', 'empty']);
   assert.deepEqual(series.items.map((item) => item.dataState), ['has_data', 'empty']);
   assert.equal(result.axisGraphs.primary, series.items[0].graph);
 });
@@ -325,12 +380,13 @@ test('multi-series coordination waits while one item is not loaded', () => {
   series.items[0].graph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
   };
   series.items[1].graph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'not_loaded'; },
+    processData() { return 'not_loaded'; },
   };
 
   const result = series.updateCartesianGraphs(() => {}, {}, 4, 4);
@@ -482,9 +538,15 @@ test('radial series share scale bounds and one measured outer margin', () => {
     setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin) {
       calls.push(['areas', axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin]);
     },
-    update() {
-      calls.push(['update', this.min, this.max]);
+    processData() {
+      calls.push(['data', this.min, this.max]);
       return 'has_data';
+    },
+    calculateGeometry() {
+      calls.push(['geometry', this.min, this.max]);
+    },
+    buildAxisGeometry() {
+      calls.push(['axis', this.min, this.max]);
     },
   });
   const series = new SparklineSeries({
@@ -513,6 +575,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
   const result = series.updateRadialGraphs(() => axisMargin, configuredMargin);
 
   assert.equal(result.dataState, 'has_data');
+  assert.equal(calls.filter((call) => call[0] === 'data').length, 2);
   assert.deepEqual(series.items.map((item) => [item.graph.min, item.graph.max]), [[-5, 30], [-5, 30]]);
   assert.equal(calls.filter((call) => call[0] === 'areas').length, 2);
   assert.deepEqual(calls.filter((call) => call[0] === 'areas').map((call) => call[4]), [

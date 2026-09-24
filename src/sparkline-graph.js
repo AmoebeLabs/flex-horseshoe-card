@@ -568,20 +568,6 @@ export default class SparklineGraph {
     const showMinMax = graphFamily === 'line' ? this.config.sparkline.line.show.minmax === true : graphFamily === 'area' && this.config.sparkline.area.show.minmax === true;
 
     if (['line', 'area'].includes(graphFamily) && showMinMax) {
-      const histGroupsMinMax = this._history.reduce((res, item) => this._reducerMinMax(res, item), []);
-
-      // Preserve the same preceding sample in both envelope series.
-      if (histGroupsMinMax[0][0] && histGroupsMinMax[0][0].length) {
-        histGroupsMinMax[0][0] = [histGroupsMinMax[0][0][histGroupsMinMax[0][0].length - 1]];
-      }
-      if (histGroupsMinMax[1][0] && histGroupsMinMax[1][0].length) {
-        histGroupsMinMax[1][0] = [histGroupsMinMax[1][0][histGroupsMinMax[1][0].length - 1]];
-      }
-
-      // Match the envelope arrays to the primary graph slot count.
-      histGroupsMinMax[0].length = requiredNumOfPoints;
-      histGroupsMinMax[1].length = requiredNumOfPoints;
-
       const prevFunction = this._calcPoint;
       this._calcPoint = this.aggregateFuncMap.min;
       this.processedMinValues = this.aggregateBuckets(histGroups);
@@ -1042,33 +1028,6 @@ export default class SparklineGraph {
       minorInterval,
       ticks,
     };
-  }
-
-  /**
-   * Collects the exact minimum and maximum samples per time bucket. These
-   * parallel series form the optional min/max envelope behind line and area
-   * charts independently of the selected aggregate function.
-   *
-   * @param {Array<Array<object>>} res - Minimum and maximum bucket collections.
-   * @param {object} item - Normalized history row.
-   * @returns {Array<Array<object>>} Updated bucket collections.
-   */
-  _reducerMinMax(res, item) {
-    const age = this._endTime - new Date(item.last_changed).getTime();
-    const interval = (age / ONE_HOUR) * this.points - this.hours * this.points;
-
-    const key = interval < 0 ? Math.floor(Math.abs(interval)) : 0;
-    if (!res[0]) res[0] = [];
-    if (!res[1]) res[1] = [];
-    if (!res[0][key]) {
-      res[0][key] = {};
-      res[1][key] = {};
-    }
-    res[0][key].state = Math.min(res[0][key].state ? res[0][key].state : Number.POSITIVE_INFINITY, item.state);
-    res[0][key].haState = Math.min(res[0][key].haState ? res[0][key].haState : Number.POSITIVE_INFINITY, item.haState);
-    res[1][key].state = Math.max(res[1][key].state ? res[1][key].state : Number.NEGATIVE_INFINITY, item.state);
-    res[1][key].haState = Math.max(res[1][key].haState ? res[1][key].haState : Number.NEGATIVE_INFINITY, item.haState);
-    return res;
   }
 
   /**
