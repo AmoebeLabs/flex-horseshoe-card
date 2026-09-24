@@ -24,9 +24,11 @@ const graphConfig = {
   },
   x_axis: {
     labels: { max_length: 5, styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
   y_axis: {
     labels: { styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
 };
 
@@ -41,7 +43,7 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   assert.equal(series.primaryItem.requestState, 'not_loaded');
   assert.equal(series.primaryItem.dataState, 'not_loaded');
 
-  series.createGraph(
+  series.configureGraph(
     series.primaryItem,
     120,
     100,
@@ -62,6 +64,70 @@ test('normalizes existing sparkline config into one coordinator-owned default se
   series.clearGraphs();
 
   assert.equal(series.primaryItem.graph, undefined);
+});
+
+test('runtime graph configuration keeps the same graph and its processed values', () => {
+  const series = new SparklineSeries(graphConfig);
+  const item = series.primaryItem;
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  series.configureGraph(item, 120, 100, margin, margin, graphConfig, [], [], {});
+  const graph = item.graph;
+  const rows = [{ state: 12 }];
+  graph.processData(rows);
+  const processedValues = graph.processedValues;
+
+  series.configureGraph(item, 180, 100, margin, margin, structuredClone(graphConfig), [], [], {});
+  assert.strictEqual(item.graph, graph);
+  assert.strictEqual(item.graph.processedValues, processedValues);
+  assert.equal(item.graph.width, 180);
+});
+
+test('auto density reuses processed data until resizing changes its effective bin plan', () => {
+  const config = structuredClone(graphConfig);
+  config.width = 120;
+  config.height = 100;
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 24 }, bins: { per_hour: 'auto', density: 'medium' } },
+  };
+  const series = new SparklineSeries(config);
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: 4, last_changed: '2026-08-20T00:00:00.000Z' },
+    { state: 8, last_changed: '2026-08-20T10:00:00.000Z' },
+  ];
+
+  const useWidth = (width) => {
+    config.width = width;
+    series.updateConfig(config);
+    const { perHour } = series.updateBinPlan();
+    const effectiveConfig = structuredClone(series.primaryItem.config);
+    effectiveConfig.period.rolling_window.bins.per_hour = perHour;
+    series.configureGraph(series.primaryItem, width, 100, margin, margin, effectiveConfig, [], [], {});
+    return perHour;
+  };
+
+  assert.equal(useWidth(120), 4);
+  const graph = series.primaryItem.graph;
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-21T00:00:00.000Z'); };
+  const aggregateBuckets = graph.aggregateBuckets.bind(graph);
+  let aggregationCount = 0;
+  graph.aggregateBuckets = (buckets) => {
+    aggregationCount += 1;
+    return aggregateBuckets(buckets);
+  };
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+
+  assert.equal(useWidth(130), 4);
+  assert.strictEqual(series.primaryItem.graph, graph);
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+
+  assert.equal(useWidth(300), 12);
+  graph.processData(rows);
+  assert.equal(aggregationCount, 2);
 });
 
 
@@ -233,6 +299,106 @@ test('real-time and state-band series do not expose a derived bin duration', () 
   assert.deepEqual(stateBands.updateBinPlan(), { perHour: 1, durationHours: undefined });
 });
 
+test('shared Cartesian scale processes historical rows once per real series graph', () => {
+  const config = {
+    ...graphConfig,
+    period: {
+      type: 'rolling_window',
+      group_by: 'interval',
+      rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+    },
+    series: [
+      { id: 'temperature', entity_index: 0 },
+      { id: 'humidity', entity_index: 1 },
+    ],
+  };
+  const series = new SparklineSeries(config);
+  const values = [[4, 8], [10, 20]];
+  const processingCounts = [];
+
+  series.items.forEach((item, index) => {
+    series.configureGraph(item, 120, 100, { t: 0, r: 0, b: 0, l: 0 }, { t: 5, r: 5, b: 5, l: 5 }, item.config, [], [], {});
+    item.graph._updateEndTime = () => {
+      item.graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+    };
+    series.setRows(item, values[index].map((value, valueIndex) => ({
+      state: String(value),
+      haState: String(value),
+      last_changed: `2026-08-20T0${valueIndex + 8}:30:00.000Z`,
+    })));
+    const processData = item.graph.processData.bind(item.graph);
+    processingCounts[index] = 0;
+    item.graph.processData = (rows) => {
+      processingCounts[index] += 1;
+      return processData(rows);
+    };
+  });
+
+  const result = series.updateCartesianGraphs(
+    () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    { t: 5, r: 5, b: 5, l: 5 },
+    4,
+    4,
+  );
+
+  assert.equal(result.dataState, 'has_data');
+  assert.deepEqual(processingCounts, [1, 1]);
+  assert.deepEqual(series.items.map((item) => item.graph.coords.map((point) => point[2])), [[4, 8, 8, 8], [10, 20, 20, 20]]);
+  assert.equal(series.items[0].graph.min, series.items[1].graph.min);
+  assert.equal(series.items[0].graph.max, series.items[1].graph.max);
+});
+
+test('Cartesian series reuse measured geometry for paint and remeasure changed layout', () => {
+  const config = structuredClone(graphConfig);
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+  };
+  const series = new SparklineSeries(config);
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  const item = series.primaryItem;
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  series.setRows(item, rows);
+  let measurements = 0;
+  const measureAxisMargin = () => {
+    measurements += 1;
+    return margin;
+  };
+
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, true);
+  const coords = item.graph.coords;
+  const values = item.graph.processedValues;
+  assert.equal(measurements, 1);
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4 };
+  series.updateConfig(paintConfig);
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, false);
+  assert.strictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 1);
+
+  const labelConfig = structuredClone(paintConfig);
+  labelConfig.x_axis.labels.styles['font-size'] = '16px';
+  series.updateConfig(labelConfig);
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, true);
+  assert.notStrictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 2);
+
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 5).geometryChanged, true);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 3);
+});
+
 test('runtime config updates keep rows and graph state on the same series item', () => {
   const series = new SparklineSeries({
     ...graphConfig,
@@ -277,6 +443,7 @@ test('request state changes independently from retained processed data', () => {
 });
 
 test('valid data and valid empty form one current multi-series result', () => {
+  const processCalls = [];
   const series = new SparklineSeries({
     ...graphConfig,
     series: [
@@ -291,7 +458,11 @@ test('valid data and valid empty form one current multi-series result', () => {
     coords: state === 'has_data' ? [[0, 0, min], [100, 0, max]] : [],
     axisArea: { x: 0, width: 100 },
     clearSharedYAxisBounds() {},
-    update() { return state; },
+    processData() {
+      processCalls.push(state);
+      return state;
+    },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -310,6 +481,7 @@ test('valid data and valid empty form one current multi-series result', () => {
   );
 
   assert.equal(result.dataState, 'has_data');
+  assert.deepEqual(processCalls, ['has_data', 'empty']);
   assert.deepEqual(series.items.map((item) => item.dataState), ['has_data', 'empty']);
   assert.equal(result.axisGraphs.primary, series.items[0].graph);
 });
@@ -325,12 +497,13 @@ test('multi-series coordination waits while one item is not loaded', () => {
   series.items[0].graph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
   };
   series.items[1].graph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'not_loaded'; },
+    processData() { return 'not_loaded'; },
   };
 
   const result = series.updateCartesianGraphs(() => {}, {}, 4, 4);
@@ -482,9 +655,15 @@ test('radial series share scale bounds and one measured outer margin', () => {
     setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin) {
       calls.push(['areas', axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin]);
     },
-    update() {
-      calls.push(['update', this.min, this.max]);
+    processData() {
+      calls.push(['data', this.min, this.max]);
       return 'has_data';
+    },
+    calculateGeometry() {
+      calls.push(['geometry', this.min, this.max]);
+    },
+    buildAxisGeometry() {
+      calls.push(['axis', this.min, this.max]);
     },
   });
   const series = new SparklineSeries({
@@ -513,6 +692,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
   const result = series.updateRadialGraphs(() => axisMargin, configuredMargin);
 
   assert.equal(result.dataState, 'has_data');
+  assert.equal(calls.filter((call) => call[0] === 'data').length, 2);
   assert.deepEqual(series.items.map((item) => [item.graph.min, item.graph.max]), [[-5, 30], [-5, 30]]);
   assert.equal(calls.filter((call) => call[0] === 'areas').length, 2);
   assert.deepEqual(calls.filter((call) => call[0] === 'areas').map((call) => call[4]), [
@@ -520,4 +700,42 @@ test('radial series share scale bounds and one measured outer margin', () => {
     { t: 17, r: 17, b: 17, l: 17 },
   ]);
   assert.deepEqual(result.axisMargin, axisMargin);
+});
+
+test('radial series retain shared geometry when only their color changes', () => {
+  const config = structuredClone(graphConfig);
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+  };
+  config.sparkline.show.chart_type = 'radial';
+  const series = new SparklineSeries(config);
+  const item = series.primaryItem;
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
+  item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  series.setRows(item, rows);
+  let measurements = 0;
+  const measureAxisMargin = () => {
+    measurements += 1;
+    return margin;
+  };
+
+  assert.equal(series.updateRadialGraphs(measureAxisMargin, margin).geometryChanged, true);
+  const coords = item.graph.coords;
+  const values = item.graph.processedValues;
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
+  series.updateConfig(paintConfig);
+  series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateRadialGraphs(measureAxisMargin, margin).geometryChanged, false);
+  assert.strictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 1);
 });

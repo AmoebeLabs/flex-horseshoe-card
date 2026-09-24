@@ -1328,6 +1328,13 @@ test('accepted multi-day history builds and renders the configured line minmax e
   assert.equal(item.dataState, 'has_data');
   assert.notEqual(minMaxPath, '');
   assert.match(rendered.values[1].strings.join(''), /sparkline-series-minmax/);
+
+  const retainedLine = tool.line;
+  const retainedEnvelope = tool.areaMinMax;
+  tool.updateGraphFromSeries();
+  assert.equal(tool.seriesGeometryChanged, false);
+  assert.strictEqual(tool.line, retainedLine);
+  assert.strictEqual(tool.areaMinMax, retainedEnvelope);
 });
 
 test('accepted empty history becomes loaded request state with empty processed data', async (context) => {
@@ -1597,7 +1604,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     max,
     coords: [[0, 0, min], [100, 0, max]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       calls.push([min, lowerBound, upperBound]);
       this.min = lowerBound;
@@ -1653,6 +1661,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   second.graph.max = 40;
   first.config.y_axis = { lower_bound: -10, upper_bound: 50 };
   second.config.y_axis = { lower_bound: 0, upper_bound: 100 };
+  first.graph.geometryConfigChanged = true;
+  second.graph.geometryConfigChanged = true;
   calls.length = 0;
 
   tool.updateCartesianSeriesGraphs();
@@ -1665,6 +1675,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   second.graph.max = 40;
   first.config.y_axis = { lower_bound: -1 };
   second.config.y_axis = { upper_bound: 100 };
+  first.graph.geometryConfigChanged = true;
+  second.graph.geometryConfigChanged = true;
   calls.length = 0;
 
   tool.updateCartesianSeriesGraphs();
@@ -1719,7 +1731,8 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     coords: [[0, 0, 0], [100, 0, 10]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -1778,13 +1791,14 @@ test("multiple series wait for every graph before building shared geometry", () 
   const readyGraph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     getPath() { pathRead = true; },
   };
   const loadingGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'not_loaded'; },
+    processData() { return 'not_loaded'; },
   };
   const config = {
     period: { type: "real_time" },
@@ -1816,7 +1830,8 @@ test('multiple series keep current data visible when another series is empty', (
     coords: [[0, 0, 10], [100, 0, 20]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds() {},
     setGraphAreas() {},
     calculateYCoordinates: (points) => points,
@@ -1829,7 +1844,7 @@ test('multiple series keep current data visible when another series is empty', (
   const emptyGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'empty'; },
+    processData() { return 'empty'; },
     getPath() {
       emptyPathReads += 1;
       throw new Error('empty graph has no path');
@@ -2231,8 +2246,8 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
       dots: { radius: 1 },
       radial: { arc_degrees: 360, rotate: 0, size: 50 },
     },
-    x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
-    y_axis: { labels: { styles: { 'font-size': '10px' } } },
+    x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
+    y_axis: { labels: { styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
   };
   const series = new SparklineSeries(config);
   const item = series.primaryItem;
@@ -2244,7 +2259,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     { state: 40, haState: '40', last_changed: '2026-09-12T11:00:00.000Z' },
   ];
 
-  series.createGraph(
+  series.configureGraph(
     item,
     100,
     50,

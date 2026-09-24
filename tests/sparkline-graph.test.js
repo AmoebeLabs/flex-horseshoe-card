@@ -23,11 +23,12 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     line: { show: { minmax: showLineMinMax }, show_dots: false },
     area: { show: { minmax: showAreaMinMax }, show_dots: false },
   },
-  x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
+  x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
   y_axis: {
     lower_bound: lowerBound,
     upper_bound: upperBound,
     labels: { styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
 });
 
@@ -54,6 +55,9 @@ test('reports processed data independently from graph geometry', () => {
     coords: [],
     bucketMeta: [],
     _history: undefined,
+    calculateGeometry() {
+      this.buildAxisGeometry();
+    },
     buildAxisGeometry() {
       this.xAxis = { start: new Date(0), end: new Date(1) };
       this.yAxis = { rows: [] };
@@ -143,6 +147,170 @@ test('rolling history becomes fixed buckets with carry-forward metadata', () => 
   );
   assert.equal(graph.min, 4);
   assert.equal(graph.max, 20);
+});
+
+test('the first rolling bucket keeps its latest zero value when earlier samples are negative', () => {
+  const graph = createGraph();
+  graph._updateEndTime = () => {
+    graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+  };
+  graph.buildAxisGeometry = () => {};
+
+  graph.update([
+    { state: '-4', haState: '-4', last_changed: '2026-08-20T07:50:00.000Z' },
+    { state: '-2', haState: '-2', last_changed: '2026-08-20T08:15:00.000Z' },
+    { state: '0', haState: '0', last_changed: '2026-08-20T08:45:00.000Z' },
+    { state: '5', haState: '5', last_changed: '2026-08-20T09:20:00.000Z' },
+  ]);
+
+  assert.deepEqual(graph.coords.map((point) => point[V]), [0, 5, 5, 5]);
+  assert.deepEqual(graph.bucketMeta[0], {
+    index: 0,
+    start: new Date('2026-08-20T08:00:00.000Z'),
+    end: new Date('2026-08-20T09:00:00.000Z'),
+    value: 0,
+    min: 0,
+    avg: 0,
+    max: 0,
+    count: 1,
+  });
+});
+
+test('geometry uses processed bucket values without reducing history again', () => {
+  const graph = createGraph();
+  graph._updateEndTime = () => {
+    graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+  };
+  graph.buildAxisGeometry = () => {};
+  const rows = [
+    { state: '4', haState: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', haState: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+
+  assert.equal(graph.processData(rows), 'has_data');
+  assert.deepEqual(graph.coords, []);
+  assert.deepEqual(graph.processedValues, [4, 8, 8, 8]);
+  graph.calculateGeometry();
+  const originalValues = graph.coords.map((point) => point[V]);
+  const originalX = graph.coords.map((point) => point[0]);
+
+  graph._reducer = () => { throw new Error('history reduced during geometry'); };
+  graph.aggregateBuckets = () => { throw new Error('buckets aggregated during geometry'); };
+  graph.setGraphAreas({ l: 5, t: 0, r: 5, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, graph.processedValues.length);
+  graph.calculateGeometry();
+
+  assert.deepEqual(graph.coords.map((point) => point[V]), originalValues);
+  assert.notDeepEqual(graph.coords.map((point) => point[0]), originalX);
+});
+
+test('paint changes retain buckets and coordinates while label size changes only geometry', () => {
+  const config = createGraphConfig();
+  const graph = createGraph(config);
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  const axisMargin = { l: 0, t: 0, r: 0, b: 0 };
+  const configuredMargin = { l: 10, t: 10, r: 10, b: 10 };
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+
+  graph.update(rows);
+  const values = graph.processedValues;
+  const coords = graph.coords;
+  const revision = graph.processedDataRevision;
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, paintConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.strictEqual(graph.coords, coords);
+  assert.equal(graph.processedDataRevision, revision);
+  assert.equal(graph.geometryChanged, false);
+
+  const labelConfig = structuredClone(paintConfig);
+  labelConfig.x_axis.labels.styles['font-size'] = '16px';
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, labelConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.notStrictEqual(graph.coords, coords);
+  assert.equal(graph.processedDataRevision, revision);
+  assert.equal(graph.geometryChanged, true);
+
+  const labelCoords = graph.coords;
+  const localeConfig = structuredClone(labelConfig);
+  localeConfig.labelLocale = 'nl-NL|UTC';
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, localeConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.notStrictEqual(graph.coords, labelCoords);
+  assert.equal(graph.processedDataRevision, revision);
+});
+
+test('processed buckets survive geometry changes but refresh for bins, source rows and time', () => {
+  const config = createGraphConfig();
+  const graph = createGraph(config);
+  const rows = [
+    { state: 4, last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: 8, last_changed: '2026-08-20T10:30:00.000Z' },
+  ];
+  let endTime = '2026-08-20T12:00:00.000Z';
+  graph._updateEndTime = () => { graph._endTime = new Date(endTime); };
+  const aggregateBuckets = graph.aggregateBuckets.bind(graph);
+  let aggregationCount = 0;
+  graph.aggregateBuckets = (buckets) => {
+    aggregationCount += 1;
+    return aggregateBuckets(buckets);
+  };
+
+  graph.processData(rows);
+  assert.equal(aggregationCount, 1);
+  const processedValues = graph.processedValues;
+  const resizedConfig = structuredClone(config);
+  resizedConfig.y_axis.lower_bound = 0;
+  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, resizedConfig, [], [], {});
+  graph.processData(rows);
+  graph.calculateGeometry();
+  assert.equal(aggregationCount, 1);
+  assert.strictEqual(graph.processedValues, processedValues);
+  assert.equal(graph.width, 180);
+  const firstStatistics = graph.updateStatistics(rows, { start: Date.parse('2026-08-20T08:30:00.000Z'), end: Date.parse('2026-08-20T11:00:00.000Z') });
+  const laterStatistics = graph.updateStatistics(rows, { start: Date.parse('2026-08-20T08:30:00.000Z'), end: Date.parse('2026-08-20T12:00:00.000Z') });
+  assert.notEqual(firstStatistics.avg, laterStatistics.avg);
+  assert.equal(aggregationCount, 1);
+
+  const rebinnedConfig = structuredClone(resizedConfig);
+  rebinnedConfig.period.rolling_window.bins.per_hour = 2;
+  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, rebinnedConfig, [], [], {});
+  graph.processData(rows);
+  assert.equal(aggregationCount, 2);
+
+  endTime = '2026-08-20T12:30:00.000Z';
+  graph.processData(rows);
+  assert.equal(aggregationCount, 3);
+
+  graph.processData([...rows, { state: 12, last_changed: '2026-08-20T11:30:00.000Z' }]);
+  assert.equal(aggregationCount, 4);
+});
+
+test('switching through state bands cannot revive old numeric buckets', () => {
+  const lineConfig = createGraphConfig();
+  const graph = createGraph(lineConfig);
+  const margin = { l: 0, t: 0, r: 0, b: 0 };
+  const rows = [{ state: 4, last_changed: '2026-08-20T08:30:00.000Z' }];
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  graph.processData(rows);
+  const previousValues = graph.processedValues;
+
+  const bandsConfig = createGraphConfig({ chartType: 'state_bands' });
+  graph.updateGraphConfig(120, 100, margin, margin, bandsConfig, [], [], { map: [{ state: 'low', value: 0 }, { state: 'high', value: 1 }] });
+  graph.processData(rows);
+  assert.deepEqual(graph.processedValues, []);
+
+  graph.updateGraphConfig(120, 100, margin, margin, lineConfig, [], [], {});
+  graph.processData(rows);
+  assert.deepEqual(graph.processedValues, previousValues);
+  assert.notStrictEqual(graph.processedValues, previousValues);
 });
 
 test('single-bucket aggregate functions retain their meaning', () => {
@@ -681,9 +849,11 @@ test('radial barcode uses the complete graph area without external geometry marg
     },
     x_axis: {
       labels: { max_length: 5, styles: { 'font-size': '10px' } },
+      tickmarks_major: { size: 1 },
     },
     y_axis: {
       labels: { styles: { 'font-size': '10px' } },
+      tickmarks_major: { size: 1 },
     },
   });
 
