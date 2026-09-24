@@ -91,6 +91,9 @@ export default class SparklineGraph {
 
     this._history = undefined;
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
+    this.processedValues = [];
+    this.processedMinValues = [];
+    this.processedMaxValues = [];
     this.coords = [];
     this.bucketMeta = [];
     this.statistics = {};
@@ -383,13 +386,26 @@ export default class SparklineGraph {
   }
 
   /**
-   * Updates graph data and reports whether the supplied input produced current
-   * processed data, a successful empty result, or has not been loaded yet.
+   * Keeps the existing combined entry point for callers that have not yet
+   * separated data updates from geometry updates.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
-   * @returns {string} Current processed-data state: not_loaded, has_data, or empty.
+   * @returns {string} Current processed-data state.
    */
   update(history) {
+    const dataState = this.processData(history);
+    if (dataState === SPARKLINE_DATA_STATE.HAS_DATA) this.calculateGeometry();
+    return dataState;
+  }
+
+  /**
+   * Assigns history to its time buckets and calculates their values and
+   * extrema. Pixel positions and axis geometry are calculated separately.
+   *
+   * @param {Array<object>|undefined} history - Graph source rows.
+   * @returns {string} Current processed-data state.
+   */
+  processData(history) {
     if (history !== undefined) this._history = history;
     if (this._history === undefined) {
       this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
@@ -398,6 +414,9 @@ export default class SparklineGraph {
     if (this._history.length === 0) {
       // Empty is a successful current result. Remove every processed value from
       // the previous input so no consumer can mistake old geometry for data.
+      this.processedValues = [];
+      this.processedMinValues = [];
+      this.processedMaxValues = [];
       this.coords = [];
       this.coordsMin = [];
       this.coordsMax = [];
@@ -421,11 +440,13 @@ export default class SparklineGraph {
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
     if (this.config.sparkline.show.chart_type === 'state_bands') {
-      this.min = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
-      this.max = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
+      this.dataMin = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
+      this.dataMax = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
+      this.processedValues = [];
+      this.processedMinValues = [];
+      this.processedMaxValues = [];
       this.coords = [];
       this.bucketMeta = [];
-      this.buildAxisGeometry();
       this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
       return this.dataState;
     }
@@ -498,19 +519,17 @@ export default class SparklineGraph {
     }
     histGroups.length = requiredNumOfPoints;
 
-    try {
-      this.coords = this._calcPoints(histGroups);
-    } catch (error) {
-      console.log('error in calcpoints');
-    }
-    this.min = Math.min(...this.coords.map((item) => Number(item[V])));
-    this.max = Math.max(...this.coords.map((item) => Number(item[V])));
+    this.processedValues = this.aggregateBuckets(histGroups);
+    this.processedMinValues = [];
+    this.processedMaxValues = [];
+    this.dataMin = Math.min(...this.processedValues.map((value) => Number(value)));
+    this.dataMax = Math.max(...this.processedValues.map((value) => Number(value)));
 
     const bucketStart = this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
     this.bucketMeta = [];
     for (let i = 0; i < histGroups.length; i += 1) {
       const bucket = histGroups[i];
-      const point = this.coords[i];
+      const value = this.processedValues[i];
       const start = new Date(bucketStart + i * bucketMs);
       const end = new Date(start.getTime() + bucketMs);
       const items = bucket ? bucket.filter(Boolean) : [];
@@ -520,7 +539,7 @@ export default class SparklineGraph {
           index: i,
           start,
           end,
-          value: point ? point[V] : undefined,
+          value,
           min: undefined,
           avg: undefined,
           max: undefined,
@@ -533,7 +552,7 @@ export default class SparklineGraph {
           index: i,
           start,
           end,
-          value: point ? point[V] : undefined,
+          value,
           min: Math.min(...values),
           avg: sum / values.length,
           max: Math.max(...values),
@@ -563,31 +582,37 @@ export default class SparklineGraph {
       histGroupsMinMax[0].length = requiredNumOfPoints;
       histGroupsMinMax[1].length = requiredNumOfPoints;
 
-      const histGroupsMin = [...histGroups];
-      const histGroupsMax = [...histGroups];
-
-      let prevFunction = this._calcPoint;
+      const prevFunction = this._calcPoint;
       this._calcPoint = this.aggregateFuncMap.min;
-      this.coordsMin = [];
-      this.coordsMin = this._calcPoints(histGroupsMin);
+      this.processedMinValues = this.aggregateBuckets(histGroups);
       this._calcPoint = this.aggregateFuncMap.max;
-      this.coordsMax = [];
-      this.coordsMax = this._calcPoints(histGroupsMax);
+      this.processedMaxValues = this.aggregateBuckets(histGroups);
       this._calcPoint = prevFunction;
 
       // The envelope, rather than the aggregate line, defines the visible range.
-      this.min = Math.min(...this.coordsMin.map((item) => Number(item[V])));
-      this.max = Math.max(...this.coordsMax.map((item) => Number(item[V])));
+      this.dataMin = Math.min(...this.processedMinValues.map((value) => Number(value)));
+      this.dataMax = Math.max(...this.processedMaxValues.map((value) => Number(value)));
     }
 
-    // Optional graph bounds override only their configured side. Automatic
-    // ranges remain unchanged when neither bound is present.
-    if (this.config.y_axis.lower_bound !== undefined) this.min = Number(this.config.y_axis.lower_bound);
-    if (this.config.y_axis.upper_bound !== undefined) this.max = Number(this.config.y_axis.upper_bound);
-
-    this.buildAxisGeometry();
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
     return this.dataState;
+  }
+
+  /**
+   * Places already aggregated values in the current drawing area and builds
+   * axes from the final shared scale and margins.
+   */
+  calculateGeometry() {
+    const xRatio = this.drawArea.width / (this.hours * this.points - 1);
+    const xStep = Number.isFinite(xRatio) ? xRatio : this.drawArea.width;
+    const positionValues = (values) => values.map((value, index) => [xStep * index + this.drawArea.x, 0, value]);
+
+    this.coords = positionValues(this.processedValues);
+    this.coordsMin = positionValues(this.processedMinValues);
+    this.coordsMax = positionValues(this.processedMaxValues);
+    this.min = this.config.y_axis.lower_bound !== undefined ? Number(this.config.y_axis.lower_bound) : this.dataMin;
+    this.max = this.config.y_axis.upper_bound !== undefined ? Number(this.config.y_axis.upper_bound) : this.dataMax;
+    this.buildAxisGeometry();
   }
 
   /**
@@ -1099,28 +1124,36 @@ export default class SparklineGraph {
   }
 
   /**
-   * Converts buckets into x/value tuples. Empty buckets carry the most recent
-   * raw state while populated buckets use the configured aggregate function.
+   * Aggregates visible buckets while carrying the last raw state across gaps.
+   * The result contains values only, so changing drawing dimensions does not
+   * repeat this work.
+   *
+   * @param {Array<Array<object>>} history - Bucketed history rows.
+   * @returns {Array<number>} One value for each visible bucket.
+   */
+  aggregateBuckets(history) {
+    const values = [];
+    const first = history.filter(Boolean)[0];
+    let last = [this._calcPoint(first), this._lastValue(first)];
+    for (let i = 0; i < this.visibleBucketCount; i += 1) {
+      const item = history[i];
+      if (item) last = [this._calcPoint(item), this._lastValue(item)];
+      values.push(item ? last[0] : last[1]);
+    }
+    return values;
+  }
+
+  /**
+   * Converts buckets into x/value tuples for existing direct Graph callers.
    *
    * @param {Array<Array<object>>} history - Bucketed history rows.
    * @returns {Array<Array<number>>} Tuples in X, Y placeholder and value order.
    */
   _calcPoints(history) {
-    const coords = [];
-    let xRatio = this.drawArea.width / (this.hours * this.points - 1);
-    xRatio = Number.isFinite(xRatio) ? xRatio : this.drawArea.width;
+    const xRatio = this.drawArea.width / (this.hours * this.points - 1);
+    const xStep = Number.isFinite(xRatio) ? xRatio : this.drawArea.width;
 
-    const first = history.filter(Boolean)[0];
-    let last = [this._calcPoint(first), this._lastValue(first)];
-    const getCoords = (item, i) => {
-      const x = xRatio * i + this.drawArea.x;
-      if (item) last = [this._calcPoint(item), this._lastValue(item)];
-      return coords.push([x, 0, item ? last[0] : last[1]]);
-    };
-
-    for (let i = 0; i < this.visibleBucketCount; i += 1) getCoords(history[i], i);
-
-    return coords;
+    return this.aggregateBuckets(history).map((value, index) => [xStep * index + this.drawArea.x, 0, value]);
   }
 
   /**

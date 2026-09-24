@@ -54,6 +54,9 @@ test('reports processed data independently from graph geometry', () => {
     coords: [],
     bucketMeta: [],
     _history: undefined,
+    calculateGeometry() {
+      this.buildAxisGeometry();
+    },
     buildAxisGeometry() {
       this.xAxis = { start: new Date(0), end: new Date(1) };
       this.yAxis = { rows: [] };
@@ -170,6 +173,33 @@ test('the first rolling bucket keeps its latest zero value when earlier samples 
     max: 0,
     count: 1,
   });
+});
+
+test('geometry uses processed bucket values without reducing history again', () => {
+  const graph = createGraph();
+  graph._updateEndTime = () => {
+    graph._endTime = new Date('2026-08-20T12:00:00.000Z');
+  };
+  graph.buildAxisGeometry = () => {};
+  const rows = [
+    { state: '4', haState: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', haState: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+
+  assert.equal(graph.processData(rows), 'has_data');
+  assert.deepEqual(graph.coords, []);
+  assert.deepEqual(graph.processedValues, [4, 8, 8, 8]);
+  graph.calculateGeometry();
+  const originalValues = graph.coords.map((point) => point[V]);
+  const originalX = graph.coords.map((point) => point[0]);
+
+  graph._reducer = () => { throw new Error('history reduced during geometry'); };
+  graph.aggregateBuckets = () => { throw new Error('buckets aggregated during geometry'); };
+  graph.setGraphAreas({ l: 5, t: 0, r: 5, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, graph.processedValues.length);
+  graph.calculateGeometry();
+
+  assert.deepEqual(graph.coords.map((point) => point[V]), originalValues);
+  assert.notDeepEqual(graph.coords.map((point) => point[0]), originalX);
 });
 
 test('single-bucket aggregate functions retain their meaning', () => {
