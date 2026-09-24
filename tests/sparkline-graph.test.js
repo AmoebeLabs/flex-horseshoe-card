@@ -23,11 +23,12 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
     line: { show: { minmax: showLineMinMax }, show_dots: false },
     area: { show: { minmax: showAreaMinMax }, show_dots: false },
   },
-  x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
+  x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
   y_axis: {
     lower_bound: lowerBound,
     upper_bound: upperBound,
     labels: { styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
 });
 
@@ -200,6 +201,50 @@ test('geometry uses processed bucket values without reducing history again', () 
 
   assert.deepEqual(graph.coords.map((point) => point[V]), originalValues);
   assert.notDeepEqual(graph.coords.map((point) => point[0]), originalX);
+});
+
+test('paint changes retain buckets and coordinates while label size changes only geometry', () => {
+  const config = createGraphConfig();
+  const graph = createGraph(config);
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  const axisMargin = { l: 0, t: 0, r: 0, b: 0 };
+  const configuredMargin = { l: 10, t: 10, r: 10, b: 10 };
+  graph._updateEndTime = () => { graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+
+  graph.update(rows);
+  const values = graph.processedValues;
+  const coords = graph.coords;
+  const revision = graph.processedDataRevision;
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, paintConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.strictEqual(graph.coords, coords);
+  assert.equal(graph.processedDataRevision, revision);
+  assert.equal(graph.geometryChanged, false);
+
+  const labelConfig = structuredClone(paintConfig);
+  labelConfig.x_axis.labels.styles['font-size'] = '16px';
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, labelConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.notStrictEqual(graph.coords, coords);
+  assert.equal(graph.processedDataRevision, revision);
+  assert.equal(graph.geometryChanged, true);
+
+  const labelCoords = graph.coords;
+  const localeConfig = structuredClone(labelConfig);
+  localeConfig.labelLocale = 'nl-NL|UTC';
+  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, localeConfig, [], [], {});
+  graph.update(rows);
+  assert.strictEqual(graph.processedValues, values);
+  assert.notStrictEqual(graph.coords, labelCoords);
+  assert.equal(graph.processedDataRevision, revision);
 });
 
 test('processed buckets survive geometry changes but refresh for bins, source rows and time', () => {
@@ -804,9 +849,11 @@ test('radial barcode uses the complete graph area without external geometry marg
     },
     x_axis: {
       labels: { max_length: 5, styles: { 'font-size': '10px' } },
+      tickmarks_major: { size: 1 },
     },
     y_axis: {
       labels: { styles: { 'font-size': '10px' } },
+      tickmarks_major: { size: 1 },
     },
   });
 

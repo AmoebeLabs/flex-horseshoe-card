@@ -78,6 +78,12 @@ export default class SparklineGraph {
     this._history = undefined;
     this.processedRows = undefined;
     this.processedDataKey = undefined;
+    this.processedDataRevision = 0;
+    this.processedDataChanged = false;
+    this.geometryInputSignature = undefined;
+    this.geometryResultSignature = undefined;
+    this.geometryConfigChanged = true;
+    this.geometryChanged = false;
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.processedValues = [];
     this.processedMinValues = [];
@@ -110,14 +116,57 @@ export default class SparklineGraph {
    * @param {object} stateMap - State-band mapping.
    */
   updateGraphConfig(width, height, axisMargin, configuredMargin, config, gradeValues, gradeRanks, stateMap) {
+    const chartType = config.sparkline.show.chart_type;
+    const radial = chartType === 'radial';
+    const radialBarcode = chartType === 'radial_barcode';
+    const lineOrArea = chartType === 'line' || chartType === 'area' || radial;
+    // Include only geometry used by the active renderer. Color-stop palettes,
+    // fill/stroke colors and opacity are consumed later by SVG paint.
+    const geometryInputSignature = JSON.stringify([
+      width,
+      height,
+      axisMargin,
+      configuredMargin,
+      config.geometry,
+      config.labelLocale,
+      config.period,
+      chartType,
+      config.sparkline.show.chart_variant,
+      config.sparkline.show.chart_viz,
+      config.sparkline.show.line,
+      config.sparkline.show.points,
+      config.sparkline.show.axis,
+      config.sparkline.show.tickmarks,
+      config.sparkline.show.labels,
+      config.sparkline.show.xlabels_at,
+      config.sparkline.show.ylabels_at,
+      config.sparkline.state_values.logarithmic,
+      config.sparkline.state_values.smoothing,
+      lineOrArea ? config.sparkline.line.show_dots : undefined,
+      lineOrArea ? config.sparkline.area.show_dots : undefined,
+      chartType === 'dots' || lineOrArea ? config.sparkline.dots.radius : undefined,
+      radial ? [config.sparkline.radial.arc_degrees, config.sparkline.radial.rotate, config.sparkline.radial.size] : undefined,
+      radialBarcode ? [config.sparkline.radial_barcode.arc_degrees, config.sparkline.radial_barcode.rotate, config.sparkline.radial_barcode.size] : undefined,
+      chartType === 'bar' ? config.sparkline.bar.orientation : undefined,
+      chartType === 'equalizer' || chartType === 'graded' ? config.sparkline.equalizer.value_buckets : undefined,
+      [config.x_axis.labels.max_length, config.x_axis.labels.offset, config.x_axis.labels.styles['font-size'], config.x_axis.labels.styles['text-anchor'], config.x_axis.tickmarks_major.size],
+      [config.y_axis.lower_bound, config.y_axis.upper_bound, config.y_axis.labels.offset, config.y_axis.labels.styles['font-size'], config.y_axis.tickmarks_major.size],
+      chartType === 'graded' ? gradeValues : undefined,
+      chartType === 'graded' ? gradeRanks.map((rank) => [rank.rank, rank.value, rank.rangeMin, rank.rangeMax]) : undefined,
+      chartType === 'state_bands' ? stateMap.map : undefined,
+    ]);
+    this.geometryConfigChanged = this.geometryConfigChanged || this.geometryInputSignature !== geometryInputSignature;
+    this.geometryInputSignature = geometryInputSignature;
     this.config = config;
     this.width = width;
     this.height = height;
     // graphArea is the complete SVG viewport; the tool supplies only the
     // measured outer axis space for the next geometry calculation.
     this.graphArea = { x: 0, y: 0, width, height };
-    this.setGraphAreas(axisMargin, configuredMargin, 0);
-    this.sharedYAxisBounds = undefined;
+    if (this.geometryConfigChanged) {
+      this.setGraphAreas(axisMargin, configuredMargin, 0);
+      this.sharedYAxisBounds = undefined;
+    }
     // Real-time retains the original one-value graph contract and has no
     // duration or bins. Historical period types use their configured range.
     if (this.config.period.type === 'real_time') {
@@ -420,6 +469,7 @@ export default class SparklineGraph {
    * @returns {string} Current processed-data state.
    */
   processData(history) {
+    this.processedDataChanged = false;
     if (history !== undefined) this._history = history;
     if (this._history === undefined) {
       this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
@@ -450,6 +500,8 @@ export default class SparklineGraph {
       this.dataState = SPARKLINE_DATA_STATE.EMPTY;
       this.processedRows = this._history;
       this.processedDataKey = undefined;
+      this.processedDataRevision += 1;
+      this.processedDataChanged = true;
       return this.dataState;
     }
 
@@ -458,6 +510,8 @@ export default class SparklineGraph {
     if (this.config.sparkline.show.chart_type === 'state_bands') {
       this.processedRows = undefined;
       this.processedDataKey = undefined;
+      this.processedDataRevision += 1;
+      this.processedDataChanged = true;
       this.dataMin = Math.min(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.dataMax = Math.max(...this.stateMap.map.map((entry) => Number(entry.value)));
       this.processedValues = [];
@@ -615,6 +669,8 @@ export default class SparklineGraph {
 
     this.processedRows = this._history;
     this.processedDataKey = processedDataKey;
+    this.processedDataRevision += 1;
+    this.processedDataChanged = true;
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
     return this.dataState;
   }
@@ -624,6 +680,17 @@ export default class SparklineGraph {
    * axes from the final shared scale and margins.
    */
   calculateGeometry() {
+    const geometryResultSignature = JSON.stringify([
+      this.processedDataRevision,
+      this.geometryInputSignature,
+      this.axisArea,
+      this.dataArea,
+      this.sharedYAxisBounds,
+    ]);
+    if (this.geometryResultSignature === geometryResultSignature) {
+      this.geometryChanged = false;
+      return false;
+    }
     const xRatio = this.drawArea.width / (this.hours * this.points - 1);
     const xStep = Number.isFinite(xRatio) ? xRatio : this.drawArea.width;
     const positionValues = (values) => values.map((value, index) => [xStep * index + this.drawArea.x, 0, value]);
@@ -634,6 +701,10 @@ export default class SparklineGraph {
     this.min = this.config.y_axis.lower_bound !== undefined ? Number(this.config.y_axis.lower_bound) : this.dataMin;
     this.max = this.config.y_axis.upper_bound !== undefined ? Number(this.config.y_axis.upper_bound) : this.dataMax;
     this.buildAxisGeometry();
+    this.geometryResultSignature = geometryResultSignature;
+    this.geometryConfigChanged = false;
+    this.geometryChanged = true;
+    return true;
   }
 
   /**

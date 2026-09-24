@@ -91,6 +91,17 @@ export default class SparklineSeries {
       throw new Error('[sparklines] parent chart_type must be radial when its series are radial');
     }
 
+    const seriesLayoutSignature = JSON.stringify(configuredSeries.map((seriesConfig) => [
+      seriesConfig.id,
+      seriesConfig.y_axis_id ?? 'primary',
+      seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type,
+    ]));
+    if (this.seriesLayoutSignature !== seriesLayoutSignature) {
+      this.cartesianLayout = undefined;
+      this.radialLayout = undefined;
+    }
+    this.seriesLayoutSignature = seriesLayoutSignature;
+
     this.items = configuredSeries.map((seriesConfig) => {
       const effectiveConfig = Merge.mergeDeep({}, config, seriesConfig);
       const existingItem = this.items.find((item) => item.id === seriesConfig.id);
@@ -247,20 +258,33 @@ export default class SparklineSeries {
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
-      item.graph.clearSharedYAxisBounds();
       item.dataState = item.graph.processData(item.rows);
-      if (item.dataState === SPARKLINE_DATA_STATE.HAS_DATA) item.graph.calculateGeometry();
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.cartesianLayout = undefined;
       this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
         dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
+
+    // Paint-only updates retain the measured axes and path coordinates. Every
+    // series must agree before reusing a shared plot layout.
+    const dataItemIds = JSON.stringify(dataItems.map((item) => item.id));
+    const layoutInputs = JSON.stringify([configuredMargin, columnSpacing, rowSpacing]);
+    if (this.cartesianLayout !== undefined && this.cartesianLayout.dataItemIds === dataItemIds && this.cartesianLayout.layoutInputs === layoutInputs && dataItems.every((item) => !item.graph.processedDataChanged && !item.graph.geometryConfigChanged)) {
+      this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+      return { dataState: this.dataState, ...this.cartesianLayout, geometryChanged: false };
+    }
+
+    dataItems.forEach((item) => {
+      item.graph.clearSharedYAxisBounds();
+      item.graph.calculateGeometry();
+    });
 
     const primaryItems = dataItems.filter((item) => item.y_axis_id === 'primary');
     const secondaryItems = dataItems.filter((item) => item.y_axis_id === 'secondary');
@@ -326,7 +350,8 @@ export default class SparklineSeries {
     });
 
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
-    return { dataState: this.dataState, axisGraphs, axisMargin };
+    this.cartesianLayout = { axisGraphs, axisMargin, dataItemIds, layoutInputs };
+    return { dataState: this.dataState, axisGraphs, axisMargin, geometryChanged: true };
   }
 
   /**
@@ -340,20 +365,31 @@ export default class SparklineSeries {
    */
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
     this.items.forEach((item) => {
-      item.graph.clearSharedYAxisBounds();
       item.dataState = item.graph.processData(item.rows);
-      if (item.dataState === SPARKLINE_DATA_STATE.HAS_DATA) item.graph.calculateGeometry();
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
+      this.radialLayout = undefined;
       this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
       return {
         dataState: this.dataState,
         axisGraphs: { primary: undefined, secondary: undefined },
       };
     }
+
+    const dataItemIds = JSON.stringify(dataItems.map((item) => item.id));
+    const layoutInputs = JSON.stringify(configuredMargin);
+    if (this.radialLayout !== undefined && this.radialLayout.dataItemIds === dataItemIds && this.radialLayout.layoutInputs === layoutInputs && dataItems.every((item) => !item.graph.processedDataChanged && !item.graph.geometryConfigChanged)) {
+      this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
+      return { dataState: this.dataState, ...this.radialLayout, geometryChanged: false };
+    }
+
+    dataItems.forEach((item) => {
+      item.graph.clearSharedYAxisBounds();
+      item.graph.calculateGeometry();
+    });
 
     const primaryItems = dataItems.filter((item) => item.y_axis_id === 'primary');
     const secondaryItems = dataItems.filter((item) => item.y_axis_id === 'secondary');
@@ -405,7 +441,8 @@ export default class SparklineSeries {
     });
 
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
-    return { dataState: this.dataState, axisGraphs, axisMargin };
+    this.radialLayout = { axisGraphs, axisMargin, dataItemIds, layoutInputs };
+    return { dataState: this.dataState, axisGraphs, axisMargin, geometryChanged: true };
   }
 
   /**
@@ -434,6 +471,8 @@ export default class SparklineSeries {
 
   /** Removes graph geometry while a dynamic period has no valid duration. */
   clearGraphs() {
+    this.cartesianLayout = undefined;
+    this.radialLayout = undefined;
     this.items.forEach((item) => {
       item.graph = undefined;
       item.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;

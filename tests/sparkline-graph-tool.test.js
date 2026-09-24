@@ -1328,6 +1328,13 @@ test('accepted multi-day history builds and renders the configured line minmax e
   assert.equal(item.dataState, 'has_data');
   assert.notEqual(minMaxPath, '');
   assert.match(rendered.values[1].strings.join(''), /sparkline-series-minmax/);
+
+  const retainedLine = tool.line;
+  const retainedEnvelope = tool.areaMinMax;
+  tool.updateGraphFromSeries();
+  assert.equal(tool.seriesGeometryChanged, false);
+  assert.strictEqual(tool.line, retainedLine);
+  assert.strictEqual(tool.areaMinMax, retainedEnvelope);
 });
 
 test('accepted empty history becomes loaded request state with empty processed data', async (context) => {
@@ -1654,6 +1661,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   second.graph.max = 40;
   first.config.y_axis = { lower_bound: -10, upper_bound: 50 };
   second.config.y_axis = { lower_bound: 0, upper_bound: 100 };
+  first.graph.geometryConfigChanged = true;
+  second.graph.geometryConfigChanged = true;
   calls.length = 0;
 
   tool.updateCartesianSeriesGraphs();
@@ -1666,6 +1675,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   second.graph.max = 40;
   first.config.y_axis = { lower_bound: -1 };
   second.config.y_axis = { upper_bound: 100 };
+  first.graph.geometryConfigChanged = true;
+  second.graph.geometryConfigChanged = true;
   calls.length = 0;
 
   tool.updateCartesianSeriesGraphs();
@@ -2235,8 +2246,8 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
       dots: { radius: 1 },
       radial: { arc_degrees: 360, rotate: 0, size: 50 },
     },
-    x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } } },
-    y_axis: { labels: { styles: { 'font-size': '10px' } } },
+    x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
+    y_axis: { labels: { styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
   };
   const series = new SparklineSeries(config);
   const item = series.primaryItem;
