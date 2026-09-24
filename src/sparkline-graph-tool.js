@@ -756,7 +756,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.periodDurationAvailable) {
       this.sparklineSeries.items.forEach((item) => {
         const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
-        this.sparklineSeries.createGraph(
+        this.sparklineSeries.configureGraph(
           item,
           this.graphArea.width,
           this.graphArea.height,
@@ -1385,13 +1385,13 @@ export default class SparklineGraphTool extends BaseTool {
       return true;
     });
     // Runtime config can change duration, density or graph width. Recalculate
-    // the one Series-owned bin result before replacing the graph engines.
+    // the one Series-owned bin result before updating the graph engines.
     this.sparklineSeries.updateBinPlan();
     const sharedBinsPerHour = this.sparklineSeries.binPlan.perHour;
     this.graphConfig = this.buildGraphConfig(this.config, sharedBinsPerHour);
     this.sparklineSeries.items.forEach((item) => {
       const graphConfig = this.buildGraphConfig(item.config, sharedBinsPerHour);
-      this.sparklineSeries.createGraph(
+      this.sparklineSeries.configureGraph(
         item,
         this.graphArea.width,
         this.graphArea.height,
@@ -1812,12 +1812,14 @@ export default class SparklineGraphTool extends BaseTool {
     // sequence. Source timestamps remain intact so normal bucketing is exercised.
     if (this.card.dev.fakeData && chartType !== 'state_bands') {
       let generatedState = 40;
+      const primaryItem = this.sparklineSeries.primaryItem;
 
-      this.sparklineSeries.primaryItem.rows.forEach((seriesItem, seriesIndex) => {
-        if (seriesIndex < this.sparklineSeries.primaryItem.rows.length / 2) generatedState -= 4 * seriesIndex;
-        if (seriesIndex > this.sparklineSeries.primaryItem.rows.length / 2) generatedState += 3 * seriesIndex;
-        seriesItem.state = generatedState;
-        seriesItem.haState = generatedState;
+      // A fake-data preview must not mutate History-owned rows. A new array
+      // also tells Graph when switching the preview on or off changes values.
+      primaryItem.rows = primaryItem.rows.map((seriesItem, seriesIndex) => {
+        if (seriesIndex < primaryItem.rows.length / 2) generatedState -= 4 * seriesIndex;
+        if (seriesIndex > primaryItem.rows.length / 2) generatedState += 3 * seriesIndex;
+        return { ...seriesItem, state: generatedState, haState: generatedState };
       });
     }
     if (radialSeries) {

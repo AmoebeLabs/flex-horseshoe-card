@@ -120,6 +120,19 @@ test('a series rolling offset selects yesterday and projects it onto the shared 
   });
 });
 
+test('unchanged prepared history keeps its array identity across HA updates', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, [{ state: '9', last_changed: '2026-09-12T11:00:00.000Z' }], range);
+
+    assert.strictEqual(history.addCurrentEntityState(item, range), rows);
+    item.entity = { ...item.entity, state: '13' };
+    assert.notStrictEqual(history.addCurrentEntityState(item, range), rows);
+  });
+});
+
 test('a parent rolling offset moves both the shared plot and inherited source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
     const item = { id: 'default', config: { period: rollingPeriod(-1) } };
