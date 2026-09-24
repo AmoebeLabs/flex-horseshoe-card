@@ -281,3 +281,26 @@ The series is complete only when:
 - obsolete workaround state has been removed;
 - existing YAML remains compatible;
 - permanent tests prove the cross-module routes.
+
+## 15. Implementation complexity and model choice
+
+This is a risk-based recommendation, not a requirement or a claim that one model guarantees correctness. `GPT-6 Luna (max)` is suitable for a bounded change with an explicit interface and permanent tests. Prefer `GPT-6 Sol (xhigh)` when the work requires architectural decisions, timing/race analysis, browser-specific behaviour, or verification across several owners. A higher reasoning-effort setting does not remove the need for those checks. Reassess the model if current-code validation reveals wider coupling than the plan describes. See the [OpenAI model selection guidance](https://developers.openai.com/api/docs/guides/model-selection/).
+
+| Plan | Complexity | Recommended implementation/review |
+| --- | --- | --- |
+| 01 — Sparkline ownership and interfaces | High | Sol (xhigh) for the ownership boundary; Luna (max) for isolated tests after the interface is fixed. |
+| 02 — history, time and requests | High | Sol (xhigh) for request identity, offsets and DST; Luna (max) for a tightly specified test or local change. |
+| 03 — explicit data state | Medium-high | Sol (xhigh) for state transitions and integration; Luna (max) for a single transition with clear expected behaviour. |
+| 04 — data and geometry separation | High | Sol (xhigh) for Graph/Series/Tool coordination and final integration; Luna (max) for bounded changes with existing result invariants. |
+| 05 — resource lifecycle foundation | High | Sol (xhigh) for replacement/disconnect ownership; Luna (max) for one resource owner and its cleanup tests. |
+| 06 — async results and recovery | High | Sol (xhigh) for stale-result and retry races; Luna (max) for an isolated completion path once validity rules are fixed. |
+| 07 — card lifecycle and derived entities | Very high | Sol (xhigh) for the whole plan; do not assign the external-update/local-output flow to Luna as one task. |
+| 08 — change detection and rendering | Very high | Sol (xhigh) for event-level data/geometry/paint decisions; Luna (max) only for precisely bounded subissues. |
+| 09 — pointer interaction lifecycle | Medium-high | Sol (xhigh) for DOM/Safari integration; Luna (max) for focused pointer tests or one owner. |
+| 10 — Horseshoe animation and path cache | Medium-high | Sol (xhigh) for animation/cache lifetime and Safari checks; Luna (max) for a local cache or cleanup subissue. |
+| 11 — configuration `ref()` and merge | Medium | Luna (max) for the scoped implementation and type-preservation test matrix; Sol (xhigh) for final merge-semantics review. |
+| 12 — theme-aware color cache | Medium-high | Luna (max) for a well-specified cache-key change; Sol (xhigh) for cross-card/theme invalidation and review. |
+| 13 — final simplification and cleanup | High breadth | Sol (xhigh) for deciding what is obsolete and verifying behaviour; Luna (max) for small, independently tested removals. |
+| 14 — CI and dev-release safety | Medium-high | Luna (max) for isolated test/workflow edits; Sol (xhigh) for release concurrency, artifact lineage and final review. |
+
+Use the same branch, Definition of Done and permanent-test rules regardless of model. Model choice is an aid to execution, not a substitute for visual validation or the required integration tests.
