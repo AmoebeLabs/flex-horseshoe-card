@@ -1597,7 +1597,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     max,
     coords: [[0, 0, min], [100, 0, max]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       calls.push([min, lowerBound, upperBound]);
       this.min = lowerBound;
@@ -1719,7 +1720,8 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     coords: [[0, 0, 0], [100, 0, 10]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
       this.max = upperBound;
@@ -1778,13 +1780,14 @@ test("multiple series wait for every graph before building shared geometry", () 
   const readyGraph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     getPath() { pathRead = true; },
   };
   const loadingGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'not_loaded'; },
+    processData() { return 'not_loaded'; },
   };
   const config = {
     period: { type: "real_time" },
@@ -1816,7 +1819,8 @@ test('multiple series keep current data visible when another series is empty', (
     coords: [[0, 0, 10], [100, 0, 20]],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    update() { return 'has_data'; },
+    processData() { return 'has_data'; },
+    calculateGeometry() {},
     setSharedYAxisBounds() {},
     setGraphAreas() {},
     calculateYCoordinates: (points) => points,
@@ -1829,7 +1833,7 @@ test('multiple series keep current data visible when another series is empty', (
   const emptyGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    update() { return 'empty'; },
+    processData() { return 'empty'; },
     getPath() {
       emptyPathReads += 1;
       throw new Error('empty graph has no path');
