@@ -561,6 +561,53 @@ test('a smaller requested range reuses accepted history without loading again', 
   assert.equal(history.getRequestFacts(item.id).resynchronizationRequested, false);
 });
 
+test('one day to two weeks to one day to two weeks reloads rows discarded by pruning', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const oneDay = rollingPeriod(0);
+    const twoWeeks = {
+      type: 'rolling_window',
+      rolling_window: { offset: 0, duration: { hour: 336 } },
+    };
+    const item = historyItem('duration-switch', 'sensor.duration_switch', oneDay);
+    const history = historyFor(oneDay, item, {});
+    history.bindSeriesEntity(item);
+    history.acceptHistoryRows(item, [
+      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
+    ], history.getSeriesRange(item));
+
+    item.config.period = twoWeeks;
+    history.updateConfig(twoWeeks, {}, [item], true, false);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
+    history.acceptHistoryRows(item, [
+      { state: '5', last_changed: '2026-08-30T12:00:00.000Z' },
+      { state: '9', last_changed: '2026-09-05T12:00:00.000Z' },
+      { state: '10', last_changed: '2026-09-11T16:00:00.000Z' },
+      { state: '11', last_changed: '2026-09-12T11:00:00.000Z' },
+    ], history.getSeriesRange(item));
+
+    item.config.period = oneDay;
+    history.updateConfig(oneDay, {}, [item], true, false);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
+    history.pruneActiveRows(item, 1);
+    assert.equal(history.getRows(item.id).some((row) => row.source_time === '2026-08-30T12:00:00.000Z'), false);
+    const retainedRequest = history.requestSeriesHistory(item, {
+      callApi: () => {
+        throw new Error('the current day must still be covered after pruning');
+      },
+    });
+    assert.equal(retainedRequest.started, false);
+    assert.equal(retainedRequest.representedRange, true);
+
+    history.updateConfig(oneDay, {}, [item], true, false);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
+
+    item.config.period = twoWeeks;
+    history.updateConfig(twoWeeks, {}, [item], true, false);
+    assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
+    assert.equal(history.getRequestFacts(item.id).preserveGraphWhileLoading, true);
+  });
+});
+
 test('an unevaluated dynamic duration does not calculate or request a history range', () => {
   const period = {
     type: 'rolling_window',
