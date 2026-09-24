@@ -24,9 +24,11 @@ const graphConfig = {
   },
   x_axis: {
     labels: { max_length: 5, styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
   y_axis: {
     labels: { styles: { 'font-size': '10px' } },
+    tickmarks_major: { size: 1 },
   },
 };
 
@@ -346,6 +348,57 @@ test('shared Cartesian scale processes historical rows once per real series grap
   assert.equal(series.items[0].graph.max, series.items[1].graph.max);
 });
 
+test('Cartesian series reuse measured geometry for paint and remeasure changed layout', () => {
+  const config = structuredClone(graphConfig);
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+  };
+  const series = new SparklineSeries(config);
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  const item = series.primaryItem;
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  series.setRows(item, rows);
+  let measurements = 0;
+  const measureAxisMargin = () => {
+    measurements += 1;
+    return margin;
+  };
+
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, true);
+  const coords = item.graph.coords;
+  const values = item.graph.processedValues;
+  assert.equal(measurements, 1);
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4 };
+  series.updateConfig(paintConfig);
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, false);
+  assert.strictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 1);
+
+  const labelConfig = structuredClone(paintConfig);
+  labelConfig.x_axis.labels.styles['font-size'] = '16px';
+  series.updateConfig(labelConfig);
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, true);
+  assert.notStrictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 2);
+
+  assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 5).geometryChanged, true);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 3);
+});
+
 test('runtime config updates keep rows and graph state on the same series item', () => {
   const series = new SparklineSeries({
     ...graphConfig,
@@ -647,4 +700,42 @@ test('radial series share scale bounds and one measured outer margin', () => {
     { t: 17, r: 17, b: 17, l: 17 },
   ]);
   assert.deepEqual(result.axisMargin, axisMargin);
+});
+
+test('radial series retain shared geometry when only their color changes', () => {
+  const config = structuredClone(graphConfig);
+  config.period = {
+    type: 'rolling_window',
+    group_by: 'interval',
+    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
+  };
+  config.sparkline.show.chart_type = 'radial';
+  const series = new SparklineSeries(config);
+  const item = series.primaryItem;
+  const margin = { t: 0, r: 0, b: 0, l: 0 };
+  const rows = [
+    { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
+    { state: '8', last_changed: '2026-08-20T09:30:00.000Z' },
+  ];
+  series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
+  item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
+  series.setRows(item, rows);
+  let measurements = 0;
+  const measureAxisMargin = () => {
+    measurements += 1;
+    return margin;
+  };
+
+  assert.equal(series.updateRadialGraphs(measureAxisMargin, margin).geometryChanged, true);
+  const coords = item.graph.coords;
+  const values = item.graph.processedValues;
+
+  const paintConfig = structuredClone(config);
+  paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
+  series.updateConfig(paintConfig);
+  series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
+  assert.equal(series.updateRadialGraphs(measureAxisMargin, margin).geometryChanged, false);
+  assert.strictEqual(item.graph.coords, coords);
+  assert.strictEqual(item.graph.processedValues, values);
+  assert.equal(measurements, 1);
 });
