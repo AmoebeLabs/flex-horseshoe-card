@@ -98,6 +98,17 @@ export default class IconTool extends BaseTool {
     this.haIconPath.disconnected();
   }
 
+  /** Includes state-map icon selection and Home Assistant's state-dependent icon paint. */
+  hasPresentationChanged() {
+    const stateMapItem = this.getStateMapItem();
+    const renderItem = stateMapItem ? Merge.mergeDeep(this.config, stateMapItem) : this.config;
+    return super.hasPresentationChanged([
+      this.buildIcon(stateMapItem, renderItem),
+      stateMapItem,
+      this.entity ? Colors.getHaEntityIconStyle(this.entity) : undefined,
+    ]);
+  }
+
   /** Identifies the HA inputs which determine one entity/attribute icon. */
   getEntityIconKey(entity, entityConfig) {
     const attribute = entityConfig.attribute;

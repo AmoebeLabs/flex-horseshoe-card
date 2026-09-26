@@ -88,6 +88,11 @@ export default class AreaTool extends BaseTool {
     }
   }
 
+  /** Reports changes to the formatted area and its effective paint/layout. */
+  hasPresentationChanged() {
+    return super.hasPresentationChanged(this.area);
+  }
+
   /**
    * Returns the rendered width, or the learned estimate before the next SVG measurement.
    *

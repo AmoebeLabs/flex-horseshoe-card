@@ -467,6 +467,15 @@ export default class HorseshoeGauge extends BaseTool {
     this.backgroundLayers = [];
   }
 
+  /** Compares the mapped value and painted ranges while retaining the path animator. */
+  hasPresentationChanged() {
+    return super.hasPresentationChanged([
+      this.value,
+      this.renderContract,
+      this.stateMarkerStyles,
+    ]);
+  }
+
   /**
    * Maps the entity through the shared state resolver, then builds path-independent
    * value and painted ranges for all non-gradient scale and state modes.
