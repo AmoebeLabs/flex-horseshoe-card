@@ -1484,9 +1484,10 @@ export default class SparklineGraphTool extends BaseTool {
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
       }
-    } else if (allSeriesRequestsCompleted && this.sparklineSeries.dataState === SPARKLINE_DATA_STATE.HAS_DATA && this.sparklineSeries.items.length === 1) {
-      this.updateSparklinePaint();
     }
+
+    // The normal presentation phase refreshes paint after every source and
+    // derived value is current. Equal data does not need another graph pass.
 
     historicalItems.forEach((item) => this.fetchHistoryIfNeeded(item));
     if (this.config.sparkline.show.day_night) {
