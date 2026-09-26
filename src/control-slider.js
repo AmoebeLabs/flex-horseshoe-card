@@ -202,12 +202,15 @@ export default class ControlSlider extends ControlBase {
     this.writeTimer = undefined;
     this.pointerMoveListener = (event) => this.moveSliderPointer(event);
     this.pointerUpListener = (event) => this.finishSliderPointer(event);
+    this.valueStateTools = [];
+    this.valueSeparatorTool = undefined;
     this.createSliderValueTools();
     this.createControlLabelTextTool(this.config.width, this.config.height);
   }
 
   /** Creates ordinary StateTool values at the configured control-relative position. */
   createSliderValueTools() {
+    this.getContentTools().forEach((tool) => tool.disconnected());
     this.valueStateTools = [];
     this.valueSeparatorTool = undefined;
     if (!this.config.value.show) return;
@@ -292,6 +295,12 @@ export default class ControlSlider extends ControlBase {
         this.card,
       );
     }
+    this.activateContentTools();
+  }
+
+  /** Returns the slider values and the optional range separator. */
+  getContentTools() {
+    return this.valueSeparatorTool ? [...this.valueStateTools, this.valueSeparatorTool] : this.valueStateTools;
   }
 
   /** Recalculates runtime geometry and child configs after dynamic YAML changes. */
@@ -366,6 +375,7 @@ export default class ControlSlider extends ControlBase {
       this.sliderValues = entitySliderValues;
 
       if (this.config.show.item_variant === 'range'
+        && this.controlConnected
         && sliderWasAvailable
         && this.config.animation.duration > 0
         && this.sliderValues.some(
@@ -633,6 +643,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Removes all global interaction resources when the card disconnects. */
   disconnected() {
+    super.disconnected();
     window.removeEventListener('pointermove', this.pointerMoveListener);
     window.removeEventListener('pointerup', this.pointerUpListener);
     window.removeEventListener('pointercancel', this.pointerUpListener);

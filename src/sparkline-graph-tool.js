@@ -719,6 +719,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.legendLayout = this.calculateLegendLayout();
     this.graphArea = this.legendLayout.graphArea;
     this.legendTextTools = [];
+    this.legendHassAvailable = false;
     this.legendTextSignature = undefined;
     this.configuredGraphMargin = this.svg.margin;
     this.axisMargin = { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 };
@@ -1512,6 +1513,7 @@ export default class SparklineGraphTool extends BaseTool {
   /** Ends history and pointer work while preserving accepted graph data. */
   disconnected() {
     this.sparklineHistory.disconnected();
+    this.legendTextTools.forEach((tool) => tool.disconnected());
     this.sparklineSeries.items.forEach((item) => {
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
     });
@@ -1555,6 +1557,7 @@ export default class SparklineGraphTool extends BaseTool {
    */
   connected() {
     this.sparklineHistory.connected();
+    this.legendTextTools.forEach((tool) => tool.connected());
     this.sparklineSeries.items.forEach((item) => {
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
     });
@@ -1564,6 +1567,13 @@ export default class SparklineGraphTool extends BaseTool {
   /** Marks existing history for resynchronization after an HA reconnect. */
   hassConnected() {
     this.connected();
+    this.legendTextTools.forEach((tool) => tool.hassConnected());
+  }
+
+  /** Gives legend text the same HA availability as its owning graph. */
+  hassAvailable() {
+    this.legendHassAvailable = true;
+    this.legendTextTools.forEach((tool) => tool.hassAvailable());
   }
 
   /**
@@ -5985,6 +5995,7 @@ export default class SparklineGraphTool extends BaseTool {
   updateLegendTextTools() {
     const legend = this.config.sparkline.legend;
     if (!this.config.sparkline.show.legend) {
+      this.legendTextTools.forEach((tool) => tool.disconnected());
       this.legendItems = [];
       this.legendTextTools = [];
       this.legendTextSignature = undefined;
@@ -6058,9 +6069,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (textSignature === this.legendTextSignature) return;
 
+    this.legendTextTools.forEach((tool) => tool.disconnected());
     legendItems.forEach((item) => {
       item.textTool.updateRuntimeConfig();
       item.textTool.setStaticState();
+      if (this.legendHassAvailable) item.textTool.hassAvailable();
+      if (this.sparklineHistory.connectedToCard) item.textTool.connected();
+      else item.textTool.disconnected();
     });
     this.legendItems = legendItems;
     this.legendTextTools = legendItems.map((item) => item.textTool);

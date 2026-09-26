@@ -89,6 +89,8 @@ export default class ControlBase extends BaseTool {
 
     this.hasControlLabel = controlConfig.label !== undefined;
     this.labelTextTool = undefined;
+    this.controlHassAvailable = false;
+    this.controlConnected = false;
   }
 
   /**
@@ -144,6 +146,7 @@ export default class ControlBase extends BaseTool {
    */
   createControlLabelTextTool(controlWidth, controlHeight) {
     if (!this.hasControlLabel) return;
+    if (this.labelTextTool) this.labelTextTool.disconnected();
 
     const label = this.config.label;
     let xpos = this.config.xpos;
@@ -215,6 +218,58 @@ export default class ControlBase extends BaseTool {
 
     this.labelTextTool = new TextTool(labelConfig, 0, this.templates, this.cardId, this.card);
     this.labelTextTool.updateRuntimeConfig();
+    if (this.controlHassAvailable) this.labelTextTool.hassAvailable();
+    if (this.controlConnected) this.labelTextTool.connected();
+    else this.labelTextTool.disconnected();
+  }
+
+  /** Gives rebuilt content the lifecycle already reached by this control. */
+  activateContentTools() {
+    this.getContentTools().forEach((tool) => {
+      if (this.controlHassAvailable) tool.hassAvailable();
+      if (this.controlConnected) tool.connected();
+      else tool.disconnected();
+    });
+  }
+
+  /** Forwards initial HA availability to the label and concrete content tools. */
+  hassAvailable() {
+    if (this.controlHassAvailable) return;
+    this.controlHassAvailable = true;
+    if (this.labelTextTool) this.labelTextTool.hassAvailable();
+    this.getContentTools().forEach((tool) => tool.hassAvailable());
+  }
+
+  /** Connects the current children once when their parent enters the DOM. */
+  connected() {
+    if (this.controlConnected) return;
+    this.controlConnected = true;
+    if (this.labelTextTool) this.labelTextTool.connected();
+    this.getContentTools().forEach((tool) => tool.connected());
+  }
+
+  /** Closes every nested owner, including direct icon/text/state content. */
+  disconnected() {
+    this.controlConnected = false;
+    if (this.labelTextTool) this.labelTextTool.disconnected();
+    this.getContentTools().forEach((tool) => tool.disconnected());
+  }
+
+  /** Forwards websocket readiness without repeating DOM connection. */
+  hassConnected() {
+    if (this.labelTextTool) this.labelTextTool.hassConnected();
+    this.getContentTools().forEach((tool) => tool.hassConnected());
+  }
+
+  /** Includes nested data visualizations in the card's update decision. */
+  requiresHassUpdate() {
+    return super.requiresHassUpdate() || this.getContentTools().some((tool) => tool.requiresHassUpdate());
+  }
+
+  /** Forwards first-render work after the current child nodes are committed. */
+  firstUpdated(changedProperties) {
+    if (this.labelTextTool) this.labelTextTool.firstUpdated(changedProperties);
+    this.getContentTools().forEach((tool) => tool.firstUpdated(changedProperties));
   }
 
   /**

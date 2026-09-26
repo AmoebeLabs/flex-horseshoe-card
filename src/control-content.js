@@ -40,6 +40,8 @@ export default class ControlContent {
     this.card = card;
     this.vertical = direction === 'vertical';
     this.childTools = [];
+    this.contentConnected = false;
+    this.contentHassAvailable = false;
 
     // Complete all public padding shorthands here. The layout loop below only
     // consumes explicit edges and therefore performs no fallback decisions.
@@ -108,6 +110,8 @@ export default class ControlContent {
 
   /** Divides the content box into equal cells and constructs every visual tool. */
   createVisualTools() {
+    // Rebuilding content ends every old child lifetime before new allocation.
+    this.childTools.forEach((child) => child.tool.disconnected());
     // Convert the parent-owned center and dimensions into the inner content box.
     // Child tools receive final card coordinates, not local percentages.
     const contentX = this.bounds.xpos - this.bounds.width / 2 + this.padding.left;
@@ -241,6 +245,11 @@ export default class ControlContent {
         tool,
       };
     });
+    this.childTools.forEach((child) => {
+      if (this.contentHassAvailable) child.tool.hassAvailable();
+      if (this.contentConnected) child.tool.connected();
+      else child.tool.disconnected();
+    });
   }
 
   /** Updates child runtime configuration before entity state is assigned. */
@@ -284,16 +293,21 @@ export default class ControlContent {
 
   /** Forwards initial Home Assistant availability to visual children. */
   hassAvailable() {
+    if (this.contentHassAvailable) return;
+    this.contentHassAvailable = true;
     this.childTools.forEach((child) => child.tool.hassAvailable());
   }
 
   /** Forwards parent DOM connection to visual children. */
   connected() {
+    if (this.contentConnected) return;
+    this.contentConnected = true;
     this.childTools.forEach((child) => child.tool.connected());
   }
 
   /** Stops timers and listeners owned by visual children. */
   disconnected() {
+    this.contentConnected = false;
     this.childTools.forEach((child) => child.tool.disconnected());
   }
 

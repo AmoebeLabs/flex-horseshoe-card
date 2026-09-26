@@ -799,6 +799,7 @@ export default class SparklineHistory {
       } else if (record.rows !== undefined) {
         record.requestState = SPARKLINE_REQUEST_STATE.LOADED;
       } else {
+        record.resynchronizationRequested = this.periodDurationAvailable;
         record.requestState = this.periodDurationAvailable ? SPARKLINE_REQUEST_STATE.LOADING : SPARKLINE_REQUEST_STATE.NOT_LOADED;
       }
       if (item.config.history.refresh_interval !== undefined && record.rows !== undefined) {
