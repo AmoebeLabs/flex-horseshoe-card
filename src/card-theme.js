@@ -19,6 +19,10 @@ export default class CardTheme {
     this.palettes = {};
     this.palettesLoaded = false;
     this.horseshoes = [];
+    this.paletteConfig = {};
+    this.paletteLoadNumber = 0;
+    this.palettesNeedLoading = false;
+    this.disconnectedFromCard = false;
   }
 
   /** Publishes the current horseshoes whose cached color paths depend on mode. */
@@ -53,14 +57,55 @@ export default class CardTheme {
 
   /** Loads configured palettes and reapplies them using the current HA mode. */
   async loadPalettes(paletteConfig) {
+    this.paletteConfig = paletteConfig;
+    const loadNumber = ++this.paletteLoadNumber;
+    this.palettesNeedLoading = true;
     this.palettesLoaded = false;
-    this.palettes = await Palette.loadAll(paletteConfig);
+
+    // Removing palettes also supersedes a pending load, without scheduling
+    // another render for an otherwise palette-free card.
+    if (Object.keys(paletteConfig).length === 0) {
+      this.palettes = {};
+      this.palettesLoaded = true;
+      this.palettesNeedLoading = false;
+      return;
+    }
+    if (this.disconnectedFromCard) return;
+
+    let palettes;
+    try {
+      palettes = await Palette.loadAll(paletteConfig);
+    } catch (error) {
+      if (loadNumber !== this.paletteLoadNumber || this.disconnectedFromCard) return;
+      // The caller reports the active failure; a later call/reconnect can retry.
+      throw error;
+    }
+    if (loadNumber !== this.paletteLoadNumber || this.disconnectedFromCard) return;
+
+    this.palettes = palettes;
     Colors.setElement(this.element);
     Palette.applyAll(this.element, this.palettes, this.getActiveColorStopMode());
     Colors.colorCache = {};
     this.palettesLoaded = true;
+    this.palettesNeedLoading = false;
     this.horseshoes.forEach((horseshoe) => horseshoe.clearPathItemCache());
     this.updateCard();
+  }
+
+  /** Resumes only the current palette configuration interrupted by disconnect. */
+  connected() {
+    if (!this.disconnectedFromCard) return;
+    this.disconnectedFromCard = false;
+    if (this.palettesNeedLoading) {
+      this.loadPalettes(this.paletteConfig).catch((error) => console.error('[FHC palettes]', error));
+    }
+  }
+
+  /** Invalidates pending publication while retaining successful shared sources. */
+  disconnected() {
+    if (this.disconnectedFromCard) return;
+    this.disconnectedFromCard = true;
+    this.paletteLoadNumber += 1;
   }
 
   /** Clears the per-update mode marker after all runtime config was evaluated. */
