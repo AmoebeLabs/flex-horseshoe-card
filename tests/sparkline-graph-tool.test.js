@@ -1167,7 +1167,7 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
   assert.match(tool.renderLegend().strings.join(''), /sparkline-legend/);
 });
 
-test('accepted history keeps its update flag active through the card pipeline', async () => {
+test('accepted history keeps request exclusion active through direct result publication', async () => {
   const tool = Object.create(SparklineGraphTool.prototype);
   const entity = {
     entity_id: 'sensor.active',
@@ -1223,7 +1223,7 @@ test('accepted history keeps its update flag active through the card pipeline', 
       requestUpdate() {},
       cardTools: { getBySection: () => [tool] },
       cardEntities: { updateSparklineEntities() {} },
-      setHass() {
+      updateSparklineResult() {
         updateFlagsSeenByCard.push(tool.requiresHassUpdate());
       },
     },
@@ -1315,7 +1315,7 @@ test('an accepted History result queued at disconnect cannot enter the GraphTool
       cardEntities: { updateSparklineEntities: () => pipelineCalls.push('entities') },
       resolvedEntityConfigs: [],
       entities: [],
-      setHass: () => pipelineCalls.push('hass'),
+      updateSparklineResult: () => pipelineCalls.push('result'),
     },
   });
 
@@ -1374,7 +1374,7 @@ test('accepted multi-day history builds and renders the configured line minmax e
       callApi: async () => [historyRows],
     },
     requestUpdate() {},
-    setHass() {},
+    updateSparklineResult() {},
     cardLayout: {
       changedGroupIds: new Set(),
       calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
@@ -1462,7 +1462,7 @@ test('accepted empty history becomes loaded request state with empty processed d
       callApi: async () => [],
     },
     requestUpdate() {},
-    setHass() {},
+    updateSparklineResult() {},
     cardLayout: {
       changedGroupIds: new Set(),
       calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),

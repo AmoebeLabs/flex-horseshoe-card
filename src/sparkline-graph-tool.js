@@ -1493,15 +1493,21 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Applies the existing GraphTool presentation continuation after History has
-   * reported an elapsed bin. Plan 07 will replace the remaining card setHass
-   * continuation; History itself remains independent from the parent card.
+   * Advances retained history to the elapsed bin and current source sample,
+   * then publishes the processed result to card presentation consumers.
    */
   historyBinBoundaryReached() {
+    this.sparklineSeries.items.forEach((item) => {
+      if (item.config.period.type === 'real_time') return;
+      const range = this.sparklineHistory.getSeriesRange(item);
+      if (this.sparklineHistory.hasRows(item.id) && !this.sparklineHistory.getRequestFacts(item.id).preserveGraphWhileLoading) {
+        this.sparklineHistory.addCurrentEntityState(item, range);
+        item.rows = this.sparklineHistory.getRows(item.id);
+      }
+    });
     this.updateGraphFromSeries();
     if (this.tooltipVisible && this.pointerEvent) this.updateActivePointer(this.pointerEvent);
-    this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
-    this.card.setHass(this.card._hass);
+    this.card.updateSparklineResult(this);
   }
 
   /** Starts a History-owned refresh or retry for the selected Series. */
@@ -1681,8 +1687,8 @@ export default class SparklineGraphTool extends BaseTool {
       if (result.rebuildGraphConfig) this.updateRuntimeConfig();
 
       item.rows = result.rows;
+      // History's accepted rows already include the applicable live sample.
       this.updateGraphFromSeries();
-      this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
 
       if (this.card.dev.debug) {
         console.log('[FHS sparkline history response]', {
@@ -1695,9 +1701,8 @@ export default class SparklineGraphTool extends BaseTool {
         });
       }
 
-      // Plan 07 replaces this existing card continuation. History keeps its
-      // accepted-result fact active while that synchronous pipeline consumes it.
-      this.card.setHass(this.card._hass);
+      // Keep request exclusion active until consumers have seen this result.
+      this.card.updateSparklineResult(this);
     } finally {
       this.sparklineHistory.finishAcceptedResult(result.seriesId);
     }
@@ -2077,10 +2082,13 @@ export default class SparklineGraphTool extends BaseTool {
     const periodType = item.config.period.type;
     const historical = periodType !== 'real_time';
     const binned = historical && item.config.sparkline.show.chart_type !== 'state_bands';
-    const currentResultHasData = item.dataState === SPARKLINE_DATA_STATE.HAS_DATA && [
-      SPARKLINE_REQUEST_STATE.LOADED,
-      SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
-    ].includes(item.requestState);
+    // Shared geometry/statistics are committed only when the collection is
+    // ready. A partial completion must not publish retained statistics as new.
+    const currentResultHasData = item.dataState === SPARKLINE_DATA_STATE.HAS_DATA
+      && this.sparklineSeries.items.every((seriesItem) => [
+        SPARKLINE_REQUEST_STATE.LOADED,
+        SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
+      ].includes(seriesItem.requestState));
     const statistics = currentResultHasData ? item.graph.statistics : {};
 
     return {
