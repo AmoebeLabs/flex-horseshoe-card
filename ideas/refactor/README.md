@@ -22,7 +22,7 @@ For every implementation plan:
 | 02 | Sparkline history, time and request lifecycle | one history owner and one source/plot time model |
 | 03 | Sparkline data state | explicit loading/data/empty/error/stale semantics |
 | [04](../2026.09.24-04-sparkline-data-and-geometry.md) | Sparkline data processing and geometry | reusable processed data separated from geometry/paint |
-| 05 | Resource lifecycle foundation | replacement/disconnect reliably reaches owner cleanup |
+| [05](../2026.09.26-05-resource-lifecycle-foundation.md) | Resource lifecycle foundation | replacement/disconnect reliably reaches owner cleanup |
 | 06 | Async results and recovery | stale palette/child-card results inert; retryable failures recover |
 | 07 | Card lifecycle and derived entity flow | `setHass()` external-only; local/derived updates flow forward |
 | 08 | Change detection and rendering | event-level invalidation uses stable data/geometry/lifecycle boundaries |
