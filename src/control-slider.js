@@ -639,6 +639,13 @@ export default class ControlSlider extends ControlBase {
     window.clearInterval(this.writeTimer);
     if (this.renderFrame !== undefined) window.cancelAnimationFrame(this.renderFrame);
     if (this.stateAnimationFrame !== undefined) window.cancelAnimationFrame(this.stateAnimationFrame);
+    // Cleanup ends interaction without committing a final slider action.
+    // Released handles must not suppress scheduling when the card reconnects.
+    this.writeTimer = undefined;
+    this.renderFrame = undefined;
+    this.stateAnimationFrame = undefined;
+    this.dragging = false;
+    this.draggingThumb = false;
   }
 
   /** Runs child text measurement after each completed card update. */

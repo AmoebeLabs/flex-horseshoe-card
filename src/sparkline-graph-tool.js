@@ -795,6 +795,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.activeX = undefined;
     this.dragging = false;
     this.elements = {};
+    this.pointerSvgElement = undefined;
+    this.rid = null;
+    this._radialRafId = null;
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
     this.config.svg = this.svg;
@@ -1506,13 +1509,44 @@ export default class SparklineGraphTool extends BaseTool {
     this.fetchHistoryIfNeeded(item);
   }
 
-  /** Delegates card disconnection so History can invalidate requests and timers. */
+  /** Ends history and pointer work while preserving accepted graph data. */
   disconnected() {
     this.sparklineHistory.disconnected();
     this.sparklineSeries.items.forEach((item) => {
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
     });
     this.clearTooltip();
+
+    // End an active drag without running its normal pointer-up continuation.
+    window.removeEventListener('pointermove', this.pointerMove, false);
+    window.removeEventListener('pointerup', this.pointerUp, false);
+    window.cancelAnimationFrame(this.rid);
+    window.cancelAnimationFrame(this._radialRafId);
+    this.rid = null;
+    this._radialRafId = null;
+    this.dragging = false;
+    this.hovering = false;
+    this.pointerEvent = undefined;
+    this._radialPendingLeave = false;
+    this._radialPendingPointIndex = undefined;
+    this._radialPendingEvent = undefined;
+
+    // Remove listeners from the exact node on which they were registered.
+    // Clearing its flag lets the same SVG acquire handlers again on reconnect.
+    if (this.pointerSvgElement) {
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      this.restoreRadialActiveBinDom();
+      this.pointerSvgElement.removeEventListener('mousedown', this.mouseDown, false);
+      this.pointerSvgElement.removeEventListener('touchstart', this.touchStart, false);
+      this.pointerSvgElement.removeEventListener('mousemove', this.hoverMove, false);
+      this.pointerSvgElement.removeEventListener('mouseenter', this.hoverEnter, false);
+      this.pointerSvgElement.removeEventListener('mouseleave', this.barCodeLeave, false);
+      this.pointerSvgElement.removeEventListener('mouseleave', this.hoverLeave, false);
+      delete this.pointerSvgElement.dataset.pointerReady;
+      this.pointerSvgElement = undefined;
+    }
+    this.elements = {};
   }
 
   /**
@@ -1547,7 +1581,9 @@ export default class SparklineGraphTool extends BaseTool {
    */
   fetchDayNightHistoryIfNeeded() {
     const request = this.sparklineHistory.requestDayNightHistory(this.card._hass);
-    if (request.started) return request.promise.then((result) => this.dayNightHistoryRequestCompleted(result));
+    if (request.started) return request.promise.then((result) => {
+      if (request.isCurrent()) this.dayNightHistoryRequestCompleted(result);
+    });
     return undefined;
   }
 
@@ -1598,7 +1634,9 @@ export default class SparklineGraphTool extends BaseTool {
       this.clearTooltip();
       this.card.requestUpdate();
     }
-    if (request.started) return request.promise.then((result) => this.historyRequestCompleted(result));
+    if (request.started) return request.promise.then((result) => {
+      if (request.isCurrent()) this.historyRequestCompleted(result);
+    });
     return undefined;
   }
 
@@ -2773,6 +2811,7 @@ export default class SparklineGraphTool extends BaseTool {
     const isRadialChart = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type);
 
     this.elements.svg.dataset.pointerReady = 'true';
+    this.pointerSvgElement = this.elements.svg;
 
     // Handler identity must remain stable: window listeners are removed with
     // the exact function object that was registered during pointer-down.
