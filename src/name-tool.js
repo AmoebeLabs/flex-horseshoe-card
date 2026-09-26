@@ -88,6 +88,11 @@ export default class NameTool extends BaseTool {
     }
   }
 
+  /** Reports changes to the formatted entity name and its effective paint/layout. */
+  hasPresentationChanged() {
+    return super.hasPresentationChanged(this.name);
+  }
+
   /**
    * Returns the rendered width, or the learned estimate before the next SVG measurement.
    *

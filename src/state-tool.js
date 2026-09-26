@@ -310,6 +310,11 @@ export default class StateTool extends BaseTool {
     this.textMeasurementSignature = '';
   }
 
+  /** Compares displayed text and unit independently from the raw numeric state. */
+  hasPresentationChanged() {
+    return super.hasPresentationChanged([this.state, this.uom]);
+  }
+
   /** Updates state configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
