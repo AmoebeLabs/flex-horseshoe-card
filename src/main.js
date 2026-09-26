@@ -77,7 +77,10 @@ class FlexHorseshoeCard extends LitElement {
     this.cardLayout = new CardLayout(this.templates, this.cardId);
     this.cardTools = new CardTools(this, this.templates, this.cardId);
     this.homeAssistant = new HomeAssistant(() => this.cardTools.hassConnected());
-    this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => this.setHass(this._hass));
+    this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => {
+      // Before HA availability, retain the input for the first source pass.
+      if (this._hass !== undefined) this.updateSourceEntities(true, false);
+    });
     this.actions = new CardActions(this, this.cardInputEntities);
     this.cardConfig = new CardConfig(this.templates);
     this.cardTheme = new CardTheme(
@@ -100,6 +103,7 @@ class FlexHorseshoeCard extends LitElement {
     this.sourceCardStyles = undefined;
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
+    this.cardHasJavascript = false;
     this.iconCache = {};
     this.iconBoundsCache = {};
     this.svgUrlCache = {};
@@ -171,12 +175,10 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Processes one Home Assistant update and requests a Lit render only when card
-   * entities, runtime config, theme data or history-dependent tools changed.
+   * Publishes one external Home Assistant context, then forwards its sources
+   * through the same data sequence used by local FHS inputs.
    */
-  setHass(hass, forceUpdate = false) {
-    const performanceEnabled = this.dev.performance === true;
-    const setHassPerformanceStart = performanceEnabled ? performance.now() : undefined;
+  setHass(hass) {
     const hassBecameAvailable = this._hass === undefined;
 
     this._hass = hass;
@@ -186,6 +188,22 @@ class FlexHorseshoeCard extends LitElement {
     const entityDisplayChanged = this.homeAssistant.entityDisplayChanged;
     const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
+
+    this.updateSourceEntities(localeChanged || entityDisplayChanged || themeChanged || this.cardHasJavascript, hassBecameAvailable);
+  }
+
+  /**
+   * Publishes source entries, activates source-dependent configuration, then
+   * calculates graphs and forwards their derived values to ordinary tools.
+   * Local inputs enter here with the existing HA context and shared array.
+   *
+   * @param {boolean} contextChanged - Metadata or JavaScript context changed.
+   * @param {boolean} hassBecameAvailable - First external HA delivery.
+   */
+  updateSourceEntities(contextChanged, hassBecameAvailable) {
+    const hass = this._hass;
+    const performanceEnabled = this.dev.performance === true;
+    const setHassPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
     const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
@@ -208,7 +226,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Entity state, display metadata, locale and theme changes publish a new
     // Hass context to every context-dependent card domain during this pass.
-    const hassContextChanged = configuredEntityStateChanged || localeChanged || entityDisplayChanged || themeChanged;
+    const hassContextChanged = configuredEntityStateChanged || contextChanged;
 
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
@@ -261,8 +279,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Every Hass context change runs the remaining runtime phases and commits a
     // complete Lit render. Tools can request the same pass for async local data.
-    let renderRequired = forceUpdate
-      || hassContextChanged
+    let renderRequired = hassContextChanged
       || localEntityStateChanged
       || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
@@ -495,6 +512,7 @@ class FlexHorseshoeCard extends LitElement {
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
+      this.cardHasJavascript = this.templates.hasJavascriptTemplates(this.config);
       this.entityConfigsInitialized = false;
       this.cardLayout.setConfig(this.config, this.horseshoes);
 

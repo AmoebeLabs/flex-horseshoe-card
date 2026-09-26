@@ -27,7 +27,7 @@ export default class CardInputEntities {
   /**
    * @param {string} cardId Unique card identifier used in debug output.
    * @param {Array<object>} entities Card-owned entity state array.
-   * @param {Function} updateCard Enters the normal card hass update pipeline.
+   * @param {Function} updateCard Propagates published local sources to the card.
    */
   constructor(cardId, entities, updateCard) {
     this.cardId = cardId;
