@@ -245,7 +245,12 @@ export const getPlatformIcons = async (hassConfig: HomeAssistant['config'], conn
   if (!isComponentLoaded(hassConfig, integration) || !atLeastVersion(connection.haVersion, 2024, 2)) {
     return undefined;
   }
-  const result = getHassIcons(connection, 'entity', integration).then((res) => res?.resources[integration]);
+  const result = getHassIcons(connection, 'entity', integration).then((res) => res?.resources[integration]).catch((error) => {
+    // Release this failed lookup so the next icon render can retry. A forced
+    // replacement request for the same integration keeps its own cache entry.
+    if (resources.entity[integration] === result) delete resources.entity[integration];
+    throw error;
+  });
   resources.entity[integration] = result;
   return resources.entity[integration];
 };
@@ -264,7 +269,16 @@ export const getComponentIcons = async (connection: Connection, hassConfig: Home
     return undefined;
   }
   resources.entity_component.domains = [...hassConfig.components];
-  resources.entity_component.resources = getHassIcons(connection, 'entity_component').then((result) => result.resources);
+  const result = getHassIcons(connection, 'entity_component').then((response) => response.resources).catch((error) => {
+    // Component icons are shared between entity and attribute consumers. Evict
+    // only this rejected load, leaving any newer component catalogue intact.
+    if (resources.entity_component.resources === result) {
+      resources.entity_component.resources = undefined;
+      resources.entity_component.domains = undefined;
+    }
+    throw error;
+  });
+  resources.entity_component.resources = result;
   return resources.entity_component.resources.then((res) => res[domain]);
 };
 

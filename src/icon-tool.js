@@ -261,6 +261,7 @@ export default class IconTool extends BaseTool {
       })
       .catch((err) => {
         if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
+        if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
         console.error(
           attribute
             ? "IconTool.buildIcon attributeIcon failed"
