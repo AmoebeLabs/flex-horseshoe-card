@@ -2272,8 +2272,8 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
   tool.setEntities(entityConfigs, entities);
 
   assert.equal(tool.entity, entities[0]);
-  assert.deepEqual(first.rows, [{ state: 10 }]);
-  assert.deepEqual(second.rows, [{ state: 20 }]);
+  assert.deepEqual(first.rows, [{ state: 10, last_changed: '2026-08-13T10:00:00.000Z' }]);
+  assert.deepEqual(second.rows, [{ state: 20, last_changed: '2026-08-13T10:00:00.000Z' }]);
   assert.equal(graphUpdates, 1);
 });
 
@@ -2297,6 +2297,7 @@ test('one implicit item enters the cartesian series coordinator', () => {
     Object.assign(tool, {
       config: seriesConfig,
       sparklineSeries: new SparklineSeries(seriesConfig),
+      graphDataChanged: true,
       card: { dev: { fakeData: false } },
       updateCartesianSeriesGraphs() {
         coordinatorCalls += 1;
@@ -2320,6 +2321,7 @@ test('multi-series presentation waits for every request before rebuilding', () =
   const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
     config: { sparkline: { show: { chart_type: 'line' } } },
     sparklineSeries: { items: [first, second] },
+    graphDataChanged: true,
     card: { dev: { fakeData: false } },
     updateCartesianSeriesGraphs() { coordinatorCalls += 1; },
     clearTooltip() { tooltipClears += 1; },
@@ -2454,6 +2456,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
   Object.assign(tool, {
     config,
     sparklineSeries: series,
+    graphDataChanged: true,
     card: { dev: { debug: false } },
     configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
     svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },

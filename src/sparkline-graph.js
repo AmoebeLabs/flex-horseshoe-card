@@ -83,6 +83,8 @@ export default class SparklineGraph {
     this.geometryInputSignature = undefined;
     this.geometryResultSignature = undefined;
     this.geometryConfigChanged = true;
+    this.dataConfigSignature = undefined;
+    this.dataConfigChanged = true;
     this.geometryChanged = false;
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
     this.processedValues = [];
@@ -91,6 +93,9 @@ export default class SparklineGraph {
     this.coords = [];
     this.bucketMeta = [];
     this.statistics = {};
+    this._endTime = 0;
+    this.valuesPerBucket = 0;
+    this.levelCount = 1;
     this.stateBandSegments = [];
     this.stateBandTransitions = [];
     this.xAxis = {};
@@ -120,6 +125,19 @@ export default class SparklineGraph {
     const radial = chartType === 'radial';
     const radialBarcode = chartType === 'radial_barcode';
     const lineOrArea = chartType === 'line' || chartType === 'area' || radial;
+    // The coordinator can distinguish paint/size updates from a changed bucket
+    // calculation without inspecting or rebuilding the engine's processed data.
+    const graphFamily = radial ? config.sparkline.show.chart_variant : chartType;
+    const dataConfigSignature = JSON.stringify([
+      config.period,
+      config.sparkline.state_values.aggregate_func,
+      graphFamily,
+      graphFamily === 'line' ? config.sparkline.line.show.minmax : graphFamily === 'area' && config.sparkline.area.show.minmax,
+      chartType === 'graded' ? gradeValues : undefined,
+      chartType === 'state_bands' ? stateMap.map.map((entry) => [entry.state, entry.value]) : undefined,
+    ]);
+    this.dataConfigChanged = this.dataConfigChanged || this.dataConfigSignature !== dataConfigSignature;
+    this.dataConfigSignature = dataConfigSignature;
     // Include only geometry used by the active renderer. Color-stop palettes,
     // fill/stroke colors and opacity are consumed later by SVG paint.
     const geometryInputSignature = JSON.stringify([
@@ -182,9 +200,6 @@ export default class SparklineGraph {
     this._smoothing = this.config.sparkline.state_values?.smoothing;
     this._logarithmic = this.config.sparkline.state_values?.logarithmic;
     this._groupBy = this.config.period.group_by;
-    this._endTime = 0;
-    this.valuesPerBucket = 0;
-    this.levelCount = 1;
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
@@ -470,6 +485,7 @@ export default class SparklineGraph {
    */
   processData(history) {
     this.processedDataChanged = false;
+    this.dataConfigChanged = false;
     if (history !== undefined) this._history = history;
     if (this._history === undefined) {
       this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
@@ -498,6 +514,9 @@ export default class SparklineGraph {
       this.calendarBucketCount = undefined;
       this.visibleBucketCount = undefined;
       this.dataState = SPARKLINE_DATA_STATE.EMPTY;
+      // An empty result has no remaining geometry to calculate. New rows or
+      // configuration will signal the next required pass through their owners.
+      this.geometryConfigChanged = false;
       this.processedRows = this._history;
       this.processedDataKey = undefined;
       this.processedDataRevision += 1;

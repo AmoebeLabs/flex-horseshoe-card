@@ -801,6 +801,7 @@ export default class SparklineGraphTool extends BaseTool {
     this._radialRafId = null;
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
+    this.graphDataChanged = true;
     this.config.svg = this.svg;
   }
 
@@ -1432,6 +1433,7 @@ export default class SparklineGraphTool extends BaseTool {
     // only selects the resulting rows for the graph collection.
     let sourceEntityChanged = false;
     this.sparklineSeries.items.forEach((item) => {
+      const previousRows = item.rows;
       const realTime = item.config.period.type === 'real_time';
       const historyEntityChanged = this.sparklineHistory.bindSeriesEntity(item);
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
@@ -1442,7 +1444,12 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       if (realTime) {
-        item.rows = [{ state: this.getEntityNumericState(item, item.entity) }];
+        const value = this.getEntityNumericState(item, item.entity);
+        // Keep the prepared current-value row when both its value and sample
+        // timestamp are equal. Formatting equality never decides this reuse.
+        if (item.rows.length !== 1 || item.rows[0].state !== value || item.rows[0].last_changed !== item.entity.last_changed) {
+          item.rows = [{ state: value, last_changed: item.entity.last_changed }];
+        }
       } else if (!this.periodDurationAvailable) {
         item.rows = [];
       } else if (this.sparklineHistory.hasRows(item.id) && !this.sparklineHistory.getRequestFacts(item.id).preserveGraphWhileLoading) {
@@ -1450,8 +1457,9 @@ export default class SparklineGraphTool extends BaseTool {
         this.sparklineHistory.addCurrentEntityState(item, range);
         item.rows = this.sparklineHistory.getRows(item.id);
       } else {
-        item.rows = [];
+        if (item.rows.length > 0) item.rows = [];
       }
+      if (item.rows !== previousRows) this.graphDataChanged = true;
     });
 
     if (sourceEntityChanged) {
@@ -1469,11 +1477,15 @@ export default class SparklineGraphTool extends BaseTool {
       SPARKLINE_REQUEST_STATE.LOADED,
       SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
     ].includes(item.requestState));
-    if (allSeriesRequestsCompleted) {
+    const graphCalculationRequired = this.periodDurationAvailable && (this.graphDataChanged
+      || this.sparklineSeries.items.some((item) => item.graph.dataConfigChanged || item.graph.geometryConfigChanged));
+    if (allSeriesRequestsCompleted && graphCalculationRequired) {
       this.updateGraphFromSeries();
       if (this.tooltipVisible && this.pointerEvent) {
         this.updateActivePointer(this.pointerEvent);
       }
+    } else if (allSeriesRequestsCompleted && this.sparklineSeries.dataState === SPARKLINE_DATA_STATE.HAS_DATA && this.sparklineSeries.items.length === 1) {
+      this.updateSparklinePaint();
     }
 
     historicalItems.forEach((item) => this.fetchHistoryIfNeeded(item));
@@ -1496,6 +1508,7 @@ export default class SparklineGraphTool extends BaseTool {
    * then publishes the processed result to card presentation consumers.
    */
   historyBinBoundaryReached() {
+    this.graphDataChanged = true;
     this.sparklineSeries.items.forEach((item) => {
       if (item.config.period.type === 'real_time') return;
       const range = this.sparklineHistory.getSeriesRange(item);
@@ -1697,6 +1710,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       item.rows = result.rows;
+      this.graphDataChanged = true;
       // History's accepted rows already include the applicable live sample.
       this.updateGraphFromSeries();
 
@@ -1762,7 +1776,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.svg.row_spacing,
     );
     this.seriesGeometryChanged = coordinatedGraphs.geometryChanged;
-    if (coordinatedGraphs.dataState === SPARKLINE_DATA_STATE.HAS_DATA) {
+    if (this.graphDataChanged && coordinatedGraphs.dataState === SPARKLINE_DATA_STATE.HAS_DATA) {
       this.sparklineSeries.items.forEach((item) => {
         if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return;
         item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
@@ -1770,8 +1784,8 @@ export default class SparklineGraphTool extends BaseTool {
     }
     if (coordinatedGraphs.geometryChanged === false) return;
 
-    // Only a new shared layout replaces SVG paths. A paint-only update keeps
-    // the same paths while its current statistics are refreshed above.
+    // Only a new shared layout replaces SVG paths. Statistics follow changed
+    // data; a paint-only update keeps both the paths and those statistics.
     this.area = [];
     this.areaMinMax = [];
     this.line = [];
@@ -1852,7 +1866,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     this.sparklineSeries.items.forEach((item) => {
       if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return;
-      item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
+      if (this.graphDataChanged) item.graph.updateStatistics(item.rows, statisticsRanges.get(item), item.entity.last_changed);
     });
   }
 
@@ -1871,170 +1885,210 @@ export default class SparklineGraphTool extends BaseTool {
       return;
     }
 
-    const chartType = this.config.sparkline.show.chart_type;
-    const cartesianSeries = this.sparklineSeries.items.every((item) => ['line', 'area', 'dots', 'bar'].includes(item.config.sparkline.show.chart_type));
-    const radialSeries = this.sparklineSeries.items.every((item) => item.config.sparkline.show.chart_type === 'radial');
-    const index = 0;
-    const total = 1;
+    // Data and geometry configuration are owned by Graph. The tool only uses
+    // their reported reasons to select calculations and whole-period statistics.
+    const dataChanged = this.graphDataChanged || this.sparklineSeries.items.some((item) => item.graph.dataConfigChanged);
+    this.graphDataChanged = dataChanged;
+    try {
+      const chartType = this.config.sparkline.show.chart_type;
+      const cartesianSeries = this.sparklineSeries.items.every((item) => ['line', 'area', 'dots', 'bar'].includes(item.config.sparkline.show.chart_type));
+      const radialSeries = this.sparklineSeries.items.every((item) => item.config.sparkline.show.chart_type === 'radial');
+      const index = 0;
+      const total = 1;
 
-    // Development mode replaces only the values with the deterministic example
-    // sequence. Source timestamps remain intact so normal bucketing is exercised.
-    if (this.card.dev.fakeData && chartType !== 'state_bands') {
-      let generatedState = 40;
-      const primaryItem = this.sparklineSeries.primaryItem;
+      // Development mode replaces only the values with the deterministic example
+      // sequence. Source timestamps remain intact so normal bucketing is exercised.
+      if (this.card.dev.fakeData && chartType !== 'state_bands') {
+        let generatedState = 40;
+        const primaryItem = this.sparklineSeries.primaryItem;
 
-      // A fake-data preview must not mutate History-owned rows. A new array
-      // also tells Graph when switching the preview on or off changes values.
-      primaryItem.rows = primaryItem.rows.map((seriesItem, seriesIndex) => {
-        if (seriesIndex < primaryItem.rows.length / 2) generatedState -= 4 * seriesIndex;
-        if (seriesIndex > primaryItem.rows.length / 2) generatedState += 3 * seriesIndex;
-        return { ...seriesItem, state: generatedState, haState: generatedState };
-      });
-    }
-    if (radialSeries) {
-      this.updateRadialSeriesGraphs();
-      return;
-    }
-
-    // Cartesian charts always use the coordinator, including the implicit
-    // one-item collection. Single-series paint and statistics remain richer.
-    if (cartesianSeries) {
-      this.updateCartesianSeriesGraphs();
-      if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length > 1) return;
-      if (this.seriesGeometryChanged === false) {
-        this.updateSparklinePaint();
-        return;
+        // A fake-data preview must not mutate History-owned rows. A new array
+        // also tells Graph when switching the preview on or off changes values.
+        primaryItem.rows = primaryItem.rows.map((seriesItem, seriesIndex) => {
+          if (seriesIndex < primaryItem.rows.length / 2) generatedState -= 4 * seriesIndex;
+          if (seriesIndex > primaryItem.rows.length / 2) generatedState += 3 * seriesIndex;
+          return { ...seriesItem, state: generatedState, haState: generatedState };
+        });
       }
-    }
-
-    const sourceRangeIsActive = this.config.period.type !== 'real_time'
-      && this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem).sourceRangeIsActive;
-    const statisticsRange = sourceRangeIsActive && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id)
-      ? this.sparklineHistory.pruneActiveRows(this.sparklineSeries.primaryItem, this.primaryGraph.points)
-      : undefined;
-
-    let graphGeometryChanged = true;
-    if (!cartesianSeries) {
-      // Real-time uses the graph engine's existing one-hour/one-point calculation.
-      // Only history-backed modes calculate and apply a requested history range.
-      if (this.config.period.type !== 'real_time') {
-        const range = this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem);
-        this.primaryGraph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
-      }
-
-      this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
-      this.sparklineSeries.updateGraphs();
-      graphGeometryChanged = this.primaryGraph.geometryChanged;
-
-      // An accepted history response can legitimately contain no numeric rows.
-      // The engine then has no axis geometry, so no graph-dependent work follows.
-      if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
-        this.clearSingleSeriesPaths();
-        this.clearTooltip();
+      if (radialSeries) {
+        this.updateRadialSeriesGraphs();
         return;
       }
 
-      // The provisional graph supplies formatted ticks and a concrete bucket
-      // count. The tool measures outer axis space; the graph engine then owns
-      // the final axisArea and chart-specific dataArea.
-      const axisMargin =
-        chartType === 'radial_barcode' ? this.calculateRadialAxisMargin(this.axisGraphs) : this.calculateAxisMargin();
-      const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
-      if (graphAreasChanged) {
-        graphGeometryChanged = true;
-        this.axisMargin = axisMargin;
+      // Cartesian charts always use the coordinator, including the implicit
+      // one-item collection. Single-series paint and statistics remain richer.
+      if (cartesianSeries) {
+        this.updateCartesianSeriesGraphs();
+        if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length > 1) return;
+        if (this.seriesGeometryChanged === false) {
+          this.updateSparklinePaint();
+          return;
+        }
+      }
+
+      const sourceRangeIsActive = this.config.period.type !== 'real_time'
+        && this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem).sourceRangeIsActive;
+      const statisticsRange = sourceRangeIsActive && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id)
+        ? this.sparklineHistory.pruneActiveRows(this.sparklineSeries.primaryItem, this.primaryGraph.points)
+        : undefined;
+
+      let graphGeometryChanged = true;
+      if (!cartesianSeries) {
+        // Real-time uses the graph engine's existing one-hour/one-point calculation.
+        // Only history-backed modes calculate and apply a requested history range.
+        if (this.config.period.type !== 'real_time') {
+          const range = this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem);
+          this.primaryGraph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
+        }
+
+        this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
         this.sparklineSeries.updateGraphs();
+        graphGeometryChanged = this.primaryGraph.geometryChanged;
+
+        // An accepted history response can legitimately contain no numeric rows.
+        // The engine then has no axis geometry, so no graph-dependent work follows.
         if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
           this.clearSingleSeriesPaths();
           this.clearTooltip();
           return;
         }
+
+        // The provisional graph supplies formatted ticks and a concrete bucket
+        // count. The tool measures outer axis space; the graph engine then owns
+        // the final axisArea and chart-specific dataArea.
+        const axisMargin =
+          chartType === 'radial_barcode' ? this.calculateRadialAxisMargin(this.axisGraphs) : this.calculateAxisMargin();
+        const graphAreasChanged = this.primaryGraph.setGraphAreas(axisMargin, this.configuredGraphMargin, this.primaryGraph.coords.length);
+        if (graphAreasChanged) {
+          graphGeometryChanged = true;
+          this.axisMargin = axisMargin;
+          this.sparklineSeries.updateGraphs();
+          if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+            this.clearSingleSeriesPaths();
+            this.clearTooltip();
+            return;
+          }
+        }
       }
-    }
-    if (!graphGeometryChanged) {
-      this.updateSparklinePaint();
-      this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
-      return;
-    }
+      if (!graphGeometryChanged) {
+        this.updateSparklinePaint();
+        if (dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+        return;
+      }
 
-    // New geometry replaces the single-series paths. Accepted empty results
-    // clear them above so old shapes cannot remain mounted.
-    this.clearSingleSeriesPaths();
-    // Use the graph engine y-scale for every vertical introduction animation.
-    // Clamp value zero to the draw area for positive-only and negative-only scales.
-    if (chartType === 'state_bands') {
-      this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
-    } else {
-      const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
-      this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
-    }
+      // New geometry replaces the single-series paths. Accepted empty results
+      // clear them above so old shapes cannot remain mounted.
+      this.clearSingleSeriesPaths();
+      // Use the graph engine y-scale for every vertical introduction animation.
+      // Clamp value zero to the draw area for positive-only and negative-only scales.
+      if (chartType === 'state_bands') {
+        this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
+      } else {
+        const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
+        this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
+      }
 
-    this.stateBands = chartType === 'state_bands' && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id) ? this.primaryGraph.getStateBands() : [];
+      this.stateBands = chartType === 'state_bands' && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id) ? this.primaryGraph.getStateBands() : [];
 
-    if (this.primaryGraph.coords.length > 0) {
-      if (['area', 'line'].includes(chartType)) {
-        this.linePath = this.primaryGraph.getPath();
-        if (this.entityConfig?.show_line !== false) {
-          this.line[index] = this.linePath;
-        }
-        if (chartType === 'area') {
-          this.areaPath = this.primaryGraph.getArea(this.linePath);
-          this.area[index] = this.areaPath;
+      if (this.primaryGraph.coords.length > 0) {
+        if (['area', 'line'].includes(chartType)) {
+          this.linePath = this.primaryGraph.getPath();
+          if (this.entityConfig?.show_line !== false) {
+            this.line[index] = this.linePath;
+          }
+          if (chartType === 'area') {
+            this.areaPath = this.primaryGraph.getArea(this.linePath);
+            this.area[index] = this.areaPath;
+          } else {
+            this.areaPath = undefined;
+          }
+
+          const showMinMax = chartType === 'line' ? this.config.sparkline.line.show.minmax === true : this.config.sparkline.area.show.minmax === true;
+
+          if (showMinMax) {
+            this.lineMinPath = this.primaryGraph.getPathMin();
+            this.lineMaxPath = this.primaryGraph.getPathMax();
+            this.areaMinMaxPath = this.primaryGraph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
+            this.areaMinMax[index] = this.areaMinMaxPath;
+          } else {
+            this.lineMinPath = undefined;
+            this.lineMaxPath = undefined;
+            this.areaMinMaxPath = undefined;
+          }
         } else {
-          this.areaPath = undefined;
-        }
-
-        const showMinMax = chartType === 'line' ? this.config.sparkline.line.show.minmax === true : this.config.sparkline.area.show.minmax === true;
-
-        if (showMinMax) {
-          this.lineMinPath = this.primaryGraph.getPathMin();
-          this.lineMaxPath = this.primaryGraph.getPathMax();
-          this.areaMinMaxPath = this.primaryGraph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
-          this.areaMinMax[index] = this.areaMinMaxPath;
-        } else {
+          this.linePath = undefined;
           this.lineMinPath = undefined;
           this.lineMaxPath = undefined;
+          this.areaPath = undefined;
           this.areaMinMaxPath = undefined;
         }
-      } else {
-        this.linePath = undefined;
-        this.lineMinPath = undefined;
-        this.lineMaxPath = undefined;
-        this.areaPath = undefined;
-        this.areaMinMaxPath = undefined;
-      }
 
-      if (chartType === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline?.line?.show_dots === true || this.config.sparkline?.area?.show_dots === true) {
-        this.points[index] = this.primaryGraph.getPoints();
-      }
-
-      if (chartType === 'bar') {
-        this.bar[index] = this.primaryGraph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        if (this.config.period.type === 'real_time' && this.config.sparkline.bar.orientation === 'vertical') {
-          // The engine places a one-point bar around its left-edge coordinate.
-          // Center that single bar inside the complete real-time draw area.
-          this.bar[index][0].x = this.primaryGraph.drawArea.x + (this.primaryGraph.drawArea.width - this.bar[index][0].width) / 2;
+        if (chartType === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline?.line?.show_dots === true || this.config.sparkline?.area?.show_dots === true) {
+          this.points[index] = this.primaryGraph.getPoints();
         }
-      } else if (chartType === 'equalizer') {
-        this.primaryGraph.levelCount = this.config.sparkline.equalizer.value_buckets;
-        this.primaryGraph.valuesPerBucket = (this.primaryGraph.max - this.primaryGraph.min) / this.config.sparkline.equalizer.value_buckets;
-        this.equalizer[index] = this.primaryGraph.getEqualizer(index, total, this.svg.column_spacing, this.svg.row_spacing);
-      } else if (chartType === 'graded') {
-        this.primaryGraph.levelCount = this.config.sparkline.equalizer.value_buckets;
-        this.primaryGraph.valuesPerBucket = (this.primaryGraph.max - this.primaryGraph.min) / this.config.sparkline.equalizer.value_buckets;
-        this.graded[index] = this.primaryGraph.getGrades(index, total, this.svg.column_spacing, this.svg.row_spacing);
-      } else if (chartType === 'radial_barcode') {
-        this.radialBarcodeChartBackground[index] = this.primaryGraph.getRadialBarcodeBackground(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        this.radialBarcodeChart[index] = this.primaryGraph.getRadialBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
-        this.primaryGraph.radialBarcodeBackground = this.radialBarcodeChartBackground[index];
-        this.primaryGraph.radialBarcode = this.radialBarcodeChart[index];
-      } else if (chartType === 'barcode') {
-        this.barcodeChart[index] = this.primaryGraph.getBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
-      }
-    }
 
-    this.updateSparklinePaint();
-    this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+        if (chartType === 'bar') {
+          this.bar[index] = this.primaryGraph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
+          if (this.config.period.type === 'real_time' && this.config.sparkline.bar.orientation === 'vertical') {
+            // The engine places a one-point bar around its left-edge coordinate.
+            // Center that single bar inside the complete real-time draw area.
+            this.bar[index][0].x = this.primaryGraph.drawArea.x + (this.primaryGraph.drawArea.width - this.bar[index][0].width) / 2;
+          }
+        } else if (chartType === 'equalizer') {
+          this.primaryGraph.levelCount = this.config.sparkline.equalizer.value_buckets;
+          this.primaryGraph.valuesPerBucket = (this.primaryGraph.max - this.primaryGraph.min) / this.config.sparkline.equalizer.value_buckets;
+          this.equalizer[index] = this.primaryGraph.getEqualizer(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        } else if (chartType === 'graded') {
+          this.primaryGraph.levelCount = this.config.sparkline.equalizer.value_buckets;
+          this.primaryGraph.valuesPerBucket = (this.primaryGraph.max - this.primaryGraph.min) / this.config.sparkline.equalizer.value_buckets;
+          this.graded[index] = this.primaryGraph.getGrades(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        } else if (chartType === 'radial_barcode') {
+          this.radialBarcodeChartBackground[index] = this.primaryGraph.getRadialBarcodeBackground(index, total, this.svg.column_spacing, this.svg.row_spacing);
+          this.radialBarcodeChart[index] = this.primaryGraph.getRadialBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
+          this.primaryGraph.radialBarcodeBackground = this.radialBarcodeChartBackground[index];
+          this.primaryGraph.radialBarcode = this.radialBarcodeChart[index];
+        } else if (chartType === 'barcode') {
+          this.barcodeChart[index] = this.primaryGraph.getBarcode(index, total, this.svg.column_spacing, this.svg.row_spacing);
+        }
+      }
+
+      this.updateSparklinePaint();
+      if (dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+    } finally {
+      this.graphDataChanged = false;
+    }
+  }
+
+  /**
+   * Compares graph presentation independently from published min/mean/max.
+   * Loading/empty states, bin coordinates and live color choices can change
+   * while every derived numeric value remains equal.
+   *
+   * @returns {boolean} Whether the graph or one legend label needs rendering.
+   */
+  hasPresentationChanged() {
+    const seriesPresentation = this.sparklineSeries.items.map((item) => {
+      const presentation = [item.requestState, item.dataState, item.entityConfig.color];
+      if (this.periodDurationAvailable) {
+        const { graph, config } = item;
+        const paintModes = [config.sparkline.show.item_style, config.sparkline.line.show.item_style,
+          config.sparkline.line.minmax.show.item_style, config.sparkline.area.show.item_style,
+          config.sparkline.area.minmax.show.item_style];
+        const value = this.getEntityNumericState(item, item.entity);
+        const liveColors = paintModes.map((mode) => {
+          if (mode === 'colorstop' || mode === 'colorstopinterpolated') {
+            return Colors.calculateStrokeColor(value, config.sparkline.colorstops, mode === 'colorstopinterpolated');
+          }
+          return undefined;
+        });
+        presentation.push(graph.coords, graph.coordsMin, graph.coordsMax, graph.bucketMeta,
+          graph.statistics, graph.geometryInputSignature, liveColors);
+      }
+      return presentation;
+    });
+    const changed = super.hasPresentationChanged([seriesPresentation, this.legendTextSignature]);
+    const legendChanges = this.legendTextTools.map((tool) => tool.hasPresentationChanged());
+    return changed || legendChanges.some(Boolean);
   }
 
   /**
