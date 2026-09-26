@@ -611,3 +611,43 @@ test('a mounted numeric update delegates progress to the state animator without 
   assert.deepEqual(stateTargets, [75]);
   assert.equal(horseshoe.pathElements, pathElements);
 });
+
+test('disconnect stops and unbinds the active horseshoe state animator', () => {
+  const previousRequestAnimationFrame = globalThis.requestAnimationFrame;
+  const previousCancelAnimationFrame = globalThis.cancelAnimationFrame;
+  const frames = new Map();
+  let nextFrame = 1;
+  globalThis.requestAnimationFrame = (callback) => {
+    const frame = nextFrame;
+    nextFrame += 1;
+    frames.set(frame, callback);
+    return frame;
+  };
+  globalThis.cancelAnimationFrame = (frame) => frames.delete(frame);
+
+  try {
+    const [horseshoe] = HorseshoeGauge.setConfig(
+      createConfig({ type: 'line', length: 80 }),
+      createTemplates(),
+      'card',
+      createCard(),
+    );
+    horseshoe.updateRuntimeConfig();
+    horseshoe.stateAnimator.stateLayerElement = { id: 'mounted-state' };
+    horseshoe.stateAnimator.currentProgress = 35;
+    horseshoe.stateAnimator.animateTo(80);
+
+    assert.equal(frames.size, 1);
+
+    horseshoe.disconnected();
+
+    assert.equal(frames.size, 0);
+    assert.equal(horseshoe.stateAnimator.frame, undefined);
+    assert.equal(horseshoe.stateAnimator.animating, false);
+    assert.equal(horseshoe.stateAnimator.stateLayerElement, undefined);
+    assert.equal(horseshoe.displayProgress, 35);
+  } finally {
+    globalThis.requestAnimationFrame = previousRequestAnimationFrame;
+    globalThis.cancelAnimationFrame = previousCancelAnimationFrame;
+  }
+});

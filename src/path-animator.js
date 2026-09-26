@@ -45,6 +45,12 @@ export default class PathStateAnimator {
     this.updateStateLayer(this.stateLayerElement, this.currentProgress);
   }
 
+  /** Ends animation and releases its DOM mount while retaining progress. */
+  unbindStateLayer() {
+    this.stopAnimation();
+    this.stateLayerElement = undefined;
+  }
+
   /**
    * Replaces any active transition and animates from the currently displayed
    * progress, preventing an interrupted update from jumping back to its old source.

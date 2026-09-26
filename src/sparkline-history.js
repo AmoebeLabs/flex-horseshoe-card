@@ -500,6 +500,7 @@ export default class SparklineHistory {
    * @returns {object} Start decision and completion promise.
    */
   requestDayNightHistory(hass) {
+    if (!this.connectedToCard) return { started: false };
     const record = this.dayNightRecord;
     const range = this.getDayNightRange();
     const representedRange = record.rows !== undefined
@@ -580,6 +581,9 @@ export default class SparklineHistory {
       representedRange,
       range,
       promise: requestPromise,
+      // The presentation continuation runs in a later microtask. It must use
+      // this same request identity if the card closes between both callbacks.
+      isCurrent: () => this.connectedToCard && record.requestNumber === requestNumber,
     };
   }
 
@@ -594,7 +598,7 @@ export default class SparklineHistory {
    */
   requestSeriesHistory(item, hass) {
     const record = this.seriesRecords.get(item.id);
-    if (!this.periodDurationAvailable) {
+    if (!this.connectedToCard || !this.periodDurationAvailable) {
       return {
         historyAvailable: false,
         started: false,
@@ -733,6 +737,11 @@ export default class SparklineHistory {
       representedRange,
       range,
       promise: requestPromise,
+      // Record identity also distinguishes a removed and re-created Series ID.
+      // Keep this check here so GraphTool does not own another request counter.
+      isCurrent: () => this.connectedToCard
+        && this.seriesRecords.get(item.id) === record
+        && record.requestNumber === requestNumber,
     };
   }
 
@@ -790,6 +799,7 @@ export default class SparklineHistory {
       } else if (record.rows !== undefined) {
         record.requestState = SPARKLINE_REQUEST_STATE.LOADED;
       } else {
+        record.resynchronizationRequested = this.periodDurationAvailable;
         record.requestState = this.periodDurationAvailable ? SPARKLINE_REQUEST_STATE.LOADING : SPARKLINE_REQUEST_STATE.NOT_LOADED;
       }
       if (item.config.history.refresh_interval !== undefined && record.rows !== undefined) {

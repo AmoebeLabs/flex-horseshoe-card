@@ -275,7 +275,7 @@ export default class ControlButton extends ControlBase {
   createButtonContentTools() {
     // Dynamic JavaScript config may rebuild the stack; release child-owned
     // history subscriptions and timers before replacing it.
-    this.contentVisual?.disconnected();
+    this.getContentTools().forEach((tool) => tool.disconnected());
     const contentMode = this.config.content.mode;
     const contentConfig = this.config.content[contentMode];
     const hasIcon = ['content_horizontal', 'content_vertical', 'content_icon'].includes(contentMode);
@@ -319,6 +319,7 @@ export default class ControlButton extends ControlBase {
         this.cardId,
         this.card,
       );
+      this.activateContentTools();
       return;
     }
 
@@ -407,6 +408,12 @@ export default class ControlButton extends ControlBase {
       this.contentTextBaseStyles = undefined;
       this.contentTextTool = undefined;
     }
+    this.activateContentTools();
+  }
+
+  /** Returns the visual stack or the direct icon/text children of this button. */
+  getContentTools() {
+    return [this.contentVisual, this.contentIconTool, this.contentTextTool].filter((tool) => tool !== undefined);
   }
 
   /**
@@ -491,41 +498,6 @@ export default class ControlButton extends ControlBase {
     if (this.contentVisual) this.contentVisual.updated();
     if (this.contentIconTool) this.contentIconTool.updated();
     if (this.contentTextTool) this.contentTextTool.updated();
-  }
-
-  /** Forwards first-render work to explicit visual content. */
-  firstUpdated(changedProperties) {
-    super.firstUpdated(changedProperties);
-    if (this.contentVisual) this.contentVisual.firstUpdated(changedProperties);
-  }
-
-  /** Forwards initial Home Assistant availability to explicit visual content. */
-  hassAvailable() {
-    super.hassAvailable();
-    if (this.contentVisual) this.contentVisual.hassAvailable();
-  }
-
-  /** Forwards DOM connection to explicit visual content. */
-  connected() {
-    super.connected();
-    if (this.contentVisual) this.contentVisual.connected();
-  }
-
-  /** Stops timers and listeners owned by explicit visual content. */
-  disconnected() {
-    if (this.contentVisual) this.contentVisual.disconnected();
-    super.disconnected();
-  }
-
-  /** Forwards Home Assistant reconnects to explicit visual content. */
-  hassConnected() {
-    super.hassConnected();
-    if (this.contentVisual) this.contentVisual.hassConnected();
-  }
-
-  /** Includes explicit visual children in the card's update decision. */
-  requiresHassUpdate() {
-    return super.requiresHassUpdate() || (this.contentVisual && this.contentVisual.requiresHassUpdate());
   }
 
   /**

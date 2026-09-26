@@ -251,6 +251,7 @@ export default class ControlNumber extends ControlBase {
 
   /** Creates the two button contents and the formatted value StateTool. */
   createNumberContentTools() {
+    this.getContentTools().forEach((tool) => tool.disconnected());
     const horizontal = this.config.orientation === 'horizontal';
     const contentConfig = this.config.content[this.config.content.mode];
     const innerWidth = this.config.width - this.config.padding.x * 2;
@@ -349,6 +350,12 @@ export default class ControlNumber extends ControlBase {
     this.valueStateTool = new StateTool(valueConfig, 0, this.templates, this.cardId, this.card);
     this.valueMeasurementSignature = '';
     this.valueMeasurementPass = 0;
+    this.activateContentTools();
+  }
+
+  /** Returns the two button contents and the formatted number value. */
+  getContentTools() {
+    return [this.minusContentTool, this.plusContentTool, this.valueStateTool].filter((tool) => tool !== undefined);
   }
 
   /** Updates evaluated number config and recreates child geometry when needed. */

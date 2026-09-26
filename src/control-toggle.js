@@ -143,6 +143,7 @@ export default class ControlToggle extends ControlBase {
     this.validateOrientation(this.config.orientation);
     this.config = this.buildConfig(this.config);
     this.config.svg = this.calculateSvgDimensions();
+    this.iconTool = undefined;
     this.createThumbIconTool();
     this.createControlLabelTextTool(
       this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
@@ -157,6 +158,7 @@ export default class ControlToggle extends ControlBase {
    * thumb position, relative size and non-interactive action are added here.
    */
   createThumbIconTool() {
+    this.getContentTools().forEach((tool) => tool.disconnected());
     if (this.config.content.mode !== 'content_icon') {
       this.iconTool = undefined;
       return;
@@ -182,6 +184,12 @@ export default class ControlToggle extends ControlBase {
     );
 
     this.iconTool = new IconTool(iconConfig, 0, this.templates, this.cardId, this.card);
+    this.activateContentTools();
+  }
+
+  /** Returns the optional icon rendered on the toggle thumb. */
+  getContentTools() {
+    return this.iconTool ? [this.iconTool] : [];
   }
 
   /**

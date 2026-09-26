@@ -18,17 +18,26 @@ const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoe
 /** Owns every configured layout tool and forwards their shared lifecycle phases. */
 export default class CardTools {
   /**
-   * Creates stable section arrays for every tool family. Main and runtime
-   * domains retain these arrays throughout the card lifecycle.
+   * Creates the section collections used to find and update the current tools.
+   * Configuration replacement closes their instances before assigning new ones.
    */
   constructor(card, templates, cardId) {
     this.card = card;
     this.templates = templates;
     this.cardId = cardId;
+    this.connectedToCard = false;
+    this.disconnectedFromCard = false;
     this.sections = {
       rectangles: [], polygons: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
     };
+  }
+
+  /** Closes every old owner before replacement can construct new resources. */
+  clearTools() {
+    this.getRenderableTools().forEach((tool) => tool.disconnected());
+    this.connectedToCard = false;
+    RENDER_SECTIONS.forEach((section) => { this.sections[section] = []; });
   }
 
   /** Constructs horseshoes before main calculates the remaining SVG dimensions. */
@@ -143,6 +152,7 @@ export default class CardTools {
    * cached series for refresh during the next normal setHass pass.
    */
   hassConnected() {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.hassConnected());
   }
 
@@ -151,6 +161,9 @@ export default class CardTools {
    * existing data for resynchronization after a card is reused.
    */
   connected() {
+    if (this.connectedToCard) return;
+    this.connectedToCard = true;
+    this.disconnectedFromCard = false;
     this.getRenderableTools().forEach((tool) => tool.connected());
   }
 
@@ -159,6 +172,8 @@ export default class CardTools {
    * frames and global pointer listeners even during an active interaction.
    */
   disconnected() {
+    this.connectedToCard = false;
+    this.disconnectedFromCard = true;
     this.getRenderableTools().forEach((tool) => tool.disconnected());
   }
 
@@ -167,6 +182,7 @@ export default class CardTools {
    * the SVG elements created by that render.
    */
   firstUpdated(changedProperties) {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.firstUpdated(changedProperties));
     this.attachSparklinePointerHandlers();
   }
@@ -176,6 +192,7 @@ export default class CardTools {
    * because Lit may have replaced the SVG elements they belonged to.
    */
   updated(changedProperties) {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.updated(changedProperties));
     this.attachSparklinePointerHandlers();
   }

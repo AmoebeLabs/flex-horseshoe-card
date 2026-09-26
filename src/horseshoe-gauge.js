@@ -1103,6 +1103,16 @@ export default class HorseshoeGauge extends BaseTool {
     `;
   }
 
+  /** Stops progress animation and releases its old DOM bindings on disconnect. */
+  disconnected() {
+    if (this.stateAnimator) {
+      this.stateAnimator.unbindStateLayer();
+      this.displayProgress = this.stateAnimator.currentProgress;
+    }
+    // Retain measurements, but bind the actual master node again after reconnect.
+    this.pathGeometry.unbindPathElement();
+  }
+
   /** Binds the committed master centerline for gradients, tickmarks, labels, badges, and markers. */
   updated() {
     const pathId = `${this.cardId}-horseshoe-${this.index}`;
