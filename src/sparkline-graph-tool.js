@@ -795,10 +795,17 @@ export default class SparklineGraphTool extends BaseTool {
     this.activePoint = undefined;
     this.activeX = undefined;
     this.dragging = false;
+    this.hovering = false;
+    this.pointerEvent = undefined;
     this.elements = {};
     this.pointerSvgElement = undefined;
     this.rid = null;
     this._radialRafId = null;
+    // One callback identity belongs to one tool lifetime. SVG replacement
+    // only changes registration; handlers always read the current runtime data.
+    ['pointerFrame', 'pointerMove', 'pointerDown', 'pointerUp', 'touchStart', 'mouseDown', 'hoverEnter', 'hoverMove', 'hoverLeave'].forEach((handler) => {
+      this[handler] = this[handler].bind(this);
+    });
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.runtimeYScale = undefined;
     this.graphDataChanged = true;
@@ -1538,38 +1545,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.sparklineSeries.items.forEach((item) => {
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
     });
-    this.clearTooltip();
-
-    // End an active drag without running its normal pointer-up continuation.
-    window.removeEventListener('pointermove', this.pointerMove, false);
-    window.removeEventListener('pointerup', this.pointerUp, false);
-    window.cancelAnimationFrame(this.rid);
-    window.cancelAnimationFrame(this._radialRafId);
-    this.rid = null;
-    this._radialRafId = null;
-    this.dragging = false;
-    this.hovering = false;
-    this.pointerEvent = undefined;
-    this._radialPendingLeave = false;
-    this._radialPendingPointIndex = undefined;
-    this._radialPendingEvent = undefined;
-
-    // Remove listeners from the exact node on which they were registered.
-    // Clearing its flag lets the same SVG acquire handlers again on reconnect.
-    if (this.pointerSvgElement) {
-      this.updateTooltipVisibilityDom(false);
-      this.updateActiveIndicatorDom();
-      this.restoreRadialActiveBinDom();
-      this.pointerSvgElement.removeEventListener('mousedown', this.mouseDown, false);
-      this.pointerSvgElement.removeEventListener('touchstart', this.touchStart, false);
-      this.pointerSvgElement.removeEventListener('mousemove', this.hoverMove, false);
-      this.pointerSvgElement.removeEventListener('mouseenter', this.hoverEnter, false);
-      this.pointerSvgElement.removeEventListener('mouseleave', this.barCodeLeave, false);
-      this.pointerSvgElement.removeEventListener('mouseleave', this.hoverLeave, false);
-      delete this.pointerSvgElement.dataset.pointerReady;
-      this.pointerSvgElement = undefined;
-    }
-    this.elements = {};
+    this.detachPointerHandlers();
   }
 
   /**
@@ -2565,35 +2541,16 @@ export default class SparklineGraphTool extends BaseTool {
   scheduleRadialHoverFrame() {
     if (this._radialRafId) return;
 
-    this._radialRafId = window.requestAnimationFrame(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      // Cancelling or replacing an interaction revokes this frame's ownership,
+      // even when a previously queued callback is delivered after cancellation.
+      if (this._radialRafId !== frameId) return;
       this._radialRafId = null;
-
-      if (this._radialPendingLeave) {
-        this._radialPendingLeave = false;
-        this._radialPendingPointIndex = undefined;
-        this._radialPendingEvent = undefined;
-        this.restoreRadialActiveBinDom();
-        this.clearRadialTooltip();
-        return;
-      }
-
-      const pointIndex = this._radialPendingPointIndex;
-      const event = this._radialPendingEvent;
-      this._radialPendingPointIndex = undefined;
-      this._radialPendingEvent = undefined;
-
-      if (
-        !Number.isFinite(pointIndex)
-        || this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-        || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-      ) {
-        this.restoreRadialActiveBinDom();
-        this.clearRadialTooltip();
-        return;
-      }
-
-      this.updateTooltipFromRadial(pointIndex, event);
+      // Several moves in one browser frame select the latest coordinates,
+      // using the current graph rather than a bin captured on pointer entry.
+      if (this.hovering && !this.dragging) this.updateActivePointer(this.pointerEvent);
     });
+    this._radialRafId = frameId;
   }
 
   /**
@@ -2899,7 +2856,11 @@ export default class SparklineGraphTool extends BaseTool {
    * tracking continues outside the graph and through Safari touch behavior.
    */
   attachPointerHandlers() {
-    this.elements.svg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    const currentSvg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
+    // Stop the old interaction before any of its DOM references are replaced.
+    if (currentSvg !== this.pointerSvgElement) this.detachPointerHandlers();
+
+    this.elements.svg = currentSvg;
     this.elements.container = this.card.shadowRoot.getElementById('container');
     this.elements.activeIndicator = this.card.shadowRoot.getElementById(`sparkline-active-indicator-${this.cardId}-${this.index}`);
     this.elements.tooltip = this.card.shadowRoot.getElementById(`sparkline-tooltip-${this.cardId}-${this.index}`);
@@ -2907,171 +2868,154 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
-    if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
+    if (!currentSvg || currentSvg === this.pointerSvgElement) return;
 
-    this.elements.svg.dataset.pointerReady = 'true';
-    this.pointerSvgElement = this.elements.svg;
+    this.pointerSvgElement = currentSvg;
+    currentSvg.dataset.pointerReady = 'true';
+    currentSvg.addEventListener('mousedown', this.mouseDown, false);
+    currentSvg.addEventListener('touchstart', this.touchStart, { passive: false });
+    currentSvg.addEventListener('mousemove', this.hoverMove, false);
+    currentSvg.addEventListener('mouseenter', this.hoverEnter, false);
+    currentSvg.addEventListener('mouseleave', this.hoverLeave, false);
+  }
 
-    // Handler identity must remain stable: window listeners are removed with
-    // the exact function object that was registered during pointer-down.
-    this.Frame2 =
-      this.Frame2 ||
-      function Frame2() {
-        this.rid = null;
-        this.updateActivePointer(this.pointerEvent);
-      }.bind(this);
+  /** Releases the exact SVG node owned by this tool, including active gestures. */
+  detachPointerHandlers() {
+    this.stopPointerInteraction();
+    if (this.pointerSvgElement) {
+      this.pointerSvgElement.removeEventListener('mousedown', this.mouseDown, false);
+      this.pointerSvgElement.removeEventListener('touchstart', this.touchStart, false);
+      this.pointerSvgElement.removeEventListener('mousemove', this.hoverMove, false);
+      this.pointerSvgElement.removeEventListener('mouseenter', this.hoverEnter, false);
+      this.pointerSvgElement.removeEventListener('mouseleave', this.hoverLeave, false);
+      delete this.pointerSvgElement.dataset.pointerReady;
+      this.pointerSvgElement = undefined;
+    }
+    this.elements = {};
+  }
 
-    this.pointerMove =
-      this.pointerMove ||
-      function pointerMove(e) {
-        e.preventDefault();
-        // console.log('[pointerMove]', e);
+  /**
+   * Ends hover or drag without calculating another selection. Both schedulers
+   * and every global gesture listener belong to this interaction lifetime.
+   */
+  stopPointerInteraction() {
+    window.removeEventListener('pointermove', this.pointerMove, false);
+    window.removeEventListener('pointerup', this.pointerUp, false);
+    window.removeEventListener('pointercancel', this.pointerUp, false);
+    window.removeEventListener('touchcancel', this.pointerUp, false);
+    window.cancelAnimationFrame(this.rid);
+    window.cancelAnimationFrame(this._radialRafId);
+    this.rid = null;
+    this._radialRafId = null;
+    this.dragging = false;
+    this.hovering = false;
+    this.pointerEvent = undefined;
+    this.clearTooltip();
 
-        if (this.dragging) {
-          this.pointerEvent = e;
-          if (!this.rid) this.rid = window.requestAnimationFrame(this.Frame2);
-        }
-      }.bind(this);
+    // An interaction can end before the first SVG is mounted. Only the bound
+    // node owns DOM output to hide; clearing the model is always required.
+    if (this.pointerSvgElement) {
+      this.updateTooltipVisibilityDom(false);
+      this.updateActiveIndicatorDom();
+      this.restoreRadialActiveBinDom();
+      this.elements.containerRect = undefined;
+    }
+  }
 
-    this.hoverEnter =
-      this.hoverEnter ||
-      function hoverEnter(e) {
-        // The interaction surface is the complete SVG, not an individual bin.
-        // Its pointer coordinates select a bin in either chart family.
-        this.hoverMove(e);
-      }.bind(this);
+  /** Applies the latest drag coordinates once in a scheduled browser frame. */
+  pointerFrame() {
+    this.rid = null;
+    if (this.dragging) this.updateActivePointer(this.pointerEvent);
+  }
 
-    this.hoverMove =
-      this.hoverMove ||
-      function hoverMove(e) {
-        if (this.dragging) return;
+  /** Tracks a drag outside the SVG without scheduling more than one frame. */
+  pointerMove(event) {
+    if (!this.dragging) return;
+    event.preventDefault();
+    this.pointerEvent = event;
+    if (!this.rid) {
+      const frameId = window.requestAnimationFrame(() => {
+        if (this.rid === frameId) this.pointerFrame();
+      });
+      this.rid = frameId;
+    }
+  }
 
-        // console.log('[hoverMove]', e);
+  /** Selects from entry coordinates rather than a bin attribute on the root SVG. */
+  hoverEnter(event) {
+    this.hoverMove(event);
+  }
 
-        if (!this.hovering) {
-          this.hovering = true;
-          this.elements.containerRect = this.elements.container.getBoundingClientRect();
-          const svgBox = this.elements.svg.getBoundingClientRect();
-          const scaleX = svgBox.width / this.svg.width;
-          const scaleY = svgBox.height / this.svg.height;
-          // Half a bucket extends hover hit testing to both chart edges.
-          const hoverPaddingX = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type) ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
-          this.elements.tooltipBounds = {
-            left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x) * scaleX - hoverPaddingX,
-            top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y) * scaleY,
-            right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width) * scaleX + hoverPaddingX,
-            bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height) * scaleY,
-          };
-        }
+  /**
+   * Updates hover selection using the current draw area. Radial hover coalesces
+   * moves into one frame; cartesian hover retains its immediate DOM update.
+   */
+  hoverMove(event) {
+    if (this.dragging) return;
+    this.pointerEvent = event;
+    if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+      this.stopPointerInteraction();
+      return;
+    }
 
-        this.updateActivePointer(e);
-      }.bind(this);
+    if (!this.hovering) {
+      this.hovering = true;
+      this.elements.containerRect = this.elements.container.getBoundingClientRect();
+      const svgBox = this.elements.svg.getBoundingClientRect();
+      const scaleX = svgBox.width / this.svg.width;
+      const scaleY = svgBox.height / this.svg.height;
+      // Half a bucket extends cartesian hit testing to both chart edges.
+      const radial = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type);
+      const hoverPaddingX = radial ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
+      this.elements.tooltipBounds = {
+        left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x) * scaleX - hoverPaddingX,
+        top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y) * scaleY,
+        right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width) * scaleX + hoverPaddingX,
+        bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height) * scaleY,
+      };
+    }
 
-    this.hoverLeave =
-      this.hoverLeave ||
-      function hoverLeave(e) {
-        if (this.dragging) return;
-        // console.log('[hoverLeave]', e);
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
+      this.scheduleRadialHoverFrame();
+    } else {
+      this.updateActivePointer(event);
+    }
+  }
 
-        this.hovering = false;
-        this.pointerEvent = undefined;
-        this.activeX = undefined;
-        this.clearTooltip();
-        this.updateTooltipVisibilityDom(false);
-        this.updateActiveIndicatorDom();
-      }.bind(this);
+  /** Ends hover on leaving the graph; an active drag keeps its window tracking. */
+  hoverLeave() {
+    if (!this.dragging) this.stopPointerInteraction();
+  }
 
-    this.barCodeLeave =
-      this.barCodeLeave ||
-      function barCodeLeave(e) {
-        if (this.dragging) return;
-        // console.log('[barCodeLeave]', e);
+  /** Starts mouse/touch tracking through the existing Safari-safe event route. */
+  pointerDown(event) {
+    event.preventDefault();
+    this.stopPointerInteraction();
+    this.dragging = true;
+    this.pointerEvent = event;
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    window.addEventListener('pointermove', this.pointerMove, false);
+    window.addEventListener('pointerup', this.pointerUp, false);
+    window.addEventListener('pointercancel', this.pointerUp, false);
+    window.addEventListener('touchcancel', this.pointerUp, false);
+    this.updateActivePointer(event);
+  }
 
-        this.hovering = false;
-        this.pointerEvent = undefined;
-        this.activeX = undefined;
-        this.clearTooltip();
-        this.restoreRadialActiveBinDom();
-      }.bind(this);
+  /** Ends a released or cancelled gesture without using its final coordinates. */
+  pointerUp(event) {
+    event.preventDefault();
+    this.stopPointerInteraction();
+  }
 
-    this.pointerDown =
-      this.pointerDown ||
-      function pointerDown(e) {
-        e.preventDefault();
-        // console.log('[pointerDown]', e);
+  /** Keeps touchstart on its proven mouse/touch-to-SVG conversion route. */
+  touchStart(event) {
+    this.pointerDown(event);
+  }
 
-        window.addEventListener('pointermove', this.pointerMove, false);
-        window.addEventListener('pointerup', this.pointerUp, false);
-
-        this.dragging = true;
-        this.pointerEvent = e;
-        this.elements.containerRect = this.elements.container.getBoundingClientRect();
-        this.updateActivePointer(e);
-        this.updateTooltipVisibilityDom(true);
-        this.updateActiveIndicatorDom();
-        this.Frame2();
-      }.bind(this);
-
-    this.pointerUp =
-      this.pointerUp ||
-      function pointerUp(e) {
-        e.preventDefault();
-        // console.log('[pointerUp]', e);
-
-        window.removeEventListener('pointermove', this.pointerMove, false);
-        window.removeEventListener('pointerup', this.pointerUp, false);
-
-        if (!this.dragging) return;
-
-        this.dragging = false;
-        this.activeX = undefined;
-        this.pointerEvent = undefined;
-        this.rid = null;
-        this.clearTooltip();
-        this.updateTooltipVisibilityDom(false);
-        this.updateActiveIndicatorDom();
-        this.elements.containerRect = undefined;
-
-        if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
-          this.restoreRadialActiveBinDom();
-        }
-
-        this.Frame2();
-      }.bind(this);
-
-    this.touchStart =
-      this.touchStart ||
-      function touchStart(e) {
-        e.preventDefault();
-        // console.log('[touchStart]', e);
-
-        window.addEventListener('pointermove', this.pointerMove, false);
-        window.addEventListener('pointerup', this.pointerUp, false);
-
-        this.dragging = true;
-        this.pointerEvent = e;
-        this.elements.containerRect = this.elements.container.getBoundingClientRect();
-
-        this.updateActivePointer(e);
-        this.updateTooltipVisibilityDom(true);
-        this.updateActiveIndicatorDom();
-        this.Frame2();
-      }.bind(this);
-
-    this.mouseDown =
-      this.mouseDown ||
-      function mouseDown(e) {
-        this.pointerDown(e);
-      }.bind(this);
-
-    // 2. CORE REGISTRATIONS (Clean and highly scannable)
-    this.elements.svg.addEventListener('mousedown', this.mouseDown, false);
-    this.elements.svg.addEventListener('touchstart', this.touchStart, { passive: false });
-
-    this.elements.svg.addEventListener('mousemove', this.hoverMove, false);
-    this.elements.svg.addEventListener('mouseenter', this.hoverEnter, false);
-    this.elements.svg.addEventListener('mouseleave', this.barCodeLeave, false);
-    this.elements.svg.addEventListener('mouseleave', this.hoverLeave, false);
+  /** Starts dragging from the existing mousedown entry point. */
+  mouseDown(event) {
+    this.pointerDown(event);
   }
 
   /**
