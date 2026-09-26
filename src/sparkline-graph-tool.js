@@ -2027,6 +2027,15 @@ export default class SparklineGraphTool extends BaseTool {
     this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
   }
 
+  /**
+   * Refreshes retained single-series paint after palette loading. A graph with
+   * no processed data has no gradient to refresh; series render their own paint.
+   */
+  updatePalettePaint() {
+    if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length !== 1) return;
+    this.updateSparklinePaint();
+  }
+
   /** Refreshes the single-series gradient without rebuilding SVG path geometry. */
   updateSparklinePaint() {
     const layerRequestsColorStopGradient = [
