@@ -240,3 +240,48 @@ test('reads and updates a configured numeric entity attribute', () => {
   slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
   assert.equal(slider.sliderAvailable, false);
 });
+
+test('disconnect during a drag cancels owned handles without a final slider write', () => {
+  const previousWindow = globalThis.window;
+  const calls = [];
+  globalThis.window = {
+    removeEventListener: (type, listener) => calls.push(['remove', type, listener]),
+    clearInterval: (timer) => calls.push(['clear-interval', timer]),
+    cancelAnimationFrame: (frame) => calls.push(['cancel-frame', frame]),
+  };
+
+  try {
+    const slider = createSlider();
+    slider.getContentTools = () => [];
+    slider.pointerMoveListener = () => {};
+    slider.pointerUpListener = () => {};
+    slider.writeTimer = 11;
+    slider.renderFrame = 12;
+    slider.stateAnimationFrame = 13;
+    slider.dragging = true;
+    slider.draggingThumb = true;
+    let finalWrites = 0;
+    slider.writeSliderValues = (finalWrite) => {
+      if (finalWrite) finalWrites += 1;
+    };
+
+    slider.disconnected();
+
+    assert.deepEqual(calls, [
+      ['remove', 'pointermove', slider.pointerMoveListener],
+      ['remove', 'pointerup', slider.pointerUpListener],
+      ['remove', 'pointercancel', slider.pointerUpListener],
+      ['clear-interval', 11],
+      ['cancel-frame', 12],
+      ['cancel-frame', 13],
+    ]);
+    assert.equal(slider.writeTimer, undefined);
+    assert.equal(slider.renderFrame, undefined);
+    assert.equal(slider.stateAnimationFrame, undefined);
+    assert.equal(slider.dragging, false);
+    assert.equal(slider.draggingThumb, false);
+    assert.equal(finalWrites, 0);
+  } finally {
+    globalThis.window = previousWindow;
+  }
+});

@@ -78,6 +78,7 @@ test('state animation preserves measured geometry and every static path layer', 
               strokeOpacity: 1,
               border: { color: '#0f172a', width: 1 },
             };
+            const cancelledFrames = [];
 
             render(svg\`
               <svg id="path-animation-showcase" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 220">
@@ -112,7 +113,10 @@ test('state animation preserves measured geometry and every static path layer', 
                 animation: { enabled: true, duration: 60, easing: 'linear' },
                 initialProgress: 20,
                 requestFrame: window.requestAnimationFrame.bind(window),
-                cancelFrame: window.cancelAnimationFrame.bind(window),
+                cancelFrame: (frame) => {
+                  cancelledFrames.push(frame);
+                  window.cancelAnimationFrame(frame);
+                },
                 updateStateLayer: (element, progress) => {
                   const range = {
                     id: 'state', start: 0, end: progress, length: progress,
@@ -133,10 +137,12 @@ test('state animation preserves measured geometry and every static path layer', 
                 animator,
                 geometry,
                 getMeasurementCount: () => measurementCount,
+                cancelledFrames,
                 nodes: {
                   master,
                   background: shape.querySelector('.background'),
                   features: shape.querySelector('.path-tick-label-badge-marker'),
+                  stateLayer,
                   stateBody: shape.querySelector('.path-animation-state__fill-stroke__body'),
                 },
               };
@@ -170,6 +176,32 @@ test('state animation preserves measured geometry and every static path layer', 
   await page.waitForTimeout(100);
   expect(pageErrors).toEqual([]);
   await expect.poll(() => page.evaluate(() => window.pathAnimationFixture?.fixtures.every((fixture) => !fixture.animator.animating))).toBe(true);
+
+  const cleanupAndReconnect = await page.evaluate(() => {
+    const fixture = window.pathAnimationFixture.fixtures[0];
+    fixture.animator.animateTo(90);
+    const pendingFrame = fixture.animator.frame;
+    fixture.animator.unbindStateLayer();
+    const disconnected = {
+      pendingFrame,
+      frame: fixture.animator.frame,
+      animating: fixture.animator.animating,
+      stateLayerElement: fixture.animator.stateLayerElement,
+      frameCancelled: fixture.cancelledFrames.includes(pendingFrame),
+    };
+    fixture.animator.bindStateLayer(fixture.nodes.stateLayer);
+    fixture.animator.animateTo(35);
+    return disconnected;
+  });
+
+  expect(cleanupAndReconnect).toEqual({
+    pendingFrame: expect.any(Number),
+    frame: undefined,
+    animating: false,
+    stateLayerElement: undefined,
+    frameCancelled: true,
+  });
+  await expect.poll(() => page.evaluate(() => window.pathAnimationFixture.fixtures[0].animator.animating)).toBe(false);
 
   await page.evaluate(() => window.pathAnimationFixture.fixtures.forEach((fixture) => fixture.animator.animateTo(35)));
   await expect.poll(() => page.evaluate(() => window.pathAnimationFixture.fixtures.every((fixture) => !fixture.animator.animating))).toBe(true);
