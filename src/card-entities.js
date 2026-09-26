@@ -101,7 +101,11 @@ export default class CardEntities {
       });
       if (!matchedSparkline) throw new Error(`[entities] Unknown sparkline entity: ${entityConfig.entity}`);
 
-      const sourceEntityIndex = matchedSeries === undefined ? matchedSparkline.entity_index : matchedSeries.entity_index;
+      // The unqualified graph alias describes its primary series, including
+      // explicit collections whose source is declared on the first series.
+      const sourceEntityIndex = matchedSeries !== undefined
+        ? matchedSeries.entity_index
+        : (matchedSparkline.series !== undefined ? matchedSparkline.series[0].entity_index : (matchedSparkline.entity_index ?? 0));
       const localEntityConfig = {
         ...resolvedEntityConfigs[sourceEntityIndex],
         ...entityConfig,
@@ -123,10 +127,19 @@ export default class CardEntities {
     });
   }
 
-  /** Rebuilds local sparkline entities from current graph statistics. */
+  /**
+   * Publishes changed local Sparkline values and their source metadata into
+   * the shared array. Equal results retain the entity object consumers know.
+   *
+   * @returns {Array<number>} Indexes whose published entity content changed.
+   */
   updateSparklineEntities(resolvedEntityConfigs, entities, sparklineGraphTools) {
+    const changedEntityIndexes = [];
     resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
       if (!entityConfig.sparkline_entity_type) return;
+      // A completion supplies only its affected graph. Other graphs retain
+      // their published outputs until their own source/result changes.
+      if (!sparklineGraphTools.some((tool) => tool.config.id === entityConfig.sparkline_id)) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
       const sparklineResult = graphTool.getSeriesResult(entityConfig.sparkline_series_id);
       const sourceEntity = entities[entityConfig.source_entity_index];
@@ -188,7 +201,7 @@ export default class CardEntities {
         deviceClass = undefined;
       }
 
-      entities[entityIndex] = Merge.mergeDeep(sourceEntity, {
+      const nextEntity = Merge.mergeDeep(sourceEntity, {
         entity_id: entityConfig.entity,
         state: String(state),
         label: entityConfig.name === undefined ? labelMap[entityType] : undefined,
@@ -202,8 +215,15 @@ export default class CardEntities {
           sparkline_series_id: entityConfig.sparkline_series_id,
         },
       });
-      this.stateChanged = true;
+      // HA states and copied attributes are JSON data, just like the active
+      // configuration signatures. Include timestamps and metadata in equality.
+      if (JSON.stringify(entities[entityIndex]) !== JSON.stringify(nextEntity)) {
+        entities[entityIndex] = nextEntity;
+        changedEntityIndexes.push(entityIndex);
+      }
     });
+    this.stateChanged = changedEntityIndexes.length > 0;
+    return changedEntityIndexes;
   }
 
   /** Marks the current local sparkline entity states as consumed by the card update. */
