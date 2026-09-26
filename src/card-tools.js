@@ -26,6 +26,7 @@ export default class CardTools {
     this.templates = templates;
     this.cardId = cardId;
     this.connectedToCard = false;
+    this.disconnectedFromCard = false;
     this.sections = {
       rectangles: [], polygons: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
@@ -34,7 +35,8 @@ export default class CardTools {
 
   /** Closes every old owner before replacement can construct new resources. */
   clearTools() {
-    this.disconnected();
+    this.getRenderableTools().forEach((tool) => tool.disconnected());
+    this.connectedToCard = false;
     RENDER_SECTIONS.forEach((section) => { this.sections[section] = []; });
   }
 
@@ -161,6 +163,7 @@ export default class CardTools {
   connected() {
     if (this.connectedToCard) return;
     this.connectedToCard = true;
+    this.disconnectedFromCard = false;
     this.getRenderableTools().forEach((tool) => tool.connected());
   }
 
@@ -170,6 +173,7 @@ export default class CardTools {
    */
   disconnected() {
     this.connectedToCard = false;
+    this.disconnectedFromCard = true;
     this.getRenderableTools().forEach((tool) => tool.disconnected());
   }
 

@@ -91,6 +91,7 @@ export default class ControlBase extends BaseTool {
     this.labelTextTool = undefined;
     this.controlHassAvailable = false;
     this.controlConnected = false;
+    this.controlDisconnected = false;
   }
 
   /**
@@ -220,7 +221,7 @@ export default class ControlBase extends BaseTool {
     this.labelTextTool.updateRuntimeConfig();
     if (this.controlHassAvailable) this.labelTextTool.hassAvailable();
     if (this.controlConnected) this.labelTextTool.connected();
-    else this.labelTextTool.disconnected();
+    else if (this.controlDisconnected) this.labelTextTool.disconnected();
   }
 
   /** Gives rebuilt content the lifecycle already reached by this control. */
@@ -228,7 +229,7 @@ export default class ControlBase extends BaseTool {
     this.getContentTools().forEach((tool) => {
       if (this.controlHassAvailable) tool.hassAvailable();
       if (this.controlConnected) tool.connected();
-      else tool.disconnected();
+      else if (this.controlDisconnected) tool.disconnected();
     });
   }
 
@@ -244,6 +245,7 @@ export default class ControlBase extends BaseTool {
   connected() {
     if (this.controlConnected) return;
     this.controlConnected = true;
+    this.controlDisconnected = false;
     if (this.labelTextTool) this.labelTextTool.connected();
     this.getContentTools().forEach((tool) => tool.connected());
   }
@@ -251,6 +253,7 @@ export default class ControlBase extends BaseTool {
   /** Closes every nested owner, including direct icon/text/state content. */
   disconnected() {
     this.controlConnected = false;
+    this.controlDisconnected = true;
     if (this.labelTextTool) this.labelTextTool.disconnected();
     this.getContentTools().forEach((tool) => tool.disconnected());
   }

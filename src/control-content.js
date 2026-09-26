@@ -41,6 +41,7 @@ export default class ControlContent {
     this.vertical = direction === 'vertical';
     this.childTools = [];
     this.contentConnected = false;
+    this.contentDisconnected = false;
     this.contentHassAvailable = false;
 
     // Complete all public padding shorthands here. The layout loop below only
@@ -248,7 +249,7 @@ export default class ControlContent {
     this.childTools.forEach((child) => {
       if (this.contentHassAvailable) child.tool.hassAvailable();
       if (this.contentConnected) child.tool.connected();
-      else child.tool.disconnected();
+      else if (this.contentDisconnected) child.tool.disconnected();
     });
   }
 
@@ -302,12 +303,14 @@ export default class ControlContent {
   connected() {
     if (this.contentConnected) return;
     this.contentConnected = true;
+    this.contentDisconnected = false;
     this.childTools.forEach((child) => child.tool.connected());
   }
 
   /** Stops timers and listeners owned by visual children. */
   disconnected() {
     this.contentConnected = false;
+    this.contentDisconnected = true;
     this.childTools.forEach((child) => child.tool.disconnected());
   }
 
