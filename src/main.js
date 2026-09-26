@@ -368,6 +368,39 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
+   * Continues one processed Sparkline result into its derived values, ordinary
+   * tools and animations. The graph has already consumed its History/Series
+   * input; this phase publishes its output to presentation consumers.
+   *
+   * @param {SparklineGraphTool} graphTool - Graph whose current result changed.
+   */
+  updateSparklineResult(graphTool) {
+    const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
+      this.resolvedEntityConfigs, this.entities, [graphTool],
+    );
+    this.evaluateJavascriptTemplates = changedEntityIndexes.length > 0;
+
+    // JavaScript consumers can observe any derived entry in the shared array.
+    // Their existing active-config comparison limits actual layout changes.
+    if (this.evaluateJavascriptTemplates) {
+      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
+      this.cardLayout.updateGroups(true);
+      if (this.cardStylesHaveJavascript) {
+        this.activeCardStyles = this.templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+      }
+    }
+    this.actions.setHassAndEntities(this._hass, this.resolvedEntityConfigs, this.entities);
+    this.cardTools.updateRuntimeConfig();
+    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
+    this.cardAnimations.update(this.config, this.entities, this.templates, changedEntityIndexes.length > 0);
+
+    this.evaluateJavascriptTemplates = false;
+    this.cardEntities.markStateHandled();
+    this.cardLayout.markGroupsHandled();
+    this.requestUpdate();
+  }
+
+  /**
    * Lovelace lifecycle: compiles and validates one user-facing card configuration.
    *
    * Lovelace calls setConfig when it creates the card or replaces its YAML/config.
