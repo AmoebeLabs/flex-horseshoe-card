@@ -478,7 +478,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardInputEntities.validateConfig(config);
       this.cardConfig.validateActionConfigs(config);
 
-      this.cardConfig.detectJavascriptTemplates(config);
+      this.cardHasJavascript = this.cardConfig.detectJavascriptTemplates(config);
 
       // Runtime entity templates now receive the final entity-slot map.
       const resolvedEntitiesConfig = this.cardEntities.buildRuntimeEntityConfigs(config, false);
@@ -509,7 +509,6 @@ class FlexHorseshoeCard extends LitElement {
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
-      this.cardHasJavascript = this.templates.hasJavascriptTemplates(this.config);
       this.entityConfigsInitialized = false;
       this.cardLayout.setConfig(this.config, this.horseshoes);
 

@@ -725,6 +725,101 @@ test('CardEntities represents all eight values from the Sparkline result interfa
   ]);
 });
 
+test('CardEntities binds explicit-series primary and named aliases to their declared sources', () => {
+  const cardEntities = new CardEntities({}, {});
+  const config = {
+    dev: { debug: false },
+    entities: [
+      { entity: 'sensor.today', decimals: 1 },
+      { entity: 'sensor.yesterday', decimals: 1 },
+      { entity: 'fhs_sparkline.climate_avg' },
+      { entity: 'fhs_sparkline.climate_yesterday_avg' },
+    ],
+    layout: {
+      sparklines: [{
+        id: 'climate',
+        series: [
+          { id: 'today', entity_index: 0 },
+          { id: 'yesterday', entity_index: 1 },
+        ],
+      }],
+    },
+  };
+  const resolved = cardEntities.buildRuntimeEntityConfigs(config, false);
+  const entities = [
+    {
+      entity_id: 'sensor.today',
+      state: '11.0',
+      attributes: { friendly_name: 'Today', unit_of_measurement: 'C', device_class: 'temperature' },
+    },
+    {
+      entity_id: 'sensor.yesterday',
+      state: '8.0',
+      attributes: { friendly_name: 'Yesterday', unit_of_measurement: 'F', device_class: 'temperature' },
+    },
+  ];
+  const graphTool = {
+    config: { id: 'climate' },
+    getSeriesResult: (seriesId) => ({ avg: seriesId === 'yesterday' ? 8.25 : 11.25 }),
+  };
+
+  assert.equal(resolved[2].source_entity_index, 0);
+  assert.equal(resolved[2].sparkline_series_id, undefined);
+  assert.equal(resolved[3].source_entity_index, 1);
+  assert.equal(resolved[3].sparkline_series_id, 'yesterday');
+
+  cardEntities.updateSparklineEntities(resolved, entities, [graphTool]);
+
+  assert.equal(entities[2].state, '11.3');
+  assert.equal(entities[2].attributes.source_entity_id, 'sensor.today');
+  assert.equal(entities[2].attributes.unit_of_measurement, 'C');
+  assert.equal(entities[3].state, '8.3');
+  assert.equal(entities[3].attributes.source_entity_id, 'sensor.yesterday');
+  assert.equal(entities[3].attributes.unit_of_measurement, 'F');
+  assert.equal(entities[3].attributes.sparkline_series_id, 'yesterday');
+});
+
+test('CardEntities preserves equal publications and publishes copied source metadata changes', () => {
+  const cardEntities = new CardEntities({}, {});
+  const resolved = [
+    { entity: 'sensor.power', decimals: 2 },
+    {
+      entity: 'fhs_sparkline.power_avg',
+      local: true,
+      source_entity_index: 0,
+      sparkline_id: 'power',
+      sparkline_entity_type: 'avg',
+    },
+  ];
+  const source = {
+    entity_id: 'sensor.power',
+    state: '10.20',
+    last_changed: '2026-09-26T10:00:00.000Z',
+    last_updated: '2026-09-26T10:00:00.000Z',
+    attributes: { friendly_name: 'Power', unit_of_measurement: 'W', device_class: 'power' },
+  };
+  const entities = [source];
+  const graphTool = { config: { id: 'power' }, getSeriesResult: () => ({ avg: 10.2 }) };
+
+  assert.deepEqual(cardEntities.updateSparklineEntities(resolved, entities, [graphTool]), [1]);
+  const published = entities[1];
+  assert.deepEqual(cardEntities.updateSparklineEntities(resolved, entities, [graphTool]), []);
+  assert.strictEqual(entities[1], published);
+
+  source.last_updated = '2026-09-26T10:05:00.000Z';
+  source.attributes.friendly_name = 'Updated power';
+  assert.deepEqual(cardEntities.updateSparklineEntities(resolved, entities, [graphTool]), [1]);
+  assert.notStrictEqual(entities[1], published);
+  assert.equal(entities[1].state, '10.20');
+  assert.equal(entities[1].last_updated, source.last_updated);
+  assert.equal(entities[1].attributes.friendly_name, 'Updated power');
+  assert.equal(entities[1].attributes.source_entity_id, 'sensor.power');
+
+  const metadataPublication = entities[1];
+  assert.deepEqual(cardEntities.updateSparklineEntities(resolved, entities, [graphTool]), []);
+  assert.strictEqual(entities[1], metadataPublication);
+});
+
 test('CardAnimations matches entity state and preserves reused styles and icons', () => {
   const animations = new CardAnimations();
   const config = {
