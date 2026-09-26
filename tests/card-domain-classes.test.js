@@ -602,14 +602,14 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
   }];
   const graphTool = { config: { id: 'history' }, getSeriesResult: () => ({ avg: 10.2 }) };
 
-  cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
+  const changedIndexes = cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
   assert.equal(entities[1].state, '10.20');
   assert.equal(entities[1].attributes.source_entity_id, 'sensor.temperature');
-  assert.equal(cardEntities.stateChanged, true);
-
-  cardEntities.markStateHandled();
-  assert.equal(cardEntities.stateChanged, false);
+  assert.deepEqual(changedIndexes, [1]);
+  const publishedEntity = entities[1];
+  assert.deepEqual(cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]), []);
+  assert.equal(entities[1], publishedEntity);
 });
 
 
