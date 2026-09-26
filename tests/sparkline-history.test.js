@@ -133,6 +133,36 @@ test('unchanged prepared history keeps its array identity across HA updates', ()
   });
 });
 
+test('live measurements reuse converted history and retain every sample', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
+    const firstRows = history.acceptHistoryRows(item, [
+      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
+      { state: '9', last_changed: '2026-09-12T10:00:00.000Z' },
+    ], range);
+    const sourceRows = history.seriesRecords.get(item.id).sourceRows;
+
+    assert.strictEqual(history.addCurrentEntityState(item, range), firstRows);
+    assert.strictEqual(history.seriesRecords.get(item.id).sourceRows, sourceRows);
+    item.entity = { ...item.entity, state: '13', last_changed: '2026-09-12T12:20:00.000Z' };
+    const appended = history.addCurrentEntityState(item, range);
+    assert.deepEqual(appended.map((row) => row.state), [9, 10, 12, 13]);
+    firstRows.forEach((row, index) => assert.strictEqual(appended[index], row));
+
+    // A delayed measurement is inserted at its own time, while a correction
+    // changes only the measurement at that timestamp.
+    item.entity = { ...item.entity, state: '11', last_changed: '2026-09-12T11:30:00.000Z' };
+    const delayed = history.addCurrentEntityState(item, range);
+    assert.deepEqual(delayed.map((row) => row.state), [9, 10, 11, 12, 13]);
+    item.entity = { ...item.entity, state: '11.5' };
+    const corrected = history.addCurrentEntityState(item, range);
+    assert.deepEqual(corrected.map((row) => row.state), [9, 10, 11.5, 12, 13]);
+    assert.strictEqual(corrected[4], appended[3]);
+  });
+});
+
 test('a parent rolling offset moves both the shared plot and inherited source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
     const item = { id: 'default', config: { period: rollingPeriod(-1) } };

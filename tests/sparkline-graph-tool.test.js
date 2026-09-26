@@ -2620,6 +2620,24 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   assert.equal(tool.hasPresentationChanged(), false);
 });
 
+test('a changed single Cartesian series prunes and calculates statistics once', (context) => {
+  const tool = createChangeDetectionTool(context, 'rolling_window');
+  const item = tool.sparklineSeries.primaryItem;
+  const prune = context.mock.method(tool.sparklineHistory, 'pruneActiveRows');
+  const statistics = context.mock.method(item.graph, 'updateStatistics');
+  const aggregate = context.mock.method(item.graph, 'aggregateBuckets');
+  tool.hasPresentationChanged();
+
+  tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  assert.equal(prune.mock.callCount(), 1);
+  assert.equal(statistics.mock.callCount(), 1);
+  assert.equal(aggregate.mock.callCount(), 1);
+  assert.equal(item.graph.statistics.max, 42);
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+});
+
 test('changed historical curves report presentation changes when all published statistics stay equal', (context) => {
   const tool = createChangeDetectionTool(context, 'rolling_window');
   const item = tool.sparklineSeries.primaryItem;

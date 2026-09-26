@@ -1902,7 +1902,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       // Cartesian charts always use the coordinator, including the implicit
-      // one-item collection. Single-series paint and statistics remain richer.
+      // one-item collection. Single-series rendering retains its own paint layers.
       if (cartesianSeries) {
         this.updateCartesianSeriesGraphs();
         if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length > 1) return;
@@ -1912,7 +1912,10 @@ export default class SparklineGraphTool extends BaseTool {
         }
       }
 
-      const sourceRangeIsActive = this.config.period.type !== 'real_time'
+      // The Cartesian coordinator already pruned and calculated statistics for
+      // every item, including item zero. The retained single-item path below
+      // adds its paint/minmax/bar presentation, not another history-data pass.
+      const sourceRangeIsActive = !cartesianSeries && this.config.period.type !== 'real_time'
         && this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem).sourceRangeIsActive;
       const statisticsRange = sourceRangeIsActive && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id)
         ? this.sparklineHistory.pruneActiveRows(this.sparklineSeries.primaryItem, this.primaryGraph.points)
@@ -1958,7 +1961,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
       if (!graphGeometryChanged) {
         this.updateSparklinePaint();
-        if (dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+        if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
         return;
       }
 
@@ -2039,7 +2042,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       this.updateSparklinePaint();
-      if (dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+      if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
     } finally {
       this.graphDataChanged = false;
     }
@@ -2067,7 +2070,10 @@ export default class SparklineGraphTool extends BaseTool {
           }
           return undefined;
         });
-        presentation.push(graph.coords, graph.coordsMin, graph.coordsMax, graph.bucketMeta,
+        // Graph increments its data revision and changes its geometry signature
+        // when these results change. Compare those reports rather than stringify
+        // every coordinate and bucket again during each HA presentation pass.
+        presentation.push(graph.processedDataRevision, graph.geometryResultSignature,
           graph.statistics, graph.geometryInputSignature, liveColors);
       }
       return presentation;
