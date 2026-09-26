@@ -19,6 +19,11 @@ export default class ChildCards {
   constructor(parentCard) {
     this.parentCard = parentCard;
     this.items = [];
+    this.cardsConfig = [];
+    this.creationNumber = 0;
+    this.childrenNeedCreating = false;
+    this.disconnectedFromCard = false;
+    this.shellFrames = new Map();
   }
 
   /**
@@ -31,9 +36,26 @@ export default class ChildCards {
    * @param {Array<object>} cardsConfig - cards[] config from FHS.
    */
   async setConfig(cardsConfig) {
-    const helpers = await window.loadCardHelpers();
+    const creationNumber = ++this.creationNumber;
+    this.cancelShellFrames();
+    this.cardsConfig = cardsConfig;
+    this.childrenNeedCreating = true;
+    if (cardsConfig.length === 0) {
+      const hadChildren = this.items.length > 0;
+      this.items = [];
+      this.childrenNeedCreating = false;
+      if (hadChildren && !this.disconnectedFromCard) this.parentCard.requestUpdate();
+      return;
+    }
+    if (this.disconnectedFromCard) return;
 
-    this.items = await Promise.all(
+    try {
+      const helpers = await window.loadCardHelpers();
+      if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+
+      // Construct off-DOM. Only the complete current list receives hass and
+      // becomes visible; an obsolete creation never publishes partial children.
+      const items = await Promise.all(
       cardsConfig.map(async (itemConfig, index) => {
         const childConfig = { ...itemConfig };
 
@@ -45,9 +67,7 @@ export default class ChildCards {
 
         const cardElement = await helpers.createCardElement(childConfig);
 
-        if (this.parentCard._hass) {
-          cardElement.hass = this.parentCard._hass;
-        }
+        if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
 
         return {
           card: cardElement,
@@ -60,9 +80,52 @@ export default class ChildCards {
           frameless: itemConfig.frameless !== false,
         };
       }),
-    );
-    this.parentCard.requestUpdate();
-    this.parentCard.updateComplete.then(() => this.removeChildCardShells());
+      );
+      if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+      this.items = items;
+      this.childrenNeedCreating = false;
+      if (this.parentCard._hass) this.setHass(this.parentCard._hass);
+      this.parentCard.requestUpdate();
+      await this.parentCard.updateComplete;
+      if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+      await this.removeChildCardShells(items, creationNumber);
+    } catch (error) {
+      if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+      throw error;
+    }
+  }
+
+  /** Cancels owned retry frames and releases their waiting continuations. */
+  cancelShellFrames() {
+    this.shellFrames.forEach((complete, frame) => {
+      cancelAnimationFrame(frame);
+      complete();
+    });
+    this.shellFrames.clear();
+  }
+
+  /** Reuses accepted children or resumes the latest interrupted configuration. */
+  connected() {
+    if (!this.disconnectedFromCard) return;
+    this.disconnectedFromCard = false;
+    if (this.childrenNeedCreating) {
+      this.setConfig(this.cardsConfig).catch((error) => console.error('[FHC child cards]', error));
+    } else {
+      const items = this.items;
+      const creationNumber = this.creationNumber;
+      this.parentCard.updateComplete.then(() => {
+        if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+        return this.removeChildCardShells(items, creationNumber);
+      }).catch((error) => console.error('[FHC child cards]', error));
+    }
+  }
+
+  /** Ends pending creation/publication and frameless work on old DOM nodes. */
+  disconnected() {
+    if (this.disconnectedFromCard) return;
+    this.disconnectedFromCard = true;
+    this.creationNumber += 1;
+    this.cancelShellFrames();
   }
 
   /**
@@ -71,20 +134,19 @@ export default class ChildCards {
    * @param {object} hass - Home Assistant state object received by the parent.
    */
   setHass(hass) {
+    if (this.disconnectedFromCard) return;
     this.items.forEach((item) => {
       item.card.hass = hass;
     });
   }
 
   /**
-   * Renders positioned wrappers containing the already-created child card nodes.
+   * Removes native card shells after the current child DOM has rendered.
    *
-   * Lit renders the wrapper DOM. It does not call the child card render function;
-   * the child card updates itself after it receives hass.
-   *
-   * @returns {TemplateResult} Child card layer template.
+   * @param {Array<object>} items - Accepted child list for this creation.
+   * @param {number} creationNumber - Creation which owns the pending DOM work.
    */
-  async removeChildCardShells() {
+  async removeChildCardShells(items, creationNumber) {
     const findHaCard = (element) => {
       if (element.localName === 'ha-card') return element;
 
@@ -98,31 +160,36 @@ export default class ChildCards {
     };
 
     await Promise.all(
-      this.items.map(async (item) => {
+      items.map(async (item) => {
         if (!item.frameless) return;
 
         if (item.card.updateComplete) {
           await item.card.updateComplete;
         }
+        if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
 
         // External cards can render their ha-card after they are connected. Try a
         // few frames so cards like markdown can finish their own first render.
-        await [1, 2, 3, 4, 5].reduce(async (previousAttempt) => {
-          const haCardAlreadyFound = await previousAttempt;
-          if (haCardAlreadyFound) return haCardAlreadyFound;
-
-          await new Promise(requestAnimationFrame);
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          await new Promise((complete) => {
+            const frame = requestAnimationFrame(() => {
+              this.shellFrames.delete(frame);
+              complete();
+            });
+            this.shellFrames.set(frame, complete);
+          });
+          if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
           const haCard = findHaCard(item.card);
 
-          if (!haCard) return false;
+          if (!haCard) continue;
 
           haCard.style.background = 'transparent';
           haCard.style.border = '0';
           haCard.style.boxShadow = 'none';
           haCard.style.padding = '0';
 
-          return true;
-        }, Promise.resolve(false));
+          return;
+        }
       }),
     );
   }

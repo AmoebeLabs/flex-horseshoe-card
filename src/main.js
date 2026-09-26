@@ -434,7 +434,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this.cardTools.setLayoutToolConfig(this.config);
       this.cardTheme.loadPalettes(this.config.palettes ?? {}).catch((error) => console.error('[FHC palettes]', error));
-      this.childCards.setConfig(this.config.cards ?? []);
+      this.childCards.setConfig(this.config.cards ?? []).catch((error) => console.error('[FHC child cards]', error));
 
       if (this._hass !== undefined) this.cardTools.hassAvailable();
       // A live YAML edit does not cause another DOM connection callback.
@@ -471,6 +471,7 @@ class FlexHorseshoeCard extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.cardTheme.connected();
+    this.childCards.connected();
 
     // Global FHS input events synchronize card-scoped representations between
     // cards while they are present together in the dashboard DOM.
@@ -502,6 +503,7 @@ class FlexHorseshoeCard extends LitElement {
     // resources must stop even when disconnection happens during interaction.
     this.cardTools.disconnected();
     this.cardTheme.disconnected();
+    this.childCards.disconnected();
     super.disconnectedCallback();
   }
 
