@@ -18,8 +18,8 @@ const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoe
 /** Owns every configured layout tool and forwards their shared lifecycle phases. */
 export default class CardTools {
   /**
-   * Creates stable section arrays for every tool family. Main and runtime
-   * domains retain these arrays throughout the card lifecycle.
+   * Creates the section collections used to find and update the current tools.
+   * Configuration replacement closes their instances before assigning new ones.
    */
   constructor(card, templates, cardId) {
     this.card = card;
@@ -29,6 +29,12 @@ export default class CardTools {
       rectangles: [], polygons: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
     };
+  }
+
+  /** Closes every old owner before replacement can construct new resources. */
+  clearTools() {
+    this.disconnected();
+    RENDER_SECTIONS.forEach((section) => { this.sections[section] = []; });
   }
 
   /** Constructs horseshoes before main calculates the remaining SVG dimensions. */
