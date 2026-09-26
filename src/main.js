@@ -428,6 +428,8 @@ class FlexHorseshoeCard extends LitElement {
       this.entityConfigsInitialized = false;
       this.cardLayout.setConfig(this.config, this.horseshoes);
 
+      // Replacement ends the old tools' lifetimes before any new owner is made.
+      this.cardTools.clearTools();
       this.cardTools.setHorseshoeConfig(config);
       this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
@@ -435,6 +437,9 @@ class FlexHorseshoeCard extends LitElement {
       this.childCards.setConfig(this.config.cards ?? []);
 
       if (this._hass !== undefined) this.cardTools.hassAvailable();
+      // A live YAML edit does not cause another DOM connection callback.
+      // Node binding still happens after Lit commits the replacement render.
+      if (this.isConnected) this.cardTools.connected();
 
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setConfig`, {
