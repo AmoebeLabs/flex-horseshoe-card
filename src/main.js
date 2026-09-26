@@ -86,10 +86,7 @@ class FlexHorseshoeCard extends LitElement {
     this.cardTheme = new CardTheme(
       this,
       () => this._updateGradientsAfterRender(),
-      () => {
-        if (this._hass) this.setHass(this._hass, true);
-        this.requestUpdate();
-      },
+      () => this.updatePalettePaint(),
     );
     this.cardEntities = new CardEntities(this.templates, this.cardTheme);
     this.entitiesStr = [];
@@ -415,6 +412,16 @@ class FlexHorseshoeCard extends LitElement {
     this.cardEntities.markStateHandled();
     this.cardLayout.markGroupsHandled();
     this.requestUpdate();
+  }
+
+  /**
+   * Repaints a current loaded palette. CardTheme has applied its CSS variables
+   * and cleared color/path caches; only retained graph paint needs refreshing.
+   */
+  updatePalettePaint() {
+    this.cardTools.updatePalettePaint();
+    this.requestUpdate();
+    this._updateGradientsAfterRender();
   }
 
   /**

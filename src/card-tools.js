@@ -112,6 +112,11 @@ export default class CardTools {
     RUNTIME_SECTIONS.forEach((section) => this.sections[section].forEach((tool) => tool.updateRuntimeConfig()));
   }
 
+  /** Forwards loaded-palette paint changes without assigning graph data/config. */
+  updatePalettePaint() {
+    this.sections.sparklines.forEach((tool) => tool.updatePalettePaint());
+  }
+
   /**
    * Assigns the current entity and evaluated entity config to one tool.
    *
