@@ -11,7 +11,6 @@ export default class CardEntities {
   constructor(templates, cardTheme) {
     this.templates = templates;
     this.cardTheme = cardTheme;
-    this.stateChanged = false;
   }
 
   /**
@@ -222,12 +221,6 @@ export default class CardEntities {
         changedEntityIndexes.push(entityIndex);
       }
     });
-    this.stateChanged = changedEntityIndexes.length > 0;
     return changedEntityIndexes;
-  }
-
-  /** Marks the current local sparkline entity states as consumed by the card update. */
-  markStateHandled() {
-    this.stateChanged = false;
   }
 }

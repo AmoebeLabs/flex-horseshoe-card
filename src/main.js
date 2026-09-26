@@ -204,10 +204,6 @@ class FlexHorseshoeCard extends LitElement {
 
     const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
-    // Local fhs_sparkline entities enter through the same update pipeline after
-    // their graph has published new statistics into the persistent entity array.
-    const localEntityStateChanged = this.cardEntities.stateChanged;
-
     // Capture every configured Home Assistant entity before evaluating dynamic config.
     // Object identity changes when HA publishes a new state or attribute set.
     let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
@@ -262,22 +258,9 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
-    const cardStylesPerformanceStart = performanceEnabled ? performance.now() : undefined;
-    if (hassContextChanged && this.cardStylesHaveJavascript) {
-      this.activeCardStyles = this.templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
-    }
-
-    if (performanceEnabled) {
-      performance.measure(`FHS:${this.cardId}:card-styles`, {
-        start: cardStylesPerformanceStart,
-        end: performance.now(),
-      });
-    }
-
-    // Every Hass context change runs the remaining runtime phases and commits a
-    // complete Lit render. Tools can request the same pass for async local data.
+    // Source/context changes run the forward data phases. Reconnect work is
+    // reported by the owners that retained data across the connection change.
     let renderRequired = hassContextChanged
-      || localEntityStateChanged
       || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
@@ -324,14 +307,17 @@ class FlexHorseshoeCard extends LitElement {
 
     const toolsPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
-    // Every state assignment follows runtime-config activation. Local sparkline
-    // states keep evaluateJavascriptTemplates disabled because their data changed,
-    // while the card's Home Assistant configuration context remained the same.
+    // Producers consume source configuration once. Publish their outputs before
+    // activating presentation consumers against the final shared entity values.
     this.cardTools.updateSparklineRuntimeConfig();
     this.cardTools.setSparklineEntityStates(this.resolvedEntityConfigs, this.entities);
-    this.cardEntities.updateSparklineEntities(this.resolvedEntityConfigs, this.entities, this.cardTools.getBySection('sparklines'));
-    this.cardTools.updateRuntimeConfig();
-    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
+    const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
+      this.resolvedEntityConfigs, this.entities, this.cardTools.getBySection('sparklines'),
+    );
+    if (performanceEnabled && this.performanceUpdateStart === undefined) {
+      this.performanceUpdateStart = setHassPerformanceStart;
+    }
+    this.updateEntityPresentation(hassContextChanged, changedEntityIndexes);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:tools`, {
@@ -339,39 +325,6 @@ class FlexHorseshoeCard extends LitElement {
         end: performance.now(),
       });
     }
-
-    // Evaluate a complete animation state item before matching its state and applying
-    // its already active icons and styles. No animation field has a separate evaluator.
-    const animationsPerformanceStart = performanceEnabled ? performance.now() : undefined;
-    this.cardAnimations.update(
-      this.config,
-      this.entities,
-      this.templates,
-      configuredEntityStateChanged || localEntityStateChanged,
-    );
-
-    if (performanceEnabled) {
-      performance.measure(`FHS:${this.cardId}:animations`, {
-        start: animationsPerformanceStart,
-        end: performance.now(),
-      });
-    }
-
-    this.evaluateJavascriptTemplates = false;
-    this.cardInputEntities.markStateHandled();
-    this.cardEntities.markStateHandled();
-    this.cardLayout.markGroupsHandled();
-    this.homeAssistant.markLocaleHandled();
-    this.homeAssistant.markEntityDisplayHandled();
-
-    // An update has been requested to recalculate / redraw the tools, so reset theme mode changed.
-    this.cardTheme.markModeHandled();
-
-    if (performanceEnabled && this.performanceUpdateStart === undefined) {
-      this.performanceUpdateStart = setHassPerformanceStart;
-    }
-
-    this.requestUpdate();
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:setHass`, {
@@ -392,25 +345,62 @@ class FlexHorseshoeCard extends LitElement {
     const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
       this.resolvedEntityConfigs, this.entities, [graphTool],
     );
-    this.evaluateJavascriptTemplates = changedEntityIndexes.length > 0;
+    this.updateEntityPresentation(false, changedEntityIndexes);
+  }
+
+  /**
+   * Activates presentation consumers after source/derived publication, then
+   * selects animations from the final entity array and schedules one render.
+   * Both synchronous source changes and asynchronous graph results finish here.
+   *
+   * @param {boolean} contextChanged - Source or external HA context changed.
+   * @param {Array<number>} changedEntityIndexes - Changed derived outputs.
+   */
+  updateEntityPresentation(contextChanged, changedEntityIndexes) {
+    this.evaluateJavascriptTemplates = contextChanged || changedEntityIndexes.length > 0;
 
     // JavaScript consumers can observe any derived entry in the shared array.
     // Their existing active-config comparison limits actual layout changes.
-    if (this.evaluateJavascriptTemplates) {
+    if (changedEntityIndexes.length > 0) {
       this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
       this.cardLayout.updateGroups(true);
-      if (this.cardStylesHaveJavascript) {
-        this.activeCardStyles = this.templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
-      }
     }
+    const cardStylesPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
+    if (this.evaluateJavascriptTemplates && this.cardStylesHaveJavascript) {
+      this.activeCardStyles = this.templates.getJsTemplateOrValue({ entity_index: 0 }, this.sourceCardStyles);
+    }
+    if (this.dev.performance === true) {
+      performance.measure(`FHS:${this.cardId}:card-styles`, { start: cardStylesPerformanceStart, end: performance.now() });
+    }
+
+    // A JavaScript entity config may select a different ordinary source. Keep
+    // formatted values and action targets aligned with that final selection.
+    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+      const entity = entityConfig.local ? this.entities[index] : this._hass.states[entityConfig.entity];
+      if (!entity) return;
+      this.entities[index] = entity;
+      this.entitiesStr[index] = StateTool.buildState(entity.state, entityConfig, this._hass, entity);
+      if (entityConfig.attribute && Object.hasOwn(entity.attributes, entityConfig.attribute)) {
+        this.attributesStr[index] = StateTool.buildState(entity.attributes[entityConfig.attribute], entityConfig, this._hass, entity);
+      }
+    });
     this.actions.setHassAndEntities(this._hass, this.resolvedEntityConfigs, this.entities);
     this.cardTools.updateRuntimeConfig();
     this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
-    this.cardAnimations.update(this.config, this.entities, this.templates, changedEntityIndexes.length > 0);
+    this.cardTools.updateSparklinePresentation();
+
+    const animationsPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
+    this.cardAnimations.update(this.config, this.entities, this.templates, this.evaluateJavascriptTemplates);
+    if (this.dev.performance === true) {
+      performance.measure(`FHS:${this.cardId}:animations`, { start: animationsPerformanceStart, end: performance.now() });
+    }
 
     this.evaluateJavascriptTemplates = false;
-    this.cardEntities.markStateHandled();
+    this.cardInputEntities.markStateHandled();
     this.cardLayout.markGroupsHandled();
+    this.homeAssistant.markLocaleHandled();
+    this.homeAssistant.markEntityDisplayHandled();
+    this.cardTheme.markModeHandled();
     this.requestUpdate();
   }
 

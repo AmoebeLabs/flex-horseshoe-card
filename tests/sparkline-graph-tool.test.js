@@ -1529,7 +1529,7 @@ test('failed history changes request state without clearing processed data', () 
       getRequestFacts: () => ({ requestState: 'error' }),
     },
     card: {
-      requestUpdate() { cardUpdates += 1; },
+      updateSparklineResult() { cardUpdates += 1; },
     },
     clearTooltip() {},
   });
