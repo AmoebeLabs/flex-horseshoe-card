@@ -40,6 +40,7 @@ import SameAs from './same-as.js';
 import Compounds from './compounds.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
+import ExternalSvgSources from './icon-svg-source.js';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
@@ -102,6 +103,13 @@ class FlexHorseshoeCard extends LitElement {
     this.iconCache = {};
     this.iconBoundsCache = {};
     this.svgUrlCache = {};
+    this.entitiesIcon = {};
+    this.entitiesIconKey = {};
+    this.entitiesIconPending = new Map();
+    this.externalSvgSources = new ExternalSvgSources(this);
+    this.gradientUpdate = undefined;
+    this.gradientsClosed = false;
+    this.gradientsNeedUpdate = false;
 
     this.dev = {
       debug: false,
@@ -129,9 +137,37 @@ class FlexHorseshoeCard extends LitElement {
    * palette colors and rebuilds gradients.
    */
   async _updateGradientsAfterRender() {
-    await this.updateComplete;
-    await new Promise(requestAnimationFrame);
-    this.requestUpdate();
+    this.stopGradientUpdate();
+    this.gradientsNeedUpdate = true;
+    if (this.gradientsClosed) return;
+    const update = { frame: undefined, completeFrame: undefined };
+    this.gradientUpdate = update;
+    try {
+      await this.updateComplete;
+      if (this.gradientUpdate !== update || this.gradientsClosed) return;
+      await new Promise((complete) => {
+        update.completeFrame = complete;
+        update.frame = window.requestAnimationFrame(complete);
+      });
+      if (this.gradientUpdate !== update || this.gradientsClosed) return;
+      this.gradientUpdate = undefined;
+      this.gradientsNeedUpdate = false;
+      this.requestUpdate();
+    } catch (error) {
+      if (this.gradientUpdate !== update || this.gradientsClosed) return;
+      this.stopGradientUpdate();
+      console.error('[FHC gradient update]', error);
+    }
+  }
+
+  /** Cancels the follow-up render scheduled for old theme/configuration DOM. */
+  stopGradientUpdate() {
+    const update = this.gradientUpdate;
+    if (update) {
+      this.gradientUpdate = undefined;
+      window.cancelAnimationFrame(update.frame);
+      if (update.completeFrame) update.completeFrame();
+    }
   }
 
   /**
@@ -375,7 +411,6 @@ class FlexHorseshoeCard extends LitElement {
       if (hasChildCards && !config.entities) {
         config.entities = [];
       }
-      if (config?.palettes) this.cardTheme.loadPalettes(config.palettes);
 
       // Compile static syntax before controls and disabled templates inspect config.
       this.cardConfig.assignLayoutItemIds(config);
@@ -422,6 +457,8 @@ class FlexHorseshoeCard extends LitElement {
       this.cardConfig.initializeCardRuntimeDefaults(config);
 
       this.config = config;
+      this.stopGradientUpdate();
+      this.externalSvgSources.setConfig();
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
@@ -434,7 +471,8 @@ class FlexHorseshoeCard extends LitElement {
       this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
       this.cardTools.setLayoutToolConfig(this.config);
-      this.childCards.setConfig(this.config.cards ?? []);
+      this.cardTheme.loadPalettes(this.config.palettes ?? {}).catch((error) => console.error('[FHC palettes]', error));
+      this.childCards.setConfig(this.config.cards ?? []).catch((error) => console.error('[FHC child cards]', error));
 
       if (this._hass !== undefined) this.cardTools.hassAvailable();
       // A live YAML edit does not cause another DOM connection callback.
@@ -470,6 +508,10 @@ class FlexHorseshoeCard extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
+    this.gradientsClosed = false;
+    this.cardTheme.connected();
+    this.childCards.connected();
+    this.externalSvgSources.connected();
 
     // Global FHS input events synchronize card-scoped representations between
     // cards while they are present together in the dashboard DOM.
@@ -482,6 +524,7 @@ class FlexHorseshoeCard extends LitElement {
     // Visual tools may own timers or nested lifecycle-aware content. Forwarding
     // connection here keeps those resources tied to the parent card's DOM life.
     this.cardTools.connected();
+    if (this.gradientsNeedUpdate && !this.gradientUpdate) this._updateGradientsAfterRender();
     // Reused cards may keep the same SVG nodes. Commit once so their tools
     // can rebind animation layers and pointer listeners after cleanup.
     this.requestUpdate();
@@ -492,6 +535,8 @@ class FlexHorseshoeCard extends LitElement {
    * Card-owned listeners are detached so reconnecting does not duplicate them.
    */
   disconnectedCallback() {
+    this.gradientsClosed = true;
+    this.stopGradientUpdate();
     // Dashboard and websocket listener lifetimes follow the card's DOM
     // connection lifecycle.
     this.cardInputEntities.disconnected();
@@ -500,6 +545,9 @@ class FlexHorseshoeCard extends LitElement {
     // Sparkline timers, active slider pointer listeners and nested visual
     // resources must stop even when disconnection happens during interaction.
     this.cardTools.disconnected();
+    this.cardTheme.disconnected();
+    this.childCards.disconnected();
+    this.externalSvgSources.disconnected();
     super.disconnectedCallback();
   }
 

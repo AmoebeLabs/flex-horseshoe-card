@@ -111,6 +111,8 @@ export default class TextTool extends BaseTool {
     this.widthOverflowMeasurementSignature = undefined;
     this.widthOverflowPending = false;
     this.widthMeasurementScheduled = false;
+    this.widthMeasurement = undefined;
+    this.textClosed = false;
     this.characterWidthFactor = 0.6;
     this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
     this.estimatedWidth = 0;
@@ -354,6 +356,7 @@ export default class TextTool extends BaseTool {
       const widthOverflowSourceSignature = `${JSON.stringify(widthMeasurementParts)}|${JSON.stringify(textOverflow)}`;
 
       if (widthOverflowSourceSignature !== this.widthOverflowSourceSignature) {
+        this.stopWidthMeasurement();
         this.widthMeasurementParts = widthMeasurementParts;
         this.widthMeasurementElements = new Array(widthMeasurementParts.length);
         this.widthEllipsisElements = new Array(widthMeasurementParts.length);
@@ -365,6 +368,7 @@ export default class TextTool extends BaseTool {
 
       overflowParts = this.widthOverflowParts;
     } else {
+      this.stopWidthMeasurement();
       this.widthOverflowRevision += 1;
       this.widthMeasurementParts = [];
       this.widthOverflowParts = [];
@@ -759,14 +763,52 @@ export default class TextTool extends BaseTool {
     this.setState(undefined, undefined);
   }
 
+  /** Releases the frame and font-wait publication belonging to the old text. */
+  stopWidthMeasurement() {
+    const measurement = this.widthMeasurement;
+    if (measurement) {
+      this.widthMeasurement = undefined;
+      window.cancelAnimationFrame(measurement.frame);
+      if (measurement.completeFrame) measurement.completeFrame();
+      this.widthMeasurementScheduled = false;
+    }
+  }
+
+  /** Allows measurement against the DOM committed after reconnection. */
+  connected() {
+    this.textClosed = false;
+  }
+
+  /** Keeps accepted text while cancelling work tied to the removed DOM. */
+  disconnected() {
+    this.textClosed = true;
+    this.stopWidthMeasurement();
+  }
+
   /** Measures the complete text and updates fit mode and dependent geometry. */
   updated() {
+    if (this.textClosed) return;
+    const activeMeasurement = this.widthMeasurement;
+    if (activeMeasurement && (activeMeasurement.textElement !== this.textElement
+      || activeMeasurement.elements.some((element, index) => element !== this.widthMeasurementElements[index])
+      || activeMeasurement.ellipsisElements.some((element, index) => element !== this.widthEllipsisElements[index]))) {
+      this.stopWidthMeasurement();
+    }
     if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
       if (!this.widthMeasurementScheduled) {
         this.widthMeasurementScheduled = true;
-        const scheduledRevision = this.widthOverflowRevision;
+        const measurement = {
+          revision: this.widthOverflowRevision,
+          textElement: this.textElement,
+          elements: this.widthMeasurementElements.slice(),
+          ellipsisElements: this.widthEllipsisElements.slice(),
+          frame: undefined,
+          completeFrame: undefined,
+        };
+        this.widthMeasurement = measurement;
 
         document.fonts.ready.then(async () => {
+          if (this.widthMeasurement !== measurement || this.textClosed) return;
           const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
           let measuredWidths;
           let ellipsisWidths;
@@ -776,12 +818,19 @@ export default class TextTool extends BaseTool {
           // frames and stop as soon as two usable measurements are identical.
           for (let frameAttempt = 0; frameAttempt < 5; frameAttempt += 1) {
             // eslint-disable-next-line no-await-in-loop -- SVG layout must settle frame by frame.
-            await new Promise(requestAnimationFrame);
+            await new Promise((complete) => {
+              measurement.completeFrame = complete;
+              measurement.frame = window.requestAnimationFrame(complete);
+            });
 
-            if (scheduledRevision !== this.widthOverflowRevision) break;
+            // A newer render owns its own measurements. The old continuation
+            // must leave its scheduling flags, text and DOM bindings intact.
+            if (this.widthMeasurement !== measurement || this.textClosed) return;
+            measurement.frame = undefined;
+            measurement.completeFrame = undefined;
 
-            measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
-            ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            measuredWidths = measurement.elements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
+            ellipsisWidths = measurement.ellipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
             const currentFrameSignature = `${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
             const hasMeasuredText = measuredWidths.some((width) => width > 0);
 
@@ -790,16 +839,19 @@ export default class TextTool extends BaseTool {
             previousFrameSignature = currentFrameSignature;
           }
 
-          this.widthMeasurementScheduled = false;
-
-          if (scheduledRevision === this.widthOverflowRevision) {
+          if (this.widthMeasurement === measurement && measurement.revision === this.widthOverflowRevision && !this.textClosed) {
+            this.widthMeasurement = undefined;
+            this.widthMeasurementScheduled = false;
             this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
             this.textParts = this.widthOverflowParts;
             this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
             this.widthOverflowPending = false;
+            this.card.requestUpdate();
           }
-
-          this.card.requestUpdate();
+        }).catch((error) => {
+          if (this.widthMeasurement !== measurement || this.textClosed) return;
+          this.stopWidthMeasurement();
+          console.error('[FHC text measurement]', this.textElementId, error);
         });
       }
 

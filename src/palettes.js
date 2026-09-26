@@ -18,6 +18,11 @@ export default class Palette {
       }
 
       return response.json();
+    }).catch((error) => {
+      // A failed document can be requested again. An older rejection must
+      // leave a replacement request for the same URL in the shared cache.
+      if (this.cache.get(url) === promise) this.cache.delete(url);
+      throw error;
     });
 
     this.cache.set(url, promise);
