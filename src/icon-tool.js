@@ -231,49 +231,49 @@ export default class IconTool extends BaseTool {
     this.card.entitiesIconPending.set(iconId, request);
 
     const iconPromise = attribute
-        ? attributeIcon(
-            this.card._hass,
-            this.entity,
-            attribute,
-            attributeValue !== undefined ? String(attributeValue) : undefined,
-          )
-        : entityIcon(
-            this.card._hass.entities,
-            this.card._hass.config,
-            this.card._hass.connection,
-            this.entity,
-          );
+      ? attributeIcon(
+          this.card._hass,
+          this.entity,
+          attribute,
+          attributeValue !== undefined ? String(attributeValue) : undefined,
+        )
+      : entityIcon(
+          this.card._hass.entities,
+          this.card._hass.config,
+          this.card._hass.connection,
+          this.entity,
+        );
 
     iconPromise
-        .then((icon) => {
-          if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
-          if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
+      .then((icon) => {
+        if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
+        if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
 
-          if (!icon) {
-            return;
-          }
+        if (!icon) {
+          return;
+        }
 
-          this.card.entitiesIconKey[iconId] = key;
-          if (this.card.entitiesIcon[iconId] !== icon) {
-            this.card.entitiesIcon[iconId] = icon;
-            this.card.requestUpdate();
-          }
-        })
-        .catch((err) => {
-          if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
-          console.error(
-            attribute
-              ? "IconTool.buildIcon attributeIcon failed"
-              : "IconTool.buildIcon entityIcon failed",
-            entityId,
-            attribute ?? "",
-            err,
-          );
-        })
-        .finally(() => {
-          if (this.card.entitiesIconPending.get(iconId) === request) this.card.entitiesIconPending.delete(iconId);
-          if (this.iconRequest === request) this.iconRequest = undefined;
-        });
+        this.card.entitiesIconKey[iconId] = key;
+        if (this.card.entitiesIcon[iconId] !== icon) {
+          this.card.entitiesIcon[iconId] = icon;
+          this.card.requestUpdate();
+        }
+      })
+      .catch((err) => {
+        if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
+        console.error(
+          attribute
+            ? "IconTool.buildIcon attributeIcon failed"
+            : "IconTool.buildIcon entityIcon failed",
+          entityId,
+          attribute ?? "",
+          err,
+        );
+      })
+      .finally(() => {
+        if (this.card.entitiesIconPending.get(iconId) === request) this.card.entitiesIconPending.delete(iconId);
+        if (this.iconRequest === request) this.iconRequest = undefined;
+      });
 
     return this.card.entitiesIcon[iconId];
   }

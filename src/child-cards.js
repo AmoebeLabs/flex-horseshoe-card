@@ -56,30 +56,30 @@ export default class ChildCards {
       // Construct off-DOM. Only the complete current list receives hass and
       // becomes visible; an obsolete creation never publishes partial children.
       const items = await Promise.all(
-      cardsConfig.map(async (itemConfig, index) => {
-        const childConfig = { ...itemConfig };
+        cardsConfig.map(async (itemConfig, index) => {
+          const childConfig = { ...itemConfig };
 
-        PLACEMENT_FIELDS.forEach((field) => delete childConfig[field]);
+          PLACEMENT_FIELDS.forEach((field) => delete childConfig[field]);
 
-        if (itemConfig.type === 'custom:flex-horseshoe-card' && itemConfig.embedded !== false) {
-          childConfig.embedded = true;
-        }
+          if (itemConfig.type === 'custom:flex-horseshoe-card' && itemConfig.embedded !== false) {
+            childConfig.embedded = true;
+          }
 
-        const cardElement = await helpers.createCardElement(childConfig);
+          const cardElement = await helpers.createCardElement(childConfig);
 
-        if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
+          if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
 
-        return {
-          card: cardElement,
-          index,
-          xpos: itemConfig.xpos,
-          ypos: itemConfig.ypos,
-          width: itemConfig.width,
-          height: itemConfig.height,
-          zpos: itemConfig.zpos,
-          frameless: itemConfig.frameless !== false,
-        };
-      }),
+          return {
+            card: cardElement,
+            index,
+            xpos: itemConfig.xpos,
+            ypos: itemConfig.ypos,
+            width: itemConfig.width,
+            height: itemConfig.height,
+            zpos: itemConfig.zpos,
+            frameless: itemConfig.frameless !== false,
+          };
+        }),
       );
       if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
       this.items = items;
