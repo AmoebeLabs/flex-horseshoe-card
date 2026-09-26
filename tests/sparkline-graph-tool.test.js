@@ -12,6 +12,88 @@ const historyEvents = () => ({
   dayNightHistoryDue() {},
 });
 
+/** Builds real sparkline owners with accepted rows and a fixed clock for routing checks. */
+function createChangeDetectionTool(context, periodType) {
+  const NativeDate = globalThis.Date;
+  const previousWindow = globalThis.window;
+  const now = NativeDate.parse('2026-09-26T11:59:59.000Z');
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [now] : args));
+    }
+    static now() { return now; }
+  };
+  globalThis.window = {
+    matchMedia: () => ({ matches: false }),
+    clearTimeout() {},
+  };
+  context.after(() => {
+    globalThis.Date = NativeDate;
+    globalThis.window = previousWindow;
+  });
+
+  const entity = {
+    entity_id: 'sensor.temperature',
+    state: periodType === 'real_time' ? '20.1' : '40',
+    last_changed: '2026-09-26T11:00:00.000Z',
+    attributes: { friendly_name: 'Temperature' },
+  };
+  const card = {
+    config: { entities: [{}] },
+    evaluateJavascriptTemplates: false,
+    dev: { debug: false, fakeData: false },
+    entities: [entity],
+    resolvedEntityConfigs: [{ decimals: 0 }],
+    _hass: {
+      locale: { language: 'en', time_format: '24' },
+      config: { time_zone: 'UTC' },
+      callApi() { throw new Error('accepted rows must not request history'); },
+    },
+    cardAnimations: { styles: { sparklines: [] } },
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }),
+      groupManager: { getGroupChainForItem: () => [] },
+      masksClips: { applyGradientRefs: (styles) => styles },
+    },
+    cardTheme: { modeChanged: false, getActiveColorStopMode: () => 'light' },
+  };
+  const period = periodType === 'real_time' ? { type: periodType } : {
+    type: periodType,
+    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1, density: 'medium' } },
+  };
+  const tool = new SparklineGraphTool({
+    id: 'change-detection', entity_index: 0, xpos: 50, ypos: 50, width: 80, height: 40,
+    period,
+    sparkline: {
+      show: { chart_type: 'line' },
+      line: { show: { item_style: 'fixed' }, styles: { stroke: '#1565c0', opacity: 1 } },
+    },
+  }, 0, { hasJavascriptTemplates: () => false }, 'test-card', card);
+  // History owns real Node boundary timers; close them before this fixture exits.
+  context.after(() => tool.sparklineHistory.disconnected());
+  tool.updateRuntimeConfig();
+  const item = tool.sparklineSeries.primaryItem;
+  item.entity = entity;
+  item.entityConfig = card.resolvedEntityConfigs[0];
+  tool.sparklineHistory.bindSeriesEntity(item);
+  if (periodType !== 'real_time') {
+    tool.sparklineHistory.acceptHistoryRows(item, [
+      { state: '10', last_changed: '2026-09-26T07:00:00.000Z' },
+      { state: '20', last_changed: '2026-09-26T09:00:00.000Z' },
+      { state: '30', last_changed: '2026-09-26T10:00:00.000Z' },
+      entity,
+    ], tool.sparklineHistory.getSeriesRange(item));
+  }
+  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  // Commit initial measured axis margins before counting later configuration work.
+  card.cardTheme.modeChanged = true;
+  tool.updateRuntimeConfig();
+  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  card.cardTheme.modeChanged = false;
+  return tool;
+}
+
 test('dynamic sparkline config preserves zero thresholds and clamps a calendar day', () => {
   const previousWindow = globalThis.window;
   const previousConsoleWarn = console.warn;
@@ -2492,6 +2574,122 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
   });
   assert.equal(item.graph.coords.length, 4);
   assert.match(tool.line[0], /^M/);
+});
+
+test('paint-only configuration retains accepted rows, graph calculations and paths', (context) => {
+  const tool = createChangeDetectionTool(context, 'rolling_window');
+  const item = tool.sparklineSeries.primaryItem;
+  const graph = item.graph;
+  const retained = {
+    rows: item.rows, values: graph.processedValues, buckets: graph.bucketMeta,
+    coords: graph.coords, statistics: graph.statistics, line: tool.line,
+  };
+  const aggregate = context.mock.method(graph, 'aggregateBuckets');
+  const geometry = context.mock.method(graph, 'calculateGeometry');
+  const statistics = context.mock.method(graph, 'updateStatistics');
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+
+  // Activate changed paint through the normal runtime configuration and entity phases.
+  tool.config.sparkline.line.styles = { stroke: '#d32f2f', opacity: 0.4 };
+  tool.card.cardTheme.modeChanged = true;
+  tool.updateRuntimeConfig();
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.card.cardTheme.modeChanged = false;
+  tool.updatePalettePaint();
+
+  assert.strictEqual(item.graph, graph);
+  assert.strictEqual(item.rows, retained.rows);
+  assert.strictEqual(graph.processedValues, retained.values);
+  assert.strictEqual(graph.bucketMeta, retained.buckets);
+  assert.strictEqual(graph.coords, retained.coords);
+  assert.strictEqual(graph.statistics, retained.statistics);
+  assert.strictEqual(tool.line, retained.line);
+  assert.equal(aggregate.mock.callCount(), 0);
+  assert.equal(geometry.mock.callCount(), 0);
+  assert.equal(statistics.mock.callCount(), 0);
+  assert.equal(tool.getLineStyles().stroke, '#d32f2f');
+  assert.equal(tool.getLineStyles().opacity, '0.4');
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+});
+
+test('changed historical curves report presentation changes when all published statistics stay equal', (context) => {
+  const tool = createChangeDetectionTool(context, 'rolling_window');
+  const item = tool.sparklineSeries.primaryItem;
+  const graph = item.graph;
+  const initialResult = tool.getSeriesResult();
+  const initialCoords = structuredClone(graph.coords);
+  const initialPath = tool.line[0];
+  const aggregate = context.mock.method(graph, 'aggregateBuckets');
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+
+  // Swap equally long interior states: extrema, their times and the weighted mean stay equal.
+  const changedRows = item.rows.map((row) => ({
+    state: String(row.state === 20 ? 30 : row.state === 30 ? 20 : row.state),
+    last_changed: row.last_changed,
+  }));
+  tool.sparklineHistory.acceptHistoryRows(item, changedRows, tool.sparklineHistory.getSeriesRange(item));
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+
+  assert.deepEqual(tool.getSeriesResult(), initialResult);
+  assert.deepEqual(graph.coords.map((point) => point[2]), [10, 30, 20, 40]);
+  assert.notDeepEqual(graph.coords, initialCoords);
+  assert.notEqual(tool.line[0], initialPath);
+  assert.equal(aggregate.mock.callCount(), 1);
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+});
+
+test('real-time row reuse requires equal numeric state and sample timestamp', (context) => {
+  const tool = createChangeDetectionTool(context, 'real_time');
+  const item = tool.sparklineSeries.primaryItem;
+  const graph = item.graph;
+  const retained = { rows: item.rows, values: graph.processedValues, coords: graph.coords, statistics: graph.statistics };
+  const graphUpdates = context.mock.method(tool, 'updateGraphFromSeries');
+  const aggregate = context.mock.method(graph, 'aggregateBuckets');
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+
+  // A fresh HA object with equivalent numeric spelling must still update the action context.
+  const equivalent = { ...tool.entity, state: '20.10', attributes: { friendly_name: 'Current temperature' } };
+  tool.card.entities[0] = equivalent;
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  assert.strictEqual(tool.entity, equivalent);
+  assert.strictEqual(item.rows, retained.rows);
+  assert.strictEqual(graph.processedValues, retained.values);
+  assert.strictEqual(graph.coords, retained.coords);
+  assert.strictEqual(graph.statistics, retained.statistics);
+  assert.equal(graphUpdates.mock.callCount(), 0);
+  assert.equal(aggregate.mock.callCount(), 0);
+  assert.equal(tool.hasPresentationChanged(), false);
+
+  // Equal value at a new timestamp is a new sample and must refresh statistic times.
+  tool.card.entities[0] = { ...equivalent, last_changed: '2026-09-26T11:01:00.000Z' };
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  assert.notStrictEqual(item.rows, retained.rows);
+  assert.deepEqual(item.rows, [{ state: 20.1, last_changed: '2026-09-26T11:01:00.000Z' }]);
+  assert.deepEqual(graph.statistics, {
+    min: 20.1, avg: 20.1, max: 20.1,
+    min_time: '2026-09-26T11:01:00.000Z', max_time: '2026-09-26T11:01:00.000Z',
+  });
+  assert.equal(graphUpdates.mock.callCount(), 1);
+  assert.equal(aggregate.mock.callCount(), 1);
+  assert.equal(tool.hasPresentationChanged(), true);
+  const timestampRows = item.rows;
+
+  // Configured decimals never suppress a changed raw value at the same timestamp.
+  tool.card.entities[0] = { ...tool.card.entities[0], state: '20.4' };
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  assert.notStrictEqual(item.rows, timestampRows);
+  assert.deepEqual(graph.processedValues, [20.4]);
+  assert.equal(graph.statistics.avg, 20.4);
+  assert.equal(graph.statistics.min_time, '2026-09-26T11:01:00.000Z');
+  assert.equal(graphUpdates.mock.callCount(), 2);
+  assert.equal(aggregate.mock.callCount(), 2);
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
 });
 
 test('publishes all derived values from their graph, series and period owners', () => {
