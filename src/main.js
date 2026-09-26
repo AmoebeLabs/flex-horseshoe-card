@@ -440,6 +440,7 @@ class FlexHorseshoeCard extends LitElement {
       // A live YAML edit does not cause another DOM connection callback.
       // Node binding still happens after Lit commits the replacement render.
       if (this.isConnected) this.cardTools.connected();
+      else this.cardTools.disconnected();
 
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setConfig`, {
@@ -479,6 +480,9 @@ class FlexHorseshoeCard extends LitElement {
     // Visual tools may own timers or nested lifecycle-aware content. Forwarding
     // connection here keeps those resources tied to the parent card's DOM life.
     this.cardTools.connected();
+    // Reused cards may keep the same SVG nodes. Commit once so their tools
+    // can rebind animation layers and pointer listeners after cleanup.
+    this.requestUpdate();
   }
 
   /**
