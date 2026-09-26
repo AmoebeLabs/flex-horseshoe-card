@@ -101,6 +101,7 @@ class FlexHorseshoeCard extends LitElement {
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
     this.cardHasJavascript = false;
+    this.cardPresentationSignature = undefined;
     this.iconCache = {};
     this.iconBoundsCache = {};
     this.svgUrlCache = {};
@@ -260,7 +261,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // Source/context changes run the forward data phases. Reconnect work is
     // reported by the owners that retained data across the connection change.
-    let renderRequired = hassContextChanged
+    let sourceUpdateRequired = hassContextChanged
       || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
     this.resolvedEntityConfigs.forEach((entityConfig, index) => {
@@ -274,7 +275,7 @@ class FlexHorseshoeCard extends LitElement {
 
       if (newStateStr !== this.entitiesStr[index]) {
         this.entitiesStr[index] = newStateStr;
-        renderRequired = true;
+        sourceUpdateRequired = true;
       }
 
       // eslint-disable-next-line prefer-object-has-own
@@ -283,12 +284,12 @@ class FlexHorseshoeCard extends LitElement {
 
         if (newAttributeStr !== this.attributesStr[index]) {
           this.attributesStr[index] = newAttributeStr;
-          renderRequired = true;
+          sourceUpdateRequired = true;
         }
       }
     });
 
-    if (!renderRequired) {
+    if (!sourceUpdateRequired) {
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setHass`, {
           start: setHassPerformanceStart,
@@ -390,10 +391,18 @@ class FlexHorseshoeCard extends LitElement {
     this.cardTools.updateSparklinePresentation();
 
     const animationsPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
-    this.cardAnimations.update(this.config, this.entities, this.templates, this.evaluateJavascriptTemplates);
+    const animationsChanged = this.cardAnimations.update(this.config, this.entities, this.templates, this.evaluateJavascriptTemplates);
     if (this.dev.performance === true) {
       performance.measure(`FHS:${this.cardId}:animations`, { start: animationsPerformanceStart, end: performance.now() });
     }
+
+    // Source work and a changed derived value are not themselves proof that the
+    // DOM changed. Compare final tool output after animation styles are current.
+    const toolsChanged = this.cardTools.hasPresentationChanged();
+    const cardPresentationSignature = JSON.stringify([this.activeCardStyles, this.cardLayout.viewBox, this.config.color_filter]);
+    const cardStylesChanged = cardPresentationSignature !== this.cardPresentationSignature;
+    this.cardPresentationSignature = cardPresentationSignature;
+    const renderRequired = toolsChanged || cardStylesChanged || animationsChanged;
 
     this.evaluateJavascriptTemplates = false;
     this.cardInputEntities.markStateHandled();
@@ -401,7 +410,8 @@ class FlexHorseshoeCard extends LitElement {
     this.homeAssistant.markLocaleHandled();
     this.homeAssistant.markEntityDisplayHandled();
     this.cardTheme.markModeHandled();
-    this.requestUpdate();
+    if (renderRequired) this.requestUpdate();
+    return renderRequired;
   }
 
   /**
@@ -510,6 +520,7 @@ class FlexHorseshoeCard extends LitElement {
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.entityConfigsInitialized = false;
+      this.cardPresentationSignature = undefined;
       this.cardLayout.setConfig(this.config, this.horseshoes);
 
       // Replacement ends the old tools' lifetimes before any new owner is made.

@@ -13,9 +13,10 @@ export default class CardAnimations {
     };
   }
 
-  /** Evaluates matching animation items after configured entity state changes. */
+  /** Evaluates final-entity triggers and reports effective animation-style changes. */
   update(config, entities, templates, configuredEntityStateChanged) {
-    if (!configuredEntityStateChanged || !config.animations) return;
+    if (!configuredEntityStateChanged || !config.animations) return false;
+    const previousStyles = JSON.stringify(this.styles);
 
     Object.keys(config.animations).forEach((animation) => {
       const entityIndex = animation.substr(Number(animation.indexOf('.') + 1));
@@ -54,5 +55,6 @@ export default class CardAnimations {
         }
       });
     });
+    return previousStyles !== JSON.stringify(this.styles);
   }
 }
