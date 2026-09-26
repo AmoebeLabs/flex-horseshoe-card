@@ -375,7 +375,6 @@ class FlexHorseshoeCard extends LitElement {
       if (hasChildCards && !config.entities) {
         config.entities = [];
       }
-      if (config?.palettes) this.cardTheme.loadPalettes(config.palettes);
 
       // Compile static syntax before controls and disabled templates inspect config.
       this.cardConfig.assignLayoutItemIds(config);
@@ -434,6 +433,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
       this.cardTools.setLayoutToolConfig(this.config);
+      this.cardTheme.loadPalettes(this.config.palettes ?? {}).catch((error) => console.error('[FHC palettes]', error));
       this.childCards.setConfig(this.config.cards ?? []);
 
       if (this._hass !== undefined) this.cardTools.hassAvailable();
@@ -470,6 +470,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
+    this.cardTheme.connected();
 
     // Global FHS input events synchronize card-scoped representations between
     // cards while they are present together in the dashboard DOM.
@@ -500,6 +501,7 @@ class FlexHorseshoeCard extends LitElement {
     // Sparkline timers, active slider pointer listeners and nested visual
     // resources must stop even when disconnection happens during interaction.
     this.cardTools.disconnected();
+    this.cardTheme.disconnected();
     super.disconnectedCallback();
   }
 
