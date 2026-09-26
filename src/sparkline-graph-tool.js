@@ -1684,10 +1684,11 @@ export default class SparklineGraphTool extends BaseTool {
     try {
       // A preserved graph receives its new period geometry only after History
       // has accepted records for that expanded range.
-      if (result.rebuildGraphConfig) {
+      if ((result.rebuildGraphConfig || this.graphGeometryChanged) && !this.sparklineHistory.preservesGraphWhileLoading()) {
         this.updateRuntimeConfig();
         // The accepted expanded period now owns its real bins. Schedule their
-        // absolute deadlines here, alongside the newly activated geometry.
+        // absolute deadlines alongside the newly activated geometry, after
+        // every source has released its retained-graph loading period.
         this.sparklineHistory.scheduleTimeBoundaryUpdates(
           this.config.sparkline.show.chart_type,
           this.config.sparkline.state_bands.update_interval,
