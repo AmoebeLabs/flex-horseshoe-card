@@ -26,7 +26,7 @@ For every implementation plan:
 | [06](../2026.09.26-06-async-results-and-recovery.md) | Async results and recovery | obsolete callbacks inert; retryable failures recover |
 | [07](../2026.09.26-07-card-lifecycle-and-derived-entities.md) | Card lifecycle and derived entity flow | `setHass()` external-only; local/derived updates flow forward |
 | [08](../2026.09.26-08-change-detection-and-rendering.md) | Change detection and rendering | event-level invalidation uses stable data/geometry/lifecycle boundaries |
-| 09 | Sparkline pointer interaction lifecycle | pointer state follows current DOM/data and always cleans up |
+| [09](../2026.09.26-09-pointer-interaction-lifecycle.md) | Sparkline pointer interaction lifecycle | pointer state follows current DOM/data and always cleans up |
 | 10 | Horseshoe animation and path cache | animation stops correctly and transient samples do not grow permanent cache |
 | 11 | Config `ref()` and merge | referenced values preserve types without global merge rewrite |
 | 12 | Theme-aware color cache | shared cache is theme/mode safe and paint-only updates stay paint-only |

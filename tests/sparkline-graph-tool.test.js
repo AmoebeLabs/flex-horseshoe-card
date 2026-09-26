@@ -1044,7 +1044,7 @@ test('radial indicator retains its active ring segment during a Lit render', () 
     cardId: 'test-card',
     index: 3,
     activePoint: 2,
-    config: { sparkline: { show: { chart_type: 'radial' } } },
+    config: { period: { type: 'rolling_window' }, sparkline: { show: { chart_type: 'radial' } } },
     sparklineSeries: {
       primaryItem: {
         graph: {
@@ -1692,8 +1692,14 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
     sparklineHistory: { disconnected() {}, connected() {} },
     rid: null, _radialRafId: null,
     clearTooltip() {}, updateTooltipVisibilityDom() {},
+    updatePointerBounds() {},
     updateActiveIndicatorDom() {}, restoreRadialActiveBinDom() {},
     updateActivePointer: () => { pointerUpdates += 1; },
+  });
+  // Match constructor-owned callback identity without constructing graph data
+  // for this DOM/gesture cleanup fixture.
+  ['pointerFrame', 'pointerMove', 'pointerDown', 'pointerUp', 'touchStart', 'mouseDown', 'hoverEnter', 'hoverMove', 'hoverLeave'].forEach((handler) => {
+    tool[handler] = tool[handler].bind(tool);
   });
   tool.attachPointerHandlers();
   node.dispatchEvent(new Event('mousedown', { cancelable: true }));
@@ -1721,7 +1727,7 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
   tool.attachPointerHandlers();
   tool.attachPointerHandlers();
   node.dispatchEvent(new Event('mousedown', { cancelable: true }));
-  assert.equal(pointerUpdates - updatesAfterDisconnect, 2);
+  assert.equal(pointerUpdates - updatesAfterDisconnect, 1);
   assert.equal(node.dataset.pointerReady, 'true');
   assert.equal(tool.pointerSvgElement, node);
   tool.disconnected();
