@@ -801,6 +801,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.pointerSvgElement = undefined;
     this.rid = null;
     this._radialRafId = null;
+    this.pointerSourceSignature = undefined;
     // One callback identity belongs to one tool lifetime. SVG replacement
     // only changes registration; handlers always read the current runtime data.
     ['pointerFrame', 'pointerMove', 'pointerDown', 'pointerUp', 'touchStart', 'mouseDown', 'hoverEnter', 'hoverMove', 'hoverLeave'].forEach((handler) => {
@@ -1345,6 +1346,15 @@ export default class SparklineGraphTool extends BaseTool {
     // Runtime templates can change shared sparkline settings. Each existing
     // series receives one effective config while its runtime data stays intact.
     this.sparklineSeries.updateConfig(this.config);
+    // A different chart or Series collection changes what a selection means.
+    // Ordinary paint/size changes retain the gesture and reproject it below.
+    const pointerSourceSignature = JSON.stringify([
+      this.config.sparkline.show.chart_type,
+      this.config.period.type,
+      this.sparklineSeries.items.map((item) => [item.id, item.entity_index, item.config.sparkline.show.chart_type]),
+    ]);
+    if (this.pointerSourceSignature !== pointerSourceSignature) this.stopPointerInteraction();
+    this.pointerSourceSignature = pointerSourceSignature;
     const historyConfigChanges = this.sparklineHistory.updateConfig(
       this.config.period,
       this.stateBandsStateMap,
@@ -1359,7 +1369,7 @@ export default class SparklineGraphTool extends BaseTool {
     // A period change invalidates only History's source/request state. Existing
     // graph geometry remains mounted while a missing expanded range is loaded.
     if (historyConfigChanges.periodChanged) {
-      if (this.historyLoading) this.clearTooltip();
+      if (this.historyLoading) this.stopPointerInteraction();
       if (this.sparklineHistory.preservesGraphWhileLoading()) return;
     }
 
@@ -1370,7 +1380,7 @@ export default class SparklineGraphTool extends BaseTool {
       });
       this.graphConfig = undefined;
       this.sparklineSeries.clearGraphs();
-      this.clearTooltip();
+      this.stopPointerInteraction();
       this.graphGeometryChanged = false;
       return;
     }
@@ -1471,7 +1481,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (sourceEntityChanged) {
       this.sparklineHistory.stopTimeBoundaryUpdates();
-      this.clearTooltip();
+      this.stopPointerInteraction();
     }
 
     const historicalItems = this.sparklineSeries.items.filter((item) => item.config.period.type !== 'real_time');
@@ -1488,9 +1498,7 @@ export default class SparklineGraphTool extends BaseTool {
       || this.sparklineSeries.items.some((item) => item.graph.dataConfigChanged || item.graph.geometryConfigChanged));
     if (allSeriesRequestsCompleted && graphCalculationRequired) {
       this.updateGraphFromSeries();
-      if (this.tooltipVisible && this.pointerEvent) {
-        this.updateActivePointer(this.pointerEvent);
-      }
+      this.synchronizePointerPresentation();
     }
 
     // The normal presentation phase refreshes paint after every source and
@@ -1526,7 +1534,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
     });
     this.updateGraphFromSeries();
-    if (this.tooltipVisible && this.pointerEvent) this.updateActivePointer(this.pointerEvent);
+    this.synchronizePointerPresentation();
     this.card.updateSparklineResult(this);
   }
 
@@ -1638,7 +1646,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     if (request.loadingStarted) {
-      this.clearTooltip();
+      this.stopPointerInteraction();
     }
     if (request.started) return request.promise.then((result) => {
       if (request.isCurrent()) this.historyRequestCompleted(result);
@@ -1663,7 +1671,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (result.status === SPARKLINE_HISTORY_RESULT.FAILED) {
       const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
-      this.clearTooltip();
+      this.stopPointerInteraction();
       console.error('[FHS sparkline history request failed]', result.error);
       this.card.updateSparklineResult(this);
       return;
@@ -1690,6 +1698,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.graphDataChanged = true;
       // History's accepted rows already include the applicable live sample.
       this.updateGraphFromSeries();
+      this.synchronizePointerPresentation();
 
       if (this.card.dev.debug) {
         console.log('[FHS sparkline history response]', {
@@ -1783,7 +1792,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.areaMinMaxPath = undefined;
 
     if (coordinatedGraphs.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
-      this.clearTooltip();
+      this.stopPointerInteraction();
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
@@ -1835,7 +1844,7 @@ export default class SparklineGraphTool extends BaseTool {
       return this.calculateRadialAxisMargin(axisGraphs);
     }, this.configuredGraphMargin);
     if (coordinatedGraphs.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
-      this.clearTooltip();
+      this.stopPointerInteraction();
       return;
     }
     this.axisGraphs = coordinatedGraphs.axisGraphs;
@@ -1858,7 +1867,7 @@ export default class SparklineGraphTool extends BaseTool {
       SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
     ].includes(item.requestState));
     if (!allSeriesRequestsCompleted) {
-      this.clearTooltip();
+      this.stopPointerInteraction();
       return;
     }
 
@@ -1926,7 +1935,7 @@ export default class SparklineGraphTool extends BaseTool {
         // The engine then has no axis geometry, so no graph-dependent work follows.
         if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
           this.clearSingleSeriesPaths();
-          this.clearTooltip();
+          this.stopPointerInteraction();
           return;
         }
 
@@ -1942,7 +1951,7 @@ export default class SparklineGraphTool extends BaseTool {
           this.sparklineSeries.updateGraphs();
           if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
             this.clearSingleSeriesPaths();
-            this.clearTooltip();
+            this.stopPointerInteraction();
             return;
           }
         }
@@ -2222,12 +2231,13 @@ export default class SparklineGraphTool extends BaseTool {
    * hit; line, area and dots use the engine's shared angle-to-bin projection.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} event - Browser interaction event.
+   * @param {boolean} usePointerCoordinates - Reproject retained events after bins change.
    * @returns {number} Radial bin index, or NaN outside the configured arc.
    */
-  getRadialPointIndexFromEvent(event) {
+  getRadialPointIndexFromEvent(event, usePointerCoordinates) {
     const target = event.target ?? event.currentTarget;
     const barcodeBin = target.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
-    if (barcodeBin) {
+    if (barcodeBin && !usePointerCoordinates) {
       const pointIndex = Number(barcodeBin.dataset.pointIndex);
       return pointIndex < this.primaryGraph.coords.length ? pointIndex : NaN;
     }
@@ -2525,15 +2535,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Hides radial hover output while retaining the rendered graph.
-   */
-  clearRadialTooltip() {
-    this.clearTooltip();
-    this.updateTooltipVisibilityDom(false);
-    this.updateActiveIndicatorDom();
-  }
-
-  /**
    * Coalesces radial move and leave events into one animation-frame update.
    * The latest pending event wins, which keeps touch tracking responsive
    * without repeatedly measuring and mutating layout in the same frame.
@@ -2548,7 +2549,7 @@ export default class SparklineGraphTool extends BaseTool {
       this._radialRafId = null;
       // Several moves in one browser frame select the latest coordinates,
       // using the current graph rather than a bin captured on pointer entry.
-      if (this.hovering && !this.dragging) this.updateActivePointer(this.pointerEvent);
+      if (this.hovering && !this.dragging) this.updateActivePointer(this.pointerEvent, false);
     });
     this._radialRafId = frameId;
   }
@@ -2725,14 +2726,15 @@ export default class SparklineGraphTool extends BaseTool {
    * have entered the SVG.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   * @param {boolean} usePointerCoordinates - Select current geometry instead of a retained DOM bin.
    */
-  updateActivePointer(e) {
+  updateActivePointer(e, usePointerCoordinates) {
     this.pointerEvent = e;
 
     // Hover, drag and accepted data updates all use the current chart family.
     // Runtime templates may change it after the handlers were first attached.
     if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
-      this.updateRadialActivePointer(e);
+      this.updateRadialActivePointer(e, usePointerCoordinates);
       return;
     }
 
@@ -2740,9 +2742,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
     ) {
-      this.clearTooltip();
-      this.updateTooltipVisibilityDom(false);
-      this.updateActiveIndicatorDom();
+      this.stopPointerInteraction();
       return;
     }
 
@@ -2768,7 +2768,6 @@ export default class SparklineGraphTool extends BaseTool {
     const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
     this.activeX = this.snapPointerXToGraphPoint(pointerX);
     const pointIndex = this.getPointIndexFromX(this.activeX);
-    const previousIndex = this.tooltip.index;
 
     if (pointIndex === undefined) {
       this.clearTooltip();
@@ -2815,25 +2814,25 @@ export default class SparklineGraphTool extends BaseTool {
    * Queues the radial bin identified by the latest pointer coordinates.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
+   * @param {boolean} usePointerCoordinates - Reproject after data or layout changes.
    */
-  updateRadialActivePointer(e) {
+  updateRadialActivePointer(e, usePointerCoordinates) {
     if (
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
     ) {
-      this.clearTooltip();
-      this.updateTooltipVisibilityDom(false);
-      this.updateActiveIndicatorDom();
+      this.stopPointerInteraction();
       return;
     }
 
-    const pointIndex = this.getRadialPointIndexFromEvent(e);
+    const pointIndex = this.getRadialPointIndexFromEvent(e, usePointerCoordinates);
 
     // console.log('[updateRadialActivePointer] - pointIndex, e ', pointIndex, e);
     if (!Number.isFinite(pointIndex)) {
       this.clearTooltip();
       this.updateTooltipVisibilityDom(false);
       this.updateActiveIndicatorDom();
+      this.restoreRadialActiveBinDom();
       return;
     }
 
@@ -2868,7 +2867,13 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements.tooltipRows = this.elements.tooltip.querySelectorAll('.sparkline-tooltip__row');
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
-    if (!currentSvg || currentSvg === this.pointerSvgElement) return;
+    if (!currentSvg) return;
+    if (currentSvg === this.pointerSvgElement) {
+      // Lit can replace tooltip rows and indicator children without replacing
+      // the root SVG. Synchronize against those newly committed elements.
+      this.synchronizePointerPresentation();
+      return;
+    }
 
     this.pointerSvgElement = currentSvg;
     currentSvg.dataset.pointerReady = 'true';
@@ -2899,12 +2904,14 @@ export default class SparklineGraphTool extends BaseTool {
    * and every global gesture listener belong to this interaction lifetime.
    */
   stopPointerInteraction() {
-    window.removeEventListener('pointermove', this.pointerMove, false);
-    window.removeEventListener('pointerup', this.pointerUp, false);
-    window.removeEventListener('pointercancel', this.pointerUp, false);
-    window.removeEventListener('touchcancel', this.pointerUp, false);
-    window.cancelAnimationFrame(this.rid);
-    window.cancelAnimationFrame(this._radialRafId);
+    if (this.dragging || this.hovering || this.pointerSvgElement) {
+      window.removeEventListener('pointermove', this.pointerMove, false);
+      window.removeEventListener('pointerup', this.pointerUp, false);
+      window.removeEventListener('pointercancel', this.pointerUp, false);
+      window.removeEventListener('touchcancel', this.pointerUp, false);
+      window.cancelAnimationFrame(this.rid);
+      window.cancelAnimationFrame(this._radialRafId);
+    }
     this.rid = null;
     this._radialRafId = null;
     this.dragging = false;
@@ -2922,10 +2929,43 @@ export default class SparklineGraphTool extends BaseTool {
     }
   }
 
+  /**
+   * Reprojects an active selection after data, layout or committed DOM changes.
+   * Stored barcode targets can belong to old bins; coordinates select current
+   * geometry instead. An idle graph performs no pointer work here.
+   */
+  synchronizePointerPresentation() {
+    if (!this.pointerSvgElement || (!this.hovering && !this.dragging)) return;
+    if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
+      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
+      this.stopPointerInteraction();
+      return;
+    }
+    this.updatePointerBounds();
+    this.updateActivePointer(this.pointerEvent, true);
+  }
+
+  /** Measures tooltip bounds on entry or after the graph's layout changes. */
+  updatePointerBounds() {
+    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    const svgBox = this.elements.svg.getBoundingClientRect();
+    const scaleX = svgBox.width / this.svg.width;
+    const scaleY = svgBox.height / this.svg.height;
+    // Half a bucket extends cartesian hit testing to both chart edges.
+    const radial = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type);
+    const hoverPaddingX = radial ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
+    this.elements.tooltipBounds = {
+      left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x) * scaleX - hoverPaddingX,
+      top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y) * scaleY,
+      right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width) * scaleX + hoverPaddingX,
+      bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height) * scaleY,
+    };
+  }
+
   /** Applies the latest drag coordinates once in a scheduled browser frame. */
   pointerFrame() {
     this.rid = null;
-    if (this.dragging) this.updateActivePointer(this.pointerEvent);
+    if (this.dragging) this.updateActivePointer(this.pointerEvent, false);
   }
 
   /** Tracks a drag outside the SVG without scheduling more than one frame. */
@@ -2961,25 +3001,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!this.hovering) {
       this.hovering = true;
-      this.elements.containerRect = this.elements.container.getBoundingClientRect();
-      const svgBox = this.elements.svg.getBoundingClientRect();
-      const scaleX = svgBox.width / this.svg.width;
-      const scaleY = svgBox.height / this.svg.height;
-      // Half a bucket extends cartesian hit testing to both chart edges.
-      const radial = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type);
-      const hoverPaddingX = radial ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
-      this.elements.tooltipBounds = {
-        left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x) * scaleX - hoverPaddingX,
-        top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y) * scaleY,
-        right: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x + this.primaryGraph.drawArea.width) * scaleX + hoverPaddingX,
-        bottom: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height) * scaleY,
-      };
+      this.updatePointerBounds();
     }
 
     if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
       this.scheduleRadialHoverFrame();
     } else {
-      this.updateActivePointer(event);
+      this.updateActivePointer(event, false);
     }
   }
 
@@ -2994,12 +3022,12 @@ export default class SparklineGraphTool extends BaseTool {
     this.stopPointerInteraction();
     this.dragging = true;
     this.pointerEvent = event;
-    this.elements.containerRect = this.elements.container.getBoundingClientRect();
+    this.updatePointerBounds();
     window.addEventListener('pointermove', this.pointerMove, false);
     window.addEventListener('pointerup', this.pointerUp, false);
     window.addEventListener('pointercancel', this.pointerUp, false);
     window.addEventListener('touchcancel', this.pointerUp, false);
-    this.updateActivePointer(event);
+    this.updateActivePointer(event, false);
   }
 
   /** Ends a released or cancelled gesture without using its final coordinates. */
@@ -4494,6 +4522,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult|string} Active indicator SVG.
    */
   renderActiveIndicator() {
+    // A real-time chart represents one current value, not a selectable time.
+    // Its tooltip remains available through the same hover/drag handlers.
+    if (this.config.period.type === 'real_time') return '';
     if (this.config.sparkline.show.chart_type === 'radial_barcode' || this.config.sparkline.show.chart_type === 'graded') return '';
 
     if (this.config.sparkline.show.chart_type === 'radial') {
