@@ -1,5 +1,6 @@
 import { noChange } from 'lit';
-import { directive, Directive } from 'lit/directive.js';
+import { directive } from 'lit/directive.js';
+import { AsyncDirective } from 'lit/async-directive.js';
 
 const DOUBLE_TAP_TIME = 250;
 const HOLD_TIME = 500;
@@ -14,13 +15,22 @@ const MOVE_TOLERANCE = 8;
  *
  * @param {Element} element - SVG or HTML element that owns the interaction.
  * @param {object} options - Enabled gestures for the current runtime config.
+ * @returns {object} Gesture owner with stable listeners and explicit cleanup.
  */
 function bindActionHandler(element, options) {
   const interactive = options.hasTap || options.hasHold || options.hasDoubleClick;
   element.style.cursor = interactive ? 'pointer' : 'default';
   if (element.fhsActionHandler) {
-    element.fhsActionHandler.options = options;
-    return;
+    const state = element.fhsActionHandler;
+    const previous = state.options;
+    if (previous.hasTap !== options.hasTap || previous.hasHold !== options.hasHold
+      || previous.hasDoubleClick !== options.hasDoubleClick) state.cancelPendingActions();
+    state.options = options;
+    if (!state.connected) {
+      state.connected = true;
+      Object.entries(state.listeners).forEach(([event, listener]) => element.addEventListener(event, listener));
+    }
+    return state;
   }
 
   const state = {
@@ -31,9 +41,14 @@ function bindActionHandler(element, options) {
     pointerId: undefined,
     startX: 0,
     startY: 0,
+    connected: true,
+    holdAction: undefined,
+    tapAction: undefined,
+    listeners: {},
   };
 
   const dispatchAction = (action) => {
+    if (!state.connected || !element.isConnected || element.fhsActionHandler !== state) return;
     element.dispatchEvent(
       new CustomEvent('action', {
         bubbles: true,
@@ -46,45 +61,68 @@ function bindActionHandler(element, options) {
   const cancelGesture = () => {
     window.clearTimeout(state.holdTimer);
     state.holdTimer = undefined;
+    state.holdAction = undefined;
     state.held = false;
     state.pointerId = undefined;
   };
 
-  element.addEventListener('pointerdown', (event) => {
+  state.cancelPendingActions = () => {
+    cancelGesture();
+    window.clearTimeout(state.doubleTapTimer);
+    state.doubleTapTimer = undefined;
+    state.tapAction = undefined;
+  };
+
+  // Cleanup invalidates timer identities as well as removing listeners. A
+  // callback already queued before cancellation stays inert after reconnect.
+  state.disconnect = () => {
+    state.connected = false;
+    state.cancelPendingActions();
+    Object.entries(state.listeners).forEach(([event, listener]) => element.removeEventListener(event, listener));
+  };
+
+  state.listeners.pointerdown = (event) => {
     if (event.button !== 0) return;
 
     event.stopPropagation();
+    cancelGesture();
     state.pointerId = event.pointerId;
     state.startX = event.clientX;
     state.startY = event.clientY;
     state.held = false;
 
     if (state.options.hasHold) {
+      const holdAction = {};
+      state.holdAction = holdAction;
       state.holdTimer = window.setTimeout(() => {
+        if (state.holdAction !== holdAction || !state.connected) return;
+        state.holdTimer = undefined;
+        state.holdAction = undefined;
         state.held = true;
         dispatchAction('hold');
       }, HOLD_TIME);
     }
-  });
+  };
 
-  element.addEventListener('pointermove', (event) => {
+  state.listeners.pointermove = (event) => {
     if (event.pointerId !== state.pointerId) return;
 
     const movedX = Math.abs(event.clientX - state.startX);
     const movedY = Math.abs(event.clientY - state.startY);
 
     if (movedX > MOVE_TOLERANCE || movedY > MOVE_TOLERANCE) cancelGesture();
-  });
+  };
 
-  element.addEventListener('pointercancel', cancelGesture);
+  state.listeners.pointercancel = cancelGesture;
 
-  element.addEventListener('pointerup', (event) => {
+  state.listeners.pointerup = (event) => {
     if (event.pointerId !== state.pointerId) return;
 
     event.preventDefault();
     event.stopPropagation();
     window.clearTimeout(state.holdTimer);
     state.holdTimer = undefined;
+    state.holdAction = undefined;
     state.pointerId = undefined;
 
     if (state.options.hasHold && state.held) {
@@ -96,10 +134,15 @@ function bindActionHandler(element, options) {
       if (state.doubleTapTimer !== undefined) {
         window.clearTimeout(state.doubleTapTimer);
         state.doubleTapTimer = undefined;
+        state.tapAction = undefined;
         dispatchAction('double_tap');
       } else {
+        const tapAction = {};
+        state.tapAction = tapAction;
         state.doubleTapTimer = window.setTimeout(() => {
+          if (state.tapAction !== tapAction || !state.connected) return;
           state.doubleTapTimer = undefined;
+          state.tapAction = undefined;
           if (state.options.hasTap) dispatchAction('tap');
         }, DOUBLE_TAP_TIME);
       }
@@ -107,34 +150,44 @@ function bindActionHandler(element, options) {
     }
 
     if (state.options.hasTap) dispatchAction('tap');
-  });
+  };
 
-  element.addEventListener('click', (event) => {
+  state.listeners.click = (event) => {
     event.preventDefault();
     event.stopPropagation();
-  });
+  };
 
-  element.addEventListener('contextmenu', (event) => {
+  state.listeners.contextmenu = (event) => {
     if (!state.options.hasHold) return;
 
     event.preventDefault();
     event.stopPropagation();
-  });
+  };
 
-  element.addEventListener('keydown', (event) => {
+  state.listeners.keydown = (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
 
     event.preventDefault();
     event.stopPropagation();
     dispatchAction('tap');
-  });
+  };
 
   element.fhsActionHandler = state;
+  Object.entries(state.listeners).forEach(([event, listener]) => element.addEventListener(event, listener));
+  return state;
 }
 
-/** Lit attribute directive that keeps gesture options current across renders. */
+/** Keeps gesture options and listener lifetime tied to the Lit target element. */
 const actionHandler = directive(
-  class extends Directive {
+  class extends AsyncDirective {
+    /** Remembers the concrete target so disconnection releases its resources. */
+    constructor(partInfo) {
+      super(partInfo);
+      this.element = undefined;
+      this.options = undefined;
+      this.state = undefined;
+    }
+
     /**
      * Binds the directive's current gesture flags to the target element and
      * keeps Lit from writing an attribute value.
@@ -144,8 +197,21 @@ const actionHandler = directive(
      * @returns {symbol} Lit noChange sentinel.
      */
     update(part, [options]) {
-      bindActionHandler(part.element, options);
+      if (this.element !== part.element && this.state) this.state.disconnect();
+      this.element = part.element;
+      this.options = options;
+      if (this.isConnected) this.state = bindActionHandler(this.element, options);
       return noChange;
+    }
+
+    /** Cancels delayed gestures and removes listeners when Lit removes the part. */
+    disconnected() {
+      if (this.state) this.state.disconnect();
+    }
+
+    /** Reattaches the same listeners once, using the latest runtime options. */
+    reconnected() {
+      this.state = bindActionHandler(this.element, this.options);
     }
 
     /** Produces no attribute value because update() owns the element listeners. */
