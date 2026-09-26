@@ -25,6 +25,7 @@ export default class CardTools {
     this.card = card;
     this.templates = templates;
     this.cardId = cardId;
+    this.connectedToCard = false;
     this.sections = {
       rectangles: [], polygons: [], circles: [], arcs: [], horseshoes: [], lines: [], icons: [],
       areas: [], names: [], states: [], texts: [], sparklines: [], controls: [],
@@ -149,6 +150,7 @@ export default class CardTools {
    * cached series for refresh during the next normal setHass pass.
    */
   hassConnected() {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.hassConnected());
   }
 
@@ -157,6 +159,8 @@ export default class CardTools {
    * existing data for resynchronization after a card is reused.
    */
   connected() {
+    if (this.connectedToCard) return;
+    this.connectedToCard = true;
     this.getRenderableTools().forEach((tool) => tool.connected());
   }
 
@@ -165,6 +169,7 @@ export default class CardTools {
    * frames and global pointer listeners even during an active interaction.
    */
   disconnected() {
+    this.connectedToCard = false;
     this.getRenderableTools().forEach((tool) => tool.disconnected());
   }
 
@@ -173,6 +178,7 @@ export default class CardTools {
    * the SVG elements created by that render.
    */
   firstUpdated(changedProperties) {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.firstUpdated(changedProperties));
     this.attachSparklinePointerHandlers();
   }
@@ -182,6 +188,7 @@ export default class CardTools {
    * because Lit may have replaced the SVG elements they belonged to.
    */
   updated(changedProperties) {
+    if (!this.connectedToCard) return;
     this.getRenderableTools().forEach((tool) => tool.updated(changedProperties));
     this.attachSparklinePointerHandlers();
   }
