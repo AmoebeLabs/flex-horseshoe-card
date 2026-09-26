@@ -283,6 +283,16 @@ export default class ControlContent {
     });
   }
 
+  /** Checks every child so one changed item cannot hide a later child's new output. */
+  hasPresentationChanged() {
+    let changed = false;
+    this.childTools.forEach((child) => {
+      const childChanged = child.tool.hasPresentationChanged();
+      changed = changed || childChanged;
+    });
+    return changed;
+  }
+
   /** Returns every visual child inside a pointer-transparent wrapper. */
   render() {
     return svg`

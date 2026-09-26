@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 const now = new Date('2026-09-26T12:00:00.000Z');
 
 /** Loads the real built card with deferred HA requests and a fixed clock. */
-async function loadCard(page, { multiple = false, calendar = false } = {}) {
+async function loadCard(page, { multiple = false, calendar = false, showLine = false } = {}) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.clock.install({ time: now });
@@ -16,7 +16,7 @@ async function loadCard(page, { multiple = false, calendar = false } = {}) {
   }));
   await page.goto('http://fhs.test/card-lifecycle');
   await page.addScriptTag({ type: 'module', content: await readFile(new URL('../dist/flex-horseshoe-card.js', import.meta.url), 'utf8') });
-  await page.evaluate(async ({ multiple, calendar }) => {
+  await page.evaluate(async ({ multiple, calendar, showLine }) => {
     await customElements.whenDefined('flex-horseshoe-card');
     const card = document.createElement('flex-horseshoe-card');
     card.lovelace = { config: {} };
@@ -60,7 +60,10 @@ async function loadCard(page, { multiple = false, calendar = false } = {}) {
             ...(calendar ? { offset: -1 } : {}),
             duration: { hour: '[[[ return Number(entities[1].state) * 24; ]]]' }, bins: { per_hour: 1 },
           } },
-          sparkline: { show: { chart_type: 'line' }, line: { show: { minmax: true } } },
+          sparkline: {
+            show: { chart_type: 'line', ...(showLine ? { line: true } : {}) },
+            line: { show: { minmax: true } },
+          },
           series: [{ id: 'power', entity_index: 0 }, ...(multiple ? [{ id: 'other', entity_index: 10 }] : [])],
         }],
       },
@@ -96,7 +99,7 @@ async function loadCard(page, { multiple = false, calendar = false } = {}) {
     document.querySelector('#host').append(card);
     card.hass = hass;
     window.lifecycle = { card, graph, hass, config, requests, rows, counters, entities: card.entities };
-  }, { multiple, calendar });
+  }, { multiple, calendar, showLine });
   await page.waitForFunction(() => window.lifecycle.requests.length > 0);
   return errors;
 }
@@ -266,6 +269,80 @@ test('partial, empty and failed series do not publish retained statistics as new
   expect(await page.evaluate(() => window.lifecycle.card.entities[11].state)).not.toBe('unavailable');
   expect(await page.evaluate(() => window.lifecycle.graph.graphConfig.period.calendar.duration.hour)).toBe(14 * 24);
   expect(await page.evaluate(() => window.lifecycle.counters.hass)).toBe(1);
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.lifecycle.card.remove());
+});
+
+test('history geometry and minmax rerender when equal period statistics retain new bucket values', async ({ page }) => {
+  const errors = await loadCard(page, { showLine: true });
+  const historyAnchor = await page.evaluate(() => Date.now());
+  const initialRows = await page.evaluate((anchor) => {
+    const current = window.lifecycle.card.entities[0];
+    const hour = 60 * 60 * 1000;
+    const row = (state, hoursAgo) => ({
+      ...current,
+      state: String(state),
+      last_changed: new Date(anchor - hoursAgo * hour).toISOString(),
+    });
+    return [row(5, 24), row(10, 18), row(20, 12), row(5, 6), current];
+  }, historyAnchor);
+  await page.evaluate((rows) => window.lifecycle.requests[0].accept([rows]), initialRows);
+  await page.waitForFunction(() => window.lifecycle.graph.sparklineSeries.primaryItem.requestState === 'loaded');
+  await page.evaluate(() => window.lifecycle.card.updateComplete);
+  const initial = await page.evaluate(() => {
+    const { card, graph } = window.lifecycle;
+    return {
+      result: graph.getSeriesResult(),
+      line: card.shadowRoot.querySelector('mask[id^="sparkline-line-"] .sparkline-line-mask').getAttribute('d'),
+      minmax: card.shadowRoot.querySelector('mask[id^="fillMinMax-"] .fill').getAttribute('d'),
+    };
+  });
+  expect(initial.result.dataState).toBe('has_data');
+  expect(initial.result.min).toBe(5);
+  expect(initial.result.avg).toBeCloseTo(242.5 / 23, 10);
+  expect(initial.result.max).toBe(20);
+
+  await page.evaluate(() => {
+    const { card, hass } = window.lifecycle;
+    card.remove();
+    document.querySelector('#host').append(card);
+    card.hass = hass;
+  });
+  await page.waitForFunction(() => window.lifecycle.requests.length === 2);
+  const refreshedRows = await page.evaluate((anchor) => {
+    const current = window.lifecycle.card.entities[0];
+    const hour = 60 * 60 * 1000;
+    const row = (state, hoursAgo) => ({
+      ...current,
+      state: String(state),
+      last_changed: new Date(anchor - hoursAgo * hour).toISOString(),
+    });
+    return [row(5, 24), row(20, 18), row(10, 12), row(5, 6), current];
+  }, historyAnchor);
+  await page.evaluate((rows) => window.lifecycle.requests[1].accept([rows]), refreshedRows);
+  await page.waitForFunction(() => window.lifecycle.graph.sparklineSeries.primaryItem.requestState === 'loaded');
+  await page.evaluate(() => window.lifecycle.card.updateComplete);
+  const refreshed = await page.evaluate(() => {
+    const { card, graph } = window.lifecycle;
+    return {
+      result: graph.getSeriesResult(),
+      line: card.shadowRoot.querySelector('mask[id^="sparkline-line-"] .sparkline-line-mask').getAttribute('d'),
+      minmax: card.shadowRoot.querySelector('mask[id^="fillMinMax-"] .fill').getAttribute('d'),
+      graphPasses: window.lifecycle.counters.graph,
+      historyRequests: window.lifecycle.counters.history,
+    };
+  });
+
+  expect(refreshed.result.dataState).toBe('has_data');
+  expect(refreshed.result.min).toBe(5);
+  expect(refreshed.result.min).toBe(initial.result.min);
+  expect(refreshed.result.avg).toBe(initial.result.avg);
+  expect(refreshed.result.max).toBe(20);
+  expect(refreshed.result.max).toBe(initial.result.max);
+  expect(refreshed.line).not.toBe(initial.line);
+  expect(refreshed.minmax).not.toBe(initial.minmax);
+  expect(refreshed.graphPasses).toBeGreaterThan(1);
+  expect(refreshed.historyRequests).toBe(2);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.lifecycle.card.remove());
 });

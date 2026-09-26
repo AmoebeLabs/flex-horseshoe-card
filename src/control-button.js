@@ -460,9 +460,16 @@ export default class ControlButton extends ControlBase {
     }
   }
 
-  /**
-   * Selects active/inactive visualization and publishes state to child tools.
-   */
+  /** Includes active appearance and each enabled content/label child. */
+  hasPresentationChanged() {
+    const changed = super.hasPresentationChanged(this.active);
+    const children = [this.contentVisual, this.contentIconTool, this.contentTextTool]
+      .filter((tool) => tool !== undefined);
+    const childChanges = children.map((tool) => tool.hasPresentationChanged());
+    return changed || childChanges.some(Boolean);
+  }
+
+  /** Selects active/inactive visualization and publishes state to child tools. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
