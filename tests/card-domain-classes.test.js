@@ -828,15 +828,56 @@ test('CardTools assigns entity state and forwards every shared lifecycle phase',
 
   cardTools.setRuntimeEntityStates([{ entity: 'sensor.temperature' }], [{ state: '21.0' }]);
   cardTools.hassAvailable();
-  cardTools.hassConnected();
   cardTools.connected();
+  cardTools.hassConnected();
+  cardTools.firstUpdated(new Map());
+  cardTools.updated(new Map());
   cardTools.disconnected();
+  // Render and socket notifications cannot reactivate a disconnected tool.
+  cardTools.hassConnected();
   cardTools.firstUpdated(new Map());
   cardTools.updated(new Map());
 
   assert.deepEqual(calls, [
     ['state', '21.0', 'sensor.temperature'],
-    'hassAvailable', 'hassConnected', 'connected', 'disconnected', 'firstUpdated', 'updated',
+    'hassAvailable', 'connected', 'hassConnected', 'firstUpdated', 'updated', 'disconnected',
+  ]);
+});
+
+test('CardTools closes old tools before releasing them and activates replacements once', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const cardTools = new CardTools(card, templates, 'card');
+  const calls = [];
+  const oldTool = new BaseTool({ id: 'old' }, 0, templates, 'card', card, 'lines');
+  oldTool.hassAvailable = () => calls.push('old:hassAvailable');
+  oldTool.connected = () => calls.push('old:connected');
+  oldTool.disconnected = () => {
+    assert.strictEqual(cardTools.sections.rectangles[0], oldTool);
+    calls.push('old:disconnected');
+  };
+  cardTools.sections.rectangles = [oldTool];
+
+  cardTools.hassAvailable();
+  cardTools.connected();
+  cardTools.clearTools();
+  assert.deepEqual(cardTools.getRenderableTools(), []);
+
+  const replacement = new BaseTool({ id: 'replacement' }, 0, templates, 'card', card, 'lines');
+  replacement.hassAvailable = () => calls.push('replacement:hassAvailable');
+  replacement.connected = () => calls.push('replacement:connected');
+  cardTools.sections.rectangles = [replacement];
+  cardTools.hassAvailable();
+  cardTools.connected();
+  cardTools.connected();
+
+  assert.deepEqual(calls, [
+    'old:hassAvailable', 'old:connected', 'old:disconnected',
+    'replacement:hassAvailable', 'replacement:connected',
   ]);
 });
 

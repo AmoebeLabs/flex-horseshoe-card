@@ -1239,6 +1239,107 @@ test('accepted history keeps its update flag active through the card pipeline', 
   assert.equal(item.requestState, 'loaded');
 });
 
+test('an accepted History result queued at disconnect cannot enter the GraphTool pipeline', async (context) => {
+  const previousWindow = globalThis.window;
+  const previousSetTimeout = globalThis.setTimeout;
+  const previousClearTimeout = globalThis.clearTimeout;
+  const timers = new Map();
+  let acceptHistory;
+  const historyResponse = new Promise((accept) => { acceptHistory = accept; });
+  const pipelineCalls = [];
+  let nextTimer = 1;
+
+  globalThis.window = {
+    removeEventListener() {},
+    cancelAnimationFrame() {},
+  };
+  globalThis.setTimeout = (callback, delay) => {
+    const timer = nextTimer;
+    nextTimer += 1;
+    timers.set(timer, { callback, delay });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => timers.delete(timer);
+  context.after(() => {
+    globalThis.window = previousWindow;
+    globalThis.setTimeout = previousSetTimeout;
+    globalThis.clearTimeout = previousClearTimeout;
+  });
+
+  const period = {
+    type: 'rolling_window',
+    rolling_window: { offset: 0, duration: { hour: 24 } },
+  };
+  const entity = {
+    entity_id: 'sensor.queued',
+    state: '12',
+    last_changed: new Date(Date.now() - 60 * 1000).toISOString(),
+  };
+  const item = {
+    id: 'queued',
+    entity,
+    entityConfig: {},
+    rows: [],
+    config: {
+      id: 'queued',
+      period,
+      history: { refresh_interval: '1m' },
+      sparkline: { show: { chart_type: 'line' } },
+    },
+  };
+  const history = new SparklineHistory(period, {}, [item], true, false, historyEvents());
+  history.bindSeriesEntity(item);
+  let tool;
+  tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    cardId: 'test-card',
+    config: item.config,
+    sparklineHistory: history,
+    sparklineSeries: {
+      items: [item],
+      setRequestState(seriesItem, requestState) {
+        seriesItem.requestState = requestState;
+      },
+    },
+    legendTextTools: [],
+    rid: null,
+    _radialRafId: null,
+    clearTooltip() {},
+    updateGraphFromSeries() {
+      pipelineCalls.push('graph');
+    },
+    card: {
+      dev: { debug: false },
+      _hass: { callApi: () => historyResponse },
+      requestUpdate() {},
+      cardTools: { getBySection: () => [tool] },
+      cardEntities: { updateSparklineEntities: () => pipelineCalls.push('entities') },
+      resolvedEntityConfigs: [],
+      entities: [],
+      setHass: () => pipelineCalls.push('hass'),
+    },
+  });
+
+  const graphCompletion = tool.fetchHistoryIfNeeded(item);
+  acceptHistory([[{
+    state: '11',
+    last_changed: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+  }]]);
+  await Promise.resolve();
+
+  // History has accepted the rows, while GraphTool's promise continuation is still queued.
+  assert.equal(history.requiresHassUpdate(), true);
+  assert.equal(timers.size, 1);
+
+  tool.disconnected();
+  await graphCompletion;
+
+  assert.equal(timers.size, 0);
+  assert.equal(history.requiresHassUpdate(), false);
+  assert.equal(history.getRequestFacts(item.id).requestState, 'closed');
+  assert.deepEqual(item.rows, []);
+  assert.deepEqual(pipelineCalls, []);
+});
+
 test('accepted multi-day history builds and renders the configured line minmax envelope', async (context) => {
   const previousWindow = globalThis.window;
   globalThis.window = {
@@ -1445,7 +1546,10 @@ test('failed history changes request state without clearing processed data', () 
   assert.equal(cardUpdates, 1);
 });
 
-test('disconnect closes request state without clearing processed data', () => {
+test('disconnect closes request state without clearing processed data', (context) => {
+  const previousWindow = globalThis.window;
+  globalThis.window = { removeEventListener() {}, cancelAnimationFrame() {} };
+  context.after(() => { globalThis.window = previousWindow; });
   const item = { id: 'temperature', requestState: 'loading', dataState: 'has_data' };
   let requestState = 'loading';
   const tool = Object.create(SparklineGraphTool.prototype);
@@ -1461,12 +1565,84 @@ test('disconnect closes request state without clearing processed data', () => {
       getRequestFacts: () => ({ requestState }),
     },
     clearTooltip() {},
+    legendTextTools: [],
+    rid: null,
+    _radialRafId: null,
   });
 
   tool.disconnected();
 
   assert.equal(item.requestState, 'closed');
   assert.equal(item.dataState, 'has_data');
+});
+
+test('pointer cleanup releases the owned node and frames and reconnect binds once', (context) => {
+  const previousWindow = globalThis.window;
+  const pointerWindow = new EventTarget();
+  const frames = new Map();
+  let nextFrame = 1;
+  pointerWindow.requestAnimationFrame = (callback) => {
+    const frame = nextFrame++;
+    frames.set(frame, callback);
+    return frame;
+  };
+  pointerWindow.cancelAnimationFrame = (frame) => frames.delete(frame);
+  globalThis.window = pointerWindow;
+  context.after(() => { globalThis.window = previousWindow; });
+
+  const node = new EventTarget();
+  node.dataset = {};
+  const container = { getBoundingClientRect: () => ({ left: 0, top: 0 }) };
+  const tooltip = { querySelector: () => ({}), querySelectorAll: () => [] };
+  const nodes = new Map([
+    ['sparkline-test-card-0', node],
+    ['container', container],
+    ['sparkline-active-indicator-test-card-0', {}],
+    ['sparkline-tooltip-test-card-0', tooltip],
+  ]);
+  let pointerUpdates = 0;
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    cardId: 'test-card', index: 0,
+    config: { sparkline: { show: { chart_type: 'line' } } },
+    card: { shadowRoot: { getElementById: (id) => nodes.get(id) } },
+    elements: {}, legendTextTools: [],
+    sparklineSeries: { items: [] },
+    sparklineHistory: { disconnected() {}, connected() {} },
+    rid: null, _radialRafId: null,
+    clearTooltip() {}, updateTooltipVisibilityDom() {},
+    updateActiveIndicatorDom() {}, restoreRadialActiveBinDom() {},
+    updateActivePointer: () => { pointerUpdates += 1; },
+  });
+  tool.attachPointerHandlers();
+  node.dispatchEvent(new Event('mousedown', { cancelable: true }));
+  pointerWindow.dispatchEvent(new Event('pointermove', { cancelable: true }));
+  tool._radialRafId = pointerWindow.requestAnimationFrame(() => { pointerUpdates += 1; });
+  assert.equal(tool.dragging, true);
+  assert.equal(frames.size, 2);
+
+  tool.disconnected();
+  tool.disconnected();
+  const updatesAfterDisconnect = pointerUpdates;
+  node.dispatchEvent(new Event('mousedown', { cancelable: true }));
+  pointerWindow.dispatchEvent(new Event('pointermove', { cancelable: true }));
+  assert.equal(frames.size, 0);
+  assert.equal(pointerUpdates, updatesAfterDisconnect);
+  assert.equal(tool.dragging, false);
+  assert.equal(tool.hovering, false);
+  assert.equal(tool.pointerEvent, undefined);
+  assert.equal(tool.pointerSvgElement, undefined);
+  assert.equal(node.dataset.pointerReady, undefined);
+  assert.deepEqual(tool.elements, {});
+
+  // Reusing the same SVG must restore interaction without duplicate callbacks.
+  tool.connected();
+  tool.attachPointerHandlers();
+  tool.attachPointerHandlers();
+  node.dispatchEvent(new Event('mousedown', { cancelable: true }));
+  assert.equal(pointerUpdates - updatesAfterDisconnect, 2);
+  assert.equal(node.dataset.pointerReady, 'true');
+  assert.equal(tool.pointerSvgElement, node);
+  tool.disconnected();
 });
 
 test('day and night resynchronization participates in the normal hass update contract', () => {

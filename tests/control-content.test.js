@@ -4,6 +4,7 @@ import ControlButton from '../src/control-button.js';
 import ControlContent from '../src/control-content.js';
 import ControlSelect from '../src/control-select.js';
 import ControlTool from '../src/control-tool.js';
+import BaseTool from '../src/base-tool.js';
 
 const createContext = () => ({
   templates: {
@@ -229,6 +230,58 @@ test('forwards the complete parent lifecycle to every child tool', () => {
     'first:first', 'second:first',
     'first:updated', 'second:updated',
   ]);
+});
+
+test('a connected ControlContent closes old children before activating replacements once', (context) => {
+  const lifecycleCalls = [];
+  const originalHassAvailable = BaseTool.prototype.hassAvailable;
+  const originalConnected = BaseTool.prototype.connected;
+  const originalDisconnected = BaseTool.prototype.disconnected;
+  BaseTool.prototype.hassAvailable = function hassAvailableForContentTest() {
+    lifecycleCalls.push({ phase: 'hassAvailable', tool: this });
+    return originalHassAvailable.call(this);
+  };
+  BaseTool.prototype.connected = function connectedForContentTest() {
+    lifecycleCalls.push({ phase: 'connected', tool: this });
+    return originalConnected.call(this);
+  };
+  BaseTool.prototype.disconnected = function disconnectedForContentTest() {
+    lifecycleCalls.push({ phase: 'disconnected', tool: this });
+    return originalDisconnected.call(this);
+  };
+  context.after(() => {
+    BaseTool.prototype.hassAvailable = originalHassAvailable;
+    BaseTool.prototype.connected = originalConnected;
+    BaseTool.prototype.disconnected = originalDisconnected;
+  });
+
+  const content = createVerticalContent();
+  const oldChildren = content.childTools.map((child) => child.tool);
+  content.hassAvailable();
+  content.connected();
+  content.connected();
+  content.createVisualTools();
+  const newChildren = content.childTools.map((child) => child.tool);
+  content.connected();
+
+  oldChildren.forEach((tool) => {
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'hassAvailable').length, 1);
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'connected').length, 1);
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'disconnected').length, 1);
+  });
+  newChildren.forEach((tool) => {
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'hassAvailable').length, 1);
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'connected').length, 1);
+    assert.equal(lifecycleCalls.filter((call) => call.tool === tool && call.phase === 'disconnected').length, 0);
+  });
+  const lastOldDisconnect = lifecycleCalls.reduce(
+    (lastIndex, call, index) => oldChildren.includes(call.tool) && call.phase === 'disconnected' ? index : lastIndex,
+    -1,
+  );
+  const firstNewActivation = lifecycleCalls.findIndex(
+    (call) => newChildren.includes(call.tool) && call.phase === 'hassAvailable',
+  );
+  assert.ok(lastOldDisconnect < firstNewActivation);
 });
 test('button and select opt into explicit content without changing control entity ownership', () => {
   const { templates, card } = createContext();
