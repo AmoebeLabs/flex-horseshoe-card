@@ -2772,6 +2772,13 @@ export default class SparklineGraphTool extends BaseTool {
   updateActivePointer(e) {
     this.pointerEvent = e;
 
+    // Hover, drag and accepted data updates all use the current chart family.
+    // Runtime templates may change it after the handlers were first attached.
+    if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
+      this.updateRadialActivePointer(e);
+      return;
+    }
+
     if (
       this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
@@ -2902,8 +2909,6 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (!this.elements.svg || this.elements.svg.dataset.pointerReady === 'true') return;
 
-    const isRadialChart = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type);
-
     this.elements.svg.dataset.pointerReady = 'true';
     this.pointerSvgElement = this.elements.svg;
 
@@ -2913,11 +2918,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.Frame2 ||
       function Frame2() {
         this.rid = null;
-        if (isRadialChart) {
-          this.updateRadialActivePointer(this.pointerEvent);
-        } else {
-          this.updateActivePointer(this.pointerEvent);
-        }
+        this.updateActivePointer(this.pointerEvent);
       }.bind(this);
 
     this.pointerMove =
@@ -2935,14 +2936,9 @@ export default class SparklineGraphTool extends BaseTool {
     this.hoverEnter =
       this.hoverEnter ||
       function hoverEnter(e) {
-        const pointIndex = Number(e.currentTarget?.dataset?.pointIndex);
-        // console.log('[hoverEnter] - e, pointIndex', e, pointIndex);
-        this.pointerEvent = e;
-        this.activeX = undefined;
-        this._radialPendingLeave = false;
-        this._radialPendingPointIndex = pointIndex;
-        this._radialPendingEvent = e;
-        this.scheduleRadialHoverFrame();
+        // The interaction surface is the complete SVG, not an individual bin.
+        // Its pointer coordinates select a bin in either chart family.
+        this.hoverMove(e);
       }.bind(this);
 
     this.hoverMove =
@@ -2959,7 +2955,7 @@ export default class SparklineGraphTool extends BaseTool {
           const scaleX = svgBox.width / this.svg.width;
           const scaleY = svgBox.height / this.svg.height;
           // Half a bucket extends hover hit testing to both chart edges.
-          const hoverPaddingX = isRadialChart ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
+          const hoverPaddingX = ['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type) ? 0 : this.primaryGraph.coords.length > 1 ? ((this.primaryGraph.coords[1][0] - this.primaryGraph.coords[0][0]) * scaleX) / 2 : 12;
           this.elements.tooltipBounds = {
             left: svgBox.left - this.elements.containerRect.left + (this.graphArea.x + this.primaryGraph.drawArea.x) * scaleX - hoverPaddingX,
             top: svgBox.top - this.elements.containerRect.top + (this.graphArea.y + this.primaryGraph.drawArea.y) * scaleY,
@@ -2968,12 +2964,7 @@ export default class SparklineGraphTool extends BaseTool {
           };
         }
 
-        if (isRadialChart) {
-          // console.log('[hoverMove] - isRadialChart -', e);
-          this.updateRadialActivePointer(e);
-        } else {
-          this.updateActivePointer(e);
-        }
+        this.updateActivePointer(e);
       }.bind(this);
 
     this.hoverLeave =
@@ -3015,11 +3006,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.dragging = true;
         this.pointerEvent = e;
         this.elements.containerRect = this.elements.container.getBoundingClientRect();
-        if (isRadialChart) {
-          this.updateRadialActivePointer(e);
-        } else {
-          this.updateActivePointer(e);
-        }
+        this.updateActivePointer(e);
         this.updateTooltipVisibilityDom(true);
         this.updateActiveIndicatorDom();
         this.Frame2();
@@ -3045,7 +3032,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.updateActiveIndicatorDom();
         this.elements.containerRect = undefined;
 
-        if (isRadialChart) {
+        if (['radial', 'radial_barcode'].includes(this.config.sparkline.show.chart_type)) {
           this.restoreRadialActiveBinDom();
         }
 
@@ -3065,11 +3052,7 @@ export default class SparklineGraphTool extends BaseTool {
         this.pointerEvent = e;
         this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
-        if (isRadialChart) {
-          this.updateRadialActivePointer(e);
-        } else {
-          this.updateActivePointer(e);
-        }
+        this.updateActivePointer(e);
         this.updateTooltipVisibilityDom(true);
         this.updateActiveIndicatorDom();
         this.Frame2();
