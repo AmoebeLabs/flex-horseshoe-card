@@ -1103,8 +1103,14 @@ export default class HorseshoeGauge extends BaseTool {
     `;
   }
 
-  /** Stops progress animation and releases its old DOM bindings on disconnect. */
+  /** Reactivates the state marker's concrete icon source after reconnection. */
+  connected() {
+    this.stateMarker.haIconPath.connected();
+  }
+
+  /** Stops animation, marker loading and old DOM bindings on disconnect. */
   disconnected() {
+    this.stateMarker.haIconPath.disconnected();
     if (this.stateAnimator) {
       this.stateAnimator.unbindStateLayer();
       this.displayProgress = this.stateAnimator.currentProgress;

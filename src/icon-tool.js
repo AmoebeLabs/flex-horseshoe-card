@@ -61,14 +61,55 @@ export default class IconTool extends BaseTool {
     this.config.svg = this.calculateSvgDimensions();
     this.iconId = Math.random().toString(36).substr(2, 9);
     this.haIconPath = new HomeAssistantIconPath(card, this.iconId);
+    this.iconRequest = undefined;
+    this.iconClosed = false;
   }
 
   /** Updates icon configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged)
+    if (this.configChanged) {
+      this.stopEntityIconRequest();
       this.config.svg = this.calculateSvgDimensions(this.config);
+    }
+  }
+
+  /** Releases only the pending entity-icon lookup started by this tool. */
+  stopEntityIconRequest() {
+    if (this.iconRequest && this.iconRequest.owner === this) {
+      if (this.card.entitiesIconPending.get(this.iconRequest.id) === this.iconRequest) {
+        this.card.entitiesIconPending.delete(this.iconRequest.id);
+      }
+    }
+    this.iconRequest = undefined;
+  }
+
+  /** Reactivates the concrete icon source after card reconnection. */
+  connected() {
+    this.iconClosed = false;
+    this.haIconPath.connected();
+  }
+
+  /** Closes entity-icon publication and the hidden HA path polling loop. */
+  disconnected() {
+    this.iconClosed = true;
+    this.stopEntityIconRequest();
+    this.haIconPath.disconnected();
+  }
+
+  /** Identifies the HA inputs which determine one entity/attribute icon. */
+  getEntityIconKey(entity, entityConfig) {
+    const attribute = entityConfig.attribute;
+    return [
+      entityConfig.entity,
+      attribute ? "attribute" : "state",
+      attribute ? attribute : "",
+      attribute ? entity.attributes[attribute] : entity.state,
+      entity.entity_id.split(".")[0],
+      entity.attributes.device_class,
+      entity.attributes.icon,
+    ].join("|");
   }
 
   /**
@@ -169,42 +210,27 @@ export default class IconTool extends BaseTool {
       }
     }
 
-    this.card.entitiesIcon ??= {};
-    this.card.entitiesIconKey ??= {};
-    this.card.entitiesIconPending ??= {};
-
     const iconId = attribute
       ? `${entityId}|attribute:${attribute}`
       : `${entityId}|state`;
-    const key = attribute
-      ? [
-          entityId,
-          "attribute",
-          attribute,
-          attributeValue ?? "",
-          domain ?? "",
-          this.entity.attributes?.device_class ?? "",
-          this.entity.attributes?.icon ?? "",
-        ].join("|")
-      : [
-          entityId,
-          "state",
-          this.entity.state ?? "",
-          domain ?? "",
-          this.entity.attributes?.device_class ?? "",
-          this.entity.attributes?.icon ?? "",
-        ].join("|");
+    const key = this.getEntityIconKey(this.entity, this.entityConfig);
 
     if (this.card.entitiesIconKey[iconId] === key) {
       return this.card.entitiesIcon[iconId];
     }
 
-    this.card.entitiesIconKey[iconId] = key;
+    if (this.iconClosed) return this.card.entitiesIcon[iconId];
+    const pending = this.card.entitiesIconPending.get(iconId);
+    if (pending && pending.key === key) return this.card.entitiesIcon[iconId];
 
-    if (!this.card.entitiesIconPending[iconId]) {
-      this.card.entitiesIconPending[iconId] = true;
+    // Changing source starts a new lookup immediately. Old finalizers compare
+    // the actual request entry, so they cannot clear this newer pending work.
+    this.stopEntityIconRequest();
+    const request = { id: iconId, key, owner: this };
+    this.iconRequest = request;
+    this.card.entitiesIconPending.set(iconId, request);
 
-      const iconPromise = attribute
+    const iconPromise = attribute
         ? attributeIcon(
             this.card._hass,
             this.entity,
@@ -218,22 +244,23 @@ export default class IconTool extends BaseTool {
             this.entity,
           );
 
-      iconPromise
+    iconPromise
         .then((icon) => {
-          if (this.card.entitiesIconKey[iconId] !== key) {
-            return;
-          }
+          if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
+          if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
 
           if (!icon) {
             return;
           }
 
+          this.card.entitiesIconKey[iconId] = key;
           if (this.card.entitiesIcon[iconId] !== icon) {
             this.card.entitiesIcon[iconId] = icon;
             this.card.requestUpdate();
           }
         })
         .catch((err) => {
+          if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
           console.error(
             attribute
               ? "IconTool.buildIcon attributeIcon failed"
@@ -244,9 +271,9 @@ export default class IconTool extends BaseTool {
           );
         })
         .finally(() => {
-          this.card.entitiesIconPending[iconId] = false;
+          if (this.card.entitiesIconPending.get(iconId) === request) this.card.entitiesIconPending.delete(iconId);
+          if (this.iconRequest === request) this.iconRequest = undefined;
         });
-    }
 
     return this.card.entitiesIcon[iconId];
   }

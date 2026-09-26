@@ -40,6 +40,7 @@ import SameAs from './same-as.js';
 import Compounds from './compounds.js';
 import CardTemplates from './card-templates.js';
 import ChildCards from './child-cards.js';
+import ExternalSvgSources from './icon-svg-source.js';
 import { version } from '../package.json';
 
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
@@ -102,6 +103,10 @@ class FlexHorseshoeCard extends LitElement {
     this.iconCache = {};
     this.iconBoundsCache = {};
     this.svgUrlCache = {};
+    this.entitiesIcon = {};
+    this.entitiesIconKey = {};
+    this.entitiesIconPending = new Map();
+    this.externalSvgSources = new ExternalSvgSources(this);
 
     this.dev = {
       debug: false,
@@ -421,6 +426,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardConfig.initializeCardRuntimeDefaults(config);
 
       this.config = config;
+      this.externalSvgSources.setConfig();
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
@@ -472,6 +478,7 @@ class FlexHorseshoeCard extends LitElement {
     super.connectedCallback();
     this.cardTheme.connected();
     this.childCards.connected();
+    this.externalSvgSources.connected();
 
     // Global FHS input events synchronize card-scoped representations between
     // cards while they are present together in the dashboard DOM.
@@ -504,6 +511,7 @@ class FlexHorseshoeCard extends LitElement {
     this.cardTools.disconnected();
     this.cardTheme.disconnected();
     this.childCards.disconnected();
+    this.externalSvgSources.disconnected();
     super.disconnectedCallback();
   }
 

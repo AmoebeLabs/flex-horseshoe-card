@@ -29,6 +29,29 @@ export class HomeAssistantIconPath {
     this.measureBounds = measureBounds;
     this.path = undefined;
     this.pendingIcon = undefined;
+    this.pathRead = undefined;
+    this.sourceClosed = false;
+  }
+
+  /** Releases the polling timer/frame belonging to the previous icon source. */
+  stopReadingPath() {
+    if (this.pathRead) {
+      window.clearTimeout(this.pathRead.timer);
+      window.cancelAnimationFrame(this.pathRead.frame);
+      this.pathRead = undefined;
+      this.pendingIcon = undefined;
+    }
+  }
+
+  /** Lets the next render read the current source, reusing accepted cache data. */
+  connected() {
+    this.sourceClosed = false;
+  }
+
+  /** Stops polling and invalidates callbacks still waiting for the old render. */
+  disconnected() {
+    this.sourceClosed = true;
+    this.stopReadingPath();
   }
 
   /**
@@ -39,8 +62,10 @@ export class HomeAssistantIconPath {
    * @returns {string|undefined} SVG path data when available.
    */
   getPath(icon, rotation) {
+    if (this.sourceClosed) return undefined;
     const measureRotatedBounds = this.measureBounds && rotation !== undefined;
     const boundsKey = `${icon}|${rotation}`;
+    if (this.pendingIcon !== boundsKey) this.stopReadingPath();
 
     if (this.card.iconCache[icon] && (!measureRotatedBounds || this.card.iconBoundsCache[boundsKey])) {
       this.path = this.card.iconCache[icon];
@@ -52,12 +77,15 @@ export class HomeAssistantIconPath {
     if (this.pendingIcon === boundsKey) return this.path;
 
     this.pendingIcon = boundsKey;
+    const pathRead = { timer: undefined, frame: undefined };
+    this.pathRead = pathRead;
     let attempts = 0;
     const maxAttempts = 40;
     const delay = 50;
 
     const readIconPath = () => {
-      if (this.pendingIcon !== boundsKey) return;
+      if (this.pathRead !== pathRead || this.sourceClosed) return;
+      pathRead.timer = undefined;
 
       const iconElement = this.card.shadowRoot.getElementById(this.elementId);
       const iconSource = iconElement?.shadowRoot?.querySelector("*");
@@ -116,6 +144,7 @@ export class HomeAssistantIconPath {
         this.card.iconCache[icon] = iconPath;
         if (measureRotatedBounds) this.card.iconBoundsCache[boundsKey] = iconBounds;
         this.pendingIcon = undefined;
+        this.pathRead = undefined;
         this.pathLoaded();
         return;
       }
@@ -123,19 +152,24 @@ export class HomeAssistantIconPath {
       attempts += 1;
       if (attempts >= maxAttempts) {
         this.pendingIcon = undefined;
+        this.pathRead = undefined;
         return;
       }
 
-      window.setTimeout(readIconPath, delay);
+      pathRead.timer = window.setTimeout(readIconPath, delay);
     };
 
     // Wait until the consumer's hidden ha-icon has entered the shadow DOM.
     const afterRender =
       this.card.updateComplete && typeof this.card.updateComplete.then === "function"
         ? this.card.updateComplete
-        : new Promise((complete) => window.requestAnimationFrame(complete));
+        : new Promise((complete) => { pathRead.frame = window.requestAnimationFrame(complete); });
 
-    afterRender.then(() => window.setTimeout(readIconPath, 0));
+    afterRender.then(() => {
+      if (this.pathRead !== pathRead || this.sourceClosed) return;
+      pathRead.frame = undefined;
+      pathRead.timer = window.setTimeout(readIconPath, 0);
+    });
     return this.path;
   }
 
