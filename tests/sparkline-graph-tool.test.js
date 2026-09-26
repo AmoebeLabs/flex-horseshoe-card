@@ -1695,6 +1695,11 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
     updateActiveIndicatorDom() {}, restoreRadialActiveBinDom() {},
     updateActivePointer: () => { pointerUpdates += 1; },
   });
+  // Match constructor-owned callback identity without constructing graph data
+  // for this DOM/gesture cleanup fixture.
+  ['pointerFrame', 'pointerMove', 'pointerDown', 'pointerUp', 'touchStart', 'mouseDown', 'hoverEnter', 'hoverMove', 'hoverLeave'].forEach((handler) => {
+    tool[handler] = tool[handler].bind(tool);
+  });
   tool.attachPointerHandlers();
   node.dispatchEvent(new Event('mousedown', { cancelable: true }));
   pointerWindow.dispatchEvent(new Event('pointermove', { cancelable: true }));
@@ -1721,7 +1726,7 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
   tool.attachPointerHandlers();
   tool.attachPointerHandlers();
   node.dispatchEvent(new Event('mousedown', { cancelable: true }));
-  assert.equal(pointerUpdates - updatesAfterDisconnect, 2);
+  assert.equal(pointerUpdates - updatesAfterDisconnect, 1);
   assert.equal(node.dataset.pointerReady, 'true');
   assert.equal(tool.pointerSvgElement, node);
   tool.disconnected();
