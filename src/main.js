@@ -440,7 +440,9 @@ class FlexHorseshoeCard extends LitElement {
       // A live YAML edit does not cause another DOM connection callback.
       // Node binding still happens after Lit commits the replacement render.
       if (this.isConnected) this.cardTools.connected();
-      else this.cardTools.disconnected();
+      // HA can initialize a new card before its first DOM connection. Preserve
+      // that startup route; replacement after an actual disconnect stays closed.
+      else if (this.cardTools.disconnectedFromCard) this.cardTools.disconnected();
 
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setConfig`, {

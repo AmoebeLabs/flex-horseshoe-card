@@ -70,6 +70,12 @@ export default class PathGeometry {
     return true;
   }
 
+  /** Releases the DOM binding while retaining measurements for reconnect. */
+  unbindPathElement() {
+    this.pathElement = undefined;
+    this.bound = false;
+  }
+
   /**
    * Reports whether consumers may display output that depends on browser geometry.
    *

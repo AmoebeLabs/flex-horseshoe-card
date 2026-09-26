@@ -422,8 +422,6 @@ export default class ControlSelect extends ControlBase {
     this.usesEntityOptions = usesEntityOptions;
     this.optionsInitialized = !usesEntityOptions;
     this.entityOptionsSignature = undefined;
-    this.controlHassAvailable = false;
-    this.controlConnected = false;
     this.config.svg = this.calculateSvgDimensions();
     this.selectedOptionIndex = -1;
     this.optionTextTools = [];
@@ -444,9 +442,7 @@ export default class ControlSelect extends ControlBase {
 
   /** Creates normal TextTool and IconTool instances at each segment center. */
   createOptionContentTools() {
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.disconnected(),
-    );
+    this.getContentTools().forEach((tool) => tool.disconnected());
     this.optionContentVisuals = [];
     this.optionTextBaseStyles = [];
     this.optionIconBaseStyles = [];
@@ -548,6 +544,7 @@ export default class ControlSelect extends ControlBase {
           );
         },
       );
+      this.activateContentTools();
       return;
     }
 
@@ -652,18 +649,22 @@ export default class ControlSelect extends ControlBase {
         this.card,
       );
     });
+    this.activateContentTools();
+  }
+
+  /** Returns both stacked visuals and direct text/icon option content. */
+  getContentTools() {
+    return [...this.optionContentVisuals, ...this.optionTextTools, ...this.optionIconTools].filter((tool) => tool !== undefined);
   }
 
   /** Updates evaluated select config, geometry and child tool configuration. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
-    let contentRebuilt = false;
 
     if (this.configChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       if (this.optionsInitialized) {
         this.createOptionContentTools();
-        contentRebuilt = true;
       }
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
@@ -675,19 +676,6 @@ export default class ControlSelect extends ControlBase {
     this.optionIconTools
       .filter((iconTool) => iconTool !== undefined)
       .forEach((iconTool) => iconTool.updateRuntimeConfig());
-
-    // Rebuilt segment visuals join the lifecycle phase already reached by their
-    // parent select instead of waiting for a card reconnect.
-    if (contentRebuilt && this.controlHassAvailable) {
-      this.optionContentVisuals.forEach((contentVisual) =>
-        contentVisual.hassAvailable(),
-      );
-    }
-    if (contentRebuilt && this.controlConnected) {
-      this.optionContentVisuals.forEach((contentVisual) =>
-        contentVisual.connected(),
-      );
-    }
   }
 
   /** Selects the active option and publishes state plus visual styles. */
@@ -740,12 +728,6 @@ export default class ControlSelect extends ControlBase {
       this.optionIconTools
         .filter((iconTool) => iconTool !== undefined)
         .forEach((iconTool) => iconTool.updateRuntimeConfig());
-      if (this.controlHassAvailable) {
-        this.optionContentVisuals.forEach((contentVisual) => contentVisual.hassAvailable());
-      }
-      if (this.controlConnected) {
-        this.optionContentVisuals.forEach((contentVisual) => contentVisual.connected());
-      }
     }
 
     const selectedState =
@@ -817,59 +799,6 @@ export default class ControlSelect extends ControlBase {
     this.optionIconTools
       .filter((iconTool) => iconTool !== undefined)
       .forEach((iconTool) => iconTool.updated());
-  }
-
-  /** Forwards first-render work to segment visual content. */
-  firstUpdated(changedProperties) {
-    super.firstUpdated(changedProperties);
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.firstUpdated(changedProperties),
-    );
-  }
-
-  /** Forwards initial Home Assistant availability to segment visual content. */
-  hassAvailable() {
-    super.hassAvailable();
-    this.controlHassAvailable = true;
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.hassAvailable(),
-    );
-  }
-
-  /** Forwards DOM connection to segment visual content. */
-  connected() {
-    super.connected();
-    this.controlConnected = true;
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.connected(),
-    );
-  }
-
-  /** Stops timers and listeners owned by segment visual content. */
-  disconnected() {
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.disconnected(),
-    );
-    this.controlConnected = false;
-    super.disconnected();
-  }
-
-  /** Forwards Home Assistant reconnects to segment visual content. */
-  hassConnected() {
-    super.hassConnected();
-    this.optionContentVisuals.forEach((contentVisual) =>
-      contentVisual.hassConnected(),
-    );
-  }
-
-  /** Includes segment visual children in the card's update decision. */
-  requiresHassUpdate() {
-    return (
-      super.requiresHassUpdate() ||
-      this.optionContentVisuals.some((contentVisual) =>
-        contentVisual.requiresHassUpdate(),
-      )
-    );
   }
 
   /** Converts the select center through the normal group pipeline. */
