@@ -1489,25 +1489,32 @@ export default class SparklineGraphTool extends BaseTool {
         this.sparklineSeries.binPlan.perHour,
       );
     }
-    this.updateLegendTextTools();
   }
 
   /**
-   * Applies the existing GraphTool presentation continuation after History has
-   * reported an elapsed bin. Plan 07 will replace the remaining card setHass
-   * continuation; History itself remains independent from the parent card.
+   * Advances retained history to the elapsed bin and current source sample,
+   * then publishes the processed result to card presentation consumers.
    */
   historyBinBoundaryReached() {
+    this.sparklineSeries.items.forEach((item) => {
+      if (item.config.period.type === 'real_time') return;
+      const range = this.sparklineHistory.getSeriesRange(item);
+      if (this.sparklineHistory.hasRows(item.id) && !this.sparklineHistory.getRequestFacts(item.id).preserveGraphWhileLoading) {
+        this.sparklineHistory.addCurrentEntityState(item, range);
+        item.rows = this.sparklineHistory.getRows(item.id);
+      }
+    });
     this.updateGraphFromSeries();
     if (this.tooltipVisible && this.pointerEvent) this.updateActivePointer(this.pointerEvent);
-    this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
-    this.card.setHass(this.card._hass);
+    this.card.updateSparklineResult(this);
   }
 
   /** Starts a History-owned refresh or retry for the selected Series. */
   historySeriesRequestDue(seriesId) {
     const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === seriesId);
+    const previousRequestState = item.requestState;
     this.fetchHistoryIfNeeded(item);
+    if (item.requestState !== previousRequestState) this.card.updateSparklineResult(this);
   }
 
   /** Ends history and pointer work while preserving accepted graph data. */
@@ -1642,7 +1649,6 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (request.loadingStarted) {
       this.clearTooltip();
-      this.card.requestUpdate();
     }
     if (request.started) return request.promise.then((result) => {
       if (request.isCurrent()) this.historyRequestCompleted(result);
@@ -1660,7 +1666,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (result.status === SPARKLINE_HISTORY_RESULT.STALE) {
       if (result.retryImmediately) {
         const item = this.sparklineSeries.items.find((seriesItem) => seriesItem.id === result.seriesId);
-        this.fetchHistoryIfNeeded(item);
+        this.historySeriesRequestDue(item.id);
       }
       return;
     }
@@ -1669,7 +1675,7 @@ export default class SparklineGraphTool extends BaseTool {
       this.sparklineSeries.setRequestState(item, this.sparklineHistory.getRequestFacts(item.id).requestState);
       this.clearTooltip();
       console.error('[FHS sparkline history request failed]', result.error);
-      this.card.requestUpdate();
+      this.card.updateSparklineResult(this);
       return;
     }
 
@@ -1678,11 +1684,21 @@ export default class SparklineGraphTool extends BaseTool {
     try {
       // A preserved graph receives its new period geometry only after History
       // has accepted records for that expanded range.
-      if (result.rebuildGraphConfig) this.updateRuntimeConfig();
+      if ((result.rebuildGraphConfig || this.graphGeometryChanged) && !this.sparklineHistory.preservesGraphWhileLoading()) {
+        this.updateRuntimeConfig();
+        // The accepted expanded period now owns its real bins. Schedule their
+        // absolute deadlines alongside the newly activated geometry, after
+        // every source has released its retained-graph loading period.
+        this.sparklineHistory.scheduleTimeBoundaryUpdates(
+          this.config.sparkline.show.chart_type,
+          this.config.sparkline.state_bands.update_interval,
+          this.sparklineSeries.binPlan.perHour,
+        );
+      }
 
       item.rows = result.rows;
+      // History's accepted rows already include the applicable live sample.
       this.updateGraphFromSeries();
-      this.card.cardEntities.updateSparklineEntities(this.card.resolvedEntityConfigs, this.card.entities, this.card.cardTools.getBySection('sparklines'));
 
       if (this.card.dev.debug) {
         console.log('[FHS sparkline history response]', {
@@ -1695,9 +1711,8 @@ export default class SparklineGraphTool extends BaseTool {
         });
       }
 
-      // Plan 07 replaces this existing card continuation. History keeps its
-      // accepted-result fact active while that synchronous pipeline consumes it.
-      this.card.setHass(this.card._hass);
+      // Keep request exclusion active until consumers have seen this result.
+      this.card.updateSparklineResult(this);
     } finally {
       this.sparklineHistory.finishAcceptedResult(result.seriesId);
     }
@@ -2022,6 +2037,15 @@ export default class SparklineGraphTool extends BaseTool {
     this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
   }
 
+  /**
+   * Refreshes retained single-series paint after palette loading. A graph with
+   * no processed data has no gradient to refresh; series render their own paint.
+   */
+  updatePalettePaint() {
+    if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA || this.sparklineSeries.items.length !== 1) return;
+    this.updateSparklinePaint();
+  }
+
   /** Refreshes the single-series gradient without rebuilding SVG path geometry. */
   updateSparklinePaint() {
     const layerRequestsColorStopGradient = [
@@ -2077,10 +2101,13 @@ export default class SparklineGraphTool extends BaseTool {
     const periodType = item.config.period.type;
     const historical = periodType !== 'real_time';
     const binned = historical && item.config.sparkline.show.chart_type !== 'state_bands';
-    const currentResultHasData = item.dataState === SPARKLINE_DATA_STATE.HAS_DATA && [
+    // Shared geometry/statistics are committed only when the collection is
+    // ready. A partial completion must not publish retained statistics as new.
+    const seriesRequestsCompleted = this.sparklineSeries.items.every((seriesItem) => [
       SPARKLINE_REQUEST_STATE.LOADED,
       SPARKLINE_REQUEST_STATE.NOT_REQUIRED,
-    ].includes(item.requestState);
+    ].includes(seriesItem.requestState));
+    const currentResultHasData = item.dataState === SPARKLINE_DATA_STATE.HAS_DATA && seriesRequestsCompleted;
     const statistics = currentResultHasData ? item.graph.statistics : {};
 
     return {
@@ -2092,7 +2119,9 @@ export default class SparklineGraphTool extends BaseTool {
       requestState: item.requestState,
       dataState: item.dataState,
       duration: historical && this.periodDurationAvailable ? item.config.period[periodType].duration.hour : undefined,
-      bin_duration: binned && this.periodDurationAvailable ? this.sparklineSeries.binPlan.durationHours : undefined,
+      // An expanded period retains its visible graph while its new bin plan
+      // waits for history. Publish bin metadata with the completed result.
+      bin_duration: binned && this.periodDurationAvailable && seriesRequestsCompleted ? this.sparklineSeries.binPlan.durationHours : undefined,
       aggregate_func: binned && this.periodDurationAvailable ? item.config.sparkline.state_values.aggregate_func : undefined,
     };
   }

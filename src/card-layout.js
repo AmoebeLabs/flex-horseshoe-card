@@ -61,7 +61,8 @@ export default class CardLayout {
 
   /** Evaluates dynamic groups and records every descendant affected by a change. */
   updateGroups(configuredEntityStateChanged) {
-    this.changedGroupIds.clear();
+    // Source-dependent groups are evaluated before graphs, and derived-dependent
+    // groups afterward. Retain both changes until all tools consumed the pass.
     if (!configuredEntityStateChanged || !this.groupsHaveJavascript) return;
 
     const nextActiveGroupConfigs = [...this.activeGroupConfigs];
