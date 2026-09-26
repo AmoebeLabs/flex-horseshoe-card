@@ -941,33 +941,15 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Renders every active part while preserving outer alignment and inheritance.
+   * Builds final part paint after source animations and color stops are current.
+   * Rendering and change detection consume the same part output, including
+   * colors that can change while a formatted state remains equal.
    *
-   * @returns {TemplateResult} Complete SVG text item.
+   * @param {Array<object>} parts - Visible or measurement text parts.
+   * @returns {Array<object>} Parts with their effective SVG styles.
    */
-  render() {
-    const actionConfigs = [this.config.tap_action, this.config.hold_action, this.config.double_tap_action];
-    const hasActiveAction = actionConfigs.some((actionConfig) => {
-      if (!actionConfig) return false;
-      const actions = actionConfig.actions ?? [actionConfig];
-
-      return actions.some((action) => action.action !== 'none');
-    });
-    const textStyles = this.getStyles({
-      'font-size': '1em',
-      fill: 'var(--primary-text-color)',
-      opacity: '1.0',
-      'text-anchor': 'middle',
-      'dominant-baseline': 'middle',
-      'pointer-events': hasActiveAction ? 'auto' : 'none',
-    });
-
-    this.applyColorStops(textStyles);
-
-    const fitTransform = this.config.text_overflow?.mode === 'fit'
-      ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
-      : '';
-    const buildRenderedPart = (part) => {
+  getRenderedTextParts(parts) {
+    return parts.map((part) => {
       let renderPart = part;
 
       // Source animations are resolved during render, after the animation
@@ -998,9 +980,38 @@ export default class TextTool extends BaseTool {
           ...animationStyles,
         }),
       };
-    };
-    const visibleRenderParts = this.textParts.map((part) => buildRenderedPart(part));
-    const measurementRenderParts = this.widthMeasurementParts.map((part) => buildRenderedPart(part));
+    });
+  }
+
+  /** Includes each part's displayed text and final source/animation/color-stop paint. */
+  hasPresentationChanged() {
+    const parts = this.getRenderedTextParts(this.textParts).map((part) => [part.value, part.new_line, part.dx, part.dy, part.renderStyles]);
+    return super.hasPresentationChanged(parts);
+  }
+
+  /** Renders visible and measurement text using the same final part styles. */
+  render() {
+    const actionConfigs = [this.config.tap_action, this.config.hold_action, this.config.double_tap_action];
+    const hasActiveAction = actionConfigs.some((actionConfig) => {
+      if (!actionConfig) return false;
+      const actions = actionConfig.actions ?? [actionConfig];
+
+      return actions.some((action) => action.action !== 'none');
+    });
+    const textStyles = this.getStyles({
+      'font-size': '1em',
+      fill: 'var(--primary-text-color)',
+      opacity: '1.0',
+      'text-anchor': 'middle',
+      'dominant-baseline': 'middle',
+      'pointer-events': hasActiveAction ? 'auto' : 'none',
+    });
+    this.applyColorStops(textStyles);
+    const fitTransform = this.config.text_overflow?.mode === 'fit'
+      ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
+      : '';
+    const visibleRenderParts = this.getRenderedTextParts(this.textParts);
+    const measurementRenderParts = this.getRenderedTextParts(this.widthMeasurementParts);
     const measurementTextStyles = {
       ...textStyles,
       opacity: '0',
