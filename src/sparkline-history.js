@@ -79,6 +79,9 @@ export default class SparklineHistory {
         this.seriesRecords.set(item.id, {
           sourceRows: undefined,
           rows: undefined,
+          sourceRowsChanged: true,
+          rowsConversionSignature: undefined,
+          preparedRowsBySource: new WeakMap(),
           sourceRangeStart: undefined,
           sourceRangeEnd: undefined,
           sourceKey: undefined,
@@ -847,6 +850,9 @@ export default class SparklineHistory {
     record.requestTimer = undefined;
     record.sourceRows = undefined;
     record.rows = undefined;
+    record.sourceRowsChanged = true;
+    record.rowsConversionSignature = undefined;
+    record.preparedRowsBySource = new WeakMap();
     record.sourceRangeStart = undefined;
     record.sourceRangeEnd = undefined;
     record.acceptedSourceKey = undefined;
@@ -869,7 +875,10 @@ export default class SparklineHistory {
    */
   acceptHistoryRows(item, historyRows, range) {
     const record = this.seriesRecords.get(item.id);
-    record.sourceRows = historyRows.slice();
+    // An HA response is the ordering boundary. Live measurements are inserted
+    // into this chronological collection instead of sorting it on every update.
+    record.sourceRows = historyRows.slice().sort((first, second) => new Date(first.last_changed).getTime() - new Date(second.last_changed).getTime());
+    record.sourceRowsChanged = true;
     record.sourceRangeStart = range.sourceStart.getTime();
     record.sourceRangeEnd = range.sourceEnd.getTime();
     record.acceptedSourceKey = record.sourceKey;
@@ -902,18 +911,38 @@ export default class SparklineHistory {
       state: currentState,
     };
     const currentTime = new Date(currentRow.last_changed).getTime();
-    const currentRowIndex = record.sourceRows.findIndex((row) => new Date(row.last_changed).getTime() === currentTime);
-
-    if (currentRowIndex === -1) record.sourceRows.push(currentRow);
-    else record.sourceRows[currentRowIndex] = currentRow;
+    // New live values normally follow the last retained measurement. Binary
+    // insertion also preserves the existing behavior for delayed measurements
+    // and a corrected value at an already-known timestamp.
+    let lower = 0;
+    let upper = record.sourceRows.length;
+    while (lower < upper) {
+      const middle = Math.floor((lower + upper) / 2);
+      if (new Date(record.sourceRows[middle].last_changed).getTime() < currentTime) lower = middle + 1;
+      else upper = middle;
+    }
+    const previousRow = record.sourceRows[lower];
+    if (lower < record.sourceRows.length && new Date(previousRow.last_changed).getTime() === currentTime) {
+      record.sourceRows[lower] = currentRow;
+      if (previousRow.state !== currentState) record.sourceRowsChanged = true;
+      else if (record.preparedRowsBySource.has(previousRow)) {
+        // A fresh HA object with the same value/time refreshes source context
+        // while retaining its already converted graph measurement.
+        record.preparedRowsBySource.set(currentRow, record.preparedRowsBySource.get(previousRow));
+      }
+    } else {
+      record.sourceRows.splice(lower, 0, currentRow);
+      record.sourceRowsChanged = true;
+    }
 
     this.buildSeriesRows(item, range);
     return record.rows;
   }
 
   /**
-   * Converts retained source rows into ordered numeric or categorical records on
-   * the shared graph timeline.
+   * Publishes chronological numeric or categorical graph records. Retained
+   * measurements reuse their converted values and projected timestamps until
+   * an offset or categorical state map changes.
    *
    * @param {object} item - Bound Series item and graph configuration.
    * @param {object} range - Source-to-plot offset information.
@@ -921,45 +950,66 @@ export default class SparklineHistory {
    */
   buildSeriesRows(item, range) {
     const record = this.seriesRecords.get(item.id);
-    const rows = record.sourceRows.concat().sort((first, second) => new Date(first.last_changed).getTime() - new Date(second.last_changed).getTime());
+    const categorical = item.config.sparkline.show.chart_type === 'state_bands';
+    const conversionSignature = JSON.stringify([range.calendarOffsetDays, range.rollingOffsetDays, categorical, this.stateBandsStateMap]);
+    if (!record.sourceRowsChanged && record.rowsConversionSignature === conversionSignature) return record.rows;
+
+    // Offset and categorical-map changes convert the retained history again.
+    // Ordinary live updates reuse every unchanged measurement's numeric value
+    // and projected timestamps, converting only the inserted/corrected row.
+    if (record.rowsConversionSignature !== conversionSignature) record.preparedRowsBySource = new WeakMap();
     const preparedRows = [];
 
-    rows.forEach((row) => {
+    record.sourceRows.forEach((row) => {
+      if (record.preparedRowsBySource.has(row)) {
+        const preparedRow = record.preparedRowsBySource.get(row);
+        if (preparedRow !== undefined) preparedRows.push(preparedRow);
+        return;
+      }
       const sourceTime = new Date(row.last_changed);
       const plotTime = new Date(sourceTime);
 
       if (range.calendarOffsetDays !== undefined) plotTime.setDate(plotTime.getDate() - range.calendarOffsetDays);
       else plotTime.setTime(plotTime.getTime() - range.rollingOffsetDays * DAY_MS);
 
-      if (item.config.sparkline.show.chart_type === 'state_bands') {
+      if (categorical) {
         const mappedState = this.stateBandsStateMap.map.find((entry) => String(entry.state) === String(row.state));
-        if (mappedState === undefined) return;
+        if (mappedState === undefined) {
+          record.preparedRowsBySource.set(row, undefined);
+          return;
+        }
 
-        preparedRows.push({
+        const preparedRow = {
           ...row,
           source_time: sourceTime.toISOString(),
           plot_time: plotTime.toISOString(),
           last_changed: plotTime.toISOString(),
           state: Number(mappedState.value),
           haState: row.state,
-        });
+        };
+        record.preparedRowsBySource.set(row, preparedRow);
+        preparedRows.push(preparedRow);
         return;
       }
 
-      if (!Number.isFinite(Number(row.state))) return;
-      preparedRows.push({
+      if (!Number.isFinite(Number(row.state))) {
+        record.preparedRowsBySource.set(row, undefined);
+        return;
+      }
+      const preparedRow = {
         ...row,
         source_time: sourceTime.toISOString(),
         plot_time: plotTime.toISOString(),
         last_changed: plotTime.toISOString(),
         state: Number(row.state),
         haState: row.state,
-      });
+      };
+      record.preparedRowsBySource.set(row, preparedRow);
+      preparedRows.push(preparedRow);
     });
 
-    // Normal HA updates may rebuild the same prepared history. Keep its array
-    // identity when the graph-relevant values and timestamps did not change,
-    // so Graph can reuse its already aggregated buckets.
+    // Equivalent source responses can still produce the same graph records.
+    // Retain their published array so Graph can reuse aggregated buckets.
     const previousRows = record.rows;
     const rowsUnchanged = previousRows !== undefined
       && previousRows.length === preparedRows.length
@@ -967,6 +1017,8 @@ export default class SparklineHistory {
         && row.haState === previousRows[index].haState
         && row.last_changed === previousRows[index].last_changed);
     if (!rowsUnchanged) record.rows = preparedRows;
+    record.sourceRowsChanged = false;
+    record.rowsConversionSignature = conversionSignature;
     return record.rows;
   }
 
@@ -1012,15 +1064,22 @@ export default class SparklineHistory {
     if (range.calendarOffsetDays !== undefined) sourceRangeStart.setDate(sourceRangeStart.getDate() + range.calendarOffsetDays);
     else sourceRangeStart.setTime(sourceRangeStart.getTime() + range.rollingOffsetDays * DAY_MS);
 
-    const sortedRows = record.sourceRows.concat().sort((first, second) => new Date(first.last_changed).getTime() - new Date(second.last_changed).getTime());
-    let precedingRow;
-    const activeRows = [];
-    sortedRows.forEach((row) => {
-      if (new Date(row.last_changed).getTime() < sourceRangeStart.getTime()) precedingRow = row;
-      else activeRows.push(row);
-    });
-
-    record.sourceRows = precedingRow ? [precedingRow, ...activeRows] : activeRows;
+    // Keep the last measurement before the visible window so the first bucket
+    // still has its starting state. Sorted source storage lets an unchanged
+    // window skip pruning without copying or reconverting the complete history.
+    let lower = 0;
+    let upper = record.sourceRows.length;
+    const oldestTime = sourceRangeStart.getTime();
+    while (lower < upper) {
+      const middle = Math.floor((lower + upper) / 2);
+      if (new Date(record.sourceRows[middle].last_changed).getTime() < oldestTime) lower = middle + 1;
+      else upper = middle;
+    }
+    const firstRetainedIndex = Math.max(0, lower - 1);
+    if (firstRetainedIndex > 0) {
+      record.sourceRows = record.sourceRows.slice(firstRetainedIndex);
+      record.sourceRowsChanged = true;
+    }
     // The retained source covers the current window after older rows are pruned.
     record.sourceRangeStart = Math.max(record.sourceRangeStart, range.sourceStart.getTime());
     this.buildSeriesRows(item, range);
