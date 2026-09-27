@@ -805,10 +805,15 @@ export default class HorseshoeGauge extends BaseTool {
           endCap: this.config.horseshoe_state.linecap.end,
         };
         if (stateClip.end > stateClip.start) {
-          this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
-            ...this.currentStateGradientConfig,
-            range: stateClip,
-          });
+          this.pathGeometry.beginTemporarySampling();
+          try {
+            this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
+              ...this.currentStateGradientConfig,
+              range: stateClip,
+            });
+          } finally {
+            this.pathGeometry.endTemporarySampling();
+          }
         }
       }
     }
@@ -1043,73 +1048,80 @@ export default class HorseshoeGauge extends BaseTool {
    * from this contract and cannot be rebuilt by an animation frame.
    */
   renderStateAtProgress(progress, pathId) {
-    const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
-    const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
-    const clip = discreteState
-      ? { start: 0, end: 100 }
-      : bidirectional
-        ? { start: Math.min(this.valueMapper.zeroProgress, progress), end: Math.max(this.valueMapper.zeroProgress, progress) }
-        : { start: 0, end: progress };
+    // The marker and current gradient share samples for this drawing pass.
+    // Fixed labels, ticks and full gradients retain their separate cache.
+    this.pathGeometry.beginTemporarySampling();
+    try {
+      const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
+      const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
+      const clip = discreteState
+        ? { start: 0, end: 100 }
+        : bidirectional
+          ? { start: Math.min(this.valueMapper.zeroProgress, progress), end: Math.max(this.valueMapper.zeroProgress, progress) }
+          : { start: 0, end: progress };
 
-    let progressLayer = svg``;
+      let progressLayer = svg``;
 
-    if (this.config.show.state_progress && clip.end > clip.start) {
-      if (this.stateGradient || this.currentStateGradientConfig) {
-        let gradient = this.stateGradient;
+      if (this.config.show.state_progress && clip.end > clip.start) {
+        if (this.stateGradient || this.currentStateGradientConfig) {
+          let gradient = this.stateGradient;
 
-        if (gradient?.mode === 'full') {
-          const length = clip.end - clip.start;
-          gradient = {
-            ...gradient,
-            revealRange: {
-              ...gradient.revealRange,
-              start: clip.start,
-              end: clip.end,
-              dash: {
-                array: [length, 100],
-                offset: clip.start === 0 ? 0 : -clip.start,
+          if (gradient?.mode === 'full') {
+            const length = clip.end - clip.start;
+            gradient = {
+              ...gradient,
+              revealRange: {
+                ...gradient.revealRange,
+                start: clip.start,
+                end: clip.end,
+                dash: {
+                  array: [length, 100],
+                  offset: clip.start === 0 ? 0 : -clip.start,
+                },
               },
-            },
-          };
-        } else if (!gradient || clip.start !== this.renderContract.stateClip.start || clip.end !== this.renderContract.stateClip.end) {
-          gradient = buildAdaptivePathGradient(this.pathGeometry, {
-            ...this.currentStateGradientConfig,
-            range: clip,
-          });
+            };
+          } else if (!gradient || clip.start !== this.renderContract.stateClip.start || clip.end !== this.renderContract.stateClip.end) {
+            gradient = buildAdaptivePathGradient(this.pathGeometry, {
+              ...this.currentStateGradientConfig,
+              range: clip,
+            });
+          }
+
+          progressLayer = renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
+        } else {
+          let ranges = this.renderContract.stateRanges;
+
+          if (!discreteState) {
+            const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
+            const paints =
+              this.renderContract.stateMode === 'colorstopsegments'
+                ? this.stateSegmentPaints
+                : [this.statePaints[0]];
+
+            ranges = buildPaintedRanges(animatedStateRanges, {
+              paints,
+              clip,
+              gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
+              endpointGap: { start: 0, end: 0 },
+              linecap: this.statePaintConfig.linecap,
+            });
+          }
+
+          progressLayer = renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
         }
-
-        progressLayer = renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
-      } else {
-        let ranges = this.renderContract.stateRanges;
-
-        if (!discreteState) {
-          const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
-          const paints =
-            this.renderContract.stateMode === 'colorstopsegments'
-              ? this.stateSegmentPaints
-              : [this.statePaints[0]];
-
-          ranges = buildPaintedRanges(animatedStateRanges, {
-            paints,
-            clip,
-            gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
-            endpointGap: { start: 0, end: 0 },
-            linecap: this.statePaintConfig.linecap,
-          });
-        }
-
-        progressLayer = renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
       }
-    }
 
-    // Progress uses the path transform; the marker uses already transformed
-    // coordinates so its text/image source is rotated but never mirrored.
-    return svg`
-      <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
-      ${this.config.show.state_marker
-        ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
-        : svg``}
-    `;
+      // Progress uses the path transform; the marker uses already transformed
+      // coordinates so its text/image source is rotated but never mirrored.
+      return svg`
+        <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
+        ${this.config.show.state_marker
+          ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
+          : svg``}
+      `;
+    } finally {
+      this.pathGeometry.endTemporarySampling();
+    }
   }
 
   /** Reactivates the state marker's concrete icon source after reconnection. */
