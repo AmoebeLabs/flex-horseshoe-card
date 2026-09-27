@@ -54,10 +54,18 @@ function createConfig(path) {
 }
 
 function bindMeasuredHorizontalPath(horseshoe, startX, y, length) {
+  const measurement = { lengthReads: 0, pointReads: 0 };
   horseshoe.pathGeometry.bindPathElement({
-    getTotalLength: () => length,
-    getPointAtLength: (distance) => ({ x: startX + distance, y }),
+    getTotalLength: () => {
+      measurement.lengthReads += 1;
+      return length;
+    },
+    getPointAtLength: (distance) => {
+      measurement.pointReads += 1;
+      return { x: startX + distance, y };
+    },
   });
+  return measurement;
 }
 
 test('normal horseshoe configuration enters the path-engine implementation', () => {
@@ -631,6 +639,94 @@ test('full gradient value updates retain their prepared adaptive ranges', () => 
   assert.equal(horseshoe.stateGradient.revealRange.end, 75);
 });
 
+test('state, scale, and background gradients share prepared geometry across paint changes', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: {
+      horseshoe_style: 'colorstopgradient',
+      scale_style: 'colorstopgradient',
+      horseshoe_background: 'colorstopgradient',
+    },
+    color_stops: {
+      0: '#0000ff',
+      50: '#00ff00',
+      100: '#ff0000',
+    },
+    horseshoe_background: { width: 8, styles: { opacity: 0.25 } },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  const measurement = bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const background = horseshoe.backgroundLayers.find((layer) => layer.id === 'horseshoe');
+  const preparedGeometry = horseshoe.stateGradient.geometry;
+
+  assert.strictEqual(horseshoe.scaleGradient.geometry, preparedGeometry);
+  assert.strictEqual(background.gradient.geometry, preparedGeometry);
+  const pointReads = measurement.pointReads;
+
+  // Color-stop paint and path thickness change while the measured centerline stays fixed.
+  horseshoe.renderContract.colorStops[1].color = '#ffffff';
+  horseshoe.config.horseshoe_state.width = 18;
+  horseshoe.buildMeasuredGradientContracts();
+
+  const updatedBackground = horseshoe.backgroundLayers.find((layer) => layer.id === 'horseshoe');
+  assert.strictEqual(horseshoe.stateGradient.geometry, preparedGeometry);
+  assert.strictEqual(horseshoe.scaleGradient.geometry, preparedGeometry);
+  assert.strictEqual(updatedBackground.gradient.geometry, preparedGeometry);
+  assert.equal(horseshoe.stateGradient.ranges[0].width, 18);
+  assert.equal(horseshoe.stateGradient.ranges[0].gradient.stops.some((stop) => stop.color === '#ffffff'), true);
+  assert.equal(measurement.pointReads, pointReads);
+});
+
+test('scale mapping and path rotation invalidate only their dependent geometry', () => {
+  const card = createCard();
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: {
+      horseshoe_style: 'colorstopgradient',
+      scale_style: 'colorstopgradient',
+      labels_at: 'minmax',
+    },
+    color_stops: {
+      0: '#0000ff',
+      50: '#00ff00',
+      100: '#ff0000',
+    },
+    horseshoe_labels: { orientation: 'horizontal', offset: 12 },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', card);
+
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const preparedGradientGeometry = horseshoe.stateGradient.geometry;
+  const originalTransformedGeometry = horseshoe.transformedPathGeometry;
+  const originalLabelPositions = horseshoe.pathElements.labels.map((label) => [label.x, label.y]);
+
+  horseshoe.activeItemConfig.horseshoe_scale.max = 200;
+  card.cardLayout.changedGroupIds.add('card');
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  horseshoe.buildMeasuredGradientContracts();
+
+  assert.strictEqual(horseshoe.stateGradient.geometry, preparedGradientGeometry);
+  assert.equal(horseshoe.stateGradient.ranges[0].gradient.stops.some((stop) => stop.offset === 25 && stop.color === '#00ff00'), true);
+
+  horseshoe.activeItemConfig.rotate = 90;
+  card.cardLayout.changedGroupIds.add('card');
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  horseshoe.buildMeasuredGradientContracts();
+
+  assert.notStrictEqual(horseshoe.transformedPathGeometry, originalTransformedGeometry);
+  assert.notDeepEqual(horseshoe.pathElements.labels.map((label) => [label.x, label.y]), originalLabelPositions);
+  assert.strictEqual(horseshoe.stateGradient.geometry, preparedGradientGeometry);
+});
+
 test('paint-only runtime changes retain transformed path measurements', () => {
   const card = createCard();
   const [horseshoe] = HorseshoeGauge.setConfig(createConfig({ type: 'line', length: 80 }), createTemplates(), 'card', card);
@@ -721,7 +817,7 @@ test('changing a measured path stops animation before its old binding is release
   }
 });
 
-test('disconnect stops and unbinds the active horseshoe state animator', () => {
+test('disconnect and reconnect retain mapped zero and negative progress without duplicate frames', () => {
   const previousRequestAnimationFrame = globalThis.requestAnimationFrame;
   const previousCancelAnimationFrame = globalThis.cancelAnimationFrame;
   const frames = new Map();
@@ -735,26 +831,101 @@ test('disconnect stops and unbinds the active horseshoe state animator', () => {
   globalThis.cancelAnimationFrame = (frame) => frames.delete(frame);
 
   try {
+    const card = createCard();
+    let stateMount = { id: 'state-before-disconnect' };
+    const createMasterPath = () => {
+      const reads = { length: 0, points: 0 };
+      const element = {
+        getTotalLength: () => {
+          reads.length += 1;
+          return 160;
+        },
+        getPointAtLength: (distance) => {
+          reads.points += 1;
+          return { x: 20 + distance, y: 100 };
+        },
+      };
+      return { element, reads };
+    };
+    let masterPath = createMasterPath();
+    card.shadowRoot = {
+      getElementById: (id) => id.endsWith('-master') ? masterPath.element : stateMount,
+    };
+    const config = createConfig({ type: 'line', length: 80 });
+    Object.assign(config.layout.horseshoes[0], {
+      bar_mode: 'bidirectional',
+      horseshoe_scale: { min: -100, max: 100 },
+      horseshoe_state: { animation: { enabled: true, duration: 100, easing: 'linear' } },
+    });
     const [horseshoe] = HorseshoeGauge.setConfig(
-      createConfig({ type: 'line', length: 80 }),
+      config,
       createTemplates(),
       'card',
-      createCard(),
+      card,
     );
     horseshoe.updateRuntimeConfig();
-    horseshoe.stateAnimator.stateLayerElement = { id: 'mounted-state' };
-    horseshoe.stateAnimator.currentProgress = 35;
-    horseshoe.stateAnimator.animateTo(80);
+    const stateUpdates = [];
+    horseshoe.stateAnimator.updateStateLayer = (element, progress) => {
+      stateUpdates.push({ element, progress });
+      horseshoe.renderStateAtProgress(progress, 'card-horseshoe-0');
+    };
+    horseshoe.setState({ entity_id: 'sensor.load', state: '50', attributes: {} }, {});
+    assert.equal(horseshoe.valueMapper.valueToProgress(horseshoe.value), 75);
+    horseshoe.updated();
+
+    horseshoe.setState({ entity_id: 'sensor.load', state: '-50', attributes: {} }, {});
+    assert.equal(horseshoe.valueMapper.valueToProgress(horseshoe.value), 25);
+    assert.deepEqual(
+      [horseshoe.renderContract.stateRanges[0].start, horseshoe.renderContract.stateRanges[0].end],
+      [25, 50],
+    );
+    const runNextFrame = (timestamp) => {
+      const [frame, callback] = frames.entries().next().value;
+      frames.delete(frame);
+      callback(timestamp);
+    };
+    runNextFrame(1000);
+    runNextFrame(1050);
 
     assert.equal(frames.size, 1);
+    assert.equal(horseshoe.stateAnimator.currentProgress, 50);
 
+    horseshoe.disconnected();
     horseshoe.disconnected();
 
     assert.equal(frames.size, 0);
     assert.equal(horseshoe.stateAnimator.frame, undefined);
     assert.equal(horseshoe.stateAnimator.animating, false);
     assert.equal(horseshoe.stateAnimator.stateLayerElement, undefined);
-    assert.equal(horseshoe.displayProgress, 35);
+    assert.equal(horseshoe.displayProgress, 50);
+    assert.equal(horseshoe.pathGeometry.isReady(), false);
+
+    masterPath = createMasterPath();
+    stateMount = { id: 'state-after-reconnect' };
+    horseshoe.connected();
+    horseshoe.connected();
+    horseshoe.updated();
+
+    assert.equal(horseshoe.pathGeometry.isReady(), true);
+    assert.equal(horseshoe.stateAnimator.stateLayerElement, stateMount);
+    assert.equal(horseshoe.stateAnimator.currentProgress, 50);
+    assert.equal(masterPath.reads.length, 0);
+    assert.deepEqual(stateUpdates.at(-1), { element: stateMount, progress: 50 });
+
+    horseshoe.setState({ entity_id: 'sensor.load', state: '-100', attributes: {} }, {});
+    assert.equal(horseshoe.valueMapper.valueToProgress(horseshoe.value), 0);
+    runNextFrame(2000);
+    runNextFrame(2100);
+    assert.equal(horseshoe.stateAnimator.currentProgress, 0);
+    assert.equal(horseshoe.displayProgress, 0);
+
+    horseshoe.setState({ entity_id: 'sensor.load', state: '0', attributes: {} }, {});
+    assert.equal(horseshoe.valueMapper.valueToProgress(horseshoe.value), 50);
+    runNextFrame(3000);
+    runNextFrame(3100);
+    assert.equal(horseshoe.stateAnimator.currentProgress, 50);
+    assert.equal(horseshoe.displayProgress, 50);
+    assert.equal(frames.size, 0);
   } finally {
     globalThis.requestAnimationFrame = previousRequestAnimationFrame;
     globalThis.cancelAnimationFrame = previousCancelAnimationFrame;

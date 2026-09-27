@@ -9,12 +9,14 @@ import { buildAdaptivePathGradient, setFullPathGradientRevealRange } from '../sr
 function createFrameScheduler() {
   let nextFrame = 1;
   const callbacks = new Map();
+  const scheduledCallbacks = new Map();
 
   return {
     requestFrame: (callback) => {
       const frame = nextFrame;
       nextFrame += 1;
       callbacks.set(frame, callback);
+      scheduledCallbacks.set(frame, callback);
       return frame;
     },
     cancelFrame: (frame) => callbacks.delete(frame),
@@ -24,6 +26,7 @@ function createFrameScheduler() {
       callback(timestamp);
     },
     pendingFrames: () => callbacks.size,
+    callbackFor: (frame) => scheduledCallbacks.get(frame),
   };
 }
 
@@ -104,6 +107,74 @@ test('a repeated value does not restart its active transition', () => {
   assert.equal(scheduler.pendingFrames(), 1);
 });
 
+test('rebinding the same state mount keeps the active transition clock', () => {
+  const scheduler = createFrameScheduler();
+  const stateLayer = { id: 'state' };
+  const updates = [];
+  const animator = new PathStateAnimator({
+    animation: { enabled: true, duration: 100, easing: 'linear' },
+    initialProgress: 20,
+    requestFrame: scheduler.requestFrame,
+    cancelFrame: scheduler.cancelFrame,
+    updateStateLayer: (element, progress) => updates.push({ element, progress }),
+    onComplete: () => {},
+  });
+
+  animator.bindStateLayer(stateLayer);
+  animator.animateTo(80);
+  scheduler.runNextFrame(1000);
+  scheduler.runNextFrame(1020);
+  const pendingFrame = animator.frame;
+
+  animator.bindStateLayer(stateLayer);
+
+  assert.equal(animator.frame, pendingFrame);
+  assert.equal(scheduler.pendingFrames(), 1);
+  scheduler.runNextFrame(1050);
+  scheduler.runNextFrame(1100);
+
+  assert.equal(animator.currentProgress, 80);
+  assert.equal(animator.animating, false);
+  assert.equal(scheduler.pendingFrames(), 0);
+  assert.deepEqual(updates.at(-1), { element: stateLayer, progress: 80 });
+});
+
+test('a canceled transition callback cannot repaint after the animator is retargeted', () => {
+  const scheduler = createFrameScheduler();
+  const updates = [];
+  const completed = [];
+  const animator = new PathStateAnimator({
+    animation: { enabled: true, duration: 100, easing: 'linear' },
+    initialProgress: 20,
+    requestFrame: scheduler.requestFrame,
+    cancelFrame: scheduler.cancelFrame,
+    updateStateLayer: (_element, progress) => updates.push(progress),
+    onComplete: (progress) => completed.push(progress),
+  });
+
+  animator.bindStateLayer({ id: 'state' });
+  animator.animateTo(80);
+  const canceledFrame = animator.frame;
+  const canceledCallback = scheduler.callbackFor(canceledFrame);
+  animator.animateTo(0);
+  const activeFrame = animator.frame;
+  const updatesBeforeStaleCallback = [...updates];
+
+  canceledCallback(1050);
+
+  assert.equal(animator.frame, activeFrame);
+  assert.equal(animator.currentProgress, 20);
+  assert.deepEqual(updates, updatesBeforeStaleCallback);
+  assert.equal(scheduler.pendingFrames(), 1);
+
+  scheduler.runNextFrame(1000);
+  scheduler.runNextFrame(1100);
+
+  assert.equal(animator.currentProgress, 0);
+  assert.deepEqual(completed, [0]);
+  assert.equal(scheduler.pendingFrames(), 0);
+});
+
 test('stopping a transition preserves the visible state and cancels pending work', () => {
   const scheduler = createFrameScheduler();
   const updates = [];
@@ -168,6 +239,7 @@ test('replacing a state mount cancels its old frame and continues from visible p
   scheduler.runNextFrame(1000);
   scheduler.runNextFrame(1050);
   const oldFrame = animator.frame;
+  const oldCallback = scheduler.callbackFor(oldFrame);
   const replacement = { id: 'replacement' };
 
   animator.bindStateLayer(replacement);
@@ -175,6 +247,9 @@ test('replacing a state mount cancels its old frame and continues from visible p
   assert.notEqual(animator.frame, oldFrame);
   assert.equal(animator.currentProgress, 50);
   assert.equal(scheduler.pendingFrames(), 1);
+  const replacementPaintCount = updates.length;
+  oldCallback(1075);
+  assert.equal(updates.length, replacementPaintCount);
   scheduler.runNextFrame(1100);
   scheduler.runNextFrame(1200);
   assert.deepEqual(updates.at(-1), { element: replacement, progress: 80 });
