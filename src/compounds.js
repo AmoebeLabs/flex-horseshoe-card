@@ -51,6 +51,19 @@ export default class Compounds {
       });
     };
 
+    const collectRefReplacePaths = (value, path, collectedPaths) => {
+      if (value && typeof value === 'object' && value[SameAs.STATIC_REF_MARKER]) {
+        collectedPaths.push(path.join('.'));
+        return;
+      }
+
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        Object.entries(value).forEach(([field, fieldValue]) => {
+          collectRefReplacePaths(fieldValue, [...path, field], collectedPaths);
+        });
+      }
+    };
+
     const compoundIds = new Set();
 
     compounds.forEach((compound) => {
@@ -95,19 +108,6 @@ export default class Compounds {
 
         // A ref() override replaces the inherited object at that exact path
         // instead of deep-merging it with the inherited compound value.
-        const collectRefReplacePaths = (value, path, collectedPaths) => {
-          if (value && typeof value === 'object' && value[SameAs.STATIC_REF_MARKER]) {
-            collectedPaths.push(path.join('.'));
-            return;
-          }
-
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            Object.entries(value).forEach(([field, fieldValue]) => {
-              collectRefReplacePaths(fieldValue, [...path, field], collectedPaths);
-            });
-          }
-        };
-
         Object.entries(compoundOverrides).forEach(([field, value]) => {
           if (!VISIBLE_LAYOUT_SECTIONS.includes(field)) {
             collectRefReplacePaths(value, [field], replacePaths);
@@ -252,7 +252,18 @@ export default class Compounds {
             );
           }
 
-          const generatedChild = Merge.mergeDeep(sharedDefaults, child);
+          const childDefaults = { ...sharedDefaults };
+          const refReplacePaths = [];
+
+          // A child ref replaces that part of the shared defaults before the merge.
+          Object.entries(child).forEach(([field, value]) => {
+            collectRefReplacePaths(value, [field], refReplacePaths);
+          });
+          refReplacePaths.forEach((fieldPath) => {
+            SameAs.deleteReplacePath(childDefaults, fieldPath);
+          });
+
+          const generatedChild = Merge.mergeDeep(childDefaults, child);
           preserveStaticRefMarkers(sharedDefaults, generatedChild);
           preserveStaticRefMarkers(child, generatedChild);
 
