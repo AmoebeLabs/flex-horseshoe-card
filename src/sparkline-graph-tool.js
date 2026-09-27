@@ -816,7 +816,6 @@ export default class SparklineGraphTool extends BaseTool {
       this[handler] = this[handler].bind(this);
     });
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.runtimeYScale = undefined;
     this.graphDataChanged = true;
     this.config.svg = this.svg;
   }
@@ -2793,32 +2792,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Rebuilds cartesian tooltip state from a pointer and requests a Lit update.
-   * This route is used where direct DOM synchronization is not active.
-   *
-   * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
-   */
-  updateTooltipFromPointer(e) {
-    if (
-      this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-      || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
-    ) {
-      this.clearTooltip();
-      return;
-    }
-
-    const pointerX = this.pointToGraphX(this.mouseEventToPoint(e));
-    const pointIndex = this.getPointIndexFromX(pointerX);
-
-    if (pointIndex === undefined) {
-      this.clearTooltip();
-      return;
-    }
-
-    this.updateTooltipFromPointIndex(pointIndex, e);
-  }
-
-  /**
    * Queues the radial bin identified by the latest pointer coordinates.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current pointer event.
@@ -3273,98 +3246,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Renders the line min/max background through the min/max line mask.
-   *
-   * @param {string} line - Line path.
-   * @param {number} i - Entity index.
-   * @returns {TemplateResult|string} Line min/max background SVG.
-   */
-  renderSvgLineMinMaxMask(line, i) {
-    if (this.config.sparkline.show.chart_type !== 'line') return '';
-    if (!line) return '';
-
-    const lineStyles = this.getLineStyles();
-
-    return svg`
-      <mask id="sparkline-lineMinMax-${this.cardId}-${this.index}-${i}">
-        <path
-          class="sparkline-line-mask"
-          fill="none"
-          stroke="white"
-          stroke-width="${lineStyles['stroke-width']}"
-          stroke-linecap="${lineStyles['stroke-linecap']}"
-          stroke-linejoin="${lineStyles['stroke-linejoin']}"
-          stroke-dasharray="${lineStyles['stroke-dasharray']}"
-          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
-          d="${line}"
-        ></path>
-      </mask>
-    `;
-  }
-
-  /**
-   * Renders the line min/max background through the min/max line mask.
-   *
-   * @param {string} line - Line path.
-   * @param {number} i - Entity index.
-   * @returns {TemplateResult|string} Line min/max background SVG.
-   */
-  renderSvgLineMinMaxBackground(line, i) {
-    if (this.config.sparkline.show.chart_type !== 'line') return '';
-    if (!line) return '';
-
-    const lineStyles = this.getLineStyles();
-    const backgroundStyles = lineStyles;
-    backgroundStyles.fill = this.getSparklineBackgroundPaint(lineStyles, this.config.sparkline.line.minmax.show.item_style);
-    backgroundStyles.stroke = 'none';
-
-    delete backgroundStyles['stroke-width'];
-    delete backgroundStyles['stroke-linecap'];
-    delete backgroundStyles['stroke-linejoin'];
-
-    return svg`
-      <rect
-        class="sparkline-line-rect"
-        x="0"
-        y="0"
-        width="${this.graphArea.width}"
-        height="${this.graphArea.height}"
-        style=${styleMap(this.getRenderStyles(backgroundStyles, [
-          this.config.sparkline.line.minmax.color_filter,
-        ]))}
-        mask="url(#sparkline-lineMinMax-${this.cardId}-${this.index}-${i})"
-      ></rect>
-    `;
-  }
-
-  /**
-   * Renders the mask used for gradient-backed line drawing.
-   *
-   * @returns {TemplateResult|string} Line mask definition.
-   */
-  renderLineMask() {
-    if (!this.linePath) return '';
-
-    const lineStyles = this.getLineStyles();
-
-    return svg`
-      <mask id="sparkline-line-${this.cardId}-${this.index}">
-        <path
-          class="sparkline-line-mask"
-          fill="none"
-          stroke="white"
-          stroke-width="${lineStyles['stroke-width']}"
-          stroke-linecap="${lineStyles['stroke-linecap']}"
-          stroke-linejoin="${lineStyles['stroke-linejoin']}"
-          stroke-dasharray="${lineStyles['stroke-dasharray']}"
-          stroke-dashoffset="${lineStyles['stroke-dashoffset']}"
-          d="${this.linePath}"
-        ></path>
-      </mask>
-    `;
-  }
-
-  /**
    * Renders SAK-style SVG gradients produced from sparkline.colorstops.colors.
    *
    * @param {Array<Array<object>>} gradients - Gradient stop lists.
@@ -3420,24 +3301,6 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Converts a configured x-axis ticksize into hours. X-axis ticksize is time
-   * based, for example 15min, 1h or 6h.
-   *
-   * @param {string|number} ticksize - Configured x-axis tick interval.
-   * @returns {number} Tick interval in hours.
-   */
-  xTicksizeToHours(ticksize) {
-    if (typeof ticksize === 'number') return ticksize;
-
-    const match = ticksize.match(/^(\d+(?:\.\d+)?)(m|min|h|hour)$/);
-    const value = Number(match[1]);
-    const unit = match[2];
-
-    if (unit === 'm' || unit === 'min') return value / 60;
-    return value;
-  }
-
-  /**
    * Reads the configured axis label font size from the style dictionary. The
    * builder uses this to size auto ticks without inventing a second config.
    *
@@ -3475,37 +3338,6 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     return value;
-  }
-
-  /**
-   * Calculates the auto x-axis tick size from available width and label font
-   * size. This reuses the example perfect-axis logic for the interval choice.
-   *
-   * @param {string} level - major or minor.
-   * @param {object} range - Source and plot range calculated by SparklineHistory.
-   * @returns {number} Tick interval in hours.
-   */
-  getAutoXAxisTicksize(level, range) {
-    const fontSizePixels = this.resolveAxisFontSizePixels('x', FONT_SIZE);
-    const fontWidthPixels = Math.max(3, fontSizePixels * (level === 'minor' ? 0.35 : 0.45));
-    const perfect = this.calculatePerfectXAxis(range.start, range.end, this.primaryGraph.drawArea.width, fontWidthPixels);
-
-    return perfect.ticksize / (60 * 60 * 1000);
-  }
-
-  /**
-   * Calculates the auto y-axis tick size from available height and label font
-   * size. This reuses the example perfect-axis logic for the interval choice.
-   *
-   * @param {string} level - major or minor.
-   * @returns {number} Tick interval in data units.
-   */
-  getAutoYAxisTicksize(level) {
-    const fontSizePixels = this.resolveAxisFontSizePixels('y', FONT_SIZE);
-    const fontHeightPixels = Math.max(6, fontSizePixels * (level === 'minor' ? 0.65 : 0.85));
-    const perfect = this.calculatePerfectYAxis(this.primaryGraph.min, this.primaryGraph.max, this.primaryGraph.drawArea.height, fontHeightPixels);
-
-    return level === 'minor' ? Math.max(perfect.interval / 2, 0.5) : Math.max(perfect.interval, 0.5);
   }
 
   /**
@@ -4306,26 +4138,6 @@ export default class SparklineGraphTool extends BaseTool {
     if (itemStyle === 'colorstop') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, false, this.card.cardTheme.colorContext);
     if (itemStyle === 'colorstopinterpolated') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, true, this.card.cardTheme.colorContext);
     return gradientPaint;
-  }
-
-  /**
-   * Renders area by drawing a styled rectangle through the area mask.
-   *
-   * @returns {TemplateResult|string} Area SVG.
-   */
-  renderArea() {
-    return this.renderSvgAreaBackground(this.areaPath, this.entity_index);
-  }
-
-  /**
-   * Renders the line exactly like SAK: a background rectangle is visible only
-   * through the white line mask. Gradients come from colorstops on the
-   * background, never from painting the line path itself.
-   *
-   * @returns {TemplateResult|string} Line SVG.
-   */
-  renderLine() {
-    return this.renderSvgLineBackground(this.linePath, this.entity_index);
   }
 
   /**
