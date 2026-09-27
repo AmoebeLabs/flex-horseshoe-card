@@ -41,6 +41,8 @@ Before implementing any plan:
 7. update only implementation details/locators when code moved without changing the plan's architectural guarantee;
 8. stop and revise the plan first if the current code invalidates a prerequisite, ownership decision or Definition of Done.
 
+For every result affected by the plan, trace its producer, stored output, all consumers and the changes that require recalculation. Follow the actual call chain across owners, including implicit single-series and explicit series routes. Checking the named functions in isolation is insufficient.
+
 Architectural goals, prerequisites, Definition of Done and guarantees are authoritative. Baseline line numbers and nearby implementation shapes are locators only.
 
 ## 3. Fixed runtime direction
@@ -123,6 +125,19 @@ A consumer must not reconstruct, rediscover or recalculate information already o
 
 Internal algorithmic complexity is acceptable. Cross-layer behaviour must remain simple, directional and predictable.
 
+### Whole-chain ownership check (2026-09-27)
+
+This is a mandatory implementation and review gate for every remaining plan, not work deferred to final cleanup.
+
+- Record one producer and one stored result for each calculation affected by the plan, together with its consumers and recalculation triggers.
+- Consumers reuse that result. Check all consumers together: statistics, tooltips, derived entities, scale coordination and rendering must not independently repeat an existing calculation.
+- Remove duplicate calculation routes within the changed responsibility, including separate single-series and multi-series paths that produce the same result.
+- Keep genuinely different intermediate and final results explicit. For example, measuring provisional geometry to determine margins and calculating final drawing geometry serve different inputs; requesting the same final geometry again does not.
+- Rendering consumes prepared data and geometry. Repeated renders and paint-only changes must reuse them; data changes recalculate only the affected results.
+- Review the complete route after implementation and record any remaining repeated work with its owner and reason. Assign unrelated remaining work to a named follow-up; do not describe an unfinished ownership boundary as complete.
+
+Performance is evidence that these boundaries work, not a separate substitute for them. Measure calculation and rendering time separately in representative workflows. An incremental processing algorithm may be a later optimization; removing multiple owners or repeated calculations for identical inputs is part of the current responsibility repair.
+
 ## 5. Fundamental distinctions
 
 Keep these distinctions explicit:
@@ -171,6 +186,10 @@ Tests added by a plan must normally remain after later plans. A later plan may c
 
 Do not write large groups of tests for an intermediate route that is intentionally removed in the next plan.
 
+For changed calculations, add focused integration coverage that exercises the owner and its consumers together. Verify both the preserved result and calculation counts: one calculation per distinct required input, reuse by multiple consumers, and no data/geometry calculation during repeated rendering or paint-only updates. For Sparkline work, exercise the applicable History -> Series -> Graph -> Tool/render route with both implicit single-series and explicit series inputs.
+
+Record representative before/after timings when the plan changes frequently executed work. Timing measurements complement deterministic reuse tests; they do not replace them or impose a fixed calculation/rendering percentage.
+
 ## 8. Plan structure — mandatory
 
 Every implementation plan contains:
@@ -187,6 +206,8 @@ Every implementation plan contains:
 10. Guarantees for following plans
 
 A plan is not complete merely because tests pass. Its Definition of Done must also prove that the responsibility boundary is clean and no temporary compatibility route remains.
+
+Each plan's current-code validation, required design, tests and Definition of Done must include the whole-chain ownership check from section 4 for its affected results. State which owner calculates each result, how consumers reuse it, and what evidence demonstrates that the same work is not repeated across layers.
 
 ## 9. Naming and function-shape rules
 
@@ -273,6 +294,8 @@ The series is complete only when:
 - source/plot offsets and DST/current-sample behaviour are correct;
 - valid empty/error/stale results are explicit;
 - processed data is not repeated for geometry/paint-only changes;
+- affected results have one producer, shared stored output and verified reuse by every consumer across the complete call chain;
+- repeated rendering does not rebuild prepared data or geometry, with integration tests proving calculation counts as well as results;
 - `fhs_sparkline.*` reaches consumers without HA re-entry;
 - replacement/disconnect stops resources and late results are inert;
 - pointer/Horseshoe lifetimes are bounded and Safari-safe;

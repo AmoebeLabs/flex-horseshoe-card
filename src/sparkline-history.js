@@ -80,8 +80,11 @@ export default class SparklineHistory {
           sourceRows: undefined,
           rows: undefined,
           sourceRowsChanged: true,
+          sourceRowsReplaced: true,
+          sourceRowChanges: [],
           rowsConversionSignature: undefined,
           preparedRowsBySource: new WeakMap(),
+          rowsUpdate: { previousRows: undefined, replaced: true, changedFrom: Infinity },
           sourceRangeStart: undefined,
           sourceRangeEnd: undefined,
           sourceKey: undefined,
@@ -832,6 +835,21 @@ export default class SparklineHistory {
     return this.seriesRecords.get(seriesId).rows;
   }
 
+  /**
+   * Transfers accumulated source changes since the previous graph delivery.
+   * Several live insertions and pruning can belong to one delivery. History
+   * reports the earliest altered plot timestamp; Graph chooses the processing.
+   *
+   * @param {string} seriesId - Stable normalized Series ID.
+   * @returns {object} Previous/current rows, replacement and earliest change.
+   */
+  takeRowsUpdate(seriesId) {
+    const record = this.seriesRecords.get(seriesId);
+    const update = { ...record.rowsUpdate, rows: record.rows };
+    record.rowsUpdate = { previousRows: record.rows, replaced: false, changedFrom: Infinity };
+    return update;
+  }
+
   /** Returns the accepted absolute source boundaries for request reuse. */
   getAcceptedRange(seriesId) {
     const record = this.seriesRecords.get(seriesId);
@@ -851,8 +869,11 @@ export default class SparklineHistory {
     record.sourceRows = undefined;
     record.rows = undefined;
     record.sourceRowsChanged = true;
+    record.sourceRowsReplaced = true;
+    record.sourceRowChanges = [];
     record.rowsConversionSignature = undefined;
     record.preparedRowsBySource = new WeakMap();
+    record.rowsUpdate = { previousRows: undefined, replaced: true, changedFrom: Infinity };
     record.sourceRangeStart = undefined;
     record.sourceRangeEnd = undefined;
     record.acceptedSourceKey = undefined;
@@ -875,10 +896,13 @@ export default class SparklineHistory {
    */
   acceptHistoryRows(item, historyRows, range) {
     const record = this.seriesRecords.get(item.id);
-    // An HA response is the ordering boundary. Live measurements are inserted
-    // into this chronological collection instead of sorting it on every update.
-    record.sourceRows = historyRows.slice().sort((first, second) => new Date(first.last_changed).getTime() - new Date(second.last_changed).getTime());
+    // HA supplies history in chronological order. Copy the collection so live
+    // insertion and pruning retain that order without mutating the API response.
+    record.sourceRows = historyRows.slice();
     record.sourceRowsChanged = true;
+    record.sourceRowsReplaced = true;
+    record.sourceRowChanges = [];
+    record.rowsUpdate.replaced = true;
     record.sourceRangeStart = range.sourceStart.getTime();
     record.sourceRangeEnd = range.sourceEnd.getTime();
     record.acceptedSourceKey = record.sourceKey;
@@ -914,18 +938,23 @@ export default class SparklineHistory {
     // New live values normally follow the last retained measurement. Binary
     // insertion also preserves the existing behavior for delayed measurements
     // and a corrected value at an already-known timestamp.
-    let lower = 0;
-    let upper = record.sourceRows.length;
-    while (lower < upper) {
-      const middle = Math.floor((lower + upper) / 2);
-      if (new Date(record.sourceRows[middle].last_changed).getTime() < currentTime) lower = middle + 1;
-      else upper = middle;
+    let lower = record.sourceRows.length;
+    if (lower > 0 && new Date(record.sourceRows[lower - 1].last_changed).getTime() >= currentTime) {
+      let upper = lower;
+      lower = 0;
+      while (lower < upper) {
+        const middle = Math.floor((lower + upper) / 2);
+        if (new Date(record.sourceRows[middle].last_changed).getTime() < currentTime) lower = middle + 1;
+        else upper = middle;
+      }
     }
     const previousRow = record.sourceRows[lower];
     if (lower < record.sourceRows.length && new Date(previousRow.last_changed).getTime() === currentTime) {
       record.sourceRows[lower] = currentRow;
-      if (previousRow.state !== currentState) record.sourceRowsChanged = true;
-      else if (record.preparedRowsBySource.has(previousRow)) {
+      if (previousRow.state !== currentState) {
+        record.sourceRowsChanged = true;
+        record.sourceRowChanges.push({ previousRow, currentRow });
+      } else if (record.preparedRowsBySource.has(previousRow)) {
         // A fresh HA object with the same value/time refreshes source context
         // while retaining its already converted graph measurement.
         record.preparedRowsBySource.set(currentRow, record.preparedRowsBySource.get(previousRow));
@@ -933,6 +962,7 @@ export default class SparklineHistory {
     } else {
       record.sourceRows.splice(lower, 0, currentRow);
       record.sourceRowsChanged = true;
+      record.sourceRowChanges.push({ previousRow: undefined, currentRow });
     }
 
     this.buildSeriesRows(item, range);
@@ -941,8 +971,9 @@ export default class SparklineHistory {
 
   /**
    * Publishes chronological numeric or categorical graph records. Retained
-   * measurements reuse their converted values and projected timestamps until
-   * an offset or categorical state map changes.
+   * measurements retain their converted values and projected timestamps. Live
+   * changes replace only their own prepared rows; a new source response or a
+   * changed offset/state map rebuilds the complete prepared collection.
    *
    * @param {object} item - Bound Series item and graph configuration.
    * @param {object} range - Source-to-plot offset information.
@@ -957,67 +988,129 @@ export default class SparklineHistory {
     // Offset and categorical-map changes convert the retained history again.
     // Ordinary live updates reuse every unchanged measurement's numeric value
     // and projected timestamps, converting only the inserted/corrected row.
-    if (record.rowsConversionSignature !== conversionSignature) record.preparedRowsBySource = new WeakMap();
-    const preparedRows = [];
+    const rebuildRows = record.sourceRowsReplaced || record.rowsConversionSignature !== conversionSignature;
+    if (record.rowsConversionSignature !== conversionSignature) {
+      record.preparedRowsBySource = new WeakMap();
+      record.rowsUpdate.replaced = true;
+    }
+    let preparedRows = rebuildRows ? [] : record.rows;
+    let rowsToConvert = record.sourceRows;
 
-    record.sourceRows.forEach((row) => {
-      if (record.preparedRowsBySource.has(row)) {
-        const preparedRow = record.preparedRowsBySource.get(row);
-        if (preparedRow !== undefined) preparedRows.push(preparedRow);
-        return;
-      }
-      const sourceTime = new Date(row.last_changed);
-      const plotTime = new Date(sourceTime);
-
-      if (range.calendarOffsetDays !== undefined) plotTime.setDate(plotTime.getDate() - range.calendarOffsetDays);
-      else plotTime.setTime(plotTime.getTime() - range.rollingOffsetDays * DAY_MS);
-
-      if (categorical) {
-        const mappedState = this.stateBandsStateMap.map.find((entry) => String(entry.state) === String(row.state));
-        if (mappedState === undefined) {
-          record.preparedRowsBySource.set(row, undefined);
-          return;
+    if (!rebuildRows) {
+      rowsToConvert = [];
+      // Remove only corrected or expired measurements. Binary lookup uses plot
+      // time, with source time preserving the order of coincident projections
+      // during the repeated winter-time hour. Unaffected rows keep their identity.
+      record.sourceRowChanges.forEach(({ previousRow, currentRow }) => {
+        if (previousRow !== undefined) {
+          const previousPreparedRow = record.preparedRowsBySource.get(previousRow);
+          if (previousPreparedRow !== undefined) {
+            if (preparedRows === record.rows) preparedRows = record.rows.slice();
+            let lower = 0;
+            let upper = preparedRows.length;
+            while (lower < upper) {
+              const middle = Math.floor((lower + upper) / 2);
+              const row = preparedRows[middle];
+              if (row.last_changed < previousPreparedRow.last_changed
+                || (row.last_changed === previousPreparedRow.last_changed && row.source_time < previousPreparedRow.source_time)) lower = middle + 1;
+              else upper = middle;
+            }
+            preparedRows.splice(lower, 1);
+          }
         }
+        if (currentRow !== undefined) rowsToConvert.push(currentRow);
+      });
+    }
 
-        const preparedRow = {
-          ...row,
-          source_time: sourceTime.toISOString(),
-          plot_time: plotTime.toISOString(),
-          last_changed: plotTime.toISOString(),
-          state: Number(mappedState.value),
-          haState: row.state,
-        };
+    rowsToConvert.forEach((row) => {
+      let preparedRow;
+      if (record.preparedRowsBySource.has(row)) {
+        preparedRow = record.preparedRowsBySource.get(row);
+      } else {
+        const sourceTime = new Date(row.last_changed);
+        const plotTime = new Date(sourceTime);
+
+        if (range.calendarOffsetDays !== undefined) plotTime.setDate(plotTime.getDate() - range.calendarOffsetDays);
+        else plotTime.setTime(plotTime.getTime() - range.rollingOffsetDays * DAY_MS);
+
+        // Include rejected measurements too: correcting a numeric state to an
+        // unavailable state removes its previous contribution at this timestamp.
+        record.rowsUpdate.changedFrom = Math.min(record.rowsUpdate.changedFrom, plotTime.getTime());
+
+        if (categorical) {
+          const mappedState = this.stateBandsStateMap.map.find((entry) => String(entry.state) === String(row.state));
+          if (mappedState !== undefined) {
+            preparedRow = {
+              ...row,
+              source_time: sourceTime.toISOString(),
+              plot_time: plotTime.toISOString(),
+              last_changed: plotTime.toISOString(),
+              state: Number(mappedState.value),
+              haState: row.state,
+            };
+          }
+        } else if (Number.isFinite(Number(row.state))) {
+          preparedRow = {
+            ...row,
+            source_time: sourceTime.toISOString(),
+            plot_time: plotTime.toISOString(),
+            last_changed: plotTime.toISOString(),
+            state: Number(row.state),
+            haState: row.state,
+          };
+        }
         record.preparedRowsBySource.set(row, preparedRow);
-        preparedRows.push(preparedRow);
-        return;
       }
-
-      if (!Number.isFinite(Number(row.state))) {
-        record.preparedRowsBySource.set(row, undefined);
-        return;
+      if (preparedRow === undefined) return;
+      if (rebuildRows) preparedRows.push(preparedRow);
+      else {
+        // Publish a new array without walking retained measurements. The previous
+        // delivered array stays unchanged for Graph's incremental-data comparison.
+        let lower = preparedRows.length;
+        if (lower > 0 && preparedRows[lower - 1].last_changed >= preparedRow.last_changed) {
+          let upper = lower;
+          lower = 0;
+          while (lower < upper) {
+            const middle = Math.floor((lower + upper) / 2);
+            const previous = preparedRows[middle];
+            if (previous.last_changed < preparedRow.last_changed
+              || (previous.last_changed === preparedRow.last_changed && previous.source_time < preparedRow.source_time)) lower = middle + 1;
+            else upper = middle;
+          }
+        }
+        if (lower === preparedRows.length) {
+          // An append allocates the enlarged snapshot once. Copying first and then
+          // extending the copy would allocate and copy its backing storage twice.
+          if (preparedRows === record.rows) preparedRows = record.rows.concat(preparedRow);
+          else preparedRows.push(preparedRow);
+        } else {
+          if (preparedRows === record.rows) preparedRows = record.rows.slice();
+          preparedRows.splice(lower, 0, preparedRow);
+        }
       }
-      const preparedRow = {
-        ...row,
-        source_time: sourceTime.toISOString(),
-        plot_time: plotTime.toISOString(),
-        last_changed: plotTime.toISOString(),
-        state: Number(row.state),
-        haState: row.state,
-      };
-      record.preparedRowsBySource.set(row, preparedRow);
-      preparedRows.push(preparedRow);
     });
+
+    // Calendar projection preserves local clock times. Moving the repeated
+    // winter-time hour onto another day can reverse their plot order; restore
+    // that order once here so all graph consumers receive chronological rows.
+    if (rebuildRows && range.calendarOffsetDays !== undefined
+      && preparedRows.some((row, index) => index > 0 && row.last_changed < preparedRows[index - 1].last_changed)) {
+      preparedRows.sort((first, second) => first.last_changed < second.last_changed ? -1 : first.last_changed > second.last_changed ? 1 : 0);
+    }
 
     // Equivalent source responses can still produce the same graph records.
     // Retain their published array so Graph can reuse aggregated buckets.
     const previousRows = record.rows;
-    const rowsUnchanged = previousRows !== undefined
+    const rowsUnchanged = preparedRows === previousRows || (rebuildRows && previousRows !== undefined
       && previousRows.length === preparedRows.length
       && preparedRows.every((row, index) => row.state === previousRows[index].state
         && row.haState === previousRows[index].haState
-        && row.last_changed === previousRows[index].last_changed);
+        && row.source_time === previousRows[index].source_time
+        && row.last_changed === previousRows[index].last_changed));
     if (!rowsUnchanged) record.rows = preparedRows;
     record.sourceRowsChanged = false;
+    record.sourceRowsReplaced = false;
+    record.sourceRowChanges = [];
     record.rowsConversionSignature = conversionSignature;
     return record.rows;
   }
@@ -1077,6 +1170,11 @@ export default class SparklineHistory {
     }
     const firstRetainedIndex = Math.max(0, lower - 1);
     if (firstRetainedIndex > 0) {
+      // Expiry removes only the old prefix, including skipped invalid states.
+      // Preparation then removes those exact rows from its own ordered collection.
+      for (let index = 0; index < firstRetainedIndex; index++) {
+        record.sourceRowChanges.push({ previousRow: record.sourceRows[index], currentRow: undefined });
+      }
       record.sourceRows = record.sourceRows.slice(firstRetainedIndex);
       record.sourceRowsChanged = true;
     }

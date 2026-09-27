@@ -313,6 +313,141 @@ test('switching through state bands cannot revive old numeric buckets', () => {
   assert.notStrictEqual(graph.processedValues, previousValues);
 });
 
+for (const aggregate of ['avg', 'median', 'min', 'max', 'sum', 'first', 'last', 'delta', 'diff']) {
+  test(`incremental ${aggregate} bins and statistics match complete processing`, () => {
+    const config = createGraphConfig({ showLineMinMax: true });
+    config.sparkline.state_values.aggregate_func = aggregate;
+    const graph = createGraph(config);
+    let endTime = Date.parse('2026-08-20T12:00:00.000Z');
+    graph._updateEndTime = () => { graph._endTime = new Date(endTime); };
+    let rows = [
+      { state: -4, last_changed: '2026-08-20T07:50:00.000Z' },
+      { state: 0, last_changed: '2026-08-20T08:45:00.000Z' },
+      { state: 8, last_changed: '2026-08-20T09:15:00.000Z' },
+      { state: 12, last_changed: '2026-08-20T09:45:00.000Z' },
+      { state: 20, last_changed: '2026-08-20T11:20:00.000Z' },
+    ];
+    graph.processData(rows);
+    const completedGroup = graph.bucketGroups.get(Date.parse('2026-08-20T09:00:00.000Z'));
+    const completedResult = graph.bucketResults.get(completedGroup);
+    const reducer = graph._reducer.bind(graph);
+    let assignedRows = 0;
+    graph._reducer = (groups, row) => { assignedRows += 1; return reducer(groups, row); };
+
+    const checkUpdate = (nextRows, changedFrom, nextEndTime = endTime, replaced = false) => {
+      endTime = nextEndTime;
+      assignedRows = 0;
+      graph.processData(nextRows, { previousRows: rows, rows: nextRows, changedFrom, replaced });
+      const complete = createGraph(config);
+      complete._updateEndTime = () => { complete._endTime = new Date(endTime); };
+      complete.processData(nextRows);
+      assert.deepEqual(graph.processedValues, complete.processedValues);
+      assert.deepEqual(graph.processedMinValues, complete.processedMinValues);
+      assert.deepEqual(graph.processedMaxValues, complete.processedMaxValues);
+      assert.deepEqual(graph.bucketMeta, complete.bucketMeta);
+      const range = { start: endTime - 4 * 3600000, end: endTime - 60000 };
+      const expected = complete.updateStatistics([...nextRows], range);
+      const actual = graph.updateStatistics(nextRows, range);
+      assert.equal(actual.min, expected.min);
+      assert.equal(actual.max, expected.max);
+      assert.equal(actual.min_time, expected.min_time);
+      assert.equal(actual.max_time, expected.max_time);
+      assert.ok(Math.abs(actual.avg - expected.avg) < 1e-10);
+      rows = nextRows;
+    };
+
+    checkUpdate([...rows, { state: 0, last_changed: '2026-08-20T11:40:00.000Z' }], Date.parse('2026-08-20T11:40:00.000Z'));
+    assert.equal(assignedRows, 2);
+    assert.strictEqual(graph.bucketGroups.get(Date.parse('2026-08-20T09:00:00.000Z')), completedGroup);
+    assert.strictEqual(graph.bucketResults.get(completedGroup), completedResult);
+    checkUpdate(rows.map((row) => row.last_changed === '2026-08-20T11:40:00.000Z' ? { ...row, state: -2 } : row), Date.parse('2026-08-20T11:40:00.000Z'));
+    assert.equal(assignedRows, 2);
+    checkUpdate(rows.filter((row) => row.last_changed !== '2026-08-20T11:40:00.000Z'), Date.parse('2026-08-20T11:40:00.000Z'));
+    checkUpdate([...rows, { state: 3, last_changed: '2026-08-20T12:10:00.000Z' }], Date.parse('2026-08-20T12:10:00.000Z'), Date.parse('2026-08-20T13:00:00.000Z'));
+    assert.equal(assignedRows, 1);
+    checkUpdate(rows.slice(2), Infinity, Date.parse('2026-08-20T15:00:00.000Z'));
+    assert.equal(assignedRows, 0);
+    const delayedRows = [...rows, { state: 25, last_changed: '2026-08-20T11:30:00.000Z' }].sort((first, second) => first.last_changed.localeCompare(second.last_changed));
+    checkUpdate(delayedRows, Date.parse('2026-08-20T11:30:00.000Z'));
+    checkUpdate(delayedRows.map((row) => ({ ...row, state: row.state + 1 })), Infinity, endTime, true);
+    assert.equal(assignedRows, rows.length);
+  });
+}
+
+test('a live update preserves completed two-week bin summaries', () => {
+  const config = createGraphConfig({ showLineMinMax: true });
+  config.period.rolling_window.duration.hour = 336;
+  config.period.rolling_window.bins.per_hour = 4;
+  const graph = createGraph(config);
+  const endTime = Date.parse('2026-08-20T12:00:00.000Z');
+  graph._updateEndTime = () => { graph._endTime = new Date(endTime); };
+  const rows = Array.from({ length: 20160 }, (_, index) => ({
+    state: index % 101,
+    last_changed: new Date(endTime - 336 * 3600000 + index * 60000).toISOString(),
+  }));
+  graph.processData(rows);
+  graph.updateStatistics(rows, { start: endTime - 336 * 3600000, end: endTime });
+  const summaries = [...graph.bucketGroups.values()].slice(1, -1).map((group) => [group, graph.bucketResults.get(group)]);
+  const update = [...rows, { state: 150, last_changed: new Date(endTime - 30000).toISOString() }];
+  const reducer = graph._reducer.bind(graph);
+  let assignedRows = 0;
+  graph._reducer = (groups, row) => { assignedRows += 1; return reducer(groups, row); };
+  graph.processData(update, { previousRows: rows, rows: update, changedFrom: endTime - 30000, replaced: false });
+  graph.updateStatistics(update, { start: endTime - 336 * 3600000, end: endTime });
+  assert.equal(assignedRows, 16);
+  assert.equal(graph.bucketMeta.at(-1).count, 16);
+  assert.equal(graph.statistics.max, 150);
+  summaries.forEach(([group, result]) => assert.strictEqual(graph.bucketResults.get(group), result));
+});
+
+test('calendar bins retain the current day and rebuild at the next midnight', (context) => {
+  const NativeDate = globalThis.Date;
+  const previousTimeZone = process.env.TZ;
+  let now = NativeDate.parse('2026-08-20T00:08:00.000Z');
+  process.env.TZ = 'UTC';
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) { super(...(args.length === 0 ? [now] : args)); }
+    static now() { return now; }
+  };
+  context.after(() => {
+    globalThis.Date = NativeDate;
+    if (previousTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimeZone;
+  });
+  const config = createGraphConfig({ chartType: 'radial', showLineMinMax: true });
+  config.period = { type: 'calendar', calendar: { period: 'day', offset: 0, duration: { hour: 24 }, bins: { per_hour: 4 } } };
+  const graph = createGraph(config);
+  let rows = [
+    { state: 4, last_changed: '2026-08-19T23:55:00.000Z' },
+    { state: 8, last_changed: '2026-08-20T00:05:00.000Z' },
+  ];
+  graph.processData(rows);
+  const check = (nextRows, changedFrom, replaced = false) => {
+    graph.processData(nextRows, { previousRows: rows, rows: nextRows, changedFrom, replaced });
+    const complete = createGraph(config);
+    complete.processData(nextRows);
+    assert.deepEqual(graph.processedValues, complete.processedValues);
+    assert.deepEqual(graph.bucketMeta, complete.bucketMeta);
+    assert.deepEqual(graph.processedMinValues, complete.processedMinValues);
+    assert.deepEqual(graph.processedMaxValues, complete.processedMaxValues);
+    const range = { start: new NativeDate(now).setUTCHours(0, 0, 0, 0), end: now };
+    const expected = complete.updateStatistics([...nextRows], range);
+    const actual = graph.updateStatistics(nextRows, range);
+    assert.ok(Math.abs(actual.avg - expected.avg) < 1e-10);
+    assert.equal(actual.min, expected.min);
+    assert.equal(actual.max, expected.max);
+    rows = nextRows;
+  };
+  now = NativeDate.parse('2026-08-20T00:12:00.000Z');
+  check([...rows, { state: 12, last_changed: '2026-08-20T00:10:00.000Z' }], now - 120000);
+  now = NativeDate.parse('2026-08-20T00:18:00.000Z');
+  check([...rows, { state: -2, last_changed: '2026-08-20T00:16:00.000Z' }], now - 120000);
+  now = NativeDate.parse('2026-08-20T03:18:00.000Z');
+  check(rows, Infinity);
+  now = NativeDate.parse('2026-08-21T00:08:00.000Z');
+  check([{ state: -2, last_changed: '2026-08-20T23:50:00.000Z' }, { state: 7, last_changed: '2026-08-21T00:05:00.000Z' }], now - 180000, true);
+});
+
 test('single-bucket aggregate functions retain their meaning', () => {
   const graph = createGraph();
   const rows = [{ state: '8' }, { state: '2' }, { state: '11' }, { state: '5' }];
@@ -367,6 +502,31 @@ test('stores unchanged time-weighted statistics for the visible historical perio
     max_time: '2026-09-12T11:00:00.000Z',
   });
   assert.equal(graph.statistics, statistics);
+});
+
+test('historical statistics consume ordered rows without sorting and retain extrema times', () => {
+  class OrderedHistoryRows extends Array {
+    sort() { assert.fail('statistics must consume History order'); }
+  }
+  const graph = createGraph();
+  const rows = Object.freeze(OrderedHistoryRows.of(
+    { state: 10, last_changed: '2026-09-12T07:00:00.000Z' },
+    { state: 40, last_changed: '2026-09-12T09:00:00.000Z' },
+    { state: 40, last_changed: '2026-09-12T10:00:00.000Z' },
+    { state: 20, last_changed: '2026-09-12T11:00:00.000Z' },
+    { state: 100, last_changed: '2026-09-12T13:00:00.000Z' },
+  ));
+  const statistics = graph.updateStatistics(rows, {
+    start: Date.parse('2026-09-12T08:00:00.000Z'),
+    end: Date.parse('2026-09-12T12:00:00.000Z'),
+  });
+
+  assert.deepEqual(statistics, {
+    min: 10, avg: 27.5, max: 40,
+    min_time: '2026-09-12T08:00:00.000Z',
+    max_time: '2026-09-12T09:00:00.000Z',
+  });
+  assert.equal(rows.length, 5);
 });
 
 test('stores the current value and HA timestamp for a real-time graph', () => {
@@ -1124,6 +1284,7 @@ test('active data on a full-day calendar axis stops at its projected current buc
     points: 1,
     visibleBucketCount: 13,
     aggregateFuncName: 'avg',
+    bucketResults: new WeakMap(),
     _calcPoint: (items) => Number(items[items.length - 1].state),
   });
   const history = Array(24);

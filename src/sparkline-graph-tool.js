@@ -1747,8 +1747,10 @@ export default class SparklineGraphTool extends BaseTool {
         }
         item.graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
         item.graph.activeDataEnd = range.sourceRangeIsActive ? range.plotActiveEnd : undefined;
+        item.rowsUpdate = this.sparklineHistory.takeRowsUpdate(item.id);
       } else {
         item.graph.activeDataEnd = undefined;
+        item.rowsUpdate = undefined;
       }
     });
 
@@ -1805,10 +1807,27 @@ export default class SparklineGraphTool extends BaseTool {
 
       const { graph, config } = item;
       const chartType = config.sparkline.show.chart_type;
+      // Build each Cartesian path once after shared geometry is final. Both
+      // single-item paint layers and multi-series rendering consume these paths.
       if (['line', 'area'].includes(chartType)) {
         const path = graph.getPath();
-        if (config.sparkline.show.line !== false) this.line[index] = path;
-        if (chartType === 'area') this.area[index] = graph.getArea(path);
+        if (config.sparkline.show.line !== false && (this.sparklineSeries.items.length > 1 || this.entityConfig?.show_line !== false)) this.line[index] = path;
+        if (index === 0) this.linePath = path;
+        if (chartType === 'area') {
+          this.area[index] = graph.getArea(path);
+          if (index === 0) this.areaPath = this.area[index];
+        }
+        const showMinMax = chartType === 'line' ? config.sparkline.line.show.minmax === true : config.sparkline.area.show.minmax === true;
+        if (showMinMax) {
+          const minPath = graph.getPathMin();
+          const maxPath = graph.getPathMax();
+          this.areaMinMax[index] = graph.getAreaMinMax(minPath, maxPath);
+          if (index === 0) {
+            this.lineMinPath = minPath;
+            this.lineMaxPath = maxPath;
+            this.areaMinMaxPath = this.areaMinMax[index];
+          }
+        }
       }
       if (chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true) {
         this.points[index] = graph.calculateYCoordinates(graph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
@@ -1834,8 +1853,10 @@ export default class SparklineGraphTool extends BaseTool {
         }
         item.graph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
         item.graph.activeDataEnd = range.sourceRangeIsActive ? range.plotActiveEnd : undefined;
+        item.rowsUpdate = this.sparklineHistory.takeRowsUpdate(item.id);
       } else {
         item.graph.activeDataEnd = undefined;
+        item.rowsUpdate = undefined;
       }
     });
 
@@ -1928,6 +1949,9 @@ export default class SparklineGraphTool extends BaseTool {
         if (this.config.period.type !== 'real_time') {
           const range = this.sparklineHistory.getSeriesRange(this.sparklineSeries.primaryItem);
           this.primaryGraph.hours = (range.plotEnd.getTime() - range.plotStart.getTime()) / (60 * 60 * 1000);
+          this.sparklineSeries.primaryItem.rowsUpdate = this.sparklineHistory.takeRowsUpdate(this.sparklineSeries.primaryItem.id);
+        } else {
+          this.sparklineSeries.primaryItem.rowsUpdate = undefined;
         }
 
         this.axisGraphs = { primary: this.primaryGraph, secondary: undefined };
@@ -1965,64 +1989,29 @@ export default class SparklineGraphTool extends BaseTool {
         return;
       }
 
-      // New geometry replaces the single-series paths. Accepted empty results
-      // clear them above so old shapes cannot remain mounted.
-      this.clearSingleSeriesPaths();
-      // Use the graph engine y-scale for every vertical introduction animation.
-      // Clamp value zero to the draw area for positive-only and negative-only scales.
-      if (chartType === 'state_bands') {
-        this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
-      } else {
-        const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
-        this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
+      // Cartesian coordination already replaced paths and the animation
+      // baseline. Other chart families build their own presentation here.
+      if (!cartesianSeries) {
+        this.clearSingleSeriesPaths();
+        // Clamp the introduction baseline to the visible graph for scales
+        // whose values are entirely positive or entirely negative.
+        if (chartType === 'state_bands') {
+          this.animationBaselineY = this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height;
+        } else {
+          const zeroY = this.primaryGraph.calculateYCoordinates([[this.primaryGraph.drawArea.x, 0, 0]])[0][Y];
+          this.animationBaselineY = Math.min(this.primaryGraph.drawArea.y + this.primaryGraph.drawArea.height, Math.max(this.primaryGraph.drawArea.y, zeroY));
+        }
       }
 
       this.stateBands = chartType === 'state_bands' && this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id) ? this.primaryGraph.getStateBands() : [];
 
       if (this.primaryGraph.coords.length > 0) {
-        if (['area', 'line'].includes(chartType)) {
-          this.linePath = this.primaryGraph.getPath();
-          if (this.entityConfig?.show_line !== false) {
-            this.line[index] = this.linePath;
-          }
-          if (chartType === 'area') {
-            this.areaPath = this.primaryGraph.getArea(this.linePath);
-            this.area[index] = this.areaPath;
-          } else {
-            this.areaPath = undefined;
-          }
-
-          const showMinMax = chartType === 'line' ? this.config.sparkline.line.show.minmax === true : this.config.sparkline.area.show.minmax === true;
-
-          if (showMinMax) {
-            this.lineMinPath = this.primaryGraph.getPathMin();
-            this.lineMaxPath = this.primaryGraph.getPathMax();
-            this.areaMinMaxPath = this.primaryGraph.getAreaMinMax(this.lineMinPath, this.lineMaxPath);
-            this.areaMinMax[index] = this.areaMinMaxPath;
-          } else {
-            this.lineMinPath = undefined;
-            this.lineMaxPath = undefined;
-            this.areaMinMaxPath = undefined;
-          }
-        } else {
-          this.linePath = undefined;
-          this.lineMinPath = undefined;
-          this.lineMaxPath = undefined;
-          this.areaPath = undefined;
-          this.areaMinMaxPath = undefined;
-        }
-
-        if (chartType === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline?.line?.show_dots === true || this.config.sparkline?.area?.show_dots === true) {
-          this.points[index] = this.primaryGraph.getPoints();
+        if (!cartesianSeries && (this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true || this.config.sparkline.area.show_dots === true)) {
+          this.points[index] = this.primaryGraph.calculateYCoordinates(this.primaryGraph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
         }
 
         if (chartType === 'bar') {
-          this.bar[index] = this.primaryGraph.getBars(index, total, this.svg.column_spacing, this.svg.row_spacing);
-          if (this.config.period.type === 'real_time' && this.config.sparkline.bar.orientation === 'vertical') {
-            // The engine places a one-point bar around its left-edge coordinate.
-            // Center that single bar inside the complete real-time draw area.
-            this.bar[index][0].x = this.primaryGraph.drawArea.x + (this.primaryGraph.drawArea.width - this.bar[index][0].width) / 2;
-          }
+          this.bar[index] = this.sparklineSeries.primaryItem.bars;
         } else if (chartType === 'equalizer') {
           this.primaryGraph.levelCount = this.config.sparkline.equalizer.value_buckets;
           this.primaryGraph.valuesPerBucket = (this.primaryGraph.max - this.primaryGraph.min) / this.config.sparkline.equalizer.value_buckets;
@@ -4404,17 +4393,15 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds point tuples only for chart modes that expose dots, then delegates
-   * the actual SVG and animation attributes to the series renderer.
+   * Renders the point tuples prepared after final shared geometry. Ordinary
+   * Lit renders reuse those coordinates without invoking the graph engine.
    *
    * @returns {object|string} Lit SVG template or an empty result.
    */
   renderPoints() {
     if (this.config.sparkline.show.chart_type !== 'dots' && this.config.sparkline.show.points !== true && this.config.sparkline.line?.show_dots !== true && this.config.sparkline.area?.show_dots !== true) return '';
 
-    const points = this.primaryGraph.calculateYCoordinates(this.primaryGraph.coords).map((point, pointIndex) => [point[X], point[Y], point[V], pointIndex]);
-
-    return this.renderSvgPoints(points, 0);
+    return this.renderSvgPoints(this.points[0], 0);
   }
 
   /**
@@ -5827,8 +5814,8 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Draws coordinated series from their own graph engines. The coordinator has
-   * already aligned their axes and geometry before this presentation step.
+   * Draws coordinated series using the paths stored after the graph engines
+   * aligned their axes. Rendering changes paint without rebuilding geometry.
    *
    * @returns {TemplateResult} Cartesian series layers in declaration order.
    */
@@ -5837,7 +5824,7 @@ export default class SparklineGraphTool extends BaseTool {
       ${this.sparklineSeries.items.map((item, index) => {
         if (item.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) return '';
 
-        const { config, graph } = item;
+        const { config } = item;
         const chartType = config.sparkline.show.chart_type;
         const automaticColor = config.color ?? item.entityConfig.color ?? config.sparkline.line_color[index];
         const lineStyles = {
@@ -5846,12 +5833,12 @@ export default class SparklineGraphTool extends BaseTool {
         };
         const areaStyles = ConfigHelper.toStyleDict(config.sparkline.area.styles);
         const dotStyles = ConfigHelper.toStyleDict(config.sparkline.dots.styles);
-        const path = ['line', 'area'].includes(chartType) ? graph.getPath() : undefined;
-        const areaPath = chartType === 'area' ? graph.getArea(path) : undefined;
-        const showMinMax = chartType === 'line' ? config.sparkline.line.show.minmax === true : chartType === 'area' && config.sparkline.area.show.minmax === true;
-        const minMaxPath = showMinMax ? graph.getAreaMinMax(graph.getPathMin(), graph.getPathMax()) : undefined;
-        const points =
-          chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true ? graph.calculateYCoordinates(graph.coords) : [];
+        const path = this.line[index];
+        const areaPath = this.area[index];
+        const minMaxPath = this.areaMinMax[index];
+        const points = chartType === 'dots' || config.sparkline.show.points === true || config.sparkline.line.show_dots === true || config.sparkline.area.show_dots === true
+          ? this.points[index]
+          : [];
         const pointRadius = Utils.calculateSvgDimension(config.sparkline.dots.radius);
         const currentValue = this.getEntityNumericState(item, item.entity);
         const gradientPaint = `url(#cartesian-series-color-${this.cardId}-${this.index}-${item.id})`;

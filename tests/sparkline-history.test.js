@@ -139,8 +139,8 @@ test('live measurements reuse converted history and retain every sample', () => 
     const history = historyFor(rollingPeriod(0), item, {});
     const range = history.getSeriesRange(item);
     const firstRows = history.acceptHistoryRows(item, [
-      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
       { state: '9', last_changed: '2026-09-12T10:00:00.000Z' },
+      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
     ], range);
     const sourceRows = history.seriesRecords.get(item.id).sourceRows;
 
@@ -163,6 +163,244 @@ test('live measurements reuse converted history and retain every sample', () => 
   });
 });
 
+test('History delivers accumulated source changes without choosing graph processing', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(rollingPeriod(0), item, {});
+    const range = history.getSeriesRange(item);
+    const initialRows = history.acceptHistoryRows(item, [{ state: '9', last_changed: '2026-09-12T11:00:00.000Z' }], range);
+    const initial = history.takeRowsUpdate(item.id);
+    assert.equal(initial.replaced, true);
+    assert.strictEqual(initial.rows, initialRows);
+    item.entity = { ...item.entity, state: '13', last_changed: '2026-09-12T12:20:00.000Z' };
+    history.addCurrentEntityState(item, range);
+    item.entity = { ...item.entity, state: '11', last_changed: '2026-09-12T11:30:00.000Z' };
+    const rows = history.addCurrentEntityState(item, range);
+    const update = history.takeRowsUpdate(item.id);
+    assert.equal(update.replaced, false);
+    assert.equal(update.changedFrom, Date.parse('2026-09-12T11:30:00.000Z'));
+    assert.strictEqual(update.previousRows, initialRows);
+    assert.strictEqual(update.rows, rows);
+    item.entity = { ...item.entity, state: 'unavailable' };
+    history.addCurrentEntityState(item, range);
+    const correction = history.takeRowsUpdate(item.id);
+    assert.equal(correction.changedFrom, Date.parse('2026-09-12T11:30:00.000Z'));
+    assert.equal(correction.rows.some((row) => row.last_changed === item.entity.last_changed), false);
+    const unchanged = history.takeRowsUpdate(item.id);
+    assert.equal(unchanged.changedFrom, Infinity);
+    assert.strictEqual(unchanged.previousRows, unchanged.rows);
+  });
+});
+
+test('a live measurement publishes only its change without walking two weeks of retained rows', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const period = { type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 336 } } };
+    const item = historyItem('large-history', 'sensor.temperature', period);
+    item.entity.last_changed = '2026-09-12T12:30:00.000Z';
+    const history = historyFor(period, item, {});
+    const range = history.getSeriesRange(item);
+    const response = Array.from({ length: 20160 }, (_, index) => ({
+      state: String(index % 40),
+      last_changed: new Date(Date.now() - 336 * HOUR_MS + index * 60000).toISOString(),
+    }));
+    const initial = history.acceptHistoryRows(item, response, range);
+    history.takeRowsUpdate(item.id);
+    const record = history.seriesRecords.get(item.id);
+    let conversionLookups = 0;
+    for (const method of ['has', 'get']) {
+      const original = record.preparedRowsBySource[method].bind(record.preparedRowsBySource);
+      record.preparedRowsBySource[method] = (row) => {
+        conversionLookups += 1;
+        return original(row);
+      };
+    }
+    for (const method of ['forEach', 'map', 'every', 'sort']) {
+      record.sourceRows[method] = () => assert.fail('an ordinary live update must not traverse retained source rows');
+    }
+    initial.every = () => assert.fail('an ordinary live update must not compare every retained prepared row');
+    Object.freeze(initial);
+
+    item.entity = { ...item.entity, state: '13', last_changed: '2026-09-12T12:30:30.000Z' };
+    const appended = history.addCurrentEntityState(item, range);
+    assert.equal(appended.length, initial.length + 1);
+    assert.equal(initial.length, 20161);
+    assert.strictEqual(appended[10000], initial[10000]);
+    assert.equal(appended.at(-1).state, 13);
+    assert.ok(conversionLookups <= 2, 'conversion cache lookups must be bounded by changed rows, not history length');
+    assert.strictEqual(history.takeRowsUpdate(item.id).previousRows, initial);
+  });
+});
+
+test('incremental publication matches complete preparation for corrections, invalid states and delayed values', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('corrections', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(item.config.period, item, {});
+    const range = history.getSeriesRange(item);
+    const initial = history.acceptHistoryRows(item, [
+      { state: '9', last_changed: '2026-09-12T10:00:00.000Z' },
+      { state: 'unavailable', last_changed: '2026-09-12T10:30:00.000Z' },
+      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
+    ], range);
+    for (const [state, timestamp] of [
+      ['11', '2026-09-12T10:45:00.000Z'],
+      ['unknown', '2026-09-12T10:45:00.000Z'],
+      ['11.5', '2026-09-12T10:45:00.000Z'],
+      ['8', '2026-09-12T10:30:00.000Z'],
+      ['unavailable', '2026-09-12T11:00:00.000Z'],
+      ['13', '2026-09-12T12:20:00.000Z'],
+    ]) {
+      item.entity = { ...item.entity, state, last_changed: timestamp };
+      const incremental = history.addCurrentEntityState(item, range);
+      const complete = historyFor(item.config.period, item, {});
+      assert.deepEqual(incremental, complete.acceptHistoryRows(item, history.seriesRecords.get(item.id).sourceRows, range));
+    }
+    assert.deepEqual(initial.map((row) => row.state), [9, 10, 12]);
+  });
+});
+
+test('equivalent history replacements retain published rows and subsequent corrections remove the correct measurement', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('refresh', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(item.config.period, item, {});
+    const range = history.getSeriesRange(item);
+    const response = [{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }];
+    const initial = history.acceptHistoryRows(item, response, range);
+    assert.strictEqual(history.acceptHistoryRows(item, response.map((row) => ({ ...row })), range), initial);
+    item.entity = { ...item.entity, state: 'unavailable', last_changed: response[0].last_changed };
+    assert.deepEqual(history.addCurrentEntityState(item, range).map((row) => row.state), [12]);
+    assert.deepEqual(initial.map((row) => row.state), [10, 12]);
+  });
+});
+
+test('pruning removes only expired prepared rows while retaining the first visible state', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('expiry', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(item.config.period, item, {});
+    const initial = history.acceptHistoryRows(item, [
+      { state: '1', last_changed: '2026-09-11T10:00:00.000Z' },
+      { state: 'unavailable', last_changed: '2026-09-11T11:00:00.000Z' },
+      { state: '2', last_changed: '2026-09-11T12:20:00.000Z' },
+      { state: '3', last_changed: '2026-09-11T12:50:00.000Z' },
+      { state: '4', last_changed: '2026-09-12T11:00:00.000Z' },
+    ], history.getSeriesRange(item));
+    history.takeRowsUpdate(item.id);
+    const record = history.seriesRecords.get(item.id);
+    const originalGet = record.preparedRowsBySource.get.bind(record.preparedRowsBySource);
+    let lookups = 0;
+    record.preparedRowsBySource.get = (row) => { lookups += 1; return originalGet(row); };
+    Object.freeze(initial);
+    history.pruneActiveRows(item, 4);
+    assert.equal(lookups, 2, 'only the two expired source rows need preparation lookup');
+    assert.deepEqual(history.getRows(item.id).map((row) => row.state), [2, 3, 4, 12]);
+    assert.strictEqual(history.getRows(item.id)[0], initial[1]);
+    assert.equal(history.takeRowsUpdate(item.id).changedFrom, Infinity);
+    assert.deepEqual(initial.map((row) => row.state), [1, 2, 3, 4, 12]);
+  });
+});
+
+test('categorical live corrections update only the changed state and rebuild when its mapping changes', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('pollen', 'sensor.pollen', rollingPeriod(0));
+    item.entity.state = 'low';
+    item.config.sparkline.show.chart_type = 'state_bands';
+    const stateMap = { map: [{ state: 'low', value: 0 }, { state: 'high', value: 1 }] };
+    const history = historyFor(item.config.period, item, stateMap);
+    const range = history.getSeriesRange(item);
+    history.acceptHistoryRows(item, [{ state: 'high', last_changed: '2026-09-12T11:00:00.000Z' }], range);
+    item.entity = { ...item.entity, state: 'unknown' };
+    assert.deepEqual(history.addCurrentEntityState(item, range).map((row) => row.state), [1]);
+    item.entity = { ...item.entity, state: 'high' };
+    assert.deepEqual(history.addCurrentEntityState(item, range).map((row) => row.state), [1, 1]);
+    stateMap.map[1].value = 2;
+    assert.deepEqual(history.buildSeriesRows(item, range).map((row) => row.state), [2, 2]);
+  });
+});
+
+test('changing a series offset rebuilds its projected timestamps and published rows', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('offset-change', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(rollingPeriod(0), item, {});
+    const initialRange = history.getSeriesRange(item);
+    const initial = history.acceptHistoryRows(item, [{ state: '10', last_changed: '2026-09-12T11:00:00.000Z' }], initialRange);
+    history.takeRowsUpdate(item.id);
+
+    item.config.period.rolling_window.offset = -1;
+    const shifted = history.buildSeriesRows(item, history.getSeriesRange(item));
+    const update = history.takeRowsUpdate(item.id);
+
+    assert.notStrictEqual(shifted, initial);
+    assert.notStrictEqual(shifted[0], initial[0]);
+    assert.equal(shifted[0].source_time, '2026-09-12T11:00:00.000Z');
+    assert.equal(shifted[0].plot_time, '2026-09-13T11:00:00.000Z');
+    assert.equal(update.replaced, true);
+    assert.strictEqual(update.previousRows, initial);
+    assert.strictEqual(update.rows, shifted);
+    assert.strictEqual(history.buildSeriesRows(item, history.getSeriesRange(item)), shifted);
+  });
+});
+
+test('live calendar projection keeps repeated winter-time measurements ordered after insertion and correction', () => {
+  withFixedTime('2026-10-25T03:30:00.000+01:00', 'Europe/Amsterdam', () => {
+    const item = historyItem('projected-live', 'sensor.temperature', calendarPeriod(0));
+    item.entity.last_changed = '2026-10-25T02:30:00.000Z';
+    const history = historyFor(calendarPeriod(-1), item, {});
+    const range = history.getSeriesRange(item);
+    history.acceptHistoryRows(item, [
+      { state: '10', last_changed: '2026-10-25T00:50:00.000Z' },
+      { state: '20', last_changed: '2026-10-25T01:10:00.000Z' },
+    ], range);
+    for (const [state, timestamp] of [['30', '2026-10-25T01:20:00.000Z'], ['40', '2026-10-25T00:50:00.000Z']]) {
+      item.entity = { ...item.entity, state, last_changed: timestamp };
+      const incremental = history.addCurrentEntityState(item, range);
+      const complete = historyFor(calendarPeriod(-1), item, {});
+      assert.deepEqual(incremental, complete.acceptHistoryRows(item, history.seriesRecords.get(item.id).sourceRows, range));
+    }
+    assert.deepEqual(history.getRows(item.id).map((row) => row.state), [20, 30, 40, 12]);
+  });
+});
+
+test('equal calendar projections retain source-time order through live insertion and correction', () => {
+  withFixedTime('2026-10-25T03:30:00.000+01:00', 'Europe/Amsterdam', () => {
+    const item = historyItem('equal-projection', 'sensor.temperature', calendarPeriod(0));
+    item.entity.state = 'unavailable';
+    item.entity.last_changed = '2026-10-25T02:30:00.000Z';
+    const history = historyFor(calendarPeriod(-1), item, {});
+    const range = history.getSeriesRange(item);
+    const initial = history.acceptHistoryRows(item, [{ state: '20', last_changed: '2026-10-25T01:10:00.000Z' }], range);
+
+    item.entity = { ...item.entity, state: '10', last_changed: '2026-10-25T00:10:00.000Z' };
+    const inserted = history.addCurrentEntityState(item, range);
+    assert.deepEqual(inserted.map((row) => row.state), [10, 20]);
+    assert.deepEqual(inserted.map((row) => row.last_changed), ['2026-10-24T00:10:00.000Z', '2026-10-24T00:10:00.000Z']);
+    assert.deepEqual(inserted.map((row) => row.source_time), ['2026-10-25T00:10:00.000Z', '2026-10-25T01:10:00.000Z']);
+
+    item.entity = { ...item.entity, state: '21', last_changed: '2026-10-25T01:10:00.000Z' };
+    const corrected = history.addCurrentEntityState(item, range);
+    assert.deepEqual(corrected.map((row) => row.state), [10, 21]);
+    assert.deepEqual(corrected.map((row) => row.source_time), ['2026-10-25T00:10:00.000Z', '2026-10-25T01:10:00.000Z']);
+    assert.deepEqual(initial.map((row) => row.state), [20]);
+  });
+});
+
+test('accepted HA history retains chronological order without sorting or mutating the response', () => {
+  class OrderedHistoryRows extends Array {
+    sort() { assert.fail('HA history is already ordered'); }
+  }
+  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+    const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
+    const history = historyFor(rollingPeriod(0), item, {});
+    const response = Object.freeze(OrderedHistoryRows.of(
+      { state: '9', last_changed: '2026-09-12T10:00:00.000Z' },
+      { state: '10', last_changed: '2026-09-12T11:00:00.000Z' },
+    ));
+    const rows = history.acceptHistoryRows(item, response, history.getSeriesRange(item));
+
+    assert.deepEqual(rows.map((row) => row.state), [9, 10, 12]);
+    assert.equal(response.length, 2);
+    assert.notStrictEqual(history.seriesRecords.get(item.id).sourceRows, response);
+  });
+});
+
 test('a parent rolling offset moves both the shared plot and inherited source window', () => {
   withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
     const item = { id: 'default', config: { period: rollingPeriod(-1) } };
@@ -174,6 +412,24 @@ test('a parent rolling offset moves both the shared plot and inherited source wi
     assert.equal(range.sourceStart.toISOString(), range.plotStart.toISOString());
     assert.equal(range.sourceEnd.toISOString(), range.plotEnd.toISOString());
     assert.equal(range.sourceRangeIsActive, false);
+  });
+});
+
+test('calendar projection orders the repeated winter-time hour on the shared plot day', () => {
+  withFixedTime('2026-10-26T12:00:00.000+01:00', 'Europe/Amsterdam', () => {
+    const item = historyItem('yesterday', 'sensor.temperature', calendarPeriod(-1));
+    const history = historyFor(calendarPeriod(0), item, {});
+    const response = Object.freeze([
+      { state: '10', last_changed: '2026-10-25T00:50:00.000Z' },
+      { state: '20', last_changed: '2026-10-25T01:10:00.000Z' },
+    ]);
+    const range = history.getSeriesRange(item);
+    const rows = history.acceptHistoryRows(item, response, range);
+
+    assert.deepEqual(rows.map((row) => row.state), [20, 10]);
+    assert.deepEqual(rows.map((row) => row.plot_time), ['2026-10-26T01:10:00.000Z', '2026-10-26T01:50:00.000Z']);
+    assert.deepEqual([...history.seriesRecords.get(item.id).sourceRows], [...response]);
+    assert.strictEqual(history.buildSeriesRows(item, range), rows);
   });
 });
 
