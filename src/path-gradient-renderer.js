@@ -14,110 +14,49 @@ import { renderNormalizedPathBands } from './path-mask-renderer.js';
  * @returns {object} Gradient micro-ranges and the independently movable reveal range.
  */
 export function buildAdaptivePathGradient(pathGeometry, config) {
-  const domainStart = config.mode === 'full' ? 0 : config.range.start;
-  const domainEnd = config.mode === 'full' ? 100 : config.range.end;
+  const geometry = pathGeometry.getGradientGeometry(config);
+  const { domainStart, domainEnd } = geometry;
   const colorStops = { colors: config.colorStops.map((stop) => ({ value: stop.progress, color: stop.color })) };
   const positionedColorStops = config.colorStops.map((stop) => ({
     progress: domainStart + (stop.progress / 100) * (domainEnd - domainStart),
     color: stop.color,
   }));
-  const pendingIntervals = [{ start: domainStart, end: domainEnd }];
-  const adaptiveIntervals = [];
-  const pathLength = pathGeometry.getTotalLength();
 
-  // Keep an arbitrarily long straight trajectory intact. Curves and corners
-  // are divided until each local linear gradient follows the centerline closely
-  // enough; color stops do not create additional SVG paths.
-  while (pendingIntervals.length) {
-    const interval = pendingIntervals.pop();
-    const midpoint = (interval.start + interval.end) / 2;
-    const intervalLength = ((interval.end - interval.start) / 100) * pathLength;
-    const splitFitsDomBudget = adaptiveIntervals.length + pendingIntervals.length + 2 <= config.maxSegments;
-    const startPoint = pathGeometry.pointAtProgress(interval.start);
-    const middlePoint = pathGeometry.pointAtProgress(midpoint);
-    const endPoint = pathGeometry.pointAtProgress(interval.end);
-    const firstChord = { x: middlePoint.x - startPoint.x, y: middlePoint.y - startPoint.y };
-    const secondChord = { x: endPoint.x - middlePoint.x, y: endPoint.y - middlePoint.y };
-    const firstChordLength = Math.hypot(firstChord.x, firstChord.y);
-    const secondChordLength = Math.hypot(secondChord.x, secondChord.y);
-    const chordDotProduct = (firstChord.x * secondChord.x + firstChord.y * secondChord.y) / (firstChordLength * secondChordLength);
-    const chordAngle = Math.acos(Math.min(1, Math.max(-1, chordDotProduct))) * 180 / Math.PI;
-    let longCurvedInterval = false;
-
-    // Long intervals need two extra samples to distinguish a genuinely straight
-    // trajectory from a curve whose start, middle, and end happen to align.
-    if (intervalLength > config.maxSegmentLength) {
-      const firstQuarterPoint = pathGeometry.pointAtProgress((interval.start + midpoint) / 2);
-      const thirdQuarterPoint = pathGeometry.pointAtProgress((midpoint + interval.end) / 2);
-      const chord = { x: endPoint.x - startPoint.x, y: endPoint.y - startPoint.y };
-      const chordLength = Math.hypot(chord.x, chord.y);
-      const straightTolerance = 0.001;
-      const pathIsStraight = chordLength > 0 && [firstQuarterPoint, middlePoint, thirdQuarterPoint].every((point) => {
-        const pointDelta = { x: point.x - startPoint.x, y: point.y - startPoint.y };
-        const distanceFromChord = Math.abs(pointDelta.x * chord.y - pointDelta.y * chord.x) / chordLength;
-        const positionAlongChord = (pointDelta.x * chord.x + pointDelta.y * chord.y) / (chordLength * chordLength);
-        return distanceFromChord <= straightTolerance && positionAlongChord >= 0 && positionAlongChord <= 1;
-      });
-      longCurvedInterval = !pathIsStraight;
-    }
-    const directionChangeTooLarge = !Number.isFinite(chordAngle) || chordAngle > config.maxTangentAngle;
-
-    if ((longCurvedInterval || directionChangeTooLarge) && intervalLength / 2 >= config.minSegmentLength && splitFitsDomBudget) {
-      pendingIntervals.push({ start: midpoint, end: interval.end });
-      pendingIntervals.push({ start: interval.start, end: midpoint });
-      continue;
-    }
-
-    adaptiveIntervals.push(interval);
-  }
-
-  const overlapProgress = (config.overlap / pathLength) * 100;
-  const ranges = adaptiveIntervals.map((interval, index) => {
-    const gradientStartProgress = ((interval.start - domainStart) / (domainEnd - domainStart)) * 100;
-    const gradientEndProgress = ((interval.end - domainStart) / (domainEnd - domainStart)) * 100;
-    const startPoint = pathGeometry.pointAtProgress(interval.start);
-    const endPoint = pathGeometry.pointAtProgress(interval.end);
-    const overlapEnd = index === adaptiveIntervals.length - 1
-      ? interval.end
-      : Math.min(domainEnd, interval.end + overlapProgress);
-    const length = overlapEnd - interval.start;
+  // Apply colors and band appearance to prepared coordinates. Shared scale,
+  // background and state layers do not repeat the adaptive geometry calculation.
+  const ranges = geometry.ranges.map((interval, index) => {
     const gradientStops = [
-      { offset: 0, color: Colors.calculateStrokeColor(gradientStartProgress, colorStops, true) },
+      { offset: 0, color: Colors.calculateStrokeColor(interval.gradientStartProgress, colorStops, true) },
       ...positionedColorStops
-        .filter((stop) => stop.progress > interval.start && stop.progress < interval.end)
+        .filter((stop) => stop.progress > interval.start && stop.progress < interval.colorEnd)
         .map((stop) => ({
-          offset: ((stop.progress - interval.start) / (interval.end - interval.start)) * 100,
+          offset: ((stop.progress - interval.start) / (interval.colorEnd - interval.start)) * 100,
           color: stop.color,
         })),
-      { offset: 100, color: Colors.calculateStrokeColor(gradientEndProgress, colorStops, true) },
+      { offset: 100, color: Colors.calculateStrokeColor(interval.gradientEndProgress, colorStops, true) },
     ];
 
     return {
       id: `gradient-${index}`,
       start: interval.start,
-      end: overlapEnd,
-      length,
+      end: interval.end,
+      length: interval.length,
       width: config.width,
       opacity: 1,
       startCap: index === 0 ? config.startCap : 'butt',
-      endCap: index === adaptiveIntervals.length - 1 ? config.endCap : 'butt',
+      endCap: index === geometry.ranges.length - 1 ? config.endCap : 'butt',
       dash: {
-        array: [length, 100],
+        array: [interval.length, 100],
         offset: interval.start === 0 ? 0 : -interval.start,
       },
-      gradient: {
-        x1: startPoint.x,
-        y1: startPoint.y,
-        x2: endPoint.x,
-        y2: endPoint.y,
-        stops: gradientStops,
-      },
+      gradient: { ...interval.coordinates, stops: gradientStops },
     };
   });
   const revealLength = config.range.end - config.range.start;
 
   return {
     mode: config.mode,
+    geometry,
     ranges,
     revealRange: {
       id: 'gradient-reveal',

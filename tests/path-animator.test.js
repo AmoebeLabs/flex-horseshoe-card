@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import PathStateAnimator from '../src/path-animator.js';
+import PathGeometry from '../src/path-geometry.js';
 import { buildAdaptivePathGradient, setFullPathGradientRevealRange } from '../src/path-gradient-renderer.js';
 
 /** Creates a deterministic requestAnimationFrame queue for animator tests. */
@@ -133,16 +134,18 @@ test('full-gradient animation retains adaptive geometry and changes only its rev
   const scheduler = createFrameScheduler();
   let lengthReads = 0;
   let pointReads = 0;
-  const geometry = {
+  const geometry = new PathGeometry(() => {});
+  geometry.setPathDefinition({ signature: 'animated-gradient', closed: false });
+  geometry.bindPathElement({
     getTotalLength: () => {
       lengthReads += 1;
       return 100;
     },
-    pointAtProgress: (progress) => {
+    getPointAtLength: (progress) => {
       pointReads += 1;
       return { x: progress, y: 20 };
     },
-  };
+  });
   const gradient = buildAdaptivePathGradient(geometry, {
     mode: 'full',
     range: { start: 0, end: 20 },
