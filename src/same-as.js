@@ -197,34 +197,6 @@ export default class SameAs {
   }
 
   /**
-   * Merges two keyed lists while preserving the old same_as keyed merge behavior.
-   *
-   * @param {Array<object>} baseList - Inherited list.
-   * @param {Array<object>} overrideList - Override list.
-   * @param {string} key - Field used to match items.
-   * @returns {Array<object>} Merged list.
-   */
-  static mergeListByKey(baseList, overrideList, key) {
-    const itemsByKey = new Map();
-
-    baseList.forEach((item) => {
-      itemsByKey.set(String(item[key]), item);
-    });
-
-    overrideList.forEach((item) => {
-      const itemKey = String(item[key]);
-
-      if (itemsByKey.has(itemKey)) {
-        itemsByKey.set(itemKey, Merge.mergeDeep(itemsByKey.get(itemKey), item));
-      } else {
-        itemsByKey.set(itemKey, item);
-      }
-    });
-
-    return [...itemsByKey.values()];
-  }
-
-  /**
    * Checks whether a value is a finite static number for same_as_d... math.
    *
    * @param {*} value - Value to test.

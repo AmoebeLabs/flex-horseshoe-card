@@ -1,4 +1,4 @@
-import { SVG_DEFAULT_DIMENSIONS, SVG_DEFAULT_DIMENSIONS_HALF } from './const.js';
+import { SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /** ***************************************************************************
  * Utils class
@@ -32,20 +32,6 @@ export default class Utils {
 
     // Valid argVal value: calculate fraction between 0 and 1
     return (Math.min(Math.max(argVal, argStart), argEnd) - argStart) / (argEnd - argStart);
-  }
-
-  /**
-   * Utils::calculateSvgCoordinate()
-   *
-   * Summary.
-   * Calculate own (tool/tool) coordinates relative to centered toolset position.
-   * Tool coordinates are %
-   *
-   * Group is 50,40. Say SVG is 200x200. Group is 100,80 within 200x200.
-   * Tool is 10,50. 0.1 * 200 = 20 + (100 - 200/2) = 20 + 0.
-   */
-  static calculateSvgCoordinate(argOwn, argToolset) {
-    return (argOwn / 100) * SVG_DEFAULT_DIMENSIONS + (argToolset - SVG_DEFAULT_DIMENSIONS_HALF);
   }
 
   /**
