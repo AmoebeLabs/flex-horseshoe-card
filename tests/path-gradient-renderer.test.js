@@ -98,6 +98,38 @@ test('current gradient redistributes all configured colors over the active range
   ]);
 });
 
+test('current gradients reuse prepared geometry for paint changes and replace it when the domain moves', () => {
+  const geometry = createGeometry(200, (progress) => ({ x: progress * 2, y: 20 }));
+  const config = {
+    ...baseConfig,
+    mode: 'current',
+    range: { start: 20, end: 60 },
+  };
+  const first = buildAdaptivePathGradient(geometry, config);
+  const repainted = buildAdaptivePathGradient(geometry, {
+    ...config,
+    width: 14,
+    colorStops: [
+      { progress: 0, color: '#0000ff' },
+      { progress: 50, color: '#00ff00' },
+      { progress: 100, color: '#ffffff' },
+    ],
+  });
+
+  assert.strictEqual(repainted.geometry, first.geometry);
+  assert.equal(repainted.ranges[0].width, 14);
+  assert.notDeepEqual(repainted.ranges[0].gradient.stops, first.ranges[0].gradient.stops);
+
+  const moved = buildAdaptivePathGradient(geometry, {
+    ...config,
+    range: { start: 30, end: 70 },
+  });
+
+  assert.notStrictEqual(moved.geometry, first.geometry);
+  assert.deepEqual([moved.geometry.domainStart, moved.geometry.domainEnd], [30, 70]);
+  assert.deepEqual([moved.ranges[0].start, moved.ranges.at(-1).end], [30, 70]);
+});
+
 test('adaptive splitting responds to curvature and never exceeds the configured DOM budget', () => {
   const turningGeometry = createGeometry(100, (progress) => {
     const angle = (progress / 100) * Math.PI;
