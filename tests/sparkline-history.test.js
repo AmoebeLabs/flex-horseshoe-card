@@ -82,7 +82,7 @@ const deferredRequest = () => {
 };
 
 test('rolling current history uses the current shared plot and source window', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = { id: 'default', config: { period: rollingPeriod(0) } };
     const history = historyFor(rollingPeriod(0), item, {});
     const range = history.getSeriesRange(item);
@@ -96,7 +96,7 @@ test('rolling current history uses the current shared plot and source window', (
 });
 
 test('a series rolling offset selects yesterday and projects it onto the shared current window', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = {
       id: 'yesterday',
       entity: { state: '13', last_changed: '2026-09-12T12:00:00.000Z' },
@@ -121,7 +121,7 @@ test('a series rolling offset selects yesterday and projects it onto the shared 
 });
 
 test('unchanged prepared history keeps its array identity across HA updates', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(rollingPeriod(0), item, {});
     const range = history.getSeriesRange(item);
@@ -134,7 +134,7 @@ test('unchanged prepared history keeps its array identity across HA updates', ()
 });
 
 test('live measurements reuse converted history and retain every sample', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(rollingPeriod(0), item, {});
     const range = history.getSeriesRange(item);
@@ -164,7 +164,7 @@ test('live measurements reuse converted history and retain every sample', () => 
 });
 
 test('History delivers accumulated source changes without choosing graph processing', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(rollingPeriod(0), item, {});
     const range = history.getSeriesRange(item);
@@ -193,7 +193,7 @@ test('History delivers accumulated source changes without choosing graph process
 });
 
 test('a live measurement publishes only its change without walking two weeks of retained rows', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const period = { type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 336 } } };
     const item = historyItem('large-history', 'sensor.temperature', period);
     item.entity.last_changed = '2026-09-12T12:30:00.000Z';
@@ -232,7 +232,7 @@ test('a live measurement publishes only its change without walking two weeks of 
 });
 
 test('incremental publication matches complete preparation for corrections, invalid states and delayed values', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('corrections', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(item.config.period, item, {});
     const range = history.getSeriesRange(item);
@@ -259,7 +259,7 @@ test('incremental publication matches complete preparation for corrections, inva
 });
 
 test('equivalent history replacements retain published rows and subsequent corrections remove the correct measurement', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('refresh', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(item.config.period, item, {});
     const range = history.getSeriesRange(item);
@@ -273,7 +273,7 @@ test('equivalent history replacements retain published rows and subsequent corre
 });
 
 test('pruning removes only expired prepared rows while retaining the first visible state', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('expiry', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(item.config.period, item, {});
     const initial = history.acceptHistoryRows(item, [
@@ -299,7 +299,7 @@ test('pruning removes only expired prepared rows while retaining the first visib
 });
 
 test('categorical live corrections update only the changed state and rebuild when its mapping changes', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('pollen', 'sensor.pollen', rollingPeriod(0));
     item.entity.state = 'low';
     item.config.sparkline.show.chart_type = 'state_bands';
@@ -317,7 +317,7 @@ test('categorical live corrections update only the changed state and rebuild whe
 });
 
 test('changing a series offset rebuilds its projected timestamps and published rows', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('offset-change', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(rollingPeriod(0), item, {});
     const initialRange = history.getSeriesRange(item);
@@ -386,7 +386,7 @@ test('accepted HA history retains chronological order without sorting or mutatin
   class OrderedHistoryRows extends Array {
     sort() { assert.fail('HA history is already ordered'); }
   }
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = historyItem('temperature', 'sensor.temperature', rollingPeriod(0));
     const history = historyFor(rollingPeriod(0), item, {});
     const response = Object.freeze(OrderedHistoryRows.of(
@@ -402,7 +402,7 @@ test('accepted HA history retains chronological order without sorting or mutatin
 });
 
 test('a parent rolling offset moves both the shared plot and inherited source window', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = { id: 'default', config: { period: rollingPeriod(-1) } };
     const history = historyFor(rollingPeriod(-1), item, {});
     const range = history.getSeriesRange(item);
@@ -434,7 +434,7 @@ test('calendar projection orders the repeated winter-time hour on the shared plo
 });
 
 test('combined parent and series rolling offsets retain both absolute source selections', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = { id: 'two-days-ago', config: { period: rollingPeriod(-2) } };
     const history = historyFor(rollingPeriod(-1), item, {});
     const range = history.getSeriesRange(item);
@@ -484,7 +484,7 @@ test('active history includes a newer current HA sample exactly once', () => {
 });
 
 test('active rolling pruning follows the parent plot offset', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = {
       id: 'today-on-yesterday',
       entity: { state: '13', last_changed: '2026-09-12T12:30:00.000Z' },
@@ -507,7 +507,7 @@ test('active rolling pruning follows the parent plot offset', () => {
 });
 
 test('closed historical ranges exclude the current HA sample', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const item = {
       id: 'yesterday',
       entity: { state: '13', last_changed: '2026-09-12T12:00:00.000Z' },
@@ -848,7 +848,7 @@ test('a smaller requested range reuses accepted history without loading again', 
 });
 
 test('one day to two weeks to one day to two weeks reloads rows discarded by pruning', () => {
-  withFixedTime('2026-09-12T12:30:00.000Z', 'UTC', () => {
+  withFixedTime('2026-09-12T12:30:00.000Z', 'Etc/UTC', () => {
     const oneDay = rollingPeriod(0);
     const twoWeeks = {
       type: 'rolling_window',
