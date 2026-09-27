@@ -224,6 +224,28 @@ test('a changed HA theme source refreshes colors even when its name stays the sa
   });
 });
 
+test('delayed conversion from an older theme source leaves the current shared colors intact', () => {
+  withComputedStyleBoundary(({ readsFor }) => {
+    const themeName = nextThemeName('delayed-source');
+    const expression = primaryColorExpression(themeName);
+    const oldHost = makeHost({ '--primary-color': '#e53935' });
+    const currentHost = makeHost({ '--primary-color': '#1e88e5' });
+    const oldThemes = { theme: themeName, darkMode: false };
+    const currentThemes = { theme: themeName, darkMode: false };
+    const oldContext = makeColorContext(oldHost, themeName, null, 'light', oldThemes, [], true);
+    const currentContext = makeColorContext(currentHost, themeName, null, 'light', currentThemes, [], true);
+
+    // HA receipt establishes source order before delayed paint starts converting.
+    Colors.getThemeRevision(oldThemes);
+    Colors.getThemeRevision(currentThemes);
+    assert.deepEqual(Colors.colorToRGBA(expression, currentContext), [30, 136, 229, 255]);
+    assert.deepEqual(Colors.colorToRGBA(expression, oldContext), [229, 57, 53, 255]);
+    assert.deepEqual(Colors.colorToRGBA(expression, currentContext), [30, 136, 229, 255]);
+    assert.equal(readsFor(oldHost), 1);
+    assert.equal(readsFor(currentHost), 1);
+  });
+});
+
 test('pending and unresolved colors do not poison later conversions', () => {
   withComputedStyleBoundary(({ readsFor }) => {
     const themeName = nextThemeName('pending');

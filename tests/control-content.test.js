@@ -26,6 +26,7 @@ const createContext = () => ({
     },
     cardTheme: {
       modeChanged: false,
+      colorContext: { cacheReady: false },
     },
     cardAnimations: {
       styles: {},
