@@ -46,9 +46,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Creates the geometry engine for one normalized sparkline configuration.
-   * SparklineGraphTool owns fetching and rendering; this class turns source
-   * rows into bucket metadata, axis geometry, and chart-specific coordinates.
+   * Creates the calculation engine for one normalized series. History supplies
+   * source rows, Series coordinates shared dimensions/scales, and GraphTool
+   * renders the bucket metadata and geometry retained by this engine.
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
@@ -180,8 +180,8 @@ export default class SparklineGraph {
       this.setGraphAreas(axisMargin, configuredMargin, 0);
       this.sharedYAxisBounds = undefined;
     }
-    // Real-time retains the original one-value graph contract and has no
-    // duration or bins. Historical period types use their configured range.
+    // Real-time represents one current value. Historical graphs use their
+    // configured duration and bins to position values on the time axis.
     if (this.config.period.type === 'real_time') {
       this.points = 1;
       this.hours = 1;
@@ -843,9 +843,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates reusable x-axis and y-axis geometry next to the existing graph
-   * API. The graph engine keeps providing coords/path helpers as before, while
-   * the tool layer can later consume these prepared ticks and ranges directly.
+   * Stores ticks and bounds for the final drawing area. Series uses the bounds
+   * for shared scale coordination; GraphTool consumes the retained axes for
+   * labels, tickmarks and grid rendering.
    */
   buildAxisGeometry() {
     const fontSizeX = this.config.x_axis.labels.styles['font-size'];
@@ -865,9 +865,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates the time range and tick positions for the x-axis without using
-   * graph coords. Calendar and rolling_window stay separated here, while the
-   * existing graph rendering remains untouched for now.
+   * Projects time ticks onto the drawing area. Calendar graphs follow their
+   * local-day origin; rolling graphs use the retained bucket start times.
+   * The result supplies the same positions to labels, tickmarks and the grid.
    *
    * @param {number} fontWidthPixels Average character width in pixels.
    * @param {number} fontSizePixels Configured label font size in pixels.
@@ -1796,7 +1796,7 @@ export default class SparklineGraph {
   /**
    * Builds line or spline path data from radial points. It deliberately keeps
    * the oldest and newest bucket separate, matching the chronological line
-   * contract used by cartesian history charts.
+   * ordering used by cartesian history charts.
    *
    * @returns {string} SVG path data for the radial value line.
    */

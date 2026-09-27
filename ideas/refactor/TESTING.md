@@ -123,11 +123,11 @@ If a characterization test changes, classify it first: an architectural refactor
 Transitions:
 
 ```text
-initial -> loading -> data
+initial -> loading -> has_data
 initial -> loading -> empty
-data -> loading refresh -> data
-data -> loading refresh -> empty
-data -> error -> recovery
+has_data -> loading refresh -> has_data
+has_data -> loading refresh -> empty
+has_data -> error -> recovery
 full series + empty series
 ```
 

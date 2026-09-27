@@ -33,9 +33,8 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
 });
 
 /**
- * Creates the normalized single-series engine currently owned by
- * SparklineGraphTool. These tests lock that boundary before a series
- * coordinator starts creating multiple graph engines.
+ * Creates one normalized series engine with known drawing dimensions. Tests
+ * preserve its observable calculations as Series coordinates shared plots.
  */
 const createGraph = (config = createGraphConfig()) => new SparklineGraph(120, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, config);
 
@@ -1281,7 +1280,8 @@ test('full-day calendar comparisons use the fixed end of the visible day', () =>
 
 test('active data on a full-day calendar axis stops at its projected current bucket', () => {
   const NativeDate = globalThis.Date;
-  const now = NativeDate.parse('2026-08-20T12:01:00.000Z');
+  const now = new NativeDate(2026, 7, 20, 12, 1).getTime();
+  const midnight = new NativeDate(2026, 7, 20).toISOString();
   globalThis.Date = class extends NativeDate {
     constructor(...args) {
       super(...(args.length === 0 ? [now] : args));
@@ -1299,7 +1299,7 @@ test('active data on a full-day calendar axis stops at its projected current buc
     // Series projects an active source onto the complete comparison-day axis.
     // Graph retains that axis while drawing only bins reached by the source.
     graph.activeDataEnd = new NativeDate(now);
-    graph.update([{ state: '10', last_changed: '2026-08-20T00:00:00.000Z' }]);
+    graph.update([{ state: '10', last_changed: midnight }]);
 
     assert.equal(graph.processedValues.length, 13);
     assert.equal(graph.coords.length, 13);
