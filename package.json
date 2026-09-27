@@ -7,7 +7,10 @@
   "scripts": {
     "build": "npm test && npm run lint && npm run rollup",
     "test": "node --import ./tests/register-loader.js --test tests/*.test.js",
-    "test:browser": "playwright test",
+    "test:browser": "playwright test --project=chromium",
+    "test:browser:webkit": "playwright test --project=webkit",
+    "test:browser:firefox": "playwright test --project=firefox",
+    "test:browser:all": "playwright test",
     "rollup": "rollup -c",
     "lint": "biome lint src/*.js tests/*.js playwright.config.js",
     "format": "biome format --write src/*.js",
