@@ -328,9 +328,8 @@ test('CardInputEntities initializes and synchronizes persistent global selects',
   }
 });
 
-test('CardTheme reports mode changes and invalidates color-dependent rendering', () => {
+test('CardTheme schedules paint after a real theme change without clearing tool geometry', () => {
   let gradientUpdates = 0;
-  let clearedPaths = 0;
   const cardTheme = new CardTheme(
     { style: { setProperty: () => {} } },
     () => {
@@ -338,15 +337,14 @@ test('CardTheme reports mode changes and invalidates color-dependent rendering',
     },
     () => {},
   );
-  cardTheme.setHorseshoes([{ clearPathItemCache: () => { clearedPaths += 1; } }]);
-
-  assert.equal(cardTheme.updateHass({ selectedTheme: 'default', themes: { theme: 'default', darkMode: false } }), true);
+  const lightTheme = { theme: 'default', darkMode: false };
+  assert.equal(cardTheme.updateHass({ selectedTheme: { theme: 'default' }, themes: lightTheme }), true);
   assert.equal(cardTheme.getActiveColorStopMode(), 'light');
-  assert.equal(cardTheme.updateHass({ selectedTheme: 'default', themes: { theme: 'default', darkMode: false } }), false);
-  assert.equal(cardTheme.updateHass({ selectedTheme: 'default', themes: { theme: 'default', darkMode: true } }), true);
+  assert.equal(cardTheme.updateHass({ selectedTheme: { theme: 'default' }, themes: lightTheme }), false);
+  assert.equal(cardTheme.updateHass({ selectedTheme: { theme: 'default' }, themes: { theme: 'default', darkMode: true } }), true);
   assert.equal(cardTheme.getActiveColorStopMode(), 'dark');
   assert.equal(gradientUpdates, 2);
-  assert.equal(clearedPaths, 2);
+  assert.equal(cardTheme.colorContext.cacheReady, false);
 
   cardTheme.markModeHandled();
   assert.equal(cardTheme.modeChanged, false);
