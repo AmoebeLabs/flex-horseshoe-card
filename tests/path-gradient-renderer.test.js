@@ -20,6 +20,15 @@ function createGeometry(length, pointAtProgress) {
 }
 
 const straightGeometry = createGeometry(200, (progress) => ({ x: progress * 2, y: 20 }));
+const colorContext = {
+  element: {},
+  globalThemeName: 'test-theme',
+  viewThemeName: null,
+  mode: 'light',
+  themeSource: {},
+  paletteSources: [],
+  cacheReady: false,
+};
 const baseConfig = {
   mode: 'full',
   range: { start: 0, end: 60 },
@@ -39,11 +48,11 @@ const baseConfig = {
 };
 
 test('full gradient keeps one straight range with static color stops behind the active reveal range', () => {
-  const first = buildAdaptivePathGradient(straightGeometry, baseConfig);
+  const first = buildAdaptivePathGradient(straightGeometry, baseConfig, colorContext);
   const second = buildAdaptivePathGradient(straightGeometry, {
     ...baseConfig,
     range: { start: 0, end: 80 },
-  });
+  }, colorContext);
 
   assert.equal(first.ranges.length, 1);
   assert.deepEqual(first.ranges, second.ranges);
@@ -60,13 +69,13 @@ test('full gradient keeps one straight range with static color stops behind the 
 
 test('a diagonal straight path also keeps one gradient range', () => {
   const diagonalGeometry = createGeometry(Math.hypot(200, 80), (progress) => ({ x: progress * 2, y: progress * 0.8 }));
-  const gradient = buildAdaptivePathGradient(diagonalGeometry, baseConfig);
+  const gradient = buildAdaptivePathGradient(diagonalGeometry, baseConfig, colorContext);
 
   assert.equal(gradient.ranges.length, 1);
 });
 
 test('full gradient reveal updates retain adaptive ranges and cap configuration', () => {
-  const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig);
+  const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig, colorContext);
   const ranges = gradient.ranges;
   const updated = setFullPathGradientRevealRange(gradient, { start: 15, end: 75 });
 
@@ -87,7 +96,7 @@ test('current gradient redistributes all configured colors over the active range
     ...baseConfig,
     mode: 'current',
     range: { start: 20, end: 60 },
-  });
+  }, colorContext);
 
   assert.equal(gradient.ranges[0].start, 20);
   assert.equal(gradient.ranges.at(-1).end, 60);
@@ -105,7 +114,7 @@ test('current gradients reuse prepared geometry for paint changes and replace it
     mode: 'current',
     range: { start: 20, end: 60 },
   };
-  const first = buildAdaptivePathGradient(geometry, config);
+  const first = buildAdaptivePathGradient(geometry, config, colorContext);
   const repainted = buildAdaptivePathGradient(geometry, {
     ...config,
     width: 14,
@@ -114,7 +123,7 @@ test('current gradients reuse prepared geometry for paint changes and replace it
       { progress: 50, color: '#00ff00' },
       { progress: 100, color: '#ffffff' },
     ],
-  });
+  }, colorContext);
 
   assert.strictEqual(repainted.geometry, first.geometry);
   assert.equal(repainted.ranges[0].width, 14);
@@ -123,7 +132,7 @@ test('current gradients reuse prepared geometry for paint changes and replace it
   const moved = buildAdaptivePathGradient(geometry, {
     ...config,
     range: { start: 30, end: 70 },
-  });
+  }, colorContext);
 
   assert.notStrictEqual(moved.geometry, first.geometry);
   assert.deepEqual([moved.geometry.domainStart, moved.geometry.domainEnd], [30, 70]);
@@ -145,7 +154,7 @@ test('adaptive splitting responds to curvature and never exceeds the configured 
     minSegmentLength: 0.001,
     maxTangentAngle: 8,
     maxSegments: 16,
-  });
+  }, colorContext);
 
   assert.equal(gradient.ranges.length, 16);
   assert.equal(gradient.ranges.every((range) => range.end > range.start), true);
@@ -163,13 +172,13 @@ test('gradient joins overlap by a fixed SVG length', () => {
       { progress: 100, color: '#ffffff' },
     ],
     maxSegmentLength: 25,
-  });
+  }, colorContext);
 
   assert.ok(Math.abs(gradient.ranges[0].end - gradient.ranges[1].start - 2) < 1e-10);
 });
 
 test('renderer defines local gradients and reuses generic masked path bands', () => {
-  const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig);
+  const gradient = buildAdaptivePathGradient(straightGeometry, baseConfig, colorContext);
   const layer = {
     opacity: 0.4,
     fillOpacity: 0.8,
@@ -191,7 +200,7 @@ test('normalized reveal clipping does not use a spatial mask at path crossings',
   const gradient = buildAdaptivePathGradient(straightGeometry, {
     ...baseConfig,
     range: { start: 20, end: 60 },
-  });
+  }, colorContext);
   const layer = {
     opacity: 1,
     fillOpacity: 1,

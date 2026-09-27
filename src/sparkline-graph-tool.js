@@ -703,6 +703,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     const periodUsesJavascript = templates.hasJavascriptTemplates(sparklineConfig.period);
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
+    // Read the current card context when a clipped threshold needs conversion.
+    this.interpolateGradientColor = (colorA, colorB, fraction) => Colors.getGradientValue(
+      colorA,
+      colorB,
+      fraction,
+      this.card.cardTheme.colorContext,
+    );
 
     // Existing YAML becomes one internal default series before any graph exists.
     this.sparklineSeries = new SparklineSeries(this.config);
@@ -2055,7 +2062,7 @@ export default class SparklineGraphTool extends BaseTool {
         const value = this.getEntityNumericState(item, item.entity);
         const liveColors = paintModes.map((mode) => {
           if (mode === 'colorstop' || mode === 'colorstopinterpolated') {
-            return Colors.calculateStrokeColor(value, config.sparkline.colorstops, mode === 'colorstopinterpolated');
+            return Colors.calculateStrokeColor(value, config.sparkline.colorstops, mode === 'colorstopinterpolated', this.card.cardTheme.colorContext);
           }
           return undefined;
         });
@@ -2093,7 +2100,11 @@ export default class SparklineGraphTool extends BaseTool {
       this.config.sparkline.colorstops.colors.length > 0
       && (this.config.sparkline.show.item_style === 'colorstopgradient' || layerRequestsColorStopGradient || !this.entityConfig?.color)
     ) {
-      this.gradient[0] = this.primaryGraph.computeGradient(computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition), this.config.sparkline.state_values.logarithmic);
+      this.gradient[0] = this.primaryGraph.computeGradient(
+        computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition),
+        this.config.sparkline.state_values.logarithmic,
+        this.interpolateGradientColor,
+      );
     } else {
       this.gradient = [];
     }
@@ -3397,7 +3408,7 @@ export default class SparklineGraphTool extends BaseTool {
   computeColor(inState, i) {
     const { colorstops, line_color, colorstops_transition } = this.config.sparkline;
     const state = Number(inState) || 0;
-    const thresholdColor = Colors.calculateStrokeColor(state, colorstops, colorstops_transition === 'smooth');
+    const thresholdColor = Colors.calculateStrokeColor(state, colorstops, colorstops_transition === 'smooth', this.card.cardTheme.colorContext);
 
     return this.card.config.entities[i].color || thresholdColor || line_color[i] || line_color[0];
   }
@@ -4286,8 +4297,8 @@ export default class SparklineGraphTool extends BaseTool {
   getConfiguredSparklinePaint(config, itemStyle, value, fixedPaint, gradientPaint, automaticPaint) {
     if (itemStyle === 'auto') return automaticPaint;
     if (itemStyle === 'fixed') return fixedPaint;
-    if (itemStyle === 'colorstop') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, false);
-    if (itemStyle === 'colorstopinterpolated') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, true);
+    if (itemStyle === 'colorstop') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, false, this.card.cardTheme.colorContext);
+    if (itemStyle === 'colorstopinterpolated') return Colors.calculateStrokeColor(value, config.sparkline.colorstops, true, this.card.cardTheme.colorContext);
     return gradientPaint;
   }
 
@@ -5001,8 +5012,8 @@ export default class SparklineGraphTool extends BaseTool {
             } else {
               const color =
                 itemStyle === 'lineargradient'
-                  ? Colors.calculateStrokeColor(levelIndex / (this.config.sparkline.equalizer.value_buckets - 1), linearGradientColorStops, true)
-                  : Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient');
+                  ? Colors.calculateStrokeColor(levelIndex / (this.config.sparkline.equalizer.value_buckets - 1), linearGradientColorStops, true, this.card.cardTheme.colorContext)
+                  : Colors.calculateStrokeColor(value, this.config.sparkline.colorstops, itemStyle === 'colorstopgradient', this.card.cardTheme.colorContext);
               if (background[itemStyle].fill) backgroundStyles.fill = color;
               if (background[itemStyle].stroke) backgroundStyles.stroke = color;
             }
@@ -5041,7 +5052,7 @@ export default class SparklineGraphTool extends BaseTool {
         }));
       } else {
         const thresholds = computeThresholds(this.config.sparkline.colorstops.colors, itemStyle === 'colorstopsegments' ? 'hard' : 'smooth');
-        gradient = this.primaryGraph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic);
+        gradient = this.primaryGraph.computeGradient(thresholds, this.config.sparkline.state_values.logarithmic, this.interpolateGradientColor);
       }
       const gradientId = `bar-track-gradient-${this.cardId}-${this.index}-${index}`;
       const gradientReference = `url(#${gradientId})`;
@@ -5170,9 +5181,9 @@ export default class SparklineGraphTool extends BaseTool {
           if (foregroundItemStyle === 'fixed') {
             color = foreground.color;
           } else if (foregroundItemStyle === 'colorstopsegments') {
-            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, false);
+            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, false, this.card.cardTheme.colorContext);
           } else if (foregroundItemStyle === 'colorstopgradient') {
-            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, true);
+            color = Colors.calculateStrokeColor(bar.value, this.config.sparkline.colorstops, true, this.card.cardTheme.colorContext);
           } else {
             color = this.computeColor(bar.value, index);
           }
@@ -5719,6 +5730,7 @@ export default class SparklineGraphTool extends BaseTool {
       const gradient = graph.computeGradient(
         computeThresholds(config.sparkline.colorstops.colors, config.sparkline.colorstops_transition),
         config.sparkline.state_values.logarithmic,
+        this.interpolateGradientColor,
       );
 
       return svg`
@@ -5879,7 +5891,7 @@ export default class SparklineGraphTool extends BaseTool {
               : ''
           }
           ${points.map((point) => {
-            const pointColor = Colors.calculateStrokeColor(point[V], config.sparkline.colorstops, true);
+            const pointColor = Colors.calculateStrokeColor(point[V], config.sparkline.colorstops, true, this.card.cardTheme.colorContext);
             const fixedPointPaint = config.color ?? item.entityConfig.color ?? dotStyles.fill ?? dotStyles.stroke;
             const pointPaint = this.getConfiguredSparklinePaint(config, config.sparkline.show.item_style, currentValue, fixedPointPaint, pointColor, automaticColor);
             return svg`<circle class="sparkline-series-point" cx="${point[X]}" cy="${point[Y]}" r="${pointRadius}" style=${styleMap(this.getRenderStyles({ ...dotStyles, fill: pointPaint, stroke: pointPaint }))}></circle>`;
@@ -5976,10 +5988,10 @@ export default class SparklineGraphTool extends BaseTool {
       )}
       ${seriesLayers.map((layer) =>
         layer.points.map((point) => {
-            const colorStopPointPaint = Colors.calculateStrokeColor(point[V], layer.config.sparkline.colorstops, true);
+            const colorStopPointPaint = Colors.calculateStrokeColor(point[V], layer.config.sparkline.colorstops, true, this.card.cardTheme.colorContext);
             const automaticPointPaint = layer.seriesColor
               ?? (layer.config.sparkline.colorstops.colors.length > 0
-                ? Colors.calculateStrokeColor(point[V], layer.config.sparkline.colorstops, layer.config.sparkline.colorstops_transition === 'smooth')
+                ? Colors.calculateStrokeColor(point[V], layer.config.sparkline.colorstops, layer.config.sparkline.colorstops_transition === 'smooth', this.card.cardTheme.colorContext)
                 : layer.config.sparkline.line_color[layer.index]);
             const fixedPointPaint = layer.seriesColor ?? layer.dotStyles.fill ?? layer.dotStyles.stroke;
             const pointPaint = this.getConfiguredSparklinePaint(

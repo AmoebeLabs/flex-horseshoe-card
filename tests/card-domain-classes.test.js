@@ -972,7 +972,17 @@ test('CardTools measures referenced tool dimensions and geometry', () => {
 });
 
 test('CardEntities uses configured attributes as color-stop values', () => {
-  const cardEntities = new CardEntities({}, {});
+  const cardEntities = new CardEntities({}, {
+    colorContext: {
+      element: {},
+      globalThemeName: 'test-theme',
+      viewThemeName: null,
+      mode: 'light',
+      themeSource: {},
+      paletteSources: [],
+      cacheReady: false,
+    },
+  });
   const colorStops = {
     colors: [
       { value: 0, color: 'blue' },

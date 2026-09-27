@@ -2,9 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import ColorStops from '../src/color-stops.js';
 import CardEntities from '../src/card-entities.js';
+import Colors from '../src/colors.js';
 import { getGaugeStateData } from '../src/horseshoe-state.js';
 
 const entityConfig = { entities: [{ entity: 'sensor.test' }] };
+const testColorContext = {
+  element: {},
+  globalThemeName: 'test-theme',
+  viewThemeName: null,
+  mode: 'light',
+  themeSource: {},
+  paletteSources: [],
+  cacheReady: false,
+};
 
 test('normalizes string color stops without converting states to numbers', () => {
   const colorStops = ColorStops.normalize({
@@ -20,8 +30,74 @@ test('normalizes string color stops without converting states to numbers', () =>
   ]);
 });
 
+test("resolves color stops against each card's own CSS scope", () => {
+  const previousCache = Colors.colorCache;
+  const previousGetComputedStyle = globalThis.getComputedStyle;
+  const hadGetComputedStyle = Object.hasOwn(globalThis, 'getComputedStyle');
+  const cardEntitiesA = new CardEntities({}, {
+    colorContext: {
+      element: { color: 'red' },
+      globalThemeName: 'theme-a',
+      viewThemeName: 'view-a',
+      mode: 'light',
+      themeSource: {},
+      paletteSources: [],
+      cacheReady: false,
+    },
+  });
+  const cardEntitiesB = new CardEntities({}, {
+    colorContext: {
+      element: { color: 'blue' },
+      globalThemeName: 'theme-b',
+      viewThemeName: 'view-b',
+      mode: 'dark',
+      themeSource: {},
+      paletteSources: [],
+      cacheReady: false,
+    },
+  });
+  const colorStops = ColorStops.normalize({
+    colors: [
+      { value: 0, color: 'var(--primary-color)' },
+      { value: 100, color: 'var(--primary-color)' },
+    ],
+  });
+
+  Colors.colorCache = {};
+  globalThis.getComputedStyle = (element) => ({
+    getPropertyValue: () => element.color,
+  });
+
+  try {
+    const item = { entity_index: 0, show: { item_style: 'colorstopinterpolated' } };
+    const config = { entities: [{ entity: 'sensor.test' }] };
+    const entities = [{ state: '50', attributes: {} }];
+    const colorFromB = cardEntitiesB.getItemColorFromStops(
+      item,
+      colorStops,
+      config,
+      entities,
+    );
+
+    Colors.colorCache = {};
+    const colorFromA = cardEntitiesA.getItemColorFromStops(
+      item,
+      colorStops,
+      config,
+      entities,
+    );
+
+    assert.equal(colorFromB, '#0000ffff');
+    assert.equal(colorFromA, '#ff0000ff');
+  } finally {
+    Colors.colorCache = previousCache;
+    if (hadGetComputedStyle) globalThis.getComputedStyle = previousGetComputedStyle;
+    else delete globalThis.getComputedStyle;
+  }
+});
+
 test('resolves exact string states and preserves the complete active stop', () => {
-  const cardEntities = new CardEntities({}, {});
+  const cardEntities = new CardEntities({}, { colorContext: testColorContext });
   const colorStops = ColorStops.normalize({
     colors: [
       { state: 'off', color: 'gray' },
@@ -61,7 +137,7 @@ test('derives horseshoe state geometry from ranked string color stops', () => {
 
 
 test('keeps numeric stop selection at both configured edges', () => {
-  const cardEntities = new CardEntities({}, {});
+  const cardEntities = new CardEntities({}, { colorContext: testColorContext });
   const colorStops = ColorStops.normalize({
     colors: [
       { value: 10, color: 'blue' },
@@ -76,7 +152,7 @@ test('keeps numeric stop selection at both configured edges', () => {
 });
 
 test('returns no color-stop result for an unknown string state', () => {
-  const cardEntities = new CardEntities({}, {});
+  const cardEntities = new CardEntities({}, { colorContext: testColorContext });
   const colorStops = ColorStops.normalize({
     colors: [{ state: 'on', color: 'green' }],
   });

@@ -5,6 +5,16 @@ import PathStateAnimator from '../src/path-animator.js';
 import PathGeometry from '../src/path-geometry.js';
 import { buildAdaptivePathGradient, setFullPathGradientRevealRange } from '../src/path-gradient-renderer.js';
 
+const colorContext = {
+  element: {},
+  globalThemeName: 'test-theme',
+  viewThemeName: null,
+  mode: 'light',
+  themeSource: {},
+  paletteSources: [],
+  cacheReady: false,
+};
+
 /** Creates a deterministic requestAnimationFrame queue for animator tests. */
 function createFrameScheduler() {
   let nextFrame = 1;
@@ -287,7 +297,7 @@ test('full-gradient animation retains adaptive geometry and changes only its rev
     maxTangentAngle: 12,
     maxSegments: 96,
     overlap: 2,
-  });
+  }, colorContext);
   const adaptiveRanges = gradient.ranges;
   const measurementCounts = { lengthReads, pointReads };
   const animator = new PathStateAnimator({
