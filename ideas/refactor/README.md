@@ -27,7 +27,7 @@ For every implementation plan:
 | [07](../2026.09.26-07-card-lifecycle-and-derived-entities.md) | Card lifecycle and derived entity flow | `setHass()` external-only; local/derived updates flow forward |
 | [08](../2026.09.26-08-change-detection-and-rendering.md) | Change detection and rendering | event-level invalidation uses stable data/geometry/lifecycle boundaries |
 | [09](../2026.09.26-09-pointer-interaction-lifecycle.md) | Sparkline pointer interaction lifecycle | pointer state follows current DOM/data and always cleans up |
-| 10 | Horseshoe animation and path cache | animation stops correctly and transient samples do not grow permanent cache |
+| [10](../2026.09.27-10-horseshoe-animation-and-path-cache.md) | Horseshoe animation and path cache | bounded animation samples and shared prepared path/gradient geometry |
 | 11 | Config `ref()` and merge | referenced values preserve types without global merge rewrite |
 | 12 | Theme-aware color cache | shared cache is theme/mode safe and paint-only updates stay paint-only |
 | 13 | Final simplification and cleanup | obsolete guards/duplication/comments removed after causes are gone |

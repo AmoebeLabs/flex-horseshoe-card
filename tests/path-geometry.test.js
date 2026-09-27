@@ -10,11 +10,15 @@ import PathGeometry, { buildOffsetPathDefinition, TransformedPathGeometry } from
  * @returns {object} Path element stand-in and measurement counter.
  */
 function createMeasuredPath(totalLength) {
-  const measurement = { calls: 0 };
+  const measurement = { calls: 0, pointCalls: 0 };
   const pathElement = {
     getTotalLength() {
       measurement.calls += 1;
       return totalLength;
+    },
+    getPointAtLength(distance) {
+      measurement.pointCalls += 1;
+      return { x: distance, y: 20 };
     },
   };
 
@@ -105,15 +109,32 @@ test('invalidates a changed signature and measures its committed path', () => {
   };
   const firstPath = createMeasuredPath(100);
   const secondPath = createMeasuredPath(200);
+  const gradientConfig = {
+    mode: 'full',
+    range: { start: 0, end: 100 },
+    maxSegmentLength: 25,
+    minSegmentLength: 1,
+    maxTangentAngle: 12,
+    maxSegments: 96,
+    overlap: 2,
+  };
 
   geometry.setPathDefinition(firstDefinition);
   geometry.bindPathElement(firstPath.pathElement);
+  const firstGradientGeometry = geometry.getGradientGeometry(gradientConfig);
 
   assert.equal(geometry.setPathDefinition(secondDefinition), true);
   assert.equal(geometry.isReady(), false);
   assert.equal(geometry.bindPathElement(secondPath.pathElement), true);
+  const secondGradientGeometry = geometry.getGradientGeometry(gradientConfig);
+
   assert.equal(geometry.isReady(), true);
   assert.equal(geometry.getTotalLength(), 200);
+  assert.notStrictEqual(secondGradientGeometry, firstGradientGeometry);
+  assert.deepEqual(
+    [firstGradientGeometry.ranges[0].coordinates.x2, secondGradientGeometry.ranges[0].coordinates.x2],
+    [100, 200],
+  );
   assert.equal(firstPath.measurement.calls, 1);
   assert.equal(secondPath.measurement.calls, 1);
   assert.equal(requestedRenders, 2);
@@ -142,6 +163,8 @@ test('reuses cached browser measurements when a prior signature becomes active a
 
   geometry.setPathDefinition(firstDefinition);
   geometry.bindPathElement(firstPath.pathElement);
+  geometry.pointAtProgress(25);
+  geometry.tangentAtProgress(25);
   geometry.setPathDefinition(secondDefinition);
   geometry.bindPathElement(secondPath.pathElement);
   geometry.setPathDefinition(firstDefinition);
@@ -150,10 +173,73 @@ test('reuses cached browser measurements when a prior signature becomes active a
   assert.equal(geometry.bindPathElement(reboundFirstPath.pathElement), true);
   assert.equal(geometry.isReady(), true);
   assert.equal(geometry.getTotalLength(), 100);
+  geometry.pointAtProgress(25);
+  geometry.tangentAtProgress(25);
   assert.equal(firstPath.measurement.calls, 1);
   assert.equal(secondPath.measurement.calls, 1);
   assert.equal(reboundFirstPath.measurement.calls, 0);
+  assert.equal(reboundFirstPath.measurement.pointCalls, 0);
   assert.equal(requestedRenders, 3);
+});
+
+test('moving raw and transformed samples stay bounded and reuse an identical pass', () => {
+  const measurement = { pointCalls: 0 };
+  const geometry = new PathGeometry(() => {});
+  geometry.setPathDefinition({ signature: 'moving-samples', closed: false });
+  geometry.bindPathElement({
+    getTotalLength: () => 200,
+    getPointAtLength: (distance) => {
+      measurement.pointCalls += 1;
+      return { x: distance, y: 20 };
+    },
+  });
+  const transformed = new TransformedPathGeometry(geometry, {
+    a: 0,
+    b: 1,
+    c: -1,
+    d: 0,
+    e: 100,
+    f: 0,
+  });
+
+  geometry.pointAtProgress(10);
+  geometry.tangentAtProgress(10);
+  const fixedSamples = {
+    points: geometry.activeMeasurement.points.size,
+    tangents: geometry.activeMeasurement.tangents.size,
+  };
+
+  for (let index = 0; index < 500; index += 1) {
+    const progress = index / 5;
+    const sampleKey = `marker:${progress}`;
+    geometry.beginTemporarySampling(sampleKey);
+    const point = transformed.pointAtProgress(progress);
+    const tangent = transformed.tangentAtProgress(progress);
+    const firstPassReads = measurement.pointCalls;
+
+    // A second consumer in the same drawing pass shares the transformed sample.
+    geometry.beginTemporarySampling(sampleKey);
+    assert.deepEqual(transformed.pointAtProgress(progress), point);
+    assert.deepEqual(transformed.tangentAtProgress(progress), tangent);
+    assert.equal(measurement.pointCalls, firstPassReads);
+    assert.ok(geometry.temporarySamples.points.size <= 1);
+    assert.ok(geometry.temporarySamples.tangents.size <= 1);
+    geometry.endTemporarySampling();
+  }
+
+  assert.equal(geometry.temporarySamples.points.size, 1);
+  assert.equal(geometry.temporarySamples.tangents.size, 1);
+  assert.deepEqual(
+    { points: geometry.activeMeasurement.points.size, tangents: geometry.activeMeasurement.tangents.size },
+    fixedSamples,
+  );
+
+  geometry.pointAtProgress(10);
+  geometry.tangentAtProgress(10);
+  assert.deepEqual(
+    { points: geometry.activeMeasurement.points.size, tangents: geometry.activeMeasurement.tangents.size },
+    fixedSamples,
+  );
 });
 
 test('converts normalized progress to actual browser distance inside PathGeometry', () => {

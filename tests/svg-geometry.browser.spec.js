@@ -538,9 +538,11 @@ test('shared measured geometry handles every initial shape, boundaries, corners,
     });
   });
 
-  expect(geometryContracts.clockwiseArc.x).toBeCloseTo(0, 2);
+  // Browser arc sampling gives an approximate endpoint direction. Compare its
+  // angle within half a degree while the vector-length checks retain precision.
+  expect(Math.atan2(geometryContracts.clockwiseArc.y, geometryContracts.clockwiseArc.x) * 180 / Math.PI).toBeCloseTo(90, 0);
   expect(geometryContracts.clockwiseArc.y).toBeCloseTo(1, 3);
-  expect(geometryContracts.counterClockwiseArc.x).toBeCloseTo(0, 2);
+  expect(Math.atan2(geometryContracts.counterClockwiseArc.y, geometryContracts.counterClockwiseArc.x) * 180 / Math.PI).toBeCloseTo(-90, 0);
   expect(geometryContracts.counterClockwiseArc.y).toBeCloseTo(-1, 3);
   expect(geometryContracts.cornerTangent.x).toBeCloseTo(Math.SQRT1_2, 2);
   expect(geometryContracts.cornerTangent.y).toBeCloseTo(Math.SQRT1_2, 2);

@@ -11,7 +11,7 @@ import { buildArcPathDefinition, buildInfinityPathDefinition, buildLinePathDefin
 import PathGeometry, { buildOffsetPathDefinition, TransformedPathGeometry } from './path-geometry.js';
 import { buildPathElements } from './path-elements.js';
 import { renderPathElements } from './path-elements-renderer.js';
-import { buildAdaptivePathGradient, renderAdaptivePathGradient } from './path-gradient-renderer.js';
+import { buildAdaptivePathGradient, renderAdaptivePathGradient, setFullPathGradientRevealRange } from './path-gradient-renderer.js';
 import PathStateAnimator from './path-animator.js';
 import HorseshoeStateMarker from './horseshoe-marker.js';
 import { getIconSource } from './icon-source.js';
@@ -93,6 +93,10 @@ export default class HorseshoeGauge extends BaseTool {
     this.activeItemConfig = this.config;
     this.runtimeConfig = undefined;
     this.pathConfig = undefined;
+    this.pathInputKey = undefined;
+    this.pathTransformKey = undefined;
+    this.pathElementsGeometryKey = undefined;
+    this.backgroundDefinitions = new Map();
     this.pathDefinition = undefined;
     this.scale = undefined;
     this.valueMapper = undefined;
@@ -185,6 +189,11 @@ export default class HorseshoeGauge extends BaseTool {
         initialProgress: 0,
       });
     } else {
+      // Timing changes restart from the visible progress with the new settings.
+      // Paint-only changes leave the running transition on its existing clock.
+      if (JSON.stringify(this.stateAnimator.animation) !== JSON.stringify(this.config.horseshoe_state.animation)) {
+        this.stateAnimator.stopAnimation();
+      }
       this.stateAnimator.animation = this.config.horseshoe_state.animation;
     }
 
@@ -208,170 +217,176 @@ export default class HorseshoeGauge extends BaseTool {
 
     // Every branch creates the complete config for one path generator. Shared item
     // placement stays outside path; all shape-specific fields remain in path.
-    switch (sourcePath.type) {
-      case 'arc': {
-        const radius = sourcePath.radius ?? 45;
-        const radiusX = sourcePath.radius_x ?? radius;
-        const radiusY = sourcePath.radius_y ?? radius;
-        const arcDegrees = sourcePath.arc_degrees ?? 260;
-        if (radiusX <= 0 || radiusY <= 0 || arcDegrees === 0 || Math.abs(arcDegrees) > 360) {
-          throw new Error('[horseshoes] arc radii must be greater than zero and arc_degrees must be between -360 and 360');
+    const pathInputKey = JSON.stringify([sourcePath, center.xpos, center.ypos]);
+    // Paint changes retain the generated centerline. Only shape or placement
+    // changes need to run the existing shape generator again.
+    if (pathInputKey !== this.pathInputKey) {
+      switch (sourcePath.type) {
+        case 'arc': {
+          const radius = sourcePath.radius ?? 45;
+          const radiusX = sourcePath.radius_x ?? radius;
+          const radiusY = sourcePath.radius_y ?? radius;
+          const arcDegrees = sourcePath.arc_degrees ?? 260;
+          if (radiusX <= 0 || radiusY <= 0 || arcDegrees === 0 || Math.abs(arcDegrees) > 360) {
+            throw new Error('[horseshoes] arc radii must be greater than zero and arc_degrees must be between -360 and 360');
+          }
+          this.pathConfig = {
+            type: 'arc',
+            cx: center.xpos,
+            cy: center.ypos,
+            radiusX: dimension(radiusX),
+            radiusY: dimension(radiusY),
+            startAngle: sourcePath.start_angle ?? 90 + (360 - arcDegrees) / 2,
+            arcDegrees,
+          };
+          this.pathDefinition = buildArcPathDefinition(this.pathConfig);
+          break;
         }
-        this.pathConfig = {
-          type: 'arc',
-          cx: center.xpos,
-          cy: center.ypos,
-          radiusX: dimension(radiusX),
-          radiusY: dimension(radiusY),
-          startAngle: sourcePath.start_angle ?? 90 + (360 - arcDegrees) / 2,
-          arcDegrees,
-        };
-        this.pathDefinition = buildArcPathDefinition(this.pathConfig);
-        break;
-      }
-      case 'line': {
-        const length = dimension(sourcePath.length ?? 80);
-        if (length <= 0) throw new Error('[horseshoes] line length must be greater than zero');
-        const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
-        const deltaX = (Math.cos(angle) * length) / 2;
-        const deltaY = (Math.sin(angle) * length) / 2;
-        this.pathConfig = {
-          type: 'line',
-          x1: center.xpos - deltaX,
-          y1: center.ypos - deltaY,
-          x2: center.xpos + deltaX,
-          y2: center.ypos + deltaY,
-        };
-        this.pathDefinition = buildLinePathDefinition(this.pathConfig);
-        break;
-      }
-      case 'rectangle': {
-        const width = dimension(sourcePath.width ?? 80);
-        const height = dimension(sourcePath.height ?? 80);
-        const radiusConfig = typeof sourcePath.radius === 'object' ? sourcePath.radius : { all: sourcePath.radius ?? 0 };
-        const maxRadius = Math.min(width, height) / 2;
-        const radius = (value) => Math.min(maxRadius, dimension(value));
-        const start = sourcePath.start ?? 0;
-        const end = sourcePath.end ?? 4;
-        const top = sourcePath.top ?? 0.5;
-        const direction = sourcePath.direction ?? 'clockwise';
-        if (width <= 0 || height <= 0) throw new Error('[horseshoes] rectangle width and height must be greater than zero');
-        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= 4)) {
-          throw new Error('[horseshoes] rectangle path.start, path.end, and path.top must be numbers from 0 through 4');
+        case 'line': {
+          const length = dimension(sourcePath.length ?? 80);
+          if (length <= 0) throw new Error('[horseshoes] line length must be greater than zero');
+          const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
+          const deltaX = (Math.cos(angle) * length) / 2;
+          const deltaY = (Math.sin(angle) * length) / 2;
+          this.pathConfig = {
+            type: 'line',
+            x1: center.xpos - deltaX,
+            y1: center.ypos - deltaY,
+            x2: center.xpos + deltaX,
+            y2: center.ypos + deltaY,
+          };
+          this.pathDefinition = buildLinePathDefinition(this.pathConfig);
+          break;
         }
-        if (!['clockwise', 'counterclockwise'].includes(direction)) {
-          throw new Error(`[horseshoes] rectangle path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
+        case 'rectangle': {
+          const width = dimension(sourcePath.width ?? 80);
+          const height = dimension(sourcePath.height ?? 80);
+          const radiusConfig = typeof sourcePath.radius === 'object' ? sourcePath.radius : { all: sourcePath.radius ?? 0 };
+          const maxRadius = Math.min(width, height) / 2;
+          const radius = (value) => Math.min(maxRadius, dimension(value));
+          const start = sourcePath.start ?? 0;
+          const end = sourcePath.end ?? 4;
+          const top = sourcePath.top ?? 0.5;
+          const direction = sourcePath.direction ?? 'clockwise';
+          if (width <= 0 || height <= 0) throw new Error('[horseshoes] rectangle width and height must be greater than zero');
+          if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= 4)) {
+            throw new Error('[horseshoes] rectangle path.start, path.end, and path.top must be numbers from 0 through 4');
+          }
+          if (!['clockwise', 'counterclockwise'].includes(direction)) {
+            throw new Error(`[horseshoes] rectangle path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
+          }
+          this.pathConfig = {
+            type: 'rectangle',
+            cx: center.xpos,
+            cy: center.ypos,
+            width,
+            height,
+            radiusTopLeft: radius(radiusConfig.top_left ?? radiusConfig.all),
+            radiusTopRight: radius(radiusConfig.top_right ?? radiusConfig.all),
+            radiusBottomRight: radius(radiusConfig.bottom_right ?? radiusConfig.all),
+            radiusBottomLeft: radius(radiusConfig.bottom_left ?? radiusConfig.all),
+            start,
+            end,
+            top,
+            direction,
+          };
+          this.pathDefinition = buildRectanglePathDefinition(this.pathConfig);
+          break;
         }
-        this.pathConfig = {
-          type: 'rectangle',
-          cx: center.xpos,
-          cy: center.ypos,
-          width,
-          height,
-          radiusTopLeft: radius(radiusConfig.top_left ?? radiusConfig.all),
-          radiusTopRight: radius(radiusConfig.top_right ?? radiusConfig.all),
-          radiusBottomRight: radius(radiusConfig.bottom_right ?? radiusConfig.all),
-          radiusBottomLeft: radius(radiusConfig.bottom_left ?? radiusConfig.all),
-          start,
-          end,
-          top,
-          direction,
-        };
-        this.pathDefinition = buildRectanglePathDefinition(this.pathConfig);
-        break;
-      }
-      case 'polygon': {
-        const sides = sourcePath.sides;
-        const radiusValue = sourcePath.radius ?? 0;
-        const start = sourcePath.start ?? 0;
-        const end = sourcePath.end ?? sides;
-        const top = sourcePath.top ?? (sides % 2 === 0 ? 0.5 : 0);
-        const direction = sourcePath.direction ?? 'clockwise';
+        case 'polygon': {
+          const sides = sourcePath.sides;
+          const radiusValue = sourcePath.radius ?? 0;
+          const start = sourcePath.start ?? 0;
+          const end = sourcePath.end ?? sides;
+          const top = sourcePath.top ?? (sides % 2 === 0 ? 0.5 : 0);
+          const direction = sourcePath.direction ?? 'clockwise';
 
-        if (!Number.isInteger(sides) || sides < 3) {
-          throw new Error('[horseshoes] polygon path.sides must be an integer equal to or greater than 3');
-        }
-        if (sourcePath.width === undefined || sourcePath.height === undefined || sourcePath.width <= 0 || sourcePath.height <= 0) {
-          throw new Error('[horseshoes] polygon path.width and path.height must be greater than zero');
-        }
-        if (!Number.isFinite(radiusValue) || radiusValue < 0) throw new Error('[horseshoes] polygon path.radius must be zero or greater');
-        if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= sides)) {
-          throw new Error(`[horseshoes] polygon path.start, path.end, and path.top must be numbers from 0 through ${sides}`);
-        }
-        if (!['clockwise', 'counterclockwise'].includes(direction)) {
-          throw new Error(`[horseshoes] polygon path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
-        }
+          if (!Number.isInteger(sides) || sides < 3) {
+            throw new Error('[horseshoes] polygon path.sides must be an integer equal to or greater than 3');
+          }
+          if (sourcePath.width === undefined || sourcePath.height === undefined || sourcePath.width <= 0 || sourcePath.height <= 0) {
+            throw new Error('[horseshoes] polygon path.width and path.height must be greater than zero');
+          }
+          if (!Number.isFinite(radiusValue) || radiusValue < 0) throw new Error('[horseshoes] polygon path.radius must be zero or greater');
+          if (![start, end, top].every((position) => Number.isFinite(position) && position >= 0 && position <= sides)) {
+            throw new Error(`[horseshoes] polygon path.start, path.end, and path.top must be numbers from 0 through ${sides}`);
+          }
+          if (!['clockwise', 'counterclockwise'].includes(direction)) {
+            throw new Error(`[horseshoes] polygon path.direction '${sourcePath.direction}' is invalid [clockwise, counterclockwise]`);
+          }
 
-        this.pathConfig = {
-          type: 'polygon',
-          cx: center.xpos,
-          cy: center.ypos,
-          sides,
-          width: dimension(sourcePath.width),
-          height: dimension(sourcePath.height),
-          radius: dimension(radiusValue),
-          start,
-          end,
-          top,
-          direction,
-        };
-        if (this.pathConfig.radius > calculatePolygonMaximumRadius(this.pathConfig)) {
-          throw new Error('[horseshoes] polygon path.radius is too large for its width, height, and number of sides');
+          this.pathConfig = {
+            type: 'polygon',
+            cx: center.xpos,
+            cy: center.ypos,
+            sides,
+            width: dimension(sourcePath.width),
+            height: dimension(sourcePath.height),
+            radius: dimension(radiusValue),
+            start,
+            end,
+            top,
+            direction,
+          };
+          if (this.pathConfig.radius > calculatePolygonMaximumRadius(this.pathConfig)) {
+            throw new Error('[horseshoes] polygon path.radius is too large for its width, height, and number of sides');
+          }
+          this.pathDefinition = buildPolygonPathDefinition(this.pathConfig);
+          break;
         }
-        this.pathDefinition = buildPolygonPathDefinition(this.pathConfig);
-        break;
-      }
-      case 'wave': {
-        const length = dimension(sourcePath.length ?? 80);
-        if (length <= 0 || (sourcePath.waves ?? 3) <= 0 || (sourcePath.amplitude ?? 8) <= 0) {
-          throw new Error('[horseshoes] wave length, waves, and amplitude must be greater than zero');
+        case 'wave': {
+          const length = dimension(sourcePath.length ?? 80);
+          if (length <= 0 || (sourcePath.waves ?? 3) <= 0 || (sourcePath.amplitude ?? 8) <= 0) {
+            throw new Error('[horseshoes] wave length, waves, and amplitude must be greater than zero');
+          }
+          const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
+          const deltaX = (Math.cos(angle) * length) / 2;
+          const deltaY = (Math.sin(angle) * length) / 2;
+          this.pathConfig = {
+            type: 'wave',
+            x1: center.xpos - deltaX,
+            y1: center.ypos - deltaY,
+            x2: center.xpos + deltaX,
+            y2: center.ypos + deltaY,
+            waves: sourcePath.waves ?? 3,
+            amplitude: dimension(sourcePath.amplitude ?? 8),
+          };
+          this.pathDefinition = buildWavePathDefinition(this.pathConfig);
+          break;
         }
-        const angle = ((sourcePath.angle ?? 0) * Math.PI) / 180;
-        const deltaX = (Math.cos(angle) * length) / 2;
-        const deltaY = (Math.sin(angle) * length) / 2;
-        this.pathConfig = {
-          type: 'wave',
-          x1: center.xpos - deltaX,
-          y1: center.ypos - deltaY,
-          x2: center.xpos + deltaX,
-          y2: center.ypos + deltaY,
-          waves: sourcePath.waves ?? 3,
-          amplitude: dimension(sourcePath.amplitude ?? 8),
-        };
-        this.pathDefinition = buildWavePathDefinition(this.pathConfig);
-        break;
-      }
-      case 'spiral': {
-        if ((sourcePath.radius_inner ?? 5) < 0 || (sourcePath.radius_outer ?? 40) <= 0 || (sourcePath.points ?? 48) < 2) {
-          throw new Error('[horseshoes] spiral radii must be valid and points must be at least 2');
+        case 'spiral': {
+          if ((sourcePath.radius_inner ?? 5) < 0 || (sourcePath.radius_outer ?? 40) <= 0 || (sourcePath.points ?? 48) < 2) {
+            throw new Error('[horseshoes] spiral radii must be valid and points must be at least 2');
+          }
+          this.pathConfig = {
+            type: 'spiral',
+            cx: center.xpos,
+            cy: center.ypos,
+            radiusInner: dimension(sourcePath.radius_inner ?? 5),
+            radiusOuter: dimension(sourcePath.radius_outer ?? 40),
+            startAngle: sourcePath.start_angle ?? -90,
+            degrees: sourcePath.degrees ?? 720,
+            points: sourcePath.points ?? 48,
+          };
+          this.pathDefinition = buildSpiralPathDefinition(this.pathConfig);
+          break;
         }
-        this.pathConfig = {
-          type: 'spiral',
-          cx: center.xpos,
-          cy: center.ypos,
-          radiusInner: dimension(sourcePath.radius_inner ?? 5),
-          radiusOuter: dimension(sourcePath.radius_outer ?? 40),
-          startAngle: sourcePath.start_angle ?? -90,
-          degrees: sourcePath.degrees ?? 720,
-          points: sourcePath.points ?? 48,
-        };
-        this.pathDefinition = buildSpiralPathDefinition(this.pathConfig);
-        break;
-      }
-      case 'infinity': {
-        if ((sourcePath.radius_x ?? 40) <= 0 || (sourcePath.radius_y ?? 25) <= 0) {
-          throw new Error('[horseshoes] infinity radii must be greater than zero');
+        case 'infinity': {
+          if ((sourcePath.radius_x ?? 40) <= 0 || (sourcePath.radius_y ?? 25) <= 0) {
+            throw new Error('[horseshoes] infinity radii must be greater than zero');
+          }
+          this.pathConfig = {
+            type: 'infinity',
+            cx: center.xpos,
+            cy: center.ypos,
+            radiusX: dimension(sourcePath.radius_x ?? 40),
+            radiusY: dimension(sourcePath.radius_y ?? 25),
+          };
+          this.pathDefinition = buildInfinityPathDefinition(this.pathConfig);
+          break;
         }
-        this.pathConfig = {
-          type: 'infinity',
-          cx: center.xpos,
-          cy: center.ypos,
-          radiusX: dimension(sourcePath.radius_x ?? 40),
-          radiusY: dimension(sourcePath.radius_y ?? 25),
-        };
-        this.pathDefinition = buildInfinityPathDefinition(this.pathConfig);
-        break;
       }
+      this.pathInputKey = pathInputKey;
     }
 
     this.scale = new GaugeScale(this.config.horseshoe_scale);
@@ -420,8 +435,17 @@ export default class HorseshoeGauge extends BaseTool {
       f: groupMatrix.b * itemMatrix.e + groupMatrix.d * itemMatrix.f + groupMatrix.f,
     };
     this.pathTransform = `matrix(${matrix.a} ${matrix.b} ${matrix.c} ${matrix.d} ${matrix.e} ${matrix.f})`;
-    this.pathGeometry.setPathDefinition(this.pathDefinition);
-    this.transformedPathGeometry = new TransformedPathGeometry(this.pathGeometry, matrix);
+    // Stop using the old state mount before replacing its measured master path.
+    // The new binding receives the current state through the normal render cycle.
+    if (this.pathGeometry.getPathDefinition()?.signature !== this.pathDefinition.signature) {
+      this.stateAnimator.unbindStateLayer();
+    }
+    const pathChanged = this.pathGeometry.setPathDefinition(this.pathDefinition);
+    const pathTransformKey = JSON.stringify([this.pathDefinition.signature, matrix]);
+    if (pathTransformKey !== this.pathTransformKey) {
+      this.transformedPathGeometry = new TransformedPathGeometry(this.pathGeometry, matrix);
+      this.pathTransformKey = pathTransformKey;
+    }
 
     const scaleStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.horseshoe_scale.styles), [this.config.horseshoe_scale.color_filter]);
     const stateStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.horseshoe_state.styles), [this.config.horseshoe_state.color_filter]);
@@ -458,13 +482,17 @@ export default class HorseshoeGauge extends BaseTool {
         },
       },
     };
-    this.scaleGradient = undefined;
-    this.stateGradient = undefined;
-    this.stateGradientKey = undefined;
-    this.scaleAndBackgroundLayoutKey = undefined;
-    this.pathElementsKey = undefined;
-    this.pathElements = { ticks: [], labels: [], markers: [] };
-    this.backgroundLayers = [];
+    if (pathChanged) {
+      this.scaleGradient = undefined;
+      this.stateGradient = undefined;
+      this.stateGradientKey = undefined;
+      this.scaleAndBackgroundLayoutKey = undefined;
+      this.pathElementsKey = undefined;
+      this.pathElementsGeometryKey = undefined;
+      this.pathElements = { ticks: [], labels: [], markers: [] };
+      this.backgroundLayers = [];
+      this.backgroundDefinitions.clear();
+    }
   }
 
   /** Compares the mapped value and painted ranges while retaining the path animator. */
@@ -678,31 +706,39 @@ export default class HorseshoeGauge extends BaseTool {
     const scaleMode = this.renderContract.scaleMode;
     const stateClip = this.renderContract.stateClip;
     const sourceColorStops = this.renderContract.colorStops;
+    const colorStopPositions = sourceColorStops.map((colorStop) => this.valueMapper.valueToProgress(colorStop.value));
+    const colorFilterCascade = this.getColorFilterCascade();
     const stateGradientKey = JSON.stringify({
       path: this.pathDefinition.signature,
       stateMode,
-      stateClip,
+      stateClip: stateMode === 'colorstopgradient' ? undefined : stateClip,
       sourceColorStops,
+      colorStopPositions,
+      colorFilter: [...colorFilterCascade, this.config.horseshoe_state.color_filter],
       stateWidth: this.config.horseshoe_state.width,
       stateLinecap: this.config.horseshoe_state.linecap,
       barMode: this.config.bar_mode,
-      value: this.value,
+      negativeBranch: stateMode === 'colorstopgradient' ? undefined : Number(this.value) < 0,
     });
     const scaleAndBackgroundLayoutKey = JSON.stringify({
       path: this.pathDefinition.signature,
       scaleMode,
       sourceColorStops,
+      colorStopPositions,
+      colorFilter: [...colorFilterCascade, this.config.horseshoe_scale.color_filter],
       scaleWidth: this.config.horseshoe_scale.width,
       scaleLinecap: this.config.horseshoe_scale.linecap,
       backgrounds: {
         show: this.config.show,
         horseshoe: this.config.horseshoe_background,
-        labels: this.config.horseshoe_labels.background,
-        ticks: this.config.horseshoe_tickmarks.background,
+        labels: this.config.horseshoe_labels,
+        ticks: this.config.horseshoe_tickmarks,
       },
     });
     const pathElementsKey = JSON.stringify({
       path: this.pathDefinition.signature,
+      transform: this.pathTransformKey,
+      colorFilter: colorFilterCascade,
       labels: this.config.horseshoe_labels,
       tickmarks: this.config.horseshoe_tickmarks,
       show: this.config.show,
@@ -716,6 +752,12 @@ export default class HorseshoeGauge extends BaseTool {
     const rebuildScaleAndBackgroundLayers = scaleAndBackgroundLayoutKey !== this.scaleAndBackgroundLayoutKey;
     const rebuildPathElements = pathElementsKey !== this.pathElementsKey;
 
+    // A full-path gradient keeps its color layout when only the value moves.
+    // The new target updates its reveal; animation uses that same prepared layout.
+    if (stateMode === 'colorstopgradient' && !rebuildStateGradient) {
+      setFullPathGradientRevealRange(this.stateGradient, stateClip);
+    }
+
     if (!rebuildStateGradient && !rebuildScaleAndBackgroundLayers && !rebuildPathElements) return false;
 
     const adaptiveConfig = {
@@ -725,31 +767,18 @@ export default class HorseshoeGauge extends BaseTool {
       maxSegments: 96,
       overlap: 2,
     };
-    const stateCompleteColorStops = sourceColorStops.map((colorStop) => ({
-      progress: this.valueMapper.valueToProgress(colorStop.value),
-      color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_state.color_filter]).fill,
-    }));
-    const stateEvenlyDistributedColorStops = sourceColorStops.map((colorStop, index) => ({
-      progress: (index / (sourceColorStops.length - 1)) * 100,
-      color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_state.color_filter]).fill,
-    }));
-    const scaleCompleteColorStops = sourceColorStops.map((colorStop) => ({
-      progress: this.valueMapper.valueToProgress(colorStop.value),
-      color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_scale.color_filter]).fill,
-    }));
-    const scaleEvenlyDistributedColorStops = sourceColorStops.map((colorStop, index) => ({
-      progress: (index / (sourceColorStops.length - 1)) * 100,
-      color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_scale.color_filter]).fill,
-    }));
-
     if (rebuildScaleAndBackgroundLayers) {
       this.scaleGradient = undefined;
       if (scaleMode === 'lineargradient' || scaleMode === 'colorstopgradient') {
+        const scaleColorStops = sourceColorStops.map((colorStop, index) => ({
+          progress: scaleMode === 'lineargradient' ? (index / (sourceColorStops.length - 1)) * 100 : colorStopPositions[index],
+          color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_scale.color_filter]).fill,
+        }));
         this.scaleGradient = buildAdaptivePathGradient(this.pathGeometry, {
           ...adaptiveConfig,
           mode: 'full',
           range: { start: 0, end: 100 },
-          colorStops: scaleMode === 'lineargradient' ? scaleEvenlyDistributedColorStops : scaleCompleteColorStops,
+          colorStops: scaleColorStops,
           width: Number(this.config.horseshoe_scale.width),
           startCap: this.config.horseshoe_scale.linecap.start,
           endCap: this.config.horseshoe_scale.linecap.end,
@@ -758,6 +787,10 @@ export default class HorseshoeGauge extends BaseTool {
     }
 
     if (rebuildStateGradient) {
+      const stateCompleteColorStops = sourceColorStops.map((colorStop, index) => ({
+        progress: colorStopPositions[index],
+        color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_state.color_filter]).fill,
+      }));
       this.stateGradient = undefined;
       this.currentStateGradientConfig = undefined;
       if (stateMode === 'colorstopgradient') {
@@ -805,10 +838,15 @@ export default class HorseshoeGauge extends BaseTool {
           endCap: this.config.horseshoe_state.linecap.end,
         };
         if (stateClip.end > stateClip.start) {
-          this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
-            ...this.currentStateGradientConfig,
-            range: stateClip,
-          });
+          this.pathGeometry.beginTemporarySampling(JSON.stringify(stateClip));
+          try {
+            this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
+              ...this.currentStateGradientConfig,
+              range: stateClip,
+            });
+          } finally {
+            this.pathGeometry.endTemporarySampling();
+          }
         }
       }
     }
@@ -843,7 +881,7 @@ export default class HorseshoeGauge extends BaseTool {
           colorFilter: tickBackgroundConfig.color_filter,
         },
       ];
-      const backgroundColorStopRanges = this.valueMapper.buildColorStopRanges(sourceColorStops.map((colorStop) => colorStop.value));
+      const backgroundColorStopRanges = this.colorStopRanges;
 
       this.backgroundLayers = backgroundConfigs
         .filter((background) => background.mode !== 'none')
@@ -852,7 +890,14 @@ export default class HorseshoeGauge extends BaseTool {
           const styles = this.getRenderStyles(rawStyles, [background.colorFilter]);
           const linecap = typeof background.config.linecap === 'object' ? background.config.linecap : { start: background.config.linecap ?? 'round', end: background.config.linecap ?? 'round' };
           const gap = this.pathConfig.type === 'arc' ? (Number(background.config.gap ?? 0) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(background.config.gap ?? 0);
-          const definition = background.offset === 0 ? this.pathDefinition : buildOffsetPathDefinition(this.pathGeometry, background.offset, 'left', 200);
+          const definitionKey = JSON.stringify([this.pathDefinition.signature, background.offset]);
+          if (this.backgroundDefinitions.get(background.id)?.key !== definitionKey) {
+            this.backgroundDefinitions.set(background.id, {
+              key: definitionKey,
+              definition: background.offset === 0 ? this.pathDefinition : buildOffsetPathDefinition(this.pathGeometry, background.offset, 'left', 200),
+            });
+          }
+          const definition = this.backgroundDefinitions.get(background.id).definition;
           const layer = {
             opacity: Number(styles.opacity ?? 1),
             fillOpacity: Number(styles['fill-opacity'] ?? 1),
@@ -907,7 +952,7 @@ export default class HorseshoeGauge extends BaseTool {
               mode: 'full',
               range: { start: 0, end: 100 },
               colorStops: sourceColorStops.map((colorStop, index) => ({
-                progress: background.mode === 'lineargradient' ? (index / (sourceColorStops.length - 1)) * 100 : this.valueMapper.valueToProgress(colorStop.value),
+                progress: background.mode === 'lineargradient' ? (index / (sourceColorStops.length - 1)) * 100 : colorStopPositions[index],
                 color: this.getRenderStyles({ fill: colorStop.color }, [background.colorFilter]).fill,
               })),
               width: background.width,
@@ -1022,11 +1067,30 @@ export default class HorseshoeGauge extends BaseTool {
         };
       });
 
-      this.pathElements = buildPathElements(this.transformedPathGeometry, {
-        ticks,
-        labels,
-        markers: [],
-      });
+      const elementsGeometryKey = JSON.stringify([
+        this.pathTransformKey,
+        ticks.map((tick) => [tick.id, tick.layer, tick.progress, tick.side, tick.offset, tick.length, tick.shape, tick.radius]),
+        labels.map((label) => [
+          label.id, label.progress, label.side, label.offset, label.text, label.orientation, label.length, label.samples,
+          label.badge.visible, label.badge.shape, label.badge.radius, label.badge.width, label.badge.height,
+        ]),
+      ]);
+      if (elementsGeometryKey !== this.pathElementsGeometryKey) {
+        this.pathElements = buildPathElements(this.transformedPathGeometry, { ticks, labels, markers: [] });
+        this.pathElementsGeometryKey = elementsGeometryKey;
+      } else {
+        // Color and opacity changes update paint on the prepared coordinates.
+        // Label guide paths and tick endpoints remain the existing result.
+        this.pathElements = {
+          ticks: this.pathElements.ticks.map((tick, index) => ({ ...tick, styles: ticks[index].styles })),
+          labels: this.pathElements.labels.map((label, index) => ({
+            ...label,
+            styles: labels[index].styles,
+            badge: { ...label.badge, styles: labels[index].badge.styles },
+          })),
+          markers: [],
+        };
+      }
     }
 
     if (!Colors.unresolvedColor) {
@@ -1043,73 +1107,81 @@ export default class HorseshoeGauge extends BaseTool {
    * from this contract and cannot be rebuilt by an animation frame.
    */
   renderStateAtProgress(progress, pathId) {
-    const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
-    const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
-    const clip = discreteState
-      ? { start: 0, end: 100 }
-      : bidirectional
-        ? { start: Math.min(this.valueMapper.zeroProgress, progress), end: Math.max(this.valueMapper.zeroProgress, progress) }
-        : { start: 0, end: progress };
+    // The marker and current gradient share samples for this drawing pass.
+    // Fixed labels, ticks and full gradients retain their separate cache.
+    this.pathGeometry.beginTemporarySampling(JSON.stringify([progress, this.valueMapper.zeroProgress, this.config.bar_mode]));
+    try {
+      const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
+      const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
+      const clip = discreteState
+        ? { start: 0, end: 100 }
+        : bidirectional
+          ? { start: Math.min(this.valueMapper.zeroProgress, progress), end: Math.max(this.valueMapper.zeroProgress, progress) }
+          : { start: 0, end: progress };
 
-    let progressLayer = svg``;
+      let progressLayer = svg``;
 
-    if (this.config.show.state_progress && clip.end > clip.start) {
-      if (this.stateGradient || this.currentStateGradientConfig) {
-        let gradient = this.stateGradient;
+      if (this.config.show.state_progress && clip.end > clip.start) {
+        if (this.stateGradient || this.currentStateGradientConfig) {
+          let gradient = this.stateGradient;
 
-        if (gradient?.mode === 'full') {
-          const length = clip.end - clip.start;
-          gradient = {
-            ...gradient,
-            revealRange: {
-              ...gradient.revealRange,
-              start: clip.start,
-              end: clip.end,
-              dash: {
-                array: [length, 100],
-                offset: clip.start === 0 ? 0 : -clip.start,
+          if (gradient?.mode === 'full') {
+            const length = clip.end - clip.start;
+            gradient = {
+              ...gradient,
+              revealRange: {
+                ...gradient.revealRange,
+                start: clip.start,
+                end: clip.end,
+                dash: {
+                  array: [length, 100],
+                  offset: clip.start === 0 ? 0 : -clip.start,
+                },
               },
-            },
-          };
-        } else if (!gradient || clip.start !== this.renderContract.stateClip.start || clip.end !== this.renderContract.stateClip.end) {
-          gradient = buildAdaptivePathGradient(this.pathGeometry, {
-            ...this.currentStateGradientConfig,
-            range: clip,
-          });
+            };
+          } else if (!gradient || clip.start !== gradient.revealRange.start || clip.end !== gradient.revealRange.end) {
+            gradient = buildAdaptivePathGradient(this.pathGeometry, {
+              ...this.currentStateGradientConfig,
+              range: clip,
+            });
+            this.stateGradient = gradient;
+          }
+
+          progressLayer = renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
+        } else {
+          let ranges = this.renderContract.stateRanges;
+
+          if (!discreteState) {
+            const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
+            const paints =
+              this.renderContract.stateMode === 'colorstopsegments'
+                ? this.stateSegmentPaints
+                : [this.statePaints[0]];
+
+            ranges = buildPaintedRanges(animatedStateRanges, {
+              paints,
+              clip,
+              gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
+              endpointGap: { start: 0, end: 0 },
+              linecap: this.statePaintConfig.linecap,
+            });
+          }
+
+          progressLayer = renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
         }
-
-        progressLayer = renderAdaptivePathGradient(this.pathDefinition, gradient, this.renderContract.stateLayer, `${pathId}-state-gradient`, 'horseshoe__state-gradient');
-      } else {
-        let ranges = this.renderContract.stateRanges;
-
-        if (!discreteState) {
-          const animatedStateRanges = this.renderContract.stateMode === 'colorstopsegments' ? this.colorStopRanges : [{ ...this.stateRanges[0], start: clip.start, end: clip.end }];
-          const paints =
-            this.renderContract.stateMode === 'colorstopsegments'
-              ? this.stateSegmentPaints
-              : [this.statePaints[0]];
-
-          ranges = buildPaintedRanges(animatedStateRanges, {
-            paints,
-            clip,
-            gap: this.renderContract.stateMode === 'colorstopsegments' ? this.statePaintConfig.gap : 0,
-            endpointGap: { start: 0, end: 0 },
-            linecap: this.statePaintConfig.linecap,
-          });
-        }
-
-        progressLayer = renderNormalizedPathBands(this.pathDefinition, ranges, this.renderContract.stateLayer, `${pathId}-state`, 'horseshoe__state-band');
       }
-    }
 
-    // Progress uses the path transform; the marker uses already transformed
-    // coordinates so its text/image source is rotated but never mirrored.
-    return svg`
-      <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
-      ${this.config.show.state_marker
-        ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
-        : svg``}
-    `;
+      // Progress uses the path transform; the marker uses already transformed
+      // coordinates so its text/image source is rotated but never mirrored.
+      return svg`
+        <g class="horseshoe__state-progress" transform=${this.pathTransform}>${progressLayer}</g>
+        ${this.config.show.state_marker
+          ? this.stateMarker.render(this.transformedPathGeometry, this.pathConfig, this.config.horseshoe_marker, progress, this.stateMarkerStyles)
+          : svg``}
+      `;
+    } finally {
+      this.pathGeometry.endTemporarySampling();
+    }
   }
 
   /** Reactivates the state marker's concrete icon source after reconnection. */
