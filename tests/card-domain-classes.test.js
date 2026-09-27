@@ -5,6 +5,7 @@ import CardActions from '../src/card-actions.js';
 import CardInputEntities from '../src/card-input-entities.js';
 import CardTheme from '../src/card-theme.js';
 import CardConfig from '../src/card-config.js';
+import SameAs from '../src/same-as.js';
 import CardTemplates from '../src/card-templates.js';
 import CardEntities from '../src/card-entities.js';
 import CardAnimations from '../src/card-animations.js';
@@ -464,6 +465,86 @@ test('CardConfig assigns stable ids throughout visible layout sections', () => {
   assert.deepEqual(config.layout.polygons.map((item) => item.id), ['0', 'polygon']);
   assert.deepEqual(config.layout.compounds[0].lines.map((item) => item.id), ['0', 'line']);
   assert.equal(config.layout.masks.mask.circles[0].id, '0');
+});
+
+test('CardConfig reference copies preserve arrays, nested values and scalar values', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const expectedPayload = [
+    { rows: [[{ name: 'source' }]], values: [0, false, '', null] },
+    ['outer', ['inner']],
+  ];
+  const config = {
+    constants: {
+      empty: [],
+      payload: structuredClone(expectedPayload),
+      zero: 0,
+      disabled: false,
+      blank: '',
+      absent: null,
+    },
+    layout: {
+      controls: [
+        {
+          empty: 'ref(empty)',
+          payload: 'ref(payload)',
+          zero: 'ref(zero)',
+          disabled: 'ref(disabled)',
+          blank: 'ref(blank)',
+          absent: 'ref(absent)',
+        },
+        { payload: 'ref(payload)' },
+      ],
+    },
+  };
+
+  cardConfig.compileStaticValues(config);
+
+  const [first, second] = config.layout.controls;
+  assert.ok(Array.isArray(first.empty));
+  assert.deepEqual(first.empty, []);
+  assert.ok(Array.isArray(first.payload));
+  assert.ok(Array.isArray(first.payload[0].rows));
+  assert.ok(Array.isArray(first.payload[0].rows[0]));
+  assert.ok(Array.isArray(first.payload[1]));
+  assert.ok(Array.isArray(first.payload[1][1]));
+  assert.deepEqual(first.payload, expectedPayload);
+  assert.deepEqual(second.payload, expectedPayload);
+  assert.equal(first.zero, 0);
+  assert.equal(first.disabled, false);
+  assert.equal(first.blank, '');
+  assert.equal(first.absent, null);
+  assert.notEqual(first.payload, second.payload);
+  assert.notEqual(first.payload[0], second.payload[0]);
+  assert.notEqual(first.payload[0].rows, second.payload[0].rows);
+
+  first.payload[0].rows[0][0].name = 'first consumer';
+  first.payload[1][1].push('first consumer');
+  first.payload.push('first consumer');
+
+  assert.deepEqual(second.payload, expectedPayload);
+  assert.deepEqual(config.constants.payload, expectedPayload);
+});
+
+test('CardConfig reference markers keep same_as list replacement behavior', () => {
+  const cardConfig = new CardConfig({ hasJavascriptTemplates: () => false });
+  const config = {
+    constants: {
+      replacement: [{ id: 'new', values: ['green', 'yellow'] }],
+    },
+    layout: {
+      controls: [
+        { id: 'base', options: [{ id: 'old' }] },
+        { id: 'copy', same_as: 'base', options: 'ref(replacement)' },
+      ],
+    },
+  };
+
+  cardConfig.compileStaticValues(config);
+
+  assert.ok(Array.isArray(config.layout.controls[1].options));
+  config.layout.controls = SameAs.compileItems(config.layout.controls);
+
+  assert.deepEqual(config.layout.controls[1].options, [{ id: 'new', values: ['green', 'yellow'] }]);
 });
 
 test('CardConfig expands calculated constants and independent deep refs', () => {

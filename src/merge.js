@@ -1,14 +1,14 @@
 /**
- * Performs a deep merge of objects and returns new object. Does not modify
- * objects (immutable) and merges arrays via concatenation and filtering.
+ * Deep-merges configuration objects into a new object. Matching nested arrays
+ * are concatenated.
  *
- * @param {...object} objects - Objects to merge
- * @returns {object} New object with merged key/values
+ * @param {...object} objects - Configuration layers to merge.
+ * @returns {object} New object with merged key/value pairs.
  */
 export default class Merge {
   /**
-   * Merges nested configuration objects from left to right while replacing
-   * arrays as complete configuration values.
+   * Merges nested configuration objects from left to right. Arrays are
+   * concatenated when both layers provide an array at the same nested key.
    *
    * @param {...object} objects - Configuration layers in precedence order.
    * @returns {object} Merged configuration object.

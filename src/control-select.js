@@ -5,6 +5,7 @@ import ControlBase from "./control-base.js";
 import ControlContent from "./control-content.js";
 import IconTool from "./icon-tool.js";
 import Merge from "./merge.js";
+import SameAs from "./same-as.js";
 import TextTool from "./text-tool.js";
 import Utils from "./utils.js";
 
@@ -19,7 +20,8 @@ export default class ControlSelect extends ControlBase {
   static removeDisabledOptionConfigs(config, templates) {
     if (config.option_map === undefined) return;
 
-    config.option_map = config.option_map.filter((option) => {
+    const optionMap = config.option_map;
+    config.option_map = optionMap.filter((option) => {
       if (option.disabled === undefined) return true;
 
       return !ConfigHelper.isDisabled(
@@ -29,6 +31,13 @@ export default class ControlSelect extends ControlBase {
         templates,
       );
     });
+
+    // Filtering creates a new array; keep the marker so same_as can replace this option map.
+    if (optionMap[SameAs.STATIC_REF_MARKER]) {
+      Object.defineProperty(config.option_map, SameAs.STATIC_REF_MARKER, {
+        value: true,
+      });
+    }
   }
 
   /**
