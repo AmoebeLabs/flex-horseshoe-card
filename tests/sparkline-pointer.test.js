@@ -4,6 +4,27 @@ import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 
 const FIXED_NOW = Date.parse('2026-09-26T11:59:59.000Z');
 
+test('pointer projection uses rendered content and returns tool-local coordinates', () => {
+  const tool = Object.create(SparklineGraphTool.prototype);
+  tool.graphArea = { x: 10, y: 20, width: 200 };
+  tool.elements = {
+    svg: {
+      createSVGPoint: () => ({
+        matrixTransform(matrix) {
+          return { x: this.x * matrix.a + this.y * matrix.c + matrix.e, y: this.x * matrix.b + this.y * matrix.d + matrix.f };
+        },
+      }),
+      getScreenCTM() { throw new Error('nested SVG viewport matrix omits its placement in Firefox'); },
+    },
+    // Content rotated 90 degrees and scaled 2x, then placed at screen (100, 200).
+    graphGroup: { getScreenCTM: () => ({ inverse: () => ({ a: 0, b: -0.5, c: 0.5, d: 0, e: -100, f: 50 }) }) },
+  };
+
+  assert.deepEqual(tool.mouseEventToPoint({ clientX: 40, clientY: 240 }), { x: 30, y: 50 });
+  assert.deepEqual(tool.mouseEventToPoint({ touches: [{ clientX: 40, clientY: 240 }] }), { x: 30, y: 50 });
+  assert.equal(tool.pointToGraphX(tool.mouseEventToPoint({ clientX: 40, clientY: 240 })), 20);
+});
+
 /** Keeps pointer listeners and animation frames observable without replacing graph behavior. */
 class PointerWindow extends EventTarget {
   constructor() {
@@ -111,6 +132,10 @@ class PointerNode extends EventTarget {
 
   closest() {
     return this.closestResult;
+  }
+
+  querySelector() {
+    return this;
   }
 
   querySelectorAll() {

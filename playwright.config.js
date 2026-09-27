@@ -40,7 +40,8 @@ export default defineConfig({
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'], viewport: { width: 800, height: 600 } },
+      // Firefox's timezone override accepts the canonical browser name UTC, not its Etc/UTC alias.
+      use: { ...devices['Desktop Firefox'], viewport: { width: 800, height: 600 }, timezoneId: 'UTC' },
       testMatch: ['**/svg-geometry.browser.spec.js', '**/sparkline-pointer.browser.spec.js'],
     },
   ],

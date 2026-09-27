@@ -89,6 +89,7 @@ test('browser jobs and local commands use the permanent browser matrix', () => {
   }
   assert.equal(scripts['test:browser:all'], 'playwright test');
   assert.equal(browserConfig.use.timezoneId, 'Etc/UTC');
+  assert.equal(browserConfig.projects[2].use.timezoneId, 'UTC');
   assert.deepEqual(browserConfig.use.viewport, { width: 800, height: 600 });
   assert.deepEqual(browserConfig.projects.map((project) => project.name), ['chromium', 'webkit', 'firefox']);
   assert.equal(browserConfig.projects[0].snapshotPathTemplate, '{testDir}/{testFilePath}-snapshots/{arg}-{platform}{ext}');

@@ -1683,6 +1683,7 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
 
   const node = new EventTarget();
   node.dataset = {};
+  node.querySelector = () => ({});
   const container = { getBoundingClientRect: () => ({ left: 0, top: 0 }) };
   const tooltip = { querySelector: () => ({}), querySelectorAll: () => [] };
   const nodes = new Map([

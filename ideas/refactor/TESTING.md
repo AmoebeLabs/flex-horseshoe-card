@@ -222,9 +222,13 @@ Do not multiply every screenshot case across every browser.
 
 Use screenshot assertions only where visual geometry itself is under test. Prefer direct value/DOM/listener/count/state/cache assertions elsewhere.
 
+Run `npm run test:browser` for the complete Chromium suite, `npm run test:browser:webkit` for the Safari-sensitive functional set, and `npm run test:browser:firefox` for the small Firefox core. `npm run test:browser:all` runs all three projects and gates development prerelease publication. Chromium keeps the original screenshot paths; the other projects select functional cases only.
+
 ## 8. Timezone determinism
 
 Tests that assume UTC set UTC explicitly. Tests for local calendar/DST set the intended timezone explicitly (`Europe/Amsterdam`). Never depend on the developer machine timezone.
+
+The Node bootstrap and Playwright runner use `Etc/UTC`. Chromium and WebKit contexts use `Etc/UTC`; Firefox uses the equivalent canonical browser name `UTC` because its timezone override rejects the alias. Local-calendar fixtures restore their previous timezone and clock after each test.
 
 ## 9. Mocking rules
 
