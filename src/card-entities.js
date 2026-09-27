@@ -38,7 +38,7 @@ export default class CardEntities {
     const stateNumber = Number(rawState);
     if (!Number.isFinite(stateNumber)) return undefined;
 
-    const color = Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated');
+    const color = Colors.calculateStrokeColor(stateNumber, colorStops, item.show.item_style === 'colorstopinterpolated', this.cardTheme.colorContext);
     const selectedStop = stateNumber <= colorStops.colors[0].value
       ? colorStops.colors[0]
       : colorStops.colors.find((stop, index) => {

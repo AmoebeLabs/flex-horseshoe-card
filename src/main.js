@@ -33,7 +33,6 @@ import CardLayout from './card-layout.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-import Colors from './colors.js';
 import StateTool from './state-tool.js';
 import ControlTool from './control-tool.js';
 import SameAs from './same-as.js';
@@ -58,8 +57,6 @@ class FlexHorseshoeCard extends LitElement {
    */
   constructor() {
     super();
-
-    Colors.setElement(this);
 
     // A card-specific id scopes generated SVG definitions and their references
     // to this card inside the shared dashboard document.

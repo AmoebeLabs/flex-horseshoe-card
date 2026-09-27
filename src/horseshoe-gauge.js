@@ -509,7 +509,6 @@ export default class HorseshoeGauge extends BaseTool {
    * value and painted ranges for all non-gradient scale and state modes.
    */
   setState(entity, entityConfig) {
-    Colors.setElement(this.card);
     super.setState(entity, entityConfig);
 
     const stateData = getGaugeStateData(this.runtimeConfig, entity, entityConfig);
@@ -557,7 +556,7 @@ export default class HorseshoeGauge extends BaseTool {
 
       statePathRanges = buildPaintedRanges(stateRanges, {
         paints: stateRanges.map((range, index) => ({
-          color: this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[index].color ?? Colors.calculateStrokeColor(this.config.state_map.map[index].value, this.config.colorstops, stateMode === 'colorstopinterpolated') }, [this.config.horseshoe_state.color_filter]).fill,
+          color: this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[index].color ?? Colors.calculateStrokeColor(this.config.state_map.map[index].value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill,
           width: Number(this.config.horseshoe_state.width),
           opacity: range.active ? Number(stateStyles.opacity) : Number(this.config.horseshoe_state.inactive_opacity ?? 0),
           transition: stateTransition,
@@ -568,10 +567,10 @@ export default class HorseshoeGauge extends BaseTool {
         linecap: this.config.horseshoe_state.linecap,
       });
       const mappedStateIndex = this.config.state_map.map.findIndex((entry) => Number(entry.value) === Number(this.config.mapped_state.value));
-      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[mappedStateIndex].color ?? Colors.calculateStrokeColor(this.config.state_map.map[mappedStateIndex].value, this.config.colorstops, stateMode === 'colorstopinterpolated') }, [this.config.horseshoe_state.color_filter]).fill;
+      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[mappedStateIndex].color ?? Colors.calculateStrokeColor(this.config.state_map.map[mappedStateIndex].value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
     } else if (stateMode === 'colorstopsegments' && colorStopRanges.length) {
       this.stateSegmentPaints = colorStopRanges.map((range) => ({
-        color: this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false) }, [this.config.horseshoe_state.color_filter]).fill,
+        color: this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill,
         width: Number(this.config.horseshoe_state.width),
         opacity: Number(stateStyles.opacity),
       }));
@@ -582,15 +581,15 @@ export default class HorseshoeGauge extends BaseTool {
         endpointGap: { start: 0, end: 0 },
         linecap: this.config.horseshoe_state.linecap,
       });
-      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(this.value, this.config.colorstops, false) }, [this.config.horseshoe_state.color_filter]).fill;
+      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(this.value, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
     } else {
       let stateColor = stateStyles.fill;
 
       if (stateMode === 'colorstop' || stateMode === 'colorstopinterpolated') {
-        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstops, stateMode === 'colorstopinterpolated');
+        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext);
       }
       if (stateMode === 'autominmax') {
-        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstopsMinMax, true);
+        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstopsMinMax, true, this.card.cardTheme.colorContext);
       }
       stateColor = this.getRenderStyles({ ...rawStateStyles, fill: stateColor }, [this.config.horseshoe_state.color_filter]).fill;
       markerColor = stateColor;
@@ -617,7 +616,7 @@ export default class HorseshoeGauge extends BaseTool {
     if (scaleMode === 'colorstopsegments' && colorStopRanges.length) {
       scaleRanges = buildPaintedRanges(colorStopRanges, {
         paints: colorStopRanges.map((range) => ({
-          color: this.getRenderStyles({ ...rawScaleStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false) }, [this.config.horseshoe_scale.color_filter]).fill,
+          color: this.getRenderStyles({ ...rawScaleStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_scale.color_filter]).fill,
           width: Number(this.config.horseshoe_scale.width),
           opacity: Number(scaleStyles.opacity),
         })),
@@ -695,8 +694,6 @@ export default class HorseshoeGauge extends BaseTool {
    * selected colors over only the currently visible state range.
    */
   buildMeasuredGradientContracts() {
-    Colors.setElement(this.card);
-
     // External palettes may still be loading when the first measured paths are
     // built. Unresolved colors must leave these keys open for the palette-driven
     // update, matching the established horseshoe cache lifecycle.
@@ -782,7 +779,7 @@ export default class HorseshoeGauge extends BaseTool {
           width: Number(this.config.horseshoe_scale.width),
           startCap: this.config.horseshoe_scale.linecap.start,
           endCap: this.config.horseshoe_scale.linecap.end,
-        });
+        }, this.card.cardTheme.colorContext);
       }
     }
 
@@ -802,14 +799,14 @@ export default class HorseshoeGauge extends BaseTool {
           width: Number(this.config.horseshoe_state.width),
           startCap: this.config.horseshoe_state.linecap.start,
           endCap: this.config.horseshoe_state.linecap.end,
-        });
+        }, this.card.cardTheme.colorContext);
       }
       if (stateMode === 'minmaxgradient' || stateMode === 'lineargradient') {
         let currentColorStops = sourceColorStops;
         const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear' || this.config.bar_mode === 'absolute';
 
         if (bidirectional) {
-          const zeroColor = this.getRenderStyles({ fill: Colors.calculateStrokeColor(0, this.config.colorstops, true) }, [this.config.horseshoe_state.color_filter]).fill;
+          const zeroColor = this.getRenderStyles({ fill: Colors.calculateStrokeColor(0, this.config.colorstops, true, this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
           currentColorStops =
             Number(this.value) < 0
               ? [...stateCompleteColorStops.filter((_colorStop, index) => Number(sourceColorStops[index].value) < 0), { progress: this.valueMapper.zeroProgress, color: zeroColor }]
@@ -843,7 +840,7 @@ export default class HorseshoeGauge extends BaseTool {
             this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
               ...this.currentStateGradientConfig,
               range: stateClip,
-            });
+            }, this.card.cardTheme.colorContext);
           } finally {
             this.pathGeometry.endTemporarySampling();
           }
@@ -936,7 +933,7 @@ export default class HorseshoeGauge extends BaseTool {
           if (background.mode === 'colorstopsegments') {
             ranges = buildPaintedRanges(backgroundColorStopRanges, {
               paints: backgroundColorStopRanges.map((range) => ({
-                color: this.getRenderStyles({ ...rawStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false) }, [background.colorFilter]).fill,
+                color: this.getRenderStyles({ ...rawStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [background.colorFilter]).fill,
                 width: background.width,
                 opacity: 1,
               })),
@@ -958,7 +955,7 @@ export default class HorseshoeGauge extends BaseTool {
               width: background.width,
               startCap: linecap.start,
               endCap: linecap.end,
-            });
+            }, this.card.cardTheme.colorContext);
           }
 
           return {
@@ -999,10 +996,10 @@ export default class HorseshoeGauge extends BaseTool {
           let color = tickLayer.config.color ?? tickStyles.fill;
 
           if (tickLayer.config.color_mode === 'colorstop') {
-            color = Colors.calculateStrokeColor(value, this.config.colorstops, false);
+            color = Colors.calculateStrokeColor(value, this.config.colorstops, false, this.card.cardTheme.colorContext);
           }
           if (tickLayer.config.color_mode === 'colorstopinterpolated') {
-            color = Colors.calculateStrokeColor(value, this.config.colorstops, true);
+            color = Colors.calculateStrokeColor(value, this.config.colorstops, true, this.card.cardTheme.colorContext);
           }
           const renderStyles = this.getRenderStyles({
             ...tickStyles,
@@ -1143,7 +1140,7 @@ export default class HorseshoeGauge extends BaseTool {
             gradient = buildAdaptivePathGradient(this.pathGeometry, {
               ...this.currentStateGradientConfig,
               range: clip,
-            });
+            }, this.card.cardTheme.colorContext);
             this.stateGradient = gradient;
           }
 

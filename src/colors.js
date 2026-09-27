@@ -25,7 +25,6 @@ export default class Colors {
    */
   static {
     Colors.colorCache = {};
-    Colors.element = undefined;
     Colors.unresolvedColor = false;
   }
 
@@ -127,28 +126,17 @@ export default class Colors {
   }
 
   /** *****************************************************************************
-   * Colors::setElement()
-   *
-   * Summary.
-   * Sets the HTML element (the custom card) to work with getting colors
-   *
-   */
-
-  static setElement(argElement) {
-    Colors.element = argElement;
-  }
-
-  /** *****************************************************************************
    * card::_calculateColor()
    *
    * Summary.
    *
    * #TODO:
    * replace by TinyColor library? Is that possible/feasible??
+   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
    *
    */
 
-  static calculateColor(argState, argStops, argIsGradient) {
+  static calculateColor(argState, argStops, argIsGradient, colorContext) {
     const sortedStops = Object.keys(argStops)
       .map((n) => Number(n))
       .sort((a, b) => a - b);
@@ -176,7 +164,7 @@ export default class Colors {
         }
       }
     }
-    return Colors.getGradientValue(start, end, val);
+    return Colors.getGradientValue(start, end, val, colorContext);
   }
 
   /** *****************************************************************************
@@ -186,10 +174,11 @@ export default class Colors {
    *
    * #TODO:
    * replace by TinyColor library? Is that possible/feasible??
+   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
    *
    */
 
-  static calculateColor2(argState, argStops, argPart, argProperty, argIsGradient) {
+  static calculateColor2(argState, argStops, argPart, argProperty, argIsGradient, colorContext) {
     const sortedStops = Object.keys(argStops)
       .map((n) => Number(n))
       .sort((a, b) => a - b);
@@ -218,7 +207,7 @@ export default class Colors {
         }
       }
     }
-    return Colors.getGradientValue(start, end, val);
+    return Colors.getGradientValue(start, end, val, colorContext);
   }
 
   /** *****************************************************************************
@@ -264,7 +253,10 @@ export default class Colors {
    *
    */
 
-  static calculateStrokeColor(state, colorStops, gradient) {
+  /**
+   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
+   */
+  static calculateStrokeColor(state, colorStops, gradient, colorContext) {
     const stops = colorStops?.colors ?? [];
 
     if (!stops.length) return undefined;
@@ -296,7 +288,7 @@ export default class Colors {
 
         const valueBetween = Colors.calculateValueBetween(startStop.value, endStop.value, numericState);
 
-        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween);
+        return Colors.getGradientValue(startStop.color, endStop.color, valueBetween, colorContext);
       }
     }
 
@@ -308,9 +300,10 @@ export default class Colors {
    * including a nested fallback after the top-level comma.
    *
    * @param {string} argColor - CSS variable expression.
+   * @param {object} colorContext - Card-owned CSS scope for this conversion.
    * @returns {string} Resolved CSS color or configured fallback.
    */
-  static getColorVariable(argColor) {
+  static getColorVariable(argColor, colorContext) {
     const varBody = argColor.slice(4, -1).trim();
     let varName = varBody;
     let fallback = '';
@@ -331,8 +324,7 @@ export default class Colors {
       }
     }
 
-    const color = getComputedStyle(Colors.element).getPropertyValue(varName).trim();
-    // console.log('getColorVariable - ', argColor, varName, color, Colors.element);
+    const color = getComputedStyle(colorContext.element).getPropertyValue(varName).trim();
     if (color) return color;
 
     if (!this.lovelace) {
@@ -340,7 +332,6 @@ export default class Colors {
     }
 
     const llColor = getComputedStyle(this.lovelace).getPropertyValue(varName).trim();
-    // console.log('getColorVariable - ll', argColor, varName, color, llColor, Colors.element);
     if (llColor) return llColor;
 
     return fallback;
@@ -377,12 +368,13 @@ export default class Colors {
    * - an rgb() or rgba() value
    * - a hsl() or hsla() value
    * - a named css color value, such as white.
+   * @param {object} colorContext - Card-owned CSS scope for variable colors.
    *
    */
 
-  static getGradientValue(argColorA, argColorB, argValue) {
-    const resultColorA = Colors.colorToRGBA(argColorA);
-    const resultColorB = Colors.colorToRGBA(argColorB);
+  static getGradientValue(argColorA, argColorB, argValue, colorContext) {
+    const resultColorA = Colors.colorToRGBA(argColorA, colorContext);
+    const resultColorB = Colors.colorToRGBA(argColorB, colorContext);
 
     if (!resultColorA || !resultColorB) {
       Colors.unresolvedColor = true;
@@ -424,13 +416,14 @@ export default class Colors {
 
   /**
    * Converts a configured CSS color to cached RGBA channel values. CSS
-   * variables are resolved against the card and Lovelace roots before canvas
-   * parses hex, rgb, hsl, or named colors for gradient interpolation.
+   * variables use the supplied card scope before browser parsing handles
+   * modern CSS colors for gradient interpolation.
    *
    * @param {string} argColor - CSS color value to convert.
+   * @param {object} colorContext - Card-owned CSS scope for this conversion.
    * @returns {Array<number>} Red, green, blue, and alpha channel values.
    */
-  static colorToRGBA(argColor) {
+  static colorToRGBA(argColor, colorContext) {
     if (argColor == null) return [0, 0, 0, 0];
 
     // return color if found in colorCache...
@@ -444,13 +437,13 @@ export default class Colors {
       theColor = argColor;
 
       for (let i = 0; i < 10 && theColor.trim().startsWith('var('); i += 1) {
-        theColor = Colors.getColorVariable(theColor.trim());
+        theColor = Colors.getColorVariable(theColor.trim(), colorContext);
 
         // Palette variables can be requested before Palette.applyAll() has written them.
         // Do not let canvas convert an unresolved variable to black and then cache that.
         if (!theColor) {
           Colors.unresolvedColor = true;
-          if (Colors.element?.dev?.debug_colors) {
+          if (colorContext.element?.dev?.debug_colors) {
             console.log('[horseshoe-colors] unresolved css var', { argColor });
           }
           return undefined;
@@ -468,7 +461,7 @@ export default class Colors {
       // Let the browser reduce modern CSS color functions to a computed rgb() value.
       resolver.style.color = sentinel;
       resolver.style.color = theColor;
-      Colors.element.appendChild(resolver);
+      colorContext.element.appendChild(resolver);
       const computedColor = window.getComputedStyle(resolver).color;
       resolver.remove();
 
@@ -478,7 +471,7 @@ export default class Colors {
 
       if (!parsedColor) {
         Colors.unresolvedColor = true;
-        if (Colors.element?.dev?.debug_colors) {
+        if (colorContext.element?.dev?.debug_colors) {
           console.log('[horseshoe-colors] unparseable color', { argColor, resolvedColor: theColor, computedColor });
         }
         return undefined;

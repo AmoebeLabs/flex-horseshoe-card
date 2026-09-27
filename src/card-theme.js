@@ -23,6 +23,17 @@ export default class CardTheme {
     this.paletteLoadNumber = 0;
     this.palettesNeedLoading = false;
     this.disconnectedFromCard = false;
+    // Every color consumer receives the host whose inherited CSS it must read.
+    // Theme/cache metadata is filled before these conversions become reusable.
+    this.colorContext = {
+      element,
+      globalThemeName: '',
+      viewThemeName: null,
+      mode: 'light',
+      themeSource: undefined,
+      paletteSources: [],
+      cacheReady: false,
+    };
   }
 
   /** Publishes the current horseshoes whose cached color paths depend on mode. */
@@ -39,7 +50,7 @@ export default class CardTheme {
   /** Applies a Home Assistant theme change and reports whether rendering changed. */
   updateHass(hass) {
     this.hass = hass;
-    const themeName = hass.selectedTheme || hass.themes.theme || '';
+    const themeName = hass.themes.theme;
     const themeDarkMode = hass.themes.darkMode === true;
     this.nameChanged = this.name !== themeName;
     this.modeChanged = this.darkMode !== themeDarkMode;
@@ -48,6 +59,9 @@ export default class CardTheme {
 
     this.name = themeName;
     this.darkMode = themeDarkMode;
+    this.colorContext.globalThemeName = themeName;
+    this.colorContext.mode = themeDarkMode ? 'dark' : 'light';
+    this.colorContext.themeSource = hass.themes;
     Colors.colorCache = {};
     Palette.applyAll(this.element, this.palettes, this.getActiveColorStopMode());
     this.horseshoes.forEach((horseshoe) => horseshoe.clearPathItemCache());
@@ -83,7 +97,6 @@ export default class CardTheme {
     if (loadNumber !== this.paletteLoadNumber || this.disconnectedFromCard) return;
 
     this.palettes = palettes;
-    Colors.setElement(this.element);
     Palette.applyAll(this.element, this.palettes, this.getActiveColorStopMode());
     Colors.colorCache = {};
     this.palettesLoaded = true;
