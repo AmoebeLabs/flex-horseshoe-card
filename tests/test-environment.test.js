@@ -14,6 +14,7 @@ for (const timeZone of ['UTC', 'Europe/Amsterdam', 'America/Los_Angeles']) {
       'console.log(JSON.stringify([process.env.TZ, new Date("2026-08-20T12:00:00Z").getTimezoneOffset()]));',
     ], { cwd: new URL('..', import.meta.url), env, encoding: 'utf8' });
 
+    assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), ['Etc/UTC', 0]);
   });
