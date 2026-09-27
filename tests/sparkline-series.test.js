@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import CardConfig from '../src/card-config.js';
 import SparklineSeries from '../src/sparkline-series.js';
 
 const graphConfig = {
@@ -31,6 +32,51 @@ const graphConfig = {
     tickmarks_major: { size: 1 },
   },
 };
+
+test('series inherit and override referenced parent styles and color stops independently', () => {
+  const config = structuredClone(graphConfig);
+  const parentStyles = { stroke: '#1565c0', opacity: 0.8 };
+  const seriesStyles = { stroke: '#ef6c00' };
+  const parentColorStops = {
+    scales: { default: { min: 0, max: 100 } },
+    colors: [{ value: 0, color: '#111111' }, { value: 100, color: '#ffffff' }],
+  };
+  config.constants = {
+    parentStyles: structuredClone(parentStyles),
+    seriesStyles: structuredClone(seriesStyles),
+    parentColorStops: structuredClone(parentColorStops),
+  };
+  config.sparkline.line.styles = 'ref(parentStyles)';
+  config.sparkline.color_stops = 'ref(parentColorStops)';
+  config.series = [
+    { id: 'inherited', entity_index: 0 },
+    { id: 'overridden', entity_index: 1, sparkline: { line: { styles: 'ref(seriesStyles)' } } },
+  ];
+
+  new CardConfig({ hasJavascriptTemplates: () => false }).compileStaticValues(config);
+  const series = new SparklineSeries(config);
+
+  assert.deepEqual(series.items[0].config.sparkline.line.styles, parentStyles);
+  assert.deepEqual(series.items[1].config.sparkline.line.styles, { ...parentStyles, ...seriesStyles });
+  assert.deepEqual(series.items[0].config.sparkline.color_stops, parentColorStops);
+  assert.deepEqual(series.items[1].config.sparkline.color_stops, parentColorStops);
+  assert.notStrictEqual(
+    series.items[0].config.sparkline.color_stops.colors,
+    series.items[1].config.sparkline.color_stops.colors,
+  );
+  assert.notStrictEqual(
+    series.items[0].config.sparkline.color_stops.colors,
+    config.constants.parentColorStops.colors,
+  );
+
+  series.items[0].config.sparkline.color_stops.colors[0].color = '#ff00ff';
+  series.items[1].config.sparkline.line.styles.stroke = '#00ff00';
+  assert.deepEqual(series.items[1].config.sparkline.color_stops, parentColorStops);
+  assert.deepEqual(series.items[0].config.sparkline.line.styles, parentStyles);
+  assert.deepEqual(config.constants.parentColorStops, parentColorStops);
+  assert.deepEqual(config.constants.parentStyles, parentStyles);
+  assert.deepEqual(config.constants.seriesStyles, seriesStyles);
+});
 
 test('normalizes existing sparkline config into one coordinator-owned default series', () => {
   const series = new SparklineSeries(graphConfig);
