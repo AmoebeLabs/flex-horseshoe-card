@@ -245,7 +245,11 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
       groupManager: { getGroupChainForItem: () => [] },
       masksClips: { applyGradientRefs: (styles) => styles },
     },
-    cardTheme: { modeChanged: false, getActiveColorStopMode: () => 'light' },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
+    },
     cardEntities: { updateSparklineEntities() {} },
     cardTools: { getBySection: () => [] },
     requestUpdate() {},
@@ -499,6 +503,51 @@ test('a queued radial hover frame cannot restore a tooltip after leaving the SVG
   pendingFrame(0);
   assert.equal(pointerCalculations, calculationsAfterLeave);
   assert.equal(tool.tooltipVisible, false);
+});
+
+test('radial hover frames retain the SVG target after event dispatch cleanup', async (context) => {
+  const environment = installPointerEnvironment();
+  const { pointerWindow } = environment;
+  context.after(environment.restore);
+
+  for (const chartType of ['radial', 'radial_barcode']) {
+    await context.test(chartType, (subcontext) => {
+      const fixture = createPointerFixture(subcontext, pointerWindow, { chartType });
+      const { svg, tool } = fixture;
+      const event = pointerEventAtBucket(fixture, chartType, 1);
+      let dispatchActive = true;
+      let targetSeenDuringDispatch;
+      let currentTargetSeenDuringDispatch;
+
+      // Browser event targets are available to the handler, then currentTarget
+      // is cleared and retargeted events may release target before the RAF runs.
+      Object.defineProperties(event, {
+        target: {
+          configurable: true,
+          get: () => (dispatchActive ? svg : null),
+        },
+        currentTarget: {
+          configurable: true,
+          get: () => (dispatchActive ? svg : null),
+        },
+      });
+      svg.addEventListener('mousemove', (pointerEvent) => {
+        targetSeenDuringDispatch = pointerEvent.target;
+        currentTargetSeenDuringDispatch = pointerEvent.currentTarget;
+      }, { once: true });
+
+      svg.dispatchEvent(event);
+      dispatchActive = false;
+
+      assert.strictEqual(targetSeenDuringDispatch, svg);
+      assert.strictEqual(currentTargetSeenDuringDispatch, svg);
+      assert.equal(event.target, null);
+      assert.equal(event.currentTarget, null);
+
+      pointerWindow.flushFrames();
+      assert.equal(tool.tooltip.index, 1);
+    });
+  }
 });
 
 test('a pending drag frame uses the latest pointer event and chart configuration', (context) => {

@@ -804,6 +804,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.dragging = false;
     this.hovering = false;
     this.pointerEvent = undefined;
+    this.pointerEventTarget = undefined;
     this.elements = {};
     this.pointerSvgElement = undefined;
     this.rid = null;
@@ -2241,8 +2242,9 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {number} Radial bin index, or NaN outside the configured arc.
    */
   getRadialPointIndexFromEvent(event, usePointerCoordinates) {
-    const target = event.target ?? event.currentTarget;
-    const barcodeBin = target.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
+    // Browser dispatch can release a shadow-DOM event's target before our RAF.
+    // The handler retains the hit node; changed bins still use coordinates below.
+    const barcodeBin = this.pointerEventTarget.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     if (barcodeBin && !usePointerCoordinates) {
       const pointIndex = Number(barcodeBin.dataset.pointIndex);
       return pointIndex < this.primaryGraph.coords.length ? pointIndex : NaN;
@@ -2923,6 +2925,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.dragging = false;
     this.hovering = false;
     this.pointerEvent = undefined;
+    this.pointerEventTarget = undefined;
     this.clearTooltip();
 
     // An interaction can end before the first SVG is mounted. Only the bound
@@ -2979,6 +2982,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (!this.dragging) return;
     event.preventDefault();
     this.pointerEvent = event;
+    this.pointerEventTarget = event.target;
     if (!this.rid) {
       const frameId = window.requestAnimationFrame(() => {
         if (this.rid === frameId) this.pointerFrame();
@@ -2999,6 +3003,7 @@ export default class SparklineGraphTool extends BaseTool {
   hoverMove(event) {
     if (this.dragging) return;
     this.pointerEvent = event;
+    this.pointerEventTarget = event.target;
     if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
       || this.sparklineSeries.primaryItem.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
       this.stopPointerInteraction();
@@ -3028,6 +3033,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.stopPointerInteraction();
     this.dragging = true;
     this.pointerEvent = event;
+    this.pointerEventTarget = event.target;
     this.updatePointerBounds();
     window.addEventListener('pointermove', this.pointerMove, false);
     window.addEventListener('pointerup', this.pointerUp, false);
