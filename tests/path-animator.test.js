@@ -130,6 +130,57 @@ test('stopping a transition preserves the visible state and cancels pending work
   assert.deepEqual(updates, [10, 10, 80]);
 });
 
+test('closing an animator during its state update does not schedule another frame', () => {
+  const scheduler = createFrameScheduler();
+  const animator = new PathStateAnimator({
+    animation: { enabled: true, duration: 100, easing: 'linear' },
+    initialProgress: 20,
+    requestFrame: scheduler.requestFrame,
+    cancelFrame: scheduler.cancelFrame,
+    updateStateLayer: (_element, progress) => {
+      if (progress > 20) animator.unbindStateLayer();
+    },
+    onComplete: () => {},
+  });
+  animator.bindStateLayer({ id: 'state' });
+  animator.animateTo(80);
+  scheduler.runNextFrame(1000);
+  scheduler.runNextFrame(1050);
+
+  assert.equal(animator.currentProgress, 50);
+  assert.equal(animator.animating, false);
+  assert.equal(scheduler.pendingFrames(), 0);
+});
+
+test('replacing a state mount cancels its old frame and continues from visible progress', () => {
+  const scheduler = createFrameScheduler();
+  const updates = [];
+  const animator = new PathStateAnimator({
+    animation: { enabled: true, duration: 100, easing: 'linear' },
+    initialProgress: 20,
+    requestFrame: scheduler.requestFrame,
+    cancelFrame: scheduler.cancelFrame,
+    updateStateLayer: (element, progress) => updates.push({ element, progress }),
+    onComplete: () => {},
+  });
+  animator.bindStateLayer({ id: 'old-state' });
+  animator.animateTo(80);
+  scheduler.runNextFrame(1000);
+  scheduler.runNextFrame(1050);
+  const oldFrame = animator.frame;
+  const replacement = { id: 'replacement' };
+
+  animator.bindStateLayer(replacement);
+
+  assert.notEqual(animator.frame, oldFrame);
+  assert.equal(animator.currentProgress, 50);
+  assert.equal(scheduler.pendingFrames(), 1);
+  scheduler.runNextFrame(1100);
+  scheduler.runNextFrame(1200);
+  assert.deepEqual(updates.at(-1), { element: replacement, progress: 80 });
+  assert.equal(scheduler.pendingFrames(), 0);
+});
+
 test('full-gradient animation retains adaptive geometry and changes only its reveal range', () => {
   const scheduler = createFrameScheduler();
   let lengthReads = 0;

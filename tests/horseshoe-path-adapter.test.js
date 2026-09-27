@@ -692,6 +692,35 @@ test('current gradients do not retain their moving frame samples permanently', (
   assert.equal(measurements.tangents.size, fixedSamples.tangents);
 });
 
+test('changing a measured path stops animation before its old binding is released', () => {
+  const previousRequestAnimationFrame = globalThis.requestAnimationFrame;
+  const previousCancelAnimationFrame = globalThis.cancelAnimationFrame;
+  const frames = new Map();
+  globalThis.requestAnimationFrame = (callback) => { frames.set(1, callback); return 1; };
+  globalThis.cancelAnimationFrame = (frame) => frames.delete(frame);
+  try {
+    const card = createCard();
+    const [horseshoe] = HorseshoeGauge.setConfig(createConfig({ type: 'line', length: 80 }), createTemplates(), 'card', card);
+    horseshoe.updateRuntimeConfig();
+    bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+    horseshoe.stateAnimator.stateLayerElement = { id: 'old-state' };
+    horseshoe.stateAnimator.currentProgress = 35;
+    horseshoe.stateAnimator.animateTo(80);
+    horseshoe.activeItemConfig.path.length = 60;
+    card.cardLayout.changedGroupIds.add('card');
+
+    horseshoe.updateRuntimeConfig();
+
+    assert.equal(frames.size, 0);
+    assert.equal(horseshoe.stateAnimator.stateLayerElement, undefined);
+    assert.equal(horseshoe.stateAnimator.currentProgress, 35);
+    assert.equal(horseshoe.pathGeometry.isReady(), false);
+  } finally {
+    globalThis.requestAnimationFrame = previousRequestAnimationFrame;
+    globalThis.cancelAnimationFrame = previousCancelAnimationFrame;
+  }
+});
+
 test('disconnect stops and unbinds the active horseshoe state animator', () => {
   const previousRequestAnimationFrame = globalThis.requestAnimationFrame;
   const previousCancelAnimationFrame = globalThis.cancelAnimationFrame;
