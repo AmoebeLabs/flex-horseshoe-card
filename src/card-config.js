@@ -1,6 +1,5 @@
 import ConfigHelper from './config-helper.js';
 import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sections.js';
-import Merge from './merge.js';
 import SameAs from './same-as.js';
 import { DEFAULT_ZPOS } from './const.js';
 
@@ -114,6 +113,19 @@ export default class CardConfig {
       return Object.keys(result).length > 0 ? result : undefined;
     };
 
+    /** Copies each ref's nested config so edits cannot change its source or other consumers. */
+    const copyRefValue = (value) => {
+      if (Array.isArray(value)) {
+        return value.map((entry) => copyRefValue(entry));
+      }
+
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, copyRefValue(entry)]));
+      }
+
+      return value;
+    };
+
     /*
      * Resolve static calc() expressions recursively.
      */
@@ -209,7 +221,7 @@ export default class CardConfig {
         const refPath = value.slice(4, -1).trim();
         const constant = resolveConstantPath(refPath, constants);
 
-        const resolvedRef = constant && typeof constant === 'object' ? Merge.mergeDeep(Array.isArray(constant) ? [] : {}, constant) : constant;
+        const resolvedRef = copyRefValue(constant);
 
         if (resolvedRef && typeof resolvedRef === 'object') {
           Object.defineProperty(resolvedRef, SameAs.STATIC_REF_MARKER, { value: true });
