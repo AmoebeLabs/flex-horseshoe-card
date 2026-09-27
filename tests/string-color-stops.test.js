@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import ColorStops from '../src/color-stops.js';
 import CardEntities from '../src/card-entities.js';
-import Colors from '../src/colors.js';
 import { getGaugeStateData } from '../src/horseshoe-state.js';
 
 const entityConfig = { entities: [{ entity: 'sensor.test' }] };
@@ -31,7 +30,6 @@ test('normalizes string color stops without converting states to numbers', () =>
 });
 
 test("resolves color stops against each card's own CSS scope", () => {
-  const previousCache = Colors.colorCache;
   const previousGetComputedStyle = globalThis.getComputedStyle;
   const hadGetComputedStyle = Object.hasOwn(globalThis, 'getComputedStyle');
   const cardEntitiesA = new CardEntities({}, {
@@ -63,7 +61,6 @@ test("resolves color stops against each card's own CSS scope", () => {
     ],
   });
 
-  Colors.colorCache = {};
   globalThis.getComputedStyle = (element) => ({
     getPropertyValue: () => element.color,
   });
@@ -79,7 +76,6 @@ test("resolves color stops against each card's own CSS scope", () => {
       entities,
     );
 
-    Colors.colorCache = {};
     const colorFromA = cardEntitiesA.getItemColorFromStops(
       item,
       colorStops,
@@ -90,7 +86,6 @@ test("resolves color stops against each card's own CSS scope", () => {
     assert.equal(colorFromB, '#0000ffff');
     assert.equal(colorFromA, '#ff0000ff');
   } finally {
-    Colors.colorCache = previousCache;
     if (hadGetComputedStyle) globalThis.getComputedStyle = previousGetComputedStyle;
     else delete globalThis.getComputedStyle;
   }

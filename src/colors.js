@@ -24,8 +24,76 @@ export default class Colors {
    *
    */
   static {
-    Colors.colorCache = {};
+    Colors.colorCache = new Map();
+    Colors.themeRevisions = new WeakMap();
+    Colors.themeRevisionNumber = 0;
     Colors.unresolvedColor = false;
+  }
+
+  /**
+   * Assigns a stable, increasing revision to each Home Assistant theme source.
+   * CardTheme records the source when HA delivers it, so delayed work from an
+   * older source keeps its earlier revision instead of looking like a refresh.
+   *
+   * @param {object} source - Home Assistant theme source object.
+   * @returns {number} Stable revision for this source object.
+   */
+  static getThemeRevision(source) {
+    let revision = Colors.themeRevisions.get(source);
+
+    if (revision === undefined) {
+      revision = Colors.themeRevisionNumber + 1;
+      Colors.themeRevisionNumber = revision;
+      Colors.themeRevisions.set(source, revision);
+    }
+
+    return revision;
+  }
+
+  /**
+   * Returns the active conversion bucket shared by cards with the same theme
+   * names and ordered palette URLs. Each key retains only paint metadata,
+   * palette document references, and converted colors, never a card or DOM host.
+   *
+   * @param {object} colorContext - Prepared card theme and palette identity.
+   * @returns {object|undefined} Active bucket, or undefined for stale theme work.
+   */
+  static getColorCache(colorContext) {
+    const themeRevision = Colors.getThemeRevision(colorContext.themeSource);
+    let colorBucket = Colors.colorCache.get(colorContext.cacheKey);
+
+    if (!colorBucket) {
+      colorBucket = {
+        mode: colorContext.mode,
+        themeRevision,
+        paletteDocuments: colorContext.paletteSources.map((source) => source.palette),
+        colors: new Map(),
+      };
+      Colors.colorCache.set(colorContext.cacheKey, colorBucket);
+      return colorBucket;
+    }
+
+    // Older asynchronous work may still render, but must not replace the cache
+    // already published for a newer HA theme source.
+    if (themeRevision < colorBucket.themeRevision) return undefined;
+
+    const paletteDocumentsChanged = colorContext.paletteSources.length !== colorBucket.paletteDocuments.length
+      || colorContext.paletteSources.some((source, index) => source.palette !== colorBucket.paletteDocuments[index]);
+
+    if (
+      colorContext.mode !== colorBucket.mode
+      || themeRevision !== colorBucket.themeRevision
+      || paletteDocumentsChanged
+    ) {
+      // Cards with a matching context share one active mode/source/document set.
+      // A context transition clears only that shared bucket, once.
+      colorBucket.mode = colorContext.mode;
+      colorBucket.themeRevision = themeRevision;
+      colorBucket.paletteDocuments = colorContext.paletteSources.map((source) => source.palette);
+      colorBucket.colors.clear();
+    }
+
+    return colorBucket;
   }
 
   /** *****************************************************************************
@@ -426,8 +494,9 @@ export default class Colors {
   static colorToRGBA(argColor, colorContext) {
     if (argColor == null) return [0, 0, 0, 0];
 
-    // return color if found in colorCache...
-    const retColor = Colors.colorCache[argColor];
+    const colorBucket = colorContext.cacheReady ? Colors.getColorCache(colorContext) : undefined;
+    const colorCache = colorBucket?.colors;
+    const retColor = colorCache?.get(argColor);
     if (retColor) return retColor;
 
     let theColor = argColor;
@@ -486,7 +555,7 @@ export default class Colors {
       Math.round((rgbColor.alpha ?? 1) * 255),
     ];
 
-    Colors.colorCache[argColor] = outColor;
+    if (colorCache) colorCache.set(argColor, outColor);
 
     return outColor;
   }
