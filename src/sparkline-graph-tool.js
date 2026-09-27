@@ -2184,8 +2184,13 @@ export default class SparklineGraphTool extends BaseTool {
 
     p.x = e.touches ? e.touches[0].clientX : e.clientX;
     p.y = e.touches ? e.touches[0].clientY : e.clientY;
-    const ctm = this.elements.svg.getScreenCTM().inverse();
+    // Firefox omits nested SVG x/y placement from the viewport matrix. The
+    // rendered group's matrix includes placement, rotation and parent scaling.
+    const ctm = this.elements.graphGroup.getScreenCTM().inverse();
     p = p.matrixTransform(ctm);
+    // Pointer consumers use tool-local coordinates and subtract the graph origin themselves.
+    p.x += this.graphArea.x;
+    p.y += this.graphArea.y;
     return p;
   }
 
@@ -2846,6 +2851,7 @@ export default class SparklineGraphTool extends BaseTool {
     this.elements.containerRect = this.elements.container.getBoundingClientRect();
 
     if (!currentSvg) return;
+    this.elements.graphGroup = currentSvg.querySelector('.sparkline-plot');
     if (currentSvg === this.pointerSvgElement) {
       // Lit can replace tooltip rows and indicator children without replacing
       // the root SVG. Synchronize against those newly committed elements.
@@ -5899,7 +5905,7 @@ export default class SparklineGraphTool extends BaseTool {
             @pointerdown=${(event) => event.stopPropagation()}
             @click=${(event) => event.stopPropagation()}
           >
-            <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
+            <g class="sparkline-plot" transform="translate(${this.graphArea.x} ${this.graphArea.y})">
               ${this.periodDurationAvailable ? this.renderHistoryLoadingSpinner() : svg``}
             </g>
             ${this.renderLegend()}
@@ -5940,7 +5946,7 @@ export default class SparklineGraphTool extends BaseTool {
             ${this.line.map((line, i) => this.renderSvgLineMask(line, i))}
             ${this.renderSvgStateBandsMask()}
           </defs>
-          <g transform="translate(${this.graphArea.x} ${this.graphArea.y})">
+          <g class="sparkline-plot" transform="translate(${this.graphArea.x} ${this.graphArea.y})">
             <g
               class="sparkline-background-layers"
               opacity="1"

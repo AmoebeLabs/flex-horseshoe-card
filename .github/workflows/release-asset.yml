@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   upload:
+    # The development workflow uploads its own tested artifact under its writer lock.
+    if: github.event.release.tag_name != 'dev-latest'
     runs-on: ubuntu-latest
 
     steps:
