@@ -8,7 +8,8 @@ const now = new Date('2026-09-26T12:00:00.000Z');
 async function loadPointerCard(page, { runtimeChartType = false, realTime = false } = {}) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.clock.install({ time: now });
+  // Install before the pause target so browser transport time cannot put that target in the past.
+  await page.clock.install({ time: new Date(now.getTime() - 60_000) });
   await page.clock.pauseAt(now);
   await page.route('http://fhs.test/**', (route) => route.fulfill({
     contentType: 'text/html',
@@ -120,11 +121,14 @@ async function moveToBucket(page, index, radial = false) {
     return { x: client.x, y: client.y, index: pointIndex };
   }, { index, radial });
   await page.mouse.move(target.x, target.y);
-  await page.clock.runFor(34);
-  expect(await page.evaluate(() => {
-    const graph = window.pointerRegression.graph;
-    return { visible: graph.tooltipVisible, index: graph.tooltip.index };
-  })).toEqual({ visible: true, index: target.index });
+  // Input delivery and its RAF can land in different browser turns; await the selected bucket.
+  await expect.poll(async () => {
+    await page.clock.runFor(34);
+    return page.evaluate(() => {
+      const graph = window.pointerRegression.graph;
+      return { visible: graph.tooltipVisible, index: graph.tooltip.index };
+    });
+  }).toEqual({ visible: true, index: target.index });
   return target;
 }
 
