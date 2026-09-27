@@ -159,7 +159,12 @@ test('CardTheme publishes only palette B in either completion order', async () =
       const properties = new Map();
       let updates = 0;
       const theme = new CardTheme(
-        { style: { setProperty: (name, value) => properties.set(name, value) } },
+        {
+          style: {
+            setProperty: (name, value) => properties.set(name, value),
+            removeProperty: (name) => properties.delete(name),
+          },
+        },
         () => {},
         () => { updates += 1; },
       );
@@ -188,7 +193,13 @@ test('CardTheme removal supersedes a load and reconnect retries interrupted work
   const removedUrl = 'https://tests.invalid/theme-removed';
   const reconnectUrl = 'https://tests.invalid/theme-reconnect';
   const properties = new Map();
-  const host = { style: { setProperty: (name, value) => properties.set(name, value) } };
+  const host = {
+    style: {
+      setProperty: (name, value) => properties.set(name, value),
+      removeProperty: (name) => properties.delete(name),
+    },
+    getRootNode: () => ({ host: null }),
+  };
   let updates = 0;
   const theme = new CardTheme(host, () => {}, () => { updates += 1; });
   const removedRequest = deferred();
@@ -465,7 +476,11 @@ test('TextTool discards measurements after element replacement or disconnect and
   try {
     const card = {
       cardLayout: { calculateSvgCoordinatesInGroup: () => ({ xpos: 100, ypos: 100 }) },
-      cardTheme: { modeChanged: false, getActiveColorStopMode: () => 'light' },
+      cardTheme: {
+        modeChanged: false,
+        getActiveColorStopMode: () => 'light',
+        colorContext: { cacheReady: false },
+      },
       cardAnimations: { styles: { texts: {} } },
       requestUpdate() { updates += 1; },
     };

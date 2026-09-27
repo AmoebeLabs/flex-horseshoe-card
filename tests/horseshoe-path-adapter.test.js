@@ -21,6 +21,7 @@ function createCard() {
     cardTheme: {
       modeChanged: false,
       getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
     },
     cardAnimations: { styles: { horseshoes: {} } },
     actions: { getActionHandlerOptions: () => ({}), handleAction: () => {} },
