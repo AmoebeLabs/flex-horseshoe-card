@@ -115,9 +115,10 @@ async function moveToBucket(page, index, radial = false) {
       }
     }
     const svgPoint = graph.elements.svg.createSVGPoint();
-    svgPoint.x = graph.graphArea.x + point.x;
-    svgPoint.y = graph.graphArea.y + point.y;
-    const client = svgPoint.matrixTransform(graph.elements.svg.getScreenCTM());
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
+    // Aim at rendered content independently of the tool's screen-to-pointer conversion.
+    const client = svgPoint.matrixTransform(graph.elements.svg.querySelector(':scope > g').getScreenCTM());
     return { x: client.x, y: client.y, index: pointIndex };
   }, { index, radial });
   await page.mouse.move(target.x, target.y);
