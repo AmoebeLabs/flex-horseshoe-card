@@ -15,6 +15,8 @@ export default class PathGeometry {
     this.pathDefinition = undefined;
     this.pathElement = undefined;
     this.activeMeasurement = undefined;
+    this.sampleCache = undefined;
+    this.temporarySamples = { points: new Map(), tangents: new Map() };
     this.bound = false;
   }
 
@@ -35,6 +37,7 @@ export default class PathGeometry {
     this.pathDefinition = pathDefinition;
     this.pathElement = undefined;
     this.activeMeasurement = this.measurementCache.get(pathDefinition.signature);
+    this.sampleCache = this.activeMeasurement;
     this.bound = false;
 
     return true;
@@ -65,6 +68,7 @@ export default class PathGeometry {
     }
 
     this.bound = true;
+    this.sampleCache = this.activeMeasurement;
     this.requestRender();
 
     return true;
@@ -72,6 +76,7 @@ export default class PathGeometry {
 
   /** Releases the DOM binding while retaining measurements for reconnect. */
   unbindPathElement() {
+    this.endTemporarySampling();
     this.pathElement = undefined;
     this.bound = false;
   }
@@ -113,6 +118,24 @@ export default class PathGeometry {
   }
 
   /**
+   * Starts one moving-state drawing pass. Points and directions are reused
+   * within this pass instead of retaining arbitrary progress positions forever.
+   * Transformed geometry uses this same owner and therefore shares these samples.
+   */
+  beginTemporarySampling() {
+    this.temporarySamples.points.clear();
+    this.temporarySamples.tangents.clear();
+    this.sampleCache = this.temporarySamples;
+  }
+
+  /** Releases moving samples and restores measurement reuse for fixed layers. */
+  endTemporarySampling() {
+    this.sampleCache = this.activeMeasurement;
+    this.temporarySamples.points.clear();
+    this.temporarySamples.tangents.clear();
+  }
+
+  /**
    * Returns a browser-measured coordinate at normalized path progress. The
    * normalized-to-actual conversion remains private to this geometry boundary.
    *
@@ -120,17 +143,17 @@ export default class PathGeometry {
    * @returns {object} Point with x and y coordinates in SVG user units.
    */
   pointAtProgress(progress) {
-    if (!this.activeMeasurement.points.has(progress)) {
+    if (!this.sampleCache.points.has(progress)) {
       const actualDistance = (progress / 100) * this.activeMeasurement.totalLength;
       const measuredPoint = this.pathElement.getPointAtLength(actualDistance);
 
-      this.activeMeasurement.points.set(progress, {
+      this.sampleCache.points.set(progress, {
         x: measuredPoint.x,
         y: measuredPoint.y,
       });
     }
 
-    return this.activeMeasurement.points.get(progress);
+    return this.sampleCache.points.get(progress);
   }
 
   /**
@@ -143,7 +166,7 @@ export default class PathGeometry {
    * @returns {object} Unit tangent with x and y vector components.
    */
   tangentAtProgress(progress) {
-    if (!this.activeMeasurement.tangents.has(progress)) {
+    if (!this.sampleCache.tangents.has(progress)) {
       const totalLength = this.activeMeasurement.totalLength;
       const actualDistance = (progress / 100) * totalLength;
       const sampleDistance = Math.min(0.01, totalLength / 2);
@@ -188,13 +211,13 @@ export default class PathGeometry {
         }
       }
 
-      this.activeMeasurement.tangents.set(progress, {
+      this.sampleCache.tangents.set(progress, {
         x: deltaX / vectorLength,
         y: deltaY / vectorLength,
       });
     }
 
-    return this.activeMeasurement.tangents.get(progress);
+    return this.sampleCache.tangents.get(progress);
   }
 
   /**

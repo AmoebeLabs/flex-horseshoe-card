@@ -612,6 +612,51 @@ test('a mounted numeric update delegates progress to the state animator without 
   assert.equal(horseshoe.pathElements, pathElements);
 });
 
+test('moving state markers retain only fixed samples in the permanent path cache', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: { state_progress: false, state_marker: true },
+    horseshoe_marker: { attach_to: 'path', shape: 'circle', size: 4 },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const measurements = horseshoe.pathGeometry.activeMeasurement;
+  const fixedSamples = { points: measurements.points.size, tangents: measurements.tangents.size };
+
+  // Moving state positions must not become permanent measurement candidates.
+  for (let index = 0; index < 100; index += 1) {
+    horseshoe.renderStateAtProgress(10.1234567 + index * 0.71234567, 'card-horseshoe-0');
+  }
+
+  assert.equal(measurements.points.size, fixedSamples.points);
+  assert.equal(measurements.tangents.size, fixedSamples.tangents);
+});
+
+test('current gradients do not retain their moving frame samples permanently', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: { horseshoe_style: 'lineargradient' },
+    color_stops: { 0: '#00ff00', 50: '#ffff00', 100: '#ff0000' },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const measurements = horseshoe.pathGeometry.activeMeasurement;
+  const fixedSamples = { points: measurements.points.size, tangents: measurements.tangents.size };
+
+  for (let index = 0; index < 100; index += 1) {
+    horseshoe.renderStateAtProgress(10.1234567 + index * 0.71234567, 'card-horseshoe-0');
+  }
+
+  assert.equal(measurements.points.size, fixedSamples.points);
+  assert.equal(measurements.tangents.size, fixedSamples.tangents);
+});
+
 test('disconnect stops and unbinds the active horseshoe state animator', () => {
   const previousRequestAnimationFrame = globalThis.requestAnimationFrame;
   const previousCancelAnimationFrame = globalThis.cancelAnimationFrame;
