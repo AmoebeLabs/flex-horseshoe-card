@@ -197,10 +197,10 @@ export default class SameAs {
   }
 
   /**
-   * Checks whether a value is a finite static number for same_as_d... math.
+   * Identifies a slot/index entity address in same_as offset configuration.
    *
    * @param {*} value - Value to test.
-   * @returns {boolean} True when the value is a finite number.
+   * @returns {boolean} True for a complete entity address.
    */
   static isEntityAddress(value) {
     return value?.type === 'entity_address' && typeof value.slot === 'string' && Number.isInteger(value.index);

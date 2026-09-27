@@ -678,7 +678,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
 
     // Both historical period types expose the same automatic bin interface.
-    // Keep 'auto' in the tool config; only buildGraphConfig resolves it for the engine.
+    // Keep 'auto' in tool config; Series chooses the shared numeric bin density.
     ['calendar', 'rolling_window'].forEach((periodType) => {
       if (sparklineConfig.period[periodType] === undefined) return;
 
@@ -699,7 +699,6 @@ export default class SparklineGraphTool extends BaseTool {
         sparklineConfig.y_axis.labels.styles['dominant-baseline'] = 'hanging';
       }
     }
-    // console.log('SparklineGraphTool constructor', sparklineConfig, defaultConfig, index, templates, cardId, card);
 
     const periodUsesJavascript = templates.hasJavascriptTemplates(sparklineConfig.period);
     super(sparklineConfig, index, templates, cardId, card, 'sparklines', 'sparklines', 0);
@@ -817,7 +816,6 @@ export default class SparklineGraphTool extends BaseTool {
     });
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.graphDataChanged = true;
-    this.config.svg = this.svg;
   }
 
   /**
@@ -1138,9 +1136,8 @@ export default class SparklineGraphTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    // Configuration activates a new graph contract. Keep this pending while a
-    // larger history range loads, so its replacement graphs are created only
-    // after the matching data has arrived.
+    // Keep a changed layout pending while a larger history range loads. Apply
+    // its geometry after the matching data has arrived from History.
     if (this.configChanged) this.graphGeometryChanged = true;
 
     // Runtime controls can change radial appearance, arc and rotation. Validate
@@ -3341,147 +3338,8 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Calculates human-readable Y-axis ticks, limits, and intervals for a chart.
-   *
-   * @param {number} dataMin - The lowest sensor value in the dataset.
-   * @param {number} dataMax - The highest sensor value in the dataset.
-   * @param {number} chartHeightPixels - The vertical height of the SVG chart area.
-   * @param {number} fontHeightPixels - The size of the font used for labels (default: 12).
-   * @returns {object} An object containing grid limits, interval, and an array of tick values.
-   */
-  calculatePerfectYAxis(dataMin, dataMax, chartHeightPixels, fontHeightPixels = FONT_SIZE) {
-    // 1. Prevent crash if min and max are identical (e.g., a flat line of a constant value)
-    if (dataMin === dataMax) {
-      dataMin -= 1;
-      dataMax += 1;
-    }
-
-    // 2. Calculate maximum labels that can fit vertically including padding (2x font height)
-    const minSpacePerLabel = fontHeightPixels * 1.5;
-    const maxLabels = Math.floor(chartHeightPixels / minSpacePerLabel);
-
-    // Safety check: always allow at least 2 labels (bottom and top)
-    const effectiveMaxLabels = Math.max(maxLabels, 2);
-
-    // 3. Calculate raw step size
-    const range = dataMax - dataMin;
-    const rawStep = range / (effectiveMaxLabels - 1);
-
-    // 4. Logarithmic magic: determine the order of magnitude (the exponent)
-    const exponent = Math.floor(Math.log10(rawStep));
-    const powerOfTen = 10 ** exponent;
-
-    // 5. Normalize the step size to a value between 1 and 10
-    const normalizedStep = rawStep / powerOfTen;
-
-    // 6. Select the closest clean "human-friendly" interval
-    let chosenStep;
-    if (normalizedStep <= 1.0) chosenStep = 1.0;
-    else if (normalizedStep <= 2.0) chosenStep = 2.0;
-    else if (normalizedStep <= 5.0) chosenStep = 5.0;
-    else chosenStep = 10.0;
-
-    // The final interval (e.g., 0.5 or 5000)
-    const interval = chosenStep * powerOfTen;
-
-    // 7. Round the min and max limits to clean numbers (Nice Scaling)
-    const gridMin = Math.floor(dataMin / interval) * interval;
-    const gridMax = Math.ceil(dataMax / interval) * interval;
-
-    // 8. Generate all individual tick values for the grid lines
-    const ticks = [];
-    let currentValue = gridMin;
-
-    // Prevent infinite loops caused by JS floating-point rounding errors
-    const precision = Math.max(0, -exponent + 2);
-
-    while (currentValue <= gridMax + interval / 100) {
-      ticks.push(Number(currentValue.toFixed(precision)));
-      currentValue += interval;
-    }
-
-    // Return all data required to render the SVG
-    return {
-      gridMin: Number(gridMin.toFixed(precision)),
-      gridMax: Number(gridMax.toFixed(precision)),
-      interval,
-      ticks, // The list of values where lines and labels should be drawn
-    };
-  }
-
-  /**
-   * Calculates human-readable X-axis time ticks and formats them for SVG.
-   * Switches to a date format (e.g., "5 Jul") on midnight transitions.
-   *
-   * @param {number|Date} minTime - The earliest timestamp in the data (ms or Date).
-   * @param {number|Date} maxTime - The latest timestamp in the data (ms or Date).
-   * @param {number} chartWidthPixels - The horizontal width of the SVG chart area.
-   * @param {number} fontWidthPixels - Average pixel width of a character (default: 7).
-   * @returns {array} Array of tick objects containing value, x-coordinate, and string label.
-   */
-  calculatePerfectXAxis(minTime, maxTime, chartWidthPixels, fontWidthPixels = FONT_SIZE * 0.6) {
-    const minMs = new Date(minTime).getTime();
-    const maxMs = new Date(maxTime).getTime();
-    const totalDuration = maxMs - minMs;
-
-    if (totalDuration <= 0) return { ticksize: 0, ticks: [] };
-
-    const approxLabelWidth = 1 * fontWidthPixels + FONT_SIZE; // 16;
-    const maxLabels = Math.floor(chartWidthPixels / approxLabelWidth);
-    const effectiveMaxLabels = Math.max(maxLabels, 4);
-    const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
-
-    const timeIntervals = [1000, 5000, 15000, 30000, 60000, 300000, 600000, 900000, 1800000, 3600000, 7200000, 14400000, 21600000, 43200000, 86400000, 172800000, 604800000, 2629800000];
-
-    let selectedIndex = timeIntervals.findIndex((interval) => interval >= minTimeStep);
-    if (selectedIndex < 0) {
-      selectedIndex = timeIntervals.length - 1;
-    }
-
-    while (selectedIndex > 0 && totalDuration / timeIntervals[selectedIndex] < 2) {
-      selectedIndex -= 1;
-    }
-
-    const selectedInterval = timeIntervals[selectedIndex];
-
-    let currentTickMs = Math.ceil(minMs / selectedInterval) * selectedInterval;
-    const ticks = [];
-    let previousTickDate = null;
-
-    while (currentTickMs <= maxMs) {
-      const tickDate = new Date(currentTickMs);
-      const percentage = (currentTickMs - minMs) / totalDuration;
-      const xPixel = percentage * chartWidthPixels;
-      const tickDay = tickDate.toDateString();
-      const previousTickDay = previousTickDate ? previousTickDate.toDateString() : null;
-      const label = !previousTickDate || tickDay !== previousTickDay ? formatDateVeryShort(tickDate, this.card._hass.locale, this.card._hass.config) : formatTime(tickDate, this.card._hass.locale, this.card._hass.config);
-
-      ticks.push({
-        value: currentTickMs,
-        x: Number(xPixel.toFixed(1)),
-        label,
-      });
-
-      previousTickDate = tickDate;
-      currentTickMs += selectedInterval;
-    }
-
-    return { ticksize: selectedInterval, ticks };
-  }
-
-  /**
-   * Builds x-axis ticks from the configured period and ticksize. The current
-   * today period renders the full 00:00 -> 24:00 range so grid and labels stay
-   * stable while the day progresses.
-   *
-   * @param {string} level - major or minor.
-   * @returns {Array<object>} X-axis ticks.
-   */
-  /**
-   * Builds x-axis ticks from the graph bucket starts and graph coordinates.
-   * Grid, tickmarks and labels must use the same x values as the rendered
-   * graph points. Therefore this maps each tick time to a bucket index and
-   * reads x from Graph.coords instead of recalculating chart geometry here.
+   * Adds localized time labels to the retained Graph time-axis ticks. Grid,
+   * tickmarks and labels share those positions, including the period-end tick.
    *
    * @param {string} level - major or minor.
    * @returns {Array<object>} X-axis ticks.
@@ -3507,9 +3365,8 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds y-axis ticks from the effective graph bounds and configured ticksize.
-   * If the visible range is smaller than the ticksize and no configured tick
-   * falls inside the range, the y grid/labels intentionally render nothing.
+   * Adds localized value labels to the retained Graph value-axis ticks. State
+   * bands use their configured categorical labels and row positions instead.
    *
    * @param {string} level - major or minor.
    * @returns {Array<object>} Y-axis ticks.
@@ -4647,8 +4504,8 @@ export default class SparklineGraphTool extends BaseTool {
     if (this.config.sparkline.show.chart_type !== 'equalizer') return '';
     if (!equalizer) return '';
 
-    // History-backed graphs first render a temporary current-state series.
-    // Start the SVG animation only when the requested history is available.
+    // Historical equalizers animate their accepted History result; real-time
+    // equalizers animate the current value without a history request.
     const animate = this.config.sparkline.animate && (this.config.period.type === 'real_time' || this.sparklineHistory.hasRows(this.sparklineSeries.primaryItem.id));
     const animationStartY = this.animationBaselineY;
 

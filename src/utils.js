@@ -1,44 +1,33 @@
 import { SVG_DEFAULT_DIMENSIONS } from './const.js';
 
-/** ***************************************************************************
- * Utils class
- *
- * Summary.
- *
+/**
+ * Shared value/dimension calculations and access to the active Lovelace view.
  */
 
 export default class Utils {
   /**
-   * Utils::calculateValueBetween()
+   * Maps a state value to a clipped fraction of its configured scale. The
+   * existing initial/zero-value behavior supplies a zero fraction until a
+   * nonzero numeric state is available.
    *
-   * Summary.
-   * Clips the val value between start and end, and returns the between value ;-)
-   * Returned value is a fractional value between 0 and 1.
-   *
-   * Note 1:
-   * At start, state values are set to 'null' to make sure it has no value!
-   * If such a value is detected, return 0(%) as the relative value.
-   * In normal cases, this happens to be the _valuePrev, so 0% is ok!!!!
-   *
-   * Note 2:
-   * !xyz checks for "", null, undefined, false and number 0
-   * An extra check for NaN guards the result of this function ;-)
+   * @param {number} argStart - Scale start.
+   * @param {number} argEnd - Scale end.
+   * @param {number} argVal - State value.
+   * @returns {number} Fraction from zero through one.
    */
 
   static calculateValueBetween(argStart, argEnd, argVal) {
-    // Check for valid argVal values and return 0 if invalid.
     if (isNaN(argVal)) return 0;
     if (!argVal) return 0;
 
-    // Valid argVal value: calculate fraction between 0 and 1
     return (Math.min(Math.max(argVal, argStart), argEnd) - argStart) / (argEnd - argStart);
   }
 
   /**
-   * Utils::calculateSvgDimension()
+   * Converts a dimension in card percentage units into the shared SVG scale.
    *
-   * Summary.
-   * Translate tool dimension like length or width to actual SVG dimension.
+   * @param {number} argDimension - Configured dimension.
+   * @returns {number} Dimension in SVG units.
    */
 
   static calculateSvgDimension(argDimension) {
@@ -73,7 +62,6 @@ export default class Utils {
     root = root && root.shadowRoot;
     root = root && root.querySelector('hui-root');
     if (root) {
-      // console.log('getLoveLace, root', root, root.lovelace);
       const ll = root.lovelace;
       ll.current_view = root.___curView;
       return ll;
