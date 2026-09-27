@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import PathGeometry from '../src/path-geometry.js';
 
 import {
   buildAdaptivePathGradient,
@@ -7,10 +8,18 @@ import {
   setFullPathGradientRevealRange,
 } from '../src/path-gradient-renderer.js';
 
-const straightGeometry = {
-  getTotalLength: () => 200,
-  pointAtProgress: (progress) => ({ x: progress * 2, y: 20 }),
-};
+/** Binds the real measurement owner to an explicitly defined test trajectory. */
+function createGeometry(length, pointAtProgress) {
+  const geometry = new PathGeometry(() => {});
+  geometry.setPathDefinition({ signature: 'gradient-fixture', closed: false });
+  geometry.bindPathElement({
+    getTotalLength: () => length,
+    getPointAtLength: (distance) => pointAtProgress(distance / length * 100),
+  });
+  return geometry;
+}
+
+const straightGeometry = createGeometry(200, (progress) => ({ x: progress * 2, y: 20 }));
 const baseConfig = {
   mode: 'full',
   range: { start: 0, end: 60 },
@@ -50,10 +59,7 @@ test('full gradient keeps one straight range with static color stops behind the 
 });
 
 test('a diagonal straight path also keeps one gradient range', () => {
-  const diagonalGeometry = {
-    getTotalLength: () => Math.hypot(200, 80),
-    pointAtProgress: (progress) => ({ x: progress * 2, y: progress * 0.8 }),
-  };
+  const diagonalGeometry = createGeometry(Math.hypot(200, 80), (progress) => ({ x: progress * 2, y: progress * 0.8 }));
   const gradient = buildAdaptivePathGradient(diagonalGeometry, baseConfig);
 
   assert.equal(gradient.ranges.length, 1);
@@ -93,13 +99,10 @@ test('current gradient redistributes all configured colors over the active range
 });
 
 test('adaptive splitting responds to curvature and never exceeds the configured DOM budget', () => {
-  const turningGeometry = {
-    getTotalLength: () => 100,
-    pointAtProgress: (progress) => {
-      const angle = (progress / 100) * Math.PI;
-      return { x: Math.cos(angle) * 50, y: Math.sin(angle) * 50 };
-    },
-  };
+  const turningGeometry = createGeometry(100, (progress) => {
+    const angle = (progress / 100) * Math.PI;
+    return { x: Math.cos(angle) * 50, y: Math.sin(angle) * 50 };
+  });
   const gradient = buildAdaptivePathGradient(turningGeometry, {
     ...baseConfig,
     colorStops: [
@@ -117,13 +120,10 @@ test('adaptive splitting responds to curvature and never exceeds the configured 
 });
 
 test('gradient joins overlap by a fixed SVG length', () => {
-  const turningGeometry = {
-    getTotalLength: () => 100,
-    pointAtProgress: (progress) => {
-      const angle = (progress / 100) * Math.PI;
-      return { x: Math.cos(angle) * 50, y: Math.sin(angle) * 50 };
-    },
-  };
+  const turningGeometry = createGeometry(100, (progress) => {
+    const angle = (progress / 100) * Math.PI;
+    return { x: Math.cos(angle) * 50, y: Math.sin(angle) * 50 };
+  });
   const gradient = buildAdaptivePathGradient(turningGeometry, {
     ...baseConfig,
     colorStops: [

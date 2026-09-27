@@ -612,6 +612,41 @@ test('a mounted numeric update delegates progress to the state animator without 
   assert.equal(horseshoe.pathElements, pathElements);
 });
 
+test('full gradient value updates retain their prepared adaptive ranges', () => {
+  const config = createConfig({ type: 'line', length: 80 });
+  Object.assign(config.layout.horseshoes[0], {
+    show: { horseshoe_style: 'colorstopgradient' },
+    color_stops: { 0: '#00ff00', 50: '#ffff00', 100: '#ff0000' },
+  });
+  const [horseshoe] = HorseshoeGauge.setConfig(config, createTemplates(), 'card', createCard());
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const ranges = horseshoe.stateGradient.ranges;
+
+  horseshoe.setState({ entity_id: 'sensor.load', state: '75', attributes: {} }, {});
+
+  assert.equal(horseshoe.stateGradient.ranges, ranges);
+  assert.equal(horseshoe.stateGradient.revealRange.end, 75);
+});
+
+test('paint-only runtime changes retain transformed path measurements', () => {
+  const card = createCard();
+  const [horseshoe] = HorseshoeGauge.setConfig(createConfig({ type: 'line', length: 80 }), createTemplates(), 'card', card);
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+  bindMeasuredHorizontalPath(horseshoe, 20, 100, 160);
+  horseshoe.buildMeasuredGradientContracts();
+  const transformedGeometry = horseshoe.transformedPathGeometry;
+
+  card.cardTheme.modeChanged = true;
+  horseshoe.updateRuntimeConfig();
+  horseshoe.setState({ entity_id: 'sensor.load', state: '25', attributes: {} }, {});
+
+  assert.equal(horseshoe.transformedPathGeometry, transformedGeometry);
+});
+
 test('moving state markers retain only fixed samples in the permanent path cache', () => {
   const config = createConfig({ type: 'line', length: 80 });
   Object.assign(config.layout.horseshoes[0], {

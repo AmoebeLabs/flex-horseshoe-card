@@ -17,6 +17,9 @@ export default class PathGeometry {
     this.activeMeasurement = undefined;
     this.sampleCache = undefined;
     this.temporarySamples = { points: new Map(), tangents: new Map() };
+    this.temporarySamplesKey = undefined;
+    this.currentGradientGeometryKey = undefined;
+    this.currentGradientGeometry = undefined;
     this.bound = false;
   }
 
@@ -63,6 +66,8 @@ export default class PathGeometry {
         totalLength: pathElement.getTotalLength(),
         points: new Map(),
         tangents: new Map(),
+        gradientGeometryKey: undefined,
+        gradientGeometry: undefined,
       };
       this.measurementCache.set(this.pathDefinition.signature, this.activeMeasurement);
     }
@@ -77,6 +82,9 @@ export default class PathGeometry {
   /** Releases the DOM binding while retaining measurements for reconnect. */
   unbindPathElement() {
     this.endTemporarySampling();
+    this.temporarySamples.points.clear();
+    this.temporarySamples.tangents.clear();
+    this.temporarySamplesKey = undefined;
     this.pathElement = undefined;
     this.bound = false;
   }
@@ -118,21 +126,132 @@ export default class PathGeometry {
   }
 
   /**
-   * Starts one moving-state drawing pass. Points and directions are reused
-   * within this pass instead of retaining arbitrary progress positions forever.
+   * Starts a moving-state drawing pass. Equal inputs reuse its latest samples;
+   * a new position replaces those samples instead of accumulating old frames.
    * Transformed geometry uses this same owner and therefore shares these samples.
+   *
+   * @param {string} sampleKey - Effective progress and drawing-domain inputs.
    */
-  beginTemporarySampling() {
-    this.temporarySamples.points.clear();
-    this.temporarySamples.tangents.clear();
+  beginTemporarySampling(sampleKey) {
+    const key = JSON.stringify([this.pathDefinition.signature, sampleKey]);
+    if (key !== this.temporarySamplesKey) {
+      this.temporarySamples.points.clear();
+      this.temporarySamples.tangents.clear();
+      this.temporarySamplesKey = key;
+    }
     this.sampleCache = this.temporarySamples;
   }
 
-  /** Releases moving samples and restores measurement reuse for fixed layers. */
+  /** Restores fixed-layer sampling while retaining only the latest moving pass. */
   endTemporarySampling() {
     this.sampleCache = this.activeMeasurement;
-    this.temporarySamples.points.clear();
-    this.temporarySamples.tangents.clear();
+  }
+
+  /**
+   * Returns prepared adaptive gradient intervals and their endpoint coordinates.
+   * Full-path layers share the same layout regardless of color, width or reveal.
+   * A moving domain retains only its latest layout, rather than every frame.
+   *
+   * @param {object} config - Normalized domain and adaptive sampling settings.
+   * @returns {object} Prepared domain and geometry-only gradient ranges.
+   */
+  getGradientGeometry(config) {
+    const fullPath = config.mode === 'full';
+    const domainStart = fullPath ? 0 : config.range.start;
+    const domainEnd = fullPath ? 100 : config.range.end;
+    const geometryKey = JSON.stringify([
+      this.pathDefinition.signature, domainStart, domainEnd,
+      config.maxSegmentLength, config.minSegmentLength,
+      config.maxTangentAngle, config.maxSegments, config.overlap,
+    ]);
+
+    if (fullPath && geometryKey === this.activeMeasurement.gradientGeometryKey) {
+      return this.activeMeasurement.gradientGeometry;
+    }
+    if (!fullPath && geometryKey === this.currentGradientGeometryKey) {
+      return this.currentGradientGeometry;
+    }
+
+    // The adaptive split depends on the measured trajectory and drawing domain.
+    // Paint and the full gradient's moving reveal reuse the resulting intervals.
+    const pendingIntervals = [{ start: domainStart, end: domainEnd }];
+    const adaptiveIntervals = [];
+    const pathLength = this.getTotalLength();
+
+    // Keep an arbitrarily long straight trajectory intact. Curves and corners
+    // are divided until each local linear gradient follows the centerline closely
+    // enough; color stops do not create additional SVG paths.
+    while (pendingIntervals.length) {
+      const interval = pendingIntervals.pop();
+      const midpoint = (interval.start + interval.end) / 2;
+      const intervalLength = ((interval.end - interval.start) / 100) * pathLength;
+      const splitFitsDomBudget = adaptiveIntervals.length + pendingIntervals.length + 2 <= config.maxSegments;
+      const startPoint = this.pointAtProgress(interval.start);
+      const middlePoint = this.pointAtProgress(midpoint);
+      const endPoint = this.pointAtProgress(interval.end);
+      const firstChord = { x: middlePoint.x - startPoint.x, y: middlePoint.y - startPoint.y };
+      const secondChord = { x: endPoint.x - middlePoint.x, y: endPoint.y - middlePoint.y };
+      const firstChordLength = Math.hypot(firstChord.x, firstChord.y);
+      const secondChordLength = Math.hypot(secondChord.x, secondChord.y);
+      const chordDotProduct = (firstChord.x * secondChord.x + firstChord.y * secondChord.y) / (firstChordLength * secondChordLength);
+      const chordAngle = Math.acos(Math.min(1, Math.max(-1, chordDotProduct))) * 180 / Math.PI;
+      let longCurvedInterval = false;
+
+      // Long intervals need two extra samples to distinguish a genuinely straight
+      // trajectory from a curve whose start, middle, and end happen to align.
+      if (intervalLength > config.maxSegmentLength) {
+        const firstQuarterPoint = this.pointAtProgress((interval.start + midpoint) / 2);
+        const thirdQuarterPoint = this.pointAtProgress((midpoint + interval.end) / 2);
+        const chord = { x: endPoint.x - startPoint.x, y: endPoint.y - startPoint.y };
+        const chordLength = Math.hypot(chord.x, chord.y);
+        const straightTolerance = 0.001;
+        const pathIsStraight = chordLength > 0 && [firstQuarterPoint, middlePoint, thirdQuarterPoint].every((point) => {
+          const pointDelta = { x: point.x - startPoint.x, y: point.y - startPoint.y };
+          const distanceFromChord = Math.abs(pointDelta.x * chord.y - pointDelta.y * chord.x) / chordLength;
+          const positionAlongChord = (pointDelta.x * chord.x + pointDelta.y * chord.y) / (chordLength * chordLength);
+          return distanceFromChord <= straightTolerance && positionAlongChord >= 0 && positionAlongChord <= 1;
+        });
+        longCurvedInterval = !pathIsStraight;
+      }
+      const directionChangeTooLarge = !Number.isFinite(chordAngle) || chordAngle > config.maxTangentAngle;
+
+      if ((longCurvedInterval || directionChangeTooLarge) && intervalLength / 2 >= config.minSegmentLength && splitFitsDomBudget) {
+        pendingIntervals.push({ start: midpoint, end: interval.end });
+        pendingIntervals.push({ start: interval.start, end: midpoint });
+        continue;
+      }
+
+      adaptiveIntervals.push(interval);
+    }
+
+    const overlapProgress = (config.overlap / pathLength) * 100;
+    const ranges = adaptiveIntervals.map((interval, index) => {
+      const startPoint = this.pointAtProgress(interval.start);
+      const endPoint = this.pointAtProgress(interval.end);
+      const end = index === adaptiveIntervals.length - 1
+        ? interval.end
+        : Math.min(domainEnd, interval.end + overlapProgress);
+
+      return {
+        start: interval.start,
+        end,
+        length: end - interval.start,
+        gradientStartProgress: ((interval.start - domainStart) / (domainEnd - domainStart)) * 100,
+        gradientEndProgress: ((interval.end - domainStart) / (domainEnd - domainStart)) * 100,
+        colorEnd: interval.end,
+        coordinates: { x1: startPoint.x, y1: startPoint.y, x2: endPoint.x, y2: endPoint.y },
+      };
+    });
+    const geometry = { domainStart, domainEnd, ranges };
+
+    if (fullPath) {
+      this.activeMeasurement.gradientGeometryKey = geometryKey;
+      this.activeMeasurement.gradientGeometry = geometry;
+    } else {
+      this.currentGradientGeometryKey = geometryKey;
+      this.currentGradientGeometry = geometry;
+    }
+    return geometry;
   }
 
   /**
