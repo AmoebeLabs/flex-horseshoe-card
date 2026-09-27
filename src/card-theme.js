@@ -1,4 +1,3 @@
-import Colors from './colors.js';
 import Palette from './palettes.js';
 
 /** Owns Home Assistant theme state, color mode and loaded palettes. */
@@ -62,7 +61,6 @@ export default class CardTheme {
     this.colorContext.globalThemeName = themeName;
     this.colorContext.mode = themeDarkMode ? 'dark' : 'light';
     this.colorContext.themeSource = hass.themes;
-    Colors.colorCache = {};
     Palette.applyAll(this.element, this.palettes, this.getActiveColorStopMode());
     this.horseshoes.forEach((horseshoe) => horseshoe.clearPathItemCache());
     this.redrawGradients();
@@ -98,7 +96,6 @@ export default class CardTheme {
 
     this.palettes = palettes;
     Palette.applyAll(this.element, this.palettes, this.getActiveColorStopMode());
-    Colors.colorCache = {};
     this.palettesLoaded = true;
     this.palettesNeedLoading = false;
     this.horseshoes.forEach((horseshoe) => horseshoe.clearPathItemCache());
