@@ -434,17 +434,6 @@ export default class SparklineHistory {
     return this.dayNightRecord.segments;
   }
 
-  /** Returns day/night request facts for lifecycle and integration tests. */
-  getDayNightRequestFacts() {
-    return {
-      requestPending: this.dayNightRecord.requestPromise !== undefined,
-      retryAt: this.dayNightRecord.retryAt,
-      resynchronizationRequested: this.dayNightRecord.resynchronizationRequested,
-      rangeStart: this.dayNightRecord.rangeStart,
-      rangeEnd: this.dayNightRecord.rangeEnd,
-    };
-  }
-
   /**
    * Converts historical horizon states and the current Sun forecast into
    * continuous, clipped day/night periods on the parent plot timeline.
@@ -848,15 +837,6 @@ export default class SparklineHistory {
     const update = { ...record.rowsUpdate, rows: record.rows };
     record.rowsUpdate = { previousRows: record.rows, replaced: false, changedFrom: Infinity };
     return update;
-  }
-
-  /** Returns the accepted absolute source boundaries for request reuse. */
-  getAcceptedRange(seriesId) {
-    const record = this.seriesRecords.get(seriesId);
-    return {
-      start: record.sourceRangeStart,
-      end: record.sourceRangeEnd,
-    };
   }
 
   /** Removes accepted source and prepared records after a source identity change. */

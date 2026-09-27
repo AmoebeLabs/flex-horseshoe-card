@@ -33,9 +33,8 @@ const createGraphConfig = ({ chartType = 'line', smoothing = false, showLineMinM
 });
 
 /**
- * Creates the normalized single-series engine currently owned by
- * SparklineGraphTool. These tests lock that boundary before a series
- * coordinator starts creating multiple graph engines.
+ * Creates one normalized series engine with known drawing dimensions. Tests
+ * preserve its observable calculations as Series coordinates shared plots.
  */
 const createGraph = (config = createGraphConfig()) => new SparklineGraph(120, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, config);
 
@@ -449,21 +448,27 @@ test('calendar bins retain the current day and rebuild at the next midnight', (c
 });
 
 test('single-bucket aggregate functions retain their meaning', () => {
-  const graph = createGraph();
-  const rows = [{ state: '8' }, { state: '2' }, { state: '11' }, { state: '5' }];
+  const rows = ['8', '2', '11', '5'].map((state, index) => ({
+    state,
+    last_changed: new Date(Date.UTC(2026, 7, 20, 9, index * 10)).toISOString(),
+  }));
+  const results = {};
+  // Each configured aggregate is published by the same cached bin summary
+  // that supplies plotting, min/max and tooltip metadata in the live graph.
+  for (const aggregate of ['avg', 'median', 'max', 'min', 'first', 'last', 'sum', 'delta', 'diff']) {
+    const config = createGraphConfig();
+    config.sparkline.state_values.aggregate_func = aggregate;
+    const graph = createGraph(config);
+    const result = graph.calculateBucketResult(rows);
+    results[aggregate] = result.value;
+    assert.strictEqual(graph.calculateBucketResult(rows), result);
+    assert.equal(result.min, 2);
+    assert.equal(result.max, 11);
+    assert.equal(result.avg, 6.5);
+  }
 
   assert.deepEqual(
-    {
-    avg: graph.aggregateFuncMap.avg(rows),
-    median: graph.aggregateFuncMap.median(rows),
-    max: graph.aggregateFuncMap.max(rows),
-    min: graph.aggregateFuncMap.min(rows),
-    first: graph.aggregateFuncMap.first(rows),
-    last: graph.aggregateFuncMap.last(rows),
-    sum: graph.aggregateFuncMap.sum(rows),
-    delta: graph.aggregateFuncMap.delta.call(graph, rows),
-    diff: graph.aggregateFuncMap.diff.call(graph, rows),
-    },
+    results,
     {
     avg: 6.5,
     median: 6.5,
@@ -717,17 +722,14 @@ test('line points and paths preserve smoothing geometry', () => {
     [110, 0, 20],
   ];
 
-  assert.deepEqual(graph.getPoints(), [
-    [60, 50, 10, 1],
-    [110, 10, 20, 2],
+  assert.deepEqual(graph._calcY(graph.coords).map((point) => point.slice(0, 3)), [
+    [10, 90, 0],
+    [60, 50, 10],
+    [110, 10, 20],
   ]);
   assert.equal(graph.getPath(), 'M10,90 10,90 Q 10,90 60,50 Q 60,50 110,10 Q 110,10 110,10');
 
   graph._smoothing = true;
-  assert.deepEqual(graph.getPoints(), [
-    [35, 70, 5, 1],
-    [85, 30, 15, 2],
-  ]);
   assert.equal(graph.getPath(), 'M10,90 10,90 Q 10,90 35,70 Q 60,50 85,30 Q 110,10 110,10');
 });
 
@@ -1277,21 +1279,33 @@ test('full-day calendar comparisons use the fixed end of the visible day', () =>
 
 
 test('active data on a full-day calendar axis stops at its projected current bucket', () => {
-  const graph = Object.create(SparklineGraph.prototype);
-  Object.assign(graph, {
-    drawArea: { x: 0, width: 230 },
-    hours: 24,
-    points: 1,
-    visibleBucketCount: 13,
-    aggregateFuncName: 'avg',
-    bucketResults: new WeakMap(),
-    _calcPoint: (items) => Number(items[items.length - 1].state),
-  });
-  const history = Array(24);
-  history[0] = [{ state: '10' }];
+  const NativeDate = globalThis.Date;
+  const now = new NativeDate(2026, 7, 20, 12, 1).getTime();
+  const midnight = new NativeDate(2026, 7, 20).toISOString();
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length === 0 ? [now] : args));
+    }
+  };
 
-  const coords = graph._calcPoints(history);
+  try {
+    const config = createGraphConfig();
+    config.period = {
+      type: 'calendar',
+      group_by: 'interval',
+      calendar: { period: 'day', offset: 0, full_day: true, duration: { hour: 24 }, bins: { per_hour: 1 } },
+    };
+    const graph = new SparklineGraph(230, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 0, t: 0, r: 0, b: 0 }, config);
+    // Series projects an active source onto the complete comparison-day axis.
+    // Graph retains that axis while drawing only bins reached by the source.
+    graph.activeDataEnd = new NativeDate(now);
+    graph.update([{ state: '10', last_changed: midnight }]);
 
-  assert.equal(coords.length, 13);
-  assert.equal(coords.at(-1)[0], 120);
+    assert.equal(graph.processedValues.length, 13);
+    assert.equal(graph.coords.length, 13);
+    assert.equal(graph.coords.at(-1)[0], 120);
+    assert.equal(graph.xAxis.ticks.at(-1).x, 230);
+  } finally {
+    globalThis.Date = NativeDate;
+  }
 });

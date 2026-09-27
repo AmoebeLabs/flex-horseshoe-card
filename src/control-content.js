@@ -32,8 +32,6 @@ export default class ControlContent {
     this.contentConfig = contentConfig;
     this.direction = direction;
     this.bounds = bounds;
-    this.itemOverrides = itemOverrides;
-    this.parentEntityIndex = parentEntityIndex;
     this.instanceId = instanceId;
     this.templates = templates;
     this.cardId = cardId;

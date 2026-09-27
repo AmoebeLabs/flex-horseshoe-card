@@ -46,9 +46,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Creates the geometry engine for one normalized sparkline configuration.
-   * SparklineGraphTool owns fetching and rendering; this class turns source
-   * rows into bucket metadata, axis geometry, and chart-specific coordinates.
+   * Creates the calculation engine for one normalized series. History supplies
+   * source rows, Series coordinates shared dimensions/scales, and GraphTool
+   * renders the bucket metadata and geometry retained by this engine.
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
@@ -60,18 +60,6 @@ export default class SparklineGraph {
    * @param {object} stateMap - Numeric mapping for categorical state bands.
    */
   constructor(width, height, axisMargin, configuredMargin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
-    this.aggregateFuncMap = {
-      avg: this._average,
-      median: this._median,
-      max: this._maximum,
-      min: this._minimum,
-      first: this._first,
-      last: this._last,
-      sum: this._sum,
-      delta: this._delta,
-      diff: this._diff,
-    };
-
     this.graphArea = {};
     this.axisArea = {};
     this.dataArea = {};
@@ -192,8 +180,8 @@ export default class SparklineGraph {
       this.setGraphAreas(axisMargin, configuredMargin, 0);
       this.sharedYAxisBounds = undefined;
     }
-    // Real-time retains the original one-value graph contract and has no
-    // duration or bins. Historical period types use their configured range.
+    // Real-time represents one current value. Historical graphs use their
+    // configured duration and bins to position values on the time axis.
     if (this.config.period.type === 'real_time') {
       this.points = 1;
       this.hours = 1;
@@ -203,7 +191,6 @@ export default class SparklineGraph {
       this.hours = period.duration.hour;
     }
     this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
-    this._calcPoint = this.aggregateFuncMap[this.aggregateFuncName];
     this._smoothing = this.config.sparkline.state_values?.smoothing;
     this._logarithmic = this.config.sparkline.state_values?.logarithmic;
     this._groupBy = this.config.period.group_by;
@@ -419,7 +406,6 @@ export default class SparklineGraph {
     };
 
     this.axisMargin = { ...axisMargin };
-    this.configuredMargin = { ...configuredMargin };
     this.chartGeometryMargin = {
       t: chartTop,
       r: chartRight,
@@ -623,16 +609,7 @@ export default class SparklineGraph {
 
     // Establish the time boundary before rows are assigned to buckets.
     this._updateEndTime();
-    let date = new Date();
-    date.getDate();
-    this.offsetHours = 0;
-    if (this.config.period.type === 'calendar') {
-      if (this.config.period?.calendar?.period === 'day') {
-        let extraHours = this.config.period.calendar.duration.hour - 24;
-        let hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600 + extraHours;
-        this.offsetHours = Math.abs(this.config.period.calendar.offset * 24);
-      }
-    }
+    const date = new Date();
 
     // Determine the fixed number of visible slots before reducing history.
     let requiredNumOfPoints;
@@ -640,7 +617,6 @@ export default class SparklineGraph {
     this.calendarBucketStartMs = undefined;
     this.calendarBucketCount = undefined;
     this.visibleBucketCount = undefined;
-    this.offsetHours = 0;
     switch (this.config.period.type) {
       case 'real_time':
         requiredNumOfPoints = 1;
@@ -657,7 +633,6 @@ export default class SparklineGraph {
             this.calendarBucketCount = Math.ceil((this._endTime.getTime() - calendarStart.getTime()) / bucketMs);
             this.calendarBucketStartMs = this._endTime.getTime() - this.calendarBucketCount * bucketMs;
           } else {
-            this.offsetHours = Math.abs(this.config.period.calendar.offset * this.hours);
             this.calendarBucketCount = Math.round((this.config.period.calendar.duration.hour * ONE_HOUR) / bucketMs);
             this.calendarBucketStartMs = calendarStart.getTime();
           }
@@ -868,9 +843,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates reusable x-axis and y-axis geometry next to the existing graph
-   * API. The graph engine keeps providing coords/path helpers as before, while
-   * the tool layer can later consume these prepared ticks and ranges directly.
+   * Stores ticks and bounds for the final drawing area. Series uses the bounds
+   * for shared scale coordination; GraphTool consumes the retained axes for
+   * labels, tickmarks and grid rendering.
    */
   buildAxisGeometry() {
     const fontSizeX = this.config.x_axis.labels.styles['font-size'];
@@ -890,9 +865,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates the time range and tick positions for the x-axis without using
-   * graph coords. Calendar and rolling_window stay separated here, while the
-   * existing graph rendering remains untouched for now.
+   * Projects time ticks onto the drawing area. Calendar graphs follow their
+   * local-day origin; rolling graphs use the retained bucket start times.
+   * The result supplies the same positions to labels, tickmarks and the grid.
    *
    * @param {number} fontWidthPixels Average character width in pixels.
    * @param {number} fontSizePixels Configured label font size in pixels.
@@ -1440,19 +1415,6 @@ export default class SparklineGraph {
   }
 
   /**
-   * Converts buckets into x/value tuples for existing direct Graph callers.
-   *
-   * @param {Array<Array<object>>} history - Bucketed history rows.
-   * @returns {Array<Array<number>>} Tuples in X, Y placeholder and value order.
-   */
-  _calcPoints(history) {
-    const xRatio = this.drawArea.width / (this.hours * this.points - 1);
-    const xStep = Number.isFinite(xRatio) ? xRatio : this.drawArea.width;
-
-    return this.aggregateBuckets(history).map((value, index) => [xStep * index + this.drawArea.x, 0, value]);
-  }
-
-  /**
    * Projects numeric values onto the drawing area's y-axis. Each tuple retains
    * both its normal y and its zero-baseline y for positive/negative bar geometry.
    *
@@ -1515,35 +1477,6 @@ export default class SparklineGraph {
       return yStack;
     });
     return yStack;
-  }
-
-  /**
-   * Returns visible point coordinates, applying midpoint smoothing when the
-   * configured line uses curves.
-   *
-   * @returns {Array<Array<number>>} Point tuples with source bucket indexes.
-   */
-  getPoints() {
-    let { coords } = this;
-    if (coords.length === 1) {
-      // Real-time charts represent one current value across their complete width.
-      // Historical charts retain the configured time axis and occupy one bin.
-      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
-      coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
-    }
-    coords = this._calcY(coords);
-    let next;
-    let Z;
-    let last = coords[0];
-    coords.shift();
-    const coords2 = coords.map((point, i) => {
-      next = point;
-      Z = this._smoothing ? this._midPoint(last[X], last[Y], next[X], next[Y]) : next;
-      const sum = this._smoothing ? (next[V] + last[V]) / 2 : next[V];
-      last = next;
-      return [Z[X], Z[Y], sum, i + 1];
-    });
-    return coords2;
   }
 
   /**
@@ -1863,7 +1796,7 @@ export default class SparklineGraph {
   /**
    * Builds line or spline path data from radial points. It deliberately keeps
    * the oldest and newest bucket separate, matching the chronological line
-   * contract used by cartesian history charts.
+   * ordering used by cartesian history charts.
    *
    * @returns {string} SVG path data for the radial value line.
    */
@@ -2116,21 +2049,6 @@ export default class SparklineGraph {
       largeArcFlag,
       sweepFlag,
     };
-  }
-
-  /**
-   * Returns the annular endpoints used to draw one radial barcode segment.
-   *
-   * @param {number} startAngle - Segment start angle.
-   * @param {number} endAngle - Segment end angle.
-   * @param {boolean} clockwise - Arc direction.
-   * @param {number} radiusX - Horizontal outer radius.
-   * @param {number} radiusY - Vertical outer radius.
-   * @param {number} width - Ring width.
-   * @returns {object} Outer and inner endpoints with SVG arc flags.
-   */
-  calculateRadialSegment(startAngle, endAngle, clockwise, radiusX, radiusY, width) {
-    return this._calcRadialBarcodeCoords(startAngle, endAngle, clockwise, radiusX, radiusY, width);
   }
 
   /**
@@ -2651,16 +2569,6 @@ export default class SparklineGraph {
   }
 
   /**
-   * Aggregates bucket rows by arithmetic mean.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Mean state value.
-   */
-  _average(items) {
-    return items.reduce((sum, entry) => sum + parseFloat(entry.state), 0) / items.length;
-  }
-
-  /**
    * Aggregates bucket rows by median value.
    *
    * @param {Array<object>} items - Bucket rows.
@@ -2671,90 +2579,6 @@ export default class SparklineGraph {
     const mid = Math.floor((itemsDup.length - 1) / 2);
     if (itemsDup.length % 2 === 1) return parseFloat(itemsDup[mid].state);
     return (parseFloat(itemsDup[mid].state) + parseFloat(itemsDup[mid + 1].state)) / 2;
-  }
-
-  /**
-   * Returns the highest state value in a bucket.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Maximum state value.
-   */
-  _maximum(items) {
-    return Math.max(...items.map((item) => item.state));
-  }
-
-  /**
-   * Returns the lowest state value in a bucket.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Minimum state value.
-   */
-  _minimum(items) {
-    return Math.min(...items.map((item) => item.state));
-  }
-
-  /**
-   * Returns the first state value in a bucket.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} First state value.
-   */
-  _first(items) {
-    return parseFloat(items[0].state);
-  }
-
-  /**
-   * Returns the last state value in a bucket.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Last state value.
-   */
-  _last(items) {
-    return parseFloat(items[items.length - 1].state);
-  }
-
-  /**
-   * Adds all state values in a bucket.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Sum of state values.
-   */
-  _sum(items) {
-    return items.reduce((sum, entry) => sum + parseFloat(entry.state), 0);
-  }
-
-  /**
-   * Calculates the numeric range between the highest and lowest bucket values.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Difference between maximum and minimum.
-   */
-  _delta(items) {
-    return this._maximum(items) - this._minimum(items);
-  }
-
-  /**
-   * Calculates the signed difference between the bucket's last and first values.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Signed difference.
-   */
-  _diff(items) {
-    return this._last(items) - this._first(items);
-  }
-
-  /**
-   * Returns the latest unaggregated state used to carry empty buckets forward.
-   *
-   * @param {Array<object>} items - Bucket rows.
-   * @returns {number} Last state value.
-   */
-  _lastValue(items) {
-    if (['delta', 'diff'].includes(this.aggregateFuncName)) {
-      return 0;
-    } else {
-      return parseFloat(items[items.length - 1].state) || 0;
-    }
   }
 
   /**

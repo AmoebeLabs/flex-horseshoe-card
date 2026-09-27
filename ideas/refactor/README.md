@@ -30,7 +30,7 @@ For every implementation plan:
 | [10](../2026.09.27-10-horseshoe-animation-and-path-cache.md) | Horseshoe animation and path cache | bounded animation samples and shared prepared path/gradient geometry |
 | [11](../2026.09.27-11-config-ref-and-merge.md) | Config `ref()` and merge | referenced values preserve types without global merge rewrite |
 | [12](../2026.09.27-12-theme-aware-color-cache.md) | Theme-aware color cache | shared cache is theme/mode safe and paint-only updates stay paint-only |
-| 13 | Final simplification and cleanup | obsolete guards/duplication/comments removed after causes are gone |
+| [13](../2026.09.27-13-final-simplification-and-cleanup.md) | Final simplification and cleanup | confirmed unused routes/fields removed and current behavior documented |
 | 14 | CI and development-release safety | deterministic test/release gates protect the completed refactor |
 
 `TESTING.md` is not an implementation phase. Its tests are added by the plan that first owns the behaviour and remain permanently in the suite.

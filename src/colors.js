@@ -5,24 +5,14 @@ import { stateActive } from './frontend_mods/common/entity/state_active.ts';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
 
 import { CLIMATE_HVAC_ACTION_TO_MODE } from './frontend_mods/data/climate.ts';
-/** Domains where the row should not act as a click target to open the more info dialog.
-
-/** ***************************************************************************
- * Colors class
- *
- * Summary.
- *
+/**
+ * Converts configured colors using the card's current CSS scope. Matching
+ * theme/mode/palette environments share numeric conversions; tools use those
+ * results for state colors, interpolation, gradients and filters.
  */
 
 export default class Colors {
-  /** *****************************************************************************
-   * Colors::static properties()
-   *
-   * @description
-   * Declares the static class properties.
-   * Needs eslint parserOptions ecmaVersion: 2022
-   *
-   */
+  /** Retains shared conversions and the delivery order of HA theme sources. */
   static {
     Colors.colorCache = new Map();
     Colors.themeRevisions = new WeakMap();
@@ -96,197 +86,15 @@ export default class Colors {
     return colorBucket;
   }
 
-  /** *****************************************************************************
-   * Colors::static _prefixKeys()
+  /**
+   * Maps a value between two color stops to a fraction, clipping values outside
+   * that interval to its nearest end. Interpolation uses the fraction to blend
+   * the two endpoint colors.
    *
-   * @argument argColors - the colors to prefix with '--'
-   *
-   * @description
-   * Prefixes all keys with '--' to make them CSS Variables.
-   *
-   */
-  static _prefixKeys(argColors) {
-    let prefixedColors = {};
-
-    Object.keys(argColors).forEach((key) => {
-      const prefixedKey = `--${key}`;
-      const value = String(argColors[key]);
-      prefixedColors[prefixedKey] = `${value}`;
-    });
-    return prefixedColors;
-  }
-
-  /** *****************************************************************************
-   * Colors::static processTheme()
-   *
-   * @argument argTheme - the theme configuration to load
-   *
-   * @description
-   * Loads and processes the theme to be used with dark and light modes.
-   *
-   * Theme mode is selected based on theme's darkMode boolean.
-   */
-  static processTheme(argTheme) {
-    let combinedLight = {};
-    let combinedDark = {};
-
-    let themeLight = {};
-    let themeDark = {};
-
-    const { modes, ...themeBase } = argTheme;
-
-    // Apply theme vars for the specific mode if available
-    if (modes) {
-      combinedDark = { ...themeBase, ...modes.dark };
-      combinedLight = { ...themeBase, ...modes.light };
-    }
-
-    // Now we have the dark and light mode configuration, iterate over every definition
-    // and add the CSS variable prefix '--' to the key (CSS Variable color name)
-    themeLight = Colors._prefixKeys(combinedLight);
-    themeDark = Colors._prefixKeys(combinedDark);
-
-    // Return the light and dark mode theme parts
-    return { themeLight, themeDark };
-  }
-
-  /** *****************************************************************************
-   * Colors::static processPalette()
-   *
-   * @argument argPalette - the palette configuration to load
-   *
-   * @description
-   * Loads the swatches defined for the palette and combines them into a single
-   * palette with light (default) and dark modes.
-   *
-   * Palette mode is selected based on theme's darkMode boolean.
-   */
-  static processPalette(argPalette) {
-    let combinedBase = {};
-    let combinedLight = {};
-    let combinedDark = {};
-
-    let paletteLight = {};
-    let paletteDark = {};
-
-    // We are not interested in the individual swatches, so iterate directly over the values
-    Object.values(argPalette).forEach((swatch) => {
-      // Apply theme vars that are relevant for all modes (but extract the 'modes' section first)
-      // See: https://www.freecodecamp.org/news/javascript-object-destructuring-spread-operator-rest-parameter/
-      const { modes, ...swatchBase } = swatch;
-
-      // Apply swatch vars for the specific mode if available
-      combinedBase = { ...combinedBase, ...swatchBase };
-      if (modes) {
-        combinedDark = { ...combinedDark, ...swatchBase, ...modes.dark };
-        combinedLight = { ...combinedLight, ...swatchBase, ...modes.light };
-      }
-    });
-
-    // Now we have the dark and light mode configuration, iterate over every definition
-    // and add the CSS variable prefix '--' to the key (CSS Variable color name)
-
-    paletteLight = Colors._prefixKeys(combinedLight);
-    paletteDark = Colors._prefixKeys(combinedDark);
-
-    // Return the light and dark mode palettes
-    return { paletteLight, paletteDark };
-  }
-
-  /** *****************************************************************************
-   * card::_calculateColor()
-   *
-   * Summary.
-   *
-   * #TODO:
-   * replace by TinyColor library? Is that possible/feasible??
-   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
-   *
-   */
-
-  static calculateColor(argState, argStops, argIsGradient, colorContext) {
-    const sortedStops = Object.keys(argStops)
-      .map((n) => Number(n))
-      .sort((a, b) => a - b);
-
-    let start;
-    let end;
-    let val;
-    const l = sortedStops.length;
-
-    if (argState <= sortedStops[0]) {
-      return argStops[sortedStops[0]];
-    } else if (argState >= sortedStops[l - 1]) {
-      return argStops[sortedStops[l - 1]];
-    } else {
-      for (let i = 0; i < l - 1; i++) {
-        const s1 = sortedStops[i];
-        const s2 = sortedStops[i + 1];
-        if (argState >= s1 && argState < s2) {
-          [start, end] = [argStops[s1], argStops[s2]];
-          if (!argIsGradient) {
-            return start;
-          }
-          val = Colors.calculateValueBetween(s1, s2, argState);
-          break;
-        }
-      }
-    }
-    return Colors.getGradientValue(start, end, val, colorContext);
-  }
-
-  /** *****************************************************************************
-   * card::_calculateColor2()
-   *
-   * Summary.
-   *
-   * #TODO:
-   * replace by TinyColor library? Is that possible/feasible??
-   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
-   *
-   */
-
-  static calculateColor2(argState, argStops, argPart, argProperty, argIsGradient, colorContext) {
-    const sortedStops = Object.keys(argStops)
-      .map((n) => Number(n))
-      .sort((a, b) => a - b);
-
-    let start;
-    let end;
-    let val;
-    const l = sortedStops.length;
-
-    if (argState <= sortedStops[0]) {
-      return argStops[sortedStops[0]];
-    } else if (argState >= sortedStops[l - 1]) {
-      return argStops[sortedStops[l - 1]];
-    } else {
-      for (let i = 0; i < l - 1; i++) {
-        const s1 = sortedStops[i];
-        const s2 = sortedStops[i + 1];
-        if (argState >= s1 && argState < s2) {
-          // console.log('calculateColor2 ', argStops[s1], argStops[s2]);
-          [start, end] = [argStops[s1].styles[argPart][argProperty], argStops[s2].styles[argPart][argProperty]];
-          if (!argIsGradient) {
-            return start;
-          }
-          val = Colors.calculateValueBetween(s1, s2, argState);
-          break;
-        }
-      }
-    }
-    return Colors.getGradientValue(start, end, val, colorContext);
-  }
-
-  /** *****************************************************************************
-   * card::_calculateValueBetween()
-   *
-   * Summary.
-   * Clips the argValue value between argStart and argEnd, and returns the between value ;-)
-   *
-   * Returns NaN if argValue is undefined
-   *
-   * NOTE: Rename to valueToPercentage ??
+   * @param {number} argStart - Lower color-stop value.
+   * @param {number} argEnd - Upper color-stop value.
+   * @param {number} argValue - Current numeric value.
+   * @returns {number} Fraction from zero through one.
    */
 
   static calculateValueBetween(argStart, argEnd, argValue) {
@@ -314,15 +122,16 @@ export default class Colors {
     return null;
   }
 
-  /** *****************************************************************************
-   * _calculateStrokeColor()
-   *
-   * Summary.
-   *
-   */
-
   /**
-   * @param {object} colorContext - Card-owned CSS scope for gradient colors.
+   * Selects the color stop containing the current value, or blends that stop
+   * with its neighbour when interpolation is enabled. Values beyond the scale
+   * use its endpoint colors.
+   *
+   * @param {number} state - Current value.
+   * @param {object} colorStops - Ordered numeric stops and colors.
+   * @param {boolean} gradient - Whether to interpolate between adjacent stops.
+   * @param {object} colorContext - Card-owned CSS scope for conversion.
+   * @returns {string|undefined} Selected or interpolated color.
    */
   static calculateStrokeColor(state, colorStops, gradient, colorContext) {
     const stops = colorStops?.colors ?? [];
@@ -406,38 +215,14 @@ export default class Colors {
   }
 
   /**
-   * Reads one CSS variable directly from the cached Lovelace panel scope.
+   * Blends two configured CSS colors, including their alpha channels. Both
+   * endpoints use the current shared conversion cache before interpolation.
    *
-   * @param {string} argColor - CSS variable expression.
-   * @returns {string} Computed CSS variable value.
-   */
-  static getLovelaceColorVariable(argColor) {
-    const newColor = argColor.substr(4, argColor.length - 5);
-
-    if (!this.lovelace) {
-      this.lovelace = Colors.getLovelacePanel();
-    } else {
-    }
-
-    const returnColor = window.getComputedStyle(this.lovelace).getPropertyValue(newColor);
-    return returnColor;
-  }
-
-  /** *****************************************************************************
-   * card::_getGradientValue()
-   *
-   * Summary.
-   * Get gradient value of color as a result of a color_stop.
-   * An RGBA value is calculated, so transparency is possible...
-   *
-   * The colors (colorA and colorB) can be specified as:
-   * - a css variable, var(--color-value)
-   * - a hex value, #fff or #ffffff
-   * - an rgb() or rgba() value
-   * - a hsl() or hsla() value
-   * - a named css color value, such as white.
+   * @param {string} argColorA - Start color.
+   * @param {string} argColorB - End color.
+   * @param {number} argValue - Fraction from the start to the end color.
    * @param {object} colorContext - Card-owned CSS scope for variable colors.
-   *
+   * @returns {string|undefined} Interpolated eight-digit hex color.
    */
 
   static getGradientValue(argColorA, argColorB, argValue, colorContext) {
@@ -449,9 +234,7 @@ export default class Colors {
       return undefined;
     }
 
-    // We have a rgba() color array from cache or canvas.
-    // Calculate color in between, and return #hex value as a result.
-    //
+    // Interpolate all four channels so translucent stops keep their meaning.
 
     const v1 = 1 - argValue;
     const v2 = argValue;
