@@ -111,6 +111,8 @@ export default class HorseshoeGauge extends BaseTool {
     this.scaleAndBackgroundLayoutKey = undefined;
     this.pathElementsKey = undefined;
     this.pathElements = { ticks: [], labels: [], markers: [] };
+    this.pathElementSources = { ticks: [], labels: [] };
+    this.colorStopPositions = [];
     this.backgroundLayers = [];
     this.stateAnimator = undefined;
     this.stateMarker = new HorseshoeStateMarker(
@@ -126,15 +128,23 @@ export default class HorseshoeGauge extends BaseTool {
     this.statePaints = [];
     this.statePaintConfig = undefined;
     this.currentStateGradientConfig = undefined;
+    this.measuredPaintReady = false;
   }
 
-  /** Rebuilds all color-dependent path layers after theme or palette changes. */
-  clearPathItemCache() {
-    this.stateGradientKey = undefined;
-    this.scaleAndBackgroundLayoutKey = undefined;
-    this.pathElementsKey = undefined;
+  /**
+   * Recolors the retained state after theme or palette variables have been applied.
+   * Source ranges, measured paths and the running animation keep their positions.
+   */
+  updatePalettePaint() {
+    // A palette can finish before the gauge has received its first entity.
+    // That first state pass will calculate paint from the already applied colors.
+    if (!this.valueMapper) return;
 
-    if (this.pathGeometry.isReady() && this.valueMapper) this.buildMeasuredGradientContracts();
+    this.updateStateAndScalePaint();
+    // Binding a master path precedes building its gradients in updated(). Keep
+    // that first measured pass with its normal owner, even if a palette finishes
+    // in between those two lifecycle steps.
+    if (this.pathGeometry.isReady() && this.measuredPaintReady) this.buildMeasuredGradientContracts(true);
   }
 
   /**
@@ -449,6 +459,7 @@ export default class HorseshoeGauge extends BaseTool {
 
     const scaleStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.horseshoe_scale.styles), [this.config.horseshoe_scale.color_filter]);
     const stateStyles = this.getRenderStyles(ConfigHelper.toStyleDict(this.config.horseshoe_state.styles), [this.config.horseshoe_state.color_filter]);
+    this.measuredPaintReady = false;
     this.renderContract = {
       backgroundRange: {
         id: 'scale',
@@ -529,10 +540,10 @@ export default class HorseshoeGauge extends BaseTool {
       this.value,
     );
 
-    const rawStateStyles = ConfigHelper.toStyleDict(this.config.horseshoe_state.styles);
-    const rawScaleStyles = ConfigHelper.toStyleDict(this.config.horseshoe_scale.styles);
-    const stateStyles = this.getRenderStyles(rawStateStyles, [this.config.horseshoe_state.color_filter]);
-    const scaleStyles = this.getRenderStyles(rawScaleStyles, [this.config.horseshoe_scale.color_filter]);
+    // Range placement uses the configured band appearance. Color selection is
+    // shared with later palette updates after these normalized ranges are stored.
+    const stateStyles = ConfigHelper.toStyleDict(this.config.horseshoe_state.styles);
+    const scaleStyles = ConfigHelper.toStyleDict(this.config.horseshoe_scale.styles);
     const stateMode = this.config.show.horseshoe_style;
     const scaleMode = this.config.show.scale_style ?? 'fixed';
     const stateRanges = this.valueMapper.buildStateRanges(this.value);
@@ -547,16 +558,14 @@ export default class HorseshoeGauge extends BaseTool {
     const colorStopRanges = this.valueMapper.buildColorStopRanges(colorStops.map((colorStop) => colorStop.value));
     const pathGap = this.pathConfig.type === 'arc' ? (Number(this.config.horseshoe_state.segment_gap) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(this.config.horseshoe_state.segment_gap);
     let statePathRanges;
-    let markerColor = stateStyles.fill;
-    this.stateSegmentPaints = [];
 
     if (this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level') {
       const stringStateMode = this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
       const stateTransition = stringStateMode ? String(stateStyles.transition).replace(/\bfill\b/g, 'stroke') : stateStyles.transition;
 
       statePathRanges = buildPaintedRanges(stateRanges, {
-        paints: stateRanges.map((range, index) => ({
-          color: this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[index].color ?? Colors.calculateStrokeColor(this.config.state_map.map[index].value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill,
+        paints: stateRanges.map((range) => ({
+          color: stateStyles.fill,
           width: Number(this.config.horseshoe_state.width),
           opacity: range.active ? Number(stateStyles.opacity) : Number(this.config.horseshoe_state.inactive_opacity ?? 0),
           transition: stateTransition,
@@ -566,37 +575,22 @@ export default class HorseshoeGauge extends BaseTool {
         endpointGap: { start: pathGap / 2, end: pathGap / 2 },
         linecap: this.config.horseshoe_state.linecap,
       });
-      const mappedStateIndex = this.config.state_map.map.findIndex((entry) => Number(entry.value) === Number(this.config.mapped_state.value));
-      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: this.config.state_map.map[mappedStateIndex].color ?? Colors.calculateStrokeColor(this.config.state_map.map[mappedStateIndex].value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
     } else if (stateMode === 'colorstopsegments' && colorStopRanges.length) {
-      this.stateSegmentPaints = colorStopRanges.map((range) => ({
-        color: this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill,
-        width: Number(this.config.horseshoe_state.width),
-        opacity: Number(stateStyles.opacity),
-      }));
       statePathRanges = buildPaintedRanges(colorStopRanges, {
-        paints: this.stateSegmentPaints,
+        paints: colorStopRanges.map(() => ({
+          color: stateStyles.fill,
+          width: Number(this.config.horseshoe_state.width),
+          opacity: Number(stateStyles.opacity),
+        })),
         clip: stateClip,
         gap: pathGap,
         endpointGap: { start: 0, end: 0 },
         linecap: this.config.horseshoe_state.linecap,
       });
-      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(this.value, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
     } else {
-      let stateColor = stateStyles.fill;
-
-      if (stateMode === 'colorstop' || stateMode === 'colorstopinterpolated') {
-        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstops, stateMode === 'colorstopinterpolated', this.card.cardTheme.colorContext);
-      }
-      if (stateMode === 'autominmax') {
-        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstopsMinMax, true, this.card.cardTheme.colorContext);
-      }
-      stateColor = this.getRenderStyles({ ...rawStateStyles, fill: stateColor }, [this.config.horseshoe_state.color_filter]).fill;
-      markerColor = stateColor;
-
       statePathRanges = buildPaintedRanges(stateRanges, {
         paints: stateRanges.map(() => ({
-          color: stateColor,
+          color: stateStyles.fill,
           width: Number(this.config.horseshoe_state.width),
           opacity: Number(stateStyles.opacity),
         })),
@@ -615,8 +609,8 @@ export default class HorseshoeGauge extends BaseTool {
     }
     if (scaleMode === 'colorstopsegments' && colorStopRanges.length) {
       scaleRanges = buildPaintedRanges(colorStopRanges, {
-        paints: colorStopRanges.map((range) => ({
-          color: this.getRenderStyles({ ...rawScaleStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [this.config.horseshoe_scale.color_filter]).fill,
+        paints: colorStopRanges.map(() => ({
+          color: scaleStyles.fill,
           width: Number(this.config.horseshoe_scale.width),
           opacity: Number(scaleStyles.opacity),
         })),
@@ -635,22 +629,11 @@ export default class HorseshoeGauge extends BaseTool {
     this.renderContract.stateRanges = statePathRanges;
     this.stateRanges = stateRanges;
     this.colorStopRanges = colorStopRanges;
-    this.statePaints = [
-      {
-        color: statePathRanges[0]?.color ?? stateStyles.fill,
-        width: Number(this.config.horseshoe_state.width),
-        opacity: Number(stateStyles.opacity),
-      },
-    ];
     this.statePaintConfig = {
       gap: pathGap,
       linecap: this.config.horseshoe_state.linecap,
     };
-    this.stateMarkerStyles = {
-      ...stateStyles,
-      fill: markerColor,
-      ...this.config.horseshoe_marker.styles,
-    };
+    this.updateStateAndScalePaint();
 
     const targetProgress = this.valueMapper.valueToProgress(this.value);
     const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
@@ -665,6 +648,84 @@ export default class HorseshoeGauge extends BaseTool {
     if (this.pathGeometry.isReady()) {
       this.buildMeasuredGradientContracts();
     }
+  }
+
+  /**
+   * Applies the configured state and scale colors to their stored source ranges.
+   * Both an entity update and a palette update use this same color/filter policy;
+   * clipping, gaps, caps and animation progress remain owned by the range pass.
+   */
+  updateStateAndScalePaint() {
+    const rawStateStyles = ConfigHelper.toStyleDict(this.config.horseshoe_state.styles);
+    const rawScaleStyles = ConfigHelper.toStyleDict(this.config.horseshoe_scale.styles);
+    const stateStyles = this.getRenderStyles(rawStateStyles, [this.config.horseshoe_state.color_filter]);
+    const scaleStyles = this.getRenderStyles(rawScaleStyles, [this.config.horseshoe_scale.color_filter]);
+    const stateMode = this.renderContract.stateMode;
+    const scaleMode = this.renderContract.scaleMode;
+    const colorContext = this.card.cardTheme.colorContext;
+    let markerColor = stateStyles.fill;
+    this.stateSegmentPaints = [];
+
+    // Mapped states keep their own source value even when an inactive segment
+    // is transparent. Changing a palette therefore recolors every retained slot.
+    if (this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level') {
+      this.renderContract.stateRanges.forEach((range) => {
+        const mappedState = this.config.state_map.map.find((entry) => Number(entry.value) === Number(range.sourceValue));
+        range.color = this.getRenderStyles({
+          ...rawStateStyles,
+          fill: mappedState.color ?? Colors.calculateStrokeColor(mappedState.value, this.config.colorstops, stateMode === 'colorstopinterpolated', colorContext),
+        }, [this.config.horseshoe_state.color_filter]).fill;
+      });
+      const mappedState = this.config.state_map.map.find((entry) => Number(entry.value) === Number(this.config.mapped_state.value));
+      markerColor = this.getRenderStyles({
+        ...rawStateStyles,
+        fill: mappedState.color ?? Colors.calculateStrokeColor(mappedState.value, this.config.colorstops, stateMode === 'colorstopinterpolated', colorContext),
+      }, [this.config.horseshoe_state.color_filter]).fill;
+    } else if (stateMode === 'colorstopsegments' && this.colorStopRanges.length) {
+      this.stateSegmentPaints = this.colorStopRanges.map((range) => ({
+        color: this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, colorContext) }, [this.config.horseshoe_state.color_filter]).fill,
+        width: Number(this.config.horseshoe_state.width),
+        opacity: Number(stateStyles.opacity),
+      }));
+      this.renderContract.stateRanges.forEach((range) => {
+        const sourceIndex = this.colorStopRanges.findIndex((sourceRange) => sourceRange.id === range.id);
+        range.color = this.stateSegmentPaints[sourceIndex].color;
+      });
+      markerColor = this.getRenderStyles({ ...rawStateStyles, fill: Colors.calculateStrokeColor(this.value, this.config.colorstops, false, colorContext) }, [this.config.horseshoe_state.color_filter]).fill;
+    } else {
+      let stateColor = stateStyles.fill;
+      if (stateMode === 'colorstop' || stateMode === 'colorstopinterpolated') {
+        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstops, stateMode === 'colorstopinterpolated', colorContext);
+      }
+      if (stateMode === 'autominmax') {
+        stateColor = Colors.calculateStrokeColor(this.value, this.config.colorstopsMinMax, true, colorContext);
+      }
+      stateColor = this.getRenderStyles({ ...rawStateStyles, fill: stateColor }, [this.config.horseshoe_state.color_filter]).fill;
+      this.renderContract.stateRanges.forEach((range) => { range.color = stateColor; });
+      markerColor = stateColor;
+    }
+
+    this.renderContract.backgroundRange.color = scaleStyles.fill;
+    if (scaleMode === 'colorstopsegments' && this.colorStopRanges.length) {
+      this.renderContract.scaleRanges.forEach((range) => {
+        range.color = this.getRenderStyles({ ...rawScaleStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, colorContext) }, [this.config.horseshoe_scale.color_filter]).fill;
+      });
+    }
+
+    // Borders and the marker have independently configured paint. Their colors
+    // follow the same filter cascade while explicit marker styles stay last.
+    if ('stroke' in stateStyles) this.renderContract.stateLayer.border.color = stateStyles.stroke;
+    if ('stroke' in scaleStyles) this.renderContract.backgroundLayer.border.color = scaleStyles.stroke;
+    this.statePaints = [{
+      color: this.renderContract.stateRanges[0]?.color ?? stateStyles.fill,
+      width: Number(this.config.horseshoe_state.width),
+      opacity: Number(stateStyles.opacity),
+    }];
+    this.stateMarkerStyles = {
+      ...stateStyles,
+      fill: markerColor,
+      ...this.config.horseshoe_marker.styles,
+    };
   }
 
   /**
@@ -692,20 +753,30 @@ export default class HorseshoeGauge extends BaseTool {
    * Builds browser-measured gradient contracts after value ranges are known.
    * Full gradients retain value positions; current gradients distribute their
    * selected colors over only the currently visible state range.
+   *
+   * @param {boolean} paintOnly - Reuse retained gradient coordinates and static layout.
    */
-  buildMeasuredGradientContracts() {
+  buildMeasuredGradientContracts(paintOnly) {
     // External palettes may still be loading when the first measured paths are
     // built. Unresolved colors must leave these keys open for the palette-driven
     // update, matching the established horseshoe cache lifecycle.
     Colors.unresolvedColor = false;
 
+    // The moving gradient may currently end between the last source value and
+    // its target. Recolor that exact prepared domain instead of sampling the
+    // target again or changing the running animation's visible position.
+    const retainedStateGradient = this.stateGradient;
+    const retainedScaleGradient = this.scaleGradient;
+    const retainedBackgroundLayers = this.backgroundLayers;
+
     const stateMode = this.renderContract.stateMode;
     const scaleMode = this.renderContract.scaleMode;
     const stateClip = this.renderContract.stateClip;
     const sourceColorStops = this.renderContract.colorStops;
-    const colorStopPositions = sourceColorStops.map((colorStop) => this.valueMapper.valueToProgress(colorStop.value));
+    const colorStopPositions = paintOnly ? this.colorStopPositions : sourceColorStops.map((colorStop) => this.valueMapper.valueToProgress(colorStop.value));
+    if (!paintOnly) this.colorStopPositions = colorStopPositions;
     const colorFilterCascade = this.getColorFilterCascade();
-    const stateGradientKey = JSON.stringify({
+    const stateGradientKey = paintOnly ? this.stateGradientKey : JSON.stringify({
       path: this.pathDefinition.signature,
       stateMode,
       stateClip: stateMode === 'colorstopgradient' ? undefined : stateClip,
@@ -717,7 +788,7 @@ export default class HorseshoeGauge extends BaseTool {
       barMode: this.config.bar_mode,
       negativeBranch: stateMode === 'colorstopgradient' ? undefined : Number(this.value) < 0,
     });
-    const scaleAndBackgroundLayoutKey = JSON.stringify({
+    const scaleAndBackgroundLayoutKey = paintOnly ? this.scaleAndBackgroundLayoutKey : JSON.stringify({
       path: this.pathDefinition.signature,
       scaleMode,
       sourceColorStops,
@@ -732,7 +803,7 @@ export default class HorseshoeGauge extends BaseTool {
         ticks: this.config.horseshoe_tickmarks,
       },
     });
-    const pathElementsKey = JSON.stringify({
+    const pathElementsKey = paintOnly ? this.pathElementsKey : JSON.stringify({
       path: this.pathDefinition.signature,
       transform: this.pathTransformKey,
       colorFilter: colorFilterCascade,
@@ -745,9 +816,9 @@ export default class HorseshoeGauge extends BaseTool {
       scale: this.config.horseshoe_scale,
     });
 
-    const rebuildStateGradient = stateGradientKey !== this.stateGradientKey;
-    const rebuildScaleAndBackgroundLayers = scaleAndBackgroundLayoutKey !== this.scaleAndBackgroundLayoutKey;
-    const rebuildPathElements = pathElementsKey !== this.pathElementsKey;
+    const rebuildStateGradient = paintOnly || stateGradientKey !== this.stateGradientKey;
+    const rebuildScaleAndBackgroundLayers = paintOnly || scaleAndBackgroundLayoutKey !== this.scaleAndBackgroundLayoutKey;
+    const rebuildPathElements = paintOnly || pathElementsKey !== this.pathElementsKey;
 
     // A full-path gradient keeps its color layout when only the value moves.
     // The new target updates its reveal; animation uses that same prepared layout.
@@ -755,7 +826,10 @@ export default class HorseshoeGauge extends BaseTool {
       setFullPathGradientRevealRange(this.stateGradient, stateClip);
     }
 
-    if (!rebuildStateGradient && !rebuildScaleAndBackgroundLayers && !rebuildPathElements) return false;
+    if (!rebuildStateGradient && !rebuildScaleAndBackgroundLayers && !rebuildPathElements) {
+      this.measuredPaintReady = true;
+      return false;
+    }
 
     const adaptiveConfig = {
       maxSegmentLength: 25,
@@ -771,7 +845,10 @@ export default class HorseshoeGauge extends BaseTool {
           progress: scaleMode === 'lineargradient' ? (index / (sourceColorStops.length - 1)) * 100 : colorStopPositions[index],
           color: this.getRenderStyles({ fill: colorStop.color }, [this.config.horseshoe_scale.color_filter]).fill,
         }));
-        this.scaleGradient = buildAdaptivePathGradient(this.pathGeometry, {
+        const gradientGeometry = paintOnly
+          ? { getGradientGeometry: () => retainedScaleGradient.geometry }
+          : this.pathGeometry;
+        this.scaleGradient = buildAdaptivePathGradient(gradientGeometry, {
           ...adaptiveConfig,
           mode: 'full',
           range: { start: 0, end: 100 },
@@ -791,10 +868,13 @@ export default class HorseshoeGauge extends BaseTool {
       this.stateGradient = undefined;
       this.currentStateGradientConfig = undefined;
       if (stateMode === 'colorstopgradient') {
-        this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
+        const gradientGeometry = paintOnly
+          ? { getGradientGeometry: () => retainedStateGradient.geometry }
+          : this.pathGeometry;
+        this.stateGradient = buildAdaptivePathGradient(gradientGeometry, {
           ...adaptiveConfig,
           mode: 'full',
-          range: stateClip,
+          range: paintOnly ? retainedStateGradient.revealRange : stateClip,
           colorStops: stateCompleteColorStops,
           width: Number(this.config.horseshoe_state.width),
           startCap: this.config.horseshoe_state.linecap.start,
@@ -834,15 +914,19 @@ export default class HorseshoeGauge extends BaseTool {
           startCap: this.config.horseshoe_state.linecap.start,
           endCap: this.config.horseshoe_state.linecap.end,
         };
-        if (stateClip.end > stateClip.start) {
-          this.pathGeometry.beginTemporarySampling(JSON.stringify(stateClip));
+        if (paintOnly ? retainedStateGradient !== undefined : stateClip.end > stateClip.start) {
+          const range = paintOnly ? retainedStateGradient.revealRange : stateClip;
+          const gradientGeometry = paintOnly
+            ? { getGradientGeometry: () => retainedStateGradient.geometry }
+            : this.pathGeometry;
+          if (!paintOnly) this.pathGeometry.beginTemporarySampling(JSON.stringify(range));
           try {
-            this.stateGradient = buildAdaptivePathGradient(this.pathGeometry, {
+            this.stateGradient = buildAdaptivePathGradient(gradientGeometry, {
               ...this.currentStateGradientConfig,
-              range: stateClip,
+              range,
             }, this.card.cardTheme.colorContext);
           } finally {
-            this.pathGeometry.endTemporarySampling();
+            if (!paintOnly) this.pathGeometry.endTemporarySampling();
           }
         }
       }
@@ -888,13 +972,14 @@ export default class HorseshoeGauge extends BaseTool {
           const linecap = typeof background.config.linecap === 'object' ? background.config.linecap : { start: background.config.linecap ?? 'round', end: background.config.linecap ?? 'round' };
           const gap = this.pathConfig.type === 'arc' ? (Number(background.config.gap ?? 0) / Math.abs(this.pathConfig.arcDegrees)) * 100 : Number(background.config.gap ?? 0);
           const definitionKey = JSON.stringify([this.pathDefinition.signature, background.offset]);
-          if (this.backgroundDefinitions.get(background.id)?.key !== definitionKey) {
+          if (!paintOnly && this.backgroundDefinitions.get(background.id)?.key !== definitionKey) {
             this.backgroundDefinitions.set(background.id, {
               key: definitionKey,
               definition: background.offset === 0 ? this.pathDefinition : buildOffsetPathDefinition(this.pathGeometry, background.offset, 'left', 200),
             });
           }
           const definition = this.backgroundDefinitions.get(background.id).definition;
+          const retainedBackground = retainedBackgroundLayers.find((item) => item.id === background.id);
           const layer = {
             opacity: Number(styles.opacity ?? 1),
             fillOpacity: Number(styles['fill-opacity'] ?? 1),
@@ -904,7 +989,7 @@ export default class HorseshoeGauge extends BaseTool {
               width: Number(styles['stroke-width'] ?? 0),
             },
           };
-          let ranges = buildPaintedRanges(
+          let ranges = paintOnly ? retainedBackground.ranges : buildPaintedRanges(
             [
               {
                 id: `${background.id}-background`,
@@ -917,7 +1002,7 @@ export default class HorseshoeGauge extends BaseTool {
             {
               paints: [
                 {
-                  color: this.getRenderStyles({ ...rawStyles, fill: background.config.color ?? rawStyles.fill ?? rawStyles.stroke }, [background.colorFilter]).fill,
+                  color: rawStyles.fill,
                   width: background.width,
                   opacity: 1,
                 },
@@ -931,9 +1016,9 @@ export default class HorseshoeGauge extends BaseTool {
           let gradient;
 
           if (background.mode === 'colorstopsegments') {
-            ranges = buildPaintedRanges(backgroundColorStopRanges, {
-              paints: backgroundColorStopRanges.map((range) => ({
-                color: this.getRenderStyles({ ...rawStyles, fill: Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext) }, [background.colorFilter]).fill,
+            ranges = paintOnly ? retainedBackground.ranges : buildPaintedRanges(backgroundColorStopRanges, {
+              paints: backgroundColorStopRanges.map(() => ({
+                color: rawStyles.fill,
                 width: background.width,
                 opacity: 1,
               })),
@@ -943,8 +1028,19 @@ export default class HorseshoeGauge extends BaseTool {
               linecap,
             });
           }
+          // Normal state work and palette-only work share this paint selection.
+          // The latter retains the already clipped band endpoints and caps.
+          ranges.forEach((range) => {
+            const color = background.mode === 'colorstopsegments'
+              ? Colors.calculateStrokeColor(range.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext)
+              : background.config.color ?? rawStyles.fill ?? rawStyles.stroke;
+            range.color = this.getRenderStyles({ ...rawStyles, fill: color }, [background.colorFilter]).fill;
+          });
           if (background.mode === 'lineargradient' || background.mode === 'colorstopgradient') {
-            gradient = buildAdaptivePathGradient(this.pathGeometry, {
+            const gradientGeometry = paintOnly
+              ? { getGradientGeometry: () => retainedBackground.gradient.geometry }
+              : this.pathGeometry;
+            gradient = buildAdaptivePathGradient(gradientGeometry, {
               ...adaptiveConfig,
               mode: 'full',
               range: { start: 0, end: 100 },
@@ -969,102 +1065,120 @@ export default class HorseshoeGauge extends BaseTool {
     }
 
     if (rebuildPathElements) {
-      const tickVisibility = getTickmarkVisibility(this.config);
-      const tickConfigs = [
-        { layer: 'minor', visible: tickVisibility.minor, config: this.config.horseshoe_tickmarks.ticks_minor },
-        { layer: 'major', visible: tickVisibility.major, config: this.config.horseshoe_tickmarks.ticks_major },
-      ];
-      const absolute = this.config.bar_mode === 'absolute';
-      const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
-      const tickMin = absolute ? 0 : Number(this.config.horseshoe_scale.min);
-      const tickMax = absolute ? this.valueMapper.getActiveMagnitudeMax() : Number(this.config.horseshoe_scale.max);
-      const tickAnchor = absolute || bidirectional ? 0 : tickMin;
-      const majorTickSize = Number(this.config.horseshoe_tickmarks.ticks_major?.ticksize);
-      const ticks = [];
+      const badgeConfig = this.config.horseshoe_labels.badges;
+      if (!paintOnly) {
+        const tickVisibility = getTickmarkVisibility(this.config);
+        const tickConfigs = [
+          { layer: 'minor', visible: tickVisibility.minor, config: this.config.horseshoe_tickmarks.ticks_minor },
+          { layer: 'major', visible: tickVisibility.major, config: this.config.horseshoe_tickmarks.ticks_major },
+        ];
+        const absolute = this.config.bar_mode === 'absolute';
+        const bidirectional = this.config.bar_mode === 'bidirectional' || this.config.bar_mode === 'bidirectional_symmetrical' || this.config.bar_mode === 'bidirectional_linear';
+        const tickMin = absolute ? 0 : Number(this.config.horseshoe_scale.min);
+        const tickMax = absolute ? this.valueMapper.getActiveMagnitudeMax() : Number(this.config.horseshoe_scale.max);
+        const tickAnchor = absolute || bidirectional ? 0 : tickMin;
+        const majorTickSize = Number(this.config.horseshoe_tickmarks.ticks_major?.ticksize);
+        const ticks = [];
 
-      tickConfigs.forEach((tickLayer) => {
-        if (!tickLayer.visible || !tickLayer.config) return;
+        tickConfigs.forEach((tickLayer) => {
+          if (!tickLayer.visible || !tickLayer.config) return;
 
-        const tickSize = Number(tickLayer.config.ticksize);
-        const tickStyles = ConfigHelper.toStyleDict(tickLayer.config.styles);
-        const values = buildTickValues(tickMin, tickMax, tickSize, tickAnchor).filter(
-          (value) => tickLayer.layer === 'major' || !Number.isFinite(majorTickSize) || Math.abs((value - tickAnchor) / majorTickSize - Math.round((value - tickAnchor) / majorTickSize)) >= 1e-9,
-        );
+          const tickSize = Number(tickLayer.config.ticksize);
+          const tickStyles = ConfigHelper.toStyleDict(tickLayer.config.styles);
+          const values = buildTickValues(tickMin, tickMax, tickSize, tickAnchor).filter(
+            (value) => tickLayer.layer === 'major' || !Number.isFinite(majorTickSize) || Math.abs((value - tickAnchor) / majorTickSize - Math.round((value - tickAnchor) / majorTickSize)) >= 1e-9,
+          );
 
-        values.forEach((magnitude, index) => {
-          const value = absolute ? this.valueMapper.magnitudeToSourceValue(magnitude) : magnitude;
-          let color = tickLayer.config.color ?? tickStyles.fill;
-
-          if (tickLayer.config.color_mode === 'colorstop') {
-            color = Colors.calculateStrokeColor(value, this.config.colorstops, false, this.card.cardTheme.colorContext);
-          }
-          if (tickLayer.config.color_mode === 'colorstopinterpolated') {
-            color = Colors.calculateStrokeColor(value, this.config.colorstops, true, this.card.cardTheme.colorContext);
-          }
-          const renderStyles = this.getRenderStyles({
-            ...tickStyles,
-            fill: color,
-            stroke: color,
-            'stroke-width': tickLayer.config.shape === 'circle' ? tickStyles['stroke-width'] : Number(tickLayer.config.thickness),
-          }, [this.config.horseshoe_tickmarks.color_filter, tickLayer.config.color_filter]);
-
-          ticks.push({
-            id: `${tickLayer.layer}-${index}`,
-            layer: tickLayer.layer,
-            progress: this.valueMapper.valueToProgress(value),
-            side: 'left',
-            offset: Number(tickLayer.config.offset ?? 0),
-            length: Number(tickLayer.config.width),
-            shape: tickLayer.config.shape === 'circle' ? 'circle' : 'line',
-            radius: Number(tickLayer.config.radius ?? Number(tickLayer.config.width) / 2),
-            styles: renderStyles,
+          values.forEach((magnitude, index) => {
+            const value = absolute ? this.valueMapper.magnitudeToSourceValue(magnitude) : magnitude;
+            ticks.push({
+              id: `${tickLayer.layer}-${index}`,
+              layer: tickLayer.layer,
+              progress: this.valueMapper.valueToProgress(value),
+              side: 'left',
+              offset: Number(tickLayer.config.offset ?? 0),
+              length: Number(tickLayer.config.width),
+              shape: tickLayer.config.shape === 'circle' ? 'circle' : 'line',
+              radius: Number(tickLayer.config.radius ?? Number(tickLayer.config.width) / 2),
+              sourceValue: value,
+              styles: tickStyles,
+            });
           });
         });
-      });
 
-      const labelStops = buildLabelStopItems(this.config, this.valueMapper);
-      const labelStyles = ConfigHelper.toStyleDict(this.config.horseshoe_labels.styles);
-      const badgeConfig = this.config.horseshoe_labels.badges;
-      const pathLength = this.transformedPathGeometry.getTotalLength();
-      const configuredLabelLength =
-        this.pathConfig.type === 'arc'
-          ? (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / Math.abs(this.pathConfig.arcDegrees)
-          : (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / 260;
-      const labels = labelStops.map((labelStop, index) => {
-        const mappedStateLabels = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
-        const progress = mappedStateLabels ? ((index + 0.5) / labelStops.length) * 100 : this.valueMapper.valueToProgress(labelStop.value);
-        const text = applyEllipsis(String(labelStop.text), this.config.horseshoe_labels.ellipsis);
-        const segmentLength = mappedStateLabels ? pathLength / labelStops.length : configuredLabelLength;
-        const orientation = this.config.horseshoe_labels.orientation === 'horizontal' ? 'horizontal' : 'path';
-        const badgeWidth = Number(badgeConfig.width ?? text.length * Number(badgeConfig.char_width ?? 4) + Number(badgeConfig.padding ?? 2) * 2);
-        const badgeHeight = Number(badgeConfig.height ?? 8);
+        const labelStops = buildLabelStopItems(this.config, this.valueMapper);
+        const labelStyles = ConfigHelper.toStyleDict(this.config.horseshoe_labels.styles);
+        const pathLength = this.transformedPathGeometry.getTotalLength();
+        const configuredLabelLength =
+          this.pathConfig.type === 'arc'
+            ? (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / Math.abs(this.pathConfig.arcDegrees)
+            : (pathLength * Number(this.config.horseshoe_labels.arc_size ?? 24)) / 260;
+        const labels = labelStops.map((labelStop, index) => {
+          const mappedStateLabels = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
+          const progress = mappedStateLabels ? ((index + 0.5) / labelStops.length) * 100 : this.valueMapper.valueToProgress(labelStop.value);
+          const text = applyEllipsis(String(labelStop.text), this.config.horseshoe_labels.ellipsis);
+          const segmentLength = mappedStateLabels ? pathLength / labelStops.length : configuredLabelLength;
+          const orientation = this.config.horseshoe_labels.orientation === 'horizontal' ? 'horizontal' : 'path';
+          const badgeWidth = Number(badgeConfig.width ?? text.length * Number(badgeConfig.char_width ?? 4) + Number(badgeConfig.padding ?? 2) * 2);
+          const badgeHeight = Number(badgeConfig.height ?? 8);
 
+          return {
+            id: `label-${index}`,
+            progress,
+            side: 'left',
+            offset: Number(this.config.horseshoe_labels.offset),
+            text,
+            orientation,
+            length: segmentLength,
+            samples: 17,
+            styles: { ...labelStyles, ...labelStop.styles },
+            badge: {
+              visible: this.config.show.label_badges === true,
+              shape: orientation === 'horizontal' ? 'circle' : 'capsule',
+              radius: Number(badgeConfig.radius ?? Math.max(7, text.length * 3 + Number(badgeConfig.padding ?? 4))),
+              width: badgeWidth,
+              height: badgeHeight,
+              styles: {
+                ...badgeConfig.styles,
+                fill: badgeConfig.color ?? 'var(--card-background-color)',
+                stroke: badgeConfig.border_color ?? 'none',
+              },
+            },
+          };
+        });
+
+        this.pathElementSources = { ticks, labels };
+      }
+
+      // Source values and unfiltered styles are stored beside the static layout.
+      // Recoloring uses that same paint policy without rebuilding tick values,
+      // label stops or their measured guide paths.
+      const ticks = this.pathElementSources.ticks.map((tick) => {
+        const tickConfig = tick.layer === 'major' ? this.config.horseshoe_tickmarks.ticks_major : this.config.horseshoe_tickmarks.ticks_minor;
+        let color = tickConfig.color ?? tick.styles.fill;
+        if (tickConfig.color_mode === 'colorstop') {
+          color = Colors.calculateStrokeColor(tick.sourceValue, this.config.colorstops, false, this.card.cardTheme.colorContext);
+        }
+        if (tickConfig.color_mode === 'colorstopinterpolated') {
+          color = Colors.calculateStrokeColor(tick.sourceValue, this.config.colorstops, true, this.card.cardTheme.colorContext);
+        }
         return {
-          id: `label-${index}`,
-          progress,
-          side: 'left',
-          offset: Number(this.config.horseshoe_labels.offset),
-          text,
-          orientation,
-          length: segmentLength,
-          samples: 17,
-          styles: this.getRenderStyles({ ...labelStyles, ...labelStop.styles }, [this.config.horseshoe_labels.color_filter]),
-          badge: {
-            visible: this.config.show.label_badges === true,
-            shape: orientation === 'horizontal' ? 'circle' : 'capsule',
-            radius: Number(badgeConfig.radius ?? Math.max(7, text.length * 3 + Number(badgeConfig.padding ?? 4))),
-            width: badgeWidth,
-            height: badgeHeight,
-            styles: this.getRenderStyles({
-              ...badgeConfig.styles,
-              fill: badgeConfig.color ?? 'var(--card-background-color)',
-              stroke: badgeConfig.border_color ?? 'none',
-            }, [badgeConfig.color_filter]),
-          },
+          ...tick,
+          styles: this.getRenderStyles({
+            ...tick.styles,
+            fill: color,
+            stroke: color,
+            'stroke-width': tickConfig.shape === 'circle' ? tick.styles['stroke-width'] : Number(tickConfig.thickness),
+          }, [this.config.horseshoe_tickmarks.color_filter, tickConfig.color_filter]),
         };
       });
+      const labels = this.pathElementSources.labels.map((label) => ({
+        ...label,
+        styles: this.getRenderStyles(label.styles, [this.config.horseshoe_labels.color_filter]),
+        badge: { ...label.badge, styles: this.getRenderStyles(label.badge.styles, [badgeConfig.color_filter]) },
+      }));
 
-      const elementsGeometryKey = JSON.stringify([
+      const elementsGeometryKey = paintOnly ? this.pathElementsGeometryKey : JSON.stringify([
         this.pathTransformKey,
         ticks.map((tick) => [tick.id, tick.layer, tick.progress, tick.side, tick.offset, tick.length, tick.shape, tick.radius]),
         labels.map((label) => [
@@ -1072,19 +1186,24 @@ export default class HorseshoeGauge extends BaseTool {
           label.badge.visible, label.badge.shape, label.badge.radius, label.badge.width, label.badge.height,
         ]),
       ]);
-      if (elementsGeometryKey !== this.pathElementsGeometryKey) {
+      if (!paintOnly && elementsGeometryKey !== this.pathElementsGeometryKey) {
         this.pathElements = buildPathElements(this.transformedPathGeometry, { ticks, labels, markers: [] });
         this.pathElementsGeometryKey = elementsGeometryKey;
       } else {
         // Color and opacity changes update paint on the prepared coordinates.
         // Label guide paths and tick endpoints remain the existing result.
+        const tickPaint = new Map(ticks.map((tick) => [tick.id, tick.styles]));
+        const labelPaint = new Map(labels.map((label) => [label.id, label]));
         this.pathElements = {
-          ticks: this.pathElements.ticks.map((tick, index) => ({ ...tick, styles: ticks[index].styles })),
-          labels: this.pathElements.labels.map((label, index) => ({
-            ...label,
-            styles: labels[index].styles,
-            badge: { ...label.badge, styles: labels[index].badge.styles },
-          })),
+          ticks: this.pathElements.ticks.map((tick) => ({ ...tick, styles: tickPaint.get(tick.id) })),
+          labels: this.pathElements.labels.map((label) => {
+            const paint = labelPaint.get(label.id);
+            return {
+              ...label,
+              styles: paint.styles,
+              badge: { ...label.badge, styles: paint.badge.styles },
+            };
+          }),
           markers: [],
         };
       }
@@ -1094,7 +1213,13 @@ export default class HorseshoeGauge extends BaseTool {
       this.stateGradientKey = stateGradientKey;
       this.scaleAndBackgroundLayoutKey = scaleAndBackgroundLayoutKey;
       this.pathElementsKey = pathElementsKey;
+    } else {
+      // Leave failed palette colors retryable on the next normal measured pass.
+      this.stateGradientKey = undefined;
+      this.scaleAndBackgroundLayoutKey = undefined;
+      this.pathElementsKey = undefined;
     }
+    this.measuredPaintReady = true;
     return true;
   }
 
