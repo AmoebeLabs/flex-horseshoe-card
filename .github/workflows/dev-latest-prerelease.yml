@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# Keep a writer alive through publication; newer pushes replace only a waiting run.
+concurrency:
+  group: fhs-dev-latest
+  cancel-in-progress: false
+
 env:
   DEV_TAG: dev-latest
   ASSET: dist/flex-horseshoe-card.js
@@ -31,23 +36,34 @@ jobs:
 
       - run: npm run build
 
+      - run: npx playwright install --with-deps chromium webkit firefox
+
+      - run: npm run test:browser:all
+
       - name: Replace dev-latest prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
           gh release delete "$DEV_TAG" --yes --cleanup-tag || true
-          
+
           # Delete local tag if it exists
           git tag -d "$DEV_TAG" || true
-          
-          git tag -f "$DEV_TAG"
+
+          # Pin the release to the checkout whose build and browser tests passed above.
+          git tag -f "$DEV_TAG" "$GITHUB_SHA"
           git push -f origin "$DEV_TAG"
-          
+
           gh release create "$DEV_TAG" "$ASSET" \
             --title "$DEV_TAG" \
+            --target "$GITHUB_SHA" \
             --notes "Latest development build.
-      
-          Branch: $GITHUB_REF_NAME
-          Commit: $GITHUB_SHA" \
-            --prerelease
 
+          Branch: $GITHUB_REF_NAME
+          Commit: $GITHUB_SHA
+          Version: $version
+          Workflow: $run_url" \
+            --prerelease
