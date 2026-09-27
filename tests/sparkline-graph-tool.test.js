@@ -782,8 +782,7 @@ test('explicit Cartesian gradients use each series graph scale', () => {
   assert.equal(gradients[1], '');
 });
 
-test('cartesian line and area series render their independently enabled minmax envelopes', () => {
-  const calls = [];
+test('cartesian series render stored paths and independently enabled minmax envelopes', () => {
   const makeItem = (id, chartType, showMinMax, color) => ({
     id,
     dataState: 'has_data',
@@ -791,15 +790,12 @@ test('cartesian line and area series render their independently enabled minmax e
     entityConfig: {},
     graph: {
       coords: [[0, 0, 10]],
-      getPath: () => `${id}-line`,
-      getArea: () => `${id}-area`,
-      getPathMin: () => `${id}-minimum`,
-      getPathMax: () => `${id}-maximum`,
-      getAreaMinMax: (minimum, maximum) => {
-        calls.push([id, minimum, maximum]);
-        return `${id}-minmax`;
-      },
-      calculateYCoordinates: () => [],
+      getPath() { assert.fail('rendering must reuse the stored line path'); },
+      getArea() { assert.fail('rendering must reuse the stored area path'); },
+      getPathMin() { assert.fail('rendering must reuse the stored minmax path'); },
+      getPathMax() { assert.fail('rendering must reuse the stored minmax path'); },
+      getAreaMinMax() { assert.fail('rendering must reuse the stored minmax path'); },
+      calculateYCoordinates() { assert.fail('rendering must reuse the stored points'); },
     },
     config: {
       color,
@@ -825,14 +821,14 @@ test('cartesian line and area series render their independently enabled minmax e
     },
     getConfiguredLineWidth: () => 1,
     getRenderStyles: (styles) => styles,
+    line: ['line-range-line', 'area-range-line', 'line-only-line'],
+    area: [undefined, 'area-range-area'],
+    areaMinMax: ['line-range-minmax', 'area-range-minmax'],
+    points: [],
   });
 
   const renderedItems = tool.renderSeriesCartesian().values[0];
 
-  assert.deepEqual(calls, [
-    ['line-range', 'line-range-minimum', 'line-range-maximum'],
-    ['area-range', 'area-range-minimum', 'area-range-maximum'],
-  ]);
   assert.match(renderedItems[0].values[1].strings.join(''), /sparkline-series-minmax/);
   assert.match(renderedItems[1].values[1].strings.join(''), /sparkline-series-minmax/);
   assert.equal(renderedItems[2].values[1], '');
@@ -1887,8 +1883,8 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     period: { type: 'real_time' },
     sparkline: {
       show: { chart_type: chartType, line: true, points: false },
-      line: { show_dots: false },
-      area: { show_dots: false },
+      line: { show_dots: false, show: { minmax: false } },
+      area: { show_dots: false, show: { minmax: false } },
       dots: { radius: 1 },
       line_color: ['#1565c0', '#d32f2f'],
     },
@@ -2016,8 +2012,8 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     period: { type: "real_time" },
     sparkline: {
       show: { chart_type: chartType, points: false },
-      line: { show_dots: false },
-      area: { show_dots: false },
+      line: { show_dots: false, show: { minmax: false } },
+      area: { show_dots: false, show: { minmax: false } },
       dots: { radius: 1 },
     },
     y_axis: {},
@@ -2119,8 +2115,8 @@ test('multiple series keep current data visible when another series is empty', (
     period: { type: 'real_time' },
     sparkline: {
       show: { chart_type: 'line', line: true, points: false },
-      line: { show_dots: false },
-      area: { show_dots: false },
+      line: { show_dots: false, show: { minmax: false } },
+      area: { show_dots: false, show: { minmax: false } },
       dots: { radius: 1 },
     },
     y_axis: {},
@@ -2557,6 +2553,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
         plotActiveEnd: rangeEnd,
       }),
       hasRows: () => true,
+      takeRowsUpdate: () => undefined,
       pruneActiveRows: () => ({
         start: rangeStart.getTime(),
         end: rangeEnd.getTime(),
@@ -2618,6 +2615,87 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   assert.equal(tool.getLineStyles().opacity, '0.4');
   assert.equal(tool.hasPresentationChanged(), true);
   assert.equal(tool.hasPresentationChanged(), false);
+});
+
+test('a changed single Cartesian series prunes and calculates statistics once', (context) => {
+  const tool = createChangeDetectionTool(context, 'rolling_window');
+  const item = tool.sparklineSeries.primaryItem;
+  const prune = context.mock.method(tool.sparklineHistory, 'pruneActiveRows');
+  const statistics = context.mock.method(item.graph, 'updateStatistics');
+  const aggregate = context.mock.method(item.graph, 'aggregateBuckets');
+  const linePath = context.mock.method(item.graph, 'getPath');
+  const reducer = context.mock.method(item.graph, '_reducer');
+  const completedGroup = item.graph.bucketGroups.get(Date.parse('2026-09-26T09:00:00.000Z'));
+  const completedResult = item.graph.bucketResults.get(completedGroup);
+  tool.hasPresentationChanged();
+
+  tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  assert.equal(prune.mock.callCount(), 1);
+  assert.equal(statistics.mock.callCount(), 1);
+  assert.equal(aggregate.mock.callCount(), 1);
+  assert.equal(linePath.mock.callCount(), 1);
+  assert.equal(reducer.mock.callCount(), 2);
+  assert.strictEqual(item.graph.bucketResults.get(completedGroup), completedResult);
+  assert.equal(item.graph.statistics.max, 42);
+  assert.equal(tool.hasPresentationChanged(), true);
+  assert.equal(tool.hasPresentationChanged(), false);
+});
+
+test('a single bar renders the final rectangles already calculated by Series', (context) => {
+  const tool = createChangeDetectionTool(context, 'rolling_window');
+  tool.config.sparkline.show.chart_type = 'bar';
+  tool.card.cardTheme.modeChanged = true;
+  tool.updateRuntimeConfig();
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.card.cardTheme.modeChanged = false;
+  const bars = context.mock.method(tool.primaryGraph, 'getBars');
+  tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  // The first pass measures outer half-bars; the second supplies final SVG
+  // rectangles. Single-item presentation must not add a third calculation.
+  assert.equal(bars.mock.callCount(), 2);
+  assert.strictEqual(tool.bar[0], tool.sparklineSeries.primaryItem.bars);
+});
+
+['line', 'area'].forEach((chartType) => {
+  test(`a changed Cartesian ${chartType} reuses its line, minmax and point paths during rendering`, (context) => {
+    const tool = createChangeDetectionTool(context, 'rolling_window');
+    tool.config.sparkline.show.chart_type = chartType;
+    tool.config.sparkline.show.points = true;
+    tool.config.sparkline[chartType].show.minmax = true;
+    tool.card.cardTheme.modeChanged = true;
+    tool.updateRuntimeConfig();
+    tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+    tool.card.cardTheme.modeChanged = false;
+    const graph = tool.primaryGraph;
+    const linePath = context.mock.method(graph, 'getPath');
+    const minPath = context.mock.method(graph, 'getPathMin');
+    const maxPath = context.mock.method(graph, 'getPathMax');
+    const minMaxPath = context.mock.method(graph, 'getAreaMinMax');
+    const areaPath = context.mock.method(graph, 'getArea');
+    const points = context.mock.method(graph, 'calculateYCoordinates');
+
+    tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+    tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+    assert.equal(tool.line[0], tool.linePath);
+    assert.equal(tool.areaMinMax[0], tool.areaMinMaxPath);
+    assert.ok(tool.areaMinMaxPath.length > 0);
+    if (chartType === 'area') assert.equal(tool.area[0], tool.areaPath);
+
+    const pointCalculationCount = points.mock.callCount();
+    assert.ok(pointCalculationCount > 0);
+    tool.renderPoints();
+    tool.renderPoints();
+    tool.renderSeriesCartesian();
+    tool.renderSeriesCartesian();
+    assert.equal(linePath.mock.callCount(), 1);
+    assert.equal(minPath.mock.callCount(), 1);
+    assert.equal(maxPath.mock.callCount(), 1);
+    assert.equal(minMaxPath.mock.callCount(), 1);
+    assert.equal(areaPath.mock.callCount(), chartType === 'area' ? 1 : 0);
+    assert.equal(points.mock.callCount(), pointCalculationCount);
+  });
 });
 
 test('changed historical curves report presentation changes when all published statistics stay equal', (context) => {

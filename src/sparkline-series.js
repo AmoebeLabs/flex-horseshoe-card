@@ -258,7 +258,7 @@ export default class SparklineSeries {
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
-      item.dataState = item.graph.processData(item.rows);
+      item.dataState = item.graph.processData(item.rows, item.rowsUpdate);
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
@@ -347,6 +347,10 @@ export default class SparklineSeries {
     });
     barItems.forEach((item) => {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
+      if (this.items.length === 1 && item.config.period.type === 'real_time' && item.config.sparkline.bar.orientation === 'vertical') {
+        // The one-value vertical bar uses the whole drawing area as its slot.
+        item.bars[0].x = item.graph.drawArea.x + (item.graph.drawArea.width - item.bars[0].width) / 2;
+      }
     });
 
     this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
@@ -365,7 +369,7 @@ export default class SparklineSeries {
    */
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
     this.items.forEach((item) => {
-      item.dataState = item.graph.processData(item.rows);
+      item.dataState = item.graph.processData(item.rows, item.rowsUpdate);
     });
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
@@ -493,7 +497,7 @@ export default class SparklineSeries {
   /** Runs all initialized graph engines against their own normalized rows. */
   updateGraphs() {
     const dataStates = this.items.map((item) => {
-      item.dataState = item.graph.update(item.rows);
+      item.dataState = item.graph.update(item.rows, item.rowsUpdate);
       return item.dataState;
     });
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));

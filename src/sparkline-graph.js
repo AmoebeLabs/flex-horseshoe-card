@@ -28,8 +28,9 @@ export const ONE_HOUR = 1000 * 3600;
  * sparkline:
  *   state_values: { aggregate_func: avg }
  *
- * SparklineGraphTool owns the lifecycle around this engine: it supplies rows,
- * consumes the generated geometry, and renders that geometry with Lit.
+ * History supplies measurements and their changes. This engine keeps completed
+ * bins and recalculates the bins affected by a live measurement or correction.
+ * Series coordinates the drawing area and scales; GraphTool renders the results.
  */
 export default class SparklineGraph {
   /**
@@ -80,6 +81,13 @@ export default class SparklineGraph {
     this.processedDataKey = undefined;
     this.processedDataRevision = 0;
     this.processedDataChanged = false;
+    this.bucketGroups = new Map();
+    this.bucketResults = new WeakMap();
+    this.bucketConfigKey = undefined;
+    this.bucketStart = undefined;
+    this.statisticsGroups = [];
+    this.firstBucketRow = undefined;
+    this.firstBucketGroup = undefined;
     this.geometryInputSignature = undefined;
     this.geometryResultSignature = undefined;
     this.geometryConfigChanged = true;
@@ -207,8 +215,10 @@ export default class SparklineGraph {
 
   /**
    * Stores the complete visible-period statistics for this graph's source
-   * series. Historical averages retain the existing time weighting between
-   * Home Assistant state changes. Real-time graphs expose their one current
+   * chronological numeric series supplied by History. Historical averages
+   * retain the time weighting between Home Assistant state changes; each
+   * timestamp is converted once for extrema and duration calculations.
+   * Real-time graphs expose their one current
    * value with the timestamp supplied by the coordinating tool.
    *
    * @param {Array<object>} series - Prepared source rows used by this graph.
@@ -229,42 +239,103 @@ export default class SparklineGraph {
       return this.statistics;
     }
 
-    const sortedSeries = series
-      .filter((item) => item && Number.isFinite(Number(item.state)))
-      .concat()
-      .sort((a, b) => new Date(a.last_changed).getTime() - new Date(b.last_changed).getTime());
-
-    if (sortedSeries.length === 0) {
+    if (series.length === 0) {
       this.statistics = {};
       return this.statistics;
     }
 
-    const rangeStart = statisticsRange ? statisticsRange.start : new Date(sortedSeries[0].last_changed).getTime();
+    if (series === this.processedRows && this.statisticsGroups.length > 0) {
+      // Completed source bins already have reusable summaries. Only the first
+      // and last intervals need clipping to the actual visible time window.
+      const rangeStart = statisticsRange ? statisticsRange.start : new Date(series[0].last_changed).getTime();
+      const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
+      let min = Infinity;
+      let max = -Infinity;
+      let minTime;
+      let maxTime;
+      let minTimestamp;
+      let maxTimestamp;
+      let weightedValue = 0;
+      let weightedDuration = 0;
+      let previousResult;
+      this.statisticsGroups.forEach((group) => {
+        if (group === undefined) return;
+        let result = this.calculateBucketResult(group);
+        if (result.firstTime > rangeEnd) return;
+        if (result.lastTime > rangeEnd) {
+          // Source snapshots can contain measurements beyond a requested
+          // statistics end. Include only the visible prefix of that edge bin.
+          const visibleRows = group.filter((row) => new Date(row.last_changed).getTime() <= rangeEnd);
+          result = this.calculateBucketResult(visibleRows);
+        }
+        if (result.min < min) {
+          min = result.min;
+          minTime = result.minTime;
+          minTimestamp = result.minTimestamp;
+        }
+        if (result.max > max) {
+          max = result.max;
+          maxTime = result.maxTime;
+          maxTimestamp = result.maxTimestamp;
+        }
+        if (previousResult !== undefined) {
+          const duration = Math.max(0, Math.min(result.firstTime, rangeEnd) - Math.max(previousResult.lastTime, rangeStart));
+          weightedValue += previousResult.last * duration;
+          weightedDuration += duration;
+        }
+        if (result.firstTime >= rangeStart) {
+          weightedValue += result.weightedValue;
+          weightedDuration += result.lastTime - result.firstTime;
+        } else {
+          // A moving start can cut through the first bin. Reuse its measured
+          // intervals while excluding the portion before the visible window.
+          result.measurements.forEach((measurement, index) => {
+            if (index === result.measurements.length - 1) return;
+            const duration = Math.max(0, result.measurements[index + 1].time - Math.max(measurement.time, rangeStart));
+            weightedValue += measurement.value * duration;
+            weightedDuration += duration;
+          });
+        }
+        previousResult = result;
+      });
+      const duration = Math.max(0, rangeEnd - Math.max(previousResult.lastTime, rangeStart));
+      weightedValue += previousResult.last * duration;
+      weightedDuration += duration;
+      this.statistics = {
+        min,
+        avg: weightedValue / weightedDuration,
+        max,
+        min_time: minTime < rangeStart ? new Date(rangeStart).toISOString() : minTimestamp,
+        max_time: maxTime < rangeStart ? new Date(rangeStart).toISOString() : maxTimestamp,
+      };
+      return this.statistics;
+    }
+
+    // History retains source order while projecting timestamps onto the plot
+    // timeline. Reuse that order for the intervals between successive states.
+    const measurements = series.map((item) => ({ item, value: Number(item.state), time: new Date(item.last_changed).getTime() }));
+    const rangeStart = statisticsRange ? statisticsRange.start : measurements[0].time;
     const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
-    const visibleSeries = sortedSeries.filter((item) => new Date(item.last_changed).getTime() <= rangeEnd);
-    const values = visibleSeries.map((item) => Number(item.state));
+    const visibleSeries = measurements.filter((measurement) => measurement.time <= rangeEnd);
+    const values = visibleSeries.map((measurement) => measurement.value);
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const minItem = visibleSeries.find((item) => Number(item.state) === min);
-    const maxItem = visibleSeries.find((item) => Number(item.state) === max);
-    const minItemTime = new Date(minItem.last_changed).getTime();
-    const maxItemTime = new Date(maxItem.last_changed).getTime();
-    const min_time = minItemTime < rangeStart ? new Date(rangeStart).toISOString() : minItem.last_changed;
-    const max_time = maxItemTime < rangeStart ? new Date(rangeStart).toISOString() : maxItem.last_changed;
+    const minMeasurement = visibleSeries.find((measurement) => measurement.value === min);
+    const maxMeasurement = visibleSeries.find((measurement) => measurement.value === max);
+    const min_time = minMeasurement.time < rangeStart ? new Date(rangeStart).toISOString() : minMeasurement.item.last_changed;
+    const max_time = maxMeasurement.time < rangeStart ? new Date(rangeStart).toISOString() : maxMeasurement.item.last_changed;
     let weightedValue = 0;
     let weightedDuration = 0;
 
     // Each state contributes for the time it remained active inside the
     // visible period; short-lived states therefore do not skew the average.
-    visibleSeries.forEach((item, index) => {
-      const value = Number(item.state);
-      const itemStart = new Date(item.last_changed).getTime();
-      const nextItemStart = index < visibleSeries.length - 1 ? new Date(visibleSeries[index + 1].last_changed).getTime() : rangeEnd;
-      const startTime = Math.max(itemStart, rangeStart);
+    visibleSeries.forEach((measurement, index) => {
+      const nextItemStart = index < visibleSeries.length - 1 ? visibleSeries[index + 1].time : rangeEnd;
+      const startTime = Math.max(measurement.time, rangeStart);
       const endTime = Math.min(nextItemStart, rangeEnd);
       const duration = Math.max(0, endTime - startTime);
 
-      weightedValue += value * duration;
+      weightedValue += measurement.value * duration;
       weightedDuration += duration;
     });
 
@@ -468,22 +539,25 @@ export default class SparklineGraph {
    * separated data updates from geometry updates.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
+   * @param {object|undefined} rowsUpdate - Source changes, or a complete snapshot when omitted.
    * @returns {string} Current processed-data state.
    */
-  update(history) {
-    const dataState = this.processData(history);
+  update(history, rowsUpdate) {
+    const dataState = this.processData(history, rowsUpdate);
     if (dataState === SPARKLINE_DATA_STATE.HAS_DATA) this.calculateGeometry();
     return dataState;
   }
 
   /**
-   * Assigns history to its time buckets and calculates their values and
-   * extrema. Pixel positions and axis geometry are calculated separately.
+   * Builds bins from initial history, then reuses completed bins on live updates.
+   * Corrections replace the affected tail; moving windows retain the state active
+   * at their new start. Drawing dimensions are applied in a separate calculation.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
+   * @param {object|undefined} rowsUpdate - History delivery; omitted for a complete snapshot.
    * @returns {string} Current processed-data state.
    */
-  processData(history) {
+  processData(history, rowsUpdate) {
     this.processedDataChanged = false;
     this.dataConfigChanged = false;
     if (history !== undefined) this._history = history;
@@ -519,6 +593,10 @@ export default class SparklineGraph {
       this.geometryConfigChanged = false;
       this.processedRows = this._history;
       this.processedDataKey = undefined;
+      this.bucketConfigKey = undefined;
+      this.bucketGroups = new Map();
+      this.bucketResults = new WeakMap();
+      this.statisticsGroups = [];
       this.processedDataRevision += 1;
       this.processedDataChanged = true;
       return this.dataState;
@@ -527,6 +605,8 @@ export default class SparklineGraph {
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
     if (this.config.sparkline.show.chart_type === 'state_bands') {
+      this.bucketConfigKey = undefined;
+      this.statisticsGroups = [];
       this.processedRows = undefined;
       this.processedDataKey = undefined;
       this.processedDataRevision += 1;
@@ -620,12 +700,70 @@ export default class SparklineGraph {
     ]);
     if (this.processedRows === this._history && this.processedDataKey === processedDataKey) return this.dataState;
 
-    // The real-time series already is its single graph bucket. Only historical
-    // period types require timestamp-based reduction into buckets.
-    const histGroups = this.config.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
+    const bucketStart = this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
+    const bucketConfigKey = JSON.stringify([this.config.period, this.hours, this.points, this.aggregateFuncName, graphFamily, showMinMax]);
+    const historicalBuckets = this.config.period.type === 'rolling_window'
+      || (this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day');
+    // Only Graph decides whether its previous bins fit the new input. A full
+    // source replacement or changed bin plan rebuilds them. A live delivery
+    // names the earliest correction, so existing completed bins stay reusable.
+    const incremental = historicalBuckets && rowsUpdate !== undefined
+      && rowsUpdate.rows === this._history && rowsUpdate.previousRows === this.processedRows
+      && !rowsUpdate.replaced && this.bucketConfigKey === bucketConfigKey
+      && bucketStart >= this.bucketStart && (bucketStart - this.bucketStart) % bucketMs === 0;
+    let histGroups;
+    if (incremental) {
+      histGroups = Array.from({ length: requiredNumOfPoints }, (_, index) => this.bucketGroups.get(bucketStart + index * bucketMs));
+
+      // Replace the affected tail with current source rows, including delayed
+      // samples and corrections. Binary lookup avoids scanning older history.
+      if (rowsUpdate.changedFrom !== Infinity) {
+        const changedIndex = Math.max(0, Math.min(requiredNumOfPoints - 1, Math.floor((rowsUpdate.changedFrom - bucketStart) / bucketMs)));
+        const changedStart = bucketStart + changedIndex * bucketMs;
+        let lower = 0;
+        let upper = this._history.length;
+        while (lower < upper) {
+          const middle = Math.floor((lower + upper) / 2);
+          if (new Date(this._history[middle].last_changed).getTime() < changedStart) lower = middle + 1;
+          else upper = middle;
+        }
+        for (let index = changedIndex; index < histGroups.length; index += 1) histGroups[index] = undefined;
+        const changedRows = changedIndex === 0 ? this._history : this._history.slice(lower);
+        changedRows.forEach((row) => this._reducer(histGroups, row));
+      }
+
+      // Moving the window changes the first bin's starting state. Its latest
+      // raw sample is retained even when the new first bin contains no samples.
+      if (bucketStart !== this.bucketStart) {
+        let lower = 0;
+        let upper = this._history.length;
+        while (lower < upper) {
+          const middle = Math.floor((lower + upper) / 2);
+          if (new Date(this._history[middle].last_changed).getTime() < bucketStart + bucketMs) lower = middle + 1;
+          else upper = middle;
+        }
+        histGroups[0] = lower > 0 ? this._history.slice(0, lower) : undefined;
+      }
+    } else {
+      histGroups = this.config.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
+      this.bucketResults = new WeakMap();
+    }
+    histGroups.length = requiredNumOfPoints;
+    // Retain complete source groups for period statistics. The first plotted
+    // bin shows its latest state, while statistics still include earlier peaks.
+    this.statisticsGroups = histGroups.slice();
+    this.bucketGroups.clear();
+    histGroups.forEach((group, index) => {
+      if (group !== undefined) this.bucketGroups.set(bucketStart + index * bucketMs, group);
+    });
     // Preserve one preceding sample so its state carries into the first slot.
     if (histGroups[0] && histGroups[0].length) {
-      histGroups[0] = [histGroups[0][histGroups[0].length - 1]];
+      const firstRow = histGroups[0][histGroups[0].length - 1];
+      if (firstRow !== this.firstBucketRow) {
+        this.firstBucketRow = firstRow;
+        this.firstBucketGroup = [firstRow];
+      }
+      histGroups[0] = this.firstBucketGroup;
     }
     histGroups.length = requiredNumOfPoints;
 
@@ -635,16 +773,17 @@ export default class SparklineGraph {
     this.dataMin = Math.min(...this.processedValues.map((value) => Number(value)));
     this.dataMax = Math.max(...this.processedValues.map((value) => Number(value)));
 
-    const bucketStart = this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
+    // Cached summaries disappear with expired/replaced raw groups. Tooltip
+    // metadata and the min/max envelope share those same computed extrema.
     this.bucketMeta = [];
+    const firstResult = this.bucketResults.get(histGroups.find((group) => group !== undefined));
+    let lastValue = ['delta', 'diff'].includes(this.aggregateFuncName) ? 0 : firstResult.last;
     for (let i = 0; i < histGroups.length; i += 1) {
       const bucket = histGroups[i];
       const value = this.processedValues[i];
       const start = new Date(bucketStart + i * bucketMs);
       const end = new Date(start.getTime() + bucketMs);
-      const items = bucket ? bucket.filter(Boolean) : [];
-
-      if (items.length === 0) {
+      if (bucket === undefined) {
         this.bucketMeta[i] = {
           index: i,
           start,
@@ -655,38 +794,41 @@ export default class SparklineGraph {
           max: undefined,
           count: 0,
         };
+        if (showMinMax) {
+          this.processedMinValues.push(lastValue);
+          this.processedMaxValues.push(lastValue);
+        }
       } else {
-        const values = items.map((item) => Number(item.state));
-        const sum = values.reduce((acc, value) => acc + value, 0);
+        const result = this.bucketResults.get(bucket);
         this.bucketMeta[i] = {
           index: i,
           start,
           end,
           value,
-          min: Math.min(...values),
-          avg: sum / values.length,
-          max: Math.max(...values),
-          count: values.length,
+          min: result.min,
+          avg: result.avg,
+          max: result.max,
+          count: result.count,
         };
+        lastValue = ['delta', 'diff'].includes(this.aggregateFuncName) ? 0 : result.last;
+        if (showMinMax) {
+          this.processedMinValues.push(result.min);
+          this.processedMaxValues.push(result.max);
+        }
       }
     }
 
     // Calculate min/max samples only for the active graph family.
     // Line settings must not leak into area, and area settings must not leak into line.
     if (['line', 'area'].includes(graphFamily) && showMinMax) {
-      const prevFunction = this._calcPoint;
-      this._calcPoint = this.aggregateFuncMap.min;
-      this.processedMinValues = this.aggregateBuckets(histGroups);
-      this._calcPoint = this.aggregateFuncMap.max;
-      this.processedMaxValues = this.aggregateBuckets(histGroups);
-      this._calcPoint = prevFunction;
-
       // The envelope, rather than the aggregate line, defines the visible range.
       this.dataMin = Math.min(...this.processedMinValues.map((value) => Number(value)));
       this.dataMax = Math.max(...this.processedMaxValues.map((value) => Number(value)));
     }
 
     this.processedRows = this._history;
+    this.bucketConfigKey = bucketConfigKey;
+    this.bucketStart = bucketStart;
     this.processedDataKey = processedDataKey;
     this.processedDataRevision += 1;
     this.processedDataChanged = true;
@@ -1218,13 +1360,84 @@ export default class SparklineGraph {
   aggregateBuckets(history) {
     const values = [];
     const first = history.filter(Boolean)[0];
-    let last = [this._calcPoint(first), this._lastValue(first)];
+    // One summary supplies the plotted aggregate, tooltip metadata and min/max
+    // envelope. Unchanged raw bin groups reuse their previous summary.
+    history.forEach((items) => {
+      if (items !== undefined) this.calculateBucketResult(items);
+    });
+    const firstResult = this.bucketResults.get(first);
+    const carryDifference = ['delta', 'diff'].includes(this.aggregateFuncName);
+    let last = [firstResult.value, carryDifference ? 0 : firstResult.last];
     for (let i = 0; i < this.visibleBucketCount; i += 1) {
       const item = history[i];
-      if (item) last = [this._calcPoint(item), this._lastValue(item)];
+      if (item) {
+        const result = this.bucketResults.get(item);
+        last = [result.value, carryDifference ? 0 : result.last];
+      }
       values.push(item ? last[0] : last[1]);
     }
     return values;
+  }
+
+  /**
+   * Calculates one source bin's value, extrema and time-weighted intervals.
+   * Plotting, tooltip metadata and period statistics share this stored result;
+   * unchanged bin groups return their existing result without reading rows.
+   *
+   * @param {Array<object>} items - Chronological numeric measurements in a bin.
+   * @returns {object} Aggregate, extrema, timestamps and weighted intervals.
+   */
+  calculateBucketResult(items) {
+    if (this.bucketResults.has(items)) return this.bucketResults.get(items);
+    let sum = 0;
+    let min = Infinity;
+    let max = -Infinity;
+    let minTime;
+    let maxTime;
+    let minTimestamp;
+    let maxTimestamp;
+    let weightedValue = 0;
+    const measurements = [];
+    items.forEach((item, index) => {
+      const value = Number(item.state);
+      const time = new Date(item.last_changed).getTime();
+      sum += value;
+      if (value < min) { min = value; minTime = time; minTimestamp = item.last_changed; }
+      if (value > max) { max = value; maxTime = time; maxTimestamp = item.last_changed; }
+      if (index > 0) weightedValue += measurements[index - 1].value * (time - measurements[index - 1].time);
+      measurements.push({ value, time });
+    });
+    const result = {
+      min,
+      max,
+      minTime,
+      maxTime,
+      minTimestamp,
+      maxTimestamp,
+      sum,
+      avg: sum / items.length,
+      count: items.length,
+      first: measurements[0].value,
+      last: measurements[measurements.length - 1].value,
+      firstTime: measurements[0].time,
+      lastTime: measurements[measurements.length - 1].time,
+      weightedValue,
+      measurements,
+    };
+    switch (this.aggregateFuncName) {
+      case 'avg': result.value = result.avg; break;
+      case 'min': result.value = min; break;
+      case 'max': result.value = max; break;
+      case 'sum': result.value = sum; break;
+      case 'first': result.value = result.first; break;
+      case 'last': result.value = result.last; break;
+      case 'delta': result.value = max - min; break;
+      case 'diff': result.value = result.last - result.first; break;
+      case 'median': result.value = this._median(items); break;
+      default: break;
+    }
+    this.bucketResults.set(items, result);
+    return result;
   }
 
   /**
