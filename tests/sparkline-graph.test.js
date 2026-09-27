@@ -403,7 +403,7 @@ test('calendar bins retain the current day and rebuild at the next midnight', (c
   const NativeDate = globalThis.Date;
   const previousTimeZone = process.env.TZ;
   let now = NativeDate.parse('2026-08-20T00:08:00.000Z');
-  process.env.TZ = 'UTC';
+  process.env.TZ = 'Etc/UTC';
   globalThis.Date = class extends NativeDate {
     constructor(...args) { super(...(args.length === 0 ? [now] : args)); }
     static now() { return now; }
