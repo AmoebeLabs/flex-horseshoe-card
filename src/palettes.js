@@ -66,15 +66,28 @@ export default class Palette {
   }
 
   /**
-   * Applies all loaded palettes in declaration order.
+   * Replaces owned variables, then applies current palettes in declaration order.
    *
    * @param {Element} element - Card host receiving CSS variables.
    * @param {object} palettes - Loaded palettes by name.
    * @param {string} mode - Active palette mode.
+   * @param {Set<string>} previousVariables - Variables previously written by this owner.
+   * @returns {Set<string>} Variables owned by the current palette selection.
    */
-  static applyAll(element, palettes, mode) {
+  static applyAll(element, palettes, mode, previousVariables) {
+    const variables = new Set();
+    Object.values(palettes).forEach((palette) => {
+      Object.keys(palette.ref).forEach((name) => variables.add(`--${name}`));
+      Object.keys(palette.modes[mode]).forEach((name) => variables.add(`--${name}`));
+    });
+    // Removing a palette restores inherited colors instead of leaving stale
+    // inline variables behind or deleting unrelated card styling.
+    previousVariables.forEach((name) => {
+      if (!variables.has(name)) element.style.removeProperty(name);
+    });
     Object.entries(palettes).forEach(([, palette]) => {
       this.apply(element, palette, mode);
     });
+    return variables;
   }
 }

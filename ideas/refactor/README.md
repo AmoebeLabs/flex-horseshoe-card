@@ -29,7 +29,7 @@ For every implementation plan:
 | [09](../2026.09.26-09-pointer-interaction-lifecycle.md) | Sparkline pointer interaction lifecycle | pointer state follows current DOM/data and always cleans up |
 | [10](../2026.09.27-10-horseshoe-animation-and-path-cache.md) | Horseshoe animation and path cache | bounded animation samples and shared prepared path/gradient geometry |
 | [11](../2026.09.27-11-config-ref-and-merge.md) | Config `ref()` and merge | referenced values preserve types without global merge rewrite |
-| 12 | Theme-aware color cache | shared cache is theme/mode safe and paint-only updates stay paint-only |
+| [12](../2026.09.27-12-theme-aware-color-cache.md) | Theme-aware color cache | shared cache is theme/mode safe and paint-only updates stay paint-only |
 | 13 | Final simplification and cleanup | obsolete guards/duplication/comments removed after causes are gone |
 | 14 | CI and development-release safety | deterministic test/release gates protect the completed refactor |
 

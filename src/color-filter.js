@@ -123,8 +123,7 @@ export default class ColorFilter {
       return color;
     }
 
-    Colors.setElement(card);
-    const rgba = Colors.colorToRGBA(colorText);
+    const rgba = Colors.colorToRGBA(colorText, card.cardTheme.colorContext);
 
     if (!rgba) {
       return color;
@@ -372,8 +371,7 @@ export default class ColorFilter {
    * @returns {object} Culori RGB color.
    */
   static resolveColor(color, card) {
-    Colors.setElement(card);
-    const rgba = Colors.colorToRGBA(String(color));
+    const rgba = Colors.colorToRGBA(String(color), card.cardTheme.colorContext);
 
     return {
       mode: 'rgb',

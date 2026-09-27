@@ -10,10 +10,11 @@ import { renderNormalizedPathBands } from './path-mask-renderer.js';
  * complete color sequence over the active range.
  *
  * @param {PathGeometry} pathGeometry - Bound browser-measured path geometry.
- * @param {object} config - Complete normalized gradient, range, cap, and cost contract.
+ * @param {object} config - Complete normalized gradient, range, cap, and cost config.
+ * @param {object} colorContext - Card-owned CSS scope used for color-stop interpolation.
  * @returns {object} Gradient micro-ranges and the independently movable reveal range.
  */
-export function buildAdaptivePathGradient(pathGeometry, config) {
+export function buildAdaptivePathGradient(pathGeometry, config, colorContext) {
   const geometry = pathGeometry.getGradientGeometry(config);
   const { domainStart, domainEnd } = geometry;
   const colorStops = { colors: config.colorStops.map((stop) => ({ value: stop.progress, color: stop.color })) };
@@ -26,14 +27,14 @@ export function buildAdaptivePathGradient(pathGeometry, config) {
   // background and state layers do not repeat the adaptive geometry calculation.
   const ranges = geometry.ranges.map((interval, index) => {
     const gradientStops = [
-      { offset: 0, color: Colors.calculateStrokeColor(interval.gradientStartProgress, colorStops, true) },
+      { offset: 0, color: Colors.calculateStrokeColor(interval.gradientStartProgress, colorStops, true, colorContext) },
       ...positionedColorStops
         .filter((stop) => stop.progress > interval.start && stop.progress < interval.colorEnd)
         .map((stop) => ({
           offset: ((stop.progress - interval.start) / (interval.colorEnd - interval.start)) * 100,
           color: stop.color,
         })),
-      { offset: 100, color: Colors.calculateStrokeColor(interval.gradientEndProgress, colorStops, true) },
+      { offset: 100, color: Colors.calculateStrokeColor(interval.gradientEndProgress, colorStops, true, colorContext) },
     ];
 
     return {

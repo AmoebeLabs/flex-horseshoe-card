@@ -56,7 +56,11 @@ function createChangeDetectionTool(context, periodType) {
       groupManager: { getGroupChainForItem: () => [] },
       masksClips: { applyGradientRefs: (styles) => styles },
     },
-    cardTheme: { modeChanged: false, getActiveColorStopMode: () => 'light' },
+    cardTheme: {
+      modeChanged: false,
+      getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
+    },
   };
   const period = periodType === 'real_time' ? { type: periodType } : {
     type: periodType,
@@ -131,6 +135,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
       cardTheme: {
         modeChanged: false,
         getActiveColorStopMode: () => 'light',
+        colorContext: { cacheReady: false },
       },
     };
     const config = {
@@ -219,6 +224,7 @@ test('calendar and rolling window use complete 24-hour default periods', () => {
       cardTheme: {
         modeChanged: false,
         getActiveColorStopMode: () => 'light',
+        colorContext: { cacheReady: false },
       },
     };
 
@@ -286,6 +292,7 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
       cardTheme: {
         modeChanged: false,
         getActiveColorStopMode: () => 'light',
+        colorContext: { cacheReady: false },
       },
     };
     const config = {
@@ -365,6 +372,7 @@ test('real-time graded creates one current-value graph without historical bins',
     cardTheme: {
       modeChanged: false,
       getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
     },
   };
   const config = {
@@ -695,6 +703,7 @@ test('area fade uses the fixed color belonging to each series', () => {
 
 test('graph paint selection preserves fixed styles and selects color stops from the supplied current value', () => {
   const tool = Object.create(SparklineGraphTool.prototype);
+  tool.card = { cardTheme: { colorContext: { cacheReady: false } } };
   const config = {
     sparkline: {
       colorstops: {
@@ -1008,6 +1017,7 @@ test('radial series render all areas below every line and point', () => {
   Object.assign(tool, {
     cardId: 'test-card',
     index: 5,
+    card: { cardTheme: { colorContext: { cacheReady: false } } },
     sparklineSeries: {
       items: [
         makeItem('line-first', 'line', '#1565c0'),
@@ -1178,6 +1188,7 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
     cardTheme: {
       modeChanged: false,
       getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
     },
     cardTools: { getBySection: () => [] },
     actions: { getActionHandlerOptions: () => ({}) },
@@ -1460,6 +1471,7 @@ test('accepted multi-day history builds and renders the configured line minmax e
     cardTheme: {
       modeChanged: false,
       getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
     },
     cardEntities: { updateSparklineEntities() {} },
     cardTools: { getBySection: () => [] },
@@ -1548,6 +1560,7 @@ test('accepted empty history becomes loaded request state with empty processed d
     cardTheme: {
       modeChanged: false,
       getActiveColorStopMode: () => 'light',
+      colorContext: { cacheReady: false },
     },
     cardEntities: { updateSparklineEntities() {} },
     cardTools: { getBySection: () => [] },

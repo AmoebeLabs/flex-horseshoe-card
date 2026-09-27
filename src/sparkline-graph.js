@@ -1,4 +1,3 @@
-import Colors from './colors';
 import Utils from './utils';
 import { FONT_SIZE } from './const';
 import { SPARKLINE_DATA_STATE } from './sparkline-state.js';
@@ -1644,9 +1643,10 @@ export default class SparklineGraph {
    *
    * @param {Array<object>} thresholds - Ordered value/color thresholds.
    * @param {boolean} logarithmic - Whether values use logarithmic scaling.
+   * @param {Function} interpolateColor - Tool-owned conversion for clipped color stops.
    * @returns {Array<object>} Colors and percentage offsets for SVG stops.
    */
-  computeGradient(thresholds, logarithmic) {
+  computeGradient(thresholds, logarithmic, interpolateColor) {
     const scale = logarithmic ? Math.log10(Math.max(1, this._max)) - Math.log10(Math.max(1, this._min)) : this._max - this._min;
     // Extend the scale for the SVG area below the drawing region so gradient
     // thresholds remain aligned with the plotted y-range.
@@ -1655,10 +1655,10 @@ export default class SparklineGraph {
       let color;
       if (stop.value > this._max && arr[index + 1]) {
         const factor = (this._max - arr[index + 1].value) / (stop.value - arr[index + 1].value);
-        color = Colors.getGradientValue(arr[index + 1].color, stop.color, factor);
+        color = interpolateColor(arr[index + 1].color, stop.color, factor);
       } else if (stop.value < this._min && arr[index - 1]) {
         const factor = (arr[index - 1].value - this._min) / (arr[index - 1].value - stop.value);
-        color = Colors.getGradientValue(arr[index - 1].color, stop.color, factor);
+        color = interpolateColor(arr[index - 1].color, stop.color, factor);
       }
       let offset;
       if (scale <= 0) {

@@ -128,9 +128,10 @@ export default class CardTools {
     RUNTIME_SECTIONS.forEach((section) => this.sections[section].forEach((tool) => tool.updateRuntimeConfig()));
   }
 
-  /** Forwards loaded-palette paint changes without assigning graph data/config. */
+  /** Recolors retained graph and gauge layers after theme or palette changes. */
   updatePalettePaint() {
     this.sections.sparklines.forEach((tool) => tool.updatePalettePaint());
+    this.sections.horseshoes.forEach((tool) => tool.updatePalettePaint());
   }
 
   /** Updates graph legend consumers after the final entity publication. */

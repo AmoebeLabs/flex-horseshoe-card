@@ -33,7 +33,6 @@ import CardLayout from './card-layout.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-import Colors from './colors.js';
 import StateTool from './state-tool.js';
 import ControlTool from './control-tool.js';
 import SameAs from './same-as.js';
@@ -58,8 +57,6 @@ class FlexHorseshoeCard extends LitElement {
    */
   constructor() {
     super();
-
-    Colors.setElement(this);
 
     // A card-specific id scopes generated SVG definitions and their references
     // to this card inside the shared dashboard document.
@@ -154,6 +151,9 @@ class FlexHorseshoeCard extends LitElement {
       if (this.gradientUpdate !== update || this.gradientsClosed) return;
       this.gradientUpdate = undefined;
       this.gradientsNeedUpdate = false;
+      // The same settled CSS context feeds every retained paint owner. Data,
+      // coordinates and animation progress stay untouched by this follow-up.
+      if (this.cardTheme.finishPaintUpdate()) this.cardTools.updatePalettePaint();
       this.requestUpdate();
     } catch (error) {
       if (this.gradientUpdate !== update || this.gradientsClosed) return;
@@ -415,12 +415,9 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Repaints a current loaded palette. CardTheme has applied its CSS variables
-   * and cleared color/path caches; only retained graph paint needs refreshing.
+   * Schedules current palette paints after the existing DOM/CSS follow-up.
    */
   updatePalettePaint() {
-    this.cardTools.updatePalettePaint();
-    this.requestUpdate();
     this._updateGradientsAfterRender();
   }
 
@@ -526,7 +523,6 @@ class FlexHorseshoeCard extends LitElement {
       // Replacement ends the old tools' lifetimes before any new owner is made.
       this.cardTools.clearTools();
       this.cardTools.setHorseshoeConfig(config);
-      this.cardTheme.setHorseshoes(this.cardTools.getBySection('horseshoes'));
 
       this.cardTools.setLayoutToolConfig(this.config);
       this.cardTheme.loadPalettes(this.config.palettes ?? {}).catch((error) => console.error('[FHC palettes]', error));

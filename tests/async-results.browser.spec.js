@@ -281,7 +281,11 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
         super();
         this.card = {
           config: {}, entities: [], resolvedEntityConfigs: [], evaluateJavascriptTemplates: true,
-          cardTheme: { modeChanged: false, getActiveColorStopMode: () => 'light' },
+          cardTheme: {
+            modeChanged: false,
+            getActiveColorStopMode: () => 'light',
+            colorContext: { cacheReady: false },
+          },
           cardAnimations: { styles: { texts: {} } },
           actions: { getActionHandlerOptions: () => ({ hasTap: false, hasHold: false, hasDoubleClick: false }), handleAction() {} },
           cardEntities: {},

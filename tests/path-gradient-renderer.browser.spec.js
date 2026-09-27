@@ -88,6 +88,15 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               maxSegments: 96,
               overlap: 2,
             };
+            const colorContext = {
+              element: document.querySelector('#fixture'),
+              globalThemeName: 'test-theme',
+              viewThemeName: null,
+              mode: 'light',
+              themeSource: {},
+              paletteSources: [],
+              cacheReady: false,
+            };
             const layer = {
               opacity: 0.72,
               fillOpacity: 1,
@@ -110,7 +119,7 @@ test('adaptive gradients remain continuous and bounded on every path geometry', 
               const geometry = new PathGeometry(() => {});
               geometry.setPathDefinition(definition);
               geometry.bindPathElement(document.querySelector(\`.shape[data-index="\${index}"] .master\`));
-              return buildAdaptivePathGradient(geometry, index === 6 ? { ...config, range: { start: 0, end: 65 } } : config);
+              return buildAdaptivePathGradient(geometry, index === 6 ? { ...config, range: { start: 0, end: 65 } } : config, colorContext);
             });
 
             // Exclude browser JIT and first SVG measurement setup from the steady-state budget.
