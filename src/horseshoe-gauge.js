@@ -189,6 +189,11 @@ export default class HorseshoeGauge extends BaseTool {
         initialProgress: 0,
       });
     } else {
+      // Timing changes restart from the visible progress with the new settings.
+      // Paint-only changes leave the running transition on its existing clock.
+      if (JSON.stringify(this.stateAnimator.animation) !== JSON.stringify(this.config.horseshoe_state.animation)) {
+        this.stateAnimator.stopAnimation();
+      }
       this.stateAnimator.animation = this.config.horseshoe_state.animation;
     }
 
@@ -430,6 +435,11 @@ export default class HorseshoeGauge extends BaseTool {
       f: groupMatrix.b * itemMatrix.e + groupMatrix.d * itemMatrix.f + groupMatrix.f,
     };
     this.pathTransform = `matrix(${matrix.a} ${matrix.b} ${matrix.c} ${matrix.d} ${matrix.e} ${matrix.f})`;
+    // Stop using the old state mount before replacing its measured master path.
+    // The new binding receives the current state through the normal render cycle.
+    if (this.pathGeometry.getPathDefinition()?.signature !== this.pathDefinition.signature) {
+      this.stateAnimator.unbindStateLayer();
+    }
     const pathChanged = this.pathGeometry.setPathDefinition(this.pathDefinition);
     const pathTransformKey = JSON.stringify([this.pathDefinition.signature, matrix]);
     if (pathTransformKey !== this.pathTransformKey) {

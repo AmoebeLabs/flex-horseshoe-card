@@ -9,13 +9,12 @@ const PATH_ANIMATION_EASING = {
 
 /**
  * Animates normalized state progress inside one explicitly bound state layer.
- * Geometry and static visual layers are deliberately absent from this contract:
- * the adapter supplies one targeted state updater after the master path has
- * already been generated, rendered, bound, and measured.
+ * The gauge supplies the state updater after the master path has been measured.
+ * Each transition owns its scheduled frames until it completes or is replaced.
  */
 export default class PathStateAnimator {
   /**
-   * Stores the complete internal animation contract.
+   * Stores the timing, frame scheduler, and state-layer callbacks.
    *
    * @param {object} config - Validated timing, scheduler, and state-layer update callbacks.
    */
@@ -32,6 +31,7 @@ export default class PathStateAnimator {
     this.fromProgress = config.initialProgress;
     this.toProgress = config.initialProgress;
     this.animating = false;
+    this.animationNumber = 0;
   }
 
   /**
@@ -41,8 +41,19 @@ export default class PathStateAnimator {
    * @param {Element} stateLayerElement - Dedicated DOM mount for state-dependent path output.
    */
   bindStateLayer(stateLayerElement) {
+    const continueTransition = this.animating && this.stateLayerElement !== stateLayerElement;
+    const targetProgress = this.toProgress;
+    if (continueTransition) this.stopAnimation();
+
     this.stateLayerElement = stateLayerElement;
+    const animationNumber = this.animationNumber;
     this.updateStateLayer(this.stateLayerElement, this.currentProgress);
+
+    // A replacement mount starts at the visible position and takes over the
+    // remaining transition. Binding the same mount keeps its existing timing.
+    if (continueTransition && this.animationNumber === animationNumber) {
+      this.animateTo(targetProgress);
+    }
   }
 
   /** Ends animation and releases its DOM mount while retaining progress. */
@@ -62,6 +73,9 @@ export default class PathStateAnimator {
     // transition is running. Keep moving toward that existing target.
     if (this.animating && this.toProgress === targetProgress) return;
 
+    this.animationNumber += 1;
+    const animationNumber = this.animationNumber;
+
     if (this.frame !== undefined) {
       this.cancelFrame(this.frame);
     }
@@ -75,17 +89,18 @@ export default class PathStateAnimator {
       this.currentProgress = this.toProgress;
       this.animating = false;
       this.updateStateLayer(this.stateLayerElement, this.currentProgress);
-      this.onComplete(this.currentProgress);
+      if (this.animationNumber === animationNumber) this.onComplete(this.currentProgress);
       return;
     }
 
     this.animating = true;
     const easing = PATH_ANIMATION_EASING[this.animation.easing];
 
-    // Only normalized progress changes per frame. The bound updater decides
-    // whether that means one dash change, segment visibility, or a state-only
-    // gradient rerender; it cannot invalidate the master geometry lifecycle.
+    // Progress drives the state paint and marker together along the measured
+    // path. Replaced transitions relinquish their frame and completion work.
     const updateAnimationFrame = (timestamp) => {
+      if (this.animationNumber !== animationNumber) return;
+      this.frame = undefined;
       if (this.startTime === undefined) {
         this.startTime = timestamp;
       }
@@ -95,6 +110,10 @@ export default class PathStateAnimator {
       const easedProgress = easing(linearProgress);
       this.currentProgress = this.fromProgress + (this.toProgress - this.fromProgress) * easedProgress;
       this.updateStateLayer(this.stateLayerElement, this.currentProgress);
+
+      // Painting can close the gauge or start another transition. Only the
+      // transition that still owns the mount may schedule its next frame.
+      if (this.animationNumber !== animationNumber) return;
 
       if (linearProgress < 1) {
         this.frame = this.requestFrame(updateAnimationFrame);
@@ -115,6 +134,7 @@ export default class PathStateAnimator {
    * A later target therefore continues from the visible state.
    */
   stopAnimation() {
+    this.animationNumber += 1;
     if (this.frame !== undefined) {
       this.cancelFrame(this.frame);
     }
