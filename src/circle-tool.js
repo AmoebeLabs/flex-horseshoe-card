@@ -8,21 +8,6 @@ import Utils from './utils.js';
  */
 export default class CircleTool extends BaseTool {
   /**
-   * Builds circle tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<CircleTool>} Configured circle tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const circles = config.layout?.circles ?? [];
-
-    return circles.map((circleConfig, index) => new CircleTool(circleConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static circle config and precomputes SVG dimensions.
    *
    * @param {object} config - Static circle item config.

@@ -46,17 +46,27 @@ export default class CardTools {
     this.sections.horseshoes = HorseshoeGauge.setConfig(config, this.templates, this.cardId, this.card);
   }
 
+  /** Constructs one layout section's tools with this card's shared context.
+   *
+   * @param {Array<object>} items - Config items from one normalized layout section.
+   * @param {new (config: object, index: number, templates: object, cardId: string, card: LitElement) => object} ToolClass - Tool class for the section.
+   * @returns {Array<object>} Configured tools in section order.
+   */
+  createLayoutTools(items, ToolClass) {
+    return items.map((item, index) => new ToolClass(item, index, this.templates, this.cardId, this.card));
+  }
+
   /** Constructs the remaining tools after main has calculated their SVG dimensions. */
   setLayoutToolConfig(config) {
-    this.sections.names = NameTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.areas = AreaTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.states = StateTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.texts = TextTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.rectangles = RectangleTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.polygons = PolygonTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.names = this.createLayoutTools(config.layout?.names ?? [], NameTool);
+    this.sections.areas = this.createLayoutTools(config.layout?.areas ?? [], AreaTool);
+    this.sections.states = this.createLayoutTools(config.layout?.states ?? [], StateTool);
+    this.sections.texts = this.createLayoutTools(config.layout?.texts ?? [], TextTool);
+    this.sections.rectangles = this.createLayoutTools(config.layout?.rectangles ?? [], RectangleTool);
+    this.sections.polygons = this.createLayoutTools(config.layout?.polygons ?? [], PolygonTool);
     this.sections.lines = LineTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.circles = CircleTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.arcs = ArcTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.circles = this.createLayoutTools(config.layout?.circles ?? [], CircleTool);
+    this.sections.arcs = this.createLayoutTools(config.layout?.arcs ?? [], ArcTool);
     this.sections.icons = IconTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.controls = ControlTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.sparklines = SparklineGraphTool.setConfig(config, this.templates, this.cardId, this.card);
