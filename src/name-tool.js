@@ -94,42 +94,6 @@ export default class NameTool extends BaseTool {
   }
 
   /**
-   * Returns the rendered width, or the learned estimate before the next SVG measurement.
-   *
-   * @returns {number} Width in FHS coordinates.
-   */
-  getWidth() {
-    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
-  }
-
-  /**
-   * Returns the rendered height, or the font-based estimate before measurement.
-   *
-   * @returns {number} Height in FHS coordinates.
-   */
-  getHeight() {
-    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
-  }
-
-  /**
-   * Returns the horizontal center of the rendered text bounding box.
-   *
-   * @returns {number} Horizontal center in SVG coordinates.
-   */
-  getXpos() {
-    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
-  }
-
-  /**
-   * Returns the vertical center of the rendered text bounding box.
-   *
-   * @returns {number} Vertical center in SVG coordinates.
-   */
-  getYpos() {
-    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
-  }
-
-  /**
    * Measures the actual rendered text and requests one geometry correction render.
    */
   updated() {

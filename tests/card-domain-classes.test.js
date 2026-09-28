@@ -958,18 +958,37 @@ test('CardTools sorts renderables by z-position and stable render index', () => 
 
 test('CardTools measures referenced tool dimensions and geometry', () => {
   const cardTools = new CardTools({}, {}, 'card');
-  cardTools.sections.texts = [{
-    id: 'label',
-    getXpos: () => 20,
-    getYpos: () => 30,
-    getWidth: () => 40,
-    getHeight: () => 10,
-  }];
-  const reference = { section: 'texts', item_id: 'label', padding: 2 };
+  for (const [section, ToolClass] of [
+    ['names', NameTool],
+    ['areas', AreaTool],
+    ['states', StateTool],
+    ['texts', TextTool],
+  ]) {
+    const tool = Object.assign(Object.create(ToolClass.prototype), {
+      id: 'label',
+      config: { svg: { xpos: 20, ypos: 30 } },
+      estimatedWidth: 40,
+      estimatedHeight: 10,
+      hasExactMeasurement: false,
+    });
+    cardTools.sections[section] = [tool];
+    const reference = { section, item_id: 'label', padding: 2 };
 
-  assert.equal(cardTools.getItemWidth(reference), 44);
-  assert.equal(cardTools.getItemHeight(reference), 14);
-  assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
+    assert.equal(cardTools.getItemWidth(reference), 44);
+    assert.equal(cardTools.getItemHeight(reference), 14);
+    assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
+
+    Object.assign(tool, {
+      measuredXpos: 25,
+      measuredYpos: 35,
+      measuredWidth: 47,
+      measuredHeight: 12,
+      hasExactMeasurement: true,
+    });
+    assert.equal(cardTools.getItemWidth(reference), 51);
+    assert.equal(cardTools.getItemHeight(reference), 16);
+    assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 25, ypos: 35, width: 47, height: 12 });
+  }
 });
 
 test('CardEntities uses configured attributes as color-stop values', () => {

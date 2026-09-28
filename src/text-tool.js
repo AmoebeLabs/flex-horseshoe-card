@@ -547,26 +547,6 @@ export default class TextTool extends BaseTool {
     }
   }
 
-  /** @returns {number} Measured or estimated width in FHS coordinates. */
-  getWidth() {
-    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
-  }
-
-  /** @returns {number} Measured or estimated height in FHS coordinates. */
-  getHeight() {
-    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
-  }
-
-  /** @returns {number} Horizontal center of the complete rendered text. */
-  getXpos() {
-    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
-  }
-
-  /** @returns {number} Vertical center of the complete rendered text. */
-  getYpos() {
-    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
-  }
-
   /**
    * Builds width-based ellipsis or wrap output from one shared SVG measurement.
    *
