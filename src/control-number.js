@@ -6,6 +6,7 @@ import IconTool from './icon-tool.js';
 import Merge from './merge.js';
 import StateTool from './state-tool.js';
 import TextTool from './text-tool.js';
+import getTextToolGeometry from './text-tool-geometry.js';
 import Utils from './utils.js';
 
 /** Increment/decrement control with one formatted StateTool value. */
@@ -428,11 +429,6 @@ export default class ControlNumber extends ControlBase {
     }
   }
 
-  /** Converts the configured number center through the normal group pipeline. */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
   /** Runs one immediate press animation on a complete number button group. */
   animateButtonPress(buttonGroup, center) {
     const restingTransform = `translate(${center.xpos}px, ${center.ypos}px) scale(1) translate(-${center.xpos}px, -${center.ypos}px)`;
@@ -463,19 +459,16 @@ export default class ControlNumber extends ControlBase {
       xpos: geometry.plusCenterX,
       ypos: geometry.plusCenterY,
     });
-    const measuredValueWidth = this.valueStateTool.getWidth();
-    const measuredValueHeight = this.valueStateTool.getHeight();
+    const valueGeometry = getTextToolGeometry(this.valueStateTool);
     const valueHeight = geometry.valueHeight * contentConfig.value.size / 100;
     const valueScale = Math.min(
       1,
-      geometry.valueWidth / measuredValueWidth,
-      valueHeight / measuredValueHeight,
+      geometry.valueWidth / valueGeometry.width,
+      valueHeight / valueGeometry.height,
     );
     const valueCenterX = this.valueStateTool.config.svg.xpos;
     const valueCenterY = this.valueStateTool.config.svg.ypos;
-    const measuredValueCenterX = this.valueStateTool.getXpos();
-    const measuredValueCenterY = this.valueStateTool.getYpos();
-    const valueTransform = `translate(${valueCenterX} ${valueCenterY}) scale(${valueScale}) translate(-${measuredValueCenterX} -${measuredValueCenterY})`;
+    const valueTransform = `translate(${valueCenterX} ${valueCenterY}) scale(${valueScale}) translate(-${valueGeometry.xpos} -${valueGeometry.ypos})`;
     const backgroundStyles = this.getStyles(ConfigHelper.toStyleDict(this.config.background.styles));
     const minusBackgroundStyles = this.getStyles(ConfigHelper.toStyleDict(contentConfig.minus.background.styles));
     const plusBackgroundStyles = this.getStyles(ConfigHelper.toStyleDict(contentConfig.plus.background.styles));

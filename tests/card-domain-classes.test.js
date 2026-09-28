@@ -17,6 +17,13 @@ import ChildCards from '../src/child-cards.js';
 import HorseshoeGauge from '../src/horseshoe-gauge.js';
 import NameTool from '../src/name-tool.js';
 import AreaTool from '../src/area-tool.js';
+import StateTool from '../src/state-tool.js';
+import TextTool from '../src/text-tool.js';
+import IconTool from '../src/icon-tool.js';
+import ControlButton from '../src/control-button.js';
+import ControlSlider from '../src/control-slider.js';
+import ControlSelect from '../src/control-select.js';
+import ControlNumber from '../src/control-number.js';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import { normalizeBaseConfig } from '../src/horseshoe-state.js';
 
@@ -943,6 +950,42 @@ test('CardTools preserves section render order and separates sparkline runtime u
   assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle', 'polygon']);
 });
 
+test('CardTools constructs the simple sections in their established order', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (item) => ({ xpos: item.xpos * 2, ypos: item.ypos * 2 }),
+    },
+  };
+  const cardTools = new CardTools(card, templates, 'card');
+  card.cardTools = cardTools;
+  cardTools.setLayoutToolConfig({
+    layout: {
+      names: [{ id: 'name', xpos: 50, ypos: 50 }],
+      areas: [{ id: 'area', xpos: 50, ypos: 50 }],
+      states: [{ id: 'state', xpos: 50, ypos: 50 }],
+      texts: [{ id: 'text', xpos: 50, ypos: 50, text: 'Test' }],
+      rectangles: [{ id: 'rectangle', xpos: 50, ypos: 50, width: 20, height: 10, radius: 2 }],
+      polygons: [{ id: 'polygon', xpos: 50, ypos: 50, width: 20, height: 20, sides: 6 }],
+      circles: [{ id: 'circle', xpos: 50, ypos: 50, radius: 10 }],
+      arcs: [{ id: 'arc', xpos: 50, ypos: 50, radius: 10 }],
+    },
+  });
+
+  assert.deepEqual(
+    ['names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'circles', 'arcs']
+      .map((section) => cardTools.sections[section][0].id),
+    ['name', 'area', 'state', 'text', 'rectangle', 'polygon', 'circle', 'arc'],
+  );
+  assert.deepEqual(
+    cardTools.getRenderableTools().map((tool) => tool.id),
+    ['rectangle', 'polygon', 'circle', 'arc', 'area', 'name', 'state', 'text'],
+  );
+  assert.equal(cardTools.sections.names[0].constructor.name, 'NameTool');
+  assert.equal(cardTools.sections.rectangles[0].constructor.name, 'RectangleTool');
+  assert.equal(cardTools.sections.arcs[0].constructor.name, 'ArcTool');
+});
+
 test('CardTools sorts renderables by z-position and stable render index', () => {
   const cardTools = new CardTools({}, {}, 'card');
   const late = { id: 'late', zpos: 10, renderIndex: 2 };
@@ -955,18 +998,37 @@ test('CardTools sorts renderables by z-position and stable render index', () => 
 
 test('CardTools measures referenced tool dimensions and geometry', () => {
   const cardTools = new CardTools({}, {}, 'card');
-  cardTools.sections.texts = [{
-    id: 'label',
-    getXpos: () => 20,
-    getYpos: () => 30,
-    getWidth: () => 40,
-    getHeight: () => 10,
-  }];
-  const reference = { section: 'texts', item_id: 'label', padding: 2 };
+  for (const [section, ToolClass] of [
+    ['names', NameTool],
+    ['areas', AreaTool],
+    ['states', StateTool],
+    ['texts', TextTool],
+  ]) {
+    const tool = Object.assign(Object.create(ToolClass.prototype), {
+      id: 'label',
+      config: { svg: { xpos: 20, ypos: 30 } },
+      estimatedWidth: 40,
+      estimatedHeight: 10,
+      hasExactMeasurement: false,
+    });
+    cardTools.sections[section] = [tool];
+    const reference = { section, item_id: 'label', padding: 2 };
 
-  assert.equal(cardTools.getItemWidth(reference), 44);
-  assert.equal(cardTools.getItemHeight(reference), 14);
-  assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
+    assert.equal(cardTools.getItemWidth(reference), 44);
+    assert.equal(cardTools.getItemHeight(reference), 14);
+    assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
+
+    Object.assign(tool, {
+      measuredXpos: 25,
+      measuredYpos: 35,
+      measuredWidth: 47,
+      measuredHeight: 12,
+      hasExactMeasurement: true,
+    });
+    assert.equal(cardTools.getItemWidth(reference), 51);
+    assert.equal(cardTools.getItemHeight(reference), 16);
+    assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 25, ypos: 35, width: 47, height: 12 });
+  }
 });
 
 test('CardEntities uses configured attributes as color-stop values', () => {
@@ -1124,6 +1186,47 @@ test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
 
   assert.deepEqual(cardLayout.viewBox, { width: 200, height: 400 });
   assert.deepEqual(config.layout.icons[0].svg, { xpos: 120, ypos: 90 });
+});
+
+test('simple text, icon and control tools use the shared group coordinate calculation', () => {
+  const calls = [];
+  const card = {
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (item) => {
+        calls.push(item);
+        return { xpos: item.xpos + 10, ypos: item.ypos + 20 };
+      },
+    },
+  };
+
+  [NameTool, AreaTool, StateTool, TextTool, IconTool, ControlButton, ControlSlider, ControlSelect, ControlNumber].forEach((ToolClass) => {
+    const tool = Object.create(ToolClass.prototype);
+    tool.card = card;
+    tool.config = { xpos: 2, ypos: 3 };
+    assert.deepEqual(tool.calculateSvgDimensions(), { xpos: 12, ypos: 23 });
+
+    const activeConfig = { xpos: 4, ypos: 5 };
+    assert.deepEqual(tool.calculateSvgDimensions(activeConfig), { xpos: 14, ypos: 25 });
+    assert.equal(calls.at(-1), activeConfig);
+  });
+});
+
+test('IconTool passes its effective render item to group scale helpers', () => {
+  const card = {
+    cardLayout: {
+      getGroupScaleTransform: (item) => `scale(${item.flip === 'x' ? -2 : 2}, 1)`,
+      getGroupScaleStyle: (item) => `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px;`,
+    },
+  };
+  const icon = Object.create(IconTool.prototype);
+  icon.card = card;
+  icon.config = { svg: { xpos: 20, ypos: 30 } };
+  const effectiveItem = { flip: 'x', svg: { xpos: 45, ypos: 55 } };
+
+  assert.equal(icon.getGroupScaleTransform(), 'scale(2, 1)');
+  assert.equal(icon.getGroupScaleStyle(), 'transform-origin:20px 30px;');
+  assert.equal(icon.getGroupScaleTransform(effectiveItem), 'scale(-2, 1)');
+  assert.equal(icon.getGroupScaleStyle(effectiveItem), 'transform-origin:45px 55px;');
 });
 
 test('CardLayout marks descendants when a dynamic parent group changes', () => {

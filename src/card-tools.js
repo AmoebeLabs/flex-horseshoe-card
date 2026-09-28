@@ -11,6 +11,7 @@ import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
 import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
+import getTextToolGeometry from './text-tool-geometry.js';
 
 const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'lines', 'circles', 'arcs', 'icons', 'controls'];
 const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
@@ -45,17 +46,27 @@ export default class CardTools {
     this.sections.horseshoes = HorseshoeGauge.setConfig(config, this.templates, this.cardId, this.card);
   }
 
+  /** Constructs one layout section's tools with this card's shared context.
+   *
+   * @param {Array<object>} items - Config items from one normalized layout section.
+   * @param {new (config: object, index: number, templates: object, cardId: string, card: LitElement) => object} ToolClass - Tool class for the section.
+   * @returns {Array<object>} Configured tools in section order.
+   */
+  createLayoutTools(items, ToolClass) {
+    return items.map((item, index) => new ToolClass(item, index, this.templates, this.cardId, this.card));
+  }
+
   /** Constructs the remaining tools after main has calculated their SVG dimensions. */
   setLayoutToolConfig(config) {
-    this.sections.names = NameTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.areas = AreaTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.states = StateTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.texts = TextTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.rectangles = RectangleTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.polygons = PolygonTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.names = this.createLayoutTools(config.layout?.names ?? [], NameTool);
+    this.sections.areas = this.createLayoutTools(config.layout?.areas ?? [], AreaTool);
+    this.sections.states = this.createLayoutTools(config.layout?.states ?? [], StateTool);
+    this.sections.texts = this.createLayoutTools(config.layout?.texts ?? [], TextTool);
+    this.sections.rectangles = this.createLayoutTools(config.layout?.rectangles ?? [], RectangleTool);
+    this.sections.polygons = this.createLayoutTools(config.layout?.polygons ?? [], PolygonTool);
     this.sections.lines = LineTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.circles = CircleTool.setConfig(config, this.templates, this.cardId, this.card);
-    this.sections.arcs = ArcTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.circles = this.createLayoutTools(config.layout?.circles ?? [], CircleTool);
+    this.sections.arcs = this.createLayoutTools(config.layout?.arcs ?? [], ArcTool);
     this.sections.icons = IconTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.controls = ControlTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.sparklines = SparklineGraphTool.setConfig(config, this.templates, this.cardId, this.card);
@@ -66,29 +77,24 @@ export default class CardTools {
     return this.sections[section];
   }
 
-  /** Returns a configured number or the measured width of a referenced tool. */
+  /** Returns a configured number or the effective width of a referenced text tool. */
   getItemWidth(itemWidthConfig) {
     if (typeof itemWidthConfig === 'number') return itemWidthConfig;
     const item = this.sections[itemWidthConfig.section].find((tool) => tool.id === itemWidthConfig.item_id);
-    return item.getWidth() + itemWidthConfig.padding * 2;
+    return getTextToolGeometry(item).width + itemWidthConfig.padding * 2;
   }
 
-  /** Returns a configured number or the measured height of a referenced tool. */
+  /** Returns a configured number or the effective height of a referenced text tool. */
   getItemHeight(itemHeightConfig) {
     if (typeof itemHeightConfig === 'number') return itemHeightConfig;
     const item = this.sections[itemHeightConfig.section].find((tool) => tool.id === itemHeightConfig.item_id);
-    return item.getHeight() + itemHeightConfig.padding * 2;
+    return getTextToolGeometry(item).height + itemHeightConfig.padding * 2;
   }
 
-  /** Returns center and measured dimensions of one referenced tool. */
+  /** Returns center and effective dimensions of one referenced text tool. */
   getItemGeometry(fitConfig) {
     const item = this.sections[fitConfig.section].find((tool) => tool.id === fitConfig.item_id);
-    return {
-      xpos: item.getXpos(),
-      ypos: item.getYpos(),
-      width: item.getWidth(),
-      height: item.getHeight(),
-    };
+    return getTextToolGeometry(item);
   }
 
   /** Returns a fresh list in the established SVG render order. */

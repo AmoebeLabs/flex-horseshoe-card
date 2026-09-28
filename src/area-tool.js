@@ -10,21 +10,6 @@ import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
  */
 export default class AreaTool extends BaseTool {
   /**
-   * Builds area tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<AreaTool>} Configured area tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const areas = config.layout?.areas ?? [];
-
-    return areas.map((areaConfig, index) => new AreaTool(areaConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static area config and precomputes SVG coordinates.
    *
    * @param {object} config - Static area item config.
@@ -94,42 +79,6 @@ export default class AreaTool extends BaseTool {
   }
 
   /**
-   * Returns the rendered width, or the learned estimate before the next SVG measurement.
-   *
-   * @returns {number} Width in FHS coordinates.
-   */
-  getWidth() {
-    return this.hasExactMeasurement ? this.measuredWidth : this.estimatedWidth;
-  }
-
-  /**
-   * Returns the rendered height, or the font-based estimate before measurement.
-   *
-   * @returns {number} Height in FHS coordinates.
-   */
-  getHeight() {
-    return this.hasExactMeasurement ? this.measuredHeight : this.estimatedHeight;
-  }
-
-  /**
-   * Returns the horizontal center of the rendered text bounding box.
-   *
-   * @returns {number} Horizontal center in SVG coordinates.
-   */
-  getXpos() {
-    return this.hasExactMeasurement ? this.measuredXpos : this.config.svg.xpos;
-  }
-
-  /**
-   * Returns the vertical center of the rendered text bounding box.
-   *
-   * @returns {number} Vertical center in SVG coordinates.
-   */
-  getYpos() {
-    return this.hasExactMeasurement ? this.measuredYpos : this.config.svg.ypos;
-  }
-
-  /**
    * Measures the actual rendered text and requests one geometry correction render.
    */
   updated() {
@@ -157,16 +106,6 @@ export default class AreaTool extends BaseTool {
       this.hasExactMeasurement = true;
       this.card.requestUpdate();
     }
-  }
-
-  /**
-   * Converts area config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime area config.
-   * @returns {object} SVG coordinates.
-   */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
   /**

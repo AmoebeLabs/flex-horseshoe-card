@@ -8,21 +8,6 @@ import Utils from './utils.js';
  */
 export default class ArcTool extends BaseTool {
   /**
-   * Builds arc tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<ArcTool>} Configured arc tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const arcs = config.layout?.arcs ?? [];
-
-    return arcs.map((arcConfig, index) => new ArcTool(arcConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static arc config and precomputes SVG dimensions.
    *
    * @param {object} config - Static arc item config.
