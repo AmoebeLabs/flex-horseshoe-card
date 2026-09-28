@@ -67,7 +67,7 @@ export default class CardTools {
     this.sections.lines = LineTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.circles = this.createLayoutTools(config.layout?.circles ?? [], CircleTool);
     this.sections.arcs = this.createLayoutTools(config.layout?.arcs ?? [], ArcTool);
-    this.sections.icons = IconTool.setConfig(config, this.templates, this.cardId, this.card);
+    this.sections.icons = this.createLayoutTools(config.layout?.icons ?? [], IconTool);
     this.sections.controls = ControlTool.setConfig(config, this.templates, this.cardId, this.card);
     this.sections.sparklines = SparklineGraphTool.setConfig(config, this.templates, this.cardId, this.card);
   }
