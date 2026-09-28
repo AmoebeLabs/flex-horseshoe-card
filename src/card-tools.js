@@ -11,6 +11,7 @@ import TextTool from './text-tool.js';
 import IconTool from './icon-tool.js';
 import ControlTool from './control-tool.js';
 import SparklineGraphTool from './sparkline-graph-tool.js';
+import getTextToolGeometry from './text-tool-geometry.js';
 
 const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'lines', 'circles', 'arcs', 'icons', 'controls'];
 const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
@@ -66,29 +67,24 @@ export default class CardTools {
     return this.sections[section];
   }
 
-  /** Returns a configured number or the measured width of a referenced tool. */
+  /** Returns a configured number or the effective width of a referenced text tool. */
   getItemWidth(itemWidthConfig) {
     if (typeof itemWidthConfig === 'number') return itemWidthConfig;
     const item = this.sections[itemWidthConfig.section].find((tool) => tool.id === itemWidthConfig.item_id);
-    return item.getWidth() + itemWidthConfig.padding * 2;
+    return getTextToolGeometry(item).width + itemWidthConfig.padding * 2;
   }
 
-  /** Returns a configured number or the measured height of a referenced tool. */
+  /** Returns a configured number or the effective height of a referenced text tool. */
   getItemHeight(itemHeightConfig) {
     if (typeof itemHeightConfig === 'number') return itemHeightConfig;
     const item = this.sections[itemHeightConfig.section].find((tool) => tool.id === itemHeightConfig.item_id);
-    return item.getHeight() + itemHeightConfig.padding * 2;
+    return getTextToolGeometry(item).height + itemHeightConfig.padding * 2;
   }
 
-  /** Returns center and measured dimensions of one referenced tool. */
+  /** Returns center and effective dimensions of one referenced text tool. */
   getItemGeometry(fitConfig) {
     const item = this.sections[fitConfig.section].find((tool) => tool.id === fitConfig.item_id);
-    return {
-      xpos: item.getXpos(),
-      ypos: item.getYpos(),
-      width: item.getWidth(),
-      height: item.getHeight(),
-    };
+    return getTextToolGeometry(item);
   }
 
   /** Returns a fresh list in the established SVG render order. */
