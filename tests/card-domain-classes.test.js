@@ -17,6 +17,9 @@ import ChildCards from '../src/child-cards.js';
 import HorseshoeGauge from '../src/horseshoe-gauge.js';
 import NameTool from '../src/name-tool.js';
 import AreaTool from '../src/area-tool.js';
+import StateTool from '../src/state-tool.js';
+import TextTool from '../src/text-tool.js';
+import IconTool from '../src/icon-tool.js';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import { normalizeBaseConfig } from '../src/horseshoe-state.js';
 
@@ -1124,6 +1127,47 @@ test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
 
   assert.deepEqual(cardLayout.viewBox, { width: 200, height: 400 });
   assert.deepEqual(config.layout.icons[0].svg, { xpos: 120, ypos: 90 });
+});
+
+test('simple text and icon tools use the shared group coordinate calculation', () => {
+  const calls = [];
+  const card = {
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (item) => {
+        calls.push(item);
+        return { xpos: item.xpos + 10, ypos: item.ypos + 20 };
+      },
+    },
+  };
+
+  [NameTool, AreaTool, StateTool, TextTool, IconTool].forEach((ToolClass) => {
+    const tool = Object.create(ToolClass.prototype);
+    tool.card = card;
+    tool.config = { xpos: 2, ypos: 3 };
+    assert.deepEqual(tool.calculateSvgDimensions(), { xpos: 12, ypos: 23 });
+
+    const activeConfig = { xpos: 4, ypos: 5 };
+    assert.deepEqual(tool.calculateSvgDimensions(activeConfig), { xpos: 14, ypos: 25 });
+    assert.equal(calls.at(-1), activeConfig);
+  });
+});
+
+test('IconTool passes its effective render item to group scale helpers', () => {
+  const card = {
+    cardLayout: {
+      getGroupScaleTransform: (item) => `scale(${item.flip === 'x' ? -2 : 2}, 1)`,
+      getGroupScaleStyle: (item) => `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px;`,
+    },
+  };
+  const icon = Object.create(IconTool.prototype);
+  icon.card = card;
+  icon.config = { svg: { xpos: 20, ypos: 30 } };
+  const effectiveItem = { flip: 'x', svg: { xpos: 45, ypos: 55 } };
+
+  assert.equal(icon.getGroupScaleTransform(), 'scale(2, 1)');
+  assert.equal(icon.getGroupScaleStyle(), 'transform-origin:20px 30px;');
+  assert.equal(icon.getGroupScaleTransform(effectiveItem), 'scale(-2, 1)');
+  assert.equal(icon.getGroupScaleStyle(effectiveItem), 'transform-origin:45px 55px;');
 });
 
 test('CardLayout marks descendants when a dynamic parent group changes', () => {

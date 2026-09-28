@@ -434,16 +434,6 @@ export default class StateTool extends BaseTool {
   }
 
   /**
-   * Converts state config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime state config.
-   * @returns {object} SVG coordinates.
-   */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
-  /**
    * Applies the explicit state format option after entity conversion but before final number formatting.
    *
    * @param {string|number} inState - State value after StateTool.buildState() conversion.

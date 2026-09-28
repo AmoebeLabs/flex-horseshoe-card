@@ -321,21 +321,33 @@ export default class BaseTool {
   }
 
   /**
+   * Converts item coordinates to SVG coordinates within the item's group.
+   *
+   * @param {object} config - Static or runtime item config.
+   * @returns {object} SVG coordinates.
+   */
+  calculateSvgDimensions(config = this.config) {
+    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
+  }
+
+  /**
    * Returns the SVG transform for the configured group and item flip settings.
    *
+   * @param {object} [item=this.config] - Runtime item config.
    * @returns {string} SVG transform value.
    */
-  getGroupScaleTransform() {
-    return this.card.cardLayout.getGroupScaleTransform(this.config);
+  getGroupScaleTransform(item = this.config) {
+    return this.card.cardLayout.getGroupScaleTransform(item);
   }
 
   /**
    * Returns the SVG style needed for group scale origin.
    *
+   * @param {object} [item=this.config] - Runtime item config.
    * @returns {string} SVG style value.
    */
-  getGroupScaleStyle() {
-    return this.card.cardLayout.getGroupScaleStyle(this.config);
+  getGroupScaleStyle(item = this.config) {
+    return this.card.cardLayout.getGroupScaleStyle(item);
   }
 
   /**

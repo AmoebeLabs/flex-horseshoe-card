@@ -160,16 +160,6 @@ export default class AreaTool extends BaseTool {
   }
 
   /**
-   * Converts area config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime area config.
-   * @returns {object} SVG coordinates.
-   */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
-  /**
    * Builds the entity area text for this tool.
    *
    * @returns {string} Area text.

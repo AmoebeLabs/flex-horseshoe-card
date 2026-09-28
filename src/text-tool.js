@@ -935,11 +935,6 @@ export default class TextTool extends BaseTool {
     }
   }
 
-  /** @returns {object} SVG coordinates calculated through the normal group pipeline. */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
   /**
    * Builds final part paint after source animations and color stops are current.
    * Rendering and change detection consume the same part output, including

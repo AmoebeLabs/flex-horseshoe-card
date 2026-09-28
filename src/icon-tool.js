@@ -124,36 +124,6 @@ export default class IconTool extends BaseTool {
   }
 
   /**
-   * Converts icon config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime icon config.
-   * @returns {object} SVG coordinates.
-   */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
-  /**
-   * Returns the SVG transform for the effective icon item.
-   *
-   * @param {object} item - Runtime icon config after optional state_map merge.
-   * @returns {string} SVG transform value.
-   */
-  getGroupScaleTransform(item = this.config) {
-    return this.card.cardLayout.getGroupScaleTransform(item);
-  }
-
-  /**
-   * Returns the SVG style needed for the effective icon group scale origin.
-   *
-   * @param {object} item - Runtime icon config after optional state_map merge.
-   * @returns {string} SVG style value.
-   */
-  getGroupScaleStyle(item = this.config) {
-    return this.card.cardLayout.getGroupScaleStyle(item);
-  }
-
-  /**
    * Returns a state_map entry for the current entity state.
    *
    * @returns {object|undefined} Matching state_map item.
