@@ -160,16 +160,6 @@ export default class NameTool extends BaseTool {
   }
 
   /**
-   * Converts name config coordinates to SVG coordinates.
-   *
-   * @param {object} config - Static or runtime name config.
-   * @returns {object} SVG coordinates.
-   */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
-  /**
    * Builds the entity name text for this tool.
    *
    * @returns {string} Name text.
