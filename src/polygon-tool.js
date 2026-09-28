@@ -9,21 +9,6 @@ import Utils from './utils.js';
  */
 export default class PolygonTool extends BaseTool {
   /**
-   * Builds polygon tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<PolygonTool>} Configured polygon tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const polygons = config.layout?.polygons ?? [];
-
-    return polygons.map((polygonConfig, index) => new PolygonTool(polygonConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Validates the public polygon shape and builds its complete SVG path.
    *
    * @param {object} config - Static polygon item config.

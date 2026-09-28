@@ -10,21 +10,6 @@ import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
  */
 export default class AreaTool extends BaseTool {
   /**
-   * Builds area tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<AreaTool>} Configured area tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const areas = config.layout?.areas ?? [];
-
-    return areas.map((areaConfig, index) => new AreaTool(areaConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static area config and precomputes SVG coordinates.
    *
    * @param {object} config - Static area item config.

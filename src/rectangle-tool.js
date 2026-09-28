@@ -8,21 +8,6 @@ import Utils from './utils.js';
  */
 export default class RectangleTool extends BaseTool {
   /**
-   * Builds rectangle tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<RectangleTool>} Configured rectangle tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const rectangles = config.layout?.rectangles ?? [];
-
-    return rectangles.map((rectangleConfig, index) => new RectangleTool(rectangleConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static rectangle config and precomputes SVG dimensions.
    *
    * @param {object} config - Static rectangle item config.

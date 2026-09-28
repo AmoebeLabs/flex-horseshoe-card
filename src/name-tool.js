@@ -10,21 +10,6 @@ import { FONT_SIZE, SVG_DEFAULT_DIMENSIONS } from './const.js';
  */
 export default class NameTool extends BaseTool {
   /**
-   * Builds name tool instances from the already normalized layout config.
-   *
-   * @param {object} config - Full card configuration after static card-level normalization.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<NameTool>} Configured name tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const names = config.layout?.names ?? [];
-
-    return names.map((nameConfig, index) => new NameTool(nameConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores static name config and precomputes SVG coordinates.
    *
    * @param {object} config - Static name item config.

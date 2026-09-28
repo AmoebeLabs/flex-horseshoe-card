@@ -20,6 +20,10 @@ import AreaTool from '../src/area-tool.js';
 import StateTool from '../src/state-tool.js';
 import TextTool from '../src/text-tool.js';
 import IconTool from '../src/icon-tool.js';
+import ControlButton from '../src/control-button.js';
+import ControlSlider from '../src/control-slider.js';
+import ControlSelect from '../src/control-select.js';
+import ControlNumber from '../src/control-number.js';
 import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import { normalizeBaseConfig } from '../src/horseshoe-state.js';
 
@@ -946,6 +950,42 @@ test('CardTools preserves section render order and separates sparkline runtime u
   assert.deepEqual(calls, ['sparkline', 'horseshoe', 'rectangle', 'polygon']);
 });
 
+test('CardTools constructs the simple sections in their established order', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: {
+      calculateSvgCoordinatesInGroup: (item) => ({ xpos: item.xpos * 2, ypos: item.ypos * 2 }),
+    },
+  };
+  const cardTools = new CardTools(card, templates, 'card');
+  card.cardTools = cardTools;
+  cardTools.setLayoutToolConfig({
+    layout: {
+      names: [{ id: 'name', xpos: 50, ypos: 50 }],
+      areas: [{ id: 'area', xpos: 50, ypos: 50 }],
+      states: [{ id: 'state', xpos: 50, ypos: 50 }],
+      texts: [{ id: 'text', xpos: 50, ypos: 50, text: 'Test' }],
+      rectangles: [{ id: 'rectangle', xpos: 50, ypos: 50, width: 20, height: 10, radius: 2 }],
+      polygons: [{ id: 'polygon', xpos: 50, ypos: 50, width: 20, height: 20, sides: 6 }],
+      circles: [{ id: 'circle', xpos: 50, ypos: 50, radius: 10 }],
+      arcs: [{ id: 'arc', xpos: 50, ypos: 50, radius: 10 }],
+    },
+  });
+
+  assert.deepEqual(
+    ['names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'circles', 'arcs']
+      .map((section) => cardTools.sections[section][0].id),
+    ['name', 'area', 'state', 'text', 'rectangle', 'polygon', 'circle', 'arc'],
+  );
+  assert.deepEqual(
+    cardTools.getRenderableTools().map((tool) => tool.id),
+    ['rectangle', 'polygon', 'circle', 'arc', 'area', 'name', 'state', 'text'],
+  );
+  assert.equal(cardTools.sections.names[0].constructor.name, 'NameTool');
+  assert.equal(cardTools.sections.rectangles[0].constructor.name, 'RectangleTool');
+  assert.equal(cardTools.sections.arcs[0].constructor.name, 'ArcTool');
+});
+
 test('CardTools sorts renderables by z-position and stable render index', () => {
   const cardTools = new CardTools({}, {}, 'card');
   const late = { id: 'late', zpos: 10, renderIndex: 2 };
@@ -1148,7 +1188,7 @@ test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
   assert.deepEqual(config.layout.icons[0].svg, { xpos: 120, ypos: 90 });
 });
 
-test('simple text and icon tools use the shared group coordinate calculation', () => {
+test('simple text, icon and control tools use the shared group coordinate calculation', () => {
   const calls = [];
   const card = {
     cardLayout: {
@@ -1159,7 +1199,7 @@ test('simple text and icon tools use the shared group coordinate calculation', (
     },
   };
 
-  [NameTool, AreaTool, StateTool, TextTool, IconTool].forEach((ToolClass) => {
+  [NameTool, AreaTool, StateTool, TextTool, IconTool, ControlButton, ControlSlider, ControlSelect, ControlNumber].forEach((ToolClass) => {
     const tool = Object.create(ToolClass.prototype);
     tool.card = card;
     tool.config = { xpos: 2, ypos: 3 };

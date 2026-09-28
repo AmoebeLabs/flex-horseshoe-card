@@ -196,3 +196,70 @@ test('measured text drives Rectangle fit inside a scaled group', async ({ page }
   expect(pageErrors).toEqual([]);
   await page.evaluate(() => window.textFitCard.remove());
 });
+
+test('state-mapped Icon uses its effective flip inside a scaled group', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route('http://fhs.test/**', (route) => route.fulfill({
+    contentType: 'text/html',
+    body: '<body style="--primary-text-color:white;--primary-background-color:black"><div id="host" style="width:400px"></div></body>',
+  }));
+  await page.goto('http://fhs.test/icon-scale');
+  await page.addScriptTag({
+    type: 'module',
+    content: await readFile(new URL('../dist/flex-horseshoe-card.js', import.meta.url), 'utf8'),
+  });
+
+  await page.evaluate(async () => {
+    await customElements.whenDefined('flex-horseshoe-card');
+    const card = document.createElement('flex-horseshoe-card');
+    card.lovelace = { config: {}, rawConfig: {} };
+    card.setConfig({
+      type: 'custom:flex-horseshoe-card',
+      entities: [{ entity: 'sensor.icon_test' }],
+      layout: {
+        groups: [{ id: 'scaled', xpos: 55, ypos: 50, scale: 1.5 }],
+        icons: [{
+          id: 'indicator', entity_index: 0, group: 'scaled', xpos: 50, ypos: 50,
+          icon: 'mdi:check', state_map: { map: [{ state: 'on', flip: 'x' }] },
+        }],
+      },
+    });
+    card.iconCache['mdi:check'] = 'M 3 12 L 9 18 L 21 6';
+    document.querySelector('#host').append(card);
+    card.hass = {
+      states: {
+        'sensor.icon_test': {
+          entity_id: 'sensor.icon_test', state: 'on', attributes: { friendly_name: 'Icon test' },
+          last_changed: new Date().toISOString(), last_updated: new Date().toISOString(),
+        },
+      },
+      connection: new EventTarget(),
+      locale: { language: 'en', number_format: 'language', time_format: 'language' },
+      config: { time_zone: 'UTC' },
+      themes: { darkMode: true, themes: {} },
+      entities: {}, devices: {}, areas: {}, floors: {}, user: { name: 'Icon test' },
+      formatEntityName: (state) => state.attributes.friendly_name,
+      formatEntityState: (state) => state.state,
+      formatEntityStateToParts: (state, value) => [{ type: 'value', value: value ?? state.state }],
+    };
+    window.iconScaleCard = card;
+  });
+
+  await page.waitForFunction(() => window.iconScaleCard?.shadowRoot?.querySelector('.icon-position'));
+  const icon = await page.evaluate(() => {
+    const card = window.iconScaleCard;
+    const outerGroup = card.shadowRoot.querySelector('.icon-position').parentElement;
+    return {
+      transform: outerGroup.getAttribute('transform'),
+      origin: outerGroup.style.transformOrigin,
+      path: outerGroup.querySelector('.icon-center path')?.getAttribute('d'),
+    };
+  });
+
+  expect(icon.transform).toBe('scale(-1.5, 1.5)');
+  expect(icon.origin).toMatch(/^110px 100px(?: 0px)?$/);
+  expect(icon.path).toBe('M 3 12 L 9 18 L 21 6');
+  expect(pageErrors).toEqual([]);
+  await page.evaluate(() => window.iconScaleCard.remove());
+});

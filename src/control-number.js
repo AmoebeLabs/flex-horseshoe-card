@@ -429,11 +429,6 @@ export default class ControlNumber extends ControlBase {
     }
   }
 
-  /** Converts the configured number center through the normal group pipeline. */
-  calculateSvgDimensions(config = this.config) {
-    return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
-  }
-
   /** Runs one immediate press animation on a complete number button group. */
   animateButtonPress(buttonGroup, center) {
     const restingTransform = `translate(${center.xpos}px, ${center.ypos}px) scale(1) translate(-${center.xpos}px, -${center.ypos}px)`;

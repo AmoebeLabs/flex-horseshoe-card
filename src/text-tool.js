@@ -25,21 +25,6 @@ const TEXT_SOURCE_SECTIONS = {
  */
 export default class TextTool extends BaseTool {
   /**
-   * Builds text tool instances from the normalized layout config.
-   *
-   * @param {object} config - Full normalized card configuration.
-   * @param {object} templates - Shared template resolver.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance.
-   * @returns {Array<TextTool>} Configured text tools.
-   */
-  static setConfig(config, templates, cardId, card) {
-    const texts = config.layout?.texts ?? [];
-
-    return texts.map((textConfig, index) => new TextTool(textConfig, index, templates, cardId, card));
-  }
-
-  /**
    * Stores outer text config separately from its independently evaluated parts.
    *
    * @param {object} config - Static text item config.
