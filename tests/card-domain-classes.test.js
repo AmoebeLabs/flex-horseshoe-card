@@ -996,6 +996,19 @@ test('CardTools sorts renderables by z-position and stable render index', () => 
   assert.deepEqual(cardTools.getSortedRenderableTools().map((tool) => tool.id), ['first', 'second', 'late']);
 });
 
+test('BaseTool supplies numeric z-position to CardTools sorting', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {};
+  const cardTools = new CardTools(card, templates, 'card');
+  const first = new BaseTool({ id: 'first', zpos: '5', dzpos: '1' }, 0, templates, 'card', card, 'rectangles');
+  const second = new BaseTool({ id: 'second', zpos: '10' }, 1, templates, 'card', card, 'rectangles');
+  cardTools.sections.rectangles = [second, first];
+
+  assert.equal(typeof first.zpos, 'number');
+  assert.equal(first.zpos, 6);
+  assert.deepEqual(cardTools.getSortedRenderableTools().map((tool) => tool.id), ['first', 'second']);
+});
+
 test('CardTools measures referenced tool dimensions and geometry', () => {
   const cardTools = new CardTools({}, {}, 'card');
   for (const [section, ToolClass] of [
