@@ -33,7 +33,7 @@ export default class PolygonTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) this.setPolygonPathDefinition(this.config);
+    if (this.configurationChanged || this.groupChanged) this.setPolygonPathDefinition(this.config);
   }
 
   /**

@@ -89,8 +89,8 @@ export default class LineTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
-      this.validateOrientation(this.config.orientation);
+    if (this.configurationChanged) this.validateOrientation(this.config.orientation);
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
     }
   }
