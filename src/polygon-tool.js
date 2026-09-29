@@ -33,7 +33,7 @@ export default class PolygonTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) this.setPolygonPathDefinition(this.config);
+    if (this.configurationChanged || this.groupChanged) this.setPolygonPathDefinition(this.config);
   }
 
   /**
@@ -45,18 +45,21 @@ export default class PolygonTool extends BaseTool {
     const sides = config.sides;
     const top = config.top ?? (sides % 2 === 0 ? 0.5 : 0);
 
-    if (!Number.isInteger(sides) || sides < 3) {
-      throw new Error('[polygons] sides must be an integer equal to or greater than 3');
-    }
-    if (config.width === undefined || config.height === undefined || config.width <= 0 || config.height <= 0) {
-      throw new Error('[polygons] width and height must be greater than zero');
-    }
-    if (!Number.isFinite(config.radius) || config.radius < 0) throw new Error('[polygons] radius must be zero or greater');
-    if (!Number.isFinite(top) || top < 0 || top > sides) {
-      throw new Error(`[polygons] top must be a number from 0 through ${sides}`);
-    }
-    if (config.fill_mask !== 'auto' && (typeof config.fill_mask !== 'number' || config.fill_mask < 0)) {
-      throw new Error('[polygons] fill_mask must be auto or a number equal to or greater than zero');
+    // A group move changes coordinates, not the public polygon fields.
+    if (this.configurationChanged) {
+      if (!Number.isInteger(sides) || sides < 3) {
+        throw new Error('[polygons] sides must be an integer equal to or greater than 3');
+      }
+      if (config.width === undefined || config.height === undefined || config.width <= 0 || config.height <= 0) {
+        throw new Error('[polygons] width and height must be greater than zero');
+      }
+      if (!Number.isFinite(config.radius) || config.radius < 0) throw new Error('[polygons] radius must be zero or greater');
+      if (!Number.isFinite(top) || top < 0 || top > sides) {
+        throw new Error(`[polygons] top must be a number from 0 through ${sides}`);
+      }
+      if (config.fill_mask !== 'auto' && (typeof config.fill_mask !== 'number' || config.fill_mask < 0)) {
+        throw new Error('[polygons] fill_mask must be auto or a number equal to or greater than zero');
+      }
     }
 
     const center = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);

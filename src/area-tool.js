@@ -46,7 +46,7 @@ export default class AreaTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**

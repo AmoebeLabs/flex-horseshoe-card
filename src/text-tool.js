@@ -175,7 +175,7 @@ export default class TextTool extends BaseTool {
     this.inlineTextSourceTools.filter((sourceTool) => sourceTool !== undefined)
       .forEach((sourceTool) => sourceTool.updateRuntimeConfig());
 
-    if (this.configChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
 
     if (this.activeTextPartsSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
       const activeTextParts = this.sourceTextParts.map((sourcePart, sourcePartIndex) => {

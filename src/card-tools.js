@@ -105,7 +105,7 @@ export default class CardTools {
   /** Sorts a fresh render list by layer and stable section render index. */
   getSortedRenderableTools() {
     return this.getRenderableTools()
-      .sort((firstTool, secondTool) => Number(firstTool.zpos) - Number(secondTool.zpos) || Number(firstTool.renderIndex) - Number(secondTool.renderIndex));
+      .sort((firstTool, secondTool) => firstTool.zpos - secondTool.zpos || firstTool.renderIndex - secondTool.renderIndex);
   }
 
   /**

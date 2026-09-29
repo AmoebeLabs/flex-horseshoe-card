@@ -996,6 +996,19 @@ test('CardTools sorts renderables by z-position and stable render index', () => 
   assert.deepEqual(cardTools.getSortedRenderableTools().map((tool) => tool.id), ['first', 'second', 'late']);
 });
 
+test('BaseTool supplies numeric z-position to CardTools sorting', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {};
+  const cardTools = new CardTools(card, templates, 'card');
+  const first = new BaseTool({ id: 'first', zpos: '5', dzpos: '1' }, 0, templates, 'card', card, 'rectangles');
+  const second = new BaseTool({ id: 'second', zpos: '10' }, 1, templates, 'card', card, 'rectangles');
+  cardTools.sections.rectangles = [second, first];
+
+  assert.equal(typeof first.zpos, 'number');
+  assert.equal(first.zpos, 6);
+  assert.deepEqual(cardTools.getSortedRenderableTools().map((tool) => tool.id), ['first', 'second']);
+});
+
 test('CardTools measures referenced tool dimensions and geometry', () => {
   const cardTools = new CardTools({}, {}, 'card');
   for (const [section, ToolClass] of [
@@ -1169,6 +1182,109 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
   tool.updateRuntimeConfig();
 
   assert.equal(tool.configChanged, true);
+  assert.equal(tool.configurationChanged, false);
+  assert.equal(tool.groupChanged, false);
+  assert.equal(tool.themeModeChanged, true);
+});
+
+test('BaseTool distinguishes group changes from configuration and theme changes', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set(['room']) },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new BaseTool({ id: 'shape', group: 'room' }, 0, templates, 'card', card, 'rectangles');
+  tool.activeConfigInitialized = true;
+
+  tool.updateRuntimeConfig();
+
+  assert.equal(tool.configChanged, true);
+  assert.equal(tool.configurationChanged, false);
+  assert.equal(tool.groupChanged, true);
+  assert.equal(tool.themeModeChanged, false);
+});
+
+test('ordinary tool geometry follows config and group changes, not a theme-only change', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: (config) => ({ xpos: config.xpos, ypos: config.ypos }),
+    },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new NameTool({ id: 'name', group: 'room', xpos: 20, ypos: 30 },
+    0, templates, 'card', card);
+  let geometryUpdates = 0;
+  tool.calculateSvgDimensions = (config) => {
+    geometryUpdates += 1;
+    return { xpos: config.xpos, ypos: config.ypos };
+  };
+
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 1);
+
+  card.cardTheme.modeChanged = true;
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 1);
+
+  card.cardTheme.modeChanged = false;
+  card.cardLayout.changedGroupIds.add('room');
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 2);
+});
+
+test('BaseTool keeps compiled source independent of active nested config and derived fields', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new BaseTool({
+    id: 'shape',
+    show: { item_style: 'fixed' },
+    state_map: [{ value: 'on', color: 'green' }],
+    color_stops: { colors: [{ value: 0, color: 'blue' }] },
+  }, 0, templates, 'card', card, 'rectangles');
+
+  tool.config.show.item_style = 'colorstop';
+  tool.config.state_map[0].color = 'red';
+  tool.config.color_stops.colors[0].color = 'yellow';
+  tool.config.svg = { xpos: 42 };
+
+  assert.equal(tool.sourceConfig.show.item_style, 'fixed');
+  assert.equal(tool.sourceConfig.state_map[0].color, 'green');
+  assert.equal(tool.sourceConfig.color_stops.colors[0].color, 'blue');
+  assert.equal(tool.sourceConfig.svg, undefined);
+});
+
+test('BaseTool evaluates JavaScript from the unchanged source on each update', () => {
+  let value = 10;
+  const templates = {
+    hasJavascriptTemplates: () => true,
+    getJsTemplateOrValue: (_item, source) => ({ ...structuredClone(source), xpos: value }),
+  };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: true,
+  };
+  const tool = new BaseTool({ id: 'shape', xpos: '[[[ return state; ]]]', show: { item_style: 'fixed' } },
+    0, templates, 'card', card, 'rectangles');
+
+  tool.updateRuntimeConfig();
+  tool.config.show.item_style = 'colorstop';
+  tool.config.svg = { xpos: 10 };
+  value = 20;
+  tool.updateRuntimeConfig();
+
+  assert.equal(tool.config.xpos, 20);
+  assert.equal(tool.config.show.item_style, 'fixed');
+  assert.equal(tool.sourceConfig.xpos, '[[[ return state; ]]]');
+  assert.equal(tool.sourceConfig.svg, undefined);
 });
 
 test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
