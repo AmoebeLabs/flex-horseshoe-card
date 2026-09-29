@@ -58,6 +58,9 @@ export default class BaseTool {
     this.entity = undefined;
     this.entityConfig = undefined;
     this.configChanged = true;
+    this.configurationChanged = true;
+    this.groupChanged = false;
+    this.themeChanged = false;
     this.activeConfigInitialized = false;
     this.activeConfigSignature = undefined;
     this.presentationSignature = undefined;
@@ -69,7 +72,11 @@ export default class BaseTool {
    */
   updateRuntimeConfig() {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
-    this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.cardTheme.modeChanged;
+    this.configurationChanged = !this.activeConfigInitialized;
+    this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
+    this.themeChanged = this.card.cardTheme.modeChanged;
+    // The existing family tools still use this combined signal until their own plans.
+    this.configChanged = this.configurationChanged || this.groupChanged || this.themeChanged;
 
     // Static tools retain their active config. JavaScript-backed tools evaluate
     // a new local config during the same hass updates as before.
@@ -85,24 +92,25 @@ export default class BaseTool {
       if (evaluatedConfigSignature !== this.activeConfigSignature) {
         newConfig = evaluatedConfig;
         this.activeConfigSignature = evaluatedConfigSignature;
+        this.configurationChanged = true;
         this.configChanged = true;
       }
     }
 
     // JavaScript may return the public color_stops shape; materialize it before publishing the active item.
-    if (this.configChanged && newConfig.color_stops) {
+    if ((this.configurationChanged || this.themeChanged) && newConfig.color_stops) {
       newConfig.colorstops = ColorStops.normalize(newConfig.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
-    if (this.configChanged && this.colorStopPaintDefaults
+    if (this.configurationChanged && this.colorStopPaintDefaults
       && (newConfig.color_stops
         || ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(newConfig.show?.item_style))) {
       this.normalizeLayoutItemColorStopMode(newConfig);
     }
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
-    if (this.configChanged && newConfig.sparkline?.color_stops) {
+    if ((this.configurationChanged || this.themeChanged) && newConfig.sparkline?.color_stops) {
       newConfig.sparkline.colorstops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 

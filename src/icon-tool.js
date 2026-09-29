@@ -51,8 +51,8 @@ export default class IconTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
-      this.stopEntityIconRequest();
+    if (this.configurationChanged) this.stopEntityIconRequest();
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
     }
   }

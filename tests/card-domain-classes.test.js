@@ -1169,6 +1169,58 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
   tool.updateRuntimeConfig();
 
   assert.equal(tool.configChanged, true);
+  assert.equal(tool.configurationChanged, false);
+  assert.equal(tool.groupChanged, false);
+  assert.equal(tool.themeChanged, true);
+});
+
+test('BaseTool distinguishes group changes from configuration and theme changes', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set(['room']) },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new BaseTool({ id: 'shape', group: 'room' }, 0, templates, 'card', card, 'rectangles');
+  tool.activeConfigInitialized = true;
+
+  tool.updateRuntimeConfig();
+
+  assert.equal(tool.configChanged, true);
+  assert.equal(tool.configurationChanged, false);
+  assert.equal(tool.groupChanged, true);
+  assert.equal(tool.themeChanged, false);
+});
+
+test('ordinary tool geometry follows config and group changes, not a theme-only change', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: {
+      changedGroupIds: new Set(),
+      calculateSvgCoordinatesInGroup: (config) => ({ xpos: config.xpos, ypos: config.ypos }),
+    },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new NameTool({ id: 'name', group: 'room', xpos: 20, ypos: 30 },
+    0, templates, 'card', card);
+  let geometryUpdates = 0;
+  tool.calculateSvgDimensions = (config) => {
+    geometryUpdates += 1;
+    return { xpos: config.xpos, ypos: config.ypos };
+  };
+
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 1);
+
+  card.cardTheme.modeChanged = true;
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 1);
+
+  card.cardTheme.modeChanged = false;
+  card.cardLayout.changedGroupIds.add('room');
+  tool.updateRuntimeConfig();
+  assert.equal(geometryUpdates, 2);
 });
 
 test('BaseTool keeps compiled source independent of active nested config and derived fields', () => {
