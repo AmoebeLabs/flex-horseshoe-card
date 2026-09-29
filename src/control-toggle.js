@@ -374,15 +374,22 @@ export default class ControlToggle extends ControlBase {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
+    // Static presets were completed in the constructor. JavaScript can change
+    // the selected style later; group and theme changes cannot.
+    if (this.configurationChanged && this.hasJavascript) {
       this.config = this.buildConfig(this.config);
       this.validateOrientation(this.config.orientation);
+    }
+
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createThumbIconTool();
       this.createControlLabelTextTool(
         this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
         this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_style].svgVbH) / this.config[this.config.show.item_style].svgVbW,
       );
+    } else if (this.themeModeChanged && this.iconTool) {
+      this.iconTool.updateRuntimeConfig();
     }
   }
 

@@ -303,10 +303,10 @@ export default class ControlSlider extends ControlBase {
     return this.valueSeparatorTool ? [...this.valueStateTools, this.valueSeparatorTool] : this.valueStateTools;
   }
 
-  /** Recalculates runtime geometry and child configs after dynamic YAML changes. */
+  /** Recalculates slider geometry and children after config or group changes. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
-    if (this.configChanged) {
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createSliderValueTools();
       this.createControlLabelTextTool(this.config.width, this.config.height);

@@ -71,7 +71,7 @@ Every downstream guard touched by these plans must be classified into one of tho
 | `00-master-simplification-plan.md` | fixed architecture, sequencing and acceptance rules |
 | [`2026.09.28-15-shared-tool-simplification.md`](../2026.09.28-15-shared-tool-simplification.md) | remove low-risk repeated tool boilerplate |
 | [`2026.09.28-16-configuration-gatekeeper.md`](../2026.09.28-16-configuration-gatekeeper.md) | simplify source and active tool configuration ownership |
-| `17-controls-trusted-config.md` | apply the boundary and shared lifecycle to Controls |
+| [`2026.09.28-17-controls-trusted-config.md`](../2026.09.28-17-controls-trusted-config.md) | simplify repeated control configuration work without changing behavior |
 | `18-sparkline-trusted-config.md` | remove Sparkline config validation/coercion below the boundary |
 | `19-horseshoe-path-trusted-config.md` | do the same for Horseshoe/Path configuration |
 | `20-whole-chain-simplification.md` | final guard/duplicate/readability audit and source-size acceptance |

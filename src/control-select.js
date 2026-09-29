@@ -670,7 +670,7 @@ export default class ControlSelect extends ControlBase {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       if (this.optionsInitialized) {
         this.createOptionContentTools();

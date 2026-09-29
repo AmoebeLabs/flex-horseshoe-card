@@ -94,14 +94,17 @@ export default class ControlBase extends BaseTool {
     this.controlDisconnected = false;
   }
 
-  /**
-   * Activates runtime control configuration and validates its interaction state.
-   */
+  /** Validates accepted control visibility and refreshes label paint on theme changes. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
     if (!['visible', 'hidden', 'unavailable'].includes(this.config.visibility)) {
       throw Error(`[controls] Invalid visibility '${this.config.visibility}' [visible, hidden, unavailable]`);
+    }
+
+    // A theme change refreshes the existing label's paint without rebuilding its geometry.
+    if (this.themeModeChanged && !this.configurationChanged && !this.groupChanged && this.hasControlLabel) {
+      this.labelTextTool.updateRuntimeConfig();
     }
   }
 
