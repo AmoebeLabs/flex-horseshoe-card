@@ -1184,7 +1184,7 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
   assert.equal(tool.configChanged, true);
   assert.equal(tool.configurationChanged, false);
   assert.equal(tool.groupChanged, false);
-  assert.equal(tool.themeChanged, true);
+  assert.equal(tool.themeModeChanged, true);
 });
 
 test('BaseTool distinguishes group changes from configuration and theme changes', () => {
@@ -1202,7 +1202,7 @@ test('BaseTool distinguishes group changes from configuration and theme changes'
   assert.equal(tool.configChanged, true);
   assert.equal(tool.configurationChanged, false);
   assert.equal(tool.groupChanged, true);
-  assert.equal(tool.themeChanged, false);
+  assert.equal(tool.themeModeChanged, false);
 });
 
 test('ordinary tool geometry follows config and group changes, not a theme-only change', () => {

@@ -60,7 +60,7 @@ export default class BaseTool {
     this.configChanged = true;
     this.configurationChanged = true;
     this.groupChanged = false;
-    this.themeChanged = false;
+    this.themeModeChanged = false;
     this.activeConfigInitialized = false;
     this.activeConfigSignature = undefined;
     this.presentationSignature = undefined;
@@ -74,9 +74,9 @@ export default class BaseTool {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configurationChanged = !this.activeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
-    this.themeChanged = this.card.cardTheme.modeChanged;
+    this.themeModeChanged = this.card.cardTheme.modeChanged;
     // The existing family tools still use this combined signal until their own plans.
-    this.configChanged = this.configurationChanged || this.groupChanged || this.themeChanged;
+    this.configChanged = this.configurationChanged || this.groupChanged || this.themeModeChanged;
 
     // Static tools retain their active config. JavaScript-backed tools evaluate
     // a new local config during the same hass updates as before.
@@ -98,7 +98,7 @@ export default class BaseTool {
     }
 
     // JavaScript may return the public color_stops shape; materialize it before publishing the active item.
-    if ((this.configurationChanged || this.themeChanged) && newConfig.color_stops) {
+    if ((this.configurationChanged || this.themeModeChanged) && newConfig.color_stops) {
       newConfig.colorstops = ColorStops.normalize(newConfig.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
@@ -110,7 +110,7 @@ export default class BaseTool {
     }
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
-    if ((this.configurationChanged || this.themeChanged) && newConfig.sparkline?.color_stops) {
+    if ((this.configurationChanged || this.themeModeChanged) && newConfig.sparkline?.color_stops) {
       newConfig.sparkline.colorstops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
