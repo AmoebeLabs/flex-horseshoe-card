@@ -416,13 +416,11 @@ export default class ControlButton extends ControlBase {
     return [this.contentVisual, this.contentIconTool, this.contentTextTool].filter((tool) => tool !== undefined);
   }
 
-  /**
-   * Rebuilds button geometry and child tools after evaluated config changes.
-   */
+  /** Rebuilds button geometry and children after config or group changes. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createButtonContentTools();
       this.createControlLabelTextTool(this.config.width, this.config.height);

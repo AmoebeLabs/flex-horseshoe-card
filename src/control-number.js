@@ -363,7 +363,7 @@ export default class ControlNumber extends ControlBase {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configChanged) {
+    if (this.configurationChanged || this.groupChanged) {
       this.config.svg = this.calculateSvgDimensions(this.config);
       this.createNumberContentTools();
       this.createControlLabelTextTool(this.config.width, this.config.height);
