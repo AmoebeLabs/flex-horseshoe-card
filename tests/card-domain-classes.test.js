@@ -1171,6 +1171,57 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
   assert.equal(tool.configChanged, true);
 });
 
+test('BaseTool keeps compiled source independent of active nested config and derived fields', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: false,
+  };
+  const tool = new BaseTool({
+    id: 'shape',
+    show: { item_style: 'fixed' },
+    state_map: [{ value: 'on', color: 'green' }],
+    color_stops: { colors: [{ value: 0, color: 'blue' }] },
+  }, 0, templates, 'card', card, 'rectangles');
+
+  tool.config.show.item_style = 'colorstop';
+  tool.config.state_map[0].color = 'red';
+  tool.config.color_stops.colors[0].color = 'yellow';
+  tool.config.svg = { xpos: 42 };
+
+  assert.equal(tool.sourceConfig.show.item_style, 'fixed');
+  assert.equal(tool.sourceConfig.state_map[0].color, 'green');
+  assert.equal(tool.sourceConfig.color_stops.colors[0].color, 'blue');
+  assert.equal(tool.sourceConfig.svg, undefined);
+});
+
+test('BaseTool evaluates JavaScript from the unchanged source on each update', () => {
+  let value = 10;
+  const templates = {
+    hasJavascriptTemplates: () => true,
+    getJsTemplateOrValue: (_item, source) => ({ ...structuredClone(source), xpos: value }),
+  };
+  const card = {
+    cardLayout: { changedGroupIds: new Set() },
+    cardTheme: { modeChanged: false },
+    evaluateJavascriptTemplates: true,
+  };
+  const tool = new BaseTool({ id: 'shape', xpos: '[[[ return state; ]]]', show: { item_style: 'fixed' } },
+    0, templates, 'card', card, 'rectangles');
+
+  tool.updateRuntimeConfig();
+  tool.config.show.item_style = 'colorstop';
+  tool.config.svg = { xpos: 10 };
+  value = 20;
+  tool.updateRuntimeConfig();
+
+  assert.equal(tool.config.xpos, 20);
+  assert.equal(tool.config.show.item_style, 'fixed');
+  assert.equal(tool.sourceConfig.xpos, '[[[ return state; ]]]');
+  assert.equal(tool.sourceConfig.svg, undefined);
+});
+
 test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const cardLayout = new CardLayout(templates, 'card');

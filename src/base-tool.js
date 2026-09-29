@@ -35,9 +35,6 @@ export default class BaseTool {
     defaultEntityIndex = undefined,
     colorStopPaintDefaults = undefined,
   ) {
-    this.sourceConfig = config;
-    this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
-    this.config = this.sourceConfig;
     this.id = config.id;
     this.index = index;
     this.templates = templates;
@@ -46,8 +43,13 @@ export default class BaseTool {
     this.animationSection = animationSection;
     this.zposSection = zposSection;
     this.defaultZpos = DEFAULT_ZPOS[zposSection] ?? 0;
-    this.config.zpos ??= this.defaultZpos;
-    this.config.dzpos ??= 0;
+    config.zpos ??= this.defaultZpos;
+    config.dzpos ??= 0;
+
+    // Keep the compiled source independent of geometry and paint added to the active config.
+    this.sourceConfig = structuredClone(config);
+    this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
+    this.config = config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? defaultEntityIndex;
@@ -69,8 +71,9 @@ export default class BaseTool {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configChanged = !this.activeConfigInitialized || this.card.cardLayout.changedGroupIds.has(activeGroupId) || this.card.cardTheme.modeChanged;
 
-    // Static tools retain their finalized source config. JavaScript-backed tools
-    // evaluate a complete active config during the relevant hass update.
+    // Static tools retain their active config. JavaScript-backed tools evaluate
+    // a new local config during the same hass updates as before.
+    let newConfig = this.config;
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       const evaluatedConfig = this.templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
         resolveKeys: true,
@@ -80,29 +83,30 @@ export default class BaseTool {
       // Keep the current active object when JavaScript produced the same config. Tool-specific
       // normalization and geometry use configChanged during the remaining runtime-config phase.
       if (evaluatedConfigSignature !== this.activeConfigSignature) {
-        this.config = evaluatedConfig;
+        newConfig = evaluatedConfig;
         this.activeConfigSignature = evaluatedConfigSignature;
         this.configChanged = true;
       }
     }
 
-    // JavaScript may return the public color_stops shape, so normalize it after activating the complete item.
-    if (this.configChanged && this.config.color_stops) {
-      this.config.colorstops = ColorStops.normalize(this.config.color_stops, this.card.cardTheme.getActiveColorStopMode());
+    // JavaScript may return the public color_stops shape; materialize it before publishing the active item.
+    if (this.configChanged && newConfig.color_stops) {
+      newConfig.colorstops = ColorStops.normalize(newConfig.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
     if (this.configChanged && this.colorStopPaintDefaults
-      && (this.config.color_stops
-        || ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(this.config.show?.item_style))) {
-      this.normalizeLayoutItemColorStopMode(this.config);
+      && (newConfig.color_stops
+        || ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(newConfig.show?.item_style))) {
+      this.normalizeLayoutItemColorStopMode(newConfig);
     }
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
-    if (this.configChanged && this.config.sparkline?.color_stops) {
-      this.config.sparkline.colorstops = ColorStops.normalize(this.config.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
+    if (this.configChanged && newConfig.sparkline?.color_stops) {
+      newConfig.sparkline.colorstops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
+    this.config = newConfig;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.activeConfigInitialized = true;
   }
