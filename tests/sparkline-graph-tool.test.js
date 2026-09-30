@@ -102,6 +102,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
   const previousWindow = globalThis.window;
   const previousConsoleWarn = console.warn;
   const warnings = [];
+  let dayNightMode = 'band';
   globalThis.window = {
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
@@ -117,6 +118,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
         const evaluated = structuredClone(value);
         evaluated.period.type = 'calendar';
         evaluated.period.calendar.duration.hour = 6;
+        evaluated.sparkline.day_night.mode = dayNightMode;
         return evaluated;
       },
     };
@@ -192,10 +194,27 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
     tool.updateRuntimeConfig();
 
     assert.equal(tool.gradeRanks[0].rangeMax[0], 0);
+
+    card.evaluateJavascriptTemplates = true;
+    dayNightMode = 'invalid';
+    assert.throws(() => tool.updateRuntimeConfig(), /sparkline\.day_night\.mode must be background or band/);
   } finally {
     globalThis.window = previousWindow;
     console.warn = previousConsoleWarn;
   }
+});
+
+test('static sparkline settings are checked before runtime initialization', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+
+  assert.throws(
+    () => new SparklineGraphTool({ sparkline: { day_night: { mode: 'invalid' } } }, 0, templates, 'test-card', {}),
+    /sparkline\.day_night\.mode must be background or band/,
+  );
+  assert.throws(
+    () => new SparklineGraphTool({ sparkline: { show: { chart_type: 'radial', chart_variant: 'line' }, radial: { size: 0 } } }, 0, templates, 'test-card', {}),
+    /sparkline\.\.size must be greater than 0/,
+  );
 });
 
 test('calendar and rolling window use complete 24-hour default periods', () => {
@@ -274,6 +293,7 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
         evaluated.sparkline.radial.arc_degrees = 180;
         evaluated.sparkline.radial.rotate = -90;
         evaluated.sparkline.radial.size = radialSize;
+        evaluated.sparkline.show.grid = false;
         return evaluated;
       },
     };
@@ -311,7 +331,7 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
         },
       },
       sparkline: {
-        show: { chart_type: 'radial', chart_variant: 'line' },
+        show: { chart_type: 'radial', chart_variant: 'line', grid: false },
         radial: {
           arc_degrees: '[[[ return 180; ]]]',
           rotate: '[[[ return -90; ]]]',
@@ -321,9 +341,11 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
     };
 
     const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
+    assert.deepEqual(tool.config.sparkline.show.grid, { x: false, y: false });
     tool.updateRuntimeConfig();
 
     assert.equal(tool.config.sparkline.radial.arc_degrees, 180);
+    assert.deepEqual(tool.config.sparkline.show.grid, { x: false, y: false });
     assert.equal(tool.config.sparkline.radial.rotate, -90);
     assert.equal(tool.config.sparkline.radial.size, 15);
     assert.equal(tool.config.sparkline.show.background, true);
@@ -343,6 +365,9 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
     assert.equal(tool.legendMeasuredFontSize, 4);
     assert.equal(tool.legendMeasuredRowHeight, 5);
     assert.equal(tool.legendMeasuredSignature, '4|5');
+
+    radialSize = 0;
+    assert.throws(() => tool.updateRuntimeConfig(), /sparkline\.\.size must be greater than 0/);
   } finally {
     globalThis.window = previousWindow;
   }
