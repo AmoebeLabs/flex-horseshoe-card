@@ -72,7 +72,7 @@ Every downstream guard touched by these plans must be classified into one of tho
 | [`2026.09.28-15-shared-tool-simplification.md`](../2026.09.28-15-shared-tool-simplification.md) | remove low-risk repeated tool boilerplate |
 | [`2026.09.28-16-configuration-gatekeeper.md`](../2026.09.28-16-configuration-gatekeeper.md) | simplify source and active tool configuration ownership |
 | [`2026.09.28-17-controls-trusted-config.md`](../2026.09.28-17-controls-trusted-config.md) | simplify repeated control configuration work without changing behavior |
-| `18-sparkline-trusted-config.md` | remove Sparkline config validation/coercion below the boundary |
+| [`2026.09.30-18-sparkline-trusted-config.md`](../2026.09.30-18-sparkline-trusted-config.md) | consolidate proven duplicate Sparkline configuration work without changing behavior |
 | `19-horseshoe-path-trusted-config.md` | do the same for Horseshoe/Path configuration |
 | `20-whole-chain-simplification.md` | final guard/duplicate/readability audit and source-size acceptance |
 | `TESTING.md` | permanent regression and verification policy |

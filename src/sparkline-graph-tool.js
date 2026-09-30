@@ -104,6 +104,71 @@ const CHART_AXES = {
   radial_barcode: { x: true, y: false },
 };
 
+/**
+ * Converts a shared visibility switch into x/y settings without changing an
+ * explicitly configured x/y pair.
+ *
+ * @param {object} show - Sparkline visibility settings.
+ */
+const normalizeAxisVisibility = (show) => {
+  ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
+    const layerVisibility = show[layerName];
+    if (typeof layerVisibility === 'boolean') {
+      show[layerName] = { x: layerVisibility, y: layerVisibility };
+    }
+  });
+};
+
+/**
+ * Checks day/night settings both before static graph construction and after
+ * JavaScript values become concrete, preserving the same rules at each point.
+ *
+ * @param {object} config - Complete sparkline layout configuration.
+ */
+const validateDayNightConfig = (config) => {
+  const dayNight = config.sparkline.day_night;
+  if (!['background', 'band'].includes(dayNight.mode)) {
+    throw new Error('[sparklines] sparkline.day_night.mode must be background or band');
+  }
+  if (!['top', 'bottom'].includes(dayNight.position)) {
+    throw new Error('[sparklines] sparkline.day_night.position must be top or bottom');
+  }
+  if (!Number.isFinite(Number(dayNight.size)) || Number(dayNight.size) <= 0) {
+    throw new Error('[sparklines] sparkline.day_night.size must be greater than 0');
+  }
+  if (!Number.isFinite(Number(dayNight.offset))) {
+    throw new Error('[sparklines] sparkline.day_night.offset must be a number');
+  }
+  if (config.sparkline.show.day_night && config.period.type === 'real_time') {
+    throw new Error('[sparklines] show.day_night requires a calendar or rolling_window period');
+  }
+  if (config.sparkline.show.day_night && config.period.type === 'calendar' && Number(config.period.calendar.offset) > 0) {
+    throw new Error('[sparklines] show.day_night does not support future calendar offsets');
+  }
+};
+
+/**
+ * Checks radial chart geometry once its configured values are concrete.
+ *
+ * @param {object} config - Complete sparkline layout configuration.
+ */
+const validateRadialConfig = (config) => {
+  const chartType = config.sparkline.show.chart_type;
+  const radial = config.sparkline[chartType];
+  if (chartType === 'radial' && !['line', 'area', 'dots'].includes(config.sparkline.show.chart_variant)) {
+    throw new Error('[sparklines] radial chart_variant must be line, area or dots');
+  }
+  if (!Number.isFinite(Number(radial.arc_degrees)) || Number(radial.arc_degrees) <= 0 || Number(radial.arc_degrees) > 360) {
+    throw new Error('[sparklines] sparkline..arc_degrees must be greater than 0 and at most 360');
+  }
+  if (!Number.isFinite(Number(radial.rotate))) {
+    throw new Error('[sparklines] sparkline..rotate must be numeric');
+  }
+  if (!Number.isFinite(Number(radial.size)) || Number(radial.size) <= 0) {
+    throw new Error('[sparklines] sparkline..size must be greater than 0');
+  }
+};
+
 const computeThresholds = (stops, type) => {
   const valuedStops = interpolateStops(stops);
   try {
@@ -565,17 +630,9 @@ export default class SparklineGraphTool extends BaseTool {
     if (normalizedConfig.sparkline?.dots?.styles !== undefined) {
       normalizedConfig.sparkline.dots.styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline.dots.styles);
     }
-    // Legacy booleans enabled or disabled both axes. Convert them once in the
-    // configuration layer so rendering always receives explicit x/y values.
-    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
-      const layerVisibility = normalizedConfig.sparkline?.show?.[layerName];
-      if (typeof layerVisibility === 'boolean') {
-        normalizedConfig.sparkline.show[layerName] = {
-          x: layerVisibility,
-          y: layerVisibility,
-        };
-      }
-    });
+    // Normalize static visibility before merging defaults. Runtime evaluation
+    // uses the same conversion when JavaScript produces a boolean again.
+    if (normalizedConfig.sparkline?.show != null) normalizeAxisVisibility(normalizedConfig.sparkline.show);
     ['line', 'area'].forEach((chartType) => {
       if (normalizedConfig.sparkline?.[chartType]?.styles !== undefined) {
         normalizedConfig.sparkline[chartType].styles = ConfigHelper.toStyleDict(normalizedConfig.sparkline[chartType].styles);
@@ -626,26 +683,7 @@ export default class SparklineGraphTool extends BaseTool {
       day_night: sparklineConfig.sparkline.day_night,
       period: sparklineConfig.period,
     });
-    if (!dayNightConfigurationUsesJavascript) {
-      if (!['background', 'band'].includes(sparklineConfig.sparkline.day_night.mode)) {
-        throw new Error('[sparklines] sparkline.day_night.mode must be background or band');
-      }
-      if (!['top', 'bottom'].includes(sparklineConfig.sparkline.day_night.position)) {
-        throw new Error('[sparklines] sparkline.day_night.position must be top or bottom');
-      }
-      if (!Number.isFinite(Number(sparklineConfig.sparkline.day_night.size)) || Number(sparklineConfig.sparkline.day_night.size) <= 0) {
-        throw new Error('[sparklines] sparkline.day_night.size must be greater than 0');
-      }
-      if (!Number.isFinite(Number(sparklineConfig.sparkline.day_night.offset))) {
-        throw new Error('[sparklines] sparkline.day_night.offset must be a number');
-      }
-      if (sparklineConfig.sparkline.show.day_night && sparklineConfig.period.type === 'real_time') {
-        throw new Error('[sparklines] show.day_night requires a calendar or rolling_window period');
-      }
-      if (sparklineConfig.sparkline.show.day_night && sparklineConfig.period.type === 'calendar' && Number(sparklineConfig.period.calendar.offset) > 0) {
-        throw new Error('[sparklines] show.day_night does not support future calendar offsets');
-      }
-    }
+    if (!dayNightConfigurationUsesJavascript) validateDayNightConfig(sparklineConfig);
 
     // Static radial values are validated now. JavaScript-backed values become
     // concrete in updateRuntimeConfig() and enter the same validation there.
@@ -653,20 +691,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (["radial", "radial_barcode"].includes(chartType)) {
       const radialConfig = sparklineConfig.sparkline[chartType];
       const radialConfigurationUsesJavascript = templates.hasJavascriptTemplates({ radial: radialConfig });
-      if (!radialConfigurationUsesJavascript) {
-        if (chartType === "radial" && !["line", "area", "dots"].includes(sparklineConfig.sparkline.show.chart_variant)) {
-          throw new Error("[sparklines] radial chart_variant must be line, area or dots");
-        }
-        if (!Number.isFinite(Number(radialConfig.arc_degrees)) || Number(radialConfig.arc_degrees) <= 0 || Number(radialConfig.arc_degrees) > 360) {
-          throw new Error(`[sparklines] sparkline..arc_degrees must be greater than 0 and at most 360`);
-        }
-        if (!Number.isFinite(Number(radialConfig.rotate))) {
-          throw new Error(`[sparklines] sparkline..rotate must be numeric`);
-        }
-        if (!Number.isFinite(Number(radialConfig.size)) || Number(radialConfig.size) <= 0) {
-          throw new Error(`[sparklines] sparkline..size must be greater than 0`);
-        }
-      }
+      if (!radialConfigurationUsesJavascript) validateRadialConfig(sparklineConfig);
     }
 
     // The legend position determines its orientation. Top and bottom reserve a
@@ -1144,43 +1169,11 @@ export default class SparklineGraphTool extends BaseTool {
     // the evaluated values before series coordination creates graph engines.
     if (this.configChanged) {
       const chartType = this.config.sparkline.show.chart_type;
-      if (["radial", "radial_barcode"].includes(chartType)) {
-        const radialConfig = this.config.sparkline[chartType];
-        if (chartType === "radial" && !["line", "area", "dots"].includes(this.config.sparkline.show.chart_variant)) {
-          throw new Error("[sparklines] radial chart_variant must be line, area or dots");
-        }
-        if (!Number.isFinite(Number(radialConfig.arc_degrees)) || Number(radialConfig.arc_degrees) <= 0 || Number(radialConfig.arc_degrees) > 360) {
-          throw new Error(`[sparklines] sparkline..arc_degrees must be greater than 0 and at most 360`);
-        }
-        if (!Number.isFinite(Number(radialConfig.rotate))) {
-          throw new Error(`[sparklines] sparkline..rotate must be numeric`);
-        }
-        if (!Number.isFinite(Number(radialConfig.size)) || Number(radialConfig.size) <= 0) {
-          throw new Error(`[sparklines] sparkline..size must be greater than 0`);
-        }
-      }
+      if (['radial', 'radial_barcode'].includes(chartType)) validateRadialConfig(this.config);
 
       this.config.sparkline.day_night.day.styles = ConfigHelper.toStyleDict(this.config.sparkline.day_night.day.styles);
       this.config.sparkline.day_night.night.styles = ConfigHelper.toStyleDict(this.config.sparkline.day_night.night.styles);
-      if (!['background', 'band'].includes(this.config.sparkline.day_night.mode)) {
-        throw new Error('[sparklines] sparkline.day_night.mode must be background or band');
-      }
-      if (!['top', 'bottom'].includes(this.config.sparkline.day_night.position)) {
-        throw new Error('[sparklines] sparkline.day_night.position must be top or bottom');
-      }
-      if (!Number.isFinite(Number(this.config.sparkline.day_night.size)) || Number(this.config.sparkline.day_night.size) <= 0) {
-        throw new Error('[sparklines] sparkline.day_night.size must be greater than 0');
-      }
-      if (!Number.isFinite(Number(this.config.sparkline.day_night.offset))) {
-        throw new Error('[sparklines] sparkline.day_night.offset must be a number');
-      }
-      if (this.config.sparkline.show.day_night && this.config.period.type === 'real_time') {
-        throw new Error('[sparklines] show.day_night requires a calendar or rolling_window period');
-      }
-      if (this.config.sparkline.show.day_night && this.config.period.type === 'calendar' && Number(this.config.period.calendar.offset) > 0) {
-        throw new Error('[sparklines] show.day_night does not support future calendar offsets');
-      }
-
+      validateDayNightConfig(this.config);
     }
 
     // A calendar day always spans at least one complete day. A duration can
@@ -1194,15 +1187,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     // Dynamic JavaScript templates can return a boolean again after the initial
     // config pass. Normalize it to the x/y shape consumed by the graph renderer.
-    ['grid', 'axis', 'tickmarks', 'labels'].forEach((layerName) => {
-      const layerVisibility = this.config.sparkline.show[layerName];
-      if (typeof layerVisibility === 'boolean') {
-        this.config.sparkline.show[layerName] = {
-          x: layerVisibility,
-          y: layerVisibility,
-        };
-      }
-    });
+    normalizeAxisVisibility(this.config.sparkline.show);
     // Bar and equalizer backgrounds use the same explicit item-style selector
     // and color-stop paint dictionaries as the other FHS layout items.
     if (this.configChanged) {
