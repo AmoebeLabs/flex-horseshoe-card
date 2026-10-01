@@ -5,19 +5,23 @@
  * @returns {{xpos: number, ypos: number, width: number, height: number}} Text geometry.
  */
 export default function getTextToolGeometry(tool) {
-  if (tool.hasExactMeasurement) {
+  // TextTool retains config.svg and direct measurement fields until its 16B migration.
+  const geometry = tool.geometry ?? tool;
+  const svg = tool.geometry ? geometry.svg : tool.config.svg;
+
+  if (geometry.hasExactMeasurement) {
     return {
-      xpos: tool.measuredXpos,
-      ypos: tool.measuredYpos,
-      width: tool.measuredWidth,
-      height: tool.measuredHeight,
+      xpos: geometry.measuredXpos,
+      ypos: geometry.measuredYpos,
+      width: geometry.measuredWidth,
+      height: geometry.measuredHeight,
     };
   }
 
   return {
-    xpos: tool.config.svg.xpos,
-    ypos: tool.config.svg.ypos,
-    width: tool.estimatedWidth,
-    height: tool.estimatedHeight,
+    xpos: svg.xpos,
+    ypos: svg.ypos,
+    width: geometry.estimatedWidth,
+    height: geometry.estimatedHeight,
   };
 }

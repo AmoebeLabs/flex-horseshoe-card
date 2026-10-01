@@ -60,6 +60,7 @@ function createStateTool({
     },
   };
   const tool = Object.create(StateTool.prototype);
+  tool.runtime = { state: '', uom: '' };
 
   tool.config = {
     format,
@@ -92,8 +93,8 @@ test('returns Home Assistant parts unchanged when FHS has no override', () => {
 
   tool.buildStateAndUom();
 
-  assert.equal(tool.state, '1,234.50');
-  assert.equal(tool.uom, '°C');
+  assert.equal(tool.runtime.state, '1,234.50');
+  assert.equal(tool.runtime.uom, '°C');
 });
 
 test('uses the HA attribute formatter and preserves its complete parts array', () => {
@@ -114,8 +115,8 @@ test('uses the HA attribute formatter and preserves its complete parts array', (
 
   tool.buildStateAndUom();
 
-  assert.equal(tool.state, '~45.2 approximately');
-  assert.equal(tool.uom, '%');
+  assert.equal(tool.runtime.state, '~45.2 approximately');
+  assert.equal(tool.runtime.uom, '%');
 });
 
 test('raw_state_keep bypasses HA formatting and raw_state_clean only cleans that raw value', () => {
@@ -167,8 +168,8 @@ test('decimals replace only the digit-bearing value part of split negative curre
 
   tool.buildStateAndUom();
 
-  assert.equal(tool.state, '-3.9');
-  assert.equal(tool.uom, '£');
+  assert.equal(tool.runtime.state, '-3.9');
+  assert.equal(tool.runtime.uom, '£');
 });
 
 test('decimals retain a sign already combined with the numeric value part', () => {

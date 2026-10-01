@@ -274,37 +274,40 @@ export default class StateTool extends BaseTool {
 
     super(config, index, templates, cardId, card, 'states', 'states', 0, { fill: true, stroke: false });
 
-    this.config.svg = this.calculateSvgDimensions();
-    this.state = '';
-    this.uom = '';
+    const svgDimensions = this.calculateSvgDimensions();
+    const textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.geometry = {
+      svg: svgDimensions,
+      characterWidthFactor: 0.6,
+      textFontSize,
+      uomFontSize: textFontSize * 0.6,
+      measurementWidthBase: 0,
+      estimatedWidth: 0,
+      estimatedHeight: textFontSize,
+      measuredWidth: 0,
+      measuredHeight: 0,
+      measuredXpos: svgDimensions.xpos,
+      measuredYpos: svgDimensions.ypos,
+      hasExactMeasurement: false,
+      textMeasurementSignature: '',
+    };
+    this.runtime = { state: '', uom: '' };
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
     this.textElementId = `${this.cardId}-state-${this.index}`;
-    this.characterWidthFactor = 0.6;
-    this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
-    this.uomFontSize = this.textFontSize * 0.6;
-    this.measurementWidthBase = 0;
-    this.estimatedWidth = 0;
-    this.estimatedHeight = this.textFontSize;
-    this.measuredWidth = 0;
-    this.measuredHeight = 0;
-    this.measuredXpos = this.config.svg.xpos;
-    this.measuredYpos = this.config.svg.ypos;
-    this.hasExactMeasurement = false;
-    this.textMeasurementSignature = '';
   }
 
   /** Compares displayed text and unit independently from the raw numeric state. */
   hasPresentationChanged() {
-    return super.hasPresentationChanged([this.state, this.uom]);
+    return super.hasPresentationChanged([this.runtime.state, this.runtime.uom]);
   }
 
   /** Updates state configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -318,24 +321,34 @@ export default class StateTool extends BaseTool {
 
     this.buildStateAndUom();
 
-    // Estimate the complete state/UOM layout until updated() can replace it
-    // with the bounding box of the actual rendered SVG text element.
+    this.updateTextMeasurement();
+  }
+
+  /** Estimates complete state/UOM geometry and invalidates exact bounds on text or paint changes. */
+  updateTextMeasurement() {
+    // Include state and derived UOM styles because either can affect the measured text box.
     const styles = this.getStyles({ 'font-size': '1em' });
     const uomStyles = this.getUomStyles(styles, this.config.uom ?? {});
     const uomPosition = this.config.show.uom;
-    const measurementSignature = `${this.state}|${this.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
+    const measurementSignature = `${this.runtime.state}|${this.runtime.uom}|${uomPosition}|${JSON.stringify(styles)}|${JSON.stringify(uomStyles)}`;
 
-    if (measurementSignature !== this.textMeasurementSignature) {
-      this.textMeasurementSignature = measurementSignature;
-      const stateWidthBase = this.state.length * this.textFontSize;
+    if (measurementSignature !== this.geometry.textMeasurementSignature) {
+      this.geometry.textMeasurementSignature = measurementSignature;
+      const stateWidthBase = this.runtime.state.length * this.geometry.textFontSize;
       const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
-      const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+      const uomWidthBase = uomIsVisible ? this.runtime.uom.length * this.geometry.uomFontSize : 0;
 
-      this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
-      this.estimatedWidth = this.measurementWidthBase * this.characterWidthFactor;
-      this.estimatedHeight = uomPosition === 'top' || uomPosition === 'bottom' ? this.textFontSize + this.uomFontSize : this.textFontSize;
-      this.hasExactMeasurement = false;
+      this.geometry.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+      this.geometry.estimatedWidth = this.geometry.measurementWidthBase * this.geometry.characterWidthFactor;
+      this.geometry.estimatedHeight = uomPosition === 'top' || uomPosition === 'bottom' ? this.geometry.textFontSize + this.geometry.uomFontSize : this.geometry.textFontSize;
+      this.geometry.hasExactMeasurement = false;
     }
+  }
+
+  /** Publishes effective styles and updates measurement only when its signature changes. */
+  setPaintStyles(styles) {
+    super.setPaintStyles(styles);
+    this.updateTextMeasurement();
   }
 
   /**
@@ -349,35 +362,40 @@ export default class StateTool extends BaseTool {
     const measuredYpos = boundingBox.y + boundingBox.height / 2;
 
     // The value tspan always exists. The UOM tspan only exists for a visible UOM position.
-    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[0]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.geometry.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[0]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
 
     const uomPosition = this.config.show.uom;
     const uomIsVisible = ['end', 'top', 'bottom'].includes(uomPosition);
 
     if (uomIsVisible) {
-      this.uomFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[1]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+      this.geometry.uomFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.children[1]).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
     } else {
-      this.uomFontSize = 0;
+      this.geometry.uomFontSize = 0;
     }
 
-    const stateWidthBase = this.state.length * this.textFontSize;
-    const uomWidthBase = uomIsVisible ? this.uom.length * this.uomFontSize : 0;
+    const stateWidthBase = this.runtime.state.length * this.geometry.textFontSize;
+    const uomWidthBase = uomIsVisible ? this.runtime.uom.length * this.geometry.uomFontSize : 0;
 
-    this.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
+    this.geometry.measurementWidthBase = uomPosition === 'end' ? stateWidthBase + uomWidthBase : Math.max(stateWidthBase, uomWidthBase);
 
-    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+    const measurementChanged =
+      !this.geometry.hasExactMeasurement ||
+      measuredWidth !== this.geometry.measuredWidth ||
+      measuredHeight !== this.geometry.measuredHeight ||
+      measuredXpos !== this.geometry.measuredXpos ||
+      measuredYpos !== this.geometry.measuredYpos;
 
     if (measurementChanged) {
-      if (this.measurementWidthBase > 0) {
-        const measuredFactor = measuredWidth / this.measurementWidthBase;
+      if (this.geometry.measurementWidthBase > 0) {
+        const measuredFactor = measuredWidth / this.geometry.measurementWidthBase;
 
-        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+        this.geometry.characterWidthFactor = this.geometry.characterWidthFactor * 0.8 + measuredFactor * 0.2;
       }
-      this.measuredWidth = measuredWidth;
-      this.measuredHeight = measuredHeight;
-      this.measuredXpos = measuredXpos;
-      this.measuredYpos = measuredYpos;
-      this.hasExactMeasurement = true;
+      this.geometry.measuredWidth = measuredWidth;
+      this.geometry.measuredHeight = measuredHeight;
+      this.geometry.measuredXpos = measuredXpos;
+      this.geometry.measuredYpos = measuredYpos;
+      this.geometry.hasExactMeasurement = true;
       this.card.requestUpdate();
     }
   }
@@ -602,8 +620,8 @@ export default class StateTool extends BaseTool {
       .join('');
     const unit = parts.find((part) => part.type === 'unit')?.value ?? '';
 
-    this.state = this.textEllipsis(state.trim(), this.config.max_characters ?? this.config.ellipsis);
-    this.uom = this.buildUom(unit.trim());
+    this.runtime.state = this.textEllipsis(state.trim(), this.config.max_characters ?? this.config.ellipsis);
+    this.runtime.uom = this.buildUom(unit.trim());
   }
 
   /**
@@ -690,7 +708,7 @@ export default class StateTool extends BaseTool {
     const uomPosition = options.show?.uom ?? this.config.show.uom;
     const statePart = {
       type: 'value',
-      value: this.state,
+      value: this.runtime.state,
       entity_index: this.entity_index,
       styles: stateStyles,
     };
@@ -704,7 +722,7 @@ export default class StateTool extends BaseTool {
     };
     const unitPart = {
       type: 'unit',
-      value: this.uom,
+      value: this.runtime.uom,
       entity_index: this.entity_index,
       styles: this.getUomStyles(stateStylesForUom, uomConfig),
       uom_position: uomPosition,
@@ -960,14 +978,14 @@ export default class StateTool extends BaseTool {
     } else if (unitPart?.uom_position === 'bottom') {
       uomTemplate = svg`<tspan
         class="state__uom"
-        x="${this.config.svg.xpos}"
+        x="${this.geometry.svg.xpos}"
         dy="${unitPart.dy}em"
         style=${styleMap(this.getRenderStyles(unitPart.styles))}
       >${unitPart.value}</tspan>`;
     } else if (unitPart?.uom_position === 'top') {
       uomTemplate = svg`<tspan
         class="state__uom"
-        x="${this.config.svg.xpos}"
+        x="${this.geometry.svg.xpos}"
         dy="${unitPart.dy}em"
         style=${styleMap(this.getRenderStyles(unitPart.styles))}
       >${unitPart.value}</tspan>`;
@@ -982,8 +1000,8 @@ export default class StateTool extends BaseTool {
           @action=${(event) => this.handleAction(event)}>
           <tspan
             class="state__value"
-            x="${this.config.svg.xpos}"
-            y="${this.config.svg.ypos}"
+            x="${this.geometry.svg.xpos}"
+            y="${this.geometry.svg.ypos}"
             dx="${dx}em"
             dy="${dy}em"
             style=${styleMap(this.getRenderStyles(statePart.styles))}

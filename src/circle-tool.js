@@ -24,14 +24,14 @@ export default class CircleTool extends BaseTool {
 
     super(circleConfig, index, templates, cardId, card, 'circles', 'circles', undefined, { fill: false, stroke: true });
 
-    this.config.svg = this.calculateSvgDimensions();
+    this.geometry = { svg: this.calculateSvgDimensions() };
   }
 
   /** Updates circle configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -71,9 +71,9 @@ export default class CircleTool extends BaseTool {
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
           class="circle-tool"
-          cx="${this.config.svg.xpos}"
-          cy="${this.config.svg.ypos}"
-          r="${this.config.svg.radius}"
+          cx="${this.geometry.svg.xpos}"
+          cy="${this.geometry.svg.ypos}"
+          r="${this.geometry.svg.radius}"
           style=${styleMap(this.getRenderStyles(styles))}
         ></circle>
       </g>
