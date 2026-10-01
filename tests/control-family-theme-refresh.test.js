@@ -67,7 +67,7 @@ const createControl = (family, card, templates) => new family.Tool(
 
 const captureGeometry = (control) => ({
   control: structuredClone(control.config.svg),
-  children: control.getContentTools().map((tool) => structuredClone(tool.config.svg)),
+  children: control.getContentTools().map((tool) => structuredClone(tool.geometry ? tool.geometry.svg : tool.config.svg)),
 });
 
 for (const family of CONTROL_FAMILIES) {
@@ -117,8 +117,9 @@ for (const family of CONTROL_FAMILIES) {
     assert.equal(refreshedChildren.length, previousChildren.length);
     refreshedChildren.forEach((tool, index) => {
       assert.notStrictEqual(tool, previousChildren[index]);
-      assert.notEqual(tool.config.svg.xpos, previousGeometry.children[index].xpos);
-      assert.notEqual(tool.config.svg.ypos, previousGeometry.children[index].ypos);
+      const svg = tool.geometry ? tool.geometry.svg : tool.config.svg;
+      assert.notEqual(svg.xpos, previousGeometry.children[index].xpos);
+      assert.notEqual(svg.ypos, previousGeometry.children[index].ypos);
     });
     assert.notEqual(control.config.svg.xpos, previousGeometry.control.xpos);
     assert.notEqual(control.config.svg.ypos, previousGeometry.control.ypos);

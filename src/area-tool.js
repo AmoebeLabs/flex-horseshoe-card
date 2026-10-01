@@ -24,29 +24,33 @@ export default class AreaTool extends BaseTool {
 
     super(config, index, templates, cardId, card, 'areas', 'areas', 0, { fill: true, stroke: false });
 
-    this.config.svg = this.calculateSvgDimensions();
-    this.area = '';
+    const svgDimensions = this.calculateSvgDimensions();
+    const textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.geometry = {
+      svg: svgDimensions,
+      characterWidthFactor: 0.6,
+      textFontSize,
+      estimatedWidth: 0,
+      estimatedHeight: textFontSize,
+      measuredWidth: 0,
+      measuredHeight: 0,
+      measuredXpos: svgDimensions.xpos,
+      measuredYpos: svgDimensions.ypos,
+      hasExactMeasurement: false,
+      textMeasurementSignature: '',
+    };
+    this.runtime = { area: '' };
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
     this.textElementId = `${this.cardId}-area-${this.index}`;
-    this.characterWidthFactor = 0.6;
-    this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
-    this.estimatedWidth = 0;
-    this.estimatedHeight = this.textFontSize;
-    this.measuredWidth = 0;
-    this.measuredHeight = 0;
-    this.measuredXpos = this.config.svg.xpos;
-    this.measuredYpos = this.config.svg.ypos;
-    this.hasExactMeasurement = false;
-    this.textMeasurementSignature = '';
   }
 
   /** Updates area configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -58,24 +62,33 @@ export default class AreaTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    this.area = this.textEllipsis(this.buildArea(), this.config.max_characters ?? this.config.ellipsis);
+    this.runtime.area = this.textEllipsis(this.buildArea(), this.config.max_characters ?? this.config.ellipsis);
 
-    // Keep the first render close to the final size. updated() replaces this
-    // estimate with the actual SVG bounding box after the text is painted.
+    this.updateTextMeasurement();
+  }
+
+  /** Estimates area geometry and invalidates exact bounds when text or paint changes. */
+  updateTextMeasurement() {
     const styles = this.getStyles({ 'font-size': '1em' });
-    const measurementSignature = `${this.area}|${JSON.stringify(styles)}`;
+    const measurementSignature = `${this.runtime.area}|${JSON.stringify(styles)}`;
 
-    if (measurementSignature !== this.textMeasurementSignature) {
-      this.textMeasurementSignature = measurementSignature;
-      this.estimatedWidth = this.area.length * this.textFontSize * this.characterWidthFactor;
-      this.estimatedHeight = this.textFontSize;
-      this.hasExactMeasurement = false;
+    if (measurementSignature !== this.geometry.textMeasurementSignature) {
+      this.geometry.textMeasurementSignature = measurementSignature;
+      this.geometry.estimatedWidth = this.runtime.area.length * this.geometry.textFontSize * this.geometry.characterWidthFactor;
+      this.geometry.estimatedHeight = this.geometry.textFontSize;
+      this.geometry.hasExactMeasurement = false;
     }
+  }
+
+  /** Publishes effective styles and updates measurement only when its signature changes. */
+  setPaintStyles(styles) {
+    super.setPaintStyles(styles);
+    this.updateTextMeasurement();
   }
 
   /** Reports changes to the formatted area and its effective paint/layout. */
   hasPresentationChanged() {
-    return super.hasPresentationChanged(this.area);
+    return super.hasPresentationChanged(this.runtime.area);
   }
 
   /**
@@ -89,21 +102,26 @@ export default class AreaTool extends BaseTool {
     const measuredYpos = boundingBox.y + boundingBox.height / 2;
 
     // The cached tspan exposes the real browser-resolved font-size for the next estimate.
-    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.geometry.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * (100 / SVG_DEFAULT_DIMENSIONS);
 
-    const measurementChanged = !this.hasExactMeasurement || measuredWidth !== this.measuredWidth || measuredHeight !== this.measuredHeight || measuredXpos !== this.measuredXpos || measuredYpos !== this.measuredYpos;
+    const measurementChanged =
+      !this.geometry.hasExactMeasurement ||
+      measuredWidth !== this.geometry.measuredWidth ||
+      measuredHeight !== this.geometry.measuredHeight ||
+      measuredXpos !== this.geometry.measuredXpos ||
+      measuredYpos !== this.geometry.measuredYpos;
 
     if (measurementChanged) {
-      if (this.area.length > 0) {
-        const measuredFactor = measuredWidth / this.area.length / this.textFontSize;
+      if (this.runtime.area.length > 0) {
+        const measuredFactor = measuredWidth / this.runtime.area.length / this.geometry.textFontSize;
 
-        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+        this.geometry.characterWidthFactor = this.geometry.characterWidthFactor * 0.8 + measuredFactor * 0.2;
       }
-      this.measuredWidth = measuredWidth;
-      this.measuredHeight = measuredHeight;
-      this.measuredXpos = measuredXpos;
-      this.measuredYpos = measuredYpos;
-      this.hasExactMeasurement = true;
+      this.geometry.measuredWidth = measuredWidth;
+      this.geometry.measuredHeight = measuredHeight;
+      this.geometry.measuredXpos = measuredXpos;
+      this.geometry.measuredYpos = measuredYpos;
+      this.geometry.hasExactMeasurement = true;
       this.card.requestUpdate();
     }
   }
@@ -143,7 +161,7 @@ export default class AreaTool extends BaseTool {
 
     return [{
       type: 'area',
-      value: this.area,
+      value: this.runtime.area,
       entity_index: this.entity_index,
       styles: {
         ...styles,
@@ -172,8 +190,8 @@ export default class AreaTool extends BaseTool {
           @action=${(event) => this.handleAction(event)}>
           <tspan
             class="entity__area"
-            x="${this.config.svg.xpos}"
-            y="${this.config.svg.ypos}"
+            x="${this.geometry.svg.xpos}"
+            y="${this.geometry.svg.ypos}"
             style=${styleMap(this.getRenderStyles(areaPart.styles))}>
             ${areaPart.value}</tspan>
         </text>

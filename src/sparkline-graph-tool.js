@@ -2300,20 +2300,19 @@ export default class SparklineGraphTool extends BaseTool {
     sourceFormatter.entityConfig = sourceEntityConfig;
     sourceFormatter.config = sourceEntityConfig;
     sourceFormatter.card = this.card;
-    sourceFormatter.state = '';
-    sourceFormatter.uom = '';
+    sourceFormatter.runtime = { state: '', uom: '' };
     sourceFormatter.buildStateAndUom();
 
     const activeLocale = this.card._hass.locale.language;
     const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
-    const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
+    const decimalIndex = sourceFormatter.runtime.state.lastIndexOf(decimalSeparator);
+    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.runtime.state.length - decimalIndex - 1;
     const formattedValue = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(rawValue);
 
-    return { label, value: formattedValue, uom: sourceFormatter.uom };
+    return { label, value: formattedValue, uom: sourceFormatter.runtime.uom };
   }
 
   /**
@@ -2331,21 +2330,20 @@ export default class SparklineGraphTool extends BaseTool {
     sourceFormatter.entity = item.entity;
     sourceFormatter.entityConfig = item.entityConfig;
     sourceFormatter.config = item.entityConfig;
-    sourceFormatter.state = '';
-    sourceFormatter.uom = '';
+    sourceFormatter.runtime = { state: '', uom: '' };
     sourceFormatter.card = this.card;
     sourceFormatter.buildStateAndUom();
 
     const activeLocale = this.card._hass.locale.language;
     const decimalSeparator = new Intl.NumberFormat(activeLocale).formatToParts(1.1).find((part) => part.type === 'decimal').value;
-    const decimalIndex = sourceFormatter.state.lastIndexOf(decimalSeparator);
-    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.state.length - decimalIndex - 1;
+    const decimalIndex = sourceFormatter.runtime.state.lastIndexOf(decimalSeparator);
+    const decimals = decimalIndex === -1 ? 0 : sourceFormatter.runtime.state.length - decimalIndex - 1;
     const value = new Intl.NumberFormat(activeLocale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(rawValue);
 
-    return { value, uom: sourceFormatter.uom };
+    return { value, uom: sourceFormatter.runtime.uom };
   }
 
   /**

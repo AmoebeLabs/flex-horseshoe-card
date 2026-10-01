@@ -404,8 +404,8 @@ export default class ControlNumber extends ControlBase {
     this.minusContentTool.setState(entity, entityConfig);
     this.plusContentTool.setState(entity, entityConfig);
     this.valueStateTool.setState(entity, entityConfig);
-    if (this.valueMeasurementSignature !== this.valueStateTool.textMeasurementSignature) {
-      this.valueMeasurementSignature = this.valueStateTool.textMeasurementSignature;
+    if (this.valueMeasurementSignature !== this.valueStateTool.geometry.textMeasurementSignature) {
+      this.valueMeasurementSignature = this.valueStateTool.geometry.textMeasurementSignature;
       this.valueMeasurementPass = 0;
     }
   }
@@ -466,8 +466,8 @@ export default class ControlNumber extends ControlBase {
       geometry.valueWidth / valueGeometry.width,
       valueHeight / valueGeometry.height,
     );
-    const valueCenterX = this.valueStateTool.config.svg.xpos;
-    const valueCenterY = this.valueStateTool.config.svg.ypos;
+    const valueCenterX = this.valueStateTool.geometry.svg.xpos;
+    const valueCenterY = this.valueStateTool.geometry.svg.ypos;
     const valueTransform = `translate(${valueCenterX} ${valueCenterY}) scale(${valueScale}) translate(-${valueGeometry.xpos} -${valueGeometry.ypos})`;
     const backgroundStyles = this.getStyles(ConfigHelper.toStyleDict(this.config.background.styles));
     const minusBackgroundStyles = this.getStyles(ConfigHelper.toStyleDict(contentConfig.minus.background.styles));

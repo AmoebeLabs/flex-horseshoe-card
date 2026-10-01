@@ -40,7 +40,8 @@ export default class IconTool extends BaseTool {
       { fill: true, stroke: false },
     );
 
-    this.config.svg = this.calculateSvgDimensions();
+    this.geometry = { svg: this.calculateSvgDimensions() };
+    this.runtime = { stateMapItem: this.getStateMapItem() };
     this.iconId = Math.random().toString(36).substr(2, 9);
     this.haIconPath = new HomeAssistantIconPath(card, this.iconId);
     this.iconRequest = undefined;
@@ -51,10 +52,24 @@ export default class IconTool extends BaseTool {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged) this.stopEntityIconRequest();
-    if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged) {
+      this.stopEntityIconRequest();
+      this.runtime.stateMapItem = this.getStateMapItem();
     }
+    if (this.configurationChanged || this.groupChanged) {
+      this.geometry.svg = this.calculateSvgDimensions(this.config);
+    }
+  }
+
+  /** Stores the selected map entry once for the presentation and render phases. */
+  setState(entity, entityConfig) {
+    super.setState(entity, entityConfig);
+    this.runtime.stateMapItem = this.getStateMapItem();
+  }
+
+  /** Selects the configured default map entry for an icon without an entity. */
+  setStaticState() {
+    this.runtime.stateMapItem = this.getStateMapItem();
   }
 
   /** Releases only the pending entity-icon lookup started by this tool. */
@@ -82,7 +97,7 @@ export default class IconTool extends BaseTool {
 
   /** Includes state-map icon selection and Home Assistant's state-dependent icon paint. */
   hasPresentationChanged() {
-    const stateMapItem = this.getStateMapItem();
+    const stateMapItem = this.runtime.stateMapItem;
     const renderItem = stateMapItem ? Merge.mergeDeep(this.config, stateMapItem) : this.config;
     return super.hasPresentationChanged([
       this.buildIcon(stateMapItem, renderItem),
@@ -420,7 +435,7 @@ export default class IconTool extends BaseTool {
   render() {
     const item = this.config;
 
-    const smItem = this.getStateMapItem();
+    const smItem = this.runtime.stateMapItem;
     let renderItem = item;
 
     if (smItem) {
@@ -436,8 +451,8 @@ export default class IconTool extends BaseTool {
             : renderItem.size
               ? renderItem.size
               : 2) * FONT_SIZE;
-    const cx = item.svg.xpos;
-    const cy = item.svg.ypos;
+    const cx = this.geometry.svg.xpos;
+    const cy = this.geometry.svg.ypos;
     const align = renderItem.align ? renderItem.align : "center";
     const adjust = align === "center" ? 0.5 : align === "start" ? -1 : 1;
     const xpx = cx - iconPixels * adjust;
@@ -452,7 +467,7 @@ export default class IconTool extends BaseTool {
     defaultIconColor.color = haStyle.color;
     defaultIconColor.filter = haStyle.filter;
 
-    let configStyle = ConfigHelper.toStyleDict(renderItem.styles);
+    let configStyle = ConfigHelper.toStyleDict(this.paint?.styles ?? renderItem.styles);
     const stateStyle =
       this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
     this.applyColorStops(configStyle, renderItem, ["fill", "color"]);

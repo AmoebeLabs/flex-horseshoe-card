@@ -175,7 +175,7 @@ test('measured text drives Rectangle fit inside a scaled group', async ({ page }
     return {
       exact: textTool.hasExactMeasurement,
       measured,
-      rectangle: rectangle.config.svg,
+      rectangle: rectangle.geometry.svg,
       textBox: { width: textBox.width, height: textBox.height },
       textPixels: { left: textPixels.left, top: textPixels.top, right: textPixels.right, bottom: textPixels.bottom },
       borderPixels: { left: borderPixels.left, top: borderPixels.top, right: borderPixels.right, bottom: borderPixels.bottom },

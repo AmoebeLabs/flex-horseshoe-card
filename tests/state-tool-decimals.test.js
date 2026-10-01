@@ -35,6 +35,7 @@ function createStateTool({ state, haFormattedValue, haPrecision, decimals, forma
     formatEntityAttributeValueToParts: () => [],
   };
   const tool = Object.create(StateTool.prototype);
+  tool.runtime = { state: '', uom: '' };
 
   tool.config = {
     format,
@@ -60,8 +61,8 @@ test('keeps Home Assistant precision when FHS has no decimal override', () => {
 
   tool.buildStateAndUom();
 
-  assert.equal(tool.state, '10,2');
-  assert.equal(tool.uom, '°C');
+  assert.equal(tool.runtime.state, '10,2');
+  assert.equal(tool.runtime.uom, '°C');
 });
 
 test('entity decimals override Home Assistant precision and retain trailing zero', () => {
@@ -81,8 +82,8 @@ test('entity decimals override Home Assistant precision and retain trailing zero
   trailingZero.buildStateAndUom();
   twoDecimals.buildStateAndUom();
 
-  assert.equal(trailingZero.state, '10,20');
-  assert.equal(twoDecimals.state, '10,22');
+  assert.equal(trailingZero.runtime.state, '10,20');
+  assert.equal(twoDecimals.runtime.state, '10,22');
 });
 
 test('format decimal bounds override entity decimals last', () => {
@@ -99,5 +100,5 @@ test('format decimal bounds override entity decimals last', () => {
 
   tool.buildStateAndUom();
 
-  assert.equal(tool.state, '10,2');
+  assert.equal(tool.runtime.state, '10,2');
 });

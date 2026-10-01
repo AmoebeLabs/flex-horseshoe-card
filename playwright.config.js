@@ -37,13 +37,19 @@ export default defineConfig({
         '**/theme-color-cache.browser.spec.js',
         '**/async-results.browser.spec.js',
         '**/config-ref.browser.spec.js',
+        '**/tool-geometry.browser.spec.js',
       ],
     },
     {
       name: 'firefox',
       // Firefox's timezone override accepts the canonical browser name UTC, not its Etc/UTC alias.
       use: { ...devices['Desktop Firefox'], viewport: { width: 800, height: 600 }, timezoneId: 'UTC' },
-      testMatch: ['**/svg-geometry.browser.spec.js', '**/sparkline-pointer.browser.spec.js', '**/config-ref.browser.spec.js'],
+      testMatch: [
+        '**/svg-geometry.browser.spec.js',
+        '**/sparkline-pointer.browser.spec.js',
+        '**/config-ref.browser.spec.js',
+        '**/tool-geometry.browser.spec.js',
+      ],
     },
   ],
 });

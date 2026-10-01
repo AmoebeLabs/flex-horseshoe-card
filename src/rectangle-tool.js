@@ -23,11 +23,6 @@ export default class RectangleTool extends BaseTool {
       ...config,
     };
 
-    if (rectangleConfig.fill_mask !== 'auto'
-      && (typeof rectangleConfig.fill_mask !== 'number' || rectangleConfig.fill_mask < 0)) {
-      throw new Error('[rectangles] fill_mask must be auto or a number equal to or greater than zero');
-    }
-
     // Referenced width and height use optional padding around the measured item.
     if (typeof rectangleConfig.width === 'object') {
       rectangleConfig.width = {
@@ -52,16 +47,41 @@ export default class RectangleTool extends BaseTool {
       };
     }
 
-    super(rectangleConfig, index, templates, cardId, card, 'rectangles', 'rectangles', undefined, { fill: true, stroke: false });
+    super(
+      rectangleConfig,
+      index,
+      templates,
+      cardId,
+      card,
+      'rectangles',
+      'rectangles',
+      undefined,
+      { fill: true, stroke: false },
+      RectangleTool.translateConfig,
+    );
 
-    this.config.svg = this.calculateSvgDimensions();
+    this.geometry = { svg: this.calculateSvgDimensions() };
+  }
+
+  /** Validates the evaluated public fill-mask setting before rendering.
+   *
+   * @param {object} config - Evaluated rectangle item config.
+   * @returns {object} Valid rectangle item config.
+   */
+  static translateConfig(config) {
+    if (config.fill_mask !== 'auto'
+      && (typeof config.fill_mask !== 'number' || config.fill_mask < 0)) {
+      throw new Error('[rectangles] fill_mask must be auto or a number equal to or greater than zero');
+    }
+
+    return config;
   }
 
   /** Updates rectangle configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
+    if (this.configurationChanged || this.groupChanged) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /**
@@ -117,7 +137,7 @@ export default class RectangleTool extends BaseTool {
    * @returns {string} SVG path data for the rounded rectangle.
    */
   buildRoundedRectanglePath() {
-    const dimensions = this.config.svg;
+    const dimensions = this.geometry.svg;
 
     return `
       M ${dimensions.x + dimensions.radiusTopLeft} ${dimensions.y}
@@ -141,7 +161,7 @@ export default class RectangleTool extends BaseTool {
   render() {
     // Text dimensions become exact after the preceding render. Recalculate the
     // path here so the correction render immediately uses the measured size.
-    this.config.svg = this.calculateSvgDimensions(this.config);
+    this.geometry.svg = this.calculateSvgDimensions(this.config);
 
     const rectangleStyles = {
       fill: 'var(--primary-background-color)',
@@ -185,10 +205,10 @@ export default class RectangleTool extends BaseTool {
             id=${maskId}
             maskUnits="userSpaceOnUse"
             maskContentUnits="userSpaceOnUse"
-            x=${this.config.svg.x - strokeWidth}
-            y=${this.config.svg.y - strokeWidth}
-            width=${this.config.svg.width + strokeWidth * 2}
-            height=${this.config.svg.height + strokeWidth * 2}
+            x=${this.geometry.svg.x - strokeWidth}
+            y=${this.geometry.svg.y - strokeWidth}
+            width=${this.geometry.svg.width + strokeWidth * 2}
+            height=${this.geometry.svg.height + strokeWidth * 2}
             style="mask-type:luminance"
           >
             <path

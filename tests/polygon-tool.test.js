@@ -34,8 +34,13 @@ test('PolygonTool uses the shared complete polygon path for width and height siz
     direction: 'clockwise',
   });
 
-  assert.equal(tool.pathDefinition.d, expected.d);
-  assert.equal(tool.pathDefinition.closed, true);
+  assert.equal(tool.geometry.svg.xpos, 100);
+  assert.equal(tool.geometry.svg.ypos, 100);
+  assert.equal(tool.geometry.pathDefinition.d, expected.d);
+  assert.equal(tool.geometry.pathDefinition.closed, true);
+  assert.equal(tool.config.svg, undefined);
+  assert.equal(tool.pathConfig, undefined);
+  assert.equal(tool.pathDefinition, undefined);
 });
 
 test('PolygonTool defaults odd polygons to a top corner and radius to no rounding', () => {
@@ -47,9 +52,13 @@ test('PolygonTool defaults odd polygons to a top corner and radius to no roundin
     height: 60,
   }, 0, templates, 'card', card);
 
-  assert.equal(tool.pathConfig.top, 0);
-  assert.equal(tool.pathConfig.radius, 0);
-  assert.match(tool.pathDefinition.d, /^M 100 40 /);
+  assert.equal(tool.geometry.pathInput.top, 0);
+  assert.equal(tool.geometry.pathInput.radius, 0);
+  assert.equal(tool.config.top, 0);
+  assert.equal(tool.sourceConfig.radius, 0);
+  assert.equal(tool.sourceConfig.fill_mask, 'auto');
+  assert.equal(tool.sourceConfig.top, undefined);
+  assert.match(tool.geometry.pathDefinition.d, /^M 100 40 /);
 });
 
 test('PolygonTool defaults even polygons to a flat top side', () => {
@@ -60,9 +69,10 @@ test('PolygonTool defaults even polygons to a flat top side', () => {
     width: 50,
     height: 40,
   }, 0, templates, 'card', card);
-  const [startX, startY, nextX, nextY] = tool.pathDefinition.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+  const [startX, startY, nextX, nextY] = tool.geometry.pathDefinition.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
 
-  assert.equal(tool.pathConfig.top, 0.5);
+  assert.equal(tool.geometry.pathInput.top, 0.5);
+  assert.equal(tool.config.top, 0.5);
   assert.deepEqual([startX, startY, nextX], [50, 60, 150]);
   assert.ok(Math.abs(nextY - 60) < 1e-10);
 });

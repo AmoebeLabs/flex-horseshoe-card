@@ -51,6 +51,19 @@ export default class LineTool extends BaseTool {
     };
   }
 
+  /** Validates the evaluated public line orientation before geometry is built.
+   *
+   * @param {object} config - Evaluated line item config.
+   * @returns {object} Valid line item config.
+   */
+  static translateConfig(config) {
+    if (!['horizontal', 'vertical', 'fromto'].includes(config.orientation)) {
+      throw Error(`LineTool::validateOrientation - invalid orientation '${config.orientation}' [horizontal, vertical, fromto]`);
+    }
+
+    return config;
+  }
+
   /**
    * Stores static line config and precomputes SVG coordinates.
    *
@@ -79,30 +92,18 @@ export default class LineTool extends BaseTool {
       lineConfig.animation_section,
       undefined,
       { fill: false, stroke: true },
+      LineTool.translateConfig,
     );
 
-    this.validateOrientation(this.config.orientation);
-    this.config.svg = this.calculateSvgDimensions();
+    this.geometry = { svg: this.calculateSvgDimensions() };
   }
 
   /** Updates line configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
 
-    if (this.configurationChanged) this.validateOrientation(this.config.orientation);
     if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
-    }
-  }
-
-  /**
-   * Validates the configured line orientation at config/runtime boundaries.
-   *
-   * @param {string} orientation - Line orientation from config.
-   */
-  validateOrientation(orientation) {
-    if (!['horizontal', 'vertical', 'fromto'].includes(orientation)) {
-      throw Error(`LineTool::validateOrientation - invalid orientation '${orientation}' [horizontal, vertical, fromto]`);
+      this.geometry.svg = this.calculateSvgDimensions(this.config);
     }
   }
 
@@ -186,10 +187,10 @@ export default class LineTool extends BaseTool {
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
           class="line-tool"
-          x1="${this.config.svg.x1}"
-          y1="${this.config.svg.y1}"
-          x2="${this.config.svg.x2}"
-          y2="${this.config.svg.y2}"
+          x1="${this.geometry.svg.x1}"
+          y1="${this.geometry.svg.y1}"
+          x2="${this.geometry.svg.x2}"
+          y2="${this.geometry.svg.y2}"
           style=${styleMap(this.getRenderStyles(styles))}
         ></line>
       </g>

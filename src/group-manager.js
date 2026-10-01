@@ -174,13 +174,14 @@ export default class GroupManager {
   /**
    * Builds the SVG style needed by the existing scale transform.
    *
-   * @param {object} item - Layout item with precomputed svg coordinates.
+   * @param {object} item - Layout item configuration.
+   * @param {object} svg - Tool-owned SVG coordinates used when the item itself is flipped.
    * @returns {string} SVG style value.
    */
-  getGroupScaleStyle(item) {
+  getGroupScaleStyle(item, svg = item.svg) {
     const group = this.getGroupForItem(item);
 
-    if (!group.scale) return `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px; transform-box:view-box;`;
+    if (!group.scale) return `transform-origin:${svg.xpos}px ${svg.ypos}px; transform-box:view-box;`;
 
     return `transform-origin:${group.svg.xpos}px ${group.svg.ypos}px; transform-box:view-box;`;
   }

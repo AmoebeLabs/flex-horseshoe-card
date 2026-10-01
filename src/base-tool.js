@@ -6,8 +6,9 @@ import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
- * Shared base for layout tools that own their static config, active runtime
- * config and entity state. The injected Templates instance supplies the
+ * Shared configuration and lifecycle for layout tools. Each tool keeps its
+ * derived geometry and displayed content separate from the current config.
+ * The injected Templates instance supplies the
  * persistent card-wide context shared by tools belonging to this card.
  */
 export default class BaseTool {
@@ -23,6 +24,7 @@ export default class BaseTool {
    * @param {string} zposSection - Layer bucket name for zpos defaults.
    * @param {number|undefined} defaultEntityIndex - Entity index selected by tools whose content is entity-bound by definition.
    * @param {object|undefined} colorStopPaintDefaults - Tool-specific fill and stroke defaults.
+   * @param {Function|undefined} translateConfig - Pure tool-specific normalization after source capture/evaluation.
    */
   constructor(
     config,
@@ -34,6 +36,7 @@ export default class BaseTool {
     zposSection = animationSection,
     defaultEntityIndex = undefined,
     colorStopPaintDefaults = undefined,
+    translateConfig = undefined,
   ) {
     this.id = config.id;
     this.index = index;
@@ -49,7 +52,10 @@ export default class BaseTool {
     // Keep the compiled source independent of geometry and paint added to the active config.
     this.sourceConfig = structuredClone(config);
     this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
-    this.config = config;
+    // The supplied function has no subclass instance to inspect. Initial config
+    // and later JS results therefore use the same rules without constructor dispatch.
+    this.translateConfig = translateConfig;
+    this.config = translateConfig ? translateConfig(config) : config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? defaultEntityIndex;
@@ -95,6 +101,12 @@ export default class BaseTool {
         this.configurationChanged = true;
         this.configChanged = true;
       }
+    }
+
+    // Reevaluate from source, not from last render's derived data. Static config
+    // was translated at construction and needs no second translation on first hass.
+    if (newConfig !== this.config && this.translateConfig) {
+      newConfig = this.translateConfig(newConfig);
     }
 
     // JavaScript may return the public color_stops shape; materialize it before publishing the active item.
@@ -244,7 +256,7 @@ export default class BaseTool {
    * @returns {object} Style dictionary ready for styleMap().
    */
   getStyles(baseStyles) {
-    const itemStyleDict = ConfigHelper.toStyleDict(this.config.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(this.paint?.styles ?? this.config.styles);
     const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
@@ -252,6 +264,19 @@ export default class BaseTool {
       ...itemStyleDict,
       ...animationStyle,
     };
+  }
+
+  /**
+   * Publishes the parent's complete presentation style map without changing config.
+   * Passing undefined restores the configured styles; callers retain their existing
+   * merge priority before publishing this replacement.
+   *
+   * @param {object|undefined} styles - Replacement styles, or undefined to clear them.
+   */
+  setPaintStyles(styles) {
+    this.paint ??= {};
+    if (styles === undefined) delete this.paint.styles;
+    else this.paint.styles = styles;
   }
 
   /**
@@ -359,7 +384,9 @@ export default class BaseTool {
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle(item = this.config) {
-    return this.card.cardLayout.getGroupScaleStyle(item);
+    // Migrated tools pass their geometry explicitly. The remaining families
+    // retain their existing SVG storage until their own migration plans.
+    return this.card.cardLayout.getGroupScaleStyle(item, this.geometry ? this.geometry.svg : item.svg);
   }
 
   /**

@@ -42,12 +42,6 @@ export default class CardLayout {
     this.viewBox.width = aspectRatioParts[0] * SVG_DEFAULT_DIMENSIONS;
     this.viewBox.height = aspectRatioParts[1] * SVG_DEFAULT_DIMENSIONS;
 
-    if (config.layout.icons) {
-      config.layout.icons.forEach((item) => {
-        item.svg = this.calculateSvgCoordinatesInGroup(item);
-      });
-    }
-
     if (horseshoes) {
       horseshoes.forEach((item) => {
         item.svg = this.calculateSvgCoordinatesInGroup(item);
@@ -117,8 +111,8 @@ export default class CardLayout {
   }
 
   /** Builds the transform-origin style for a scaled layout item. */
-  getGroupScaleStyle(item) {
-    return this.groupManager.getGroupScaleStyle(item);
+  getGroupScaleStyle(item, svg = item.svg) {
+    return this.groupManager.getGroupScaleStyle(item, svg);
   }
 
   /** Renders shared filters, gradients, masks, and clips inside the card SVG defs. */

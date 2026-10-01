@@ -1301,7 +1301,8 @@ test('CardLayout owns aspect ratio and group-based SVG coordinates', () => {
   cardLayout.setConfig(config);
 
   assert.deepEqual(cardLayout.viewBox, { width: 200, height: 400 });
-  assert.deepEqual(config.layout.icons[0].svg, { xpos: 120, ypos: 90 });
+  assert.equal(config.layout.icons[0].svg, undefined);
+  assert.deepEqual(cardLayout.calculateSvgCoordinatesInGroup(config.layout.icons[0]), { xpos: 120, ypos: 90 });
 });
 
 test('simple text, icon and control tools use the shared group coordinate calculation', () => {
