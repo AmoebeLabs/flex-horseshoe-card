@@ -1,154 +1,254 @@
 // control-toggle.js
 import { svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
-import { ref } from 'lit/directives/ref.js';
 import ControlBase from './control-base.js';
-import ConfigHelper from './config-helper.js';
 import IconTool from './icon-tool.js';
 import Merge from './merge.js';
 import Utils from './utils.js';
 import { SVG_VIEW_BOX } from './const.js';
 
-export default class ControlToggle extends ControlBase {
-  /**
-   * Stores static control config and creates control subtypes
-   *
-   * @param {object} config - Static control item config.
-   * @param {number} index - Control index inside layout.controls.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   */
+const DEFAULT_TOGGLE_CONFIG = {
+  orientation: 'horizontal',
+  show: {
+    item_variant: 'switch',
+    item_viz: 'default',
+    item_style: 'ha',
+  },
+  ha: {},
+  ios: {},
+  industrial: {},
+  tap_action: {
+    action: 'toggle',
+  },
+  track: {
+    width: 16,
+    height: 7,
+    radius: 3.5,
+  },
 
-  constructor(config, index, templates, cardId, card) {
-    const DEFAULT_TOGGLE_CONFIG = {
-      orientation: 'horizontal',
-      show: {
-        item_variant: 'switch',
-        item_viz: 'default',
-        item_style: 'ha',
-      },
-      ha: {},
-      ios: {},
-      industrial: {},
-      tap_action: {
-        action: 'toggle',
-      },
-      track: {
-        width: 16,
-        height: 7,
-        radius: 3.5,
-      },
+  thumb: {
+    width: 9,
+    height: 9,
+    radius: 4.5,
+    offset: 4.5,
+  },
 
-      thumb: {
-        width: 9,
-        height: 9,
-        radius: 4.5,
-        offset: 4.5,
+  content: {
+    mode: 'content_none',
+
+    content_icon: {
+      size: 75,
+      icon: {
+        // default icon config
       },
+    },
+  },
+};
 
-      content: {
-        mode: 'content_none',
-
-        content_icon: {
-          size: 75,
-          icon: {
-            // default icon config
-          },
-        },
-      },
-    };
-
-    const HORIZONTAL_TOGGLE_CONFIG = {
-      animation: {
-        duration: 250,
-        easing: 'ease-out',
-        states: {
-          on: {
-            track: {
-              styles: {
-                fill: 'var(--switch-checked-track-color)',
-                'pointer-events': 'auto',
-              },
-            },
-            thumb: {
-              fill: 'var(--switch-checked-button-color)',
-              transform: 'translateX(4.5em)',
-              'pointer-events': 'auto',
-            },
-          },
-          off: {
-            styles: {
-              track: {
-                fill: 'var(--switch-checked-track-color)',
-                'pointer-events': 'auto',
-              },
-              thumb: {
-                fill: 'var(--switch-checked-button-color)',
-                transform: 'translateX(4.5em)',
-                'pointer-events': 'auto',
-              },
-            },
-          },
-        },
-      },
-    };
-
-    const VERTICAL_TOGGLE_CONFIG = {
-      animation: {
-        duration: 250,
-        easing: 'ease-out',
-        on: {
-          track: {
-            styles: {
-              fill: 'var(--switch-checked-track-color)',
-              'pointer-events': 'auto',
-            },
-          },
-          thumb: {
-            fill: 'var(--switch-checked-button-color)',
-            transform: 'translateY(4.5em)',
+const HORIZONTAL_TOGGLE_CONFIG = {
+  animation: {
+    duration: 250,
+    easing: 'ease-out',
+    states: {
+      on: {
+        track: {
+          styles: {
+            fill: 'var(--switch-checked-track-color)',
             'pointer-events': 'auto',
           },
         },
-        off: {
-          styles: {
-            track: {
-              fill: 'var(--switch-checked-track-color)',
-              'pointer-events': 'auto',
-            },
-            thumb: {
-              fill: 'var(--switch-checked-button-color)',
-              transform: 'translateY(4.5em)',
-              'pointer-events': 'auto',
-            },
+        thumb: {
+          fill: 'var(--switch-checked-button-color)',
+          transform: 'translateX(4.5em)',
+          'pointer-events': 'auto',
+        },
+      },
+      off: {
+        styles: {
+          track: {
+            fill: 'var(--switch-checked-track-color)',
+            'pointer-events': 'auto',
+          },
+          thumb: {
+            fill: 'var(--switch-checked-button-color)',
+            transform: 'translateX(4.5em)',
+            'pointer-events': 'auto',
           },
         },
       },
-    };
+    },
+  },
+};
 
-    let toggleConfig;
-    switch (config.orientation) {
-      // eslint-disable-next-line default-case-last
-      default:
-      case 'horizontal':
-        toggleConfig = Merge.mergeDeep(DEFAULT_TOGGLE_CONFIG, HORIZONTAL_TOGGLE_CONFIG, config);
-        break;
-      case 'vertical':
-        toggleConfig = Merge.mergeDeep(DEFAULT_TOGGLE_CONFIG, VERTICAL_TOGGLE_CONFIG, config);
-        break;
+const VERTICAL_TOGGLE_CONFIG = {
+  animation: {
+    duration: 250,
+    easing: 'ease-out',
+    on: {
+      track: {
+        styles: {
+          fill: 'var(--switch-checked-track-color)',
+          'pointer-events': 'auto',
+        },
+      },
+      thumb: {
+        fill: 'var(--switch-checked-button-color)',
+        transform: 'translateY(4.5em)',
+        'pointer-events': 'auto',
+      },
+    },
+    off: {
+      styles: {
+        track: {
+          fill: 'var(--switch-checked-track-color)',
+          'pointer-events': 'auto',
+        },
+        thumb: {
+          fill: 'var(--switch-checked-button-color)',
+          transform: 'translateY(4.5em)',
+          'pointer-events': 'auto',
+        },
+      },
+    },
+  },
+};
+
+const SWITCH_STYLES = {
+  // === 1. IOS STYLE ===
+  ios: {
+    vbH: 26,
+    vbW: 50,
+    xOn: 26,
+    xOff: 2,
+    knobY: 2,
+    knobW: 22,
+    knobH: 22,
+    knobRx: 11,
+    trackY: 0,
+    trackH: 26,
+    trackRx: 13,
+    checked: {
+      track: { styles: { fill: '#34C759', opacity: '1.0' } },
+      thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+      icon: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+    },
+    unchecked: {
+      track: { styles: { fill: '#E9E9EA', opacity: '1.0' } },
+      thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
+      icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Keep the off-state icon visually secondary.
+    },
+  },
+
+  // === 2. HOME ASSISTANT STYLE ===
+  ha: {
+    vbH: 26,
+    vbW: 50,
+    xOn: 30,
+    xOff: 0,
+    knobY: 3,
+    knobW: 20,
+    knobH: 20,
+    knobRx: 10,
+    trackY: 6,
+    trackH: 14,
+    trackRx: 7,
+    shadow: {
+      x: '-20%',
+      y: '-20%',
+      width: '140%',
+      height: '140%',
+      dx: 0,
+      dy: 1,
+      stdDeviation: 1,
+      color: '#000000',
+      opacity: 0.2,
+    },
+    checked: {
+      track: { styles: { fill: 'var(--switch-checked-track-color, #4ad66d)' } },
+      thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)' } },
+      icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
+    },
+    unchecked: {
+      track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Dim the track in the off state.
+      thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)' } },
+      icon: { styles: { fill: '#757575', opacity: '0.5' } },
+    },
+  },
+
+  // === 3. INDUSTRIEEL RETRO STYLE ===
+  industrial: {
+    vbH: 26,
+    vbW: 50,
+    xOn: 26,
+    xOff: 2,
+    knobY: 2,
+    knobW: 22,
+    knobH: 22,
+    knobRx: 0,
+    trackY: 0,
+    trackH: 26,
+    trackRx: 0,
+    checked: {
+      track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // The checked outline reinforces the industrial state.
+      thumb: { styles: { fill: '#FFFFFF' } },
+      icon: { styles: { fill: '#D32F2F' } },
+    },
+    unchecked: {
+      track: { styles: { fill: '#212121' } },
+      thumb: { styles: { fill: '#B0BEC5' } },
+      icon: { styles: { fill: '#455A64' } },
+    },
+  },
+};
+
+
+/** Native switch presets with ordinary IconTool content in the moving thumb. */
+export default class ControlToggle extends ControlBase {
+  /**
+   * Completes orientation defaults, then the selected native switch preset.
+   * Toggle templates keep their existing pre-preset item context.
+   */
+  static translateConfig(config, forTemplateContext = false) {
+    const selectedConfig = Merge.mergeDeep(DEFAULT_TOGGLE_CONFIG, config);
+    const orientationConfig = selectedConfig.orientation === 'vertical'
+      ? VERTICAL_TOGGLE_CONFIG : HORIZONTAL_TOGGLE_CONFIG;
+    const toggleConfig = Merge.mergeDeep(DEFAULT_TOGGLE_CONFIG, orientationConfig, config);
+    if (forTemplateContext) return toggleConfig;
+
+    if (!['horizontal', 'vertical'].includes(toggleConfig.orientation)) {
+      throw Error(`ToggleTool::validateOrientation - invalid orientation '${toggleConfig.orientation}' [horizontal, vertical]`);
     }
+    if (toggleConfig.show.item_variant !== 'switch') {
+      throw Error(`[controls] Invalid toggle item_variant '${toggleConfig.show.item_variant}' [switch]`);
+    }
+    if (toggleConfig.show.item_viz !== 'default') {
+      throw Error(`[controls] Invalid toggle item_viz '${toggleConfig.show.item_viz}' [default]`);
+    }
+    if (!Object.hasOwn(SWITCH_STYLES, toggleConfig.show.item_style)) {
+      throw Error(`[controls] Invalid toggle item_style '${toggleConfig.show.item_style}' [${Object.keys(SWITCH_STYLES).join(', ')}]`);
+    }
+    const styleName = toggleConfig.show.item_style;
+    toggleConfig[styleName] = Merge.mergeDeep(SWITCH_STYLES[styleName], toggleConfig[styleName]);
+    return toggleConfig;
+  }
 
-    super(toggleConfig, index, templates, cardId, card);
-    this.validateOrientation(this.config.orientation);
-    this.config = this.buildConfig(this.config);
-    this.config.svg = this.calculateSvgDimensions();
+  /** Captures source and leaves dynamic geometry/children to the first publication. */
+  constructor(config, index, templates, cardId, card) {
+    super(Merge.mergeDeep({
+      orientation: DEFAULT_TOGGLE_CONFIG.orientation,
+      show: DEFAULT_TOGGLE_CONFIG.show,
+    }, config), index, templates, cardId, card, ControlToggle.translateConfig);
+    this.geometry = {};
+    this.shadowFilterId = `${this.cardId}-${this.id}-toggle-shadow`;
     this.iconTool = undefined;
-    this.createThumbIconTool();
-    this.createControlLabelTextTool(
-      this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
-      this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_style].svgVbH) / this.config[this.config.show.item_style].svgVbW,
-    );
+    if (!this.hasJavascript) {
+      this.geometry = this.calculateToggleGeometry();
+      this.createThumbIconTool();
+      this.createControlLabelTextTool(
+        this.geometry.svg.width * 100 / SVG_VIEW_BOX,
+        this.geometry.svg.height * 100 / SVG_VIEW_BOX,
+      );
+    }
   }
 
   /**
@@ -193,211 +293,44 @@ export default class ControlToggle extends ControlBase {
   }
 
   /**
-   * Validates the toggle variant and completes the selected visual preset.
-   * The resulting config contains orientation-specific track, thumb and icon
-   * geometry so runtime state changes only select the prepared on/off branch.
-   *
-   * @param {object} config - Merged toggle configuration.
-   * @returns {object} Completed toggle configuration.
+   * Calculates native track/thumb coordinates and the grouped SVG placement.
+   * Checked/unchecked styles stay in config; state only selects their positions.
    */
-  buildConfig(config) {
-    const SWITCH_STYLES = {
-      // === 1. IOS STYLE ===
-      ios: {
-        vbH: 26,
-        vbW: 50,
-        xOn: 26,
-        xOff: 2,
-        knobY: 2,
-        knobW: 22,
-        knobH: 22,
-        knobRx: 11,
-        trackY: 0,
-        trackH: 26,
-        trackRx: 13,
-        checked: {
-          track: { styles: { fill: '#34C759', opacity: '1.0' } },
-          thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-          icon: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-        },
-        unchecked: {
-          track: { styles: { fill: '#E9E9EA', opacity: '1.0' } },
-          thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-          icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Keep the off-state icon visually secondary.
-        },
-      },
-
-      // === 2. HOME ASSISTANT STYLE ===
-      ha: {
-        vbH: 26,
-        vbW: 50,
-        xOn: 30,
-        xOff: 0,
-        knobY: 3,
-        knobW: 20,
-        knobH: 20,
-        knobRx: 10,
-        trackY: 6,
-        trackH: 14,
-        trackRx: 7,
-        shadow: {
-          x: '-20%',
-          y: '-20%',
-          width: '140%',
-          height: '140%',
-          dx: 0,
-          dy: 1,
-          stdDeviation: 1,
-          color: '#000000',
-          opacity: 0.2,
-        },
-        checked: {
-          track: { styles: { fill: 'var(--switch-checked-track-color, #4ad66d)' } },
-          thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)' } },
-          icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
-        },
-        unchecked: {
-          track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Dim the track in the off state.
-          thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)' } },
-          icon: { styles: { fill: '#757575', opacity: '0.5' } },
-        },
-      },
-
-      // === 3. INDUSTRIEEL RETRO STYLE ===
-      industrial: {
-        vbH: 26,
-        vbW: 50,
-        xOn: 26,
-        xOff: 2,
-        knobY: 2,
-        knobW: 22,
-        knobH: 22,
-        knobRx: 0,
-        trackY: 0,
-        trackH: 26,
-        trackRx: 0,
-        checked: {
-          track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // The checked outline reinforces the industrial state.
-          thumb: { styles: { fill: '#FFFFFF' } },
-          icon: { styles: { fill: '#D32F2F' } },
-        },
-        unchecked: {
-          track: { styles: { fill: '#212121' } },
-          thumb: { styles: { fill: '#B0BEC5' } },
-          icon: { styles: { fill: '#455A64' } },
-        },
-      },
+  calculateToggleGeometry() {
+    const viz = this.config[this.config.show.item_style];
+    const vertical = this.config.orientation === 'vertical';
+    return {
+      svg: this.calculateSvgDimensions(),
+      svgVbW: vertical ? viz.vbH : viz.vbW,
+      svgVbH: vertical ? viz.vbW : viz.vbH,
+      renderTrackX: vertical ? viz.trackY : 0,
+      renderTrackY: vertical ? 0 : viz.trackY,
+      renderTrackWidth: vertical ? viz.trackH : viz.vbW,
+      renderTrackHeight: vertical ? viz.vbW : viz.trackH,
+      on: { knobX: vertical ? viz.knobY : viz.xOn, knobY: vertical ? viz.xOn : viz.knobY },
+      off: { knobX: vertical ? viz.knobY : viz.xOff, knobY: vertical ? viz.xOff : viz.knobY },
     };
-
-    if (config.show.item_variant !== 'switch') {
-      throw Error(`[controls] Invalid toggle item_variant '${config.show.item_variant}' [switch]`);
-    }
-    if (config.show.item_viz !== 'default') {
-      throw Error(`[controls] Invalid toggle item_viz '${config.show.item_viz}' [default]`);
-    }
-    if (!Object.hasOwn(SWITCH_STYLES, config.show.item_style)) {
-      throw Error(`[controls] Invalid toggle item_style '${config.show.item_style}' [${Object.keys(SWITCH_STYLES).join(', ')}]`);
-    }
-
-    const styleName = config.show.item_style;
-    const isVertical = config.orientation === 'vertical';
-
-    // The selected internal style is completed first; explicit YAML remains final.
-    config[styleName] = Merge.mergeDeep(SWITCH_STYLES[styleName], config[styleName]);
-
-    // Calculate the selected style geometry once before rendering.
-    const posStatic = config[styleName].knobY;
-    const trackW = isVertical ? config[styleName].trackH : config[styleName].vbW;
-    const trackH = isVertical ? config[styleName].vbW : config[styleName].trackH;
-
-    // Store completed geometry and state styles in the active style config.
-    if (config[styleName].shadow !== undefined) {
-      config[styleName].shadow.id = `${this.cardId}-${this.id}-toggle-shadow`;
-      const shadowFilter = { filter: `url(#${config[styleName].shadow.id})` };
-
-      config[styleName].checked.thumb.styles = Merge.mergeDeep(config[styleName].checked.thumb.styles, shadowFilter);
-      config[styleName].unchecked.thumb.styles = Merge.mergeDeep(config[styleName].unchecked.thumb.styles, shadowFilter);
-    }
-    config[styleName].svgVbW = isVertical ? config[styleName].vbH : config[styleName].vbW;
-    config[styleName].svgVbH = isVertical ? config[styleName].vbW : config[styleName].vbH;
-
-    config[styleName].renderTrackX = isVertical ? config[styleName].trackY : 0;
-    config[styleName].renderTrackY = isVertical ? 0 : config[styleName].trackY;
-    config[styleName].renderTrackWidth = trackW;
-    config[styleName].renderTrackHeight = trackH;
-
-    config[styleName].on = {
-      knobX: isVertical ? posStatic : config[styleName].xOn,
-      knobY: isVertical ? config[styleName].xOn : posStatic,
-      trackStyles: config[styleName].checked.track.styles,
-      thumbStyles: config[styleName].checked.thumb.styles,
-      iconStyles: config[styleName].checked.icon.styles,
-    };
-
-    config[styleName].off = {
-      knobX: isVertical ? posStatic : config[styleName].xOff,
-      knobY: isVertical ? config[styleName].xOff : posStatic,
-      trackStyles: config[styleName].unchecked.track.styles,
-      thumbStyles: config[styleName].unchecked.thumb.styles,
-      iconStyles: config[styleName].unchecked.icon.styles,
-    };
-
-    if (config[styleName].icon) {
-      // Keep the icon inside the thumb while preserving its 24-unit source grid.
-      const iconCoverage = 0.65;
-
-      const iconScale = (config[styleName].knobW * iconCoverage) / 24;
-
-      // Translation happens in the icon's unscaled coordinate system.
-      const iconTranslateX = (config[styleName].knobW - 24 * iconScale) / 2 / iconScale;
-      const iconTranslateY = (config[styleName].knobH - 24 * iconScale) / 2 / iconScale;
-
-      config[styleName].iconTransform = `scale(${iconScale}) translate(${iconTranslateX} ${iconTranslateY})`;
-    } else {
-      config[styleName].iconTransform = '';
-    }
-    return config;
   }
 
-  /**
-   * Validates the configured toggle orientation at config/runtime boundaries.
-   *
-   * @param {string} orientation - Line orientation from config.
-   */
-  validateOrientation(orientation) {
-    if (!['horizontal', 'vertical'].includes(orientation)) {
-      throw Error(`ToggleTool::validateOrientation - invalid orientation '${orientation}' [horizontal, vertical]`);
-    }
-  }
-
-  /** Updates toggle configuration and geometry before entity data is assigned. */
+  /** Rebuilds geometry/children for structural changes; otherwise updates retained child config. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
-
-    // Static presets were completed in the constructor. JavaScript can change
-    // the selected style later; group and theme changes cannot.
-    if (this.configurationChanged && this.hasJavascript) {
-      this.config = this.buildConfig(this.config);
-      this.validateOrientation(this.config.orientation);
-    }
-
     if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
+      this.geometry = this.calculateToggleGeometry();
       this.createThumbIconTool();
       this.createControlLabelTextTool(
-        this.config.orientation === 'vertical' ? (this.config.width * this.config[this.config.show.item_style].svgVbW) / this.config[this.config.show.item_style].svgVbH : this.config.width,
-        this.config.orientation === 'vertical' ? this.config.width : (this.config.width * this.config[this.config.show.item_style].svgVbH) / this.config[this.config.show.item_style].svgVbW,
+        this.geometry.svg.width * 100 / SVG_VIEW_BOX,
+        this.geometry.svg.height * 100 / SVG_VIEW_BOX,
       );
-    } else if (this.themeModeChanged && this.iconTool) {
-      this.iconTool.updateRuntimeConfig();
     }
+    if (this.iconTool) this.iconTool.updateRuntimeConfig();
   }
 
   /** Publishes the toggle entity to the internal IconTool. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    if (this.config.content.mode === 'content_icon') {
+    if (this.iconTool) {
       this.iconTool.setState(entity, entityConfig);
     }
   }
@@ -405,14 +338,14 @@ export default class ControlToggle extends ControlBase {
   /** Includes the selected on/off appearance and optional thumb icon. */
   hasPresentationChanged() {
     const changed = super.hasPresentationChanged(this.runtime.entity.state === 'on');
-    const iconChanged = this.config.content.mode === 'content_icon' && this.iconTool.hasPresentationChanged();
+    const iconChanged = this.iconTool && this.iconTool.hasPresentationChanged();
     return changed || iconChanged;
   }
 
   /** Runs the normal IconTool post-render lifecycle. */
   updated() {
     super.updated();
-    if (this.config.content.mode === 'content_icon') {
+    if (this.iconTool) {
       this.iconTool.updated();
     }
   }
@@ -428,9 +361,11 @@ export default class ControlToggle extends ControlBase {
     const svgDimensions = this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
     const viz = config[config.show.item_style];
 
+    const svgVbW = config.orientation === 'vertical' ? viz.vbH : viz.vbW;
+    const svgVbH = config.orientation === 'vertical' ? viz.vbW : viz.vbH;
     const configuredSize = Utils.calculateSvgDimension(config.width);
-    svgDimensions.width = config.orientation === 'vertical' ? (configuredSize * viz.svgVbW) / viz.svgVbH : configuredSize;
-    svgDimensions.height = config.orientation === 'vertical' ? configuredSize : (configuredSize * viz.svgVbH) / viz.svgVbW;
+    svgDimensions.width = config.orientation === 'vertical' ? (configuredSize * svgVbW) / svgVbH : configuredSize;
+    svgDimensions.height = config.orientation === 'vertical' ? configuredSize : (configuredSize * svgVbH) / svgVbW;
     svgDimensions.x = svgDimensions.xpos - svgDimensions.width / 2;
     svgDimensions.y = svgDimensions.ypos - svgDimensions.height / 2;
 
@@ -440,20 +375,24 @@ export default class ControlToggle extends ControlBase {
   /** Builds the native-viewBox track, thumb and optional icon for the current state. */
   _renderToggle() {
     const styleName = this.config.show.item_style;
-    const itemConfig = this.config;
+    const geometry = this.geometry;
     const isOn = this.runtime.entity.state === 'on';
     const viz = this.config[styleName];
-    const runtime = isOn ? viz.on : viz.off;
+    const position = isOn ? geometry.on : geometry.off;
+    const visualState = isOn ? viz.checked : viz.unchecked;
     const transition = `${this.config.animation.duration}ms ${this.config.animation.easing}`;
 
     const trackStyles = this.getStyles(
-      Merge.mergeDeep({}, runtime.trackStyles, {
+      Merge.mergeDeep({}, visualState.track.styles, {
         transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,
       }),
     );
-    const knobStyles = this.getStyles(runtime.thumbStyles);
+    const knobStyles = this.getStyles(Merge.mergeDeep(
+      visualState.thumb.styles,
+      viz.shadow === undefined ? {} : { filter: `url(#${this.shadowFilterId})` },
+    ));
     const thumbPositionStyles = {
-      transform: `translate(${runtime.knobX}px, ${runtime.knobY}px)`,
+      transform: `translate(${position.knobX}px, ${position.knobY}px)`,
       transition: `transform ${transition}`,
       'pointer-events': 'none',
     };
@@ -466,22 +405,22 @@ export default class ControlToggle extends ControlBase {
       >
         <g class="toggle-style-animation">
           <svg
-            x="${itemConfig.svg.x}"
-            y="${itemConfig.svg.y}"
-            width="${itemConfig.svg.width}"
-            height="${itemConfig.svg.height}"
-            viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}"
+            x="${geometry.svg.x}"
+            y="${geometry.svg.y}"
+            width="${geometry.svg.width}"
+            height="${geometry.svg.height}"
+            viewBox="0 0 ${geometry.svgVbW} ${geometry.svgVbH}"
             style="overflow: visible;"
           >
           <g class="toggle-scale">
-            <svg viewBox="0 0 ${viz.svgVbW} ${viz.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
+            <svg viewBox="0 0 ${geometry.svgVbW} ${geometry.svgVbH}" style="width: 100%; height: auto; display: block; overflow: visible;">
 
               ${
                 viz.shadow !== undefined
                   ? svg`
                 <defs>
                   <filter
-                    id="${viz.shadow.id}"
+                    id="${this.shadowFilterId}"
                     x="${viz.shadow.x}"
                     y="${viz.shadow.y}"
                     width="${viz.shadow.width}"
@@ -504,8 +443,8 @@ export default class ControlToggle extends ControlBase {
 
               <!-- De Track -->
               <rect
-                x="${viz.renderTrackX}" y="${viz.renderTrackY}"
-                width="${viz.renderTrackWidth}" height="${viz.renderTrackHeight}"
+                x="${geometry.renderTrackX}" y="${geometry.renderTrackY}"
+                width="${geometry.renderTrackWidth}" height="${geometry.renderTrackHeight}"
                 rx="${viz.trackRx}"
                 style=${styleMap(trackStyles)}
               />
@@ -538,6 +477,7 @@ export default class ControlToggle extends ControlBase {
 
   /** Renders the prepared toggle visualization inside the shared control shell. */
   render() {
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
     const toggle = svg`
       <g
         transform="${this.getGroupScaleTransform()}"

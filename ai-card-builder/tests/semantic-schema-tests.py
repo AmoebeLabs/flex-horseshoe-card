@@ -62,6 +62,63 @@ valid_card = {
 errors = list(validator.iter_errors(valid_card))
 assert not errors, "Valid discriminator/dynamic fixture failed:\n" + "\n".join(e.message for e in errors)
 
+# Ordinary Control selectors and complete action/style values may be JavaScript
+# when they return values accepted by the corresponding static configuration.
+control_javascript_cases = (
+    ("toggle", {
+        "item_variant": "[[[ return 'switch'; ]]]",
+        "item_viz": "[[[ return 'default'; ]]]",
+        "item_style": "[[[ return 'ha'; ]]]",
+    }),
+    ("select", {
+        "item_variant": "[[[ return 'segmented'; ]]]",
+        "item_viz": "[[[ return 'viz_line'; ]]]",
+        "item_style": "[[[ return 'outlined_round'; ]]]",
+    }),
+    ("number", {
+        "item_variant": "[[[ return 'stepper'; ]]]",
+        "item_viz": "[[[ return 'buttons'; ]]]",
+        "item_style": "[[[ return 'filled_square'; ]]]",
+    }),
+    ("button", "[[[ return { item_variant: 'default', item_viz: 'viz_button' }; ]]]"),
+    ("slider", {
+        "item_variant": "[[[ return 'single'; ]]]",
+        "item_viz": "[[[ return 'linear'; ]]]",
+        "item_style": "[[[ return 'ha'; ]]]",
+    }),
+)
+for control_type, show_value in control_javascript_cases:
+    control_card = {
+        "type": "custom:flex-horseshoe-card",
+        "layout": {
+            "controls": [{
+                "type": control_type,
+                "show": show_value,
+                "tap_action": "[[[ return { action: 'none' }; ]]]",
+                "hold_action": "[[[ return { action: 'more-info' }; ]]]",
+                "double_tap_action": "[[[ return { action: 'toggle' }; ]]]",
+                "label": {
+                    "text": "Control label",
+                    "styles": "[[[ return { color: 'var(--primary-text-color)' }; ]]]",
+                },
+            }],
+        },
+    }
+    control_errors = list(validator.iter_errors(control_card))
+    assert not control_errors, (
+        f"JavaScript Control values rejected for {control_type}:\n"
+        + "\n".join(e.message for e in control_errors)
+    )
+
+for control_type in ("toggle", "select", "number", "button", "slider"):
+    dynamic_type_card = {
+        "type": "custom:flex-horseshoe-card",
+        "layout": {"controls": [{"type": f"[[[ return '{control_type}'; ]]]"}]},
+    }
+    assert list(validator.iter_errors(dynamic_type_card)), (
+        f"JavaScript type must be rejected for {control_type}; type is the static discriminator"
+    )
+
 
 # FHS boolean semantics: booleans may be represented as true/false or numeric 0/1.
 for boolean_value in (True, False, 0, 1, "ref(flag)", "calc(1)", "[[[ return 1; ]]]"):

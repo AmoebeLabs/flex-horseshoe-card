@@ -57,7 +57,7 @@ export default class Templates {
 
   /** Evaluates a config value exclusively with this card evaluator context. */
   getJsTemplateOrValue(item, value, options = {}) {
-    return this._getJsTemplateOrValue(item, value, options, 0);
+    return this._getJsTemplateOrValue(item, value, options, 0, []);
   }
 
   /**
@@ -133,8 +133,12 @@ export default class Templates {
    * @returns {*} The resolved value, preserving null, undefined, and non-string primitives.
    */
 
-  _getJsTemplateOrValue(item, value, options, depth) {
+  _getJsTemplateOrValue(item, value, options, depth, path) {
     const { resolveKeys = true, maxDepth = 10 } = options;
+
+    // Composite tools preserve child-owned fields until the child evaluates its
+    // own item context. Other template users keep the existing recursive route.
+    if (options.preserve?.(path)) return value;
 
     if (depth >= maxDepth) return value;
 
@@ -145,15 +149,15 @@ export default class Templates {
     }
 
     if (Array.isArray(value)) {
-      return value.map((entry) => this._getJsTemplateOrValue(item, entry, options, depth));
+      return value.map((entry, index) => this._getJsTemplateOrValue(item, entry, options, depth, options.preserve ? [...path, index] : path));
     }
 
     if (Templates.isPlainObject(value)) {
       return Object.fromEntries(
         Object.entries(value).map(([key, entryValue]) => {
-          const resolvedKey = resolveKeys ? this._getJsTemplateOrValue(item, key, options, depth) : key;
+          const resolvedKey = resolveKeys ? this._getJsTemplateOrValue(item, key, options, depth, options.preserve ? [...path, '$key'] : path) : key;
 
-          const resolvedValue = this._getJsTemplateOrValue(item, entryValue, options, depth);
+          const resolvedValue = this._getJsTemplateOrValue(item, entryValue, options, depth, options.preserve ? [...path, String(resolvedKey)] : path);
 
           return [String(resolvedKey), resolvedValue];
         }),
@@ -168,7 +172,7 @@ export default class Templates {
 
     const evaluatedValue = this.evaluateJsTemplate(item, Templates.extractJsTemplateCode(trimmedValue));
 
-    return this._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1);
+    return this._getJsTemplateOrValue(item, evaluatedValue, options, depth + 1, path);
   }
 
   /**

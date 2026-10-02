@@ -4,13 +4,6 @@ import ControlSelect from './control-select.js';
 import ControlSlider from './control-slider.js';
 import ControlToggle from './control-toggle.js';
 
-// const CONTROL_TYPES = {
-//   toggle: ToggleControl,
-//   select: SelectControl,
-//   number: NumberControl,
-//   button: ButtonControl,
-// };
-
 /**
  * Layout control tool that renders the configured control subtypes.
  */
@@ -42,11 +35,8 @@ export default class ControlTool {
    * @param {object} templates - Template resolver shared with the card.
    * @param {string} cardId - Stable card id for generated SVG ids.
    * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @returns {Array<ControlTool>} Configured control tool (just one!!).
+   * @returns {Array<ControlBase>} Configured subtype instances.
    */
-  // static setConfig(config, templates, cardId, card) {
-  //   return [new ControlTool(config.layout.controls, 0, templates, cardId, card)];
-
   static setConfig(config, templates, cardId, card) {
     if (config.layout.controls === undefined) return [];
 
@@ -73,43 +63,4 @@ export default class ControlTool {
     });
   }
 
-  /**
-   * Stores static control config and creates control subtypes
-   *
-   * @param {object} config - Static control item config.
-   * @param {number} index - Control index inside layout.controls.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   */
-  // constructor(controls, index, templates, cardId, card) {
-  //   super(controls, index, templates, cardId, card);
-
-  //   this.controls = controls.map((control, controlIndex) => {
-  //     switch (control.type) {
-  //       case 'button':
-  //         return new ControlButton(control, controlIndex, templates, cardId, card);
-
-  //       case 'number':
-  //         return new ControlNumber(control, controlIndex, templates, cardId, card);
-
-  //       case 'select':
-  //         return new ControlSelect(control, controlIndex, templates, cardId, card);
-
-  //       case 'toggle':
-  //         return new ControlToggle(control, controlIndex, templates, cardId, card);
-
-  //       default:
-  //         throw new Error(`[ControlTool] Unknown control type: ${control.type}`);
-  //     }
-  //   });
-  // }
-
-  // render() {
-  //   return svg`
-  //     <g class="controls">
-  //       ${this.controls.map((control) => control.render())}
-  //     </g>
-  //   `;
-  // }
 }

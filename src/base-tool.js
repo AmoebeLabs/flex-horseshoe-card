@@ -58,7 +58,7 @@ export default class BaseTool {
     this.config = translateConfig && !this.hasJavascript ? translateConfig(config) : config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
-    this.entity_index = config.entity_index ?? defaultEntityIndex;
+    this.entity_index = this.config.entity_index ?? defaultEntityIndex;
     this.defaultEntityIndex = defaultEntityIndex;
     this.colorStopPaintDefaults = colorStopPaintDefaults;
 
@@ -76,7 +76,7 @@ export default class BaseTool {
    * Updates the runtime configuration after main has published the current
    * Home Assistant template context and before entity data is assigned.
    */
-  updateRuntimeConfig(sourceConfig = this.sourceConfig) {
+  updateRuntimeConfig(sourceConfig = this.sourceConfig, templateOptions = { resolveKeys: true }) {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configurationChanged = !this.activeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
@@ -88,9 +88,7 @@ export default class BaseTool {
     // a new local config during the same hass updates as before.
     let newConfig = this.config;
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      const evaluatedConfig = this.templates.getJsTemplateOrValue(sourceConfig, sourceConfig, {
-        resolveKeys: true,
-      });
+      const evaluatedConfig = this.templates.getJsTemplateOrValue(sourceConfig, sourceConfig, templateOptions);
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
 
       // Keep the current active object when JavaScript produced the same config. Tool-specific

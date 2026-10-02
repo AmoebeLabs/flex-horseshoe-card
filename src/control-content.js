@@ -3,6 +3,7 @@ import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import IconTool from './icon-tool.js';
 import TextTool from './text-tool.js';
+import Templates from './templates.js';
 import LineTool from './line-tool.js';
 import CircleTool from './circle-tool.js';
 import HorseshoeGauge from './horseshoe-gauge.js';
@@ -29,14 +30,13 @@ export default class ControlContent {
    * @param {object} card - Parent card instance.
    */
   constructor(contentConfig, direction, bounds, itemOverrides, parentEntityIndex, instanceId, templates, cardId, card) {
-    this.contentConfig = contentConfig;
+    this.config = contentConfig;
     this.direction = direction;
-    this.bounds = bounds;
+    this.geometry = { bounds, vertical: direction === 'vertical' };
     this.instanceId = instanceId;
     this.templates = templates;
     this.cardId = cardId;
     this.card = card;
-    this.vertical = direction === 'vertical';
     this.childTools = [];
     this.contentConnected = false;
     this.contentDisconnected = false;
@@ -46,7 +46,7 @@ export default class ControlContent {
     // consumes explicit edges and therefore performs no fallback decisions.
     const sourcePadding = contentConfig.padding;
     if (typeof sourcePadding === 'number') {
-      this.padding = {
+      this.geometry.padding = {
         top: sourcePadding,
         right: sourcePadding,
         bottom: sourcePadding,
@@ -55,7 +55,7 @@ export default class ControlContent {
     } else {
       const paddingTop = typeof sourcePadding.y === 'object' ? sourcePadding.y.top : sourcePadding.y;
       const paddingBottom = typeof sourcePadding.y === 'object' ? sourcePadding.y.bottom : sourcePadding.y;
-      this.padding = {
+      this.geometry.padding = {
         top: sourcePadding.top ?? paddingTop ?? 0,
         right: sourcePadding.right ?? sourcePadding.x ?? 0,
         bottom: sourcePadding.bottom ?? paddingBottom ?? 0,
@@ -67,7 +67,7 @@ export default class ControlContent {
     // override it, and the option-specific dictionary has final authority by id.
     // Validation belongs here because this constructor is the config boundary.
     const itemIds = new Set();
-    this.items = contentConfig.items.map((sourceItem, itemIndex) => {
+    this.geometry.items = contentConfig.items.map((sourceItem, itemIndex) => {
       if (sourceItem.id === undefined) throw Error(`[controls] Content item ${itemIndex} requires an id`);
       if (itemIds.has(sourceItem.id)) throw Error(`[controls] Duplicate content item id '${sourceItem.id}'`);
       if (!VISUAL_ITEM_TYPES.includes(sourceItem.type)) {
@@ -113,24 +113,24 @@ export default class ControlContent {
     this.childTools.forEach((child) => child.tool.disconnected());
     // Convert the parent-owned center and dimensions into the inner content box.
     // Child tools receive final card coordinates, not local percentages.
-    const contentX = this.bounds.xpos - this.bounds.width / 2 + this.padding.left;
-    const contentY = this.bounds.ypos - this.bounds.height / 2 + this.padding.top;
-    const contentWidth = this.bounds.width - this.padding.left - this.padding.right;
-    const contentHeight = this.bounds.height - this.padding.top - this.padding.bottom;
-    const mainLength = this.vertical ? contentHeight : contentWidth;
-    const cellLength = (mainLength - this.contentConfig.gap * (this.items.length - 1)) / this.items.length;
+    const contentX = this.geometry.bounds.xpos - this.geometry.bounds.width / 2 + this.geometry.padding.left;
+    const contentY = this.geometry.bounds.ypos - this.geometry.bounds.height / 2 + this.geometry.padding.top;
+    const contentWidth = this.geometry.bounds.width - this.geometry.padding.left - this.geometry.padding.right;
+    const contentHeight = this.geometry.bounds.height - this.geometry.padding.top - this.geometry.padding.bottom;
+    const mainLength = this.geometry.vertical ? contentHeight : contentWidth;
+    const cellLength = (mainLength - this.config.gap * (this.geometry.items.length - 1)) / this.geometry.items.length;
 
     // Divide only the main axis. Every item gets the full cross-axis space and
     // can refine its own cell with non-collapsing margins.
-    this.childTools = this.items.map((item, itemIndex) => {
-      const cellX = this.vertical
+    this.childTools = this.geometry.items.map((item, itemIndex) => {
+      const cellX = this.geometry.vertical
         ? contentX
-        : contentX + itemIndex * (cellLength + this.contentConfig.gap);
-      const cellY = this.vertical
-        ? contentY + itemIndex * (cellLength + this.contentConfig.gap)
+        : contentX + itemIndex * (cellLength + this.config.gap);
+      const cellY = this.geometry.vertical
+        ? contentY + itemIndex * (cellLength + this.config.gap)
         : contentY;
-      const cellWidth = this.vertical ? contentWidth : cellLength;
-      const cellHeight = this.vertical ? cellLength : contentHeight;
+      const cellWidth = this.geometry.vertical ? contentWidth : cellLength;
+      const cellHeight = this.geometry.vertical ? cellLength : contentHeight;
       const itemX = cellX + item.margin.left;
       const itemY = cellY + item.margin.top;
       const itemWidth = cellWidth - item.margin.left - item.margin.right;
@@ -146,14 +146,15 @@ export default class ControlContent {
         item,
         {
           id: childId,
-          group: this.bounds.group,
+          group: this.geometry.bounds.group,
           xpos,
           ypos: yposc,
           yposc,
           tap_action: { action: 'none' },
           hold_action: { action: 'none' },
           double_tap_action: { action: 'none' },
-          styles: Merge.mergeDeep(
+          // Whole style templates belong to the generated child's evaluation.
+          styles: Templates.isJsTemplate(item.styles) ? item.styles : Merge.mergeDeep(
             ConfigHelper.toStyleDict(item.styles),
             { 'pointer-events': 'none' },
           ),
@@ -240,7 +241,6 @@ export default class ControlContent {
       return {
         id: item.id,
         type: TEXT_SOURCE_ITEM_TYPES.includes(item.type) ? 'text' : item.type,
-        baseStyles: ConfigHelper.toStyleDict(tool.config.styles),
         tool,
       };
     });
@@ -267,11 +267,11 @@ export default class ControlContent {
     // visualizations retain their own styles and color-stop state at all times.
     this.childTools.forEach((child) => {
       if (child.type === 'icon' || child.type === 'text') {
-        child.tool.config.styles = Merge.mergeDeep(
+        child.tool.setPaintStyles(Merge.mergeDeep(
           ConfigHelper.toStyleDict(visualState[child.type].styles),
-          child.baseStyles,
-          { transition: `fill ${transition}, color ${transition}, opacity ${transition}` },
-        );
+          ConfigHelper.toStyleDict(child.tool.config.styles),
+          { transition: `fill ${transition}, color ${transition}, opacity ${transition}`, 'pointer-events': 'none' },
+        ));
       }
       this.card.cardTools.setToolEntityState(
         child.tool,

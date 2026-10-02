@@ -2,6 +2,109 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
+test('dynamic Control selectors publish before children and switch with live entity updates', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route('http://fhs.test/**', (route) => route.fulfill({
+    contentType: 'text/html',
+    body: '<body style="--primary-text-color:#111;--primary-background-color:#fff;--primary-color:#4285f4;--secondary-background-color:#ddd"><div id="host" style="width:500px"></div></body>',
+  }));
+  await page.goto('http://fhs.test/control-config-evaluation');
+  await page.addScriptTag({
+    type: 'module',
+    content: await readFile(new URL('../dist/flex-horseshoe-card.js', import.meta.url), 'utf8'),
+  });
+  await page.evaluate(async () => {
+    await customElements.whenDefined('flex-horseshoe-card');
+    const card = document.createElement('flex-horseshoe-card');
+    card.lovelace = { config: {}, rawConfig: {} };
+    const placement = {
+      group: 'moving', entity_index: 0, xpos: 50,
+      width: '[[[ return Number(state) === 0 ? 36 : 44; ]]]',
+    };
+    card.setConfig({
+      type: 'custom:flex-horseshoe-card',
+      entities: [{ entity: 'input_number.control_driver' }],
+      layout: {
+        groups: [{ id: 'moving', xpos: '[[[ return 35 + Number(entities[0].state) * 10; ]]]', ypos: 50 }],
+        controls: [
+          { ...placement, id: 'button', type: 'button', ypos: 15,
+            show: { item_viz: '[[[ return Number(state) === 0 ? "viz_button" : "viz_line"; ]]]' },
+            content: { mode: 'content_text', content_text: { text: 'Button' } } },
+          { ...placement, id: 'number', type: 'number', ypos: 32,
+            show: { item_style: '[[[ return Number(state) === 0 ? "filled_square" : "outlined_round"; ]]]' } },
+          { ...placement, id: 'select', type: 'select', ypos: 50,
+            show: { item_viz: '[[[ return Number(state) === 0 ? "viz_button" : "viz_line"; ]]]' },
+            option_map: [{ value: '0', text: 'Zero' }, { value: '1', text: 'One' }] },
+          { ...placement, id: 'slider', type: 'slider', ypos: 68, value: { show: false },
+            scale: { min: 0, max: 10, step: 1 },
+            show: { item_viz: '[[[ return Number(state) === 0 ? "linear" : "circular"; ]]]' } },
+          { ...placement, id: 'toggle', type: 'toggle', ypos: 85,
+            show: { item_style: '[[[ return ["ha", "ios", "industrial"][Number(state)]; ]]]' } },
+        ],
+      },
+    });
+    document.querySelector('#host').append(card);
+    await card.updateComplete;
+    window.controlConfigEvaluationCard = card;
+  });
+  expect(await page.evaluate(() => window.controlConfigEvaluationCard.shadowRoot
+    .querySelectorAll('.button-control, .number-control, .select-control, .slider-control, .toggle-style-animation').length)).toBe(0);
+
+  for (const value of ['0', '1', '2', '0']) {
+    await page.evaluate((value) => {
+      const card = window.controlConfigEvaluationCard;
+      const timestamp = new Date().toISOString();
+      const entity = {
+        entity_id: 'input_number.control_driver', state: value,
+        attributes: { friendly_name: 'Control driver', min: 0, max: 10, step: 1 },
+        last_changed: timestamp, last_updated: timestamp,
+      };
+      card.hass = {
+        states: { [entity.entity_id]: entity },
+        connection: new EventTarget(),
+        locale: { language: 'en', number_format: 'language', time_format: 'language' },
+        config: { time_zone: 'UTC' },
+        themes: { darkMode: value === '0', themes: {} },
+        entities: {}, devices: {}, areas: {}, floors: {}, user: { name: 'Control tests' },
+        formatEntityName: (state) => state.attributes.friendly_name,
+        formatEntityState: (state) => state.state,
+        formatEntityStateToParts: (state, formattedValue) => [{ type: 'value', value: formattedValue ?? state.state }],
+      };
+    }, value);
+    await page.waitForFunction((value) => {
+      const controls = window.controlConfigEvaluationCard.cardTools.sections.controls;
+      return controls.length === 5 && controls.every((tool) =>
+        tool.activeConfigInitialized && tool.config.width === (value === '0' ? 36 : 44));
+    }, value);
+    const result = await page.evaluate(() => {
+      const card = window.controlConfigEvaluationCard;
+      return {
+        types: card.cardTools.sections.controls.map((tool) => tool.config.type),
+        modes: card.cardTools.sections.controls.map((tool) => tool.config.show.item_viz),
+        toggleStyle: card.cardTools.sections.controls[4].config.show.item_style,
+        childCounts: card.cardTools.sections.controls.map((tool) => tool.getContentTools().length),
+        coordinates: card.cardTools.sections.controls.map((tool) =>
+          tool.config.type === 'toggle' ? tool.geometry.svg.x : tool.geometry.svg.xpos),
+        configHasGeometry: card.cardTools.sections.controls.some((tool) => Object.hasOwn(tool.config, 'svg')),
+        invalidAttributes: [...card.shadowRoot.querySelectorAll('svg *')].flatMap((element) =>
+          [...element.attributes].map((attribute) => attribute.value)
+            .filter((attribute) => /NaN|undefined|\[\[\[/.test(attribute))),
+      };
+    });
+    expect(result.types).toEqual(['button', 'number', 'select', 'slider', 'toggle']);
+    expect(result.toggleStyle).toBe(['ha', 'ios', 'industrial'][Number(value)]);
+    expect(result.modes).toEqual(value === '0'
+      ? ['viz_button', 'buttons', 'viz_button', 'linear', 'default']
+      : ['viz_line', 'buttons', 'viz_line', 'circular', 'default']);
+    expect(result.coordinates.every((coordinate) => Number.isFinite(coordinate))).toBe(true);
+    expect(result.childCounts.slice(0, 3)).toEqual([1, 3, 2]);
+    expect(result.configHasGeometry).toBe(false);
+    expect(result.invalidAttributes).toEqual([]);
+  }
+  expect(pageErrors).toEqual([]);
+});
+
 test('dynamic tool config waits for hass, then publishes selectors, group geometry, and theme', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));

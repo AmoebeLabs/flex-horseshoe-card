@@ -7,7 +7,214 @@ import IconTool from "./icon-tool.js";
 import Merge from "./merge.js";
 import SameAs from "./same-as.js";
 import TextTool from "./text-tool.js";
+import Templates from "./templates.js";
 import Utils from "./utils.js";
+
+const DEFAULT_SELECT_CONFIG = {
+  orientation: "horizontal",
+  width: 34,
+  height: 11,
+  tap_action: {
+    action: "select-option",
+    option: "option(value)",
+  },
+  background: {
+    radius: 5,
+    styles: {},
+  },
+  track: {
+    padding: { x: 0.5, y: 0.5 },
+    styles: {},
+  },
+  separator: {
+    padding: { x: 1, y: 1 },
+    styles: {
+      stroke: "var(--divider-color)",
+      "stroke-width": 0.25,
+    },
+  },
+  option_map: [],
+  content: {
+    mode: "content_vertical",
+    content_vertical: {
+      padding: { x: 0.5, y: 0.5 },
+      gap: 0.5,
+      icon: { size: 45, styles: {} },
+      text: { styles: {} },
+    },
+    content_horizontal: {
+      padding: { x: 0.5, y: 0.5 },
+      gap: 0.5,
+      icon: { size: 45, styles: {} },
+      text: { styles: {} },
+    },
+  },
+  show: {
+    item_variant: "segmented",
+    item_viz: "viz_button",
+    item_style: "filled_round",
+    separator: true,
+  },
+  viz_button: {
+    background: {
+      styles: { fill: "var(--secondary-background-color)" },
+    },
+    track: {
+      styles: { fill: "transparent" },
+    },
+    indicator: {
+      position: "fill",
+      padding: { x: 0.5, y: 0.5 },
+      thickness: 0.75,
+      radius: 2,
+      styles: { fill: "var(--primary-color)", opacity: 0.8 },
+    },
+    selected: {
+      background: { styles: { fill: "transparent" } },
+      icon: { styles: { fill: "var(--primary-background-color)" } },
+      text: { styles: { fill: "var(--primary-background-color)" } },
+    },
+    unselected: {
+      background: { styles: { fill: "transparent" } },
+      icon: { styles: { fill: "var(--primary-text-color)" } },
+      text: { styles: { fill: "var(--primary-text-color)" } },
+    },
+    animation: {
+      duration: 250,
+      easing: "ease-out",
+    },
+    press: {
+      scale: 0.9,
+      duration: 140,
+      easing: "ease-out",
+    },
+  },
+  viz_line: {
+    background: {
+      styles: { fill: "var(--secondary-background-color)" },
+    },
+    track: {
+      styles: { fill: "transparent" },
+    },
+    indicator: {
+      position: "bottom",
+      padding: { x: 0.5, y: 0.5 },
+      thickness: 0.75,
+      radius: 0.375,
+      styles: { fill: "var(--primary-color)" },
+    },
+    selected: {
+      background: { styles: { fill: "transparent" } },
+      icon: { styles: { fill: "var(--primary-color)" } },
+      text: { styles: { fill: "var(--primary-color)" } },
+    },
+    unselected: {
+      background: { styles: { fill: "transparent" } },
+      icon: { styles: { fill: "var(--primary-text-color)" } },
+      text: { styles: { fill: "var(--primary-text-color)" } },
+    },
+    animation: {
+      duration: 250,
+      easing: "ease-out",
+    },
+    press: {
+      scale: 0.9,
+      duration: 140,
+      easing: "ease-out",
+    },
+  },
+};
+const SELECT_SURFACE_PRESETS = {
+  filled: {
+    background: {
+      styles: { fill: "var(--secondary-background-color)", stroke: "none" },
+    },
+    viz_button: {
+      background: {
+        styles: {
+          fill: "var(--secondary-background-color)",
+          stroke: "none",
+        },
+      },
+      indicator: {
+        styles: { fill: "var(--primary-color)", stroke: "none" },
+      },
+    },
+    viz_line: {
+      background: {
+        styles: {
+          fill: "var(--secondary-background-color)",
+          stroke: "none",
+        },
+      },
+      indicator: {
+        styles: { fill: "var(--primary-color)", stroke: "none" },
+      },
+    },
+  },
+  outlined: {
+    background: {
+      styles: {
+        fill: "var(--card-background-color)",
+        stroke: "var(--divider-color)",
+        "stroke-width": 1,
+      },
+    },
+    viz_button: {
+      background: {
+        styles: {
+          fill: "var(--card-background-color)",
+          stroke: "var(--divider-color)",
+          "stroke-width": 1,
+        },
+      },
+      track: { styles: { fill: "transparent" } },
+      indicator: {
+        styles: { fill: "var(--primary-color)", stroke: "none" },
+      },
+      selected: {
+        background: { styles: { fill: "transparent" } },
+        icon: { styles: { fill: "var(--primary-background-color)" } },
+        text: { styles: { fill: "var(--primary-background-color)" } },
+      },
+    },
+    viz_line: {
+      background: {
+        styles: {
+          fill: "var(--card-background-color)",
+          stroke: "var(--divider-color)",
+          "stroke-width": 1,
+        },
+      },
+      track: { styles: { fill: "transparent" } },
+      indicator: {
+        styles: { fill: "var(--primary-color)", stroke: "none" },
+      },
+    },
+  },
+};
+const SELECT_SHAPE_PRESETS = {
+  round: { background: { radius: 5 } },
+  square: { background: { radius: 2 } },
+};
+const SELECT_STYLE_PRESETS = {
+  filled_round: Merge.mergeDeep(
+    SELECT_SURFACE_PRESETS.filled,
+    SELECT_SHAPE_PRESETS.round,
+  ),
+  filled_square: Merge.mergeDeep(
+    SELECT_SURFACE_PRESETS.filled,
+    SELECT_SHAPE_PRESETS.square,
+  ),
+  outlined_round: Merge.mergeDeep(
+    SELECT_SURFACE_PRESETS.outlined,
+    SELECT_SHAPE_PRESETS.round,
+  ),
+  outlined_square: Merge.mergeDeep(
+    SELECT_SURFACE_PRESETS.outlined,
+    SELECT_SHAPE_PRESETS.square,
+  ),
+};
 
 /** Segmented select control backed by an entity state or configured attribute. */
 export default class ControlSelect extends ControlBase {
@@ -18,7 +225,7 @@ export default class ControlSelect extends ControlBase {
    * @param {object} templates Shared template evaluator.
    */
   static removeDisabledOptionConfigs(config, templates) {
-    if (config.option_map === undefined) return;
+    if (config.option_map === undefined || Templates.isJsTemplate(config.option_map)) return;
 
     const optionMap = config.option_map;
     config.option_map = optionMap.filter((option) => {
@@ -144,231 +351,30 @@ export default class ControlSelect extends ControlBase {
     return actionConfig;
   }
 
-  /** Normalizes select configuration and creates reusable option content tools. */
-  constructor(config, index, templates, cardId, card) {
-    const usesEntityOptions = config.option_map === undefined;
-    const DEFAULT_SELECT_CONFIG = {
-      orientation: "horizontal",
-      width: 34,
-      height: 11,
-      tap_action: {
-        action: "select-option",
-        option: "option(value)",
-      },
-      background: {
-        radius: 5,
-        styles: {},
-      },
-      track: {
-        padding: { x: 0.5, y: 0.5 },
-        styles: {},
-      },
-      separator: {
-        padding: { x: 1, y: 1 },
-        styles: {
-          stroke: "var(--divider-color)",
-          "stroke-width": 0.25,
-        },
-      },
-      option_map: [],
-      content: {
-        mode: "content_vertical",
-        content_vertical: {
-          padding: { x: 0.5, y: 0.5 },
-          gap: 0.5,
-          icon: { size: 45, styles: {} },
-          text: { styles: {} },
-        },
-        content_horizontal: {
-          padding: { x: 0.5, y: 0.5 },
-          gap: 0.5,
-          icon: { size: 45, styles: {} },
-          text: { styles: {} },
-        },
-      },
-      show: {
-        item_variant: "segmented",
-        item_viz: "viz_button",
-        item_style: "filled_round",
-        separator: true,
-      },
-      viz_button: {
-        background: {
-          styles: { fill: "var(--secondary-background-color)" },
-        },
-        track: {
-          styles: { fill: "transparent" },
-        },
-        indicator: {
-          position: "fill",
-          padding: { x: 0.5, y: 0.5 },
-          thickness: 0.75,
-          radius: 2,
-          styles: { fill: "var(--primary-color)", opacity: 0.8 },
-        },
-        selected: {
-          background: { styles: { fill: "transparent" } },
-          icon: { styles: { fill: "var(--primary-background-color)" } },
-          text: { styles: { fill: "var(--primary-background-color)" } },
-        },
-        unselected: {
-          background: { styles: { fill: "transparent" } },
-          icon: { styles: { fill: "var(--primary-text-color)" } },
-          text: { styles: { fill: "var(--primary-text-color)" } },
-        },
-        animation: {
-          duration: 250,
-          easing: "ease-out",
-        },
-        press: {
-          scale: 0.9,
-          duration: 140,
-          easing: "ease-out",
-        },
-      },
-      viz_line: {
-        background: {
-          styles: { fill: "var(--secondary-background-color)" },
-        },
-        track: {
-          styles: { fill: "transparent" },
-        },
-        indicator: {
-          position: "bottom",
-          padding: { x: 0.5, y: 0.5 },
-          thickness: 0.75,
-          radius: 0.375,
-          styles: { fill: "var(--primary-color)" },
-        },
-        selected: {
-          background: { styles: { fill: "transparent" } },
-          icon: { styles: { fill: "var(--primary-color)" } },
-          text: { styles: { fill: "var(--primary-color)" } },
-        },
-        unselected: {
-          background: { styles: { fill: "transparent" } },
-          icon: { styles: { fill: "var(--primary-text-color)" } },
-          text: { styles: { fill: "var(--primary-text-color)" } },
-        },
-        animation: {
-          duration: 250,
-          easing: "ease-out",
-        },
-        press: {
-          scale: 0.9,
-          duration: 140,
-          easing: "ease-out",
-        },
-      },
-    };
-    const SELECT_SURFACE_PRESETS = {
-      filled: {
-        background: {
-          styles: { fill: "var(--secondary-background-color)", stroke: "none" },
-        },
-        viz_button: {
-          background: {
-            styles: {
-              fill: "var(--secondary-background-color)",
-              stroke: "none",
-            },
-          },
-          indicator: {
-            styles: { fill: "var(--primary-color)", stroke: "none" },
-          },
-        },
-        viz_line: {
-          background: {
-            styles: {
-              fill: "var(--secondary-background-color)",
-              stroke: "none",
-            },
-          },
-          indicator: {
-            styles: { fill: "var(--primary-color)", stroke: "none" },
-          },
-        },
-      },
-      outlined: {
-        background: {
-          styles: {
-            fill: "var(--card-background-color)",
-            stroke: "var(--divider-color)",
-            "stroke-width": 1,
-          },
-        },
-        viz_button: {
-          background: {
-            styles: {
-              fill: "var(--card-background-color)",
-              stroke: "var(--divider-color)",
-              "stroke-width": 1,
-            },
-          },
-          track: { styles: { fill: "transparent" } },
-          indicator: {
-            styles: { fill: "var(--primary-color)", stroke: "none" },
-          },
-          selected: {
-            background: { styles: { fill: "transparent" } },
-            icon: { styles: { fill: "var(--primary-background-color)" } },
-            text: { styles: { fill: "var(--primary-background-color)" } },
-          },
-        },
-        viz_line: {
-          background: {
-            styles: {
-              fill: "var(--card-background-color)",
-              stroke: "var(--divider-color)",
-              "stroke-width": 1,
-            },
-          },
-          track: { styles: { fill: "transparent" } },
-          indicator: {
-            styles: { fill: "var(--primary-color)", stroke: "none" },
-          },
-        },
-      },
-    };
-    const SELECT_SHAPE_PRESETS = {
-      round: { background: { radius: 5 } },
-      square: { background: { radius: 2 } },
-    };
-    const SELECT_STYLE_PRESETS = {
-      filled_round: Merge.mergeDeep(
-        SELECT_SURFACE_PRESETS.filled,
-        SELECT_SHAPE_PRESETS.round,
-      ),
-      filled_square: Merge.mergeDeep(
-        SELECT_SURFACE_PRESETS.filled,
-        SELECT_SHAPE_PRESETS.square,
-      ),
-      outlined_round: Merge.mergeDeep(
-        SELECT_SURFACE_PRESETS.outlined,
-        SELECT_SHAPE_PRESETS.round,
-      ),
-      outlined_square: Merge.mergeDeep(
-        SELECT_SURFACE_PRESETS.outlined,
-        SELECT_SHAPE_PRESETS.square,
-      ),
-    };
+  /**
+   * Completes the selected visualization and authored option definitions.
+   * HA options remain runtime data and use the same normalizer when they arrive.
+   */
+  static translateConfig(config, forTemplateContext, usesEntityOptions) {
     const selectedConfig = Merge.mergeDeep(DEFAULT_SELECT_CONFIG, config);
-    if (selectedConfig.show.item_variant !== "segmented") {
-      throw Error(
-        `[controls] Invalid select item_variant '${selectedConfig.show.item_variant}' [segmented]`,
-      );
-    }
-    if (!["viz_button", "viz_line"].includes(selectedConfig.show.item_viz)) {
-      throw Error(
-        `[controls] Invalid select item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`,
-      );
-    }
-    if (!Object.hasOwn(SELECT_STYLE_PRESETS, selectedConfig.show.item_style)) {
-      throw Error(
-        `[controls] Invalid select item_style '${selectedConfig.show.item_style}' [${Object.keys(SELECT_STYLE_PRESETS).join(", ")}]`,
-      );
-    }
+    if (!forTemplateContext) {
+      if (selectedConfig.show.item_variant !== "segmented") {
+        throw Error(
+          `[controls] Invalid select item_variant '${selectedConfig.show.item_variant}' [segmented]`,
+        );
+      }
+      if (!["viz_button", "viz_line"].includes(selectedConfig.show.item_viz)) {
+        throw Error(
+          `[controls] Invalid select item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`,
+        );
+      }
+      if (!Object.hasOwn(SELECT_STYLE_PRESETS, selectedConfig.show.item_style)) {
+        throw Error(
+          `[controls] Invalid select item_style '${selectedConfig.show.item_style}' [${Object.keys(SELECT_STYLE_PRESETS).join(", ")}]`,
+        );
+      }
 
+    }
     const selectConfig = Merge.mergeDeep(
       DEFAULT_SELECT_CONFIG,
       SELECT_STYLE_PRESETS[selectedConfig.show.item_style],
@@ -382,6 +388,8 @@ export default class ControlSelect extends ControlBase {
       DEFAULT_SELECT_CONFIG.viz_button,
       selectConfig[selectedVizName],
     );
+    if (forTemplateContext) return selectConfig;
+
     let selectedIndicatorPadding =
       selectConfig[selectedVizName].indicator.padding;
 
@@ -426,36 +434,42 @@ export default class ControlSelect extends ControlBase {
           selectConfig,
         );
 
-    super(selectConfig, index, templates, cardId, card);
+    return selectConfig;
+  }
+
+  /** Captures select source without interpreting dynamic options or selectors. */
+  constructor(config, index, templates, cardId, card) {
+    const usesEntityOptions = config.option_map === undefined;
+    super(Merge.mergeDeep({
+      orientation: DEFAULT_SELECT_CONFIG.orientation,
+      show: DEFAULT_SELECT_CONFIG.show,
+    }, config), index, templates, cardId, card,
+      (value, forTemplateContext = false) => ControlSelect.translateConfig(value, forTemplateContext, usesEntityOptions));
 
     this.usesEntityOptions = usesEntityOptions;
-    this.optionsInitialized = !usesEntityOptions;
+    this.optionsInitialized = !this.hasJavascript && !usesEntityOptions;
     this.entityOptionsSignature = undefined;
-    this.config.svg = this.calculateSvgDimensions();
-    this.selectedOptionIndex = -1;
+    this.optionDisplayTextSignature = undefined;
+    this.geometry = {};
+    this.runtime.selectedIndex = -1;
+    this.runtime.options = this.optionsInitialized ? this.config.option_map : [];
+    this.runtime.optionDisplayTexts = this.runtime.options.map((option) => option.text ?? String(option.state));
+    this.runtime.actionConfigs = this.runtime.options.map((option) => ControlSelect.buildOptionActionConfig(option));
     this.optionTextTools = [];
     this.optionIconTools = [];
     this.optionContentVisuals = [];
-    this.optionDisplayTexts = this.optionsInitialized
-      ? this.config.option_map.map((option) => option.text ?? String(option.state))
-      : [];
-    this.optionDisplayTextSignature = undefined;
-    this.optionActionConfigs = this.optionsInitialized
-      ? this.config.option_map.map((option) =>
-          ControlSelect.buildOptionActionConfig(option),
-        )
-      : [];
-    if (this.optionsInitialized) this.createOptionContentTools();
-    this.createControlLabelTextTool(this.config.width, this.config.height);
+    if (!this.hasJavascript) {
+      this.geometry.svg = this.calculateSvgDimensions();
+      if (this.optionsInitialized) this.createOptionContentTools();
+      this.createControlLabelTextTool(this.config.width, this.config.height);
+    }
   }
 
   /** Creates normal TextTool and IconTool instances at each segment center. */
   createOptionContentTools() {
     this.getContentTools().forEach((tool) => tool.disconnected());
     this.optionContentVisuals = [];
-    this.optionTextBaseStyles = [];
-    this.optionIconBaseStyles = [];
-    const optionCount = this.config.option_map.length;
+    const optionCount = this.runtime.options.length;
     const horizontalControl = this.config.orientation === "horizontal";
     const verticalContent = this.config.content.mode === "content_vertical";
     const trackWidth = this.config.width - this.config.track.padding.x * 2;
@@ -523,7 +537,7 @@ export default class ControlSelect extends ControlBase {
       const stackHeight =
         contentHeight + contentPaddingTop + contentPaddingBottom;
 
-      this.optionContentVisuals = this.config.option_map.map(
+      this.optionContentVisuals = this.runtime.options.map(
         (option, optionIndex) => {
           const centerX = horizontalControl
             ? trackStartX + segmentWidth * (optionIndex + 0.5)
@@ -563,7 +577,7 @@ export default class ControlSelect extends ControlBase {
       ? contentWidth
       : contentWidth - optionIconSize - contentConfig.gap;
 
-    this.optionTextTools = this.config.option_map.map((option, optionIndex) => {
+    this.optionTextTools = this.runtime.options.map((option, optionIndex) => {
       const centerX = horizontalControl
         ? trackStartX + segmentWidth * (optionIndex + 0.5)
         : this.config.xpos;
@@ -583,10 +597,10 @@ export default class ControlSelect extends ControlBase {
         {
           id: `${this.id}-option-${optionIndex}-text`,
           group: this.config.group,
-          entity_index: this.entity_index,
+          entity_index: option.entity_index,
           xpos: textXpos,
           yposc: textYpos,
-          text: this.optionDisplayTexts[optionIndex],
+          text: this.runtime.optionDisplayTexts[optionIndex],
           text_overflow: {
             mode: "fit",
             fit: { max_width: hasIcon ? textMaximumWidth : contentWidth },
@@ -603,7 +617,6 @@ export default class ControlSelect extends ControlBase {
         { tap_action: { action: "none" } },
       );
 
-      this.optionTextBaseStyles[optionIndex] = textConfig.styles;
       return new TextTool(
         textConfig,
         optionIndex,
@@ -613,7 +626,7 @@ export default class ControlSelect extends ControlBase {
       );
     });
 
-    this.optionIconTools = this.config.option_map.map((option, optionIndex) => {
+    this.optionIconTools = this.runtime.options.map((option, optionIndex) => {
       if (option.icon === undefined) return undefined;
 
       const optionIconConfig =
@@ -635,7 +648,7 @@ export default class ControlSelect extends ControlBase {
         {
           id: `${this.id}-option-${optionIndex}-icon`,
           group: this.config.group,
-          entity_index: this.entity_index,
+          entity_index: option.entity_index,
           xpos: iconXpos,
           yposc: iconYpos,
           icon_size_percent: optionIconSize,
@@ -649,7 +662,6 @@ export default class ControlSelect extends ControlBase {
       );
 
       delete iconConfig.size;
-      this.optionIconBaseStyles[optionIndex] = iconConfig.styles;
       return new IconTool(
         iconConfig,
         optionIndex,
@@ -671,8 +683,17 @@ export default class ControlSelect extends ControlBase {
     super.updateRuntimeConfig();
 
     if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
-      if (this.optionsInitialized) {
+      this.geometry.svg = this.calculateSvgDimensions(this.config);
+      // Changed parent defaults invalidate HA-derived option inheritance once.
+      // The next state pass rebuilds from HA options, even when that list is unchanged.
+      if (this.configurationChanged && this.usesEntityOptions) this.entityOptionsSignature = undefined;
+      if (this.configurationChanged && !this.usesEntityOptions) {
+        this.runtime.options = this.config.option_map;
+        this.runtime.optionDisplayTexts = this.runtime.options.map((option) => option.text ?? String(option.state));
+        this.runtime.actionConfigs = this.runtime.options.map((option) => ControlSelect.buildOptionActionConfig(option));
+        this.optionsInitialized = true;
+      }
+      if (this.optionsInitialized && (!this.usesEntityOptions || !this.configurationChanged)) {
         this.createOptionContentTools();
       }
       this.createControlLabelTextTool(this.config.width, this.config.height);
@@ -689,7 +710,7 @@ export default class ControlSelect extends ControlBase {
 
   /** Includes the selected segment and all option labels, icons and visual children. */
   hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.selectedOptionIndex);
+    const changed = super.hasPresentationChanged(this.runtime.selectedIndex);
     const children = [...this.optionContentVisuals, ...this.optionTextTools, ...this.optionIconTools]
       .filter((tool) => tool !== undefined);
     const childChanges = children.map((tool) => tool.hasPresentationChanged());
@@ -717,14 +738,14 @@ export default class ControlSelect extends ControlBase {
         const entityOptionMap = entity.attributes.options.map((option) => ({
           value: option,
         }));
-        this.config.option_map = ControlSelect.normalizeOptionMap(entityOptionMap, this.config);
+        this.runtime.options = ControlSelect.normalizeOptionMap(entityOptionMap, this.config);
         this.entityOptionsSignature = entityOptionsSignature;
         this.optionsInitialized = true;
         optionsChanged = true;
       }
     }
 
-    const optionDisplayTexts = this.config.option_map.map((option) => {
+    const optionDisplayTexts = this.runtime.options.map((option) => {
       if (option.text !== undefined) return option.text;
 
       return entityConfig.attribute !== undefined
@@ -734,7 +755,7 @@ export default class ControlSelect extends ControlBase {
     const optionDisplayTextSignature = JSON.stringify(optionDisplayTexts);
 
     if (optionDisplayTextSignature !== this.optionDisplayTextSignature) {
-      this.optionDisplayTexts = optionDisplayTexts;
+      this.runtime.optionDisplayTexts = optionDisplayTexts;
       this.optionDisplayTextSignature = optionDisplayTextSignature;
       optionsChanged = true;
     }
@@ -752,18 +773,20 @@ export default class ControlSelect extends ControlBase {
       entityConfig.attribute === undefined
         ? entity.state
         : entity.attributes[entityConfig.attribute];
-    this.selectedOptionIndex = this.config.option_map.findIndex(
+    this.runtime.selectedIndex = this.runtime.options.findIndex(
       (option) => String(option.state) === String(selectedState),
     );
     const viz = this.config[this.config.show.item_viz];
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
 
-    this.optionActionConfigs = this.config.option_map.map((option) =>
-      ControlSelect.buildOptionActionConfig(option),
-    );
+    if (optionsChanged) {
+      this.runtime.actionConfigs = this.runtime.options.map((option) =>
+        ControlSelect.buildOptionActionConfig(option),
+      );
+    }
     this.optionContentVisuals.forEach((contentVisual, optionIndex) => {
       const optionStyle =
-        optionIndex === this.selectedOptionIndex
+        optionIndex === this.runtime.selectedIndex
           ? viz.selected
           : viz.unselected;
       contentVisual.setState(optionStyle, transition);
@@ -771,17 +794,17 @@ export default class ControlSelect extends ControlBase {
 
     this.optionTextTools.forEach((textTool, optionIndex) => {
       const optionStyle =
-        optionIndex === this.selectedOptionIndex
+        optionIndex === this.runtime.selectedIndex
           ? viz.selected
           : viz.unselected;
 
-      textTool.config.styles = Merge.mergeDeep(
+      textTool.setPaintStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.text.styles),
-        ConfigHelper.toStyleDict(this.optionTextBaseStyles[optionIndex]),
+        ConfigHelper.toStyleDict(textTool.config.styles),
         {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
-      );
+      ));
       textTool.setState(entity, entityConfig);
     });
 
@@ -789,16 +812,16 @@ export default class ControlSelect extends ControlBase {
       if (iconTool === undefined) return;
 
       const optionStyle =
-        optionIndex === this.selectedOptionIndex
+        optionIndex === this.runtime.selectedIndex
           ? viz.selected
           : viz.unselected;
-      iconTool.config.styles = Merge.mergeDeep(
+      iconTool.setPaintStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.icon.styles),
-        ConfigHelper.toStyleDict(this.optionIconBaseStyles[optionIndex]),
+        ConfigHelper.toStyleDict(iconTool.config.styles),
         {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
-      );
+      ));
       this.card.cardTools.setToolEntityState(
         iconTool,
         this.card.resolvedEntityConfigs,
@@ -841,11 +864,12 @@ export default class ControlSelect extends ControlBase {
 
   /** Renders background, segments, moving indicator, content and hit areas. */
   render() {
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
     if (!this.optionsInitialized) return this.renderControl(svg``);
 
     const viz = this.config[this.config.show.item_viz];
     const horizontal = this.config.orientation === "horizontal";
-    const optionCount = this.config.option_map.length;
+    const optionCount = this.runtime.options.length;
     const backgroundWidth = Utils.calculateSvgDimension(this.config.width);
     const backgroundHeight = Utils.calculateSvgDimension(this.config.height);
     const trackWidth = Utils.calculateSvgDimension(
@@ -856,8 +880,8 @@ export default class ControlSelect extends ControlBase {
     );
     const segmentWidth = horizontal ? trackWidth / optionCount : trackWidth;
     const segmentHeight = horizontal ? trackHeight : trackHeight / optionCount;
-    const trackX = this.config.svg.xpos - trackWidth / 2;
-    const trackY = this.config.svg.ypos - trackHeight / 2;
+    const trackX = this.geometry.svg.xpos - trackWidth / 2;
+    const trackY = this.geometry.svg.ypos - trackHeight / 2;
     const indicatorPaddingX = Utils.calculateSvgDimension(
       viz.indicator.padding.x,
     );
@@ -877,11 +901,11 @@ export default class ControlSelect extends ControlBase {
     // A separator is centered on the segment boundary. Add half its stroke to
     // internal indicator sides so their visible gap equals the outer x inset.
     let indicatorLeftPadding =
-      horizontal && this.selectedOptionIndex > 0
+      horizontal && this.runtime.selectedIndex > 0
         ? separatorPaddingX + separatorStrokeWidth / 2
         : indicatorPaddingX;
     let indicatorRightPadding =
-      horizontal && this.selectedOptionIndex < optionCount - 1
+      horizontal && this.runtime.selectedIndex < optionCount - 1
         ? separatorPaddingX + separatorStrokeWidth / 2
         : indicatorPaddingX;
 
@@ -918,8 +942,8 @@ export default class ControlSelect extends ControlBase {
 
     // Outer indicator geometry follows the rounded background. Filled
     // indicators use corner radii; line indicators use the arc inset.
-    const backgroundX = this.config.svg.xpos - backgroundWidth / 2;
-    const backgroundY = this.config.svg.ypos - backgroundHeight / 2;
+    const backgroundX = this.geometry.svg.xpos - backgroundWidth / 2;
+    const backgroundY = this.geometry.svg.ypos - backgroundHeight / 2;
     const indicatorRadius = Utils.calculateSvgDimension(viz.indicator.radius);
     const backgroundRadius = Math.min(
       Utils.calculateSvgDimension(this.config.background.radius),
@@ -929,7 +953,7 @@ export default class ControlSelect extends ControlBase {
 
     if (this.config.show.item_viz === "viz_line") {
       const selectedIndicatorY = indicatorY
-        + (!horizontal && this.selectedOptionIndex >= 0 ? this.selectedOptionIndex * segmentHeight : 0);
+        + (!horizontal && this.runtime.selectedIndex >= 0 ? this.runtime.selectedIndex * segmentHeight : 0);
       const roundedEdgeInset = Utils.calculateRoundedRectHorizontalInset(
         backgroundRadius,
         backgroundY,
@@ -943,10 +967,10 @@ export default class ControlSelect extends ControlBase {
         roundedEdgeInset + indicatorPaddingX - trackOuterInset,
       );
 
-      if (!horizontal || this.selectedOptionIndex === 0) {
+      if (!horizontal || this.runtime.selectedIndex === 0) {
         indicatorLeftPadding = Math.max(indicatorLeftPadding, roundedIndicatorPadding);
       }
-      if (!horizontal || this.selectedOptionIndex === optionCount - 1) {
+      if (!horizontal || this.runtime.selectedIndex === optionCount - 1) {
         indicatorRightPadding = Math.max(indicatorRightPadding, roundedIndicatorPadding);
       }
 
@@ -973,26 +997,26 @@ export default class ControlSelect extends ControlBase {
 
     if (this.config.show.item_viz === "viz_button") {
       if (horizontal) {
-        if (this.selectedOptionIndex === 0) {
+        if (this.runtime.selectedIndex === 0) {
           topLeftRadiusX = edgeRadius;
           topLeftRadiusY = edgeRadius;
           bottomLeftRadiusX = edgeRadius;
           bottomLeftRadiusY = edgeRadius;
         }
-        if (this.selectedOptionIndex === optionCount - 1) {
+        if (this.runtime.selectedIndex === optionCount - 1) {
           topRightRadiusX = edgeRadius;
           topRightRadiusY = edgeRadius;
           bottomRightRadiusX = edgeRadius;
           bottomRightRadiusY = edgeRadius;
         }
       } else {
-        if (this.selectedOptionIndex === 0) {
+        if (this.runtime.selectedIndex === 0) {
           topLeftRadiusX = edgeRadius;
           topLeftRadiusY = edgeRadius;
           topRightRadiusX = edgeRadius;
           topRightRadiusY = edgeRadius;
         }
-        if (this.selectedOptionIndex === optionCount - 1) {
+        if (this.runtime.selectedIndex === optionCount - 1) {
           bottomLeftRadiusX = edgeRadius;
           bottomLeftRadiusY = edgeRadius;
           bottomRightRadiusX = edgeRadius;
@@ -1014,12 +1038,12 @@ export default class ControlSelect extends ControlBase {
       Z
     `;
     const indicatorTranslateX =
-      horizontal && this.selectedOptionIndex >= 0
-        ? this.selectedOptionIndex * segmentWidth
+      horizontal && this.runtime.selectedIndex >= 0
+        ? this.runtime.selectedIndex * segmentWidth
         : 0;
     const indicatorTranslateY =
-      !horizontal && this.selectedOptionIndex >= 0
-        ? this.selectedOptionIndex * segmentHeight
+      !horizontal && this.runtime.selectedIndex >= 0
+        ? this.runtime.selectedIndex * segmentHeight
         : 0;
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
     const backgroundStyles = this.getStyles(
@@ -1051,7 +1075,7 @@ export default class ControlSelect extends ControlBase {
       transform: `translate(${indicatorTranslateX}px, ${indicatorTranslateY}px)`,
       transition: `transform ${transition}`,
       "pointer-events": "none",
-      visibility: this.selectedOptionIndex === -1 ? "hidden" : "visible",
+      visibility: this.runtime.selectedIndex === -1 ? "hidden" : "visible",
     };
 
     const select = svg`
@@ -1077,9 +1101,9 @@ export default class ControlSelect extends ControlBase {
           height="${trackHeight}"
           style=${styleMap(trackStyles)}
         />
-        ${this.config.option_map.map((option, optionIndex) => {
+        ${this.runtime.options.map((option, optionIndex) => {
           const optionStyle =
-            optionIndex === this.selectedOptionIndex
+            optionIndex === this.runtime.selectedIndex
               ? viz.selected
               : viz.unselected;
 
@@ -1106,7 +1130,7 @@ export default class ControlSelect extends ControlBase {
         </g>
         ${
           this.config.show.separator
-            ? [...this.config.option_map.keys()].slice(1).map((optionIndex) =>
+            ? [...this.runtime.options.keys()].slice(1).map((optionIndex) =>
                 horizontal
                   ? svg`
             <line
@@ -1134,7 +1158,7 @@ export default class ControlSelect extends ControlBase {
       </g>
     `;
 
-    const optionContent = this.config.option_map.map(
+    const optionContent = this.runtime.options.map(
       (option, optionIndex) => svg`
       <g class="select-control__option-content">
         ${this.optionIconTools[optionIndex]?.render()}
@@ -1150,7 +1174,7 @@ export default class ControlSelect extends ControlBase {
           style="outline: none;"
           tabindex="0"
           role="button"
-          ${this.controlActionHandler(this.optionActionConfigs[optionIndex], this.entity_index)}
+          ${this.controlActionHandler(this.runtime.actionConfigs[optionIndex], this.entity_index)}
           @pointerdown=${(event) =>
             this.animateOptionPress(
               event.currentTarget.parentElement,
@@ -1161,7 +1185,7 @@ export default class ControlSelect extends ControlBase {
                 (horizontal ? 0 : optionIndex * segmentHeight) +
                 segmentHeight / 2,
             )}
-          @action=${(event) => this.handleControlAction(event, this.optionActionConfigs[optionIndex], this.entity_index)}
+          @action=${(event) => this.handleControlAction(event, this.runtime.actionConfigs[optionIndex], this.entity_index)}
         />
       </g>
     `,
