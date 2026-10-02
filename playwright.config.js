@@ -38,6 +38,7 @@ export default defineConfig({
         '**/async-results.browser.spec.js',
         '**/config-ref.browser.spec.js',
         '**/tool-geometry.browser.spec.js',
+        '**/tool-config-evaluation.browser.spec.js',
       ],
     },
     {
@@ -49,6 +50,7 @@ export default defineConfig({
         '**/sparkline-pointer.browser.spec.js',
         '**/config-ref.browser.spec.js',
         '**/tool-geometry.browser.spec.js',
+        '**/tool-config-evaluation.browser.spec.js',
       ],
     },
   ],

@@ -208,23 +208,23 @@ test('BaseTool translates only changed JavaScript candidates and retains equal c
   );
   const sourceConfigSnapshot = structuredClone(tool.sourceConfig);
 
-  assert.equal(translations, 1);
+  assert.equal(translations, 0);
   card.evaluateJavascriptTemplates = true;
   tool.updateRuntimeConfig();
   assert.equal(tool.config.xpos, 2);
   assert.equal(tool.config.translatedX, 20);
-  assert.equal(translations, 2);
+  assert.equal(translations, 1);
   const unchangedConfig = tool.config;
 
   tool.updateRuntimeConfig();
   assert.strictEqual(tool.config, unchangedConfig);
-  assert.equal(translations, 2);
+  assert.equal(translations, 1);
 
   card.evaluateJavascriptTemplates = false;
   card.cardLayout.changedGroupIds.add('card');
   card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
-  assert.equal(translations, 2);
+  assert.equal(translations, 1);
 
   card.cardLayout.changedGroupIds.clear();
   card.cardTheme.modeChanged = false;
@@ -233,12 +233,12 @@ test('BaseTool translates only changed JavaScript candidates and retains equal c
   tool.updateRuntimeConfig();
   assert.notStrictEqual(tool.config, unchangedConfig);
   assert.equal(tool.config.translatedX, 30);
-  assert.equal(translations, 3);
+  assert.equal(translations, 2);
 
   const changedConfig = tool.config;
   tool.updateRuntimeConfig();
   assert.strictEqual(tool.config, changedConfig);
-  assert.equal(translations, 3);
+  assert.equal(translations, 2);
   assert.deepEqual(tool.sourceConfig, sourceConfigSnapshot);
   assert.equal(tool.sourceConfig.xpos, '[[[ return value; ]]]');
   assert.ok(evaluations >= 4);

@@ -65,7 +65,8 @@ export default class LineTool extends BaseTool {
   }
 
   /**
-   * Stores static line config and precomputes SVG coordinates.
+   * Captures line source and builds coordinates immediately for static config.
+   * Dynamic coordinates follow the first evaluated runtime-config publication.
    *
    * @param {object} config - Static line item config.
    * @param {number} index - Line index across lines, hlines, and vlines.
@@ -95,7 +96,8 @@ export default class LineTool extends BaseTool {
       LineTool.translateConfig,
     );
 
-    this.geometry = { svg: this.calculateSvgDimensions() };
+    this.geometry = {};
+    if (!this.hasJavascript) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /** Updates line configuration and geometry before entity data is assigned. */
@@ -168,6 +170,9 @@ export default class LineTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the line.
    */
   render() {
+    // The first HA pass publishes dynamic config before its coordinates are usable.
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+
     const lineStyles = {
       'stroke-linecap': 'round',
       stroke: 'var(--primary-text-color)',

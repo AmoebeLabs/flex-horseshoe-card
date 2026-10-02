@@ -35,7 +35,8 @@ export default class PolygonTool extends BaseTool {
   }
 
   /**
-   * Validates the public polygon shape and builds its complete SVG path.
+   * Captures polygon source and builds the path immediately for static config.
+   * Dynamic sides and top are evaluated before the first path is calculated.
    *
    * @param {object} config - Static polygon item config.
    * @param {number} index - Polygon index inside layout.polygons.
@@ -63,7 +64,8 @@ export default class PolygonTool extends BaseTool {
       PolygonTool.translateConfig,
     );
 
-    this.geometry = this.calculatePolygonGeometry(this.config);
+    this.geometry = {};
+    if (!this.hasJavascript) this.geometry = this.calculatePolygonGeometry(this.config);
   }
 
   /** Updates polygon configuration and geometry before entity data is assigned. */
@@ -113,6 +115,9 @@ export default class PolygonTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the polygon.
    */
   render() {
+    // The first HA pass completes dynamic sides/top before a polygon can be drawn.
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+
     const polygonStyles = {
       fill: 'var(--primary-background-color)',
       stroke: 'none',

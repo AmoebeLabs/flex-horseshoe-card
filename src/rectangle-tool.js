@@ -8,7 +8,8 @@ import Utils from './utils.js';
  */
 export default class RectangleTool extends BaseTool {
   /**
-   * Stores static rectangle config and precomputes SVG dimensions.
+   * Captures rectangle source and builds dimensions immediately for static config.
+   * Dynamic dimensions follow the first evaluated runtime-config publication.
    *
    * @param {object} config - Static rectangle item config.
    * @param {number} index - Rectangle index inside layout.rectangles.
@@ -60,7 +61,8 @@ export default class RectangleTool extends BaseTool {
       RectangleTool.translateConfig,
     );
 
-    this.geometry = { svg: this.calculateSvgDimensions() };
+    this.geometry = {};
+    if (!this.hasJavascript) this.geometry.svg = this.calculateSvgDimensions(this.config);
   }
 
   /** Validates the evaluated public fill-mask setting before rendering.
@@ -159,6 +161,9 @@ export default class RectangleTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the rectangle.
    */
   render() {
+    // Defer the initial dynamic surface until runtime config has been published.
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+
     // Text dimensions become exact after the preceding render. Recalculate the
     // path here so the correction render immediately uses the measured size.
     this.geometry.svg = this.calculateSvgDimensions(this.config);
