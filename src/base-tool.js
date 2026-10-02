@@ -267,11 +267,13 @@ export default class BaseTool {
   }
 
   /**
-   * Publishes the parent's complete presentation style map without changing config.
-   * Passing undefined restores the configured styles; callers retain their existing
-   * merge priority before publishing this replacement.
+   * Publishes the complete effective child style map after the parent's existing
+   * style merge. It replaces configured styles at the child render boundary;
+   * this is not a partial override. The child still applies its own state-map,
+   * color-stop and animation layers afterwards. Passing undefined restores the
+   * configured styles.
    *
-   * @param {object|undefined} styles - Replacement styles, or undefined to clear them.
+   * @param {object|undefined} styles - Complete parent-resolved styles, or undefined to clear them.
    */
   setPaintStyles(styles) {
     this.paint ??= {};
