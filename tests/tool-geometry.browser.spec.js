@@ -69,16 +69,16 @@ async function loadToolCard(page, config) {
   return pageErrors;
 }
 
-/** Waits for the migrated measured-text tools and legacy TextTool to finish their first measurement. */
+/** Waits for the measured-text tools and TextTool to finish their first measurement. */
 async function waitForTextMeasurements(page) {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => {
     const card = window.toolGeometryFixture?.card;
     if (!card) return false;
     const measuredTools = ['names', 'areas', 'states'].map((section) => card.cardTools.sections[section][0]);
-    const legacyText = card.cardTools.sections.texts[0];
+    const textTool = card.cardTools.sections.texts[0];
     return measuredTools.every((tool) => tool?.geometry?.hasExactMeasurement)
-      && legacyText?.hasExactMeasurement;
+      && textTool?.geometry?.hasExactMeasurement;
   });
 }
 
@@ -257,7 +257,7 @@ test('simple shapes follow moved group geometry, scale and flip while Icon retai
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('measured Name, Area and State drive Rectangle fit alongside legacy TextTool fit', async ({ page }) => {
+test('measured Name, Area, State and TextTool geometry drive Rectangle fit', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.tool' }],
@@ -265,12 +265,12 @@ test('measured Name, Area and State drive Rectangle fit alongside legacy TextToo
       names: [{ id: 'name', entity_index: 0, xpos: 50, ypos: 20 }],
       areas: [{ id: 'area', entity_index: 0, xpos: 50, ypos: 40 }],
       states: [{ id: 'state', entity_index: 0, xpos: 50, ypos: 60, show: { uom: 'end' } }],
-      texts: [{ id: 'legacy', xpos: 50, ypos: 80, text: 'Legacy measured label' }],
+      texts: [{ id: 'text-label', xpos: 50, ypos: 80, text: 'Measured text label' }],
       rectangles: [
         { id: 'name-fit', fit: { section: 'names', item_id: 'name', padding: { x: 3, y: 2 } } },
         { id: 'area-fit', fit: { section: 'areas', item_id: 'area', padding: { x: 3, y: 2 } } },
         { id: 'state-fit', fit: { section: 'states', item_id: 'state', padding: { x: 3, y: 2 } } },
-        { id: 'legacy-fit', fit: { section: 'texts', item_id: 'legacy', padding: { x: 3, y: 2 } } },
+        { id: 'text-fit', fit: { section: 'texts', item_id: 'text-label', padding: { x: 3, y: 2 } } },
       ],
     },
   });
@@ -281,14 +281,14 @@ test('measured Name, Area and State drive Rectangle fit alongside legacy TextToo
       ['names', 'name-fit'],
       ['areas', 'area-fit'],
       ['states', 'state-fit'],
-      ['texts', 'legacy-fit'],
+      ['texts', 'text-fit'],
     ];
     return references.every(([section, rectangleId]) => {
       const source = card.cardTools.sections[section][0];
       const rectangle = card.cardTools.sections.rectangles.find((tool) => tool.id === rectangleId);
-      const geometry = source.geometry ?? source;
-      const exact = source.geometry ? source.geometry.hasExactMeasurement : source.hasExactMeasurement;
-      return exact && Math.abs(rectangle.geometry.svg.width - (geometry.measuredWidth + 6) * 2) < 0.05;
+      const geometry = source.geometry;
+      return geometry.hasExactMeasurement
+        && Math.abs(rectangle.geometry.svg.width - (geometry.measuredWidth + 6) * 2) < 0.05;
     });
   });
 
@@ -298,13 +298,13 @@ test('measured Name, Area and State drive Rectangle fit alongside legacy TextToo
       ['names', 'name-fit'],
       ['areas', 'area-fit'],
       ['states', 'state-fit'],
-      ['texts', 'legacy-fit'],
+      ['texts', 'text-fit'],
     ].map(([section, rectangleId]) => {
       const source = card.cardTools.sections[section][0];
       const rectangle = card.cardTools.sections.rectangles.find((tool) => tool.id === rectangleId);
-      const geometry = source.geometry ?? source;
+      const geometry = source.geometry;
       return {
-        exact: source.geometry ? source.geometry.hasExactMeasurement : source.hasExactMeasurement,
+        exact: geometry.hasExactMeasurement,
         centerX: geometry.measuredXpos,
         centerY: geometry.measuredYpos,
         width: geometry.measuredWidth,
@@ -396,6 +396,340 @@ test('complete parent paint updates measured geometry and Rectangle fit without 
   expect(after.computedFontSize).not.toBe('');
   expect(after.computedFill).toBe('rgb(211, 47, 47)');
   expect(after.effectiveFontSize).toBe('2em');
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.toolGeometryFixture.card.remove());
+});
+
+test('TextTool parent paint replaces configured styles and clearing restores them', async ({ page }) => {
+  const errors = await loadToolCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [{ entity: 'sensor.tool' }],
+    layout: {
+      texts: [{
+        id: 'painted-text',
+        xpos: 50,
+        ypos: 50,
+        text: 'Painted text',
+        styles: { 'font-size': '1em', fill: '#1565c0', stroke: '#2e7d32' },
+      }],
+    },
+  });
+  await page.waitForFunction(() => window.toolGeometryFixture
+    ?.card.cardTools.sections.texts[0]?.geometry.hasExactMeasurement);
+
+  const before = await page.evaluate(() => {
+    const tool = window.toolGeometryFixture.card.cardTools.sections.texts[0];
+    const computed = getComputedStyle(tool.textElement.firstElementChild);
+    return {
+      fontSize: computed.fontSize,
+      fill: computed.fill,
+      stroke: computed.stroke,
+      configStyles: structuredClone(tool.config.styles),
+    };
+  });
+
+  await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const textTool = card.cardTools.sections.texts[0];
+    textTool.setPaintStyles({ 'font-size': '2em', fill: '#d32f2f' });
+    card.requestUpdate();
+  });
+  await page.waitForFunction((previous) => {
+    const tool = window.toolGeometryFixture.card.cardTools.sections.texts[0];
+    const computed = getComputedStyle(tool.textElement.firstElementChild);
+    return Number.parseFloat(computed.fontSize) > Number.parseFloat(previous.fontSize) * 1.5
+      && computed.fill === 'rgb(211, 47, 47)'
+      && computed.stroke === 'none';
+  }, before);
+
+  const painted = await page.evaluate(() => {
+    const tool = window.toolGeometryFixture.card.cardTools.sections.texts[0];
+    const computed = getComputedStyle(tool.textElement.firstElementChild);
+    return {
+      fontSize: computed.fontSize,
+      fill: computed.fill,
+      stroke: computed.stroke,
+      configStyles: tool.config.styles,
+      paintStyles: tool.paint.styles,
+    };
+  });
+  expect(Number.parseFloat(painted.fontSize)).toBeGreaterThan(Number.parseFloat(before.fontSize) * 1.5);
+  expect(painted.fill).toBe('rgb(211, 47, 47)');
+  expect(painted.stroke).toBe('none');
+  expect(painted.configStyles).toEqual(before.configStyles);
+  expect(painted.paintStyles).toEqual({ 'font-size': '2em', fill: '#d32f2f' });
+
+  await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    card.cardTools.sections.texts[0].setPaintStyles(undefined);
+    card.requestUpdate();
+  });
+  await page.waitForFunction((previous) => {
+    const tool = window.toolGeometryFixture.card.cardTools.sections.texts[0];
+    const computed = getComputedStyle(tool.textElement.firstElementChild);
+    return computed.fontSize === previous.fontSize
+      && computed.fill === previous.fill
+      && computed.stroke === previous.stroke;
+  }, before);
+
+  const cleared = await page.evaluate(() => {
+    const tool = window.toolGeometryFixture.card.cardTools.sections.texts[0];
+    const computed = getComputedStyle(tool.textElement.firstElementChild);
+    return {
+      fontSize: computed.fontSize,
+      fill: computed.fill,
+      stroke: computed.stroke,
+      configStyles: tool.config.styles,
+      paintStyles: tool.paint?.styles,
+    };
+  });
+  expect(cleared.fontSize).toBe(before.fontSize);
+  expect(cleared.fill).toBe(before.fill);
+  expect(cleared.stroke).toBe(before.stroke);
+  expect(cleared.configStyles).toEqual(before.configStyles);
+  expect(cleared.paintStyles).toBeUndefined();
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.toolGeometryFixture.card.remove());
+});
+
+test('TextTool outer font paint remeasures width tokens and keeps Rectangle fit on exact bounds', async ({ page }) => {
+  const errors = await loadToolCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [{ entity: 'sensor.tool' }],
+    layout: {
+      texts: [{
+        id: 'outer-font-text',
+        xpos: 50,
+        ypos: 50,
+        text: 'Harbor temperature stays steady',
+        styles: { 'font-size': '1em', fill: '#1565c0' },
+        text_overflow: { mode: 'ellipsis', ellipsis: { max_width: 300 } },
+      }],
+      rectangles: [{
+        id: 'outer-font-fit',
+        fit: { section: 'texts', item_id: 'outer-font-text', padding: { x: 2, y: 1 } },
+      }],
+    },
+  });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => {
+    const tool = window.toolGeometryFixture?.card.cardTools.sections.texts[0];
+    return tool?.geometry.hasExactMeasurement
+      && tool.runtime.widthMeasurementParts.length > 0
+      && !tool.widthOverflowPending;
+  });
+
+  const before = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const tool = card.cardTools.sections.texts[0];
+    const box = tool.textElement.getBBox();
+    return {
+      revision: tool.widthOverflowRevision,
+      visibleText: tool.textElement.textContent,
+      tokenWidth: tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0),
+      browserWidth: box.width,
+      browserHeight: box.height,
+      geometry: {
+        width: tool.geometry.measuredWidth,
+        height: tool.geometry.measuredHeight,
+        xpos: tool.geometry.measuredXpos,
+        ypos: tool.geometry.measuredYpos,
+      },
+      rectangle: card.cardTools.sections.rectangles[0].geometry.svg,
+    };
+  });
+
+  await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    card.cardTools.sections.texts[0].setPaintStyles({ 'font-size': '2em', fill: '#d32f2f' });
+    card.requestUpdate();
+  });
+  await page.waitForFunction((previous) => {
+    const card = window.toolGeometryFixture.card;
+    const tool = card.cardTools.sections.texts[0];
+    const rectangle = card.cardTools.sections.rectangles[0];
+    const tokenWidth = tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0);
+    return tool.widthOverflowRevision > previous.revision
+      && !tool.widthOverflowPending
+      && tool.geometry.hasExactMeasurement
+      && tokenWidth > previous.tokenWidth * 1.5
+      && Math.abs(rectangle.geometry.svg.width - (tool.geometry.measuredWidth + 4) * 2) < 0.05;
+  }, before);
+
+  const after = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const tool = card.cardTools.sections.texts[0];
+    const box = tool.textElement.getBBox();
+    const rectangle = card.cardTools.sections.rectangles[0].geometry.svg;
+    return {
+      revision: tool.widthOverflowRevision,
+      visibleText: tool.textElement.textContent,
+      tokenWidth: tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0),
+      browserWidth: box.width,
+      browserHeight: box.height,
+      geometry: {
+        width: tool.geometry.measuredWidth,
+        height: tool.geometry.measuredHeight,
+        xpos: tool.geometry.measuredXpos,
+        ypos: tool.geometry.measuredYpos,
+      },
+      rectangle,
+      configStyles: tool.config.styles,
+    };
+  });
+  expect(after.visibleText).toBe(before.visibleText);
+  expect(after.tokenWidth).toBeGreaterThan(before.tokenWidth * 1.5);
+  expect(after.geometry.width).toBeCloseTo(after.browserWidth * (100 / 200), 3);
+  expect(after.geometry.height).toBeCloseTo(after.browserHeight * (100 / 200), 3);
+  expect(after.rectangle.xpos).toBeCloseTo(after.geometry.xpos, 2);
+  expect(after.rectangle.ypos).toBeCloseTo(after.geometry.ypos, 2);
+  expect(after.rectangle.width).toBeCloseTo((after.geometry.width + 4) * 2, 2);
+  expect(after.rectangle.height).toBeCloseTo((after.geometry.height + 2) * 2, 2);
+  expect(after.configStyles).toEqual({ 'font-size': '1em', fill: '#1565c0' });
+
+  const repeatedPaint = await page.evaluate(async () => {
+    const card = window.toolGeometryFixture.card;
+    const tool = card.cardTools.sections.texts[0];
+    const revision = tool.widthOverflowRevision;
+    tool.setPaintStyles({ ...tool.paint.styles });
+    card.requestUpdate();
+    await card.updateComplete;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return {
+      revision,
+      nextRevision: tool.widthOverflowRevision,
+      pending: tool.widthOverflowPending,
+    };
+  });
+  expect(repeatedPaint.nextRevision).toBe(repeatedPaint.revision);
+  expect(repeatedPaint.pending).toBe(false);
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.toolGeometryFixture.card.remove());
+});
+
+test('TextTool referenced source font changes invalidate width tokens for equal text', async ({ page }) => {
+  const errors = await loadToolCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [{ entity: 'sensor.tool' }],
+    layout: {
+      names: [{
+        id: 'font-source',
+        entity_index: 0,
+        xpos: 50,
+        ypos: 25,
+        styles: { 'font-size': '1.5em' },
+      }],
+      texts: [{
+        id: 'referenced-font-text',
+        xpos: 50,
+        ypos: 55,
+        text: [{ type: 'name', id: 'font-source' }],
+        text_overflow: { mode: 'ellipsis', ellipsis: { max_width: 300 } },
+      }],
+      rectangles: [{
+        id: 'referenced-font-fit',
+        fit: { section: 'texts', item_id: 'referenced-font-text', padding: { x: 2, y: 1 } },
+      }],
+    },
+  });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => {
+    const tool = window.toolGeometryFixture?.card.cardTools.sections.texts[0];
+    return tool?.geometry.hasExactMeasurement
+      && tool.runtime.widthMeasurementParts.length > 0
+      && !tool.widthOverflowPending;
+  });
+
+  const before = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const source = card.cardTools.sections.names[0];
+    const tool = card.cardTools.sections.texts[0];
+    const box = tool.textElement.getBBox();
+    return {
+      revision: tool.widthOverflowRevision,
+      sourceSignature: tool.geometry.widthOverflowSourceSignature,
+      measurementSignature: tool.geometry.widthOverflowMeasurementSignature,
+      visibleText: tool.textElement.textContent,
+      tokenWidth: tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0),
+      browserWidth: box.width,
+      browserHeight: box.height,
+      geometry: {
+        width: tool.geometry.measuredWidth,
+        height: tool.geometry.measuredHeight,
+        xpos: tool.geometry.measuredXpos,
+        ypos: tool.geometry.measuredYpos,
+      },
+      sourceStyles: structuredClone(source.config.styles),
+    };
+  });
+
+  await page.evaluate(() => {
+    const { card, hass } = window.toolGeometryFixture;
+    const source = card.cardTools.sections.names[0];
+    source.setPaintStyles({ 'font-size': '2em' });
+    const changedAt = new Date(Date.now() + 1000).toISOString();
+    const nextToolState = {
+      ...hass.states['sensor.tool'],
+      state: '2',
+      last_changed: changedAt,
+      last_updated: changedAt,
+    };
+    const nextHass = {
+      ...hass,
+      states: { ...hass.states, 'sensor.tool': nextToolState },
+    };
+    window.toolGeometryFixture.hass = nextHass;
+    card.hass = nextHass;
+  });
+  await page.waitForFunction((previous) => {
+    const card = window.toolGeometryFixture.card;
+    const tool = card.cardTools.sections.texts[0];
+    const rectangle = card.cardTools.sections.rectangles[0];
+    const tokenWidth = tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0);
+    return tool.widthOverflowRevision > previous.revision
+      && tool.geometry.widthOverflowSourceSignature !== previous.sourceSignature
+      && !tool.widthOverflowPending
+      && tool.geometry.hasExactMeasurement
+      && tokenWidth > previous.tokenWidth * 1.2
+      && Math.abs(rectangle.geometry.svg.width - (tool.geometry.measuredWidth + 4) * 2) < 0.05;
+  }, before);
+
+  const after = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const source = card.cardTools.sections.names[0];
+    const tool = card.cardTools.sections.texts[0];
+    const box = tool.textElement.getBBox();
+    const rectangle = card.cardTools.sections.rectangles[0].geometry.svg;
+    return {
+      sourceSignature: tool.geometry.widthOverflowSourceSignature,
+      measurementSignature: tool.geometry.widthOverflowMeasurementSignature,
+      visibleText: tool.textElement.textContent,
+      tokenWidth: tool.widthMeasurementElements.reduce((total, element) => total + element.getComputedTextLength(), 0),
+      browserWidth: box.width,
+      browserHeight: box.height,
+      geometry: {
+        width: tool.geometry.measuredWidth,
+        height: tool.geometry.measuredHeight,
+        xpos: tool.geometry.measuredXpos,
+        ypos: tool.geometry.measuredYpos,
+      },
+      rectangle,
+      sourceStyles: source.config.styles,
+      sourcePaintStyles: source.paint.styles,
+    };
+  });
+  expect(after.visibleText).toBe(before.visibleText);
+  expect(after.tokenWidth).toBeGreaterThan(before.tokenWidth * 1.2);
+  expect(after.sourceSignature).not.toBe(before.sourceSignature);
+  expect(after.measurementSignature).not.toBe(before.measurementSignature);
+  expect(after.geometry.width).toBeCloseTo(after.browserWidth * (100 / 200), 3);
+  expect(after.geometry.height).toBeCloseTo(after.browserHeight * (100 / 200), 3);
+  expect(after.rectangle.xpos).toBeCloseTo(after.geometry.xpos, 2);
+  expect(after.rectangle.ypos).toBeCloseTo(after.geometry.ypos, 2);
+  expect(after.rectangle.width).toBeCloseTo((after.geometry.width + 4) * 2, 2);
+  expect(after.rectangle.height).toBeCloseTo((after.geometry.height + 2) * 2, 2);
+  expect(after.sourceStyles).toEqual(before.sourceStyles);
+  expect(after.sourcePaintStyles).toEqual({ 'font-size': '2em' });
   expect(errors).toEqual([]);
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });

@@ -60,20 +60,23 @@ function createStateTool({
     },
   };
   const tool = Object.create(StateTool.prototype);
-  tool.runtime = { state: '', uom: '' };
+  tool.runtime = {
+    entity,
+    entityConfig: {
+      entity: entity.entity_id,
+      attribute,
+      decimals,
+      unit,
+      convert,
+    },
+    state: '',
+    uom: '',
+  };
 
   tool.config = {
     format,
     show: { uom: 'end' },
   };
-  tool.entityConfig = {
-    entity: entity.entity_id,
-    attribute,
-    decimals,
-    unit,
-    convert,
-  };
-  tool.entity = entity;
   tool.card = { _hass: hass };
   tool.textEllipsis = (value) => value;
 

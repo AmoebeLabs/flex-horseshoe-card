@@ -35,17 +35,20 @@ function createStateTool({ state, haFormattedValue, haPrecision, decimals, forma
     formatEntityAttributeValueToParts: () => [],
   };
   const tool = Object.create(StateTool.prototype);
-  tool.runtime = { state: '', uom: '' };
+  tool.runtime = {
+    entity,
+    entityConfig: {
+      entity: entity.entity_id,
+      decimals,
+    },
+    state: '',
+    uom: '',
+  };
 
   tool.config = {
     format,
     show: { uom: 'end' },
   };
-  tool.entityConfig = {
-    entity: entity.entity_id,
-    decimals,
-  };
-  tool.entity = entity;
   tool.card = { _hass: hass };
   tool.textEllipsis = (value) => value;
 

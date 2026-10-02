@@ -790,7 +790,7 @@ export default class ControlSlider extends ControlBase {
       ? `translateX(-${singleTranslationPercentage}%)`
       : `translateY(${singleTranslationPercentage}%)`;
     const activeStyles = this.getStyles({
-      '--fhs-slider-active-color': Colors.computeColor(this.entity),
+      '--fhs-slider-active-color': Colors.computeColor(this.runtime.entity),
       ...ConfigHelper.toStyleDict(viz.active.styles),
     });
 
@@ -866,7 +866,7 @@ export default class ControlSlider extends ControlBase {
     const thumbLength = Utils.calculateSvgDimension(viz.thumb.length);
     const thumbHitSize = Utils.calculateSvgDimension(viz.thumb.hit_size);
     const activeStyles = this.getStyles({
-      '--fhs-slider-active-color': Colors.computeColor(this.entity),
+      '--fhs-slider-active-color': Colors.computeColor(this.runtime.entity),
       ...ConfigHelper.toStyleDict(viz.active.styles),
     });
 

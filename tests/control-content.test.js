@@ -29,7 +29,7 @@ const createContext = () => ({
       colorContext: { cacheReady: false },
     },
     cardAnimations: {
-      styles: {},
+      styles: { texts: {} },
     },
   },
 });
@@ -336,8 +336,8 @@ test('button and select opt into explicit content without changing control entit
   assert.equal(button.contentVisual.childTools[0].tool.entity_index, 7);
   assert.equal(button.contentVisual.childTools[0].type, 'text');
   assert.equal(button.contentVisual.childTools[0].tool.config.styles['font-size'], '0.7em');
-  assert.equal(button.contentVisual.childTools[0].tool.sourceTextParts[0].source_styles, false);
-  assert.equal(button.contentVisual.childTools[0].tool.sourceTextParts[0].styles, undefined);
+  assert.equal(button.contentVisual.childTools[0].tool.sourceConfig.text[0].source_styles, false);
+  assert.equal(button.contentVisual.childTools[0].tool.sourceConfig.text[0].styles, undefined);
   assert.equal(select.entity_index, 0);
   assert.deepEqual(
     select.optionContentVisuals.map((content) => content.childTools[0].tool.entity_index),
@@ -369,7 +369,7 @@ test('entityless button initializes literal content without an entity state', ()
 
   assert.equal(button.entity_index, undefined);
   assert.equal(button.active, false);
-  assert.equal(button.contentTextTool.textParts[0].value, 'Action');
+  assert.equal(button.contentTextTool.runtime.textParts[0].value, 'Action');
 });
 
 /**

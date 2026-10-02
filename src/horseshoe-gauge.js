@@ -739,7 +739,7 @@ export default class HorseshoeGauge extends BaseTool {
       ...stateMap,
       map: stateMap.map.map((entry) => {
         const state = String(entry.state ?? entry.value);
-        const displayLabel = this.entityConfig.attribute !== undefined ? this.card._hass.formatEntityAttributeValue(entity, this.entityConfig.attribute, state) : this.card._hass.formatEntityState(entity, state);
+        const displayLabel = this.runtime.entityConfig.attribute !== undefined ? this.card._hass.formatEntityAttributeValue(entity, this.runtime.entityConfig.attribute, state) : this.card._hass.formatEntityState(entity, state);
 
         return {
           ...entry,

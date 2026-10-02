@@ -160,7 +160,7 @@ test('measured text drives Rectangle fit inside a scaled group', async ({ page }
   });
 
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() => window.textFitCard?.cardTools?.sections.texts[0]?.hasExactMeasurement);
+  await page.waitForFunction(() => window.textFitCard?.cardTools?.sections.texts[0]?.geometry.hasExactMeasurement);
 
   const geometry = await page.evaluate(() => {
     const card = window.textFitCard;
@@ -173,7 +173,7 @@ test('measured text drives Rectangle fit inside a scaled group', async ({ page }
     const textPixels = text.getBoundingClientRect();
     const borderPixels = border.getBoundingClientRect();
     return {
-      exact: textTool.hasExactMeasurement,
+      exact: textTool.geometry.hasExactMeasurement,
       measured,
       rectangle: rectangle.geometry.svg,
       textBox: { width: textBox.width, height: textBox.height },

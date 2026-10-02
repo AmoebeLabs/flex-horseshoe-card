@@ -430,7 +430,7 @@ test('real-time graded creates one current-value graph without historical bins',
     state: '42',
     last_changed: '2026-09-12T12:00:00.000Z',
   };
-  tool.entity = currentEntity;
+  tool.runtime.entity = currentEntity;
   tool.sparklineSeries.primaryItem.entity = currentEntity;
   tool.sparklineSeries.primaryItem.entityConfig = {};
   tool.sparklineSeries.primaryItem.rows = [{ state: 42 }];
@@ -1530,8 +1530,8 @@ test('accepted multi-day history builds and renders the configured line minmax e
   const item = tool.sparklineSeries.primaryItem;
   item.entity = entity;
   item.entityConfig = {};
-  tool.entity = entity;
-  tool.entityConfig = {};
+  tool.runtime.entity = entity;
+  tool.runtime.entityConfig = {};
   tool.sparklineHistory.bindSeriesEntity(item);
 
   await tool.fetchHistoryIfNeeded(item);
@@ -1617,8 +1617,8 @@ test('accepted empty history becomes loaded request state with empty processed d
   const item = tool.sparklineSeries.primaryItem;
   item.entity = entity;
   item.entityConfig = {};
-  tool.entity = entity;
-  tool.entityConfig = {};
+  tool.runtime.entity = entity;
+  tool.runtime.entityConfig = {};
   tool.sparklineHistory.bindSeriesEntity(item);
 
   await tool.fetchHistoryIfNeeded(item);
@@ -2375,6 +2375,7 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
   let graphUpdates = 0;
 
   Object.assign(tool, {
+    runtime: { entity: undefined, entityConfig: undefined },
     config: { sparkline: { show: { day_night: false } } },
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     sparklineHistory: new SparklineHistory({ type: 'real_time' }, {}, [first, second], true, false, historyEvents()),
@@ -2394,7 +2395,7 @@ test('implicit and explicit series share one entity lifecycle and one graph upda
 
   tool.setEntities(entityConfigs, entities);
 
-  assert.equal(tool.entity, entities[0]);
+  assert.equal(tool.runtime.entity, entities[0]);
   assert.deepEqual(first.rows, [{ state: 10, last_changed: '2026-08-13T10:00:00.000Z' }]);
   assert.deepEqual(second.rows, [{ state: 20, last_changed: '2026-08-13T10:00:00.000Z' }]);
   assert.equal(graphUpdates, 1);
@@ -2577,6 +2578,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
 
   const tool = Object.create(SparklineGraphTool.prototype);
   Object.assign(tool, {
+    runtime: { entity: item.entity, entityConfig: item.entityConfig },
     config,
     sparklineSeries: series,
     graphDataChanged: true,
@@ -2668,7 +2670,7 @@ test('a changed single Cartesian series prunes and calculates statistics once', 
   const completedResult = item.graph.bucketResults.get(completedGroup);
   tool.hasPresentationChanged();
 
-  tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+  tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
   assert.equal(prune.mock.callCount(), 1);
   assert.equal(statistics.mock.callCount(), 1);
@@ -2689,7 +2691,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
   tool.card.cardTheme.modeChanged = false;
   const bars = context.mock.method(tool.primaryGraph, 'getBars');
-  tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+  tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
   // The first pass measures outer half-bars; the second supplies final SVG
   // rectangles. Single-item presentation must not add a third calculation.
@@ -2715,7 +2717,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
     const areaPath = context.mock.method(graph, 'getArea');
     const points = context.mock.method(graph, 'calculateYCoordinates');
 
-    tool.card.entities[0] = { ...tool.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
+    tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
     tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
     assert.equal(tool.line[0], tool.linePath);
     assert.equal(tool.areaMinMax[0], tool.areaMinMaxPath);
@@ -2776,10 +2778,10 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   assert.equal(tool.hasPresentationChanged(), false);
 
   // A fresh HA object with equivalent numeric spelling must still update the action context.
-  const equivalent = { ...tool.entity, state: '20.10', attributes: { friendly_name: 'Current temperature' } };
+  const equivalent = { ...tool.runtime.entity, state: '20.10', attributes: { friendly_name: 'Current temperature' } };
   tool.card.entities[0] = equivalent;
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
-  assert.strictEqual(tool.entity, equivalent);
+  assert.strictEqual(tool.runtime.entity, equivalent);
   assert.strictEqual(item.rows, retained.rows);
   assert.strictEqual(graph.processedValues, retained.values);
   assert.strictEqual(graph.coords, retained.coords);

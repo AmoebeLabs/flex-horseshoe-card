@@ -404,7 +404,7 @@ export default class ControlToggle extends ControlBase {
 
   /** Includes the selected on/off appearance and optional thumb icon. */
   hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.entity.state === 'on');
+    const changed = super.hasPresentationChanged(this.runtime.entity.state === 'on');
     const iconChanged = this.config.content.mode === 'content_icon' && this.iconTool.hasPresentationChanged();
     return changed || iconChanged;
   }
@@ -441,7 +441,7 @@ export default class ControlToggle extends ControlBase {
   _renderToggle() {
     const styleName = this.config.show.item_style;
     const itemConfig = this.config;
-    const isOn = this.entity.state === 'on';
+    const isOn = this.runtime.entity.state === 'on';
     const viz = this.config[styleName];
     const runtime = isOn ? viz.on : viz.off;
     const transition = `${this.config.animation.duration}ms ${this.config.animation.easing}`;

@@ -503,7 +503,7 @@ test('TextTool discards measurements after element replacement or disconnect and
 
     const oldPart = { value: 'obsolete' };
     tool.textElement = { id: 'old-text' };
-    tool.widthMeasurementParts = [oldPart];
+    tool.runtime.widthMeasurementParts = [oldPart];
     tool.widthMeasurementElements = [{ getComputedTextLength: () => 5 }];
     tool.widthEllipsisElements = [{ getComputedTextLength: () => 2 }];
     tool.widthOverflowPending = true;
@@ -512,7 +512,7 @@ test('TextTool discards measurements after element replacement or disconnect and
 
     const currentPart = { value: 'current' };
     tool.textElement = { id: 'current-text' };
-    tool.widthMeasurementParts = [currentPart];
+    tool.runtime.widthMeasurementParts = [currentPart];
     tool.widthMeasurementElements = [{ getComputedTextLength: () => 10 }];
     tool.widthEllipsisElements = [{ getComputedTextLength: () => 3 }];
     tool.updated();
@@ -530,13 +530,13 @@ test('TextTool discards measurements after element replacement or disconnect and
     };
     await advanceFrame();
     await advanceFrame();
-    assert.equal(tool.widthOverflowParts[0].value, 'current');
+    assert.equal(tool.runtime.widthOverflowParts[0].value, 'current');
     assert.equal(tool.widthOverflowPending, false);
     assert.equal(updates, 1);
 
     fontsReady = deferred();
     const disconnectedPart = { value: 'disconnected' };
-    tool.widthMeasurementParts = [disconnectedPart];
+    tool.runtime.widthMeasurementParts = [disconnectedPart];
     tool.widthMeasurementElements = [{ getComputedTextLength: () => 12 }];
     tool.widthEllipsisElements = [{ getComputedTextLength: () => 3 }];
     tool.widthOverflowPending = true;
@@ -550,7 +550,7 @@ test('TextTool discards measurements after element replacement or disconnect and
     tool.connected();
     fontsReady = { promise: Promise.resolve() };
     const reconnectedPart = { value: 'reconnected' };
-    tool.widthMeasurementParts = [reconnectedPart];
+    tool.runtime.widthMeasurementParts = [reconnectedPart];
     tool.widthMeasurementElements = [{ getComputedTextLength: () => 14 }];
     tool.widthEllipsisElements = [{ getComputedTextLength: () => 4 }];
     tool.widthOverflowPending = true;
@@ -559,7 +559,7 @@ test('TextTool discards measurements after element replacement or disconnect and
     assert.equal(frames.size, 1);
     await advanceFrame();
     await advanceFrame();
-    assert.equal(tool.widthOverflowParts[0].value, 'reconnected');
+    assert.equal(tool.runtime.widthOverflowParts[0].value, 'reconnected');
     assert.equal(updates, 2);
   } finally {
     restoreGlobal('window', originalWindow);
