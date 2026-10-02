@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import TextTool from '../src/text-tool.js';
+import Templates from '../src/templates.js';
 
 function createHarness(evaluate) {
   const calls = [];
@@ -41,7 +42,7 @@ function createHarness(evaluate) {
     requestUpdate() {},
   };
   const templates = {
-    hasJavascriptTemplates: (value) => JSON.stringify(value).includes('[[['),
+    hasJavascriptTemplates: Templates.hasJavascriptTemplates,
     getJsTemplateOrValue(item, value) {
       const call = { item: structuredClone(item), value: structuredClone(value) };
       calls.push(call);
@@ -108,6 +109,28 @@ test('TextTool normalizes and displays literal scalar and multipart text', () =>
     { type: 'text', value: 'first', new_line: undefined, dy: undefined },
     { type: 'text', value: 'second', new_line: true, dy: 1.2 },
   ]);
+});
+
+test('complete Text source has current JavaScript metadata without changing outer scheduling', () => {
+  const harness = createHarness((_item, value) => ({ ...value, value: 'evaluated-part' }));
+  const tool = new TextTool({
+    id: 'part-only-metadata',
+    xpos: 50,
+    ypos: 50,
+    text: [{ value: '[[[ part_value ]]]' }],
+  }, 0, harness.templates, 'card', harness.card);
+
+  // The complete source includes part JavaScript, while BaseTool schedules only outer fields.
+  assert.equal(tool.hasJavascript, false);
+  assert.equal(tool.textPartsHaveJavascript, true);
+  assert.equal(harness.templates.hasJavascriptTemplates(tool.sourceConfig), true);
+  assert.equal(harness.templates.hasJavascriptTemplates(tool.sourceConfig), true);
+
+  tool.updateRuntimeConfig();
+  assert.equal(harness.calls.length, 1);
+  assert.equal(harness.calls[0].value.type, 'text');
+  assert.equal(tool.config.text[0].value, 'evaluated-part');
+  assert.equal(tool.hasJavascript, false);
 });
 
 test('outer and part JavaScript use separate exact calls and item contexts', () => {

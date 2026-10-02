@@ -76,9 +76,9 @@ export default class TextTool extends BaseTool {
     delete outerConfig.localize_tag;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
-    // BaseTool detects outer JavaScript before parts join the shared source.
-    // Parts are evaluated separately because their entity context may differ.
-    this.sourceConfig.text = structuredClone(sourceTextParts);
+    // BaseTool retains outer-only scheduling. Give the complete source a new
+    // identity so the Templates cache also sees each part's JavaScript.
+    this.sourceConfig = { ...this.sourceConfig, text: structuredClone(sourceTextParts) };
     this.textPartsHaveJavascript = this.sourceConfig.text.some((part) => this.templates.hasJavascriptTemplates(part));
     this.config.text = [];
     this.textConfigSignature = undefined;
