@@ -60,12 +60,12 @@ function createIconContext(connection, entitySources) {
       'async-icon-test',
       card,
     );
-    tool.entity = {
+    tool.runtime.entity = {
       entity_id: entityId,
       state,
       attributes: { device_class: 'measurement', icon: undefined },
     };
-    tool.entityConfig = { entity: entityId, attribute: undefined };
+    tool.runtime.entityConfig = { entity: entityId, attribute: undefined };
     return tool;
   };
 
@@ -98,11 +98,11 @@ test('IconTool keeps the current source and shares one in-flight HA formatter lo
   assert.equal(messages.length, 1);
   assert.equal(messages[0].category, 'entity');
 
-  first.entity = { ...first.entity, entity_id: sources[1].entityId };
-  first.entityConfig = { entity: sources[1].entityId, attribute: undefined };
+  first.runtime.entity = { ...first.runtime.entity, entity_id: sources[1].entityId };
+  first.runtime.entityConfig = { entity: sources[1].entityId, attribute: undefined };
   first.buildIcon(undefined);
-  shared.entity = { ...shared.entity, entity_id: sources[1].entityId };
-  shared.entityConfig = { entity: sources[1].entityId, attribute: undefined };
+  shared.runtime.entity = { ...shared.runtime.entity, entity_id: sources[1].entityId };
+  shared.runtime.entityConfig = { entity: sources[1].entityId, attribute: undefined };
   shared.buildIcon(undefined);
   assert.equal(messages.length, 2);
 
@@ -145,7 +145,7 @@ test('IconTool ignores a stale formatter rejection and retries through the real 
     assert.equal(messages.length, 1);
 
     // The entity value changes while HA is still resolving the old formatter request.
-    tool.entity.state = 'after';
+    tool.runtime.entity.state = 'after';
     requests[0].reject(new Error('temporary websocket failure'));
     await nextTurn();
     assert.equal(errors.length, 0);

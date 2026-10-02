@@ -5,9 +5,8 @@
  * @returns {{xpos: number, ypos: number, width: number, height: number}} Text geometry.
  */
 export default function getTextToolGeometry(tool) {
-  // TextTool retains config.svg and direct measurement fields until its 16B migration.
-  const geometry = tool.geometry ?? tool;
-  const svg = tool.geometry ? geometry.svg : tool.config.svg;
+  const { geometry } = tool;
+  const { svg } = geometry;
 
   if (geometry.hasExactMeasurement) {
     return {

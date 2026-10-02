@@ -39,7 +39,7 @@ export default class NameTool extends BaseTool {
       hasExactMeasurement: false,
       textMeasurementSignature: '',
     };
-    this.runtime = { name: '' };
+    this.runtime.name = '';
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
@@ -132,19 +132,19 @@ export default class NameTool extends BaseTool {
    * @returns {string} Name text.
    */
   buildName() {
-    if (this.entity.label) {
-      return this.card._hass.localize(`ui.components.statistics_charts.statistic_types.${this.entity.label}`) || this.entity.label;
+    if (this.runtime.entity.label) {
+      return this.card._hass.localize(`ui.components.statistics_charts.statistic_types.${this.runtime.entity.label}`) || this.runtime.entity.label;
     }
 
-    if (this.entityConfig.name !== undefined) {
-      return this.card._hass.formatEntityName(this.entity, this.entityConfig.name);
+    if (this.runtime.entityConfig.name !== undefined) {
+      return this.card._hass.formatEntityName(this.runtime.entity, this.runtime.entityConfig.name);
     }
 
-    if (this.entityConfig.attribute !== undefined) {
-      return this.card._hass.formatEntityAttributeName(this.entity, this.entityConfig.attribute);
+    if (this.runtime.entityConfig.attribute !== undefined) {
+      return this.card._hass.formatEntityAttributeName(this.runtime.entity, this.runtime.entityConfig.attribute);
     }
 
-    return this.card._hass.formatEntityName(this.entity, { type: 'entity' });
+    return this.card._hass.formatEntityName(this.runtime.entity, { type: 'entity' });
   }
 
   /**

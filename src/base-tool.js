@@ -61,8 +61,7 @@ export default class BaseTool {
     this.entity_index = config.entity_index ?? defaultEntityIndex;
     this.colorStopPaintDefaults = colorStopPaintDefaults;
 
-    this.entity = undefined;
-    this.entityConfig = undefined;
+    this.runtime = { entity: undefined, entityConfig: undefined };
     this.configChanged = true;
     this.configurationChanged = true;
     this.groupChanged = false;
@@ -76,7 +75,7 @@ export default class BaseTool {
    * Updates the runtime configuration after main has published the current
    * Home Assistant template context and before entity data is assigned.
    */
-  updateRuntimeConfig() {
+  updateRuntimeConfig(sourceConfig = this.sourceConfig) {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configurationChanged = !this.activeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
@@ -88,7 +87,7 @@ export default class BaseTool {
     // a new local config during the same hass updates as before.
     let newConfig = this.config;
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      const evaluatedConfig = this.templates.getJsTemplateOrValue(this.sourceConfig, this.sourceConfig, {
+      const evaluatedConfig = this.templates.getJsTemplateOrValue(sourceConfig, sourceConfig, {
         resolveKeys: true,
       });
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
@@ -126,9 +125,22 @@ export default class BaseTool {
       newConfig.sparkline.colorstops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
     }
 
-    this.config = newConfig;
+    // Multipart tools finish their own evaluation contexts and child bindings
+    // here, so state processing always sees the complete current configuration.
+    this.config = this.completeRuntimeConfig(newConfig);
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.activeConfigInitialized = true;
+  }
+
+  /**
+   * Completes context-dependent fields before the runtime route publishes config.
+   * Constructors use the explicit pure translator instead of this runtime hook.
+   *
+   * @param {object} newConfig - Evaluated and translated configuration.
+   * @returns {object} Complete current configuration.
+   */
+  completeRuntimeConfig(newConfig) {
+    return newConfig;
   }
 
   /**
@@ -173,8 +185,8 @@ export default class BaseTool {
    * @param {object} entityConfig - Entity configuration for this tool.
    */
   setState(entity, entityConfig) {
-    this.entity = entity;
-    this.entityConfig = entityConfig;
+    this.runtime.entity = entity;
+    this.runtime.entityConfig = entityConfig;
   }
 
   /**

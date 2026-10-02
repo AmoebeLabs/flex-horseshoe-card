@@ -291,7 +291,7 @@ export default class StateTool extends BaseTool {
       hasExactMeasurement: false,
       textMeasurementSignature: '',
     };
-    this.runtime = { state: '', uom: '' };
+    Object.assign(this.runtime, { state: '', uom: '' });
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
@@ -407,10 +407,10 @@ export default class StateTool extends BaseTool {
    * @returns {string|number} Formatted state value.
    */
   formatStateString(inState) {
-    const stateFormat = this.config?.format || this.entityConfig?.format;
+    const stateFormat = this.config?.format || this.runtime.entityConfig?.format;
 
-    if (this.entityConfig.debug) {
-      console.log('StateTool.formatStateString', this.entityConfig.entity, inState, stateFormat);
+    if (this.runtime.entityConfig.debug) {
+      console.log('StateTool.formatStateString', this.runtime.entityConfig.entity, inState, stateFormat);
     }
     // Object-style format config is used for options like raw_state_keep and decimals_min/max.
     if (typeof stateFormat !== 'string') {
@@ -521,9 +521,9 @@ export default class StateTool extends BaseTool {
    * @returns {Array<object>} Formatter parts split into value and unit entries.
    */
   formatEntityStateParts() {
-    const isAttribute = this.entityConfig.attribute !== undefined;
-    const formatConfig = typeof this.config?.format === 'object' ? this.config.format : typeof this.entityConfig.format === 'object' ? this.entityConfig.format : {};
-    let rawValue = isAttribute ? this.entity.attributes[this.entityConfig.attribute] : this.entity.state;
+    const isAttribute = this.runtime.entityConfig.attribute !== undefined;
+    const formatConfig = typeof this.config?.format === 'object' ? this.config.format : typeof this.runtime.entityConfig.format === 'object' ? this.runtime.entityConfig.format : {};
+    let rawValue = isAttribute ? this.runtime.entity.attributes[this.runtime.entityConfig.attribute] : this.runtime.entity.state;
 
     // raw_state_keep bypasses Home Assistant translation/formatting and returns the raw value directly.
     if (formatConfig.raw_state_keep === true) {
@@ -534,20 +534,20 @@ export default class StateTool extends BaseTool {
       return [{ type: 'value', value: rawValue }];
     }
 
-    let stateValue = StateTool.buildState(rawValue, this.entityConfig, this.card._hass, this.entity);
+    let stateValue = StateTool.buildState(rawValue, this.runtime.entityConfig, this.card._hass, this.runtime.entity);
 
-    if (this.entityConfig?.format !== undefined || this.config?.format !== undefined) {
+    if (this.runtime.entityConfig?.format !== undefined || this.config?.format !== undefined) {
       stateValue = this.formatStateString(stateValue);
     }
 
-    const formatEntity = this.entity.attributes.source_entity_id
+    const formatEntity = this.runtime.entity.attributes.source_entity_id
       ? {
-          ...this.entity,
-          entity_id: this.entity.attributes.source_entity_id,
+          ...this.runtime.entity,
+          entity_id: this.runtime.entity.attributes.source_entity_id,
         }
-      : this.entity;
-    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(formatEntity, this.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(formatEntity, stateValue);
-    const hasNumberFormatOverride = this.entityConfig.decimals !== undefined
+      : this.runtime.entity;
+    const parts = isAttribute ? this.card._hass.formatEntityAttributeValueToParts(formatEntity, this.runtime.entityConfig.attribute) : this.card._hass.formatEntityStateToParts(formatEntity, stateValue);
+    const hasNumberFormatOverride = this.runtime.entityConfig.decimals !== undefined
       || formatConfig.decimals_min !== undefined
       || formatConfig.decimals_max !== undefined
       || formatConfig.locale !== undefined
@@ -561,9 +561,9 @@ export default class StateTool extends BaseTool {
         ? formatConfig.locale
         : numberFormatToLocale(this.card._hass.locale);
       const registryEntity = this.card._hass.entities[formatEntity.entity_id];
-      const precisionEntity = this.entity.attributes.source_entity_id ? this.card._hass.states[this.entity.attributes.source_entity_id] : formatEntity;
+      const precisionEntity = this.runtime.entity.attributes.source_entity_id ? this.card._hass.states[this.runtime.entity.attributes.source_entity_id] : formatEntity;
       const haFormatOptions = getDefaultFormatOptions(precisionEntity.state, getNumberFormatOptions(precisionEntity, registryEntity));
-      const entityDecimals = this.entityConfig.decimals !== undefined ? Number(this.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
+      const entityDecimals = this.runtime.entityConfig.decimals !== undefined ? Number(this.runtime.entityConfig.decimals) : haFormatOptions.maximumFractionDigits;
       const maxDigits = formatConfig.decimals_max ?? entityDecimals;
       let minDigits = formatConfig.decimals_min ?? entityDecimals;
 
@@ -599,8 +599,8 @@ export default class StateTool extends BaseTool {
         return { ...part, value: formattedValue };
       }
 
-      if (part.type === 'unit' && this.entityConfig.unit !== undefined) {
-        return { ...part, value: this.entityConfig.unit };
+      if (part.type === 'unit' && this.runtime.entityConfig.unit !== undefined) {
+        return { ...part, value: this.runtime.entityConfig.unit };
       }
 
       return part;
@@ -631,7 +631,7 @@ export default class StateTool extends BaseTool {
    * @returns {string} Unit text.
    */
   buildUom(unit) {
-    return this.entityConfig.unit || unit || '';
+    return this.runtime.entityConfig.unit || unit || '';
   }
 
   /**

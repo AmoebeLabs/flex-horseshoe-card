@@ -41,7 +41,7 @@ export default class IconTool extends BaseTool {
     );
 
     this.geometry = { svg: this.calculateSvgDimensions() };
-    this.runtime = { stateMapItem: this.getStateMapItem() };
+    this.runtime.stateMapItem = this.getStateMapItem();
     this.iconId = Math.random().toString(36).substr(2, 9);
     this.haIconPath = new HomeAssistantIconPath(card, this.iconId);
     this.iconRequest = undefined;
@@ -102,7 +102,7 @@ export default class IconTool extends BaseTool {
     return super.hasPresentationChanged([
       this.buildIcon(stateMapItem, renderItem),
       stateMapItem,
-      this.entity ? Colors.getHaEntityIconStyle(this.entity) : undefined,
+      this.runtime.entity ? Colors.getHaEntityIconStyle(this.runtime.entity) : undefined,
     ]);
   }
 
@@ -129,7 +129,7 @@ export default class IconTool extends BaseTool {
     const entries = this.config?.state_map?.map;
     if (!entries) return undefined;
 
-    const state = this.entity?.state;
+    const state = this.runtime.entity?.state;
 
     return (
       entries.find(
@@ -161,23 +161,23 @@ export default class IconTool extends BaseTool {
       return item.icon;
     }
 
-    if (!this.entity || !this.entityConfig) {
+    if (!this.runtime.entity || !this.runtime.entityConfig) {
       return undefined;
     }
 
-    if (this.entityConfig.icon) {
-      return this.entityConfig.icon;
+    if (this.runtime.entityConfig.icon) {
+      return this.runtime.entityConfig.icon;
     }
 
-    const entityId = this.entityConfig.entity;
-    const attribute = this.entityConfig.attribute;
+    const entityId = this.runtime.entityConfig.entity;
+    const attribute = this.runtime.entityConfig.attribute;
     const attributeValue = attribute
-      ? this.entity.attributes?.[attribute]
+      ? this.runtime.entity.attributes?.[attribute]
       : undefined;
-    const domain = this.entity.entity_id?.split(".")[0];
+    const domain = this.runtime.entity.entity_id?.split(".")[0];
 
-    if (this.entity.attributes?.icon && !attribute) {
-      return this.entity.attributes.icon;
+    if (this.runtime.entity.attributes?.icon && !attribute) {
+      return this.runtime.entity.attributes.icon;
     }
 
     if (attribute && domain === "weather") {
@@ -191,7 +191,7 @@ export default class IconTool extends BaseTool {
     const iconId = attribute
       ? `${entityId}|attribute:${attribute}`
       : `${entityId}|state`;
-    const key = this.getEntityIconKey(this.entity, this.entityConfig);
+    const key = this.getEntityIconKey(this.runtime.entity, this.runtime.entityConfig);
 
     if (this.card.entitiesIconKey[iconId] === key) {
       return this.card.entitiesIcon[iconId];
@@ -211,7 +211,7 @@ export default class IconTool extends BaseTool {
     const iconPromise = attribute
       ? attributeIcon(
           this.card._hass,
-          this.entity,
+          this.runtime.entity,
           attribute,
           attributeValue !== undefined ? String(attributeValue) : undefined,
         )
@@ -219,13 +219,13 @@ export default class IconTool extends BaseTool {
           this.card._hass.entities,
           this.card._hass.config,
           this.card._hass.connection,
-          this.entity,
+          this.runtime.entity,
         );
 
     iconPromise
       .then((icon) => {
         if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
-        if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
+        if (this.getEntityIconKey(this.runtime.entity, this.runtime.entityConfig) !== key) return;
 
         if (!icon) {
           return;
@@ -239,7 +239,7 @@ export default class IconTool extends BaseTool {
       })
       .catch((err) => {
         if (this.iconClosed || this.iconRequest !== request || this.card.entitiesIconPending.get(iconId) !== request) return;
-        if (this.getEntityIconKey(this.entity, this.entityConfig) !== key) return;
+        if (this.getEntityIconKey(this.runtime.entity, this.runtime.entityConfig) !== key) return;
         console.error(
           attribute
             ? "IconTool.buildIcon attributeIcon failed"
@@ -459,8 +459,8 @@ export default class IconTool extends BaseTool {
     const ypx = cy - iconPixels * adjust;
     const foIconPixels = iconPixels;
 
-    const haStyle = this.entity
-      ? Colors.getHaEntityIconStyle(this.entity)
+    const haStyle = this.runtime.entity
+      ? Colors.getHaEntityIconStyle(this.runtime.entity)
       : { fill: "currentColor", color: "var(--state-icon-color)" };
     const defaultIconColor = {};
     defaultIconColor.fill = haStyle.fill;

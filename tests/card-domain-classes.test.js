@@ -142,27 +142,34 @@ test('entity presentation tools use Home Assistant formatters and explicit names
     formatEntityAttributeValue: (_entity, attribute, state) => attribute + ' ' + state,
   };
   const card = { _hass: hass };
-  const nameTool = Object.assign(Object.create(NameTool.prototype), { card, entity, entityConfig: {} });
-  const areaTool = Object.assign(Object.create(AreaTool.prototype), { card, entity, entityConfig: {} });
-  const horseshoe = Object.assign(Object.create(HorseshoeGauge.prototype), { card, entityConfig: {}, config: {} });
-  const sparkline = Object.assign(Object.create(SparklineGraphTool.prototype), { card });
+  const nameTool = Object.assign(Object.create(NameTool.prototype), { card, runtime: { entity, entityConfig: {} } });
+  const areaTool = Object.assign(Object.create(AreaTool.prototype), { card, runtime: { entity, entityConfig: {} } });
+  const horseshoe = Object.assign(Object.create(HorseshoeGauge.prototype), {
+    card,
+    runtime: { entity, entityConfig: {} },
+    config: {},
+  });
+  const sparkline = Object.assign(Object.create(SparklineGraphTool.prototype), {
+    card,
+    runtime: { entity: undefined, entityConfig: undefined },
+  });
 
   assert.equal(nameTool.buildName(), 'Temperature');
-  nameTool.entityConfig = { attribute: 'current_temperature' };
+  nameTool.runtime.entityConfig = { attribute: 'current_temperature' };
   assert.equal(nameTool.buildName(), 'Current temperature');
-  nameTool.entityConfig = { name: [{ type: 'area' }, { type: 'text', text: '-' }, { type: 'entity' }] };
+  nameTool.runtime.entityConfig = { name: [{ type: 'area' }, { type: 'text', text: '-' }, { type: 'entity' }] };
   assert.equal(nameTool.buildName(), 'Living room - Temperature');
   assert.deepEqual(nameCalls.at(-1), [{ type: 'area' }, { type: 'text', text: '-' }, { type: 'entity' }]);
 
   assert.equal(areaTool.buildArea(), 'Living room');
-  areaTool.entityConfig = { area: 'Downstairs' };
+  areaTool.runtime.entityConfig = { area: 'Downstairs' };
   assert.equal(areaTool.buildArea(), 'Downstairs');
 
   assert.equal(
     horseshoe.buildStateMapDisplayLabels({ map: [{ state: 'on' }, { state: 'off', label: 'Disabled' }] }, entity).map[0].display_label,
     'State on',
   );
-  horseshoe.entityConfig = { attribute: 'preset_mode' };
+  horseshoe.runtime.entityConfig = { attribute: 'preset_mode' };
   assert.equal(
     horseshoe.buildStateMapDisplayLabels({ map: [{ state: 'eco' }] }, entity).map[0].display_label,
     'preset_mode eco',
@@ -1019,10 +1026,12 @@ test('CardTools measures referenced tool dimensions and geometry', () => {
   ]) {
     const tool = Object.assign(Object.create(ToolClass.prototype), {
       id: 'label',
-      config: { svg: { xpos: 20, ypos: 30 } },
-      estimatedWidth: 40,
-      estimatedHeight: 10,
-      hasExactMeasurement: false,
+      geometry: {
+        svg: { xpos: 20, ypos: 30 },
+        estimatedWidth: 40,
+        estimatedHeight: 10,
+        hasExactMeasurement: false,
+      },
     });
     cardTools.sections[section] = [tool];
     const reference = { section, item_id: 'label', padding: 2 };
@@ -1031,7 +1040,7 @@ test('CardTools measures referenced tool dimensions and geometry', () => {
     assert.equal(cardTools.getItemHeight(reference), 14);
     assert.deepEqual(cardTools.getItemGeometry(reference), { xpos: 20, ypos: 30, width: 40, height: 10 });
 
-    Object.assign(tool, {
+    Object.assign(tool.geometry, {
       measuredXpos: 25,
       measuredYpos: 35,
       measuredWidth: 47,
@@ -1332,18 +1341,20 @@ test('IconTool passes its effective render item to group scale helpers', () => {
   const card = {
     cardLayout: {
       getGroupScaleTransform: (item) => `scale(${item.flip === 'x' ? -2 : 2}, 1)`,
-      getGroupScaleStyle: (item) => `transform-origin:${item.svg.xpos}px ${item.svg.ypos}px;`,
+      getGroupScaleStyle: (_item, svg) => `transform-origin:${svg.xpos}px ${svg.ypos}px;`,
     },
   };
   const icon = Object.create(IconTool.prototype);
   icon.card = card;
-  icon.config = { svg: { xpos: 20, ypos: 30 } };
+  icon.config = {};
+  icon.geometry = { svg: { xpos: 20, ypos: 30 } };
   const effectiveItem = { flip: 'x', svg: { xpos: 45, ypos: 55 } };
 
   assert.equal(icon.getGroupScaleTransform(), 'scale(2, 1)');
   assert.equal(icon.getGroupScaleStyle(), 'transform-origin:20px 30px;');
   assert.equal(icon.getGroupScaleTransform(effectiveItem), 'scale(-2, 1)');
-  assert.equal(icon.getGroupScaleStyle(effectiveItem), 'transform-origin:45px 55px;');
+  // Effective flip belongs to the item; the measured geometry owns its pivot.
+  assert.equal(icon.getGroupScaleStyle(effectiveItem), 'transform-origin:20px 30px;');
 });
 
 test('CardLayout marks descendants when a dynamic parent group changes', () => {

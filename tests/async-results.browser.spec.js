@@ -319,7 +319,6 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
       updated() { this.tool.updated(); }
       async changeText(value) {
         window.textValue = value;
-        this.tool.activeTextPartsSignature = undefined;
         this.tool.updateRuntimeConfig();
         this.tool.setStaticState();
         this.requestUpdate();
@@ -355,9 +354,9 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
   await page.evaluate(() => window.textMeasureHost.changeText('CURRENT phrase'));
   await page.evaluate((id) => window.flushFrame(id, true), obsoleteContinuationFrame);
   const pendingAfterChange = await page.evaluate(() => ({
-    text: window.textMeasureHost.tool.textParts.map((part) => part.value).join(''),
+    text: window.textMeasureHost.tool.runtime.textParts.map((part) => part.value).join(''),
     pending: window.textMeasureHost.tool.widthOverflowPending,
-    sourceIsCurrent: window.textMeasureHost.tool.widthOverflowSourceSignature.includes('CURRENT'),
+    sourceIsCurrent: window.textMeasureHost.tool.geometry.widthOverflowSourceSignature.includes('CURRENT'),
   }));
   expect(pendingAfterChange.text).not.toContain('OBSOLETE');
   expect(pendingAfterChange.pending).toBe(true);
@@ -374,7 +373,7 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
   const currentText = await page.evaluate(() => ({
     text: window.textMeasureHost.tool.textElement.textContent,
     fontStatus: document.fonts.status,
-    measurement: window.textMeasureHost.tool.widthOverflowMeasurementSignature,
+    measurement: window.textMeasureHost.tool.geometry.widthOverflowMeasurementSignature,
   }));
   expect(currentText.text).toContain('CURRENT');
   expect(currentText.text).not.toContain('OBSOLETE');
@@ -404,7 +403,7 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
     closed: window.textMeasureHost.tool.textClosed,
     pending: window.textMeasureHost.tool.widthOverflowPending,
     text: window.textMeasureHost.tool.textElement.textContent,
-    measurement: window.textMeasureHost.tool.widthOverflowMeasurementSignature,
+    measurement: window.textMeasureHost.tool.geometry.widthOverflowMeasurementSignature,
     activeFrames: window.textRaf.pendingFrames.size,
   }));
   expect(reconnected.closed).toBe(false);

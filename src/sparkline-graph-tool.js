@@ -1800,7 +1800,7 @@ export default class SparklineGraphTool extends BaseTool {
       // single-item paint layers and multi-series rendering consume these paths.
       if (['line', 'area'].includes(chartType)) {
         const path = graph.getPath();
-        if (config.sparkline.show.line !== false && (this.sparklineSeries.items.length > 1 || this.entityConfig?.show_line !== false)) this.line[index] = path;
+        if (config.sparkline.show.line !== false && (this.sparklineSeries.items.length > 1 || this.runtime.entityConfig?.show_line !== false)) this.line[index] = path;
         if (index === 0) this.linePath = path;
         if (chartType === 'area') {
           this.area[index] = graph.getArea(path);
@@ -1974,7 +1974,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
       if (!graphGeometryChanged) {
         this.updateSparklinePaint();
-        if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+        if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.runtime.entity.last_changed);
         return;
       }
 
@@ -2020,7 +2020,7 @@ export default class SparklineGraphTool extends BaseTool {
       }
 
       this.updateSparklinePaint();
-      if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.entity.last_changed);
+      if (!cartesianSeries && dataChanged) this.primaryGraph.updateStatistics(this.sparklineSeries.primaryItem.rows, statisticsRange, this.runtime.entity.last_changed);
     } finally {
       this.graphDataChanged = false;
     }
@@ -2080,7 +2080,7 @@ export default class SparklineGraphTool extends BaseTool {
     ].includes('colorstopgradient');
     if (
       this.config.sparkline.colorstops.colors.length > 0
-      && (this.config.sparkline.show.item_style === 'colorstopgradient' || layerRequestsColorStopGradient || !this.entityConfig?.color)
+      && (this.config.sparkline.show.item_style === 'colorstopgradient' || layerRequestsColorStopGradient || !this.runtime.entityConfig?.color)
     ) {
       this.gradient[0] = this.primaryGraph.computeGradient(
         computeThresholds(this.config.sparkline.colorstops.colors, this.config.sparkline.colorstops_transition),
@@ -2296,11 +2296,9 @@ export default class SparklineGraphTool extends BaseTool {
     const sourceFormatter = Object.create(StateTool.prototype);
 
     // Read precision and unit from the source entity's normal StateTool output.
-    sourceFormatter.entity = sourceEntity;
-    sourceFormatter.entityConfig = sourceEntityConfig;
     sourceFormatter.config = sourceEntityConfig;
     sourceFormatter.card = this.card;
-    sourceFormatter.runtime = { state: '', uom: '' };
+    sourceFormatter.runtime = { entity: sourceEntity, entityConfig: sourceEntityConfig, state: '', uom: '' };
     sourceFormatter.buildStateAndUom();
 
     const activeLocale = this.card._hass.locale.language;
@@ -2327,10 +2325,8 @@ export default class SparklineGraphTool extends BaseTool {
     if (rawValue === undefined) return { value: '', uom: '' };
 
     const sourceFormatter = Object.create(StateTool.prototype);
-    sourceFormatter.entity = item.entity;
-    sourceFormatter.entityConfig = item.entityConfig;
     sourceFormatter.config = item.entityConfig;
-    sourceFormatter.runtime = { state: '', uom: '' };
+    sourceFormatter.runtime = { entity: item.entity, entityConfig: item.entityConfig, state: '', uom: '' };
     sourceFormatter.card = this.card;
     sourceFormatter.buildStateAndUom();
 

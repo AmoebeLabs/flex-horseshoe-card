@@ -25,7 +25,7 @@ const TEXT_SOURCE_SECTIONS = {
  */
 export default class TextTool extends BaseTool {
   /**
-   * Stores outer text config separately from its independently evaluated parts.
+   * Completes the template-visible source, retaining each part's own context.
    *
    * @param {object} config - Static text item config.
    * @param {number} index - Text index inside layout.texts.
@@ -76,45 +76,47 @@ export default class TextTool extends BaseTool {
     delete outerConfig.localize_tag;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
-    this.sourceTextParts = sourceTextParts;
-    this.textPartsHaveJavascript = this.sourceTextParts.some((part) => this.templates.hasJavascriptTemplates(part));
-    this.activeTextParts = [];
-    this.activeTextPartsSignature = undefined;
-    this.textParts = [];
-    this.config.svg = this.calculateSvgDimensions();
+    // BaseTool detects outer JavaScript before parts join the shared source.
+    // Parts are evaluated separately because their entity context may differ.
+    this.sourceConfig.text = structuredClone(sourceTextParts);
+    this.textPartsHaveJavascript = this.sourceConfig.text.some((part) => this.templates.hasJavascriptTemplates(part));
+    this.config.text = [];
+    this.textConfigSignature = undefined;
+    this.runtime.textParts = [];
+    this.geometry = { svg: this.calculateSvgDimensions() };
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
     this.textElementId = `${this.cardId}-text-${this.index}`;
-    this.textFitScale = 1;
-    this.widthMeasurementParts = [];
+    this.geometry.textFitScale = 1;
+    this.runtime.widthMeasurementParts = [];
     this.widthMeasurementElements = [];
     this.widthEllipsisElements = [];
-    this.widthOverflowParts = [];
-    this.widthOverflowSourceSignature = undefined;
+    this.runtime.widthOverflowParts = [];
+    this.geometry.widthOverflowSourceSignature = undefined;
     this.widthOverflowRevision = 0;
-    this.widthOverflowMeasurementSignature = undefined;
+    this.geometry.widthOverflowMeasurementSignature = undefined;
     this.widthOverflowPending = false;
     this.widthMeasurementScheduled = false;
     this.widthMeasurement = undefined;
     this.textClosed = false;
-    this.characterWidthFactor = 0.6;
-    this.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
-    this.estimatedWidth = 0;
-    this.estimatedHeight = this.textFontSize;
-    this.measuredWidth = 0;
-    this.measuredHeight = 0;
-    this.measuredXpos = this.config.svg.xpos;
-    this.measuredYpos = this.config.svg.ypos;
-    this.hasExactMeasurement = false;
-    this.textMeasurementSignature = '';
+    this.geometry.characterWidthFactor = 0.6;
+    this.geometry.textFontSize = FONT_SIZE * (100 / SVG_DEFAULT_DIMENSIONS);
+    this.geometry.estimatedWidth = 0;
+    this.geometry.estimatedHeight = this.geometry.textFontSize;
+    this.geometry.measuredWidth = 0;
+    this.geometry.measuredHeight = 0;
+    this.geometry.measuredXpos = this.geometry.svg.xpos;
+    this.geometry.measuredYpos = this.geometry.svg.ypos;
+    this.geometry.hasExactMeasurement = false;
+    this.geometry.textMeasurementSignature = '';
 
     const inlineSourceToolClasses = {
       name: NameTool,
       area: AreaTool,
       state: StateTool,
     };
-    this.inlineTextSourceTools = this.sourceTextParts.map((part, partIndex) => {
+    this.inlineTextSourceTools = this.sourceConfig.text.map((part, partIndex) => {
       if (!TEXT_SOURCE_SECTIONS[part.type] || part.id !== undefined) return undefined;
 
       const SourceTool = inlineSourceToolClasses[part.type];
@@ -133,7 +135,7 @@ export default class TextTool extends BaseTool {
 
     // Static references are validated during construction. A hidden source is
     // still present here; a disabled or misspelled source is not.
-    this.sourceTextParts.forEach((part) => {
+    this.sourceConfig.text.forEach((part) => {
       if (TEXT_SOURCE_SECTIONS[part.type] && part.id !== undefined) this.getReferencedTextTool(part);
     });
   }
@@ -168,28 +170,42 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Evaluates every text part with its own effective entity context.
+   * Runs the shared outer route without recursively evaluating Text parts.
    */
   updateRuntimeConfig() {
-    super.updateRuntimeConfig();
+    const outerSource = { ...this.sourceConfig };
+    delete outerSource.text;
+    super.updateRuntimeConfig(outerSource);
+
+    if (this.configurationChanged || this.groupChanged) this.geometry.svg = this.calculateSvgDimensions(this.config);
+  }
+
+  /**
+   * Completes parts and inline bindings before BaseTool publishes current config.
+   * Each part observes the source binding from the previous state pass, exactly
+   * as before; its evaluated binding then feeds the following state pass.
+   *
+   * @param {object} newConfig - Current outer fields from the shared evaluator.
+   * @returns {object} Complete outer and part configuration.
+   */
+  completeRuntimeConfig(newConfig) {
     this.inlineTextSourceTools.filter((sourceTool) => sourceTool !== undefined)
       .forEach((sourceTool) => sourceTool.updateRuntimeConfig());
 
-    if (this.configurationChanged || this.groupChanged) this.config.svg = this.calculateSvgDimensions(this.config);
-
-    if (this.activeTextPartsSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
-      const activeTextParts = this.sourceTextParts.map((sourcePart, sourcePartIndex) => {
+    let text = this.config.text;
+    if (this.textConfigSignature === undefined || this.configChanged || (this.textPartsHaveJavascript && this.card.evaluateJavascriptTemplates)) {
+      const activeTextParts = this.sourceConfig.text.map((sourcePart, sourcePartIndex) => {
         const sourceTool = TEXT_SOURCE_SECTIONS[sourcePart.type]
           ? this.getTextSourceTool(sourcePart, sourcePartIndex)
           : undefined;
         const partContext = {
           ...sourcePart,
           // Text templates address the containing text item unless a part has its own id.
-          id: sourcePart.id ?? this.config.id,
+          id: sourcePart.id ?? newConfig.id,
           inline_source_index: sourcePart.id === undefined && sourceTool ? sourcePartIndex : undefined,
           entity_index: sourceTool
             ? sourceTool.entity_index
-            : sourcePart.entity_index ?? this.config.entity_index,
+            : sourcePart.entity_index ?? newConfig.entity_index,
         };
         const activePart = this.templates.hasJavascriptTemplates(sourcePart)
           ? this.templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
@@ -207,12 +223,25 @@ export default class TextTool extends BaseTool {
       });
       const activeTextPartsSignature = JSON.stringify(activeTextParts);
 
-      if (activeTextPartsSignature !== this.activeTextPartsSignature) {
-        this.activeTextParts = activeTextParts;
-        this.activeTextPartsSignature = activeTextPartsSignature;
+      if (activeTextPartsSignature !== this.textConfigSignature) {
+        text = activeTextParts;
+        this.textConfigSignature = activeTextPartsSignature;
         this.configChanged = true;
       }
     }
+
+    // Inline children update their own config before part evaluation. Reapply
+    // the resulting Text binding here, including when the parts are unchanged.
+    text.forEach((part) => {
+      if (part.inline_source_index !== undefined) {
+        const sourceTool = this.inlineTextSourceTools[part.inline_source_index];
+        sourceTool.entity_index = part.entity_index;
+        sourceTool.config.entity_index = part.entity_index;
+      }
+    });
+    return newConfig === this.config && text === this.config.text
+      ? newConfig
+      : { ...newConfig, text };
   }
 
   /**
@@ -224,13 +253,11 @@ export default class TextTool extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    const activeParts = this.activeTextParts.flatMap((part, partIndex) => {
+    const activeParts = this.config.text.flatMap((part, partIndex) => {
       const sourceTool = TEXT_SOURCE_SECTIONS[part.type]
         ? this.getTextSourceTool(part, partIndex)
         : undefined;
       if (part.inline_source_index !== undefined) {
-        sourceTool.entity_index = part.entity_index;
-        sourceTool.config.entity_index = part.entity_index;
         sourceTool.setState(
           this.card.entities[part.entity_index],
           this.card.resolvedEntityConfigs[part.entity_index],
@@ -338,27 +365,15 @@ export default class TextTool extends BaseTool {
         });
       });
 
-      const widthOverflowSourceSignature = `${JSON.stringify(widthMeasurementParts)}|${JSON.stringify(textOverflow)}`;
-
-      if (widthOverflowSourceSignature !== this.widthOverflowSourceSignature) {
-        this.stopWidthMeasurement();
-        this.widthMeasurementParts = widthMeasurementParts;
-        this.widthMeasurementElements = new Array(widthMeasurementParts.length);
-        this.widthEllipsisElements = new Array(widthMeasurementParts.length);
-        this.widthOverflowSourceSignature = widthOverflowSourceSignature;
-        this.widthOverflowRevision += 1;
-        this.widthOverflowMeasurementSignature = undefined;
-        this.widthOverflowPending = true;
-      }
-
-      overflowParts = this.widthOverflowParts;
+      this.runtime.widthMeasurementParts = widthMeasurementParts;
+      overflowParts = this.runtime.widthOverflowParts;
     } else {
       this.stopWidthMeasurement();
       this.widthOverflowRevision += 1;
-      this.widthMeasurementParts = [];
-      this.widthOverflowParts = [];
-      this.widthOverflowSourceSignature = undefined;
-      this.widthOverflowMeasurementSignature = undefined;
+      this.runtime.widthMeasurementParts = [];
+      this.runtime.widthOverflowParts = [];
+      this.geometry.widthOverflowSourceSignature = undefined;
+      this.geometry.widthOverflowMeasurementSignature = undefined;
       this.widthOverflowPending = false;
 
       if (textOverflow?.mode === 'wrap') {
@@ -511,25 +526,61 @@ export default class TextTool extends BaseTool {
       if (remainingCharacters === 0 && lineEllipsis) lineIsFull = true;
     });
 
-    this.textParts = textParts;
+    this.runtime.textParts = textParts;
+    this.updateTextMeasurement();
+  }
+
+  /**
+   * Invalidates measurements from the same effective text styles used by render.
+   * Parent paint and source animations can change font metrics without changing
+   * displayed text. Equal inputs leave the current async measurement untouched.
+   */
+  updateTextMeasurement() {
+    const textOverflow = this.config.text_overflow;
+    const outerStyles = this.getStyles({ 'font-size': '1em' });
+    this.applyColorStops(outerStyles);
+
+    // Color filters affect paint, not SVG text dimensions. Before filtering,
+    // source, state-map, color-stop and animation styles are already complete.
+    const measurementParts = this.getRenderedTextParts(this.runtime.widthMeasurementParts, false);
+    const selectedOverflowConfig = textOverflow?.mode === 'wrap' ? textOverflow.wrap : textOverflow?.ellipsis;
+    if ((textOverflow?.mode === 'wrap' || textOverflow?.mode === 'ellipsis')
+      && selectedOverflowConfig.max_width !== undefined) {
+      const sourceSignature = JSON.stringify([measurementParts, outerStyles, textOverflow]);
+      if (sourceSignature !== this.geometry.widthOverflowSourceSignature) {
+        this.stopWidthMeasurement();
+        this.widthMeasurementElements = new Array(measurementParts.length);
+        this.widthEllipsisElements = new Array(measurementParts.length);
+        this.geometry.widthOverflowSourceSignature = sourceSignature;
+        this.widthOverflowRevision += 1;
+        this.geometry.widthOverflowMeasurementSignature = undefined;
+        this.widthOverflowPending = true;
+      }
+    }
 
     const lineLengths = [0];
-    this.textParts.forEach((part) => {
+    this.runtime.textParts.forEach((part) => {
       if (part.new_line) lineLengths.push(0);
       lineLengths[lineLengths.length - 1] += part.value.length;
     });
-    const outerStyles = this.getStyles({ 'font-size': '1em' });
-    const measurementSignature = `${JSON.stringify(this.textParts)}|${JSON.stringify(outerStyles)}|${JSON.stringify(textOverflow)}`;
+    const renderedParts = this.getRenderedTextParts(this.runtime.textParts, false);
+    const measurementSignature = JSON.stringify([renderedParts, outerStyles, textOverflow]);
 
-    if (measurementSignature !== this.textMeasurementSignature) {
-      this.textMeasurementSignature = measurementSignature;
-      this.estimatedWidth = Math.max(...lineLengths) * this.textFontSize * this.characterWidthFactor;
-      const lineSpacing = textOverflow?.mode === 'wrap' ? wrapConfig.dy : 1.2;
-      this.estimatedHeight = this.textFontSize + ((lineLengths.length - 1) * this.textFontSize * lineSpacing);
+    if (measurementSignature !== this.geometry.textMeasurementSignature) {
+      this.geometry.textMeasurementSignature = measurementSignature;
+      this.geometry.estimatedWidth = Math.max(...lineLengths) * this.geometry.textFontSize * this.geometry.characterWidthFactor;
+      const lineSpacing = textOverflow?.mode === 'wrap' ? textOverflow.wrap.dy : 1.2;
+      this.geometry.estimatedHeight = this.geometry.textFontSize + ((lineLengths.length - 1) * this.geometry.textFontSize * lineSpacing);
 
       // Rectangle fit keeps the previous measured geometry until updated()
       // publishes the new exact text bounds. Initial rendering still uses the estimate.
     }
+  }
+
+  /** Publishes complete parent paint and refreshes its measurement inputs. */
+  setPaintStyles(styles) {
+    super.setPaintStyles(styles);
+    this.updateTextMeasurement();
   }
 
   /**
@@ -543,7 +594,7 @@ export default class TextTool extends BaseTool {
     const textOverflow = this.config.text_overflow;
     const selectedConfig = textOverflow.mode === 'wrap' ? textOverflow.wrap : textOverflow.ellipsis;
     const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
-    const records = this.widthMeasurementParts.map((part, index) => ({
+    const records = this.runtime.widthMeasurementParts.map((part, index) => ({
       part,
       index,
       width: measuredWidths[index],
@@ -759,7 +810,7 @@ export default class TextTool extends BaseTool {
       || activeMeasurement.ellipsisElements.some((element, index) => element !== this.widthEllipsisElements[index]))) {
       this.stopWidthMeasurement();
     }
-    if (this.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
+    if (this.runtime.widthMeasurementParts.length > 0 && this.widthOverflowPending) {
       if (!this.widthMeasurementScheduled) {
         this.widthMeasurementScheduled = true;
         const measurement = {
@@ -807,9 +858,9 @@ export default class TextTool extends BaseTool {
           if (this.widthMeasurement === measurement && measurement.revision === this.widthOverflowRevision && !this.textClosed) {
             this.widthMeasurement = undefined;
             this.widthMeasurementScheduled = false;
-            this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
-            this.textParts = this.widthOverflowParts;
-            this.widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+            this.runtime.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+            this.runtime.textParts = this.runtime.widthOverflowParts;
+            this.geometry.widthOverflowMeasurementSignature = `${this.geometry.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
             this.widthOverflowPending = false;
             this.card.requestUpdate();
           }
@@ -823,16 +874,16 @@ export default class TextTool extends BaseTool {
       return;
     }
 
-    if (this.widthMeasurementParts.length > 0) {
+    if (this.runtime.widthMeasurementParts.length > 0) {
       const dimensionFactor = 100 / SVG_DEFAULT_DIMENSIONS;
       const measuredWidths = this.widthMeasurementElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
       const ellipsisWidths = this.widthEllipsisElements.map((element) => Number((element.getComputedTextLength() * dimensionFactor).toFixed(4)));
-      const widthOverflowMeasurementSignature = `${this.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
+      const widthOverflowMeasurementSignature = `${this.geometry.widthOverflowSourceSignature}|${JSON.stringify(measuredWidths)}|${JSON.stringify(ellipsisWidths)}`;
 
-      if (widthOverflowMeasurementSignature !== this.widthOverflowMeasurementSignature) {
-        this.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
-        this.textParts = this.widthOverflowParts;
-        this.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
+      if (widthOverflowMeasurementSignature !== this.geometry.widthOverflowMeasurementSignature) {
+        this.runtime.widthOverflowParts = this.calculateTextPartsForMeasuredWidth(measuredWidths, ellipsisWidths);
+        this.runtime.textParts = this.runtime.widthOverflowParts;
+        this.geometry.widthOverflowMeasurementSignature = widthOverflowMeasurementSignature;
         this.card.requestUpdate();
         return;
       }
@@ -856,7 +907,7 @@ export default class TextTool extends BaseTool {
     const computedTextFontSize = Number.parseFloat(window.getComputedStyle(this.textElement).fontSize);
     let nextTextFitScale = 1;
 
-    this.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * dimensionFactor;
+    this.geometry.textFontSize = Number.parseFloat(window.getComputedStyle(this.textElement.firstElementChild).fontSize) * dimensionFactor;
 
     if (textOverflow?.mode === 'fit' && unscaledWidth > fitConfig.max_width) {
       nextTextFitScale = fitConfig.max_width / unscaledWidth;
@@ -872,30 +923,30 @@ export default class TextTool extends BaseTool {
 
     const measuredWidth = unscaledWidth * nextTextFitScale;
     const measuredHeight = unscaledHeight * nextTextFitScale;
-    const measuredXpos = this.config.svg.xpos + ((unscaledXpos - this.config.svg.xpos) * nextTextFitScale);
-    const measuredYpos = this.config.svg.ypos + ((unscaledYpos - this.config.svg.ypos) * nextTextFitScale);
+    const measuredXpos = this.geometry.svg.xpos + ((unscaledXpos - this.geometry.svg.xpos) * nextTextFitScale);
+    const measuredYpos = this.geometry.svg.ypos + ((unscaledYpos - this.geometry.svg.ypos) * nextTextFitScale);
     const measurementTolerance = 0.0001;
-    const fitScaleChanged = Math.abs(nextTextFitScale - this.textFitScale) > measurementTolerance;
-    const measurementChanged = !this.hasExactMeasurement
-      || Math.abs(measuredWidth - this.measuredWidth) > measurementTolerance
-      || Math.abs(measuredHeight - this.measuredHeight) > measurementTolerance
-      || Math.abs(measuredXpos - this.measuredXpos) > measurementTolerance
-      || Math.abs(measuredYpos - this.measuredYpos) > measurementTolerance;
+    const fitScaleChanged = Math.abs(nextTextFitScale - this.geometry.textFitScale) > measurementTolerance;
+    const measurementChanged = !this.geometry.hasExactMeasurement
+      || Math.abs(measuredWidth - this.geometry.measuredWidth) > measurementTolerance
+      || Math.abs(measuredHeight - this.geometry.measuredHeight) > measurementTolerance
+      || Math.abs(measuredXpos - this.geometry.measuredXpos) > measurementTolerance
+      || Math.abs(measuredYpos - this.geometry.measuredYpos) > measurementTolerance;
 
     if (fitScaleChanged || measurementChanged) {
-      const characterCount = this.textParts.reduce((count, part) => count + part.value.length, 0);
+      const characterCount = this.runtime.textParts.reduce((count, part) => count + part.value.length, 0);
 
       if (characterCount > 0) {
-        const measuredFactor = unscaledWidth / characterCount / this.textFontSize;
+        const measuredFactor = unscaledWidth / characterCount / this.geometry.textFontSize;
 
-        this.characterWidthFactor = this.characterWidthFactor * 0.8 + measuredFactor * 0.2;
+        this.geometry.characterWidthFactor = this.geometry.characterWidthFactor * 0.8 + measuredFactor * 0.2;
       }
-      this.textFitScale = nextTextFitScale;
-      this.measuredWidth = measuredWidth;
-      this.measuredHeight = measuredHeight;
-      this.measuredXpos = measuredXpos;
-      this.measuredYpos = measuredYpos;
-      this.hasExactMeasurement = true;
+      this.geometry.textFitScale = nextTextFitScale;
+      this.geometry.measuredWidth = measuredWidth;
+      this.geometry.measuredHeight = measuredHeight;
+      this.geometry.measuredXpos = measuredXpos;
+      this.geometry.measuredYpos = measuredYpos;
+      this.geometry.hasExactMeasurement = true;
       this.card.requestUpdate();
     }
   }
@@ -906,9 +957,10 @@ export default class TextTool extends BaseTool {
    * colors that can change while a formatted state remains equal.
    *
    * @param {Array<object>} parts - Visible or measurement text parts.
+   * @param {boolean} filterPaint - Apply color filtering for render; measurement uses the same font styles without color processing.
    * @returns {Array<object>} Parts with their effective SVG styles.
    */
-  getRenderedTextParts(parts) {
+  getRenderedTextParts(parts, filterPaint) {
     return parts.map((part) => {
       let renderPart = part;
 
@@ -932,20 +984,21 @@ export default class TextTool extends BaseTool {
       const animationStyles = ConfigHelper.toStyleDict(this.card.cardAnimations.styles.texts[renderPart.animation_id] ?? {});
 
       this.applyColorStops(partStyles, renderPart);
+      const styles = { ...partStyles, ...animationStyles };
 
       return {
         ...renderPart,
-        renderStyles: this.getRenderStyles({
-          ...partStyles,
-          ...animationStyles,
-        }),
+        renderStyles: filterPaint ? this.getRenderStyles(styles) : styles,
       };
     });
   }
 
   /** Includes each part's displayed text and final source/animation/color-stop paint. */
   hasPresentationChanged() {
-    const parts = this.getRenderedTextParts(this.textParts).map((part) => [part.value, part.new_line, part.dx, part.dy, part.renderStyles]);
+    // Animation styles have been activated since setState(). Use their final
+    // font metrics before deciding whether this presentation needs a render.
+    this.updateTextMeasurement();
+    const parts = this.getRenderedTextParts(this.runtime.textParts, true).map((part) => [part.value, part.new_line, part.dx, part.dy, part.renderStyles]);
     return super.hasPresentationChanged(parts);
   }
 
@@ -968,10 +1021,10 @@ export default class TextTool extends BaseTool {
     });
     this.applyColorStops(textStyles);
     const fitTransform = this.config.text_overflow?.mode === 'fit'
-      ? `translate(${this.config.svg.xpos} ${this.config.svg.ypos}) scale(${this.textFitScale}) translate(-${this.config.svg.xpos} -${this.config.svg.ypos})`
+      ? `translate(${this.geometry.svg.xpos} ${this.geometry.svg.ypos}) scale(${this.geometry.textFitScale}) translate(-${this.geometry.svg.xpos} -${this.geometry.svg.ypos})`
       : '';
-    const visibleRenderParts = this.getRenderedTextParts(this.textParts);
-    const measurementRenderParts = this.getRenderedTextParts(this.widthMeasurementParts);
+    const visibleRenderParts = this.getRenderedTextParts(this.runtime.textParts, true);
+    const measurementRenderParts = this.getRenderedTextParts(this.runtime.widthMeasurementParts, true);
     const measurementTextStyles = {
       ...textStyles,
       opacity: '0',
@@ -988,13 +1041,13 @@ export default class TextTool extends BaseTool {
           ${ref(this.setTextElement)}
           id="${this.textElementId}"
           transform="${fitTransform}"
-          x="${this.config.svg.xpos}"
-          y="${this.config.svg.ypos}"
+          x="${this.geometry.svg.xpos}"
+          y="${this.geometry.svg.ypos}"
           dominant-baseline="${textStyles['dominant-baseline']}"
           style=${styleMap(this.getRenderStyles(textStyles))}
           ${this.actionHandler()}
           @action=${(event) => this.handleAction(event)}
-          visibility="${this.widthOverflowPending && this.widthOverflowParts.length === 0 ? 'hidden' : 'visible'}"
+          visibility="${this.widthOverflowPending && this.runtime.widthOverflowParts.length === 0 ? 'hidden' : 'visible'}"
         >${visibleRenderParts.map((renderPart) => {
           const dx = renderPart.dx ?? 0;
           const dy = renderPart.dy ?? 0;
@@ -1002,7 +1055,7 @@ export default class TextTool extends BaseTool {
           return renderPart.new_line
             ? svg`<tspan
                 class="text-tool__part"
-                x="${this.config.svg.xpos}"
+                x="${this.geometry.svg.xpos}"
                 dx="${dx}em"
                 dy="${dy}em"
                 dominant-baseline="${textStyles['dominant-baseline']}"
@@ -1019,8 +1072,8 @@ export default class TextTool extends BaseTool {
         ${measurementRenderParts.length > 0 ? svg`
           <text
             class="text-tool__measurement"
-            x="${this.config.svg.xpos}"
-            y="${this.config.svg.ypos}"
+            x="${this.geometry.svg.xpos}"
+            y="${this.geometry.svg.ypos}"
             pointer-events="none"
             aria-hidden="true"
             style=${styleMap(this.getRenderStyles(measurementTextStyles))}

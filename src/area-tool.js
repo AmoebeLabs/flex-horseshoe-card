@@ -39,7 +39,7 @@ export default class AreaTool extends BaseTool {
       hasExactMeasurement: false,
       textMeasurementSignature: '',
     };
-    this.runtime = { area: '' };
+    this.runtime.area = '';
     this.setTextElement = (element) => {
       if (element) this.textElement = element;
     };
@@ -132,11 +132,11 @@ export default class AreaTool extends BaseTool {
    * @returns {string} Area text.
    */
   buildArea() {
-    if (this.entityConfig.area !== undefined) {
-      return this.card._hass.formatEntityName(this.entity, this.entityConfig.area);
+    if (this.runtime.entityConfig.area !== undefined) {
+      return this.card._hass.formatEntityName(this.runtime.entity, this.runtime.entityConfig.area);
     }
 
-    return this.card._hass.formatEntityName(this.entity, { type: 'area' });
+    return this.card._hass.formatEntityName(this.runtime.entity, { type: 'area' });
   }
 
   /**

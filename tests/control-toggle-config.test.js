@@ -114,7 +114,7 @@ test('Toggle static and valid JavaScript config produce equivalent active preset
 
   const entity = { entity_id: 'switch.test', state: 'on', attributes: {} };
   javascriptToggle.setState(entity, { entity: 'switch.test' });
-  assert.strictEqual(javascriptToggle.iconTool.entity, entity);
+  assert.strictEqual(javascriptToggle.iconTool.runtime.entity, entity);
 });
 
 test('Toggle group and theme refreshes retain geometry, presentation, and nested child forwarding', () => {
@@ -140,7 +140,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.equal(toggle.themeModeChanged, false);
   assert.equal(toggle.config.svg.x, initialX + 18);
   toggle.setState(entity, { entity: 'switch.test' });
-  assert.strictEqual(toggle.iconTool.entity, entity);
+  assert.strictEqual(toggle.iconTool.runtime.entity, entity);
   assert.equal(toggle.iconTool.iconClosed, false);
   assert.equal(toggle.iconTool.haIconPath.sourceClosed, false);
   toggle.iconTool.requiresHassUpdate = () => true;
@@ -169,7 +169,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.strictEqual(forwardedIconUpdates[0], iconBeforeThemeRefresh);
   assert.deepEqual(toggle.config.svg, groupRefreshedSvg);
   toggle.setState(entity, { entity: 'switch.test' });
-  assert.strictEqual(toggle.iconTool.entity, entity);
+  assert.strictEqual(toggle.iconTool.runtime.entity, entity);
   assert.equal(toggle.iconTool.iconClosed, false);
   assert.equal(toggle.iconTool.haIconPath.sourceClosed, false);
   assert.equal(toggle.hasPresentationChanged(), true);
