@@ -10,7 +10,6 @@ const createSlider = (overrides = {}) => {
     orientation: 'horizontal',
     width: 40,
     height: 10,
-    svg: { xpos: 200, ypos: 200 },
     circular: {
       start_angle: -135,
       arc_degrees: 270,
@@ -19,9 +18,12 @@ const createSlider = (overrides = {}) => {
     },
     ...overrides,
   };
-  slider.resolvedScale = { min: 0, max: 100, step: 0.5 };
-  slider.activeValueIndex = 0;
-  slider.sliderValues = slider.config.show.item_variant === 'range' ? [20, 80] : [50];
+  slider.runtime = {};
+  slider.card = { cardLayout: { calculateSvgCoordinatesInGroup: () => ({ xpos: 200, ypos: 200 }) } };
+  slider.geometry = slider.calculateSliderGeometry();
+  slider.runtime.scale = { min: 0, max: 100, step: 0.5 };
+  slider.runtime.activeValueIndex = 0;
+  slider.runtime.values = slider.config.show.item_variant === 'range' ? [20, 80] : [50];
   slider.scheduleSliderRender = () => {};
   return slider;
 };
@@ -54,8 +56,8 @@ test('maps horizontal and vertical SVG positions to the same scale', () => {
 
 test('maps points on a circular arc back to their slider values', () => {
   const slider = createSlider({ show: { item_variant: 'single', item_viz: 'circular', item_style: 'ha' } });
-  const quarterPoint = slider.circularRatioToPoint(0.25, slider.getSliderGeometry().radius);
-  const threeQuarterPoint = slider.circularRatioToPoint(0.75, slider.getSliderGeometry().radius);
+  const quarterPoint = slider.circularRatioToPoint(0.25, slider.geometry.radius);
+  const threeQuarterPoint = slider.circularRatioToPoint(0.75, slider.geometry.radius);
 
   assert.equal(slider.svgPointToSliderValue(quarterPoint), 25);
   assert.equal(slider.svgPointToSliderValue(threeQuarterPoint), 75);
@@ -64,14 +66,14 @@ test('maps points on a circular arc back to their slider values', () => {
 test('range thumbs stop at each other and never exchange roles', () => {
   const slider = createSlider({ show: { item_variant: 'range', item_viz: 'linear', item_style: 'ha' } });
 
-  slider.activeValueIndex = 0;
+  slider.runtime.activeValueIndex = 0;
   slider.applySliderPointerValue(90);
-  assert.deepEqual(slider.sliderValues, [80, 80]);
+  assert.deepEqual(slider.runtime.values, [80, 80]);
 
-  slider.sliderValues = [20, 80];
-  slider.activeValueIndex = 1;
+  slider.runtime.values = [20, 80];
+  slider.runtime.activeValueIndex = 1;
   slider.applySliderPointerValue(10);
-  assert.deepEqual(slider.sliderValues, [20, 20]);
+  assert.deepEqual(slider.runtime.values, [20, 20]);
 });
 
 test('builds a complete path for a full circular arc', () => {
@@ -194,12 +196,12 @@ test('keeps only the background track for non-numeric entity states', () => {
   );
 
   slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
-  assert.equal(slider.sliderAvailable, false);
+  assert.equal(slider.runtime.available, false);
 
   card.entities[0].state = '40';
   slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
-  assert.equal(slider.sliderAvailable, true);
-  assert.deepEqual(slider.sliderValues, [40]);
+  assert.equal(slider.runtime.available, true);
+  assert.deepEqual(slider.runtime.values, [40]);
 });
 
 test('reads and updates a configured numeric entity attribute', () => {
@@ -233,12 +235,12 @@ test('reads and updates a configured numeric entity attribute', () => {
   );
 
   slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
-  assert.equal(slider.sliderAvailable, true);
-  assert.deepEqual(slider.sliderValues, [128]);
+  assert.equal(slider.runtime.available, true);
+  assert.deepEqual(slider.runtime.values, [128]);
 
   delete card.entities[0].attributes.brightness;
   slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
-  assert.equal(slider.sliderAvailable, false);
+  assert.equal(slider.runtime.available, false);
 });
 
 test('disconnect during a drag cancels owned handles without a final slider write', () => {
@@ -258,8 +260,8 @@ test('disconnect during a drag cancels owned handles without a final slider writ
     slider.writeTimer = 11;
     slider.renderFrame = 12;
     slider.stateAnimationFrame = 13;
-    slider.dragging = true;
-    slider.draggingThumb = true;
+    slider.runtime.dragging = true;
+    slider.runtime.draggingThumb = true;
     let finalWrites = 0;
     slider.writeSliderValues = (finalWrite) => {
       if (finalWrite) finalWrites += 1;
@@ -278,8 +280,8 @@ test('disconnect during a drag cancels owned handles without a final slider writ
     assert.equal(slider.writeTimer, undefined);
     assert.equal(slider.renderFrame, undefined);
     assert.equal(slider.stateAnimationFrame, undefined);
-    assert.equal(slider.dragging, false);
-    assert.equal(slider.draggingThumb, false);
+    assert.equal(slider.runtime.dragging, false);
+    assert.equal(slider.runtime.draggingThumb, false);
     assert.equal(finalWrites, 0);
   } finally {
     globalThis.window = previousWindow;

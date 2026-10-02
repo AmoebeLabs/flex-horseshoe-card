@@ -355,6 +355,12 @@
         "persist": "with global scope, restore after browser reload"
       },
       "template_read": "Read current local state through the JavaScript entities context, e.g. Number(entities[index].state); do not assume it exists in hass.states."
+    },
+    "control_javascript": {
+      "type": "Static compile-time discriminator selecting the Control subtype.",
+      "values": "Other ordinary Control values may be static or JavaScript returning the same documented value or shape.",
+      "order": "Evaluate JavaScript, complete the selected preset and normalize configuration, then publish current config.",
+      "child_context": "Generated child content evaluates its own templates; parent layout fields are evaluated by the Control."
     }
   },
   "layout/gradients-masks-clips.yaml": {

@@ -9,106 +9,112 @@ import StateTool from './state-tool.js';
 import TextTool from './text-tool.js';
 import Utils from './utils.js';
 
+const DEFAULT_SLIDER_CONFIG = {
+  show: {
+    item_variant: 'single',
+    item_viz: 'linear',
+    item_style: 'ha',
+  },
+  orientation: 'horizontal',
+  width: 40,
+  height: 10,
+  scale: {
+    min: { attribute: 'min' },
+    max: { attribute: 'max' },
+    step: { attribute: 'step' },
+  },
+  interaction: {
+    update_interval: 100,
+    haptic: 'selection',
+  },
+  animation: {
+    duration: 180,
+    easing: 'ease-in-out',
+  },
+  set_value_action: { action: 'set-value' },
+  value: {
+    show: true,
+    position: 'top',
+    gap: 1,
+    range_spacing: 8,
+    separator: '-',
+    offset: { x: 0, y: 0 },
+    state: { show: { uom: 'none' }, styles: {} },
+    separator_config: {},
+  },
+  linear: {
+    track: {
+      height: 8,
+      radius: 4,
+      styles: { fill: 'var(--secondary-background-color)' },
+    },
+    active: {
+      radius: 2,
+      styles: { fill: 'var(--fhs-slider-active-color, var(--primary-color))' },
+    },
+    thumb: {
+      width: 0.8,
+      height: 4,
+      radius: 0.4,
+      margin: 1,
+      hit_size: 12,
+      styles: { fill: 'var(--primary-background-color)' },
+    },
+  },
+  circular: {
+    start_angle: -135,
+    arc_degrees: 270,
+    clockwise: true,
+    radius: 12,
+    track: {
+      width: 5,
+      styles: {
+        fill: 'none',
+        stroke: 'var(--secondary-background-color)',
+        'stroke-linecap': 'round',
+      },
+    },
+    active: {
+      width: 5,
+      styles: {
+        fill: 'none',
+        stroke: 'var(--fhs-slider-active-color, var(--primary-color))',
+        'stroke-linecap': 'round',
+      },
+    },
+    thumb: {
+      width: 0.8,
+      length: '50%',
+      hit_size: 12,
+      styles: {
+        stroke: 'var(--primary-background-color)',
+        'stroke-linecap': 'round',
+      },
+    },
+    capture: { width: 12 },
+  },
+};
+const HA_SLIDER_CONFIG = { width: 40, height: 10 };
+const CIRCULAR_SLIDER_CONFIG = {
+  width: 30,
+  height: 30,
+  value: { position: 'center' },
+};
+
 /** Numeric single/range slider with linear HA and circular visualizations. */
 export default class ControlSlider extends ControlBase {
-  /** Completes slider configuration and creates its numeric child tools. */
-  constructor(config, index, templates, cardId, card) {
-    const DEFAULT_SLIDER_CONFIG = {
-      show: {
-        item_variant: 'single',
-        item_viz: 'linear',
-        item_style: 'ha',
-      },
-      orientation: 'horizontal',
-      width: 40,
-      height: 10,
-      scale: {
-        min: { attribute: 'min' },
-        max: { attribute: 'max' },
-        step: { attribute: 'step' },
-      },
-      interaction: {
-        update_interval: 100,
-        haptic: 'selection',
-      },
-      animation: {
-        duration: 180,
-        easing: 'ease-in-out',
-      },
-      set_value_action: { action: 'set-value' },
-      value: {
-        show: true,
-        position: 'top',
-        gap: 1,
-        range_spacing: 8,
-        separator: '-',
-        offset: { x: 0, y: 0 },
-        state: { show: { uom: 'none' }, styles: {} },
-        separator_config: {},
-      },
-      linear: {
-        track: {
-          height: 8,
-          radius: 4,
-          styles: { fill: 'var(--secondary-background-color)' },
-        },
-        active: {
-          radius: 2,
-          styles: { fill: 'var(--fhs-slider-active-color, var(--primary-color))' },
-        },
-        thumb: {
-          width: 0.8,
-          height: 4,
-          radius: 0.4,
-          margin: 1,
-          hit_size: 12,
-          styles: { fill: 'var(--primary-background-color)' },
-        },
-      },
-      circular: {
-        start_angle: -135,
-        arc_degrees: 270,
-        clockwise: true,
-        radius: 12,
-        track: {
-          width: 5,
-          styles: {
-            fill: 'none',
-            stroke: 'var(--secondary-background-color)',
-            'stroke-linecap': 'round',
-          },
-        },
-        active: {
-          width: 5,
-          styles: {
-            fill: 'none',
-            stroke: 'var(--fhs-slider-active-color, var(--primary-color))',
-            'stroke-linecap': 'round',
-          },
-        },
-        thumb: {
-          width: 0.8,
-          length: '50%',
-          hit_size: 12,
-          styles: {
-            stroke: 'var(--primary-background-color)',
-            'stroke-linecap': 'round',
-          },
-        },
-        capture: { width: 12 },
-      },
-    };
-    const HA_SLIDER_CONFIG = { width: 40, height: 10 };
-    const CIRCULAR_SLIDER_CONFIG = {
-      width: 30,
-      height: 30,
-      value: { position: 'center' },
-    };
+  /**
+   * Completes slider visualization, scale/action metadata and value bindings.
+   * The template-context pass supplies visualization defaults without consuming JS.
+   */
+  static translateConfig(config, forTemplateContext = false) {
     const selectedConfig = Merge.mergeDeep(DEFAULT_SLIDER_CONFIG, config);
     const vizConfig = selectedConfig.show.item_viz === 'circular'
       ? CIRCULAR_SLIDER_CONFIG
       : HA_SLIDER_CONFIG;
     const sliderConfig = Merge.mergeDeep(DEFAULT_SLIDER_CONFIG, vizConfig, config);
+
+    if (forTemplateContext) return sliderConfig;
 
     if (typeof sliderConfig.circular.thumb.length === 'string') {
       if (!/^\d+(\.\d+)?%$/.test(sliderConfig.circular.thumb.length)) {
@@ -186,17 +192,24 @@ export default class ControlSlider extends ControlBase {
       sliderConfig.entity_index = sliderConfig.values[0].entity_index;
     }
 
-    super(sliderConfig, index, templates, cardId, card);
+    return sliderConfig;
+  }
 
-    this.config.svg = this.calculateSvgDimensions();
-    this.sliderValues = this.config.show.item_variant === 'single' ? [0] : [0, 0];
-    this.displaySliderValues = [...this.sliderValues];
-    this.sliderAvailable = false;
-    this.resolvedScale = {};
-    this.activeValueIndex = 0;
-    this.dragging = false;
-    this.draggingThumb = false;
-    this.lastWrittenSignature = '';
+  /** Captures source; state, dragging and display values have one runtime owner. */
+  constructor(config, index, templates, cardId, card) {
+    super(Merge.mergeDeep({
+      orientation: DEFAULT_SLIDER_CONFIG.orientation,
+      show: DEFAULT_SLIDER_CONFIG.show,
+    }, config), index, templates, cardId, card, ControlSlider.translateConfig);
+
+    this.runtime.values = this.hasJavascript ? [] : this.config.values.map(() => 0);
+    this.runtime.displayValues = [...this.runtime.values];
+    this.runtime.available = false;
+    this.runtime.scale = {};
+    this.runtime.activeValueIndex = 0;
+    this.runtime.dragging = false;
+    this.runtime.draggingThumb = false;
+    this.runtime.lastWrittenSignature = '';
     this.renderFrame = undefined;
     this.stateAnimationFrame = undefined;
     this.writeTimer = undefined;
@@ -204,8 +217,12 @@ export default class ControlSlider extends ControlBase {
     this.pointerUpListener = (event) => this.finishSliderPointer(event);
     this.valueStateTools = [];
     this.valueSeparatorTool = undefined;
-    this.createSliderValueTools();
-    this.createControlLabelTextTool(this.config.width, this.config.height);
+    this.geometry = {};
+    if (!this.hasJavascript) {
+      this.geometry = this.calculateSliderGeometry();
+      this.createSliderValueTools();
+      this.createControlLabelTextTool(this.config.width, this.config.height);
+    }
   }
 
   /** Creates ordinary StateTool values at the configured control-relative position. */
@@ -307,7 +324,13 @@ export default class ControlSlider extends ControlBase {
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
     if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
+      this.geometry = this.calculateSliderGeometry();
+      // A variant change changes the number of independent values, not their HA source.
+      if (this.runtime.values.length !== this.config.values.length) {
+        this.runtime.values = this.config.values.map(() => 0);
+        this.runtime.displayValues = [...this.runtime.values];
+        this.runtime.available = false;
+      }
       this.createSliderValueTools();
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
@@ -317,7 +340,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Includes range/thumb geometry, availability and each optional displayed value. */
   hasPresentationChanged() {
-    const changed = super.hasPresentationChanged([this.sliderValues, this.resolvedScale, this.sliderAvailable]);
+    const changed = super.hasPresentationChanged([this.runtime.values, this.runtime.scale, this.runtime.available]);
     const children = [...this.valueStateTools];
     if (this.valueSeparatorTool) children.push(this.valueSeparatorTool);
     const childChanges = children.map((tool) => tool.hasPresentationChanged());
@@ -331,16 +354,16 @@ export default class ControlSlider extends ControlBase {
 
     ['min', 'max', 'step'].forEach((property) => {
       const scaleSource = this.config.scale[property];
-      this.resolvedScale[property] = typeof scaleSource === 'object'
+      this.runtime.scale[property] = typeof scaleSource === 'object'
         ? Number(scaleEntity.attributes[scaleSource.attribute])
         : Number(scaleSource);
     });
-    if (!Number.isFinite(this.resolvedScale.min)
-      || !Number.isFinite(this.resolvedScale.max)
-      || this.resolvedScale.min >= this.resolvedScale.max) {
+    if (!Number.isFinite(this.runtime.scale.min)
+      || !Number.isFinite(this.runtime.scale.max)
+      || this.runtime.scale.min >= this.runtime.scale.max) {
       throw Error('[controls] Slider scale requires a numeric min lower than max');
     }
-    if (!Number.isFinite(this.resolvedScale.step) || this.resolvedScale.step <= 0) {
+    if (!Number.isFinite(this.runtime.scale.step) || this.runtime.scale.step <= 0) {
       throw Error('[controls] Slider scale.step must be a positive number');
     }
 
@@ -351,13 +374,13 @@ export default class ControlSlider extends ControlBase {
         ? sliderEntity.state
         : sliderEntity.attributes[sliderEntityConfig.attribute]);
     });
-    const sliderWasAvailable = this.sliderAvailable;
-    this.sliderAvailable = entitySliderValues.every((sliderValue) => Number.isFinite(sliderValue));
+    const sliderWasAvailable = this.runtime.available;
+    this.runtime.available = entitySliderValues.every((sliderValue) => Number.isFinite(sliderValue));
 
     // Keep the background track visible for unknown/unavailable entities, but
     // publish their real state to the optional value tools and render no active
     // slider or interaction surface.
-    if (!this.sliderAvailable) {
+    if (!this.runtime.available) {
       this.valueStateTools.forEach((valueTool, valueIndex) => {
         const sliderValueConfig = this.config.values[valueIndex];
         valueTool.setState(
@@ -375,19 +398,19 @@ export default class ControlSlider extends ControlBase {
       return;
     }
 
-    if (!this.dragging) {
+    if (!this.runtime.dragging) {
       if (this.config.show.item_variant === 'range' && entitySliderValues[0] > entitySliderValues[1]) {
         throw Error('[controls] Slider lower value must not exceed its upper value');
       }
 
-      const startDisplayValues = [...this.displaySliderValues];
-      this.sliderValues = entitySliderValues;
+      const startDisplayValues = [...this.runtime.displayValues];
+      this.runtime.values = entitySliderValues;
 
       if (this.config.show.item_variant === 'range'
         && this.controlConnected
         && sliderWasAvailable
         && this.config.animation.duration > 0
-        && this.sliderValues.some(
+        && this.runtime.values.some(
           (sliderValue, valueIndex) => sliderValue !== startDisplayValues[valueIndex],
         )) {
         window.cancelAnimationFrame(this.stateAnimationFrame);
@@ -399,7 +422,7 @@ export default class ControlSlider extends ControlBase {
             1,
           );
           const easedProgress = progress * progress * (3 - 2 * progress);
-          this.displaySliderValues = this.sliderValues.map(
+          this.runtime.displayValues = this.runtime.values.map(
             (sliderValue, valueIndex) => startDisplayValues[valueIndex]
               + (sliderValue - startDisplayValues[valueIndex]) * easedProgress,
           );
@@ -413,7 +436,7 @@ export default class ControlSlider extends ControlBase {
         };
         this.stateAnimationFrame = window.requestAnimationFrame(animateRangeState);
       } else {
-        this.displaySliderValues = [...this.sliderValues];
+        this.runtime.displayValues = [...this.runtime.values];
       }
     }
     this.publishSliderValuesToStateTools();
@@ -424,12 +447,12 @@ export default class ControlSlider extends ControlBase {
     this.valueStateTools.forEach((valueTool, valueIndex) => {
       const sliderValueConfig = this.config.values[valueIndex];
       const sliderEntityConfig = this.card.resolvedEntityConfigs[sliderValueConfig.entity_index];
-      let transientValue = { state: String(this.sliderValues[valueIndex]) };
+      let transientValue = { state: String(this.runtime.values[valueIndex]) };
 
       if (sliderEntityConfig.attribute !== undefined) {
         transientValue = {
           attributes: {
-            [sliderEntityConfig.attribute]: this.sliderValues[valueIndex],
+            [sliderEntityConfig.attribute]: this.runtime.values[valueIndex],
           },
         };
       }
@@ -465,7 +488,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Snaps one numeric value to step and clamps it to the configured scale. */
   snapSliderValue(value) {
-    const { min, max, step } = this.resolvedScale;
+    const { min, max, step } = this.runtime.scale;
     const stepDecimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
     const steppedValue = Math.round((value - min) / step) * step + min;
     return Number(Math.max(min, Math.min(max, steppedValue)).toFixed(stepDecimals));
@@ -473,20 +496,22 @@ export default class ControlSlider extends ControlBase {
 
   /** Converts one value into its normalized position on the shared scale. */
   sliderValueToRatio(value) {
-    return (value - this.resolvedScale.min) / (this.resolvedScale.max - this.resolvedScale.min);
+    return (value - this.runtime.scale.min) / (this.runtime.scale.max - this.runtime.scale.min);
   }
 
-  /** Calculates the selected visualization's physical SVG geometry. */
-  getSliderGeometry() {
+  /** Calculates fixed slider coordinates once when configuration or group geometry changes. */
+  calculateSliderGeometry() {
+    const svg = this.calculateSvgDimensions(this.config);
     const width = Utils.calculateSvgDimension(this.config.width);
     const height = Utils.calculateSvgDimension(this.config.height);
     return {
-      cx: this.config.svg.xpos,
-      cy: this.config.svg.ypos,
+      svg,
+      cx: svg.xpos,
+      cy: svg.ypos,
       width,
       height,
-      startX: this.config.svg.xpos - width / 2,
-      startY: this.config.svg.ypos + height / 2,
+      startX: svg.xpos - width / 2,
+      startY: svg.ypos + height / 2,
       length: this.config.orientation === 'horizontal' ? width : height,
       radius: Utils.calculateSvgDimension(this.config.circular.radius),
     };
@@ -494,7 +519,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Maps one pointer position to the selected visualization's numeric scale. */
   svgPointToSliderValue(point) {
-    const geometry = this.getSliderGeometry();
+    const geometry = this.geometry;
     let ratio;
 
     if (this.config.show.item_viz === 'linear') {
@@ -523,7 +548,7 @@ export default class ControlSlider extends ControlBase {
     }
 
     return this.snapSliderValue(
-      this.resolvedScale.min + ratio * (this.resolvedScale.max - this.resolvedScale.min),
+      this.runtime.scale.min + ratio * (this.runtime.scale.max - this.runtime.scale.min),
     );
   }
 
@@ -535,21 +560,21 @@ export default class ControlSlider extends ControlBase {
     event.stopPropagation();
     window.cancelAnimationFrame(this.stateAnimationFrame);
     this.stateAnimationFrame = undefined;
-    this.displaySliderValues = [...this.sliderValues];
+    this.runtime.displayValues = [...this.runtime.values];
     const pointerValue = this.svgPointToSliderValue(this.pointerEventToSvgPoint(event));
 
     if (this.config.show.item_variant === 'range' && requestedValueIndex === undefined) {
-      const lowerDistance = Math.abs(pointerValue - this.sliderValues[0]);
-      const upperDistance = Math.abs(pointerValue - this.sliderValues[1]);
-      if (lowerDistance < upperDistance) this.activeValueIndex = 0;
-      if (upperDistance < lowerDistance) this.activeValueIndex = 1;
+      const lowerDistance = Math.abs(pointerValue - this.runtime.values[0]);
+      const upperDistance = Math.abs(pointerValue - this.runtime.values[1]);
+      if (lowerDistance < upperDistance) this.runtime.activeValueIndex = 0;
+      if (upperDistance < lowerDistance) this.runtime.activeValueIndex = 1;
     } else if (requestedValueIndex !== undefined) {
-      this.activeValueIndex = requestedValueIndex;
+      this.runtime.activeValueIndex = requestedValueIndex;
     }
 
-    this.dragging = true;
-    this.draggingThumb = requestedValueIndex !== undefined;
-    this.lastWrittenSignature = JSON.stringify(this.sliderValues);
+    this.runtime.dragging = true;
+    this.runtime.draggingThumb = requestedValueIndex !== undefined;
+    this.runtime.lastWrittenSignature = JSON.stringify(this.runtime.values);
     window.addEventListener('pointermove', this.pointerMoveListener, { passive: false });
     window.addEventListener('pointerup', this.pointerUpListener, { passive: false });
     window.addEventListener('pointercancel', this.pointerUpListener, { passive: false });
@@ -568,19 +593,19 @@ export default class ControlSlider extends ControlBase {
   applySliderPointerValue(pointerValue) {
     let nextValue = pointerValue;
     if (this.config.show.item_variant === 'range') {
-      nextValue = this.activeValueIndex === 0
-        ? Math.min(nextValue, this.sliderValues[1])
-        : Math.max(nextValue, this.sliderValues[0]);
+      nextValue = this.runtime.activeValueIndex === 0
+        ? Math.min(nextValue, this.runtime.values[1])
+        : Math.max(nextValue, this.runtime.values[0]);
     }
-    this.sliderValues[this.activeValueIndex] = nextValue;
-    this.displaySliderValues = [...this.sliderValues];
+    this.runtime.values[this.runtime.activeValueIndex] = nextValue;
+    this.runtime.displayValues = [...this.runtime.values];
     this.scheduleSliderRender();
   }
 
   /** Processes one card-wide pointer movement. */
   moveSliderPointer(event) {
     event.preventDefault();
-    this.draggingThumb = true;
+    this.runtime.draggingThumb = true;
     this.applySliderPointerValue(
       this.svgPointToSliderValue(this.pointerEventToSvgPoint(event)),
     );
@@ -590,8 +615,8 @@ export default class ControlSlider extends ControlBase {
   finishSliderPointer(event) {
     event.preventDefault();
     event.stopPropagation();
-    this.dragging = false;
-    this.draggingThumb = false;
+    this.runtime.dragging = false;
+    this.runtime.draggingThumb = false;
     window.removeEventListener('pointermove', this.pointerMoveListener);
     window.removeEventListener('pointerup', this.pointerUpListener);
     window.removeEventListener('pointercancel', this.pointerUpListener);
@@ -612,15 +637,15 @@ export default class ControlSlider extends ControlBase {
 
   /** Executes one throttled or final value action. */
   writeSliderValues(finalWrite) {
-    const valueSignature = JSON.stringify(this.sliderValues);
-    if (!finalWrite && valueSignature === this.lastWrittenSignature) return;
+    const valueSignature = JSON.stringify(this.runtime.values);
+    if (!finalWrite && valueSignature === this.runtime.lastWrittenSignature) return;
 
-    this.lastWrittenSignature = valueSignature;
+    this.runtime.lastWrittenSignature = valueSignature;
     this.card.actions.executeSliderAction(
       this.config.set_value_action,
-      this.config.values[this.activeValueIndex].entity_index,
-      this.sliderValues,
-      this.activeValueIndex,
+      this.config.values[this.runtime.activeValueIndex].entity_index,
+      this.runtime.values,
+      this.runtime.activeValueIndex,
     );
   }
 
@@ -635,12 +660,12 @@ export default class ControlSlider extends ControlBase {
 
     event.preventDefault();
     event.stopPropagation();
-    this.activeValueIndex = valueIndex;
-    let nextValue = this.sliderValues[valueIndex];
-    if (increaseKeys.includes(event.key)) nextValue += this.resolvedScale.step;
-    if (decreaseKeys.includes(event.key)) nextValue -= this.resolvedScale.step;
-    if (event.key === 'Home') nextValue = this.resolvedScale.min;
-    if (event.key === 'End') nextValue = this.resolvedScale.max;
+    this.runtime.activeValueIndex = valueIndex;
+    let nextValue = this.runtime.values[valueIndex];
+    if (increaseKeys.includes(event.key)) nextValue += this.runtime.scale.step;
+    if (decreaseKeys.includes(event.key)) nextValue -= this.runtime.scale.step;
+    if (event.key === 'Home') nextValue = this.runtime.scale.min;
+    if (event.key === 'End') nextValue = this.runtime.scale.max;
     this.applySliderPointerValue(this.snapSliderValue(nextValue));
     this.writeSliderValues(true);
   }
@@ -659,8 +684,8 @@ export default class ControlSlider extends ControlBase {
     this.writeTimer = undefined;
     this.renderFrame = undefined;
     this.stateAnimationFrame = undefined;
-    this.dragging = false;
-    this.draggingThumb = false;
+    this.runtime.dragging = false;
+    this.runtime.draggingThumb = false;
   }
 
   /** Runs child text measurement after each completed card update. */
@@ -676,7 +701,7 @@ export default class ControlSlider extends ControlBase {
     const direction = circular.clockwise ? 1 : -1;
     const angle = circular.start_angle + direction * circular.arc_degrees * ratio;
     const radians = (angle - 90) * Math.PI / 180;
-    const geometry = this.getSliderGeometry();
+    const geometry = this.geometry;
     return {
       x: geometry.cx + radius * Math.cos(radians),
       y: geometry.cy + radius * Math.sin(radians),
@@ -685,7 +710,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Builds an SVG arc path between two normalized positions. */
   circularArcPath(startRatio, endRatio) {
-    const geometry = this.getSliderGeometry();
+    const geometry = this.geometry;
     const start = this.circularRatioToPoint(startRatio, geometry.radius);
     const end = this.circularRatioToPoint(endRatio, geometry.radius);
     const arcSize = Math.abs(endRatio - startRatio) * this.config.circular.arc_degrees;
@@ -721,9 +746,9 @@ export default class ControlSlider extends ControlBase {
           class="slider-control__thumb-hit-area"
           x=${hitX} y=${hitY} width=${hitSize} height=${hitSize}
           fill="transparent" tabindex="0" role="slider"
-          aria-valuemin=${this.resolvedScale.min}
-          aria-valuemax=${this.resolvedScale.max}
-          aria-valuenow=${this.sliderValues[valueIndex]}
+          aria-valuemin=${this.runtime.scale.min}
+          aria-valuemax=${this.runtime.scale.max}
+          aria-valuenow=${this.runtime.values[valueIndex]}
           style="outline:none;touch-action:none;cursor:pointer;"
           @pointerdown=${(event) => this.startSliderPointer(event, valueIndex)}
           @keydown=${(event) => this.handleSliderKeydown(event, valueIndex)}
@@ -743,7 +768,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders the broad linear Home Assistant slider. */
   renderHaSlider() {
-    const geometry = this.getSliderGeometry();
+    const geometry = this.geometry;
     const viz = this.config.linear;
     const horizontal = this.config.orientation === 'horizontal';
     const trackThickness = Utils.calculateSvgDimension(viz.track.height);
@@ -756,10 +781,10 @@ export default class ControlSlider extends ControlBase {
     );
     const thumbMargin = Utils.calculateSvgDimension(viz.thumb.margin);
     const startRatio = this.config.show.item_variant === 'range'
-      ? this.sliderValueToRatio(this.displaySliderValues[0])
+      ? this.sliderValueToRatio(this.runtime.displayValues[0])
       : 0;
     const endRatio = this.sliderValueToRatio(
-      this.displaySliderValues[this.displaySliderValues.length - 1],
+      this.runtime.displayValues[this.runtime.displayValues.length - 1],
     );
     const trackX = horizontal ? geometry.startX : geometry.cx - trackThickness / 2;
     const trackY = horizontal ? geometry.cy - trackThickness / 2 : geometry.startY - geometry.length;
@@ -783,7 +808,7 @@ export default class ControlSlider extends ControlBase {
     const singleThumbCoordinate = horizontal
       ? trackX + geometry.length - thumbMargin - thumbWidth / 2 - singleTranslation
       : trackY + thumbMargin + thumbHeight / 2 + singleTranslation;
-    const transition = this.dragging && this.draggingThumb
+    const transition = this.runtime.dragging && this.runtime.draggingThumb
       ? 'none'
       : `transform ${this.config.animation.duration}ms ${this.config.animation.easing}`;
     const movingTransform = horizontal
@@ -805,7 +830,7 @@ export default class ControlSlider extends ControlBase {
         rx=${trackRadius}
         style=${styleMap(this.getStyles(ConfigHelper.toStyleDict(viz.track.styles)))}
         pointer-events="none" />
-      ${this.sliderAvailable ? svg`
+      ${this.runtime.available ? svg`
         <rect
           class="slider-control__capture"
           x=${geometry.startX} y=${geometry.startY - geometry.height}
@@ -840,7 +865,7 @@ export default class ControlSlider extends ControlBase {
             rx=${Utils.calculateSvgDimension(viz.active.radius)}
             style=${styleMap(activeStyles)}
             pointer-events="none" />
-          ${this.displaySliderValues.map((sliderValue, valueIndex) => {
+          ${this.runtime.displayValues.map((sliderValue, valueIndex) => {
             const ratio = this.sliderValueToRatio(sliderValue);
             const coordinate = horizontal
               ? geometry.startX + thumbMargin + thumbWidth / 2 + sliderSize * ratio
@@ -854,13 +879,13 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders circular track, active range and radial thumb markers. */
   renderCircularSlider() {
-    const geometry = this.getSliderGeometry();
+    const geometry = this.geometry;
     const viz = this.config.circular;
     const lowerRatio = this.config.show.item_variant === 'range'
-      ? this.sliderValueToRatio(this.displaySliderValues[0])
+      ? this.sliderValueToRatio(this.runtime.displayValues[0])
       : 0;
     const upperRatio = this.sliderValueToRatio(
-      this.displaySliderValues[this.displaySliderValues.length - 1],
+      this.runtime.displayValues[this.runtime.displayValues.length - 1],
     );
     const captureWidth = Utils.calculateSvgDimension(viz.capture.width);
     const thumbLength = Utils.calculateSvgDimension(viz.thumb.length);
@@ -874,14 +899,14 @@ export default class ControlSlider extends ControlBase {
       <path d=${this.circularArcPath(0, 1)}
         style=${styleMap(this.getStyles(ConfigHelper.toStyleDict(viz.track.styles)))}
         stroke-width=${Utils.calculateSvgDimension(viz.track.width)} pointer-events="none" />
-      ${this.sliderAvailable ? svg`
+      ${this.runtime.available ? svg`
         <path d=${this.circularArcPath(0, 1)} fill="none" stroke="transparent"
           stroke-width=${captureWidth} style="touch-action:none;cursor:pointer;"
           @pointerdown=${(event) => this.startSliderPointer(event, undefined)} />
         <path d=${this.circularArcPath(lowerRatio, upperRatio)}
           style=${styleMap(activeStyles)}
           stroke-width=${Utils.calculateSvgDimension(viz.active.width)} pointer-events="none" />
-        ${this.displaySliderValues.map((sliderValue, valueIndex) => {
+        ${this.runtime.displayValues.map((sliderValue, valueIndex) => {
           const ratio = this.sliderValueToRatio(sliderValue);
           const thumbPoint = this.circularRatioToPoint(ratio, geometry.radius);
           const innerPoint = this.circularRatioToPoint(ratio, geometry.radius - thumbLength / 2);
@@ -889,9 +914,9 @@ export default class ControlSlider extends ControlBase {
           return svg`
             <circle cx=${thumbPoint.x} cy=${thumbPoint.y} r=${thumbHitSize / 2}
               fill="transparent" tabindex="0" role="slider"
-              aria-valuemin=${this.resolvedScale.min}
-              aria-valuemax=${this.resolvedScale.max}
-              aria-valuenow=${this.sliderValues[valueIndex]}
+              aria-valuemin=${this.runtime.scale.min}
+              aria-valuemax=${this.runtime.scale.max}
+              aria-valuenow=${this.runtime.values[valueIndex]}
               style="outline:none;touch-action:none;cursor:pointer;"
               @pointerdown=${(event) => this.startSliderPointer(event, valueIndex)}
               @keydown=${(event) => this.handleSliderKeydown(event, valueIndex)} />
@@ -908,6 +933,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders child values and the selected slider visualization. */
   render() {
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
     const control = svg`
       <g id="${this.cardId}-${this.id}-slider" class="slider-control"
         transform="${this.getGroupScaleTransform()}"

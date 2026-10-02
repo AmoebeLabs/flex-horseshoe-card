@@ -91,11 +91,11 @@ test('Toggle static and valid JavaScript config produce equivalent active preset
   javascriptToggle.updateRuntimeConfig();
 
   assert.equal(javascriptToggle.hasJavascript, true);
-  assert.equal(javascriptToggle.config.content.content_icon.icon.icon, 'mdi:lightbulb');
+  assert.equal(javascriptToggle.config.content.content_icon.icon.icon, '[[[ return constants.toggleIcon; ]]]');
   assert.equal(javascriptToggle.iconTool.config.icon, staticToggle.iconTool.config.icon);
-  assert.deepEqual(javascriptToggle.config.ha.on, staticToggle.config.ha.on);
-  assert.deepEqual(javascriptToggle.config.ha.off, staticToggle.config.ha.off);
-  assert.deepEqual(javascriptToggle.config.svg, staticToggle.config.svg);
+  assert.deepEqual(javascriptToggle.geometry.on, staticToggle.geometry.on);
+  assert.deepEqual(javascriptToggle.geometry.off, staticToggle.geometry.off);
+  assert.deepEqual(javascriptToggle.geometry.svg, staticToggle.geometry.svg);
 
   javascriptToggle.hassAvailable();
   javascriptToggle.connected();
@@ -104,10 +104,11 @@ test('Toggle static and valid JavaScript config produce equivalent active preset
   javascriptContext.card.evaluateJavascriptTemplates = true;
   javascriptToggle.updateRuntimeConfig();
 
-  assert.equal(javascriptToggle.configurationChanged, true);
-  assert.notStrictEqual(javascriptToggle.iconTool, oldIconTool);
-  assert.equal(oldIconTool.iconClosed, true);
-  assert.equal(oldIconTool.haIconPath.sourceClosed, true);
+  // The icon expression belongs to the retained child, not the parent config.
+  assert.equal(javascriptToggle.configurationChanged, false);
+  assert.strictEqual(javascriptToggle.iconTool, oldIconTool);
+  assert.equal(oldIconTool.iconClosed, false);
+  assert.equal(oldIconTool.haIconPath.sourceClosed, false);
   assert.equal(javascriptToggle.iconTool.config.icon, 'mdi:flash');
   assert.equal(javascriptToggle.iconTool.iconClosed, false);
   assert.equal(javascriptToggle.iconTool.haIconPath.sourceClosed, false);
@@ -130,7 +131,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.equal(toggle.hasPresentationChanged(), true);
   assert.equal(toggle.hasPresentationChanged(), false);
 
-  const initialX = toggle.config.svg.x;
+  const initialX = toggle.geometry.svg.x;
   context.setGroupXOffset(18);
   context.card.cardLayout.changedGroupIds.add('room');
   toggle.updateRuntimeConfig();
@@ -138,7 +139,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.equal(toggle.configurationChanged, false);
   assert.equal(toggle.groupChanged, true);
   assert.equal(toggle.themeModeChanged, false);
-  assert.equal(toggle.config.svg.x, initialX + 18);
+  assert.equal(toggle.geometry.svg.x, initialX + 18);
   toggle.setState(entity, { entity: 'switch.test' });
   assert.strictEqual(toggle.iconTool.runtime.entity, entity);
   assert.equal(toggle.iconTool.iconClosed, false);
@@ -148,7 +149,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.equal(toggle.hasPresentationChanged(), true);
   assert.equal(toggle.hasPresentationChanged(), false);
 
-  const groupRefreshedSvg = structuredClone(toggle.config.svg);
+  const groupRefreshedSvg = structuredClone(toggle.geometry.svg);
   context.card.cardLayout.changedGroupIds.clear();
   context.setColorMode('dark');
   context.card.cardTheme.modeChanged = true;
@@ -167,7 +168,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.strictEqual(toggle.iconTool, iconBeforeThemeRefresh);
   assert.equal(forwardedIconUpdates.length, 1);
   assert.strictEqual(forwardedIconUpdates[0], iconBeforeThemeRefresh);
-  assert.deepEqual(toggle.config.svg, groupRefreshedSvg);
+  assert.deepEqual(toggle.geometry.svg, groupRefreshedSvg);
   toggle.setState(entity, { entity: 'switch.test' });
   assert.strictEqual(toggle.iconTool.runtime.entity, entity);
   assert.equal(toggle.iconTool.iconClosed, false);

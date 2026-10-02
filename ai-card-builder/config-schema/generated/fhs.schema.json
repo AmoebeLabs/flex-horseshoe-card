@@ -5162,24 +5162,45 @@
                   "type": "object",
                   "properties": {
                     "item_variant": {
-                      "enum": [
-                        "switch"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "switch"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
                       ],
                       "description": "Variant selector for the containing control.",
                       "x-fhs-semantic-source": "schema-context-v8"
                     },
                     "item_viz": {
-                      "enum": [
-                        "default"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "default"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
                       ],
                       "description": "Visualization selector for the containing control.",
                       "x-fhs-semantic-source": "schema-context-v8"
                     },
                     "item_style": {
-                      "enum": [
-                        "ha",
-                        "ios",
-                        "industrial"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "ha",
+                            "ios",
+                            "industrial"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
                       ],
                       "description": "Visual style/mode selector for the containing tool.",
                       "x-fhs-semantic-source": "schema-context-v8"
@@ -5203,26 +5224,47 @@
                       "type": "object",
                       "properties": {
                         "item_variant": {
-                          "enum": [
-                            "segmented"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "segmented"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Variant selector for the containing control.",
                           "x-fhs-semantic-source": "schema-context-v8"
                         },
                         "item_viz": {
-                          "enum": [
-                            "viz_button",
-                            "viz_line"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "viz_button",
+                                "viz_line"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Visualization selector for the containing control.",
                           "x-fhs-semantic-source": "schema-context-v8"
                         },
                         "item_style": {
-                          "enum": [
-                            "filled_round",
-                            "filled_square",
-                            "outlined_round",
-                            "outlined_square"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "filled_round",
+                                "filled_square",
+                                "outlined_round",
+                                "outlined_square"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Visual style/mode selector for the containing tool.",
                           "x-fhs-semantic-source": "schema-context-v8"
@@ -5253,25 +5295,46 @@
                       "type": "object",
                       "properties": {
                         "item_variant": {
-                          "enum": [
-                            "stepper"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "stepper"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Variant selector for the containing control.",
                           "x-fhs-semantic-source": "schema-context-v8"
                         },
                         "item_viz": {
-                          "enum": [
-                            "buttons"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "buttons"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Visualization selector for the containing control.",
                           "x-fhs-semantic-source": "schema-context-v8"
                         },
                         "item_style": {
-                          "enum": [
-                            "filled_round",
-                            "filled_square",
-                            "outlined_round",
-                            "outlined_square"
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "filled_round",
+                                "filled_square",
+                                "outlined_round",
+                                "outlined_square"
+                              ]
+                            },
+                            {
+                              "$ref": "#/$defs/common.javascript"
+                            }
                           ],
                           "description": "Visual style/mode selector for the containing tool.",
                           "x-fhs-semantic-source": "schema-context-v8"
@@ -5526,37 +5589,79 @@
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "label": {
-              "$ref": "#/$defs/layout.controlLabel",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/layout.controlLabel"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Optional human-readable label for this mapped value or control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "unavailable": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `unavailable` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "background": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Background visualization/style configuration.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "content": {
-              "type": "object",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Control content configuration. In explicit content_horizontal/content_vertical items, an item with type: icon uses size as its cell-relative percentage; this is not layout.icons[].icon_size.",
-              "additionalProperties": true,
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "animation": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `animation` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "padding": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Extra spacing around the referenced/contained geometry. Units follow the containing geometry; ordinary layout dimensions use the 100-unit FHS logical scale.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
@@ -5566,97 +5671,195 @@
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "ha": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `ha` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "ios": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `ios` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "industrial": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `industrial` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "track": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Track visualization/configuration for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "thumb": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Thumb/indicator visualization for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "option_map": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/layout.controlSelectOption"
-              },
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/layout.controlSelectOption"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Explicit option definitions for a select control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "separator": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Separator visualization/configuration between select options.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "viz_button": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Button-style visualization configuration for select segments.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "viz_line": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Line-style visualization configuration for select segments.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "button": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `button` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "values": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "entity_index": {
-                    "$ref": "#/$defs/common.entityIndex",
-                    "description": "Index or named entity slot selecting one configured card entity for this item.",
-                    "x-fhs-semantic-source": "schema-context-v8",
-                    "x-fhs-unit": "entity-index",
-                    "examples": [
-                      0,
-                      1
-                    ]
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity_index": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/common.entityIndex"
+                          },
+                          {
+                            "$ref": "#/$defs/common.javascript"
+                          }
+                        ],
+                        "description": "Index or named entity slot selecting one configured card entity for this item.",
+                        "x-fhs-semantic-source": "schema-context-v8",
+                        "x-fhs-unit": "entity-index",
+                        "examples": [
+                          0,
+                          1
+                        ]
+                      }
+                    },
+                    "additionalProperties": true
                   }
                 },
-                "additionalProperties": true
-              },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `values` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             },
             "value": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Mapped or submitted value used by the containing state map, option or control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "interaction": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Configuration field `interaction` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             }
@@ -5861,37 +6064,79 @@
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "label": {
-              "$ref": "#/$defs/layout.controlLabel",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/layout.controlLabel"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Optional human-readable label for this mapped value or control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "unavailable": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Visual/content overrides used when the bound entity/control is unavailable.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "background": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Background visualization/style configuration.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "content": {
-              "type": "object",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Control content configuration. In explicit content_horizontal/content_vertical items, an item with type: icon uses size as its cell-relative percentage; this is not layout.icons[].icon_size.",
-              "additionalProperties": true,
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "animation": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Control transition/animation configuration, including duration/easing and state-specific visual changes where supported.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "padding": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Extra spacing around the referenced/contained geometry. Units follow the containing geometry; ordinary layout dimensions use the 100-unit FHS logical scale.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
@@ -5913,11 +6158,18 @@
       "type": "object",
       "properties": {
         "position": {
-          "enum": [
-            "start",
-            "end",
-            "top",
-            "bottom"
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "end",
+                "top",
+                "bottom"
+              ]
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
           ],
           "description": "Position configuration for this label/chart element.",
           "x-fhs-semantic-source": "schema-context-v8"
@@ -5928,25 +6180,39 @@
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "offset": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "$ref": "#/$defs/common.dynamicNumber",
-              "description": "Horizontal coordinate or offset in the coordinate space defined by the containing object.",
-              "x-fhs-semantic-source": "schema-context-v8"
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "$ref": "#/$defs/common.dynamicNumber",
+                  "description": "Horizontal coordinate or offset in the coordinate space defined by the containing object.",
+                  "x-fhs-semantic-source": "schema-context-v8"
+                },
+                "y": {
+                  "$ref": "#/$defs/common.dynamicNumber",
+                  "description": "Vertical coordinate or offset in the coordinate space defined by the containing object.",
+                  "x-fhs-semantic-source": "schema-context-v8"
+                }
+              },
+              "additionalProperties": false
             },
-            "y": {
-              "$ref": "#/$defs/common.dynamicNumber",
-              "description": "Vertical coordinate or offset in the coordinate space defined by the containing object.",
-              "x-fhs-semantic-source": "schema-context-v8"
+            {
+              "$ref": "#/$defs/common.javascript"
             }
-          },
-          "additionalProperties": false,
+          ],
           "description": "Offset applied by the containing feature. Units depend on that feature and are documented in its definition when different from normal FHS logical units.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "entity_index": {
-          "$ref": "#/$defs/common.entityIndex",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.entityIndex"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Index or named entity slot selecting one configured card entity for this item.",
           "x-fhs-semantic-source": "schema-context-v8",
           "x-fhs-unit": "entity-index",
@@ -5960,12 +6226,26 @@
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "styles": {
-          "$ref": "#/$defs/common.styles",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.styles"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "SVG/CSS style configuration for this item. In FHS text rendering the normal base font is 12 internal SVG units, equivalent to about 6 logical units on the standard 100-unit card; therefore 1em is approximately 6 logical units.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "tap_action": {
-          "$ref": "#/$defs/common.action",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.action"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Action executed for a tap gesture.",
           "x-fhs-semantic-source": "schema-context-v8"
         }
@@ -5983,63 +6263,126 @@
           "type": "object",
           "properties": {
             "show": {
-              "type": "object",
-              "properties": {
-                "item_variant": {
-                  "enum": [
-                    "switch"
-                  ],
-                  "description": "Variant selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "item_variant": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "switch"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Variant selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_viz": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "default"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visualization selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_style": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "ha",
+                            "ios",
+                            "industrial"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visual style/mode selector for the containing tool.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    }
+                  },
+                  "additionalProperties": true
                 },
-                "item_viz": {
-                  "enum": [
-                    "default"
-                  ],
-                  "description": "Visualization selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
-                },
-                "item_style": {
-                  "enum": [
-                    "ha",
-                    "ios",
-                    "industrial"
-                  ],
-                  "description": "Visual style/mode selector for the containing tool.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+                {
+                  "$ref": "#/$defs/common.javascript"
                 }
-              },
-              "additionalProperties": true,
+              ],
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "ha": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Visual configuration for the Home Assistant-style toggle appearance selected by show.item_style: ha.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "ios": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Visual configuration for the iOS-style toggle appearance selected by show.item_style: ios.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "industrial": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Visual configuration for the industrial-style toggle appearance selected by show.item_style: industrial.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "track": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Track visualization/configuration for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "thumb": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Thumb/indicator visualization for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             }
@@ -6059,72 +6402,135 @@
           "type": "object",
           "properties": {
             "show": {
-              "type": "object",
-              "properties": {
-                "item_variant": {
-                  "enum": [
-                    "segmented"
-                  ],
-                  "description": "Variant selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "item_variant": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "segmented"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Variant selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_viz": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "viz_button",
+                            "viz_line"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visualization selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_style": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "filled_round",
+                            "filled_square",
+                            "outlined_round",
+                            "outlined_square"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visual style/mode selector for the containing tool.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "separator": {
+                      "$ref": "#/$defs/common.dynamicBoolean",
+                      "description": "Separator visualization/configuration between select options.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    }
+                  },
+                  "additionalProperties": true
                 },
-                "item_viz": {
-                  "enum": [
-                    "viz_button",
-                    "viz_line"
-                  ],
-                  "description": "Visualization selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
-                },
-                "item_style": {
-                  "enum": [
-                    "filled_round",
-                    "filled_square",
-                    "outlined_round",
-                    "outlined_square"
-                  ],
-                  "description": "Visual style/mode selector for the containing tool.",
-                  "x-fhs-semantic-source": "schema-context-v8"
-                },
-                "separator": {
-                  "$ref": "#/$defs/common.dynamicBoolean",
-                  "description": "Separator visualization/configuration between select options.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+                {
+                  "$ref": "#/$defs/common.javascript"
                 }
-              },
-              "additionalProperties": true,
+              ],
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "option_map": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/layout.controlSelectOption"
-              },
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/layout.controlSelectOption"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Explicit option definitions for a select control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "track": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Track visualization/configuration for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "separator": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Separator visualization/configuration between select options.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "viz_button": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Button-style visualization configuration for select segments.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "viz_line": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Line-style visualization configuration for select segments.",
               "x-fhs-semantic-source": "schema-context-v8"
             }
@@ -6159,35 +6565,77 @@
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "content": {
-          "type": "object",
-          "additionalProperties": true,
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Content configuration rendered inside this control/option.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "text_config": {
-          "type": "object",
-          "additionalProperties": true,
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Optional text rendering overrides for this select option.",
           "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
         },
         "icon_config": {
-          "type": "object",
-          "additionalProperties": true,
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Optional icon rendering overrides for this select option.",
           "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
         },
         "tap_action": {
-          "$ref": "#/$defs/common.action",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.action"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Action executed for a tap gesture.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "hold_action": {
-          "$ref": "#/$defs/common.action",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.action"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Action executed for a hold gesture.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "double_tap_action": {
-          "$ref": "#/$defs/common.action",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.action"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Action executed for a double-tap gesture.",
           "x-fhs-semantic-source": "schema-context-v8"
         }
@@ -6208,34 +6656,62 @@
           "type": "object",
           "properties": {
             "show": {
-              "type": "object",
-              "properties": {
-                "item_variant": {
-                  "enum": [
-                    "stepper"
-                  ],
-                  "description": "Variant selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "item_variant": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "stepper"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Variant selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_viz": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "buttons"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visualization selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_style": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "filled_round",
+                            "filled_square",
+                            "outlined_round",
+                            "outlined_square"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visual style/mode selector for the containing tool.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    }
+                  },
+                  "additionalProperties": true
                 },
-                "item_viz": {
-                  "enum": [
-                    "buttons"
-                  ],
-                  "description": "Visualization selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
-                },
-                "item_style": {
-                  "enum": [
-                    "filled_round",
-                    "filled_square",
-                    "outlined_round",
-                    "outlined_square"
-                  ],
-                  "description": "Visual style/mode selector for the containing tool.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+                {
+                  "$ref": "#/$defs/common.javascript"
                 }
-              },
-              "additionalProperties": true,
+              ],
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             }
@@ -6255,14 +6731,28 @@
           "type": "object",
           "properties": {
             "show": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "button": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Button visualization/configuration for a type: button control.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             }
@@ -6282,118 +6772,195 @@
           "type": "object",
           "properties": {
             "show": {
-              "type": "object",
-              "properties": {
-                "item_variant": {
-                  "anyOf": [
-                    {
-                      "enum": [
-                        "single",
-                        "range"
-                      ]
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "item_variant": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "single",
+                            "range"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Variant selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
                     },
-                    {
-                      "$ref": "#/$defs/common.javascript"
+                    "item_viz": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "linear",
+                            "circular"
+                          ]
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Visualization selector for the containing control.",
+                      "x-fhs-semantic-source": "schema-context-v8"
+                    },
+                    "item_style": {
+                      "anyOf": [
+                        {
+                          "const": "ha"
+                        },
+                        {
+                          "$ref": "#/$defs/common.javascript"
+                        }
+                      ],
+                      "description": "Current slider visual style selector; static value is ha.",
+                      "x-fhs-semantic-source": "runtime-verified-v12"
                     }
-                  ],
-                  "description": "Variant selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
+                  },
+                  "additionalProperties": false
                 },
-                "item_viz": {
-                  "anyOf": [
-                    {
-                      "enum": [
-                        "linear",
-                        "circular"
-                      ]
-                    },
-                    {
-                      "$ref": "#/$defs/common.javascript"
-                    }
-                  ],
-                  "description": "Visualization selector for the containing control.",
-                  "x-fhs-semantic-source": "schema-context-v8"
-                },
-                "item_style": {
-                  "anyOf": [
-                    {
-                      "const": "ha"
-                    },
-                    {
-                      "$ref": "#/$defs/common.javascript"
-                    }
-                  ],
-                  "description": "Current slider visual style selector; static value is ha.",
-                  "x-fhs-semantic-source": "runtime-verified-v12"
+                {
+                  "$ref": "#/$defs/common.javascript"
                 }
-              },
-              "additionalProperties": false,
+              ],
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "track": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Track visualization/configuration for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "thumb": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Thumb/indicator visualization for this control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "values": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "entity_index": {
-                    "$ref": "#/$defs/common.entityIndex",
-                    "description": "Index or named entity slot selecting one configured card entity for this item.",
-                    "x-fhs-semantic-source": "schema-context-v8",
-                    "x-fhs-unit": "entity-index",
-                    "examples": [
-                      0,
-                      1
-                    ]
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity_index": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/$defs/common.entityIndex"
+                          },
+                          {
+                            "$ref": "#/$defs/common.javascript"
+                          }
+                        ],
+                        "description": "Index or named entity slot selecting one configured card entity for this item.",
+                        "x-fhs-semantic-source": "schema-context-v8",
+                        "x-fhs-unit": "entity-index",
+                        "examples": [
+                          0,
+                          1
+                        ]
+                      }
+                    },
+                    "additionalProperties": true
                   }
                 },
-                "additionalProperties": true
-              },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Entity bindings/value channels used by the slider. Range sliders can bind more than one value; each entry may select its own entity_index.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             },
             "value": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Mapped or submitted value used by the containing state map, option or control.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "interaction": {
-              "$ref": "#/$defs/layout.sliderInteraction",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/layout.sliderInteraction"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Pointer/write interaction configuration for the slider.",
               "x-fhs-semantic-source": "runtime-verified-v12"
             },
             "scale": {
-              "$ref": "#/$defs/layout.sliderScale",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/layout.sliderScale"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Slider numeric domain. min/max/step default to attributes on the bound entity.",
               "x-fhs-semantic-source": "runtime-verified-v12"
             },
             "linear": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Linear slider visualization selected by show.item_viz: linear.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             },
             "circular": {
-              "type": "object",
-              "additionalProperties": true,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Circular slider visualization selected by show.item_viz: circular.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             },
             "set_value_action": {
-              "$ref": "#/$defs/layout.sliderAction",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/layout.sliderAction"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Action executed when the slider writes a value. Defaults to the slider-local set-value shorthand.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             }
@@ -6413,23 +6980,44 @@
           "type": "object",
           "properties": {
             "action": {
-              "const": "set-value",
+              "anyOf": [
+                {
+                  "const": "set-value"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Slider-local shorthand translated to <bound-entity-domain>.set_value.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             },
             "value_field": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "Destination field path receiving the active slider value for a custom action.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             },
             "value_fields": {
-              "type": "object",
-              "additionalProperties": {
-                "enum": [
-                  "lower",
-                  "upper"
-                ]
-              },
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "enum": [
+                      "lower",
+                      "upper"
+                    ]
+                  }
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
               "description": "For range sliders, maps destination field paths to the lower or upper current value.",
               "x-fhs-semantic-source": "runtime-verified-v11"
             }
@@ -6447,12 +7035,26 @@
       "type": "object",
       "properties": {
         "update_interval": {
-          "$ref": "#/$defs/common.nonNegativeNumber",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/common.nonNegativeNumber"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Minimum write interval in milliseconds while dragging. Zero allows immediate writes.",
           "x-fhs-semantic-source": "runtime-verified-v12"
         },
         "haptic": {
-          "type": "string",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/common.javascript"
+            }
+          ],
           "description": "Home Assistant haptic event name emitted for slider interaction.",
           "x-fhs-semantic-source": "runtime-verified-v12"
         }
@@ -6473,7 +7075,14 @@
               "type": "object",
               "properties": {
                 "attribute": {
-                  "type": "string",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
                   "description": "Name of the bound entity attribute that supplies this slider scale value.",
                   "x-fhs-semantic-source": "runtime-verified-v12"
                 }
@@ -6496,7 +7105,14 @@
               "type": "object",
               "properties": {
                 "attribute": {
-                  "type": "string",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
                   "description": "Name of the bound entity attribute that supplies this slider scale value.",
                   "x-fhs-semantic-source": "runtime-verified-v12"
                 }
@@ -6519,7 +7135,14 @@
               "type": "object",
               "properties": {
                 "attribute": {
-                  "type": "string",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
                   "description": "Name of the bound entity attribute that supplies this slider scale value.",
                   "x-fhs-semantic-source": "runtime-verified-v12"
                 }

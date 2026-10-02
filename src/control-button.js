@@ -8,238 +8,239 @@ import Merge from './merge.js';
 import TextTool from './text-tool.js';
 import Utils from './utils.js';
 
+const DEFAULT_BUTTON_STATE_MAP = {
+  map: [
+    { state: 'on', active: true },
+    { state: 'default', active: false },
+  ],
+};
+const DEFAULT_BUTTON_CONFIG = {
+  orientation: 'horizontal',
+  width: 20,
+  height: 10,
+  tap_action: {
+    action: 'toggle',
+  },
+  background: {
+    radius: 2,
+    styles: {},
+  },
+  content: {
+    mode: 'content_horizontal',
+    content_horizontal: {
+      padding: { x: 2, y: 1.5 },
+      gap: 3,
+      icon: {
+        size: 75,
+        styles: {},
+      },
+      text: {
+        text: '',
+        styles: {},
+      },
+    },
+    content_vertical: {
+      padding: { x: 2, y: 1.5 },
+      gap: 2,
+      icon: {
+        size: 75,
+        styles: {},
+      },
+      text: {
+        text: '',
+        styles: {},
+      },
+    },
+    content_icon: {
+      padding: { x: 2, y: 1.5 },
+      icon: {
+        size: 65,
+        styles: {},
+      },
+    },
+    content_text: {
+      padding: { x: 2, y: 1.5 },
+      text: '',
+      styles: {},
+    },
+  },
+  show: {
+    item_variant: 'default',
+    item_viz: 'viz_button',
+    item_style: 'filled_square',
+  },
+  viz_button: {
+    inactive: {
+      background: {
+        styles: {
+          fill: 'var(--secondary-background-color)',
+        },
+      },
+      icon: {
+        styles: {
+          fill: 'var(--primary-text-color)',
+        },
+      },
+      text: {
+        styles: {
+          fill: 'var(--primary-text-color)',
+        },
+      },
+    },
+    active: {
+      background: {
+        styles: {
+          fill: 'var(--primary-color)',
+        },
+      },
+      icon: {
+        styles: {
+          fill: 'var(--primary-background-color)',
+        },
+      },
+      text: {
+        styles: {
+          fill: 'var(--primary-background-color)',
+        },
+      },
+    },
+    animation: {
+      duration: 200,
+      easing: 'ease-out',
+    },
+    press: {
+      scale: 0.9,
+      duration: 140,
+      easing: 'ease-out',
+    },
+  },
+  viz_line: {
+    indicator: {
+      position: 'bottom',
+      padding: { x: 1, y: 0.75 },
+      thickness: 0.75,
+      radius: 0.375,
+    },
+    inactive: {
+      background: {
+        styles: {
+          fill: 'var(--secondary-background-color)',
+        },
+      },
+      indicator: {
+        styles: {
+          fill: 'var(--divider-color)',
+        },
+      },
+      icon: {
+        styles: {
+          fill: 'var(--primary-text-color)',
+        },
+      },
+      text: {
+        styles: {
+          fill: 'var(--primary-text-color)',
+        },
+      },
+    },
+    active: {
+      background: {
+        styles: {
+          fill: 'var(--secondary-background-color)',
+        },
+      },
+      indicator: {
+        styles: {
+          fill: 'var(--primary-color)',
+        },
+      },
+      icon: {
+        styles: {
+          fill: 'var(--primary-color)',
+        },
+      },
+      text: {
+        styles: {
+          fill: 'var(--primary-color)',
+        },
+      },
+    },
+    animation: {
+      duration: 200,
+      easing: 'ease-out',
+    },
+    press: {
+      scale: 0.9,
+      duration: 140,
+      easing: 'ease-out',
+    },
+  },
+};
+const BUTTON_SURFACE_PRESETS = {
+  filled: {},
+  outlined: {
+    background: {
+      styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+    },
+    viz_button: {
+      inactive: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+      },
+      active: {
+        background: {
+          styles: { fill: 'var(--primary-color)', stroke: 'none' },
+        },
+        icon: { styles: { fill: 'var(--primary-background-color)' } },
+        text: { styles: { fill: 'var(--primary-background-color)' } },
+      },
+    },
+    viz_line: {
+      inactive: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+      },
+      active: {
+        background: {
+          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
+        },
+      },
+    },
+  },
+};
+const BUTTON_SHAPE_PRESETS = {
+  round: { background: { radius: 5 } },
+  square: { background: { radius: 2 } },
+};
+const BUTTON_STYLE_PRESETS = {
+  filled_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.round),
+  filled_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.square),
+  outlined_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.round),
+  outlined_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.square),
+};
+
 /**
  * Stateful action button with ordinary FHS TextTool/IconTool content.
  */
 export default class ControlButton extends ControlBase {
   /**
-   * Completes button, visualization, state-map and content configuration.
-   *
-   * The constructor is the only normalization boundary. Rendering consumes the
-   * completed configuration directly and never invents presentation defaults.
+   * Completes the selected button preset after its selectors are evaluated.
+   * The template-context pass supplies the same defaults visible through item.
    */
-  constructor(config, index, templates, cardId, card) {
-    const DEFAULT_BUTTON_STATE_MAP = {
-      map: [
-        { state: 'on', active: true },
-        { state: 'default', active: false },
-      ],
-    };
-    const DEFAULT_BUTTON_CONFIG = {
-      orientation: 'horizontal',
-      width: 20,
-      height: 10,
-      tap_action: {
-        action: 'toggle',
-      },
-      background: {
-        radius: 2,
-        styles: {},
-      },
-      content: {
-        mode: 'content_horizontal',
-        content_horizontal: {
-          padding: { x: 2, y: 1.5 },
-          gap: 3,
-          icon: {
-            size: 75,
-            styles: {},
-          },
-          text: {
-            text: '',
-            styles: {},
-          },
-        },
-        content_vertical: {
-          padding: { x: 2, y: 1.5 },
-          gap: 2,
-          icon: {
-            size: 75,
-            styles: {},
-          },
-          text: {
-            text: '',
-            styles: {},
-          },
-        },
-        content_icon: {
-          padding: { x: 2, y: 1.5 },
-          icon: {
-            size: 65,
-            styles: {},
-          },
-        },
-        content_text: {
-          padding: { x: 2, y: 1.5 },
-          text: '',
-          styles: {},
-        },
-      },
-      show: {
-        item_variant: 'default',
-        item_viz: 'viz_button',
-        item_style: 'filled_square',
-      },
-      viz_button: {
-        inactive: {
-          background: {
-            styles: {
-              fill: 'var(--secondary-background-color)',
-            },
-          },
-          icon: {
-            styles: {
-              fill: 'var(--primary-text-color)',
-            },
-          },
-          text: {
-            styles: {
-              fill: 'var(--primary-text-color)',
-            },
-          },
-        },
-        active: {
-          background: {
-            styles: {
-              fill: 'var(--primary-color)',
-            },
-          },
-          icon: {
-            styles: {
-              fill: 'var(--primary-background-color)',
-            },
-          },
-          text: {
-            styles: {
-              fill: 'var(--primary-background-color)',
-            },
-          },
-        },
-        animation: {
-          duration: 200,
-          easing: 'ease-out',
-        },
-        press: {
-          scale: 0.9,
-          duration: 140,
-          easing: 'ease-out',
-        },
-      },
-      viz_line: {
-        indicator: {
-          position: 'bottom',
-          padding: { x: 1, y: 0.75 },
-          thickness: 0.75,
-          radius: 0.375,
-        },
-        inactive: {
-          background: {
-            styles: {
-              fill: 'var(--secondary-background-color)',
-            },
-          },
-          indicator: {
-            styles: {
-              fill: 'var(--divider-color)',
-            },
-          },
-          icon: {
-            styles: {
-              fill: 'var(--primary-text-color)',
-            },
-          },
-          text: {
-            styles: {
-              fill: 'var(--primary-text-color)',
-            },
-          },
-        },
-        active: {
-          background: {
-            styles: {
-              fill: 'var(--secondary-background-color)',
-            },
-          },
-          indicator: {
-            styles: {
-              fill: 'var(--primary-color)',
-            },
-          },
-          icon: {
-            styles: {
-              fill: 'var(--primary-color)',
-            },
-          },
-          text: {
-            styles: {
-              fill: 'var(--primary-color)',
-            },
-          },
-        },
-        animation: {
-          duration: 200,
-          easing: 'ease-out',
-        },
-        press: {
-          scale: 0.9,
-          duration: 140,
-          easing: 'ease-out',
-        },
-      },
-    };
-    const BUTTON_SURFACE_PRESETS = {
-      filled: {},
-      outlined: {
-        background: {
-          styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
-        },
-        viz_button: {
-          inactive: {
-            background: {
-              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
-            },
-          },
-          active: {
-            background: {
-              styles: { fill: 'var(--primary-color)', stroke: 'none' },
-            },
-            icon: { styles: { fill: 'var(--primary-background-color)' } },
-            text: { styles: { fill: 'var(--primary-background-color)' } },
-          },
-        },
-        viz_line: {
-          inactive: {
-            background: {
-              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
-            },
-          },
-          active: {
-            background: {
-              styles: { fill: 'var(--card-background-color)', stroke: 'var(--divider-color)', 'stroke-width': 0.5 },
-            },
-          },
-        },
-      },
-    };
-    const BUTTON_SHAPE_PRESETS = {
-      round: { background: { radius: 5 } },
-      square: { background: { radius: 2 } },
-    };
-    const BUTTON_STYLE_PRESETS = {
-      filled_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.round),
-      filled_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.filled, BUTTON_SHAPE_PRESETS.square),
-      outlined_round: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.round),
-      outlined_square: Merge.mergeDeep(BUTTON_SURFACE_PRESETS.outlined, BUTTON_SHAPE_PRESETS.square),
-    };
+  static translateConfig(config, forTemplateContext = false) {
     const selectedConfig = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG, config);
-    if (selectedConfig.show.item_variant !== 'default') {
-      throw Error(`[controls] Invalid button item_variant '${selectedConfig.show.item_variant}' [default]`);
-    }
-    if (!['viz_button', 'viz_line'].includes(selectedConfig.show.item_viz)) {
-      throw Error(`[controls] Invalid button item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`);
-    }
-    if (!Object.hasOwn(BUTTON_STYLE_PRESETS, selectedConfig.show.item_style)) {
-      throw Error(`[controls] Invalid button item_style '${selectedConfig.show.item_style}' [${Object.keys(BUTTON_STYLE_PRESETS).join(', ')}]`);
+    if (!forTemplateContext) {
+      if (selectedConfig.show.item_variant !== 'default') {
+        throw Error(`[controls] Invalid button item_variant '${selectedConfig.show.item_variant}' [default]`);
+      }
+      if (!['viz_button', 'viz_line'].includes(selectedConfig.show.item_viz)) {
+        throw Error(`[controls] Invalid button item_viz '${selectedConfig.show.item_viz}' [viz_button, viz_line]`);
+      }
+      if (!Object.hasOwn(BUTTON_STYLE_PRESETS, selectedConfig.show.item_style)) {
+        throw Error(`[controls] Invalid button item_style '${selectedConfig.show.item_style}' [${Object.keys(BUTTON_STYLE_PRESETS).join(', ')}]`);
+      }
     }
     const buttonConfig = Merge.mergeDeep(
       DEFAULT_BUTTON_CONFIG,
@@ -253,17 +254,27 @@ export default class ControlButton extends ControlBase {
     // arrays through the normal deep-merge behavior.
     buttonConfig.state_map = config.state_map === undefined ? DEFAULT_BUTTON_STATE_MAP : Merge.mergeDeep({}, config.state_map);
 
-    super(buttonConfig, index, templates, cardId, card);
+    return buttonConfig;
+  }
 
-    this.config.svg = this.calculateSvgDimensions();
-    this.active = false;
+  /** Captures authored config; dynamic controls create children after publication. */
+  constructor(config, index, templates, cardId, card) {
+    super(Merge.mergeDeep({
+      orientation: DEFAULT_BUTTON_CONFIG.orientation,
+      show: DEFAULT_BUTTON_CONFIG.show,
+    }, config), index, templates, cardId, card, ControlButton.translateConfig);
+
+    this.geometry = {};
+    this.runtime.active = false;
+    this.runtime.stateMapItem = undefined;
     this.contentTextTool = undefined;
     this.contentIconTool = undefined;
     this.contentVisual = undefined;
-    this.contentTextBaseStyles = undefined;
-    this.contentIconBaseStyles = undefined;
-    this.createButtonContentTools();
-    this.createControlLabelTextTool(this.config.width, this.config.height);
+    if (!this.hasJavascript) {
+      this.geometry.svg = this.calculateSvgDimensions();
+      this.createButtonContentTools();
+      this.createControlLabelTextTool(this.config.width, this.config.height);
+    }
   }
 
   /**
@@ -361,11 +372,9 @@ export default class ControlButton extends ControlBase {
       );
 
       delete iconToolConfig.size;
-      this.contentIconBaseStyles = ConfigHelper.toStyleDict(iconToolConfig.styles);
       this.contentIconTool = new IconTool(iconToolConfig, 0, this.templates, this.cardId, this.card);
     } else {
-      this.contentIconBaseStyles = undefined;
-      this.contentIconTool = undefined;
+        this.contentIconTool = undefined;
     }
 
     if (hasText) {
@@ -402,11 +411,9 @@ export default class ControlButton extends ControlBase {
       );
 
       delete textToolConfig.padding;
-      this.contentTextBaseStyles = ConfigHelper.toStyleDict(textToolConfig.styles);
       this.contentTextTool = new TextTool(textToolConfig, 0, this.templates, this.cardId, this.card);
     } else {
-      this.contentTextBaseStyles = undefined;
-      this.contentTextTool = undefined;
+        this.contentTextTool = undefined;
     }
     this.activateContentTools();
   }
@@ -421,7 +428,7 @@ export default class ControlButton extends ControlBase {
     super.updateRuntimeConfig();
 
     if (this.configurationChanged || this.groupChanged) {
-      this.config.svg = this.calculateSvgDimensions(this.config);
+      this.geometry.svg = this.calculateSvgDimensions(this.config);
       this.createButtonContentTools();
       this.createControlLabelTextTool(this.config.width, this.config.height);
     }
@@ -439,28 +446,28 @@ export default class ControlButton extends ControlBase {
     const visualState = viz.inactive;
     const transition = viz.animation.duration + 'ms ' + viz.animation.easing;
 
-    this.active = false;
+    this.runtime.active = false;
 
     if (this.contentVisual) this.contentVisual.setState(visualState, transition);
 
     if (this.contentIconTool) {
-      this.contentIconTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), this.contentIconBaseStyles, {
+      this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
-      });
+      }));
       this.contentIconTool.setStaticState();
     }
 
     if (this.contentTextTool) {
-      this.contentTextTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), this.contentTextBaseStyles, {
+      this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
-      });
+      }));
       this.contentTextTool.setStaticState();
     }
   }
 
   /** Includes active appearance and each enabled content/label child. */
   hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.active);
+    const changed = super.hasPresentationChanged(this.runtime.active);
     const children = [this.contentVisual, this.contentIconTool, this.contentTextTool]
       .filter((tool) => tool !== undefined);
     const childChanges = children.map((tool) => tool.hasPresentationChanged());
@@ -476,21 +483,22 @@ export default class ControlButton extends ControlBase {
     const visualState = stateMapItem.active ? viz.active : viz.inactive;
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
 
-    this.active = stateMapItem.active;
+    this.runtime.stateMapItem = stateMapItem;
+    this.runtime.active = stateMapItem.active;
 
     if (this.contentVisual) this.contentVisual.setState(visualState, transition);
 
     if (this.contentIconTool) {
-      this.contentIconTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), this.contentIconBaseStyles, {
+      this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
-      });
+      }));
       this.contentIconTool.setState(entity, entityConfig);
     }
 
     if (this.contentTextTool) {
-      this.contentTextTool.config.styles = Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), this.contentTextBaseStyles, {
+      this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
-      });
+      }));
       this.contentTextTool.setState(entity, entityConfig);
     }
   }
@@ -509,7 +517,7 @@ export default class ControlButton extends ControlBase {
    * Runs one immediate press animation around the complete button center.
    */
   animateButtonPress(buttonGroup) {
-    const center = this.config.svg;
+    const center = this.geometry.svg;
     const press = this.config[this.config.show.item_viz].press;
     const restingTransform = `translate(${center.xpos}px, ${center.ypos}px) scale(1) translate(-${center.xpos}px, -${center.ypos}px)`;
     const pressedTransform = `translate(${center.xpos}px, ${center.ypos}px) scale(${press.scale}) translate(-${center.xpos}px, -${center.ypos}px)`;
@@ -525,14 +533,15 @@ export default class ControlButton extends ControlBase {
    * Renders state visualization, child content and one authoritative hit area.
    */
   render() {
+    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
     const vizName = this.config.show.item_viz;
     const viz = this.config[vizName];
-    const visualState = this.active ? viz.active : viz.inactive;
+    const visualState = this.runtime.active ? viz.active : viz.inactive;
     const transition = `${viz.animation.duration}ms ${viz.animation.easing}`;
     const width = Utils.calculateSvgDimension(this.config.width);
     const height = Utils.calculateSvgDimension(this.config.height);
-    const x = this.config.svg.xpos - width / 2;
-    const y = this.config.svg.ypos - height / 2;
+    const x = this.geometry.svg.xpos - width / 2;
+    const y = this.geometry.svg.ypos - height / 2;
     const backgroundStyles = this.getStyles(
       Merge.mergeDeep(ConfigHelper.toStyleDict(this.config.background.styles), ConfigHelper.toStyleDict(visualState.background.styles), {
         transition: `fill ${transition}, stroke ${transition}, opacity ${transition}`,

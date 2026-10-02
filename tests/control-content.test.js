@@ -368,7 +368,7 @@ test('entityless button initializes literal content without an entity state', ()
   button.setStaticState();
 
   assert.equal(button.entity_index, undefined);
-  assert.equal(button.active, false);
+  assert.equal(button.runtime.active, false);
   assert.equal(button.contentTextTool.runtime.textParts[0].value, 'Action');
 });
 
@@ -452,13 +452,13 @@ test('select separates matching state, action value and translated presentation'
     {},
   );
 
-  assert.equal(select.selectedOptionIndex, 0);
+  assert.equal(select.runtime.selectedIndex, 0);
   assert.equal(select.config.option_map[0].text, 'Verwarmen');
-  assert.deepEqual(select.optionDisplayTexts, ['Verwarmen', 'Koelen']);
-  assert.equal(select.optionActionConfigs[0].tap_action.data.hvac_mode, 'heat');
-  assert.equal(select.optionActionConfigs[0].tap_action.data.temperature, 21);
-  assert.equal(select.optionActionConfigs[0].hold_action.actions[0].data.mode, 'heat');
-  assert.equal(select.optionActionConfigs[0].hold_action.actions[1].data.temperature, 21);
+  assert.deepEqual(select.runtime.optionDisplayTexts, ['Verwarmen', 'Koelen']);
+  assert.equal(select.runtime.actionConfigs[0].tap_action.data.hvac_mode, 'heat');
+  assert.equal(select.runtime.actionConfigs[0].tap_action.data.temperature, 21);
+  assert.equal(select.runtime.actionConfigs[0].hold_action.actions[0].data.mode, 'heat');
+  assert.equal(select.runtime.actionConfigs[0].hold_action.actions[1].data.temperature, 21);
   assert.equal(select.config.option_map[1].state, 'cool');
 });
 
@@ -488,16 +488,16 @@ test('select builds and refreshes an omitted option_map from entity attributes',
   );
 
   assert.deepEqual(
-    select.config.option_map.map(({ state, value, text }) => ({ state, value, text })),
+    select.runtime.options.map(({ state, value, text }) => ({ state, value, text })),
     [
       { state: 'line', value: 'line', text: undefined },
       { state: 'area', value: 'area', text: undefined },
       { state: 'bar', value: 'bar', text: undefined },
     ],
   );
-  assert.deepEqual(select.optionDisplayTexts, ['State line', 'State area', 'State bar']);
-  assert.equal(select.selectedOptionIndex, 1);
-  assert.equal(select.optionActionConfigs[2].tap_action.option, 'bar');
+  assert.deepEqual(select.runtime.optionDisplayTexts, ['State line', 'State area', 'State bar']);
+  assert.equal(select.runtime.selectedIndex, 1);
+  assert.equal(select.runtime.actionConfigs[2].tap_action.option, 'bar');
   const unchangedOptionTextTools = select.optionTextTools;
 
   select.setState(
@@ -520,8 +520,8 @@ test('select builds and refreshes an omitted option_map from entity attributes',
     {},
   );
 
-  assert.deepEqual(select.config.option_map.map((option) => option.value), ['line', 'dots']);
-  assert.equal(select.selectedOptionIndex, 1);
+  assert.deepEqual(select.runtime.options.map((option) => option.value), ['line', 'dots']);
+  assert.equal(select.runtime.selectedIndex, 1);
   assert.equal(select.optionTextTools.length, 2);
 });
 
@@ -553,8 +553,8 @@ test('select matches a configured entity attribute and rejects invalid option re
     { attribute: 'preset_mode' },
   );
 
-  assert.deepEqual(select.optionDisplayTexts, ['preset_mode eco', 'preset_mode comfort']);
-  assert.equal(select.selectedOptionIndex, 1);
+  assert.deepEqual(select.runtime.optionDisplayTexts, ['preset_mode eco', 'preset_mode comfort']);
+  assert.equal(select.runtime.selectedIndex, 1);
   assert.throws(
     () => ControlSelect.buildOptionActionConfig({
       value: 'heat',

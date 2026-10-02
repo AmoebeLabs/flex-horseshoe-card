@@ -5,18 +5,17 @@ import BaseTool from './base-tool.js';
 import ConfigHelper from './config-helper.js';
 import Merge from './merge.js';
 import TextTool from './text-tool.js';
+import Templates from './templates.js';
 
 /**
  * Shared base for visible controls with an optional TextTool label.
  */
 export default class ControlBase extends BaseTool {
   /**
-   * Stores common control configuration.
-   *
-   * Concrete controls complete their own visualization config before calling
-   * this constructor and create the label after calculating their geometry.
+   * Adds shared visibility, gesture and label defaults at the config boundary.
+   * Concrete source objects retain nested expressions for their owning pass.
    */
-  constructor(config, index, templates, cardId, card) {
+  static completeConfig(config) {
     const DEFAULT_CONTROL_CONFIG = {
       visibility: 'visible',
       unavailable: {
@@ -43,7 +42,10 @@ export default class ControlBase extends BaseTool {
       if (!value || typeof value !== 'object') return;
 
       Object.entries(value).forEach(([property, propertyValue]) => {
-        if (controlHaptics[property] !== undefined && propertyValue.action !== 'none') {
+        if (controlHaptics[property] !== undefined
+          && typeof propertyValue === 'object' && propertyValue !== null
+          && !Templates.isJsTemplate(propertyValue.action)
+          && propertyValue.action !== 'none') {
           value[property] = Merge.mergeDeep(
             { haptic: controlHaptics[property] },
             propertyValue,
@@ -55,7 +57,7 @@ export default class ControlBase extends BaseTool {
     };
 
     addControlHaptics(controlConfig);
-    if (controlConfig.label !== undefined) {
+    if (controlConfig.label !== undefined && !Templates.isJsTemplate(controlConfig.label)) {
       controlConfig.label = Merge.mergeDeep(
         {
           position: 'start',
@@ -64,7 +66,6 @@ export default class ControlBase extends BaseTool {
             x: 0,
             y: 0,
           },
-          entity_index: controlConfig.entity_index,
           tap_action: {
             action: 'none',
           },
@@ -79,13 +80,26 @@ export default class ControlBase extends BaseTool {
         bottom: { 'text-anchor': 'middle', 'dominant-baseline': 'central' },
       };
 
-      controlConfig.label.styles = Merge.mergeDeep(
-        labelAlignmentStyles[controlConfig.label.position],
-        ConfigHelper.toStyleDict(controlConfig.label.styles),
-      );
+      // Whole-value templates keep their source until the owning runtime pass.
+      // Concrete style dictionaries may contain nested templates without losing them.
+      if (!Templates.isJsTemplate(controlConfig.label.position)
+        && !Templates.isJsTemplate(controlConfig.label.styles)) {
+        controlConfig.label.styles = Merge.mergeDeep(
+          labelAlignmentStyles[controlConfig.label.position],
+          ConfigHelper.toStyleDict(controlConfig.label.styles),
+        );
+      }
     }
 
-    super(controlConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false });
+    return controlConfig;
+  }
+
+  /** Captures source and uses one subtype translator for concrete config. */
+  constructor(config, index, templates, cardId, card, translateControlConfig) {
+    const controlConfig = ControlBase.completeConfig(config);
+    super(controlConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false },
+      translateControlConfig ? (value) => ControlBase.completeConfig(translateControlConfig(value)) : undefined);
+    this.translateControlConfig = translateControlConfig;
 
     this.hasControlLabel = controlConfig.label !== undefined;
     this.labelTextTool = undefined;
@@ -94,18 +108,61 @@ export default class ControlBase extends BaseTool {
     this.controlDisconnected = false;
   }
 
-  /** Validates accepted control visibility and refreshes label paint on theme changes. */
+  /** Evaluates parent-owned Control fields before completing current configuration. */
   updateRuntimeConfig() {
-    super.updateRuntimeConfig();
+    let sourceConfig = this.sourceConfig;
+    if (this.translateControlConfig && this.hasJavascript
+      && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
+      // Selectors establish the preset/defaults visible through item. Reuse their
+      // evaluated values in the remaining pass, so each expression runs once.
+      const selectorContext = Merge.mergeDeep(this.translateControlConfig({}, true), sourceConfig);
+      const orientation = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.orientation);
+      const show = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.show);
+      sourceConfig = this.translateControlConfig({ ...sourceConfig, orientation, show }, true);
+    }
+    super.updateRuntimeConfig(sourceConfig, { resolveKeys: true, preserve: ControlBase.isChildConfigPath });
+    this.hasControlLabel = this.config.label !== undefined;
 
     if (!['visible', 'hidden', 'unavailable'].includes(this.config.visibility)) {
       throw Error(`[controls] Invalid visibility '${this.config.visibility}' [visible, hidden, unavailable]`);
     }
 
-    // A theme change refreshes the existing label's paint without rebuilding its geometry.
-    if (this.themeModeChanged && !this.configurationChanged && !this.groupChanged && this.hasControlLabel) {
+    // Retained labels evaluate their own part templates and theme paint. Structural
+    // changes rebuild the label later with its new source and current placement.
+    if (!this.configurationChanged && !this.groupChanged && this.labelTextTool) {
       this.labelTextTool.updateRuntimeConfig();
     }
+  }
+
+  /**
+   * Keeps generated visual source in its own template context. Layout fields
+   * such as padding, margins and icon size belong to the parent Control.
+   *
+   * @param {Array<string|number>} path - Field address in the parent source.
+   * @returns {boolean} Whether this field is evaluated by a generated child.
+   */
+  static isChildConfigPath(path) {
+    const [section, branch, field, item, property] = path;
+    if (section === 'label' && path.length === 2) {
+      return !['position', 'gap', 'offset', 'styles'].includes(branch);
+    }
+    if (section === 'value') return ['state', 'separator_config', 'separator'].includes(branch);
+    if (section === 'values') return field === 'value';
+    if (section === 'option_map') {
+      if (['text_config', 'icon_config', 'icon', 'text'].includes(field)) return true;
+      if (field === 'content' && path.length === 5) return !['margin', 'size'].includes(property);
+    }
+    if (section !== 'content') return false;
+    if (field === 'items' && path.length === 5) return !['id', 'type', 'margin', 'size'].includes(property);
+    if (field === 'icon' && path.length === 4) return item !== 'size';
+    if (field === 'text') return true;
+    if (branch === 'content_text' && path.length === 3) return !['padding', 'gap'].includes(field);
+    if (field === 'value' && path.length === 4) return item !== 'size';
+    if (['minus', 'plus'].includes(field)) {
+      if (item === 'content_text') return true;
+      if (item === 'content_icon' && property === 'icon') return true;
+    }
+    return false;
   }
 
   /**
@@ -149,7 +206,12 @@ export default class ControlBase extends BaseTool {
    * normal TextTool and therefore owns text parts, fitting, wrapping and styles.
    */
   createControlLabelTextTool(controlWidth, controlHeight) {
-    if (!this.hasControlLabel) return;
+    if (!this.hasControlLabel) {
+      // Removing a configured label ends its child lifetime and rendered content.
+      if (this.labelTextTool) this.labelTextTool.disconnected();
+      this.labelTextTool = undefined;
+      return;
+    }
     if (this.labelTextTool) this.labelTextTool.disconnected();
 
     const label = this.config.label;
@@ -180,7 +242,7 @@ export default class ControlBase extends BaseTool {
       {
         id: `${this.id}-label`,
         group: this.config.group,
-        entity_index: label.entity_index,
+        entity_index: this.entity_index,
         xpos,
         yposc,
       },
@@ -205,12 +267,12 @@ export default class ControlBase extends BaseTool {
         };
       }
 
-      return Merge.mergeDeep(part, {
-        styles: Merge.mergeDeep(
-          ConfigHelper.toStyleDict(labelConfig.styles),
-          ConfigHelper.toStyleDict(part.styles),
-        ),
-      });
+      // TextTool evaluates each part in its own context before combining styles.
+      // Keep that source intact and apply the shared label styles first.
+      return {
+        ...part,
+        styles: [labelConfig.styles, part.styles],
+      };
     });
 
     // Styles now live on exactly one SVG level; em values must not compound.
@@ -284,7 +346,7 @@ export default class ControlBase extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    if (this.hasControlLabel) {
+    if (this.labelTextTool) {
       const labelEntityIndex = this.labelTextTool.entity_index;
 
       this.labelTextTool.setState(
@@ -297,13 +359,13 @@ export default class ControlBase extends BaseTool {
   /** Includes the optional label's own text and paint in the parent render decision. */
   hasPresentationChanged(content) {
     const changed = super.hasPresentationChanged(content);
-    const labelChanged = this.hasControlLabel && this.labelTextTool.hasPresentationChanged();
+    const labelChanged = this.labelTextTool !== undefined && this.labelTextTool.hasPresentationChanged();
     return changed || labelChanged;
   }
 
   /** Initializes a literal label or its explicitly configured entity. */
   setStaticState() {
-    if (this.hasControlLabel) {
+    if (this.labelTextTool) {
       this.card.cardTools.setToolEntityState(
         this.labelTextTool,
         this.card.resolvedEntityConfigs,
@@ -314,12 +376,12 @@ export default class ControlBase extends BaseTool {
 
   /** Runs TextTool measurement and overflow lifecycle after rendering. */
   updated() {
-    if (this.hasControlLabel) this.labelTextTool.updated();
+    if (this.labelTextTool) this.labelTextTool.updated();
   }
 
   /** Returns the optional label as an ordinary TextTool template. */
   renderControlLabel() {
-    return this.hasControlLabel ? this.labelTextTool.render() : svg``;
+    return this.labelTextTool ? this.labelTextTool.render() : svg``;
   }
 
   /**
