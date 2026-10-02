@@ -468,6 +468,9 @@ export default class IconTool extends BaseTool {
     defaultIconColor.filter = haStyle.filter;
 
     let configStyle = ConfigHelper.toStyleDict(this.paint?.styles ?? renderItem.styles);
+    // Parent paint already contains the complete child style map. The selected
+    // state-map styles still take precedence before color stops and animation.
+    if (this.paint?.styles) Object.assign(configStyle, ConfigHelper.toStyleDict(smItem?.styles));
     const stateStyle =
       this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
     this.applyColorStops(configStyle, renderItem, ["fill", "color"]);

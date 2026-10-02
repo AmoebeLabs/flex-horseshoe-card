@@ -6,8 +6,10 @@ import BaseTool from '../src/base-tool.js';
 import CardLayout from '../src/card-layout.js';
 import CircleTool from '../src/circle-tool.js';
 import ControlNumber from '../src/control-number.js';
+import ConfigHelper from '../src/config-helper.js';
 import IconTool from '../src/icon-tool.js';
 import LineTool from '../src/line-tool.js';
+import Merge from '../src/merge.js';
 import NameTool from '../src/name-tool.js';
 import PolygonTool from '../src/polygon-tool.js';
 import RectangleTool from '../src/rectangle-tool.js';
@@ -265,7 +267,7 @@ test('BaseTool group scale origin uses geometry while retaining the legacy SVG f
   assert.strictEqual(receivedGeometry, tool.config.svg);
 });
 
-test('BaseTool paint styles replace configured styles, retain animation precedence and clear without requesting updates', () => {
+test('BaseTool uses complete parent-resolved paint styles without mutating configured styles', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = createToolCard();
   card.cardAnimations.styles.rectangles.highlight = { stroke: 'animated' };
@@ -276,6 +278,24 @@ test('BaseTool paint styles replace configured styles, retain animation preceden
   }, 0, templates, 'card', card, 'rectangles');
   const originalConfigStyles = structuredClone(tool.config.styles);
 
+  // Controls resolve their visual state first, then child styles and transition.
+  const parentStyles = Merge.mergeDeep(
+    { fill: 'parent', stroke: 'paint', 'font-size': '20px', opacity: '0.7' },
+    ConfigHelper.toStyleDict(tool.config.styles),
+    { transition: 'fill 250ms ease' },
+  );
+  tool.setPaintStyles(parentStyles);
+  assert.deepEqual(tool.getStyles({ fill: 'base', opacity: 1 }), {
+    fill: 'configured',
+    opacity: '0.7',
+    stroke: 'animated',
+    'font-size': '12px',
+    transition: 'fill 250ms ease',
+  });
+  assert.deepEqual(tool.config.styles, originalConfigStyles);
+
+  // A complete replacement may deliberately omit properties; the child does
+  // not merge its configured styles back into that parent-owned result.
   tool.setPaintStyles({ stroke: 'paint', 'font-size': '20px' });
   assert.deepEqual(tool.getStyles({ fill: 'base', opacity: 1 }), {
     fill: 'base',
@@ -295,6 +315,87 @@ test('BaseTool paint styles replace configured styles, retain animation preceden
   assert.equal(tool.paint.styles, undefined);
   assert.deepEqual(tool.config.styles, originalConfigStyles);
   assert.equal(card.requestUpdates, 0);
+});
+
+test('Icon applies state-map styles after parent paint, then color stops and animation', () => {
+  const templates = { hasJavascriptTemplates: () => false };
+  const card = createToolCard();
+  card.cardAnimations.styles.iconsIcon = {};
+  card.cardAnimations.styles.icons.highlight = { opacity: '0.9', 'stroke-width': '7' };
+  card.resolvedEntityConfigs = [{ colorstops: [] }];
+  card.entities = [];
+  let activeStop;
+  card.cardEntities = { getItemColorStop: () => activeStop };
+  const tool = new IconTool({
+    id: 'painted-icon',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    icon: 'mdi:check',
+    animation_id: 'highlight',
+    show: { item_style: 'colorstop' },
+    colorstop: { fill: true, stroke: true },
+    styles: { fill: '#1565c0', stroke: '#1565c0', 'stroke-width': '1' },
+    state_map: { map: [{
+      state: 'default',
+      styles: { fill: '#d32f2f', color: '#d32f2f', opacity: '0.6', 'stroke-width': '3' },
+    }] },
+  }, 0, templates, 'card', card);
+  tool.updateRuntimeConfig();
+  const originalConfig = structuredClone(tool.config);
+  const originalSource = structuredClone(tool.sourceConfig);
+  const parentStyles = Merge.mergeDeep(
+    { fill: '#43a047', stroke: '#43a047', opacity: '0.4', cursor: 'crosshair' },
+    ConfigHelper.toStyleDict(tool.config.styles),
+    { transition: 'fill 250ms ease' },
+  );
+  const parentSnapshot = structuredClone(parentStyles);
+  let renderedStyles;
+  // Capture the final dictionary at the render boundary. The real Icon render
+  // and BaseTool color-stop/animation composition run; filters/layers stay out.
+  tool.getRenderStyles = (styles) => {
+    renderedStyles = styles;
+    return styles;
+  };
+  tool.renderItemLayers = (content) => content;
+  tool.actionHandler = () => undefined;
+
+  tool.setPaintStyles(parentStyles);
+  tool.render();
+  assert.equal(renderedStyles.fill, '#d32f2f');
+  assert.equal(renderedStyles.color, '#d32f2f');
+  assert.equal(renderedStyles.stroke, '#1565c0');
+  assert.equal(renderedStyles.opacity, '0.9');
+  assert.equal(renderedStyles['stroke-width'], '7');
+  assert.equal(renderedStyles.cursor, 'crosshair');
+  assert.equal(renderedStyles.transition, 'fill 250ms ease');
+
+  activeStop = { color: '#f9a825', styles: { opacity: '0.8', 'stroke-width': '5' } };
+  tool.render();
+  assert.equal(renderedStyles.fill, '#f9a825');
+  assert.equal(renderedStyles.color, '#f9a825');
+  assert.equal(renderedStyles.stroke, '#f9a825');
+  assert.equal(renderedStyles.opacity, '0.9');
+  assert.equal(renderedStyles['stroke-width'], '7');
+
+  // Without a selected map, the complete parent dictionary remains authoritative.
+  activeStop = undefined;
+  tool.runtime.stateMapItem = undefined;
+  tool.render();
+  assert.equal(renderedStyles.fill, '#1565c0');
+  assert.equal(renderedStyles.opacity, '0.9');
+  assert.equal(renderedStyles.cursor, 'crosshair');
+
+  tool.setStaticState();
+  tool.setPaintStyles(undefined);
+  tool.render();
+  assert.equal(renderedStyles.fill, '#d32f2f');
+  assert.equal(renderedStyles.color, '#d32f2f');
+  assert.equal(renderedStyles.cursor, undefined);
+  assert.equal(renderedStyles.transition, undefined);
+  assert.deepEqual(tool.config, originalConfig);
+  assert.deepEqual(tool.sourceConfig, originalSource);
+  assert.deepEqual(parentStyles, parentSnapshot);
 });
 
 test('reapplying identical measured-text paint does not invalidate exact geometry', () => {

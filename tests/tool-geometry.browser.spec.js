@@ -325,7 +325,7 @@ test('measured Name, Area and State drive Rectangle fit alongside legacy TextToo
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('paint font-size updates measured geometry and Rectangle fit without mutating config.styles', async ({ page }) => {
+test('complete parent paint updates measured geometry and Rectangle fit without mutating config.styles', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.tool' }],
@@ -360,7 +360,7 @@ test('paint font-size updates measured geometry and Rectangle fit without mutati
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
     const name = card.cardTools.sections.names[0];
-    name.setPaintStyles({ 'font-size': '2em', fill: '#d32f2f' });
+    name.setPaintStyles({ ...name.config.styles, 'font-size': '2em', fill: '#d32f2f' });
     card.requestUpdate();
   });
   await page.waitForFunction((previous) => {
@@ -396,6 +396,79 @@ test('paint font-size updates measured geometry and Rectangle fit without mutati
   expect(after.computedFontSize).not.toBe('');
   expect(after.computedFill).toBe('rgb(211, 47, 47)');
   expect(after.effectiveFontSize).toBe('2em');
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.toolGeometryFixture.card.remove());
+});
+
+test('Icon state-map styles remain visible over complete parent paint', async ({ page }) => {
+  const errors = await loadToolCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [{ entity: 'sensor.icon' }],
+    layout: {
+      icons: [{
+        id: 'painted-icon',
+        entity_index: 0,
+        xpos: 50,
+        ypos: 50,
+        icon: 'mdi:check',
+        styles: { fill: '#1565c0', color: '#1565c0', 'stroke-width': '1' },
+        state_map: { map: [{
+          state: 'on',
+          styles: { fill: '#d32f2f', color: '#d32f2f', opacity: '0.6' },
+        }] },
+      }],
+    },
+  });
+  await page.waitForFunction(() => window.toolGeometryFixture.card
+    .shadowRoot.querySelector('.icon-style-animation'));
+
+  const originalStyles = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const icon = card.cardTools.sections.icons[0];
+    const configured = structuredClone(icon.config.styles);
+    // Reproduce the Control order: parent visual state, authored child styles,
+    // then transition. Publish that whole result without changing child config.
+    icon.setPaintStyles({
+      fill: '#43a047',
+      color: '#43a047',
+      cursor: 'crosshair',
+      ...icon.config.styles,
+      transition: 'fill 250ms ease',
+    });
+    card.requestUpdate();
+    return configured;
+  });
+  await page.waitForFunction(() => {
+    const element = window.toolGeometryFixture.card.shadowRoot
+      .querySelector('.icon-style-animation');
+    return element.style.cursor === 'crosshair';
+  });
+
+  const painted = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const styles = getComputedStyle(card.shadowRoot.querySelector('.icon-style-animation'));
+    return { fill: styles.fill, color: styles.color, opacity: styles.opacity,
+      configured: card.cardTools.sections.icons[0].config.styles };
+  });
+  expect(painted.fill).toBe('rgb(211, 47, 47)');
+  expect(painted.color).toBe('rgb(211, 47, 47)');
+  expect(painted.opacity).toBe('0.6');
+  expect(painted.configured).toEqual(originalStyles);
+
+  await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    card.cardTools.sections.icons[0].setPaintStyles(undefined);
+    card.requestUpdate();
+  });
+  await page.waitForFunction(() => window.toolGeometryFixture.card.shadowRoot
+    .querySelector('.icon-style-animation').style.cursor === '');
+  const cleared = await page.evaluate(() => {
+    const card = window.toolGeometryFixture.card;
+    const styles = getComputedStyle(card.shadowRoot.querySelector('.icon-style-animation'));
+    return { fill: styles.fill, configured: card.cardTools.sections.icons[0].config.styles };
+  });
+  expect(cleared.fill).toBe('rgb(211, 47, 47)');
+  expect(cleared.configured).toEqual(originalStyles);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
