@@ -52,13 +52,14 @@ export default class BaseTool {
     // Keep the compiled source independent of geometry and paint added to the active config.
     this.sourceConfig = structuredClone(config);
     this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
-    // The supplied function has no subclass instance to inspect. Initial config
-    // and later JS results therefore use the same rules without constructor dispatch.
+    // Static config can be translated immediately. Dynamic source stays intact
+    // until the normal runtime pass evaluates it before translation and publication.
     this.translateConfig = translateConfig;
-    this.config = translateConfig ? translateConfig(config) : config;
+    this.config = translateConfig && !this.hasJavascript ? translateConfig(config) : config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.renderIndex = (DEFAULT_RENDER_INDEX[zposSection] ?? 0) + index;
     this.entity_index = config.entity_index ?? defaultEntityIndex;
+    this.defaultEntityIndex = defaultEntityIndex;
     this.colorStopPaintDefaults = colorStopPaintDefaults;
 
     this.runtime = { entity: undefined, entityConfig: undefined };
@@ -128,6 +129,9 @@ export default class BaseTool {
     // Multipart tools finish their own evaluation contexts and child bindings
     // here, so state processing always sees the complete current configuration.
     this.config = this.completeRuntimeConfig(newConfig);
+    // Bind from the published config before state assignment. Multipart Text
+    // reapplies its evaluated part binding after updating each inline source tool.
+    if (this.configurationChanged) this.entity_index = this.config.entity_index ?? this.defaultEntityIndex;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.activeConfigInitialized = true;
   }
