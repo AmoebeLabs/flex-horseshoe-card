@@ -473,7 +473,9 @@ export default class IconTool extends BaseTool {
     if (this.paint?.styles) Object.assign(configStyle, ConfigHelper.toStyleDict(smItem?.styles));
     const stateStyle =
       this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
-    this.applyColorStops(configStyle, renderItem, ["fill", "color"]);
+    // A selected state map creates a render item; its palette still belongs to
+    // this icon's paint owner before the normal entity-palette fallback.
+    this.applyColorStops(configStyle, renderItem, ["fill", "color"], this.paint?.colorStops);
 
     configStyle = this.getRenderStyles(
       {

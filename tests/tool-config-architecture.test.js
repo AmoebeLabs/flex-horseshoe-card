@@ -3,8 +3,10 @@ import test from 'node:test';
 import ArcTool from '../src/arc-tool.js';
 import AreaTool from '../src/area-tool.js';
 import BaseTool from '../src/base-tool.js';
+import CardEntities from '../src/card-entities.js';
 import CardLayout from '../src/card-layout.js';
 import CircleTool from '../src/circle-tool.js';
+import ColorStops from '../src/color-stops.js';
 import ControlNumber from '../src/control-number.js';
 import ConfigHelper from '../src/config-helper.js';
 import IconTool from '../src/icon-tool.js';
@@ -315,6 +317,44 @@ test('BaseTool uses complete parent-resolved paint styles without mutating confi
   assert.equal(tool.paint.styles, undefined);
   assert.deepEqual(tool.config.styles, originalConfigStyles);
   assert.equal(card.requestUpdates, 0);
+});
+
+test('Icon state-map rendering retains its own palette before entity fallback', () => {
+  const ownStops = { colors: [{ value: 0, color: '#1976d2' }, { value: 100, color: '#1976d2' }] };
+  const entityStops = { colors: [{ value: 0, color: '#43a047' }, { value: 100, color: '#43a047' }] };
+  const cases = [
+    { own: ownStops, entity: entityStops, color: '#1976d2' },
+    { own: ownStops, entity: undefined, color: '#1976d2' },
+    { own: undefined, entity: entityStops, color: '#43a047' },
+  ];
+  for (const paletteCase of cases) {
+    const card = createToolCard();
+    card.cardAnimations.styles.iconsIcon = {};
+    card.config.entities = [{ entity: 'sensor.test' }];
+    card.entities = [{ entity_id: 'sensor.test', state: '50', attributes: {} }];
+    card.resolvedEntityConfigs = card.config.entities;
+    card.cardEntities = new CardEntities({}, card.cardTheme);
+    card.cardEntities.paint.colorStops[0] = paletteCase.entity === undefined
+      ? undefined : ColorStops.normalize(paletteCase.entity, 'fixed');
+    const tool = new IconTool({
+      id: 'palette-icon', entity_index: 0, xpos: 50, ypos: 50,
+      icon: 'mdi:check', color_stops: paletteCase.own,
+      show: { item_style: 'colorstop' },
+      state_map: { map: [{ state: '50', styles: { opacity: '0.6' } }] },
+    }, 0, { hasJavascriptTemplates: () => false }, 'card', card);
+    tool.updateRuntimeConfig();
+    tool.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+    assert.equal(tool.runtime.stateMapItem.state, '50');
+    let renderedStyles;
+    // Observe the actual Icon and BaseTool composition with conflicting palettes.
+    tool.getRenderStyles = (styles) => { renderedStyles = styles; return styles; };
+    tool.renderItemLayers = (content) => content;
+    tool.actionHandler = () => undefined;
+    tool.render();
+    assert.equal(renderedStyles.fill, paletteCase.color);
+    assert.equal(renderedStyles.color, paletteCase.color);
+    assert.equal(renderedStyles.opacity, '0.6');
+  }
 });
 
 test('Icon applies state-map styles after parent paint, then color stops and animation', () => {
