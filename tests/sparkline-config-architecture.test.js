@@ -441,7 +441,7 @@ for (const javascriptSeries of [false, true]) {
 }
 
 test('CardEntities publishes primary and named statistics from whole-value JavaScript series without evaluating the source again', (context) => {
-  const expression = '[[[ constants.seriesEvaluations += 1; return [{ id: "comparison_room", entity_index: 1, name: entity.entity_id }, { id: "parent_room", entity_index: 0 }]; ]]]';
+  const expression = '[[[ constants.seriesEvaluations += 1; return [{ id: "comparison_room", entity_index: 1, name: entity.entity_id }, { id: "parent_room", entity_index: 0 }, { id: "parent_room_bin", entity_index: 0 }]; ]]]';
   const source = makeSparklineSource(expression);
   source.period = { type: 'real_time' };
   const fixture = createSparklineFixture(source);
@@ -463,6 +463,7 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
     { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_bin_duration' },
     { entity: 'fhs_sparkline.canonical-sparkline_bin_duration' },
     { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_duration' },
+    { entity: 'fhs_sparkline.canonical-sparkline_parent_room_bin_duration' },
   ];
   cardConfig.layout = { sparklines: [source] };
   const cardEntities = new CardEntities(templates, card.cardTheme);
@@ -493,11 +494,13 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
   cardTools.setSparklineEntityStates(resolvedConfigs, entities);
   const changedIndexes = cardEntities.updateSparklineEntities(resolvedConfigs, entities, [tool]);
 
-  assert.deepEqual(changedIndexes, [2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(changedIndexes, [2, 3, 4, 5, 6, 7, 8, 9]);
   assert.deepEqual(entities.slice(2, 6).map((entity) => entity.state), ['22.00', '22.00', '22', '11']);
-  assert.deepEqual(entities.slice(6).map((entity) => entity.state), ['unavailable', 'unavailable', 'unavailable']);
-  assert.deepEqual(resolvedConfigs.slice(2).map((entry) => entry.source_entity_index), [1, 1, 1, 0, 1, 1, 1]);
-  assert.deepEqual(resolvedConfigs.slice(2).map((entry) => entry.decimals), [2, 2, 2, 1, 2, 2, 2]);
+  assert.deepEqual(entities.slice(6).map((entity) => entity.state), ['unavailable', 'unavailable', 'unavailable', 'unavailable']);
+  assert.deepEqual(resolvedConfigs.slice(2).map((entry) => entry.source_entity_index), [1, 1, 1, 0, 1, 1, 1, 0]);
+  assert.deepEqual(resolvedConfigs.slice(2).map((entry) => entry.decimals), [2, 2, 2, 1, 2, 2, 2, 1]);
+  assert.equal(resolvedConfigs[9].sparkline_series_id, 'parent_room_bin');
+  assert.equal(resolvedConfigs[9].sparkline_entity_type, 'duration');
   assert.deepEqual(resolvedConfigs.slice(2, 6).map((entry) => entry.color), ['#ef6c00', '#ef6c00', '#ef6c00', '#1565c0']);
   resolvedConfigs.slice(2).forEach((entry) => {
     assert.equal(entry.attribute, undefined);
@@ -507,7 +510,7 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
     'sensor.comparison', 'sensor.comparison', 'sensor.comparison', 'sensor.parent',
   ]);
   assert.deepEqual(entities.slice(2, 6).map((entity) => entity.attributes.unit_of_measurement), ['C', 'C', 'C', 'W']);
-  assert.deepEqual(entities.slice(6).map((entity) => entity.attributes.unit_of_measurement), ['h', 'h', 'h']);
+  assert.deepEqual(entities.slice(6).map((entity) => entity.attributes.unit_of_measurement), ['h', 'h', 'h', 'h']);
   assert.deepEqual(entities.slice(2, 6).map((entity) => entity.attributes.device_class), [
     'temperature', 'temperature', 'temperature', 'power',
   ]);

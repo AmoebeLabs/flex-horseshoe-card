@@ -156,12 +156,27 @@ export default class CardEntities {
       // their published outputs until their own source/result changes.
       if (!sparklineGraphTools.some((tool) => tool.config.id === entityConfig.sparkline_id)) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
+      const labelMap = {
+        min: 'min', avg: 'mean', max: 'max', min_time: 'min', max_time: 'max',
+        duration: 'Duration', bin_duration: 'Bin duration', aggregate_func: 'Aggregate function',
+      };
       if (Templates.isJsTemplate(graphTool.sourceConfig.series)) {
-        // Only the producer knows the evaluated series and entity binding. Use
-        // that published entry before presenting statistics or inherited units.
-        const seriesConfig = entityConfig.sparkline_series_id === undefined
-          ? graphTool.config.series[0]
-          : graphTool.config.series.find((entry) => entry.id === entityConfig.sparkline_series_id);
+        // Match complete published IDs, just as static arrays do above. Series
+        // IDs may contain metric-like suffixes such as _bin or _min themselves.
+        let seriesConfig;
+        if (entityConfig.sparkline_series_id === undefined) {
+          seriesConfig = graphTool.config.series[0];
+        } else {
+          graphTool.config.series.forEach((entry) => {
+            Object.keys(labelMap).forEach((type) => {
+              if (entityConfig.entity === `fhs_sparkline.${graphTool.config.id}_${entry.id}_${type}`) {
+                seriesConfig = entry;
+                entityConfig.sparkline_series_id = entry.id;
+                entityConfig.sparkline_entity_type = type;
+              }
+            });
+          });
+        }
         const { attribute: _attribute, name: _name, ...sourceEntityConfig } = resolvedEntityConfigs[seriesConfig.entity_index];
         entityConfig = { ...sourceEntityConfig, ...entityConfig, source_entity_index: seriesConfig.entity_index };
         resolvedEntityConfigs[entityIndex] = entityConfig;
@@ -170,10 +185,6 @@ export default class CardEntities {
       const sourceEntity = entities[entityConfig.source_entity_index];
       const sourceConfig = resolvedEntityConfigs[entityConfig.source_entity_index];
       const entityType = entityConfig.sparkline_entity_type;
-      const labelMap = {
-        min: 'min', avg: 'mean', max: 'max', min_time: 'min', max_time: 'max',
-        duration: 'Duration', bin_duration: 'Bin duration', aggregate_func: 'Aggregate function',
-      };
       let state;
       let unitOfMeasurement = sourceEntity.attributes.unit_of_measurement;
       let deviceClass = sourceEntity.attributes.device_class;
