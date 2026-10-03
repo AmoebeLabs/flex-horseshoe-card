@@ -106,7 +106,7 @@ test('theme and palette changes repaint retained horseshoe paint without history
   const retainedBeforeChanges = await page.evaluate(() => {
     const fixture = window.horseshoeCache;
     const gauges = fixture.card.cardTools.getBySection('horseshoes');
-    fixture.retainedStateGeometry = gauges.map((gauge) => gauge.pathGeometry.activeMeasurement);
+    fixture.retainedStateGeometry = gauges.map((gauge) => gauge.geometry.pathGeometry.activeMeasurement);
     return {
       historyRequests: fixture.historyRequests.length,
     };
@@ -135,7 +135,7 @@ test('theme and palette changes repaint retained horseshoe paint without history
     const fixture = window.horseshoeCache;
     const gauges = fixture.card.cardTools.getBySection('horseshoes');
     return {
-      geometryRetained: gauges.every((gauge, index) => gauge.pathGeometry.activeMeasurement === fixture.retainedStateGeometry[index]),
+      geometryRetained: gauges.every((gauge, index) => gauge.geometry.pathGeometry.activeMeasurement === fixture.retainedStateGeometry[index]),
       animationNumber: gauges[0].stateAnimator.animationNumber,
       animationTarget: gauges[0].stateAnimator.toProgress,
       animating: gauges[0].stateAnimator.animating,
@@ -167,7 +167,7 @@ test('theme and palette changes repaint retained horseshoe paint without history
       return calculateGeometry(...args);
     };
     gauges.forEach((gauge) => {
-      const geometry = gauge.pathGeometry;
+      const geometry = gauge.geometry.pathGeometry;
       const getGradientGeometry = geometry.getGradientGeometry.bind(geometry);
       geometry.getGradientGeometry = (...args) => {
         fixture.paletteOnlyMetrics.pathGradientGeometry += 1;
@@ -205,7 +205,7 @@ test('theme and palette changes repaint retained horseshoe paint without history
     const fixture = window.horseshoeCache;
     const gauge = fixture.card.cardTools.getBySection('horseshoes')[0];
     return {
-      geometryRetained: fixture.card.cardTools.getBySection('horseshoes').every((item, index) => item.pathGeometry.activeMeasurement === fixture.retainedStateGeometry[index]),
+      geometryRetained: fixture.card.cardTools.getBySection('horseshoes').every((item, index) => item.geometry.pathGeometry.activeMeasurement === fixture.retainedStateGeometry[index]),
       animationNumber: gauge.stateAnimator.animationNumber,
       animating: gauge.stateAnimator.animating,
       historyRequests: fixture.historyRequests.length,
@@ -435,7 +435,7 @@ test('view theme observer repaints retained horseshoe colors from inherited CSS 
   await expect.poll(gradientColor).toBe('rgb(22, 93, 145)');
   await page.evaluate(() => {
     const fixture = window.horseshoeCache;
-    fixture.retainedViewGeometry = fixture.card.cardTools.getBySection('horseshoes')[0].stateGradient.geometry;
+    fixture.retainedViewGeometry = fixture.card.cardTools.getBySection('horseshoes')[0].paint.stateGradient.geometry;
     fixture.view.theme = 'fhs-view-night';
     fixture.view.style.setProperty('--fhs-view-start', '#9b3e27');
     fixture.view.style.setProperty('--fhs-view-middle', '#b56a32');
@@ -448,7 +448,7 @@ test('view theme observer repaints retained horseshoe colors from inherited CSS 
     const gauge = fixture.card.cardTools.getBySection('horseshoes')[0];
     return {
       activeViewTheme: fixture.card.cardTheme.colorContext.viewThemeName,
-      geometryRetained: gauge.stateGradient.geometry === fixture.retainedViewGeometry,
+      geometryRetained: gauge.paint.stateGradient.geometry === fixture.retainedViewGeometry,
       inheritedColor: getComputedStyle(fixture.card).getPropertyValue('--fhs-view-start').trim(),
       observerConnected: fixture.card.cardTheme.connectedToCard,
     };

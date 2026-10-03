@@ -298,8 +298,8 @@ test('static and whole-value JavaScript series converge on canonical runtime ent
   const historyOwner = tool.sparklineHistory;
   const graph = tool.primaryGraph;
   const canonicalItemConfig = tool.sparklineSeries.primaryItem.config;
-  const inheritedColorStops = tool.config.sparkline.colorstops;
-  assert.strictEqual(tool.config.series[0].sparkline.colorstops, inheritedColorStops);
+  const inheritedColorStops = tool.paint.colorStops;
+  assert.deepEqual(tool.sparklineSeries.primaryItem.paint.colorStops, inheritedColorStops);
   tool.setState(entities[0], entityConfigs[0]);
   assert.strictEqual(tool.config, publishedConfig);
 
@@ -315,8 +315,8 @@ test('static and whole-value JavaScript series converge on canonical runtime ent
   card.evaluateJavascriptTemplates = false;
   card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
-  assert.strictEqual(tool.config.sparkline.colorstops, inheritedColorStops);
-  assert.strictEqual(tool.config.series[0].sparkline.colorstops, inheritedColorStops);
+  assert.deepEqual(tool.paint.colorStops, inheritedColorStops);
+  assert.deepEqual(tool.sparklineSeries.primaryItem.paint.colorStops, tool.paint.colorStops);
   assert.strictEqual(tool.sparklineSeries.primaryItem.config, canonicalItemConfig);
 });
 
@@ -352,13 +352,14 @@ for (const javascriptSeries of [false, true]) {
     const canonicalEntries = [...tool.config.series];
     const runtimeItems = [...tool.sparklineSeries.items];
     const graphs = runtimeItems.map((item) => item.graph);
-    const parentColorStops = tool.config.sparkline.colorstops;
+    const parentColorStops = tool.paint.colorStops;
     assert.equal(cardConfig.constants.seriesEvaluations, javascriptSeries ? 1 : 0);
     rawSeries.forEach((rawEntry, index) => {
       assert.deepEqual(
-        tool.config.series[index].sparkline.colorstops,
+        runtimeItems[index].paint.colorStops,
         Merge.mergeDeep(ColorStops.normalize(source.sparkline.color_stops, 'light'), rawEntry.sparkline.colorstops),
       );
+      assert.deepEqual(runtimeItems[index].paint.colorStopsOverride, rawEntry.sparkline.colorstops);
       assert.strictEqual(runtimeItems[index].config, canonicalEntries[index]);
     });
 
@@ -370,15 +371,16 @@ for (const javascriptSeries of [false, true]) {
       tool.updateRuntimeConfig();
 
       const normalizedParent = ColorStops.normalize(source.sparkline.color_stops, mode);
-      assert.deepEqual(tool.config.sparkline.colorstops, normalizedParent);
-      assert.strictEqual(tool.config.sparkline.colorstops, parentColorStops);
+      assert.deepEqual(tool.paint.colorStops, normalizedParent);
+      assert.notStrictEqual(tool.paint.colorStops, parentColorStops);
       assert.strictEqual(tool.config, publishedConfig);
       rawSeries.forEach((rawEntry, index) => {
         const item = tool.sparklineSeries.items[index];
         assert.deepEqual(
-          tool.config.series[index].sparkline.colorstops,
+          item.paint.colorStops,
           Merge.mergeDeep(normalizedParent, rawEntry.sparkline.colorstops),
         );
+        assert.deepEqual(item.paint.colorStopsOverride, rawEntry.sparkline.colorstops);
         assert.strictEqual(tool.config.series[index], canonicalEntries[index]);
         assert.strictEqual(item, runtimeItems[index]);
         assert.strictEqual(item.config, canonicalEntries[index]);
@@ -408,9 +410,10 @@ for (const javascriptSeries of [false, true]) {
       assert.equal(cardConfig.constants.seriesEvaluations, 2);
       changedSeries.forEach((rawEntry, index) => {
         assert.deepEqual(
-          changedEntries[index].sparkline.colorstops,
+          runtimeItems[index].paint.colorStops,
           Merge.mergeDeep(ColorStops.normalize(source.sparkline.color_stops, 'light'), rawEntry.sparkline.colorstops),
         );
+        assert.deepEqual(runtimeItems[index].paint.colorStopsOverride, rawEntry.sparkline.colorstops);
         assert.strictEqual(tool.sparklineSeries.items[index], runtimeItems[index]);
         assert.strictEqual(runtimeItems[index].config, changedEntries[index]);
       });
@@ -424,16 +427,17 @@ for (const javascriptSeries of [false, true]) {
         changedSeries.forEach((rawEntry, index) => {
           const item = tool.sparklineSeries.items[index];
           assert.deepEqual(
-            item.config.sparkline.colorstops,
+            item.paint.colorStops,
             Merge.mergeDeep(normalizedParent, rawEntry.sparkline.colorstops),
           );
+          assert.deepEqual(item.paint.colorStopsOverride, rawEntry.sparkline.colorstops);
           assert.strictEqual(tool.config, changedConfig);
           assert.strictEqual(item, runtimeItems[index]);
           assert.strictEqual(item.config, changedEntries[index]);
           assert.strictEqual(item.config, tool.config.series[index]);
           assert.strictEqual(item.graph, graphs[index]);
         });
-        assert.equal(Object.hasOwn(tool.config.series[0].sparkline.colorstops, 'gap'), false);
+        assert.equal(Object.hasOwn(tool.sparklineSeries.items[0].paint.colorStops, 'gap'), false);
         assert.equal(cardConfig.constants.seriesEvaluations, 2);
       }
     }

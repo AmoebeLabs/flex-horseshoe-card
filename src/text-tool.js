@@ -211,9 +211,6 @@ export default class TextTool extends BaseTool {
           ? this.templates.getJsTemplateOrValue(partContext, partContext, { resolveKeys: true })
           : partContext;
 
-        if (activePart.color_stops) {
-          activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
-        }
         if (activePart.color_stops
           || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
           this.normalizeLayoutItemColorStopMode(activePart);
@@ -277,10 +274,14 @@ export default class TextTool extends BaseTool {
         activePart.value = this.card._hass.localize(activePart.localize_tag);
       }
 
-      if (activePart.color_stops) {
-        activePart.colorstops = ColorStops.normalize(activePart.color_stops, this.card.cardTheme.getActiveColorStopMode());
+      const partColorStops = activePart.color_stops;
+      if (partColorStops !== undefined) {
+        activePart.paint = {
+          colorStops: ColorStops.normalize(partColorStops, this.card.cardTheme.getActiveColorStopMode()),
+        };
+        delete activePart.color_stops;
       }
-      if (activePart.color_stops
+      if (partColorStops !== undefined
         || ['colorstop', 'colorstopinterpolated'].includes(activePart.show?.item_style)) {
         this.normalizeLayoutItemColorStopMode(activePart);
       }
@@ -298,7 +299,7 @@ export default class TextTool extends BaseTool {
             ...sourcePart,
             entity_index: sourceTool.entity_index,
             animation_id: activePart.animation_id,
-            colorstops: activePart.colorstops,
+            paint: activePart.paint,
             show: activePart.show,
             colorstop: activePart.colorstop,
             colorstopinterpolated: activePart.colorstopinterpolated,
@@ -983,7 +984,7 @@ export default class TextTool extends BaseTool {
       const partStyles = ConfigHelper.toStyleDict(renderPart.styles);
       const animationStyles = ConfigHelper.toStyleDict(this.card.cardAnimations.styles.texts[renderPart.animation_id] ?? {});
 
-      this.applyColorStops(partStyles, renderPart);
+      this.applyColorStops(partStyles, renderPart, ['fill'], renderPart.paint?.colorStops);
       const styles = { ...partStyles, ...animationStyles };
 
       return {

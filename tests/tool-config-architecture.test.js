@@ -322,10 +322,10 @@ test('Icon applies state-map styles after parent paint, then color stops and ani
   const card = createToolCard();
   card.cardAnimations.styles.iconsIcon = {};
   card.cardAnimations.styles.icons.highlight = { opacity: '0.9', 'stroke-width': '7' };
-  card.resolvedEntityConfigs = [{ colorstops: [] }];
+  card.resolvedEntityConfigs = [{}];
   card.entities = [];
   let activeStop;
-  card.cardEntities = { getItemColorStop: () => activeStop };
+  card.cardEntities = { paint: { colorStops: [[]] }, getItemColorStop: () => activeStop };
   const tool = new IconTool({
     id: 'painted-icon',
     entity_index: 0,

@@ -76,7 +76,7 @@ export default class BaseTool {
    * Updates the runtime configuration after main has published the current
    * Home Assistant template context and before entity data is assigned.
    */
-  updateRuntimeConfig(sourceConfig = this.sourceConfig, templateOptions = { resolveKeys: true }) {
+  updateRuntimeConfig(sourceConfig = this.sourceConfig, templateOptions = { resolveKeys: true }, templateContext = sourceConfig) {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configurationChanged = !this.activeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
@@ -87,14 +87,16 @@ export default class BaseTool {
     // Static tools retain their active config. JavaScript-backed tools evaluate
     // a new local config during the same hass updates as before.
     let newConfig = this.config;
+    let evaluatedSourceConfig = sourceConfig;
     if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      const evaluatedConfig = this.templates.getJsTemplateOrValue(sourceConfig, sourceConfig, templateOptions);
+      const evaluatedConfig = this.templates.getJsTemplateOrValue(templateContext, sourceConfig, templateOptions);
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
 
       // Keep the current active object when JavaScript produced the same config. Tool-specific
       // normalization and geometry use configChanged during the remaining runtime-config phase.
       if (evaluatedConfigSignature !== this.activeConfigSignature) {
         newConfig = evaluatedConfig;
+        evaluatedSourceConfig = evaluatedConfig;
         this.activeConfigSignature = evaluatedConfigSignature;
         this.configurationChanged = true;
         this.configChanged = true;
@@ -107,9 +109,26 @@ export default class BaseTool {
       newConfig = this.translateConfig(newConfig);
     }
 
-    // JavaScript may return the public color_stops shape; materialize it before publishing the active item.
-    if ((this.configurationChanged || this.themeModeChanged) && newConfig.color_stops) {
-      newConfig.colorstops = ColorStops.normalize(newConfig.color_stops, this.card.cardTheme.getActiveColorStopMode());
+    // Keep the authored definitions in config while publishing only their active mode to paint.
+    if (this.configurationChanged || this.themeModeChanged) {
+      let colorStopsDefinition = newConfig.color_stops;
+      const hasSparklinePalette = newConfig.sparkline !== undefined;
+
+      if (newConfig.sparkline?.color_stops !== undefined) {
+        colorStopsDefinition = newConfig.sparkline.color_stops;
+      } else if (newConfig.sparkline?.colorstops !== undefined) {
+        colorStopsDefinition = newConfig.sparkline.colorstops;
+      } else if (this.animationSection === 'horseshoes' && colorStopsDefinition === undefined) {
+        colorStopsDefinition = newConfig.colorstops;
+      }
+
+      if (colorStopsDefinition !== undefined || hasSparklinePalette || this.animationSection === 'horseshoes') {
+        this.paint ??= {};
+        this.paint.colorStops = ColorStops.normalize(colorStopsDefinition, this.card.cardTheme.getActiveColorStopMode());
+      } else if (this.configurationChanged && this.paint?.colorStops !== undefined) {
+        delete this.paint.colorStops;
+        if (Object.keys(this.paint).length === 0) delete this.paint;
+      }
     }
 
     // Entity-level color stops remain passive until the layout item selects a color-stop mode.
@@ -119,22 +138,9 @@ export default class BaseTool {
       this.normalizeLayoutItemColorStopMode(newConfig);
     }
 
-    // Sparkline graph options keep their public color_stops inside the nested sparkline block.
-    if ((this.configurationChanged || this.themeModeChanged) && newConfig.sparkline?.color_stops) {
-      const colorStops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
-      // Canonical Sparkline entries reference inherited legacy paint directly.
-      // Keep that reference stable until the shared Plan-19 paint-owner cutover.
-      if (newConfig.sparkline.colorstops === undefined) {
-        newConfig.sparkline.colorstops = colorStops;
-      } else {
-        Object.keys(newConfig.sparkline.colorstops).forEach((key) => delete newConfig.sparkline.colorstops[key]);
-        Object.assign(newConfig.sparkline.colorstops, colorStops);
-      }
-    }
-
     // Multipart tools finish their own evaluation contexts and child bindings
     // here, so state processing always sees the complete current configuration.
-    this.config = this.completeRuntimeConfig(newConfig);
+    this.config = this.completeRuntimeConfig(newConfig, this.configurationChanged ? evaluatedSourceConfig : undefined);
     // Bind from the published config before state assignment. Multipart Text
     // reapplies its evaluated part binding after updating each inline source tool.
     if (this.configurationChanged) this.entity_index = this.config.entity_index ?? this.defaultEntityIndex;
@@ -147,9 +153,10 @@ export default class BaseTool {
    * Constructors use the explicit pure translator instead of this runtime hook.
    *
    * @param {object} newConfig - Evaluated and translated configuration.
+   * @param {object|undefined} evaluatedSourceConfig - Local pre-translation source published with this config, or undefined when config is unchanged.
    * @returns {object} Complete current configuration.
    */
-  completeRuntimeConfig(newConfig) {
+  completeRuntimeConfig(newConfig, evaluatedSourceConfig) {
     return newConfig;
   }
 
@@ -347,10 +354,13 @@ export default class BaseTool {
    * @param {object} item - Runtime item containing the normalized mode dictionaries.
    * @param {Array<string>} fillProperties - Renderer properties representing logical fill.
    */
-  applyColorStops(styles, item = this.config, fillProperties = ['fill']) {
+  applyColorStops(styles, item = this.config, fillProperties = ['fill'], explicitColorStops) {
     if (!['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(item.show?.item_style)) return;
 
-    const colorStops = item.colorstops ?? this.card.resolvedEntityConfigs[item.entity_index].colorstops;
+    // Multipart items use their explicit palette or entity fallback; the outer
+    // Text palette is not an implicit palette for an independently bound part.
+    const configuredColorStops = explicitColorStops ?? (item === this.config ? this.paint?.colorStops : undefined);
+    const colorStops = configuredColorStops ?? this.card.cardEntities.paint.colorStops[item.entity_index];
     const activeStop = this.card.cardEntities.getItemColorStop(item, colorStops, this.card.config, this.card.entities);
 
     if (activeStop) {

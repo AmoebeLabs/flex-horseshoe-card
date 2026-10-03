@@ -120,6 +120,10 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
   const previousConsoleWarn = console.warn;
   const warnings = [];
   let dayNightMode = 'band';
+  let gradeStops = [
+    { value: 0, color: '#000000' },
+    { value: 100, color: '#ffffff' },
+  ];
   globalThis.window = {
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
@@ -136,6 +140,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
         evaluated.period.type = 'calendar';
         evaluated.period.calendar.duration.hour = 6;
         evaluated.sparkline.day_night.mode = dayNightMode;
+        evaluated.sparkline.color_stops.colors = structuredClone(gradeStops);
         return evaluated;
       },
     };
@@ -180,6 +185,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
       },
       sparkline: {
         show: { chart_type: 'line' },
+        color_stops: { colors: [] },
       },
     };
 
@@ -202,12 +208,12 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
     assert.equal(tool.primaryGraph, activeGraph);
     assert.equal(warnings.length, 1);
 
-    card.evaluateJavascriptTemplates = false;
-    card.cardTheme.modeChanged = true;
-    tool.config.sparkline.colorstops.colors = [
+    gradeStops = [
       { value: -10, color: '#1565c0' },
       { value: 0, color: '#d32f2f' },
     ];
+    card.evaluateJavascriptTemplates = true;
+    card.cardTheme.modeChanged = false;
     tool.updateRuntimeConfig();
 
     assert.equal(tool.geometry.gradeRanks[0].rangeMax[0], 0);
@@ -639,7 +645,7 @@ test('area chart omits its line layers when show.line is false', () => {
         colorstops: { colors: [] },
       },
     },
-    sparklineSeries: { primaryItem: { entity: { state: '1' }, entityConfig: {}, graph: { coords: [[0, 0, 1]] } } },
+    sparklineSeries: { primaryItem: { entity: { state: '1' }, entityConfig: {}, paint: { colorStops: { scales: {}, colors: [] } }, graph: { coords: [[0, 0, 1]] } } },
     getLineStyles: () => ({
       stroke: 'red',
       'stroke-width': 1,
@@ -675,6 +681,10 @@ test('area chart omits its line layers when show.line is false', () => {
 
 test('bar fade reverses at zero for positive and negative values', () => {
   const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
+  const primaryItem = {
+    paint: { colorStops: { scales: {}, colors: [] } },
+    graph: { width: 100, height: 50 },
+  };
   Object.assign(tool, {
     cardId: 'test-card',
     index: 3,
@@ -690,10 +700,8 @@ test('bar fade reverses at zero for positive and negative values', () => {
       },
     },
     sparklineSeries: {
-      items: [],
-      primaryItem: {
-        graph: { width: 100, height: 50 },
-      },
+      items: [primaryItem],
+      primaryItem,
     },
     computeColor: (value) => (value >= 0 ? 'red' : 'blue'),
     getRenderStyles: (styles) => styles,
@@ -724,6 +732,7 @@ test('area fade uses the fixed color belonging to each series', () => {
     entity: { state: '20' },
     entityConfig: {},
     graph: { coords: [[0, 0, 20]], drawArea: { width: 80, height: 40 } },
+    paint: { colorStops: { scales: {}, colors: [] } },
     config: {
       sparkline: {
         show: { chart_type: 'area', item_style: 'auto', fill: 'fade' },
@@ -749,21 +758,15 @@ test('graph paint selection preserves fixed styles and selects color stops from 
   const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   tool.card = { cardTheme: { colorContext: { cacheReady: false } } };
   const config = {
-    sparkline: {
-      colorstops: {
-        colors: [
-          { value: 0, color: '#000000' },
-          { value: 100, color: '#ffffff' },
-        ],
-      },
-    },
+    sparkline: {},
   };
+  const colorStops = { scales: {}, colors: [{ value: 0, color: '#000000' }, { value: 100, color: '#ffffff' }] };
 
-  assert.equal(tool.getConfiguredSparklinePaint(config, 'auto', 50, 'red', 'gradient', 'automatic'), 'automatic');
-  assert.equal(tool.getConfiguredSparklinePaint(config, 'fixed', 50, 'red', 'gradient', 'automatic'), 'red');
-  assert.equal(tool.getConfiguredSparklinePaint(config, 'colorstop', 50, 'red', 'gradient', 'automatic'), '#000000');
-  assert.notEqual(tool.getConfiguredSparklinePaint(config, 'colorstopinterpolated', 50, 'red', 'gradient', 'automatic'), '#000000');
-  assert.equal(tool.getConfiguredSparklinePaint(config, 'colorstopgradient', 50, 'red', 'gradient', 'automatic'), 'gradient');
+  assert.equal(tool.getConfiguredSparklinePaint(config, colorStops, 'auto', 50, 'red', 'gradient', 'automatic'), 'automatic');
+  assert.equal(tool.getConfiguredSparklinePaint(config, colorStops, 'fixed', 50, 'red', 'gradient', 'automatic'), 'red');
+  assert.equal(tool.getConfiguredSparklinePaint(config, colorStops, 'colorstop', 50, 'red', 'gradient', 'automatic'), '#000000');
+  assert.notEqual(tool.getConfiguredSparklinePaint(config, colorStops, 'colorstopinterpolated', 50, 'red', 'gradient', 'automatic'), '#000000');
+  assert.equal(tool.getConfiguredSparklinePaint(config, colorStops, 'colorstopgradient', 50, 'red', 'gradient', 'automatic'), 'gradient');
 });
 
 test('single-color graph paint follows the current entity state instead of the last aggregate bin', () => {
@@ -775,22 +778,17 @@ test('single-color graph paint follows the current entity state instead of the l
     config: {
       sparkline: {
         show: { item_style: 'colorstopinterpolated' },
-        colorstops: {
-          colors: [
-            { value: 0, color: 'blue' },
-            { value: 100, color: 'green' },
-          ],
-        },
       },
     },
     sparklineSeries: {
       primaryItem: {
         entity: { state: '25' },
+        paint: { colorStops: { scales: {}, colors: [{ value: 0, color: 'blue' }, { value: 100, color: 'green' }] } },
         graph: { coords: [[0, 0, 75]] },
       },
     },
     getEntityNumericState: (item, entity) => Number(entity.state),
-    getConfiguredSparklinePaint: (config, itemStyle, value) => {
+    getConfiguredSparklinePaint: (config, colorStops, itemStyle, value) => {
       paintValues.push(value);
       return 'selected-color';
     },
@@ -806,6 +804,7 @@ test('explicit Cartesian gradients use each series graph scale', () => {
   const makeItem = (id, itemStyle) => ({
     id,
     dataState: 'has_data',
+    paint: { colorStops: { scales: {}, colors: [{ value: 0, color: 'black' }, { value: 100, color: 'white' }] } },
     graph: {
       computeGradient: (thresholds, logarithmic) => {
         gradientCalls.push([id, thresholds, logarithmic]);
@@ -820,12 +819,6 @@ test('explicit Cartesian gradients use each series graph scale', () => {
         show: { chart_type: 'line', item_style: itemStyle },
         line: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
         area: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
-        colorstops: {
-          colors: [
-            { value: 0, color: 'black' },
-            { value: 100, color: 'white' },
-          ],
-        },
         colorstops_transition: 'smooth',
         state_values: { logarithmic: false },
       },
@@ -851,6 +844,7 @@ test('cartesian series render stored paths and independently enabled minmax enve
     dataState: 'has_data',
     entity: { state: '10' },
     entityConfig: {},
+    paint: { colorStops: { scales: {}, colors: [] } },
     graph: {
       coords: [[0, 0, 10]],
       getPath() {
@@ -1063,6 +1057,7 @@ test('radial series render all areas below every line and point', () => {
       getRadialMinMaxArea: () => `${id}-minmax`,
       getRadialPoints: () => [[10, 20, 30]],
     },
+    paint: { colorStops: { scales: {}, colors: [] } },
     config: {
       color,
       sparkline: {
@@ -1073,7 +1068,6 @@ test('radial series render all areas below every line and point', () => {
           line: variant !== 'dots',
           points: variant === 'dots',
         },
-        colorstops: { colors: [] },
         colorstops_transition: 'hard',
         line_color: [color, color, color],
         line: { line_width: 1, styles: {}, show_dots: false, show: { item_style: 'auto', minmax: variant === 'line' }, minmax: { show: { item_style: 'auto' }, styles: { opacity: 0.25 } } },
@@ -2093,13 +2087,17 @@ test('explicit series use the most restrictive automatic bin density for every g
     },
     sparkline: {
       show: { chart_type: chartType },
-      colorstops: { colors: [] },
     },
     x_axis: { labels: {} },
     y_axis: {},
   });
-  const line = { id: 'line', config: makeConfig('line') };
-  const dots = { id: 'dots', config: makeConfig('dots') };
+  const makeItem = (id, chartType) => ({
+    id,
+    config: makeConfig(chartType),
+    paint: { colorStops: { scales: {}, colors: [] } },
+  });
+  const line = makeItem('line', 'line');
+  const dots = makeItem('dots', 'dots');
   Object.assign(tool, {
     config: line.config,
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [line, dots] }),
@@ -2114,8 +2112,8 @@ test('explicit series use the most restrictive automatic bin density for every g
   });
 
   const binPlan = tool.sparklineSeries.updateBinPlan();
-  const lineGraphConfig = tool.buildGraphInput(line.config, binPlan.perHour);
-  const dotsGraphConfig = tool.buildGraphInput(dots.config, binPlan.perHour);
+  const lineGraphConfig = tool.buildGraphInput(line, binPlan.perHour);
+  const dotsGraphConfig = tool.buildGraphInput(dots, binPlan.perHour);
 
   assert.deepEqual(binPlan, { perHour: 1, durationHours: 1 });
   assert.equal(lineGraphConfig.period.rolling_window.bins.per_hour, 1);
@@ -2461,11 +2459,13 @@ test('calendar series comparisons use one complete shared visible day', () => {
     x_axis: { labels: {} },
     y_axis: {},
   };
+  const item = { config: { ...seriesConfig, period: parentPeriod }, paint: { colorStops: { scales: {}, colors: [] } } };
+  const comparisonItem = { config: seriesConfig, paint: { colorStops: { scales: {}, colors: [] } } };
   const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     config: { period: parentPeriod, series: [{}, {}] },
     sparklineSeries: {
-      items: [{ config: { ...seriesConfig, period: parentPeriod } }, { config: seriesConfig }],
+      items: [item, comparisonItem],
     },
     geometry: {
       svg: { width: 100, height: 50, line_width: 0, column_spacing: 0 },
@@ -2474,7 +2474,7 @@ test('calendar series comparisons use one complete shared visible day', () => {
     },
   });
 
-  const graphConfig = tool.buildGraphInput(seriesConfig, 1);
+  const graphConfig = tool.buildGraphInput(comparisonItem, 1);
 
   assert.equal(graphConfig.period.calendar.offset, 0);
   assert.equal(graphConfig.period.calendar.full_day, true);

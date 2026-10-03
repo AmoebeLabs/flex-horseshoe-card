@@ -122,12 +122,12 @@ test('derives horseshoe state geometry from ranked string color stops', () => {
     }),
     horseshoe_scale: { min: 0, max: 100 },
   };
-  const result = getGaugeStateData(config, { state: 'high', attributes: {} }, entityConfig.entities[0]);
+  const result = getGaugeStateData(config, { state: 'high', attributes: {} }, entityConfig.entities[0], config.colorstops);
 
   assert.equal(result.value, 1);
-  assert.deepEqual(result.config.state_map.map.map((entry) => entry.state), ['low', 'high']);
-  assert.deepEqual(result.config.colorstops.colors.map((entry) => entry.state), ["low", "high"]);
-  assert.equal(result.mappedState.color, 'red');
+  assert.deepEqual(result.stateMap.map.map((entry) => entry.state), ['low', 'high']);
+  assert.equal(Object.hasOwn(result, 'config'), false);
+  assert.equal(Object.hasOwn(result.mappedState, 'color'), false);
 });
 
 

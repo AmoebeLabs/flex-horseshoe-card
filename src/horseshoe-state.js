@@ -1,7 +1,7 @@
 import ColorStops from "./color-stops.js";
 import ConfigHelper from "./config-helper.js";
+import Templates from "./templates.js";
 import { clamp } from "./frontend_mods/common/number/clamp.ts";
-import { SVG_VIEW_BOX } from "./const.js";
 
 /**
  * Default animation configuration copied into normalized runtime state.
@@ -16,19 +16,12 @@ const DEFAULT_STATE_ANIMATION = {
 /**
  * Applies the minimal base defaults needed before entity state is resolved.
  */
-export function normalizeBaseConfig(config, index, groupManager, colorStopMode) {
-  const entityIndex = config.entity_index ?? 0;
-  const groupConfig = groupManager.getGroupForItem(config);
-  const colorStops = ColorStops.normalize(config.color_stops, colorStopMode);
-
+export function normalizeBaseConfig(config) {
   return {
-    entity_index: entityIndex,
+    entity_index: config.entity_index ?? 0,
     bar_mode: "normal",
     ...config,
-    colorstops: colorStops,
-    group_config: groupConfig,
-    index,
-    show: {
+    show: Templates.isJsTemplate(config.show) ? config.show : {
       horseshoe: true,
       horseshoe_style: "fixed",
       labels_at: "none",
@@ -131,12 +124,16 @@ export function getZeroRatio(horseshoeScale) {
 }
 
 /**
- * Builds the full normalized runtime configuration used by the v2 renderer.
+ * Completes public Horseshoe settings after template evaluation. Palette values
+ * supply existing numeric defaults; active colors and SVG placement have their
+ * own paint and geometry owners.
  */
-export function normalizeRuntimeConfig(config, colorStopMode) {
+export function translateHorseshoeConfig(config, colorStopMode) {
+  const normalizedStops = { gap: 0, ...ColorStops.normalize(config.color_stops, colorStopMode) };
   const show = {
     horseshoe: true,
     horseshoe_style: "fixed",
+    scale_style: "fixed",
     labels_at: "none",
     state_progress: true,
     state_marker: false,
@@ -149,7 +146,7 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   // The active color-stop template supplies the default value range. Explicit
   // horseshoe scale values are merged afterward and therefore keep priority.
-  const defaultColorStopScale = config.colorstops.scales.default ?? {};
+  const defaultColorStopScale = normalizedStops.scales.default ?? {};
   const horseshoeScale = {
     min: defaultColorStopScale.min ?? 0,
     max: defaultColorStopScale.max ?? 100,
@@ -159,8 +156,6 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     type: "linear",
     ...(config.horseshoe_scale ?? {}),
   };
-
-  // const horseshoeScale = config.horseshoe_scale;
 
   if (horseshoeScale.min === undefined) {
     throw new Error("[V2] Missing horseshoe_scale.min");
@@ -186,7 +181,7 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
     color: "var(--primary-color)",
     linecap: "round",
     mode: "value",
-    segment_gap: config.colorstops.gap,
+    segment_gap: normalizedStops.gap,
     animation: DEFAULT_STATE_ANIMATION,
     ...(config.horseshoe_state ?? {}),
   };
@@ -286,31 +281,14 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
   const stateMap = config.state_map ?? horseshoeState.state_map ?? { map: [] };
 
   const colorStops = ColorStops.ensureMinimumStops(
-    config.colorstops,
+    normalizedStops,
     horseshoeScale.max,
   );
-  let colorStopsMinMax = ColorStops.normalize();
-
-  // Fixed horseshoes do not require color stops. Build the automatic min/max gradient only when stops exist.
-  if (colorStops.colors.length > 0) {
-    const firstColorStop = colorStops.colors[0];
-    const lastColorStop = colorStops.colors[colorStops.colors.length - 1];
-
-    colorStopsMinMax = ColorStops.normalize(
-      {
-        [horseshoeScale.min]: firstColorStop.color,
-        [horseshoeScale.max]: lastColorStop.color,
-      },
-      colorStopMode,
-    );
-  }
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
-  // One SVG arc cannot draw a full circle because its start and end points coincide.
-  // Keep those points distinct while retaining a visually complete horseshoe.
-  const arcDegrees =
-    config.arc_degrees === 360 ? 359.999 : (config.arc_degrees ?? 260);
+  // The path generator owns complete circles, including their two arc commands.
+  const arcDegrees = config.arc_degrees ?? 260;
   const barMode = config.bar_mode ?? "normal";
   const supportedBarModes = [
     "normal",
@@ -371,8 +349,6 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
 
   const symmetricalBidirectional =
     barMode === "bidirectional" || barMode === "bidirectional_symmetrical";
-  const groupConfig = config.group_config;
-  const groupCenterOffset = 50;
   const itemXpos =
     config.xpos ??
     config.horseshoe_position?.xpos ??
@@ -384,43 +360,15 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
       config.horseshoe_position?.ypos ??
       config.horseshoe_position?.cy ??
       50);
-  const xpos = groupConfig
-    ? groupConfig.xpos + itemXpos - groupCenterOffset
-    : itemXpos;
-  const ypos = groupConfig
-    ? groupConfig.ypos + itemYpos - groupCenterOffset
-    : itemYpos;
-  const groupSvg = groupConfig
-    ? {
-        xpos: (groupConfig.xpos / 100) * SVG_VIEW_BOX,
-        ypos: (groupConfig.ypos / 100) * SVG_VIEW_BOX,
-      }
-    : undefined;
-
   return {
     ...config,
 
     show,
-    group_config: groupConfig
-      ? {
-          ...groupConfig,
-          svg: groupSvg,
-        }
-      : groupConfig,
-
-    xpos,
-    ypos,
+    xpos: itemXpos,
+    ypos: itemYpos,
     radius,
     tickmarks_radius: tickmarksRadius,
     arc_degrees: arcDegrees,
-
-    // Store percent-based layout values and SVG-viewbox values side by side.
-    svg: {
-      xpos: (xpos / 100) * SVG_VIEW_BOX,
-      ypos: (ypos / 100) * SVG_VIEW_BOX,
-      radius: (radius / 100) * SVG_VIEW_BOX,
-      tickmarks_radius: (tickmarksRadius / 100) * SVG_VIEW_BOX,
-    },
 
     start_angle: config.start_angle ?? 90 + (360 - arcDegrees) / 2,
     bar_mode: barMode,
@@ -429,9 +377,6 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
       (symmetricalBidirectional ? 0.5 : getZeroRatio(horseshoeScale)),
 
     state_map: stateMap,
-
-    colorstops: colorStops,
-    colorstopsMinMax: colorStopsMinMax,
 
     horseshoe_background: {
       ...horseshoeBackground,
@@ -444,6 +389,7 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
       ...horseshoeScale,
       linecap: normalizeLinecap(horseshoeScale.linecap),
       styles: {
+        opacity: 1,
         fill: horseshoeScale.color,
         ...ConfigHelper.toStyleDict(horseshoeScale.styles),
       },
@@ -457,12 +403,15 @@ export function normalizeRuntimeConfig(config, colorStopMode) {
       },
       linecap: normalizeLinecap(horseshoeState.linecap),
       styles: {
+        opacity: 1,
         fill: horseshoeState.color,
         ...ConfigHelper.toStyleDict(horseshoeState.styles),
       },
     },
 
     horseshoe_marker: horseshoeMarker,
+    rotate: config.rotate ?? 0,
+    flip: config.flip ?? "none",
 
     horseshoe_labels: {
       ...horseshoeLabels,
@@ -542,10 +491,11 @@ export function getStateMapItem(stateMap, rawState, value) {
 }
 
 /**
- * Resolves entity attributes, state mapping, and the numeric gauge value from
- * one already evaluated and normalized horseshoe configuration.
+ * Maps the configured entity state or attribute to a numeric path value and
+ * current semantic state map. Ranked modes return their effective scale without
+ * changing the configured scale or storing palette-derived colors in the map.
  */
-export function getGaugeStateData(config, entity, entityConfig) {
+export function getGaugeStateData(config, entity, entityConfig, colorStops) {
   let value = entity.state;
 
   if (
@@ -555,7 +505,7 @@ export function getGaugeStateData(config, entity, entityConfig) {
     value = entity.attributes[entityConfig.attribute];
   }
 
-  const stringColorStops = config.colorstops.colors.filter(
+  const stringColorStops = colorStops.colors.filter(
     (colorStop) => colorStop.state !== undefined,
   );
 
@@ -568,29 +518,14 @@ export function getGaugeStateData(config, entity, entityConfig) {
       ? [...stringColorStops].sort((a, b) => Number(a.rank) - Number(b.rank))
       : stringColorStops;
     const stateMap = {
-      map: orderedStops.map((colorStop, index) => ({
-        ...colorStop,
-        value: index,
-      })),
+      map: orderedStops.map(({ color, styles, ...state }, index) => ({ ...state, value: index })),
     };
     const mappedState = stateMap.map.find(
       (entry) => String(entry.state) === String(value),
     );
-    const renderColorStops = {
-      ...config.colorstops,
-      colors: orderedStops.map((colorStop, index) => ({
-        ...colorStop,
-        value: index,
-      })),
-    };
-
     return {
-      config: {
-        ...config,
-        colorstops: renderColorStops,
-        state_map: stateMap,
-        mapped_state: mappedState,
-      },
+      stateMap,
+      scale: config.horseshoe_scale,
       rawState: entity.state,
       mappedState,
       value: Number(mappedState.value),
@@ -598,13 +533,12 @@ export function getGaugeStateData(config, entity, entityConfig) {
   }
 
   if (config.state_map?.type === "rank_state") {
-    // Step 1: keep the original numeric color stops as source data for raw value -> rank lookup.
-    const sourceColorStops = config.colorstops;
+    // Numeric thresholds select the rank before its label slot is positioned.
+    const sourceColorStops = colorStops;
     const numericValue = Number(value);
     let activeSourceStop =
       sourceColorStops.colors[sourceColorStops.colors.length - 1];
 
-    // Step 2: translate the raw numeric entity value through the original color-stop thresholds.
     if (numericValue <= Number(sourceColorStops.colors[0].value)) {
       activeSourceStop = sourceColorStops.colors[0];
     } else if (
@@ -632,72 +566,32 @@ export function getGaugeStateData(config, entity, entityConfig) {
       }
     }
 
-    // Step 3: collect one representative render color for every rank.
-    const sourceColorByRank = new Map();
-
-    sourceColorStops.colors.forEach((colorStop) => {
-      const rankKey = String(colorStop.rank);
-
-      if (!sourceColorByRank.has(rankKey)) {
-        sourceColorByRank.set(rankKey, colorStop.color);
-      }
-    });
-
-    // Step 4: convert rank->state entries into the value-space expected by existing string-state rendering.
+    // Rank slots occupy the same value-space as the existing string-state bands.
+    // Only explicitly configured map colors belong to these semantic entries.
     const rankedStateMap = {
       ...config.state_map,
       map: config.state_map.map.map((entry, index) => ({
         ...entry,
         value: index + 0.5,
-        color: entry.color ?? sourceColorByRank.get(String(entry.rank)),
       })),
     };
-    // Step 5: use the active rank from the source stop to find the derived string state.
+    // Keep the original value alongside the selected slot for state presentation.
     const mappedStateIndex = rankedStateMap.map.findIndex(
       (entry) => String(entry.rank) === String(activeSourceStop.rank),
     );
     const mappedState = {
       ...rankedStateMap.map[mappedStateIndex],
-      color: activeSourceStop.color,
       source_value: value,
-      source_color_stop: activeSourceStop,
     };
-    // Step 6: build ranked render color stops so scale, state, labels, and backgrounds share one value-space.
-    const rankedColorStops = {
-      ...sourceColorStops,
-      colors: rankedStateMap.map.map((entry, index) => ({
-        value: index,
-        color: entry.color,
-        rank: entry.rank,
-        state: entry.state,
-      })),
-    };
-    // Step 7: switch this horseshoe runtime scale from numeric source values to ranked render values.
+    // Each rank occupies one slot in the effective render scale.
     const rankedScale = {
       ...config.horseshoe_scale,
       min: 0,
       max: rankedStateMap.map.length,
     };
-    const firstColorStop = rankedColorStops.colors[0];
-    const lastColorStop =
-      rankedColorStops.colors[rankedColorStops.colors.length - 1];
-
-    // Step 8: publish a state-specific active config; the normalized source config remains unchanged.
-    const activeConfig = {
-      ...config,
-      sourceColorStops,
-      colorstops: rankedColorStops,
-      colorstopsMinMax: ColorStops.normalize({
-        [rankedScale.min]: firstColorStop.color,
-        [rankedScale.max]: lastColorStop.color,
-      }),
-      horseshoe_scale: rankedScale,
-      state_map: rankedStateMap,
-      mapped_state: mappedState,
-    };
-
     return {
-      config: activeConfig,
+      stateMap: rankedStateMap,
+      scale: rankedScale,
       rawState: entity.state,
       mappedState,
       value: Number(mappedState.value),
@@ -711,12 +605,53 @@ export function getGaugeStateData(config, entity, entityConfig) {
   const nextValue = Number(mappedState?.value ?? value);
 
   return {
-    config: {
-      ...config,
-      mapped_state: mappedState,
-    },
+    stateMap: config.state_map,
+    scale: config.horseshoe_scale,
     rawState: entity.state,
     mappedState,
     value: nextValue,
   };
+}
+
+/**
+ * Builds the active render palette in the mapped state's value-space. Rank and
+ * string mapping retain their semantic values when only theme colors change.
+ * Explicit state-map colors keep priority over palette-derived rank colors.
+ */
+export function buildGaugeColorStops(config, runtime, sourceStops) {
+  let colorStops = sourceStops;
+  const stringStops = sourceStops.colors.filter((stop) => stop.state !== undefined);
+  if (stringStops.length) {
+    const orderedStops = stringStops.some((stop) => stop.rank !== undefined)
+      ? [...stringStops].sort((a, b) => Number(a.rank) - Number(b.rank))
+      : stringStops;
+    colorStops = {
+      ...sourceStops,
+      colors: orderedStops.map((stop, index) => ({ ...stop, value: index })),
+    };
+  } else if (config.state_map.type === "rank_state") {
+    const sourceColorByRank = new Map();
+    sourceStops.colors.forEach((stop) => {
+      const rank = String(stop.rank);
+      if (!sourceColorByRank.has(rank)) sourceColorByRank.set(rank, stop.color);
+    });
+    colorStops = {
+      ...sourceStops,
+      colors: runtime.stateMap.map.map((entry, index) => ({
+        value: index,
+        color: entry.color ?? sourceColorByRank.get(String(entry.rank)),
+        rank: entry.rank,
+        state: entry.state,
+      })),
+    };
+  }
+
+  colorStops = ColorStops.ensureMinimumStops(colorStops, runtime.scale.max);
+  const minMax = colorStops.colors.length
+    ? ColorStops.normalize({
+        [runtime.scale.min]: colorStops.colors[0].color,
+        [runtime.scale.max]: colorStops.colors[colorStops.colors.length - 1].color,
+      })
+    : ColorStops.normalize();
+  return { colorStops, minMax };
 }

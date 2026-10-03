@@ -518,7 +518,7 @@ class FlexHorseshoeCard extends LitElement {
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.entityConfigsInitialized = false;
       this.cardPresentationSignature = undefined;
-      this.cardLayout.setConfig(this.config, this.horseshoes);
+      this.cardLayout.setConfig(this.config);
 
       // Replacement ends the old tools' lifetimes before any new owner is made.
       this.cardTools.clearTools();

@@ -12,6 +12,7 @@ export default class CardEntities {
   constructor(templates, cardTheme) {
     this.templates = templates;
     this.cardTheme = cardTheme;
+    this.paint = { colorStops: [] };
   }
 
   /**
@@ -58,20 +59,20 @@ export default class CardEntities {
   /** Evaluates entity templates and links local sparkline entities to graphs. */
   buildRuntimeEntityConfigs(config, evaluateJavascript) {
     if (config.dev.debug) console.log('resolving entity config for', config.entities);
-    const resolvedEntityConfigs = config.entities.map((entityConfig, index) => {
+    const evaluatedEntityConfigs = config.entities.map((entityConfig, index) => {
       const item = { entity_index: index };
-      const resolvedEntityConfig = evaluateJavascript && this.templates.hasJavascriptTemplates(entityConfig)
+      return evaluateJavascript && this.templates.hasJavascriptTemplates(entityConfig)
         ? this.templates.getJsTemplateOrValue(item, entityConfig)
         : entityConfig;
-      if (resolvedEntityConfig.color_stops) {
-        resolvedEntityConfig.colorstops = ColorStops.normalize(resolvedEntityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
-      }
-      return resolvedEntityConfig;
+    });
+    const sourceColorStops = evaluatedEntityConfigs.map((entityConfig) => {
+      if (entityConfig.color_stops === undefined) return undefined;
+      return ColorStops.normalize(entityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
     });
     const sparklineEntityTypes = ['min_time', 'max_time', 'bin_duration', 'aggregate_func', 'duration', 'min', 'avg', 'max'];
     const sparklineConfigs = config.layout.sparklines ?? [];
 
-    return resolvedEntityConfigs.map((entityConfig) => {
+    const resolvedEntityConfigs = evaluatedEntityConfigs.map((entityConfig) => {
       if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
       let matchedSparkline;
       let matchedSeries;
@@ -122,7 +123,7 @@ export default class CardEntities {
         ? matchedSeries.entity_index
         : (matchedSparkline.series !== undefined && !Templates.isJsTemplate(matchedSparkline.series) ? matchedSparkline.series[0].entity_index : (matchedSparkline.entity_index ?? 0));
       const localEntityConfig = {
-        ...(Templates.isJsTemplate(matchedSparkline.series) ? {} : resolvedEntityConfigs[sourceEntityIndex]),
+        ...(Templates.isJsTemplate(matchedSparkline.series) ? {} : evaluatedEntityConfigs[sourceEntityIndex]),
         ...entityConfig,
         local: true,
         source_entity_index: sourceEntityIndex,
@@ -140,6 +141,14 @@ export default class CardEntities {
       if (matchedType === 'aggregate_func') localEntityConfig.unit = entityConfig.unit ?? '';
       return localEntityConfig;
     });
+
+    this.paint.colorStops = resolvedEntityConfigs.map((entityConfig, entityIndex) => {
+      if (evaluatedEntityConfigs[entityIndex].color_stops !== undefined) return sourceColorStops[entityIndex];
+      if (entityConfig.source_entity_index !== undefined) return sourceColorStops[entityConfig.source_entity_index];
+      return undefined;
+    });
+
+    return resolvedEntityConfigs;
   }
 
   /**
