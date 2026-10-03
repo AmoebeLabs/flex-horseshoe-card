@@ -363,7 +363,7 @@ class FlexHorseshoeCard extends LitElement {
     // JavaScript consumers can observe any derived entry in the shared array.
     // Their existing active-config comparison limits actual layout changes.
     if (changedEntityIndexes.length > 0) {
-      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
+      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true, this.cardTools.getBySection('sparklines'));
       this.cardLayout.updateGroups(true);
     }
     const cardStylesPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
