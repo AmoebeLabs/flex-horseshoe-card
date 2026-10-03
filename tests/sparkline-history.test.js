@@ -802,7 +802,7 @@ test('a larger requested range keeps accepted rows until matching history arrive
     type: 'rolling_window',
     rolling_window: { offset: 0, duration: { hour: 48 } },
   };
-  const changes = history.updateConfig(item.config.period, {}, [item], true, false);
+  const changes = history.updateInputs(item.config.period, {}, [item], true, false);
   const requestFacts = history.getRequestFacts(item.id);
   const request = history.requestSeriesHistory(item, {
     callApi: () => Promise.resolve([[{ state: '9', last_changed: '2026-09-11T12:00:00.000Z' }]]),
@@ -814,7 +814,7 @@ test('a larger requested range keeps accepted rows until matching history arrive
   assert.equal(history.hasRows(item.id), true);
   const result = await request.promise;
   assert.equal(result.status, 'accepted');
-  assert.equal(result.rebuildGraphConfig, true);
+  assert.equal(result.rebuildGraphInput, true);
 });
 
 test('a smaller requested range reuses accepted history without loading again', () => {
@@ -834,7 +834,7 @@ test('a smaller requested range reuses accepted history without loading again', 
     type: 'rolling_window',
     rolling_window: { offset: 0, duration: { hour: 1 } },
   };
-  history.updateConfig(item.config.period, {}, [item], true, false);
+  history.updateInputs(item.config.period, {}, [item], true, false);
   const request = history.requestSeriesHistory(item, {
     callApi: () => {
       throw new Error('retained history must cover the smaller period');
@@ -862,7 +862,7 @@ test('one day to two weeks to one day to two weeks reloads rows discarded by pru
     ], history.getSeriesRange(item));
 
     item.config.period = twoWeeks;
-    history.updateConfig(twoWeeks, {}, [item], true, false);
+    history.updateInputs(twoWeeks, {}, [item], true, false);
     assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
     history.acceptHistoryRows(item, [
       { state: '5', last_changed: '2026-08-30T12:00:00.000Z' },
@@ -872,7 +872,7 @@ test('one day to two weeks to one day to two weeks reloads rows discarded by pru
     ], history.getSeriesRange(item));
 
     item.config.period = oneDay;
-    history.updateConfig(oneDay, {}, [item], true, false);
+    history.updateInputs(oneDay, {}, [item], true, false);
     assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
     history.pruneActiveRows(item, 1);
     assert.equal(history.getRows(item.id).some((row) => row.source_time === '2026-08-30T12:00:00.000Z'), false);
@@ -884,11 +884,11 @@ test('one day to two weeks to one day to two weeks reloads rows discarded by pru
     assert.equal(retainedRequest.started, false);
     assert.equal(retainedRequest.representedRange, true);
 
-    history.updateConfig(oneDay, {}, [item], true, false);
+    history.updateInputs(oneDay, {}, [item], true, false);
     assert.equal(history.getRequestFacts(item.id).requestState, 'loaded');
 
     item.config.period = twoWeeks;
-    history.updateConfig(twoWeeks, {}, [item], true, false);
+    history.updateInputs(twoWeeks, {}, [item], true, false);
     assert.equal(history.getRequestFacts(item.id).requestState, 'loading');
     assert.equal(history.getRequestFacts(item.id).preserveGraphWhileLoading, true);
   });

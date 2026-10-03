@@ -5,8 +5,8 @@ import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 const FIXED_NOW = Date.parse('2026-09-26T11:59:59.000Z');
 
 test('pointer projection uses rendered content and returns tool-local coordinates', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  tool.graphArea = { x: 10, y: 20, width: 200 };
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
+  tool.geometry.graphArea = { x: 10, y: 20, width: 200 };
   tool.elements = {
     svg: {
       createSVGPoint: () => ({
@@ -297,7 +297,7 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
   }
   tool.setEntities(card.resolvedEntityConfigs, card.entities);
 
-  const svg = new PointerNode({ left: 0, top: 0, width: tool.svg.width, height: tool.svg.height });
+  const svg = new PointerNode({ left: 0, top: 0, width: tool.geometry.svg.width, height: tool.geometry.svg.height });
   const container = new PointerNode({ left: 0, top: 0, width: 300, height: 300 });
   const tooltipTitle = { textContent: '' };
   const makeTooltipRow = () => ({
@@ -366,8 +366,8 @@ function pointerEventAtBucket(fixture, chartType, index, eventType = 'mousemove'
   }
 
   return Object.assign(new Event(eventType, { cancelable: true }), {
-    clientX: tool.graphArea.x + point.x,
-    clientY: tool.graphArea.y + point.y,
+    clientX: tool.geometry.graphArea.x + point.x,
+    clientY: tool.geometry.graphArea.y + point.y,
   });
 }
 
@@ -400,7 +400,7 @@ test('bound pointer callbacks follow the current line, radial and radial-barcode
     const event = pointerEventAtBucket(fixture, chartType, 1);
     svg.dispatchEvent(event);
     pointerWindow.flushFrames();
-    assert.equal(tool.tooltip.index, 1);
+    assert.equal(tool.runtime.tooltip.index, 1);
   }
 
   assert.deepEqual(routes, ['line', 'radial', 'line', 'radial_barcode']);
@@ -423,7 +423,7 @@ test('SVG replacement releases old handlers and binds the replacement only once'
   assert.equal(oldSvg.listenerCount('mousemove'), 1);
   assert.equal(oldSvg.dataset.pointerReady, 'true');
 
-  const newSvg = new PointerNode({ left: 0, top: 0, width: tool.svg.width, height: tool.svg.height });
+  const newSvg = new PointerNode({ left: 0, top: 0, width: tool.geometry.svg.width, height: tool.geometry.svg.height });
   nodes.set('sparkline-pointer-test-0', newSvg);
   tool.attachPointerHandlers();
   tool.attachPointerHandlers();
@@ -439,7 +439,7 @@ test('SVG replacement releases old handlers and binds the replacement only once'
   assert.equal(pointerWindow.listenerCount('pointermove'), 0);
   newSvg.dispatchEvent(pointerEventAtBucket(fixture, 'line', 1));
   assert.equal(pointerCalls, 1);
-  assert.equal(tool.tooltip.index, 1);
+  assert.equal(tool.runtime.tooltip.index, 1);
 });
 
 test('pointerup, pointercancel, touchcancel and disconnect stop drag frames without a final calculation', async (context) => {
@@ -468,7 +468,7 @@ test('pointerup, pointercancel, touchcancel and disconnect stop drag frames with
       const pendingId = tool.rid;
       const pendingFrame = pointerWindow.frames.get(pendingId);
       assert.notEqual(pendingId, null);
-      assert.equal(tool.dragging, true);
+      assert.equal(tool.runtime.dragging, true);
 
       if (ending === 'disconnect') {
         tool.disconnected();
@@ -477,10 +477,10 @@ test('pointerup, pointercancel, touchcancel and disconnect stop drag frames with
       }
 
       const calculationsAtEnd = pointerCalculations;
-      assert.equal(tool.dragging, false);
-      assert.equal(tool.pointerEvent, undefined);
-      assert.deepEqual(tool.tooltip, {});
-      assert.equal(tool.tooltipVisible, false);
+      assert.equal(tool.runtime.dragging, false);
+      assert.equal(tool.runtime.pointerEvent, undefined);
+      assert.deepEqual(tool.runtime.tooltip, {});
+      assert.equal(tool.runtime.tooltipVisible, false);
       assert.equal(tool.rid, null);
       assert.equal(tool._radialRafId, null);
       assert.equal(pointerWindow.frames.has(pendingId), false);
@@ -520,14 +520,14 @@ test('a queued radial hover frame cannot restore a tooltip after leaving the SVG
 
   svg.dispatchEvent(new Event('mouseleave'));
   const calculationsAfterLeave = pointerCalculations;
-  assert.equal(tool.hovering, false);
-  assert.equal(tool.tooltipVisible, false);
-  assert.deepEqual(tool.tooltip, {});
+  assert.equal(tool.runtime.hovering, false);
+  assert.equal(tool.runtime.tooltipVisible, false);
+  assert.deepEqual(tool.runtime.tooltip, {});
   assert.equal(pointerWindow.frames.has(pendingId), false);
 
   pendingFrame(0);
   assert.equal(pointerCalculations, calculationsAfterLeave);
-  assert.equal(tool.tooltipVisible, false);
+  assert.equal(tool.runtime.tooltipVisible, false);
 });
 
 test('radial hover frames retain the SVG target after event dispatch cleanup', async (context) => {
@@ -570,7 +570,7 @@ test('radial hover frames retain the SVG target after event dispatch cleanup', a
       assert.equal(event.currentTarget, null);
 
       pointerWindow.flushFrames();
-      assert.equal(tool.tooltip.index, 1);
+      assert.equal(tool.runtime.tooltip.index, 1);
     });
   }
 });
@@ -582,7 +582,7 @@ test('a pending drag frame uses the latest pointer event and chart configuration
   context.after(environment.restore);
   const { tool } = fixture;
   const routedEvents = [];
-  tool.dragging = true;
+  tool.runtime.dragging = true;
   tool.updateRadialActivePointer = (event) => routedEvents.push(event);
 
   const firstEvent = pointerEventAtBucket(fixture, 'line', 0, 'pointermove');
@@ -609,7 +609,7 @@ test('a normal radial data refresh recomputes the active selection through the r
   const pointerEvent = pointerEventAtBucket(fixture, 'radial', 1);
   svg.dispatchEvent(pointerEvent);
   pointerWindow.flushFrames();
-  assert.equal(tool.tooltipVisible, true);
+  assert.equal(tool.runtime.tooltipVisible, true);
   const priorValues = item.graph.coords.map((point) => point[2]);
 
   const radialEvents = [];
@@ -633,8 +633,8 @@ test('a normal radial data refresh recomputes the active selection through the r
 
   assert.deepEqual(radialEvents, [pointerEvent]);
   assert.notDeepEqual(item.graph.coords.map((point) => point[2]), priorValues);
-  assert.equal(tool.tooltipVisible, true);
-  assert.equal(tool.pointerEvent, pointerEvent);
+  assert.equal(tool.runtime.tooltipVisible, true);
+  assert.equal(tool.runtime.pointerEvent, pointerEvent);
 });
 
 test('accepted empty radial data clears the active selection and tooltip', (context) => {
@@ -645,18 +645,18 @@ test('accepted empty radial data clears the active selection and tooltip', (cont
   const { item, tool, svg } = fixture;
   svg.dispatchEvent(pointerEventAtBucket(fixture, 'radial', 1));
   pointerWindow.flushFrames();
-  assert.equal(tool.tooltipVisible, true);
-  assert.notEqual(tool.activePoint, undefined);
+  assert.equal(tool.runtime.tooltipVisible, true);
+  assert.notEqual(tool.runtime.activePoint, undefined);
 
   tool.sparklineHistory.acceptHistoryRows(item, [], tool.sparklineHistory.getSeriesRange(item));
   tool.setEntities(fixture.card.resolvedEntityConfigs, fixture.card.entities);
 
   assert.equal(tool.sparklineSeries.dataState, 'empty');
-  assert.equal(tool.hovering, false);
-  assert.equal(tool.pointerEvent, undefined);
-  assert.equal(tool.tooltipVisible, false);
-  assert.deepEqual(tool.tooltip, {});
-  assert.equal(tool.activePoint, undefined);
+  assert.equal(tool.runtime.hovering, false);
+  assert.equal(tool.runtime.pointerEvent, undefined);
+  assert.equal(tool.runtime.tooltipVisible, false);
+  assert.deepEqual(tool.runtime.tooltip, {});
+  assert.equal(tool.runtime.activePoint, undefined);
   assert.equal(fixture.indicator.style.visibility, 'hidden');
 });
 
@@ -669,8 +669,8 @@ test('real-time bar, equalizer and graded retain tooltips without a selection in
     const { svg, tool, tooltip } = fixture;
     svg.dispatchEvent(pointerEventAtBucket(fixture, chartType, 0));
 
-    assert.equal(tool.tooltipVisible, true, `${chartType} tooltip stays available`);
-    assert.equal(tool.tooltip.index, 0);
+    assert.equal(tool.runtime.tooltipVisible, true, `${chartType} tooltip stays available`);
+    assert.equal(tool.runtime.tooltip.index, 0);
     assert.equal(tooltip.style.display, 'block');
     assert.equal(tool.renderActiveIndicator(), '', `${chartType} has no time-selection indicator`);
   }
@@ -686,7 +686,7 @@ test('historical line selection still renders its active indicator', (context) =
 
   svg.dispatchEvent(pointerEventAtBucket(fixture, 'line', 1));
 
-  assert.equal(tool.tooltipVisible, true);
+  assert.equal(tool.runtime.tooltipVisible, true);
   assert.equal(indicator.style.visibility, 'visible');
   assert.ok(tool.renderActiveIndicator().values.includes('visible'));
 });

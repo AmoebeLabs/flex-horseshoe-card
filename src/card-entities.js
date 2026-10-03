@@ -1,6 +1,7 @@
 import ColorStops from './color-stops.js';
 import Merge from './merge.js';
 import Colors from './colors.js';
+import Templates from './templates.js';
 
 /** Owns runtime entity configuration and derived fhs_sparkline states. */
 export default class CardEntities {
@@ -86,7 +87,22 @@ export default class CardEntities {
           }
         });
 
-        if (sparklineConfig.series !== undefined) {
+        // Whole-array JS belongs to GraphTool's evaluation context. Bind the
+        // declared derived ID now; its source metadata follows canonical series
+        // after the producer publishes, without evaluating that expression here.
+        if (Templates.isJsTemplate(sparklineConfig.series)) {
+          const prefix = `fhs_sparkline.${sparklineConfig.id}_`;
+          // Primary aliases are already matched above. For named series the
+          // longer metric suffix wins, so bin_duration stays one metric.
+          const entityType = matchedSparkline === sparklineConfig ? undefined : sparklineEntityTypes.find((type) => (
+            entityConfig.entity.startsWith(prefix) && entityConfig.entity.endsWith(`_${type}`) && entityConfig.entity.length > prefix.length + type.length + 1
+          ));
+          if (entityType !== undefined) {
+            matchedSparkline = sparklineConfig;
+            matchedSeries = { id: entityConfig.entity.slice(prefix.length, -entityType.length - 1), entity_index: sparklineConfig.entity_index ?? 0 };
+            matchedType = entityType;
+          }
+        } else if (sparklineConfig.series !== undefined) {
           sparklineConfig.series.forEach((seriesConfig) => {
             sparklineEntityTypes.forEach((entityType) => {
               if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${seriesConfig.id}_${entityType}`) {
@@ -104,9 +120,9 @@ export default class CardEntities {
       // explicit collections whose source is declared on the first series.
       const sourceEntityIndex = matchedSeries !== undefined
         ? matchedSeries.entity_index
-        : (matchedSparkline.series !== undefined ? matchedSparkline.series[0].entity_index : (matchedSparkline.entity_index ?? 0));
+        : (matchedSparkline.series !== undefined && !Templates.isJsTemplate(matchedSparkline.series) ? matchedSparkline.series[0].entity_index : (matchedSparkline.entity_index ?? 0));
       const localEntityConfig = {
-        ...resolvedEntityConfigs[sourceEntityIndex],
+        ...(Templates.isJsTemplate(matchedSparkline.series) ? {} : resolvedEntityConfigs[sourceEntityIndex]),
         ...entityConfig,
         local: true,
         source_entity_index: sourceEntityIndex,
@@ -140,6 +156,16 @@ export default class CardEntities {
       // their published outputs until their own source/result changes.
       if (!sparklineGraphTools.some((tool) => tool.config.id === entityConfig.sparkline_id)) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
+      if (Templates.isJsTemplate(graphTool.sourceConfig.series)) {
+        // Only the producer knows the evaluated series and entity binding. Use
+        // that published entry before presenting statistics or inherited units.
+        const seriesConfig = entityConfig.sparkline_series_id === undefined
+          ? graphTool.config.series[0]
+          : graphTool.config.series.find((entry) => entry.id === entityConfig.sparkline_series_id);
+        const { attribute: _attribute, name: _name, ...sourceEntityConfig } = resolvedEntityConfigs[seriesConfig.entity_index];
+        entityConfig = { ...sourceEntityConfig, ...entityConfig, source_entity_index: seriesConfig.entity_index };
+        resolvedEntityConfigs[entityIndex] = entityConfig;
+      }
       const sparklineResult = graphTool.getSeriesResult(entityConfig.sparkline_series_id);
       const sourceEntity = entities[entityConfig.source_entity_index];
       const sourceConfig = resolvedEntityConfigs[entityConfig.source_entity_index];

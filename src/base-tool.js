@@ -121,7 +121,15 @@ export default class BaseTool {
 
     // Sparkline graph options keep their public color_stops inside the nested sparkline block.
     if ((this.configurationChanged || this.themeModeChanged) && newConfig.sparkline?.color_stops) {
-      newConfig.sparkline.colorstops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
+      const colorStops = ColorStops.normalize(newConfig.sparkline.color_stops, this.card.cardTheme.getActiveColorStopMode());
+      // Canonical Sparkline entries reference inherited legacy paint directly.
+      // Keep that reference stable until the shared Plan-19 paint-owner cutover.
+      if (newConfig.sparkline.colorstops === undefined) {
+        newConfig.sparkline.colorstops = colorStops;
+      } else {
+        Object.keys(newConfig.sparkline.colorstops).forEach((key) => delete newConfig.sparkline.colorstops[key]);
+        Object.assign(newConfig.sparkline.colorstops, colorStops);
+      }
     }
 
     // Multipart tools finish their own evaluation contexts and child bindings

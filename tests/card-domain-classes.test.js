@@ -693,7 +693,7 @@ test('CardEntities retains configured decimals in derived sparkline averages', (
     state: '10.20',
     attributes: { unit_of_measurement: 'C', device_class: 'temperature' },
   }];
-  const graphTool = { config: { id: 'history' }, getSeriesResult: () => ({ avg: 10.2 }) };
+  const graphTool = { sourceConfig: {}, config: { id: 'history' }, getSeriesResult: () => ({ avg: 10.2 }) };
 
   const changedIndexes = cardEntities.updateSparklineEntities(resolvedConfigs, entities, [graphTool]);
 
@@ -725,6 +725,7 @@ test('CardEntities publishes unavailable derived values before graph statistics 
   }];
   const graphTool = {
     config: { id: 'history' },
+    sourceConfig: {},
     getSeriesResult: () => ({}),
   };
 
@@ -753,6 +754,7 @@ test('CardEntities updates explicit series derived values from the matching grap
   }];
   const graphTool = {
     config: { id: 'climate' },
+    sourceConfig: {},
     getSeriesResult: (seriesId) => ({ avg: seriesId === 'yesterday_room' ? 18.7 : 10.2 }),
   };
 
@@ -782,6 +784,7 @@ test('CardEntities represents all eight values from the Sparkline result interfa
   }];
   const graphTool = {
     config: { id: 'history' },
+    sourceConfig: {},
     getSeriesResult: () => ({
       min: 10,
       avg: 12.25,
@@ -853,6 +856,7 @@ test('CardEntities binds explicit-series primary and named aliases to their decl
   ];
   const graphTool = {
     config: { id: 'climate' },
+    sourceConfig: {},
     getSeriesResult: (seriesId) => ({ avg: seriesId === 'yesterday' ? 8.25 : 11.25 }),
   };
 
@@ -892,7 +896,7 @@ test('CardEntities preserves equal publications and publishes copied source meta
     attributes: { friendly_name: 'Power', unit_of_measurement: 'W', device_class: 'power' },
   };
   const entities = [source];
-  const graphTool = { config: { id: 'power' }, getSeriesResult: () => ({ avg: 10.2 }) };
+  const graphTool = { sourceConfig: {}, config: { id: 'power' }, getSeriesResult: () => ({ avg: 10.2 }) };
 
   assert.deepEqual(cardEntities.updateSparklineEntities(resolved, entities, [graphTool]), [1]);
   const published = entities[1];

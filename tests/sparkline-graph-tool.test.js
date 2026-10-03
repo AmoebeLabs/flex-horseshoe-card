@@ -21,7 +21,9 @@ function createChangeDetectionTool(context, periodType) {
     constructor(...args) {
       super(...(args.length === 0 ? [now] : args));
     }
-    static now() { return now; }
+    static now() {
+      return now;
+    }
   };
   globalThis.window = {
     matchMedia: () => ({ matches: false }),
@@ -47,7 +49,9 @@ function createChangeDetectionTool(context, periodType) {
     _hass: {
       locale: { language: 'en', time_format: '24' },
       config: { time_zone: 'UTC' },
-      callApi() { throw new Error('accepted rows must not request history'); },
+      callApi() {
+        throw new Error('accepted rows must not request history');
+      },
     },
     cardAnimations: { styles: { sparklines: [] } },
     cardLayout: {
@@ -62,18 +66,32 @@ function createChangeDetectionTool(context, periodType) {
       colorContext: { cacheReady: false },
     },
   };
-  const period = periodType === 'real_time' ? { type: periodType } : {
-    type: periodType,
-    rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1, density: 'medium' } },
-  };
-  const tool = new SparklineGraphTool({
-    id: 'change-detection', entity_index: 0, xpos: 50, ypos: 50, width: 80, height: 40,
-    period,
-    sparkline: {
-      show: { chart_type: 'line' },
-      line: { show: { item_style: 'fixed' }, styles: { stroke: '#1565c0', opacity: 1 } },
+  const period =
+    periodType === 'real_time'
+      ? { type: periodType }
+      : {
+          type: periodType,
+          rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1, density: 'medium' } },
+        };
+  const tool = new SparklineGraphTool(
+    {
+      id: 'change-detection',
+      entity_index: 0,
+      xpos: 50,
+      ypos: 50,
+      width: 80,
+      height: 40,
+      period,
+      sparkline: {
+        show: { chart_type: 'line' },
+        line: { show: { item_style: 'fixed' }, styles: { stroke: '#1565c0', opacity: 1 } },
+      },
     },
-  }, 0, { hasJavascriptTemplates: () => false }, 'test-card', card);
+    0,
+    { hasJavascriptTemplates: () => false },
+    'test-card',
+    card,
+  );
   // History owns real Node boundary timers; close them before this fixture exits.
   context.after(() => tool.sparklineHistory.disconnected());
   tool.updateRuntimeConfig();
@@ -82,12 +100,11 @@ function createChangeDetectionTool(context, periodType) {
   item.entityConfig = card.resolvedEntityConfigs[0];
   tool.sparklineHistory.bindSeriesEntity(item);
   if (periodType !== 'real_time') {
-    tool.sparklineHistory.acceptHistoryRows(item, [
-      { state: '10', last_changed: '2026-09-26T07:00:00.000Z' },
-      { state: '20', last_changed: '2026-09-26T09:00:00.000Z' },
-      { state: '30', last_changed: '2026-09-26T10:00:00.000Z' },
-      entity,
-    ], tool.sparklineHistory.getSeriesRange(item));
+    tool.sparklineHistory.acceptHistoryRows(
+      item,
+      [{ state: '10', last_changed: '2026-09-26T07:00:00.000Z' }, { state: '20', last_changed: '2026-09-26T09:00:00.000Z' }, { state: '30', last_changed: '2026-09-26T10:00:00.000Z' }, entity],
+      tool.sparklineHistory.getSeriesRange(item),
+    );
   }
   tool.setEntities(card.resolvedEntityConfigs, card.entities);
   // Commit initial measured axis margins before counting later configuration work.
@@ -168,14 +185,14 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
 
     const tool = new SparklineGraphTool(config, 0, templates, 'test-card', card);
 
-    assert.equal(tool.periodDurationAvailable, false);
-    assert.equal(tool.primaryGraph, undefined);
+    assert.equal(tool.sparklineSeries, undefined);
+    assert.equal(tool.sparklineHistory, undefined);
 
     tool.updateRuntimeConfig();
 
     assert.equal(tool.config.period.type, 'calendar');
     assert.equal(tool.config.period.calendar.duration.hour, 24);
-    assert.equal(tool.periodDurationAvailable, true);
+    assert.equal(tool.runtime.periodDurationAvailable, true);
     assert.notEqual(tool.primaryGraph, undefined);
     assert.deepEqual(warnings, ["[FHS sparkline] calendar day duration '6' hours is shorter than one day; using 24 hours"]);
 
@@ -193,7 +210,7 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
     ];
     tool.updateRuntimeConfig();
 
-    assert.equal(tool.gradeRanks[0].rangeMax[0], 0);
+    assert.equal(tool.geometry.gradeRanks[0].rangeMax[0], 0);
 
     card.evaluateJavascriptTemplates = true;
     dayNightMode = 'invalid';
@@ -207,14 +224,8 @@ test('dynamic sparkline config preserves zero thresholds and clamps a calendar d
 test('static sparkline settings are checked before runtime initialization', () => {
   const templates = { hasJavascriptTemplates: () => false };
 
-  assert.throws(
-    () => new SparklineGraphTool({ sparkline: { day_night: { mode: 'invalid' } } }, 0, templates, 'test-card', {}),
-    /sparkline\.day_night\.mode must be background or band/,
-  );
-  assert.throws(
-    () => new SparklineGraphTool({ sparkline: { show: { chart_type: 'radial', chart_variant: 'line' }, radial: { size: 0 } } }, 0, templates, 'test-card', {}),
-    /sparkline\.\.size must be greater than 0/,
-  );
+  assert.throws(() => new SparklineGraphTool({ sparkline: { day_night: { mode: 'invalid' } } }, 0, templates, 'test-card', {}), /sparkline\.day_night\.mode must be background or band/);
+  assert.throws(() => new SparklineGraphTool({ sparkline: { show: { chart_type: 'radial', chart_variant: 'line' }, radial: { size: 0 } } }, 0, templates, 'test-card', {}), /sparkline\.\.size must be greater than 0/);
 });
 
 test('calendar and rolling window use complete 24-hour default periods', () => {
@@ -355,16 +366,16 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
     assert.equal(tool.primaryGraph.getRadialGeometry().arcDegrees, 180);
     assert.equal(tool.primaryGraph.getRadialGeometry().rotate, -90);
 
-    tool.legendMeasuredFontSize = 4;
-    tool.legendMeasuredRowHeight = 5;
-    tool.legendMeasuredSignature = '4|5';
+    tool.geometry.legendMeasuredFontSize = 4;
+    tool.geometry.legendMeasuredRowHeight = 5;
+    tool.geometry.legendMeasuredSignature = '4|5';
     radialSize = 20;
     tool.updateRuntimeConfig();
 
     assert.equal(tool.config.sparkline.radial.size, 20);
-    assert.equal(tool.legendMeasuredFontSize, 4);
-    assert.equal(tool.legendMeasuredRowHeight, 5);
-    assert.equal(tool.legendMeasuredSignature, '4|5');
+    assert.equal(tool.geometry.legendMeasuredFontSize, 4);
+    assert.equal(tool.geometry.legendMeasuredRowHeight, 5);
+    assert.equal(tool.geometry.legendMeasuredSignature, '4|5');
 
     radialSize = 0;
     assert.throws(() => tool.updateRuntimeConfig(), /sparkline\.\.size must be greater than 0/);
@@ -373,15 +384,15 @@ test('dynamic radial arc and rotation rebuild the graph with evaluated geometry'
   }
 });
 
-
-
 test('real-time graded creates one current-value graph without historical bins', (context) => {
   const previousWindow = globalThis.window;
   globalThis.window = {
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
   };
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
 
   const templates = {
     hasJavascriptTemplates: () => false,
@@ -456,12 +467,12 @@ test('real-time graded creates one current-value graph without historical bins',
 });
 
 test('legend position reserves a sibling area with matching orientation', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  tool.svg = { width: 200, height: 100 };
-  tool.legendMeasuredFontSize = undefined;
-  tool.legendMeasuredRowHeight = undefined;
-  tool.legendMeasuredFontSize = undefined;
-  tool.legendMeasuredRowHeight = undefined;
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
+  tool.geometry.svg = { width: 200, height: 100 };
+  tool.geometry.legendMeasuredFontSize = undefined;
+  tool.geometry.legendMeasuredRowHeight = undefined;
+  tool.geometry.legendMeasuredFontSize = undefined;
+  tool.geometry.legendMeasuredRowHeight = undefined;
 
   const cases = [
     ['top', 'horizontal', { x: 0, y: 18, width: 200, height: 82 }, { x: 0, y: 0, width: 200, height: 16 }],
@@ -494,8 +505,8 @@ test('legend position reserves a sibling area with matching orientation', () => 
 });
 
 test('legend height follows fixed label font size and row count', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
-  tool.svg = { width: 200, height: 100 };
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
+  tool.geometry.svg = { width: 200, height: 100 };
   tool.config = {
     sparkline: {
       show: { legend: true },
@@ -521,7 +532,7 @@ test('legend height follows fixed label font size and row count', () => {
 });
 
 test('legend measurement rebuilds marker and text positions in the same update', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   let legendPositionUpdates = 0;
   let cardUpdates = 0;
   Object.assign(tool, {
@@ -531,28 +542,38 @@ test('legend measurement rebuilds marker and text positions in the same update',
         legend: { line_height: 1.2 },
       },
     },
-    legendTextTools: [{
-      widthOverflowPending: false,
-      updated() {},
-      textElement: { getBBox: () => ({ height: 4 }) },
-    }],
-    legendMeasuredSignature: undefined,
+    legendTextTools: [
+      {
+        widthOverflowPending: false,
+        updated() {},
+        textElement: { getBBox: () => ({ height: 4 }) },
+      },
+    ],
     sparklineSeries: { dataState: 'not_loaded' },
     calculateLegendLayout: () => ({ graphArea: { x: 0, y: 6, width: 100, height: 94 } }),
     updateRuntimeConfig() {},
-    updateLegendTextTools() { legendPositionUpdates += 1; },
-    card: { requestUpdate() { cardUpdates += 1; } },
+    updateLegendTextTools() {
+      legendPositionUpdates += 1;
+    },
+    card: {
+      requestUpdate() {
+        cardUpdates += 1;
+      },
+    },
+    geometry: {
+      legendMeasuredSignature: undefined,
+    },
   });
 
   tool.updated();
 
   assert.equal(legendPositionUpdates, 1);
   assert.equal(cardUpdates, 1);
-  assert.deepEqual(tool.graphArea, { x: 0, y: 6, width: 100, height: 94 });
+  assert.deepEqual(tool.geometry.graphArea, { x: 0, y: 6, width: 100, height: 94 });
 });
 
 test('legend waits for width ellipsis before measuring its visible text', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   let legendPositionUpdates = 0;
   let boundingBoxReads = 0;
   const legendTextTool = {
@@ -576,19 +597,23 @@ test('legend waits for width ellipsis before measuring its visible text', () => 
       },
     },
     legendTextTools: [legendTextTool],
-    legendMeasuredSignature: undefined,
     sparklineSeries: { dataState: 'not_loaded' },
     calculateLegendLayout: () => ({ graphArea: { x: 0, y: 6, width: 100, height: 94 } }),
     updateRuntimeConfig() {},
-    updateLegendTextTools() { legendPositionUpdates += 1; },
+    updateLegendTextTools() {
+      legendPositionUpdates += 1;
+    },
     card: { requestUpdate() {} },
+    geometry: {
+      legendMeasuredSignature: undefined,
+    },
   });
 
   tool.updated();
 
   assert.equal(boundingBoxReads, 0);
   assert.equal(legendPositionUpdates, 0);
-  assert.equal(tool.legendMeasuredSignature, undefined);
+  assert.equal(tool.geometry.legendMeasuredSignature, undefined);
 
   legendTextTool.textElement.getBBox = () => {
     boundingBoxReads += 1;
@@ -598,17 +623,15 @@ test('legend waits for width ellipsis before measuring its visible text', () => 
 
   assert.equal(boundingBoxReads, 1);
   assert.equal(legendPositionUpdates, 1);
-  assert.equal(tool.legendMeasuredFontSize, 4);
-  assert.equal(tool.legendMeasuredRowHeight, 4.8);
+  assert.equal(tool.geometry.legendMeasuredFontSize, 4);
+  assert.equal(tool.geometry.legendMeasuredRowHeight, 4.8);
 });
 
 test('area chart omits its line layers when show.line is false', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 0,
-    svg: { width: 100, height: 50 },
-    graphArea: { width: 100, height: 50 },
     config: {
       sparkline: {
         show: { chart_type: 'area', item_style: 'fixed', line: false },
@@ -624,6 +647,10 @@ test('area chart omits its line layers when show.line is false', () => {
       'stroke-linejoin': 'round',
     }),
     getRenderStyles: (styles) => styles,
+    geometry: {
+      svg: { width: 100, height: 50 },
+      graphArea: { width: 100, height: 50 },
+    },
   });
 
   assert.equal(tool.renderSvgLineMask('M 0 0 L 100 50', 0), '');
@@ -647,7 +674,7 @@ test('area chart omits its line layers when show.line is false', () => {
 });
 
 test('bar fade reverses at zero for positive and negative values', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 3,
@@ -674,20 +701,12 @@ test('bar fade reverses at zero for positive and negative values', () => {
 
   const rendered = tool.renderSvgBars(
     [
-    { x: 1, y: 2, width: 3, height: 4, value: 5 },
-    { x: 6, y: 7, width: 3, height: 4, value: -5 },
+      { x: 1, y: 2, width: 3, height: 4, value: 5 },
+      { x: 6, y: 7, width: 3, height: 4, value: -5 },
     ],
     0,
   );
-  const gradients = tool.renderBarFadeGradients(
-    [
-      { value: 5 },
-      { value: -5 },
-    ],
-    0,
-    tool.config,
-    0,
-  );
+  const gradients = tool.renderBarFadeGradients([{ value: 5 }, { value: -5 }], 0, tool.config, 0);
 
   assert.deepEqual(gradients[0].values.slice(1, 3), ['0%', '100%']);
   assert.equal(gradients[0].values[0], 'bar-fill-fade-test-card-3-0-0');
@@ -697,7 +716,7 @@ test('bar fade reverses at zero for positive and negative values', () => {
 });
 
 test('area fade uses the fixed color belonging to each series', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const lineColors = ['#1565c0', '#d32f2f'];
   const makeItem = (id) => ({
     id,
@@ -727,7 +746,7 @@ test('area fade uses the fixed color belonging to each series', () => {
 });
 
 test('graph paint selection preserves fixed styles and selects color stops from the supplied current value', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   tool.card = { cardTheme: { colorContext: { cacheReady: false } } };
   const config = {
     sparkline: {
@@ -748,7 +767,7 @@ test('graph paint selection preserves fixed styles and selects color stops from 
 });
 
 test('single-color graph paint follows the current entity state instead of the last aggregate bin', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const paintValues = [];
   Object.assign(tool, {
     cardId: 'test-card',
@@ -756,7 +775,12 @@ test('single-color graph paint follows the current entity state instead of the l
     config: {
       sparkline: {
         show: { item_style: 'colorstopinterpolated' },
-        colorstops: { colors: [{ value: 0, color: 'blue' }, { value: 100, color: 'green' }] },
+        colorstops: {
+          colors: [
+            { value: 0, color: 'blue' },
+            { value: 100, color: 'green' },
+          ],
+        },
       },
     },
     sparklineSeries: {
@@ -777,7 +801,7 @@ test('single-color graph paint follows the current entity state instead of the l
 });
 
 test('explicit Cartesian gradients use each series graph scale', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const gradientCalls = [];
   const makeItem = (id, itemStyle) => ({
     id,
@@ -796,7 +820,12 @@ test('explicit Cartesian gradients use each series graph scale', () => {
         show: { chart_type: 'line', item_style: itemStyle },
         line: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
         area: { show: { item_style: itemStyle }, minmax: { show: { item_style: itemStyle } } },
-        colorstops: { colors: [{ value: 0, color: 'black' }, { value: 100, color: 'white' }] },
+        colorstops: {
+          colors: [
+            { value: 0, color: 'black' },
+            { value: 100, color: 'white' },
+          ],
+        },
         colorstops_transition: 'smooth',
         state_values: { logarithmic: false },
       },
@@ -824,12 +853,24 @@ test('cartesian series render stored paths and independently enabled minmax enve
     entityConfig: {},
     graph: {
       coords: [[0, 0, 10]],
-      getPath() { assert.fail('rendering must reuse the stored line path'); },
-      getArea() { assert.fail('rendering must reuse the stored area path'); },
-      getPathMin() { assert.fail('rendering must reuse the stored minmax path'); },
-      getPathMax() { assert.fail('rendering must reuse the stored minmax path'); },
-      getAreaMinMax() { assert.fail('rendering must reuse the stored minmax path'); },
-      calculateYCoordinates() { assert.fail('rendering must reuse the stored points'); },
+      getPath() {
+        assert.fail('rendering must reuse the stored line path');
+      },
+      getArea() {
+        assert.fail('rendering must reuse the stored area path');
+      },
+      getPathMin() {
+        assert.fail('rendering must reuse the stored minmax path');
+      },
+      getPathMax() {
+        assert.fail('rendering must reuse the stored minmax path');
+      },
+      getAreaMinMax() {
+        assert.fail('rendering must reuse the stored minmax path');
+      },
+      calculateYCoordinates() {
+        assert.fail('rendering must reuse the stored points');
+      },
     },
     config: {
       color,
@@ -842,23 +883,21 @@ test('cartesian series render stored paths and independently enabled minmax enve
       },
     },
   });
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 6,
     sparklineSeries: {
-      items: [
-        makeItem('line-range', 'line', true, '#1565c0'),
-        makeItem('area-range', 'area', true, '#d32f2f'),
-        makeItem('line-only', 'line', false, '#66bb6a'),
-      ],
+      items: [makeItem('line-range', 'line', true, '#1565c0'), makeItem('area-range', 'area', true, '#d32f2f'), makeItem('line-only', 'line', false, '#66bb6a')],
     },
     getConfiguredLineWidth: () => 1,
     getRenderStyles: (styles) => styles,
-    line: ['line-range-line', 'area-range-line', 'line-only-line'],
-    area: [undefined, 'area-range-area'],
-    areaMinMax: ['line-range-minmax', 'area-range-minmax'],
-    points: [],
+    geometry: {
+      line: ['line-range-line', 'area-range-line', 'line-only-line'],
+      area: [undefined, 'area-range-area'],
+      areaMinMax: ['line-range-minmax', 'area-range-minmax'],
+      points: [],
+    },
   });
 
   const renderedItems = tool.renderSeriesCartesian().values[0];
@@ -875,11 +914,10 @@ test('single line minmax uses only the line styles', () => {
   let areaStyleCalls = 0;
   const lineStyles = { stroke: 'red', 'stroke-width': 2, opacity: 0.8 };
   const areaStyles = { fill: 'blue', opacity: 0.2 };
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 4,
-    graphArea: { width: 80, height: 40 },
     config: {
       sparkline: {
         show: { chart_type: 'line' },
@@ -908,6 +946,9 @@ test('single line minmax uses only the line styles', () => {
       renderedFilters = filters;
       return styles;
     },
+    geometry: {
+      graphArea: { width: 80, height: 40 },
+    },
   });
 
   tool.renderSvgAreaMinMaxBackground('M 0,0 z', 0);
@@ -928,11 +969,10 @@ test('single line minmax uses only the line styles', () => {
 test('single line and its minmax band select paint independently', () => {
   const paintChoices = [];
   const filterChoices = [];
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 5,
-    graphArea: { width: 80, height: 40 },
     config: {
       sparkline: {
         show: { chart_type: 'line', line: true },
@@ -957,6 +997,9 @@ test('single line and its minmax band select paint independently', () => {
       filterChoices.push(filters);
       return styles;
     },
+    geometry: {
+      graphArea: { width: 80, height: 40 },
+    },
   });
 
   tool.renderSvgLineBackground('M 0,0 L 80,40', 0);
@@ -966,14 +1009,11 @@ test('single line and its minmax band select paint independently', () => {
     ['fixed', 'white'],
     ['colorstopinterpolated', 'white'],
   ]);
-  assert.deepEqual(filterChoices, [
-    [{ saturation: 0.8 }],
-    [{ brightness: 0.6 }],
-  ]);
+  assert.deepEqual(filterChoices, [[{ saturation: 0.8 }], [{ brightness: 0.6 }]]);
 });
 
 test('radial area fade follows the visible zero radius', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const graph = {
     min: -10,
     max: 10,
@@ -983,18 +1023,22 @@ test('radial area fade follows the visible zero radius', () => {
   Object.assign(tool, {
     cardId: 'test-card',
     index: 4,
-    graphArea: { width: 100, height: 100 },
     sparklineSeries: {
-      items: [{
-        id: 'temperature',
-        dataState: 'has_data',
-        graph,
-        config: {
-          sparkline: {
-            show: { chart_type: 'radial', chart_variant: 'area', fill: 'fade' },
+      items: [
+        {
+          id: 'temperature',
+          dataState: 'has_data',
+          graph,
+          config: {
+            sparkline: {
+              show: { chart_type: 'radial', chart_variant: 'area', fill: 'fade' },
+            },
           },
         },
-      }],
+      ],
+    },
+    geometry: {
+      graphArea: { width: 100, height: 100 },
     },
   });
 
@@ -1006,7 +1050,7 @@ test('radial area fade follows the visible zero radius', () => {
 });
 
 test('radial series render all areas below every line and point', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const makeItem = (id, variant, color) => ({
     id,
     dataState: 'has_data',
@@ -1044,11 +1088,7 @@ test('radial series render all areas below every line and point', () => {
     index: 5,
     card: { cardTheme: { colorContext: { cacheReady: false } } },
     sparklineSeries: {
-      items: [
-        makeItem('line-first', 'line', '#1565c0'),
-        makeItem('area-second', 'area', '#d32f2f'),
-        makeItem('dots-third', 'dots', '#66bb6a'),
-      ],
+      items: [makeItem('line-first', 'line', '#1565c0'), makeItem('area-second', 'area', '#d32f2f'), makeItem('dots-third', 'dots', '#66bb6a')],
     },
     getRenderStyles: (styles) => styles,
   });
@@ -1070,11 +1110,10 @@ test('radial series render all areas below every line and point', () => {
 });
 
 test('radial indicator retains its active ring segment during a Lit render', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     cardId: 'test-card',
     index: 3,
-    activePoint: 2,
     config: { period: { type: 'rolling_window' }, sparkline: { show: { chart_type: 'radial' } } },
     sparklineSeries: {
       primaryItem: {
@@ -1084,6 +1123,9 @@ test('radial indicator retains its active ring segment during a Lit render', () 
           getRadialPoint: (radius) => ({ x: 50 + radius, y: 50 }),
         },
       },
+    },
+    runtime: {
+      activePoint: 2,
     },
   });
 
@@ -1095,7 +1137,7 @@ test('radial indicator retains its active ring segment during a Lit render', () 
 });
 
 test('horizontal radial x-axis labels align away from the circumference', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const renderedStyles = [];
   const graph = {
     axisArea: { x: 0, width: 100 },
@@ -1108,7 +1150,6 @@ test('horizontal radial x-axis labels align away from the circumference', () => 
 
   Object.assign(tool, {
     sparklineSeries: { primaryItem: { graph } },
-    axisGraphs: { primary: undefined, secondary: undefined },
     config: {
       sparkline: { show: { chart_type: 'radial', labels: { x: true }, tickmarks: { x: false } } },
       x_axis: {
@@ -1126,6 +1167,9 @@ test('horizontal radial x-axis labels align away from the circumference', () => 
       renderedStyles.push(styles);
       return styles;
     },
+    geometry: {
+      axisGraphs: { primary: undefined, secondary: undefined },
+    },
   });
 
   tool.renderRadialAxisLabels();
@@ -1142,7 +1186,7 @@ test('horizontal radial x-axis labels align away from the circumference', () => 
 });
 
 test('arc radial x-axis labels use unique readable text paths', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const projectedAngles = [];
   const graph = {
     axisArea: { x: 0, width: 100 },
@@ -1160,7 +1204,6 @@ test('arc radial x-axis labels use unique readable text paths', () => {
     cardId: 'test-card',
     index: 7,
     sparklineSeries: { primaryItem: { graph } },
-    axisGraphs: { primary: undefined, secondary: undefined },
     config: {
       sparkline: { show: { chart_type: 'radial', labels: { x: true }, tickmarks: { x: false } } },
       x_axis: {
@@ -1173,6 +1216,9 @@ test('arc radial x-axis labels use unique readable text paths', () => {
       { x: 100, label: 'end' },
     ],
     getRenderStyles: (styles) => styles,
+    geometry: {
+      axisGraphs: { primary: undefined, secondary: undefined },
+    },
   });
 
   const labels = tool.renderRadialAxisLabels().values[0];
@@ -1190,7 +1236,9 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
   };
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
 
   const card = {
     evaluateJavascriptTemplates: false,
@@ -1266,9 +1314,9 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
 
   assert.equal(tool.config.x_axis.labels.orientation, 'arc');
   assert.equal(tool.config.sparkline.show.legend, true);
-  assert.equal(tool.legendItems.length, 3);
+  assert.equal(tool.paint.legendItems.length, 3);
   assert.equal(tool.legendTextTools.length, 3);
-  assert.ok(tool.legendLayout.legendArea.height > 0);
+  assert.ok(tool.geometry.legendLayout.legendArea.height > 0);
 
   const measurementElement = {};
   const ellipsisElement = {};
@@ -1282,7 +1330,7 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
 });
 
 test('accepted history keeps request exclusion active through direct result publication', async () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const entity = {
     entity_id: 'sensor.active',
     state: '12',
@@ -1317,7 +1365,6 @@ test('accepted history keeps request exclusion active through direct result publ
     cardId: 'test-card',
     config,
     entity,
-    periodDurationAvailable: true,
     sparklineSeries: {
       items: [item],
       primaryItem: item,
@@ -1343,6 +1390,9 @@ test('accepted history keeps request exclusion active through direct result publ
     },
     updateGraphFromSeries() {},
     clearTooltip() {},
+    runtime: {
+      periodDurationAvailable: true,
+    },
   });
 
   await tool.fetchHistoryIfNeeded(item);
@@ -1359,7 +1409,9 @@ test('an accepted History result queued at disconnect cannot enter the GraphTool
   const previousClearTimeout = globalThis.clearTimeout;
   const timers = new Map();
   let acceptHistory;
-  const historyResponse = new Promise((accept) => { acceptHistory = accept; });
+  const historyResponse = new Promise((accept) => {
+    acceptHistory = accept;
+  });
   const pipelineCalls = [];
   let nextTimer = 1;
 
@@ -1404,7 +1456,7 @@ test('an accepted History result queued at disconnect cannot enter the GraphTool
   const history = new SparklineHistory(period, {}, [item], true, false, historyEvents());
   history.bindSeriesEntity(item);
   let tool;
-  tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     cardId: 'test-card',
     config: item.config,
     sparklineHistory: history,
@@ -1434,10 +1486,14 @@ test('an accepted History result queued at disconnect cannot enter the GraphTool
   });
 
   const graphCompletion = tool.fetchHistoryIfNeeded(item);
-  acceptHistory([[{
-    state: '11',
-    last_changed: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-  }]]);
+  acceptHistory([
+    [
+      {
+        state: '11',
+        last_changed: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    ],
+  ]);
   await Promise.resolve();
 
   // History has accepted the rows, while GraphTool's promise continuation is still queued.
@@ -1460,7 +1516,9 @@ test('accepted multi-day history builds and renders the configured line minmax e
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
   };
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
 
   const templates = { hasJavascriptTemplates: () => false };
   const now = Date.now();
@@ -1545,12 +1603,12 @@ test('accepted multi-day history builds and renders the configured line minmax e
   assert.notEqual(minMaxPath, '');
   assert.match(rendered.values[1].strings.join(''), /sparkline-series-minmax/);
 
-  const retainedLine = tool.line;
-  const retainedEnvelope = tool.areaMinMax;
+  const retainedLine = tool.geometry.line;
+  const retainedEnvelope = tool.geometry.areaMinMax;
   tool.updateGraphFromSeries();
-  assert.equal(tool.seriesGeometryChanged, false);
-  assert.strictEqual(tool.line, retainedLine);
-  assert.strictEqual(tool.areaMinMax, retainedEnvelope);
+  assert.equal(tool.geometry.seriesGeometryChanged, false);
+  assert.strictEqual(tool.geometry.line, retainedLine);
+  assert.strictEqual(tool.geometry.areaMinMax, retainedEnvelope);
 });
 
 test('accepted empty history becomes loaded request state with empty processed data', async (context) => {
@@ -1559,7 +1617,9 @@ test('accepted empty history becomes loaded request state with empty processed d
     matchMedia: () => ({ matches: false }),
     clearTimeout() {},
   };
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
 
   const entity = {
     entity_id: 'sensor.no_history',
@@ -1633,7 +1693,7 @@ test('failed history changes request state without clearing processed data', () 
   const previousConsoleError = console.error;
   const item = { id: 'temperature', requestState: 'loading', dataState: 'has_data' };
   let cardUpdates = 0;
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineSeries: {
       items: [item],
@@ -1645,7 +1705,9 @@ test('failed history changes request state without clearing processed data', () 
       getRequestFacts: () => ({ requestState: 'error' }),
     },
     card: {
-      updateSparklineResult() { cardUpdates += 1; },
+      updateSparklineResult() {
+        cardUpdates += 1;
+      },
     },
     clearTooltip() {},
   });
@@ -1665,10 +1727,12 @@ test('failed history changes request state without clearing processed data', () 
 test('disconnect closes request state without clearing processed data', (context) => {
   const previousWindow = globalThis.window;
   globalThis.window = { removeEventListener() {}, cancelAnimationFrame() {} };
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
   const item = { id: 'temperature', requestState: 'loading', dataState: 'has_data' };
   let requestState = 'loading';
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineSeries: {
       items: [item],
@@ -1677,7 +1741,9 @@ test('disconnect closes request state without clearing processed data', (context
       },
     },
     sparklineHistory: {
-      disconnected() { requestState = 'closed'; },
+      disconnected() {
+        requestState = 'closed';
+      },
       getRequestFacts: () => ({ requestState }),
     },
     clearTooltip() {},
@@ -1704,7 +1770,9 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
   };
   pointerWindow.cancelAnimationFrame = (frame) => frames.delete(frame);
   globalThis.window = pointerWindow;
-  context.after(() => { globalThis.window = previousWindow; });
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
 
   const node = new EventTarget();
   node.dataset = {};
@@ -1718,18 +1786,25 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
     ['sparkline-tooltip-test-card-0', tooltip],
   ]);
   let pointerUpdates = 0;
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
-    cardId: 'test-card', index: 0,
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
+    cardId: 'test-card',
+    index: 0,
     config: { sparkline: { show: { chart_type: 'line' } } },
     card: { shadowRoot: { getElementById: (id) => nodes.get(id) } },
-    elements: {}, legendTextTools: [],
+    elements: {},
+    legendTextTools: [],
     sparklineSeries: { items: [] },
     sparklineHistory: { disconnected() {}, connected() {} },
-    rid: null, _radialRafId: null,
-    clearTooltip() {}, updateTooltipVisibilityDom() {},
+    rid: null,
+    _radialRafId: null,
+    clearTooltip() {},
+    updateTooltipVisibilityDom() {},
     updatePointerBounds() {},
-    updateActiveIndicatorDom() {}, restoreRadialActiveBinDom() {},
-    updateActivePointer: () => { pointerUpdates += 1; },
+    updateActiveIndicatorDom() {},
+    restoreRadialActiveBinDom() {},
+    updateActivePointer: () => {
+      pointerUpdates += 1;
+    },
   });
   // Match constructor-owned callback identity without constructing graph data
   // for this DOM/gesture cleanup fixture.
@@ -1739,8 +1814,10 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
   tool.attachPointerHandlers();
   node.dispatchEvent(new Event('mousedown', { cancelable: true }));
   pointerWindow.dispatchEvent(new Event('pointermove', { cancelable: true }));
-  tool._radialRafId = pointerWindow.requestAnimationFrame(() => { pointerUpdates += 1; });
-  assert.equal(tool.dragging, true);
+  tool._radialRafId = pointerWindow.requestAnimationFrame(() => {
+    pointerUpdates += 1;
+  });
+  assert.equal(tool.runtime.dragging, true);
   assert.equal(frames.size, 2);
 
   tool.disconnected();
@@ -1750,9 +1827,9 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
   pointerWindow.dispatchEvent(new Event('pointermove', { cancelable: true }));
   assert.equal(frames.size, 0);
   assert.equal(pointerUpdates, updatesAfterDisconnect);
-  assert.equal(tool.dragging, false);
-  assert.equal(tool.hovering, false);
-  assert.equal(tool.pointerEvent, undefined);
+  assert.equal(tool.runtime.dragging, false);
+  assert.equal(tool.runtime.hovering, false);
+  assert.equal(tool.runtime.pointerEvent, undefined);
   assert.equal(tool.pointerSvgElement, undefined);
   assert.equal(node.dataset.pointerReady, undefined);
   assert.deepEqual(tool.elements, {});
@@ -1769,7 +1846,7 @@ test('pointer cleanup releases the owned node and frames and reconnect binds onc
 });
 
 test('day and night resynchronization participates in the normal hass update contract', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineHistory: { requiresHassUpdate: () => true },
   });
@@ -1818,7 +1895,7 @@ test('calendar history request spans complete calendar days', () => {
 });
 
 test('axis margin contains labels and tickmarks independently from data margin', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     config: {
       sparkline: {
@@ -1837,27 +1914,29 @@ test('axis margin contains labels and tickmarks independently from data margin',
         labels: { offset: 2 },
       },
     },
-    axisGraphs: {
-      primary: {
-        config: {
-          sparkline: {
-            show: {
-              chart_type: 'line',
-              tickmarks: { y: true },
-              labels: { y: true },
-            },
-          },
-          y_axis: {
-            tickmarks_major: { size: 1 },
-            labels: { offset: 2 },
-          },
-        },
-      },
-      secondary: undefined,
-    },
     resolveAxisFontSizePixels: (axis) => (axis === 'x' ? 8 : 10),
     buildXAxisTicks: () => [{ label: '08:00' }, { label: '12:00' }],
     buildYAxisTicks: () => [{ label: '-20' }, { label: '100' }],
+    geometry: {
+      axisGraphs: {
+        primary: {
+          input: {
+            sparkline: {
+              show: {
+                chart_type: 'line',
+                tickmarks: { y: true },
+                labels: { y: true },
+              },
+            },
+            y_axis: {
+              tickmarks_major: { size: 1 },
+              labels: { offset: 2 },
+            },
+          },
+        },
+        secondary: undefined,
+      },
+    },
   });
 
   assert.deepEqual(tool.calculateAxisMargin(), {
@@ -1871,7 +1950,7 @@ test('axis margin contains labels and tickmarks independently from data margin',
 });
 
 test('per-series line_width reaches the graph geometry', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const config = {
     line: { styles: { 'stroke-width': 1 } },
     sparkline: {
@@ -1884,7 +1963,7 @@ test('per-series line_width reaches the graph geometry', () => {
 });
 
 test('series line_width overrides the shared sparkline line_width', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const config = {
     sparkline: {
       show: { chart_type: 'line' },
@@ -1898,12 +1977,17 @@ test('series line_width overrides the shared sparkline line_width', () => {
 test('explicit series use independent primary and secondary y-axis ranges', () => {
   const calls = [];
   const makeGraph = (min, max) => ({
-    config: { geometry: { line_width: 1 } },
+    input: { geometry: { line_width: 1 } },
     min,
     max,
-    coords: [[0, 0, min], [100, 0, max]],
+    coords: [
+      [0, 0, min],
+      [100, 0, max],
+    ],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
-    processData() { return 'has_data'; },
+    processData() {
+      return 'has_data';
+    },
     calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       calls.push([min, lowerBound, upperBound]);
@@ -1917,7 +2001,7 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
     getArea: () => 'M 0 0 L 100 50 Z',
     updateStatistics: () => ({}),
   });
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const makeConfig = (chartType) => ({
     period: { type: 'real_time' },
     sparkline: {
@@ -1935,24 +2019,31 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
   Object.assign(tool, {
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     card: { dev: { debug: false } },
-    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
-    svg: { line_width: 1 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    area: [],
-    areaMinMax: [],
-    line: [],
-    points: [],
-    gradient: [],
+    geometry: {
+      configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+      svg: { line_width: 1 },
+      area: [],
+      areaMinMax: [],
+      line: [],
+      points: [],
+    },
+    paint: {
+      gradient: [],
+    },
   });
 
   tool.updateCartesianSeriesGraphs();
 
-  assert.deepEqual(calls, [[10, 10, 20], [30, 30, 40]]);
-  assert.equal(tool.axisGraphs.primary, first.graph);
-  assert.equal(tool.axisGraphs.secondary, second.graph);
+  assert.deepEqual(calls, [
+    [10, 10, 20],
+    [30, 30, 40],
+  ]);
+  assert.equal(tool.geometry.axisGraphs.primary, first.graph);
+  assert.equal(tool.geometry.axisGraphs.secondary, second.graph);
   assert.equal(tool.sparklineSeries.dataState, 'has_data');
-  assert.equal(tool.line.length, 1);
-  assert.equal(tool.points.length, 2);
+  assert.equal(tool.geometry.line.length, 1);
+  assert.equal(tool.geometry.points.length, 2);
 
   first.graph.min = 10;
   first.graph.max = 20;
@@ -1966,7 +2057,10 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
 
   tool.updateCartesianSeriesGraphs();
 
-  assert.deepEqual(calls, [[10, -10, 50], [30, 0, 100]]);
+  assert.deepEqual(calls, [
+    [10, -10, 50],
+    [30, 0, 100],
+  ]);
 
   first.graph.min = 10;
   first.graph.max = 20;
@@ -1980,12 +2074,14 @@ test('explicit series use independent primary and secondary y-axis ranges', () =
 
   tool.updateCartesianSeriesGraphs();
 
-  assert.deepEqual(calls, [[10, -1, 20], [30, 30, 100]]);
+  assert.deepEqual(calls, [
+    [10, -1, 20],
+    [30, 30, 100],
+  ]);
 });
 
-
 test('explicit series use the most restrictive automatic bin density for every graph', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const makeConfig = (chartType) => ({
     width: 90,
     period: {
@@ -2005,32 +2101,41 @@ test('explicit series use the most restrictive automatic bin density for every g
   const line = { id: 'line', config: makeConfig('line') };
   const dots = { id: 'dots', config: makeConfig('dots') };
   Object.assign(tool, {
-    svg: { width: 90, height: 40, line_width: 1, column_spacing: 0.2 },
-    graphArea: { width: 90, height: 40 },
-    xAxisLabelLength: 10,
-    stateBandsStateMap: {},
     config: line.config,
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [line, dots] }),
+    geometry: {
+      svg: { width: 90, height: 40, line_width: 1, column_spacing: 0.2 },
+      graphArea: { width: 90, height: 40 },
+      xAxisLabelLength: 10,
+    },
+    runtime: {
+      stateBandsStateMap: {},
+    },
   });
 
   const binPlan = tool.sparklineSeries.updateBinPlan();
-  const lineGraphConfig = tool.buildGraphConfig(line.config, binPlan.perHour);
-  const dotsGraphConfig = tool.buildGraphConfig(dots.config, binPlan.perHour);
+  const lineGraphConfig = tool.buildGraphInput(line.config, binPlan.perHour);
+  const dotsGraphConfig = tool.buildGraphInput(dots.config, binPlan.perHour);
 
   assert.deepEqual(binPlan, { perHour: 1, durationHours: 1 });
   assert.equal(lineGraphConfig.period.rolling_window.bins.per_hour, 1);
   assert.equal(dotsGraphConfig.period.rolling_window.bins.per_hour, 1);
 });
 
-test("multiple bar series receive grouped slots and one shared outer margin", () => {
+test('multiple bar series receive grouped slots and one shared outer margin', () => {
   const calls = [];
   const makeGraph = () => ({
     min: 0,
     max: 10,
-    coords: [[0, 0, 0], [100, 0, 10]],
+    coords: [
+      [0, 0, 0],
+      [100, 0, 10],
+    ],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    processData() { return 'has_data'; },
+    processData() {
+      return 'has_data';
+    },
     calculateGeometry() {},
     setSharedYAxisBounds(lowerBound, upperBound) {
       this.min = lowerBound;
@@ -2048,7 +2153,7 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     updateStatistics: () => ({}),
   });
   const makeConfig = (chartType = 'bar') => ({
-    period: { type: "real_time" },
+    period: { type: 'real_time' },
     sparkline: {
       show: { chart_type: chartType, points: false },
       line: { show_dots: false, show: { minmax: false } },
@@ -2057,21 +2162,25 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
     },
     y_axis: {},
   });
-  const first = { id: "first", config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
-  const line = { id: "line", config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
-  const second = { id: "second", config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const first = { id: 'first', config: makeConfig(), graph: makeGraph(), rows: [{ state: 4 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const line = { id: 'line', config: makeConfig('line'), graph: makeGraph(), rows: [{ state: 6 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const second = { id: 'second', config: makeConfig(), graph: makeGraph(), rows: [{ state: 8 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, line, second] }),
     card: { dev: { debug: false } },
-    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
-    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    area: [],
-    areaMinMax: [],
-    line: [],
-    points: [],
-    gradient: [],
+    geometry: {
+      configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+      svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+      area: [],
+      areaMinMax: [],
+      line: [],
+      points: [],
+    },
+    paint: {
+      gradient: [],
+    },
   });
 
   tool.updateCartesianSeriesGraphs();
@@ -2085,32 +2194,40 @@ test("multiple bar series receive grouped slots and one shared outer margin", ()
   assert.equal(calls.at(-1)[3].r, 10);
 });
 
-test("multiple series wait for every graph before building shared geometry", () => {
+test('multiple series wait for every graph before building shared geometry', () => {
   let pathRead = false;
   const readyGraph = {
     coords: [[0, 0, 10]],
     clearSharedYAxisBounds() {},
-    processData() { return 'has_data'; },
+    processData() {
+      return 'has_data';
+    },
     calculateGeometry() {},
-    getPath() { pathRead = true; },
+    getPath() {
+      pathRead = true;
+    },
   };
   const loadingGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    processData() { return 'not_loaded'; },
+    processData() {
+      return 'not_loaded';
+    },
   };
   const config = {
-    period: { type: "real_time" },
-    sparkline: { show: { chart_type: "line" } },
+    period: { type: 'real_time' },
+    sparkline: { show: { chart_type: 'line' } },
   };
-  const first = { id: "ready", config, graph: readyGraph, rows: [{ state: 10 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
-  const second = { id: "loading", config, graph: loadingGraph, rows: [] };
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const first = { id: 'ready', config, graph: readyGraph, rows: [{ state: 10 }], entity: { last_changed: '2026-08-13T10:00:00.000Z' } };
+  const second = { id: 'loading', config, graph: loadingGraph, rows: [] };
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
-    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
-    svg: { column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
+    geometry: {
+      configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+      svg: { column_spacing: 4, row_spacing: 4 },
+    },
   });
 
   tool.updateCartesianSeriesGraphs();
@@ -2126,10 +2243,15 @@ test('multiple series keep current data visible when another series is empty', (
     config: { geometry: { line_width: 1 } },
     min: 10,
     max: 20,
-    coords: [[0, 0, 10], [100, 0, 20]],
+    coords: [
+      [0, 0, 10],
+      [100, 0, 20],
+    ],
     drawArea: { x: 0, y: 0, width: 100, height: 50 },
     clearSharedYAxisBounds() {},
-    processData() { return 'has_data'; },
+    processData() {
+      return 'has_data';
+    },
     calculateGeometry() {},
     setSharedYAxisBounds() {},
     setGraphAreas() {},
@@ -2143,7 +2265,9 @@ test('multiple series keep current data visible when another series is empty', (
   const emptyGraph = {
     coords: [],
     clearSharedYAxisBounds() {},
-    processData() { return 'empty'; },
+    processData() {
+      return 'empty';
+    },
     getPath() {
       emptyPathReads += 1;
       throw new Error('empty graph has no path');
@@ -2176,18 +2300,22 @@ test('multiple series keep current data visible when another series is empty', (
     rows: [],
     entity: { last_changed: '2026-09-12T10:00:00.000Z' },
   };
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [dataItem, emptyItem] }),
     card: { dev: { debug: false } },
-    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
-    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
-    area: [],
-    areaMinMax: [],
-    line: [],
-    points: [],
-    gradient: [],
+    geometry: {
+      configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+      svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+      area: [],
+      areaMinMax: [],
+      line: [],
+      points: [],
+    },
+    paint: {
+      gradient: [],
+    },
   });
 
   tool.updateCartesianSeriesGraphs();
@@ -2197,10 +2325,9 @@ test('multiple series keep current data visible when another series is empty', (
   assert.equal(emptyItem.dataState, 'empty');
   assert.equal(dataPathReads, 1);
   assert.equal(emptyPathReads, 0);
-  assert.equal(tool.line[0], 'M 0 0 L 100 50');
-  assert.equal(tool.line[1], undefined);
+  assert.equal(tool.geometry.line[0], 'M 0 0 L 100 50');
+  assert.equal(tool.geometry.line[1], undefined);
 });
-
 
 test('offset rolling history stays cached while its moving reference range advances', () => {
   const item = {
@@ -2212,14 +2339,7 @@ test('offset rolling history stays cached while its moving reference range advan
       sparkline: { show: { chart_type: 'line' } },
     },
   };
-  const history = new SparklineHistory(
-    { type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 24 } } },
-    {},
-    [item],
-    true,
-    false,
-    historyEvents(),
-  );
+  const history = new SparklineHistory({ type: 'rolling_window', rolling_window: { offset: 0, duration: { hour: 24 } } }, {}, [item], true, false, historyEvents());
   const acceptedRange = {
     sourceStart: new Date('2026-08-20T12:00:00.000Z'),
     sourceEnd: new Date('2026-08-21T12:00:00.000Z'),
@@ -2327,9 +2447,6 @@ test('rolling window offset uses days and projects the source range forward', ()
   }
 });
 
-
-
-
 test('calendar series comparisons use one complete shared visible day', () => {
   const parentPeriod = {
     type: 'calendar',
@@ -2344,21 +2461,20 @@ test('calendar series comparisons use one complete shared visible day', () => {
     x_axis: { labels: {} },
     y_axis: {},
   };
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
     config: { period: parentPeriod, series: [{}, {}] },
     sparklineSeries: {
-      items: [
-        { config: { ...seriesConfig, period: parentPeriod } },
-        { config: seriesConfig },
-      ],
+      items: [{ config: { ...seriesConfig, period: parentPeriod } }, { config: seriesConfig }],
     },
-    svg: { width: 100, height: 50, line_width: 0, column_spacing: 0 },
-    graphArea: { width: 100, height: 50 },
-    xAxisLabelLength: 5,
+    geometry: {
+      svg: { width: 100, height: 50, line_width: 0, column_spacing: 0 },
+      graphArea: { width: 100, height: 50 },
+      xAxisLabelLength: 5,
+    },
   });
 
-  const graphConfig = tool.buildGraphConfig(seriesConfig, 1);
+  const graphConfig = tool.buildGraphInput(seriesConfig, 1);
 
   assert.equal(graphConfig.period.calendar.offset, 0);
   assert.equal(graphConfig.period.calendar.full_day, true);
@@ -2367,24 +2483,31 @@ test('calendar series comparisons use one complete shared visible day', () => {
 test('implicit and explicit series share one entity lifecycle and one graph update', (context) => {
   const previousWindow = globalThis.window;
   globalThis.window = { clearTimeout() {} };
-  context.after(() => { globalThis.window = previousWindow; });
-  const tool = Object.create(SparklineGraphTool.prototype);
+  context.after(() => {
+    globalThis.window = previousWindow;
+  });
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const makeConfig = () => ({ period: { type: 'real_time' } });
   const first = { id: 'first', entity_index: 0, config: makeConfig(), rows: [] };
   const second = { id: 'second', entity_index: 1, config: makeConfig(), rows: [] };
   let graphUpdates = 0;
 
   Object.assign(tool, {
-    runtime: { entity: undefined, entityConfig: undefined },
     config: { sparkline: { show: { day_night: false } } },
     sparklineSeries: Object.assign(Object.create(SparklineSeries.prototype), { items: [first, second] }),
     sparklineHistory: new SparklineHistory({ type: 'real_time' }, {}, [first, second], true, false, historyEvents()),
-    periodDurationAvailable: true,
     card: { dev: { fakeData: false } },
-    tooltipVisible: false,
-    updateGraphFromSeries() { graphUpdates += 1; },
+    updateGraphFromSeries() {
+      graphUpdates += 1;
+    },
     updateLegendTextTools() {},
     clearTooltip() {},
+    runtime: {
+      entity: undefined,
+      entityConfig: undefined,
+      periodDurationAvailable: true,
+      tooltipVisible: false,
+    },
   });
 
   const entityConfigs = [{}, {}];
@@ -2410,25 +2533,26 @@ test('one implicit item enters the cartesian series coordinator', () => {
       area: { show: { item_style: 'auto' }, minmax: { show: { item_style: 'auto' } } },
     },
   };
-  const configurations = [
-    config,
-    { ...config, series: [{ id: 'temperature', entity_index: 0 }] },
-  ];
+  const configurations = [config, { ...config, series: [{ id: 'temperature', entity_index: 0 }] }];
 
   configurations.forEach((seriesConfig) => {
-    const tool = Object.create(SparklineGraphTool.prototype);
+    const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
     let coordinatorCalls = 0;
     Object.assign(tool, {
       config: seriesConfig,
-      sparklineSeries: new SparklineSeries(seriesConfig),
-      graphDataChanged: true,
+      sparklineSeries: new SparklineSeries(SparklineGraphTool.translateConfig(seriesConfig)),
       card: { dev: { fakeData: false } },
       updateCartesianSeriesGraphs() {
         coordinatorCalls += 1;
         this.sparklineSeries.dataState = 'not_loaded';
       },
+      runtime: {
+        graphDataChanged: true,
+      },
     });
-    tool.sparklineSeries.items.forEach((item) => { item.requestState = 'not_required'; });
+    tool.sparklineSeries.items.forEach((item) => {
+      item.requestState = 'not_required';
+    });
 
     tool.updateGraphFromSeries();
 
@@ -2442,13 +2566,19 @@ test('multi-series presentation waits for every request before rebuilding', () =
   const second = { id: 'second', requestState: 'loading', config: seriesConfig };
   let coordinatorCalls = 0;
   let tooltipClears = 0;
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     config: { sparkline: { show: { chart_type: 'line' } } },
     sparklineSeries: { items: [first, second] },
-    graphDataChanged: true,
     card: { dev: { fakeData: false } },
-    updateCartesianSeriesGraphs() { coordinatorCalls += 1; },
-    clearTooltip() { tooltipClears += 1; },
+    updateCartesianSeriesGraphs() {
+      coordinatorCalls += 1;
+    },
+    clearTooltip() {
+      tooltipClears += 1;
+    },
+    runtime: {
+      graphDataChanged: true,
+    },
   });
 
   tool.updateGraphFromSeries();
@@ -2463,23 +2593,27 @@ test('multi-series presentation waits for every request before rebuilding', () =
 test('x-axis ticks come from the current data graph when the first series is empty', () => {
   const dataGraph = {
     xAxis: {
-      ticks: [{
-        time: new Date('2026-09-12T10:00:00.000Z'),
-        timestamp: Date.parse('2026-09-12T10:00:00.000Z'),
-        x: 42,
-        isMidnight: false,
-        isPeriodEnd: false,
-      }],
+      ticks: [
+        {
+          time: new Date('2026-09-12T10:00:00.000Z'),
+          timestamp: Date.parse('2026-09-12T10:00:00.000Z'),
+          x: 42,
+          isMidnight: false,
+          isPeriodEnd: false,
+        },
+      ],
     },
   };
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: { primaryItem: { graph: { xAxis: undefined } } },
-    axisGraphs: { primary: dataGraph, secondary: undefined },
     card: {
       _hass: {
         locale: { language: 'en', time_format: '24' },
         config: { time_zone: 'UTC' },
       },
+    },
+    geometry: {
+      axisGraphs: { primary: dataGraph, secondary: undefined },
     },
   });
 
@@ -2494,33 +2628,39 @@ test('retained presentation remains interactive while a series refresh is loadin
   const comparison = { requestState: 'loading', dataState: 'has_data' };
   let tooltipVisibleInDom = true;
   let indicatorUpdates = 0;
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: { items: [primary, comparison], primaryItem: primary, dataState: 'has_data' },
-    tooltip: { index: 3 },
-    tooltipVisible: true,
-    activePoint: 3,
-    activeX: 40,
     config: { sparkline: { show: { chart_type: 'line' } } },
     mouseEventToPoint: () => ({ x: 12, y: 8 }),
     pointToGraphX: (point) => point.x,
     snapPointerXToGraphPoint: (x) => x,
     getPointIndexFromX: () => 2,
     updateTooltipFromPointIndex() {
-      this.tooltip = { index: 2, title: '10:00' };
-      this.tooltipVisible = true;
+      this.runtime.tooltip = { index: 2, title: '10:00' };
+      this.runtime.tooltipVisible = true;
     },
     updateTooltipContentDom() {},
     updateTooltipPositionDom() {},
-    updateTooltipVisibilityDom(visible) { tooltipVisibleInDom = visible; },
-    updateActiveIndicatorDom() { indicatorUpdates += 1; },
+    updateTooltipVisibilityDom(visible) {
+      tooltipVisibleInDom = visible;
+    },
+    updateActiveIndicatorDom() {
+      indicatorUpdates += 1;
+    },
+    runtime: {
+      tooltip: { index: 3 },
+      tooltipVisible: true,
+      activePoint: 3,
+      activeX: 40,
+    },
   });
 
   tool.updateActivePointer({ clientX: 10, clientY: 10 });
 
-  assert.deepEqual(tool.tooltip, { index: 2, title: '10:00' });
-  assert.equal(tool.tooltipVisible, true);
-  assert.equal(tool.activePoint, 3);
-  assert.equal(tool.activeX, 12);
+  assert.deepEqual(tool.runtime.tooltip, { index: 2, title: '10:00' });
+  assert.equal(tool.runtime.tooltipVisible, true);
+  assert.equal(tool.runtime.activePoint, 3);
+  assert.equal(tool.runtime.activeX, 12);
   assert.equal(tooltipVisibleInDom, true);
   assert.equal(indicatorUpdates, 1);
 });
@@ -2551,7 +2691,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     x_axis: { labels: { max_length: 5, styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
     y_axis: { labels: { styles: { 'font-size': '10px' } }, tickmarks_major: { size: 1 } },
   };
-  const series = new SparklineSeries(config);
+  const series = new SparklineSeries(SparklineGraphTool.translateConfig(config));
   const item = series.primaryItem;
   const rangeStart = new Date('2026-09-12T08:00:00.000Z');
   const rangeEnd = new Date('2026-09-12T12:00:00.000Z');
@@ -2561,30 +2701,18 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     { state: 40, haState: '40', last_changed: '2026-09-12T11:00:00.000Z' },
   ];
 
-  series.configureGraph(
-    item,
-    100,
-    50,
-    { t: 0, r: 0, b: 0, l: 0 },
-    { t: 0, r: 0, b: 0, l: 0 },
-    config,
-    [],
-    [],
-    {},
-  );
-  item.graph._updateEndTime = () => { item.graph._endTime = rangeEnd; };
+  series.configureGraph(item, 100, 50, { t: 0, r: 0, b: 0, l: 0 }, { t: 0, r: 0, b: 0, l: 0 }, config, [], [], {});
+  item.graph._updateEndTime = () => {
+    item.graph._endTime = rangeEnd;
+  };
   item.entity = { last_changed: rows.at(-1).last_changed };
   item.rows = rows;
 
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   Object.assign(tool, {
-    runtime: { entity: item.entity, entityConfig: item.entityConfig },
     config,
     sparklineSeries: series,
-    graphDataChanged: true,
     card: { dev: { debug: false } },
-    configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
-    svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
     calculateAxisMargin: () => ({ t: 0, r: 0, b: 0, l: 0 }),
     sparklineHistory: {
       getSeriesRange: () => ({
@@ -2600,11 +2728,22 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
         end: rangeEnd.getTime(),
       }),
     },
-    area: [],
-    areaMinMax: [],
-    line: [],
-    points: [],
-    gradient: [],
+    geometry: {
+      configuredGraphMargin: { t: 0, r: 0, b: 0, l: 0 },
+      svg: { line_width: 1, column_spacing: 4, row_spacing: 4 },
+      area: [],
+      areaMinMax: [],
+      line: [],
+      points: [],
+    },
+    runtime: {
+      entity: item.entity,
+      entityConfig: item.entityConfig,
+      graphDataChanged: true,
+    },
+    paint: {
+      gradient: [],
+    },
   });
 
   tool.updateCartesianSeriesGraphs();
@@ -2617,7 +2756,7 @@ test('cartesian series exposes unchanged whole-period statistics after real grap
     max_time: '2026-09-12T11:00:00.000Z',
   });
   assert.equal(item.graph.coords.length, 4);
-  assert.match(tool.line[0], /^M/);
+  assert.match(tool.geometry.line[0], /^M/);
 });
 
 test('paint-only configuration retains accepted rows, graph calculations and paths', (context) => {
@@ -2625,8 +2764,12 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   const item = tool.sparklineSeries.primaryItem;
   const graph = item.graph;
   const retained = {
-    rows: item.rows, values: graph.processedValues, buckets: graph.bucketMeta,
-    coords: graph.coords, statistics: graph.statistics, line: tool.line,
+    rows: item.rows,
+    values: graph.processedValues,
+    buckets: graph.bucketMeta,
+    coords: graph.coords,
+    statistics: graph.statistics,
+    line: tool.geometry.line,
   };
   const aggregate = context.mock.method(graph, 'aggregateBuckets');
   const geometry = context.mock.method(graph, 'calculateGeometry');
@@ -2648,7 +2791,7 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   assert.strictEqual(graph.bucketMeta, retained.buckets);
   assert.strictEqual(graph.coords, retained.coords);
   assert.strictEqual(graph.statistics, retained.statistics);
-  assert.strictEqual(tool.line, retained.line);
+  assert.strictEqual(tool.geometry.line, retained.line);
   assert.equal(aggregate.mock.callCount(), 0);
   assert.equal(geometry.mock.callCount(), 0);
   assert.equal(statistics.mock.callCount(), 0);
@@ -2686,6 +2829,7 @@ test('a changed single Cartesian series prunes and calculates statistics once', 
 test('a single bar renders the final rectangles already calculated by Series', (context) => {
   const tool = createChangeDetectionTool(context, 'rolling_window');
   tool.config.sparkline.show.chart_type = 'bar';
+  tool.config.series[0].sparkline.show.chart_type = 'bar';
   tool.card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
@@ -2696,7 +2840,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
   // The first pass measures outer half-bars; the second supplies final SVG
   // rectangles. Single-item presentation must not add a third calculation.
   assert.equal(bars.mock.callCount(), 2);
-  assert.strictEqual(tool.bar[0], tool.sparklineSeries.primaryItem.bars);
+  assert.strictEqual(tool.geometry.bar[0], tool.sparklineSeries.primaryItem.bars);
 });
 
 ['line', 'area'].forEach((chartType) => {
@@ -2705,6 +2849,9 @@ test('a single bar renders the final rectangles already calculated by Series', (
     tool.config.sparkline.show.chart_type = chartType;
     tool.config.sparkline.show.points = true;
     tool.config.sparkline[chartType].show.minmax = true;
+    tool.config.series[0].sparkline.show.chart_type = chartType;
+    tool.config.series[0].sparkline.show.points = true;
+    tool.config.series[0].sparkline[chartType].show.minmax = true;
     tool.card.cardTheme.modeChanged = true;
     tool.updateRuntimeConfig();
     tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
@@ -2719,10 +2866,10 @@ test('a single bar renders the final rectangles already calculated by Series', (
 
     tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
     tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
-    assert.equal(tool.line[0], tool.linePath);
-    assert.equal(tool.areaMinMax[0], tool.areaMinMaxPath);
-    assert.ok(tool.areaMinMaxPath.length > 0);
-    if (chartType === 'area') assert.equal(tool.area[0], tool.areaPath);
+    assert.equal(tool.geometry.line[0], tool.geometry.linePath);
+    assert.equal(tool.geometry.areaMinMax[0], tool.geometry.areaMinMaxPath);
+    assert.ok(tool.geometry.areaMinMaxPath.length > 0);
+    if (chartType === 'area') assert.equal(tool.geometry.area[0], tool.geometry.areaPath);
 
     const pointCalculationCount = points.mock.callCount();
     assert.ok(pointCalculationCount > 0);
@@ -2745,7 +2892,7 @@ test('changed historical curves report presentation changes when all published s
   const graph = item.graph;
   const initialResult = tool.getSeriesResult();
   const initialCoords = structuredClone(graph.coords);
-  const initialPath = tool.line[0];
+  const initialPath = tool.geometry.line[0];
   const aggregate = context.mock.method(graph, 'aggregateBuckets');
   assert.equal(tool.hasPresentationChanged(), true);
   assert.equal(tool.hasPresentationChanged(), false);
@@ -2759,9 +2906,12 @@ test('changed historical curves report presentation changes when all published s
   tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
 
   assert.deepEqual(tool.getSeriesResult(), initialResult);
-  assert.deepEqual(graph.coords.map((point) => point[2]), [10, 30, 20, 40]);
+  assert.deepEqual(
+    graph.coords.map((point) => point[2]),
+    [10, 30, 20, 40],
+  );
   assert.notDeepEqual(graph.coords, initialCoords);
-  assert.notEqual(tool.line[0], initialPath);
+  assert.notEqual(tool.geometry.line[0], initialPath);
   assert.equal(aggregate.mock.callCount(), 1);
   assert.equal(tool.hasPresentationChanged(), true);
   assert.equal(tool.hasPresentationChanged(), false);
@@ -2796,8 +2946,11 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   assert.notStrictEqual(item.rows, retained.rows);
   assert.deepEqual(item.rows, [{ state: 20.1, last_changed: '2026-09-26T11:01:00.000Z' }]);
   assert.deepEqual(graph.statistics, {
-    min: 20.1, avg: 20.1, max: 20.1,
-    min_time: '2026-09-26T11:01:00.000Z', max_time: '2026-09-26T11:01:00.000Z',
+    min: 20.1,
+    avg: 20.1,
+    max: 20.1,
+    min_time: '2026-09-26T11:01:00.000Z',
+    max_time: '2026-09-26T11:01:00.000Z',
   });
   assert.equal(graphUpdates.mock.callCount(), 1);
   assert.equal(aggregate.mock.callCount(), 1);
@@ -2849,12 +3002,14 @@ test('publishes all derived values from their graph, series and period owners', 
     min_time: '2026-09-11T08:00:00.000Z',
     max_time: '2026-09-11T11:00:00.000Z',
   });
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
-    periodDurationAvailable: true,
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: {
       primaryItem: primary,
       items: [primary, comparison],
       binPlan: { perHour: 2, durationHours: 0.5 },
+    },
+    runtime: {
+      periodDurationAvailable: true,
     },
   });
 
@@ -2895,9 +3050,11 @@ test('retained graph statistics are not published as current during loading or e
       sparkline: { show: { chart_type: 'line' }, state_values: { aggregate_func: 'avg' } },
     },
   };
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
-    periodDurationAvailable: true,
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: { primaryItem: item, items: [item], binPlan: { durationHours: 1 } },
+    runtime: {
+      periodDurationAvailable: true,
+    },
   });
 
   const loadingResult = tool.getSeriesResult();
@@ -2917,7 +3074,7 @@ test('retained graph statistics are not published as current during loading or e
 
 test('history spinner follows only explicit loading request state', () => {
   const item = { requestState: 'not_loaded' };
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: { items: [item] },
   });
 
@@ -2933,15 +3090,17 @@ test('history spinner follows only explicit loading request state', () => {
 });
 
 test('retained presentation renders a loading spinner without disabling interaction', () => {
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: {
-      items: [{
-        requestState: 'loading',
-        dataState: 'has_data',
-        graph: {
-          drawArea: { x: 0, y: 0, width: 100, height: 50 },
+      items: [
+        {
+          requestState: 'loading',
+          dataState: 'has_data',
+          graph: {
+            drawArea: { x: 0, y: 0, width: 100, height: 50 },
+          },
         },
-      }],
+      ],
       primaryItem: {
         graph: {
           drawArea: { x: 0, y: 0, width: 100, height: 50 },
@@ -2986,9 +3145,11 @@ test('real-time and state-band results omit metadata that does not apply', () =>
       sparkline: { show: { chart_type: 'state_bands' }, state_values: { aggregate_func: 'avg' } },
     },
   };
-  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), {
-    periodDurationAvailable: true,
+  const tool = Object.assign(Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} }), {
     sparklineSeries: { primaryItem: realTime, items: [realTime], dataState: 'has_data', binPlan: { perHour: undefined, durationHours: undefined } },
+    runtime: {
+      periodDurationAvailable: true,
+    },
   });
 
   const realTimeResult = tool.getSeriesResult(undefined);
@@ -3005,7 +3166,7 @@ test('real-time and state-band results omit metadata that does not apply', () =>
 });
 
 test('radial barcode exposes only its radial time-axis presentation', () => {
-  const tool = Object.create(SparklineGraphTool.prototype);
+  const tool = Object.assign(Object.create(SparklineGraphTool.prototype), { geometry: {}, runtime: {}, paint: {} });
   const calls = [];
   Object.assign(tool, {
     config: {
@@ -3021,27 +3182,29 @@ test('radial barcode exposes only its radial time-axis presentation', () => {
         labels: { offset: 2 },
       },
     },
-    axisGraphs: {
-      primary: {
-        config: {
-          sparkline: {
-            show: {
-              chart_type: 'radial_barcode',
-              tickmarks: { y: true },
-              labels: { y: true },
-            },
-          },
-        },
-      },
-      secondary: undefined,
-    },
     resolveAxisFontSizePixels: () => 8,
     buildYAxisTicks: () => {
       throw new Error('radial barcode has no value axis');
     },
+    geometry: {
+      axisGraphs: {
+        primary: {
+          input: {
+            sparkline: {
+              show: {
+                chart_type: 'radial_barcode',
+                tickmarks: { y: true },
+                labels: { y: true },
+              },
+            },
+          },
+        },
+        secondary: undefined,
+      },
+    },
   });
 
-  const margin = tool.calculateRadialAxisMargin(tool.axisGraphs);
+  const margin = tool.calculateRadialAxisMargin(tool.geometry.axisGraphs);
   assert.ok(margin.t > 0);
   assert.deepEqual(margin, { t: margin.t, r: margin.t, b: margin.t, l: margin.t, x: margin.t, y: margin.t });
 

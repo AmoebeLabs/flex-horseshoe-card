@@ -54,12 +54,12 @@ export default class SparklineGraph {
    * @param {number} height - SVG graph height.
    * @param {object} axisMargin - Space reserved outside the shared axis area.
    * @param {object} configuredMargin - User-configured margin inside the axes.
-   * @param {object} config - Validated sparkline configuration.
+   * @param {object} graphInput - Validated sparkline configuration.
    * @param {Array<number>} gradeValues - Numeric grade boundaries.
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - Numeric mapping for categorical state bands.
    */
-  constructor(width, height, axisMargin, configuredMargin, config, gradeValues = [], gradeRanks = [], stateMap = {}) {
+  constructor(width, height, axisMargin, configuredMargin, graphInput, gradeValues = [], gradeRanks = [], stateMap = {}) {
     this.graphArea = {};
     this.axisArea = {};
     this.dataArea = {};
@@ -98,7 +98,7 @@ export default class SparklineGraph {
     this._max = 0;
     this._min = 0;
     this.sharedYAxisBounds = undefined;
-    this.updateGraphConfig(width, height, axisMargin, configuredMargin, config, gradeValues, gradeRanks, stateMap);
+    this.updateGraphInput(width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap);
   }
 
   /**
@@ -110,24 +110,24 @@ export default class SparklineGraph {
    * @param {number} height - SVG graph height.
    * @param {object} axisMargin - Outer axis and label space.
    * @param {object} configuredMargin - User-configured plot margin.
-   * @param {object} config - Validated graph configuration.
+   * @param {object} graphInput - Validated graph configuration.
    * @param {Array<number>} gradeValues - Numeric grade boundaries.
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - State-band mapping.
    */
-  updateGraphConfig(width, height, axisMargin, configuredMargin, config, gradeValues, gradeRanks, stateMap) {
-    const chartType = config.sparkline.show.chart_type;
+  updateGraphInput(width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap) {
+    const chartType = graphInput.sparkline.show.chart_type;
     const radial = chartType === 'radial';
     const radialBarcode = chartType === 'radial_barcode';
     const lineOrArea = chartType === 'line' || chartType === 'area' || radial;
     // The coordinator can distinguish paint/size updates from a changed bucket
     // calculation without inspecting or rebuilding the engine's processed data.
-    const graphFamily = radial ? config.sparkline.show.chart_variant : chartType;
+    const graphFamily = radial ? graphInput.sparkline.show.chart_variant : chartType;
     const dataConfigSignature = JSON.stringify([
-      config.period,
-      config.sparkline.state_values.aggregate_func,
+      graphInput.period,
+      graphInput.sparkline.state_values.aggregate_func,
       graphFamily,
-      graphFamily === 'line' ? config.sparkline.line.show.minmax : graphFamily === 'area' && config.sparkline.area.show.minmax,
+      graphFamily === 'line' ? graphInput.sparkline.line.show.minmax : graphFamily === 'area' && graphInput.sparkline.area.show.minmax,
       chartType === 'graded' ? gradeValues : undefined,
       chartType === 'state_bands' ? stateMap.map.map((entry) => [entry.state, entry.value]) : undefined,
     ]);
@@ -140,37 +140,37 @@ export default class SparklineGraph {
       height,
       axisMargin,
       configuredMargin,
-      config.geometry,
-      config.labelLocale,
-      config.period,
+      graphInput.geometry,
+      graphInput.labelLocale,
+      graphInput.period,
       chartType,
-      config.sparkline.show.chart_variant,
-      config.sparkline.show.chart_viz,
-      config.sparkline.show.line,
-      config.sparkline.show.points,
-      config.sparkline.show.axis,
-      config.sparkline.show.tickmarks,
-      config.sparkline.show.labels,
-      config.sparkline.show.xlabels_at,
-      config.sparkline.show.ylabels_at,
-      config.sparkline.state_values.logarithmic,
-      config.sparkline.state_values.smoothing,
-      lineOrArea ? config.sparkline.line.show_dots : undefined,
-      lineOrArea ? config.sparkline.area.show_dots : undefined,
-      chartType === 'dots' || lineOrArea ? config.sparkline.dots.radius : undefined,
-      radial ? [config.sparkline.radial.arc_degrees, config.sparkline.radial.rotate, config.sparkline.radial.size] : undefined,
-      radialBarcode ? [config.sparkline.radial_barcode.arc_degrees, config.sparkline.radial_barcode.rotate, config.sparkline.radial_barcode.size] : undefined,
-      chartType === 'bar' ? config.sparkline.bar.orientation : undefined,
-      chartType === 'equalizer' || chartType === 'graded' ? config.sparkline.equalizer.value_buckets : undefined,
-      [config.x_axis.labels.max_length, config.x_axis.labels.offset, config.x_axis.labels.styles['font-size'], config.x_axis.labels.styles['text-anchor'], config.x_axis.tickmarks_major.size],
-      [config.y_axis.lower_bound, config.y_axis.upper_bound, config.y_axis.labels.offset, config.y_axis.labels.styles['font-size'], config.y_axis.tickmarks_major.size],
+      graphInput.sparkline.show.chart_variant,
+      graphInput.sparkline.show.chart_viz,
+      graphInput.sparkline.show.line,
+      graphInput.sparkline.show.points,
+      graphInput.sparkline.show.axis,
+      graphInput.sparkline.show.tickmarks,
+      graphInput.sparkline.show.labels,
+      graphInput.sparkline.show.xlabels_at,
+      graphInput.sparkline.show.ylabels_at,
+      graphInput.sparkline.state_values.logarithmic,
+      graphInput.sparkline.state_values.smoothing,
+      lineOrArea ? graphInput.sparkline.line.show_dots : undefined,
+      lineOrArea ? graphInput.sparkline.area.show_dots : undefined,
+      chartType === 'dots' || lineOrArea ? graphInput.sparkline.dots.radius : undefined,
+      radial ? [graphInput.sparkline.radial.arc_degrees, graphInput.sparkline.radial.rotate, graphInput.sparkline.radial.size] : undefined,
+      radialBarcode ? [graphInput.sparkline.radial_barcode.arc_degrees, graphInput.sparkline.radial_barcode.rotate, graphInput.sparkline.radial_barcode.size] : undefined,
+      chartType === 'bar' ? graphInput.sparkline.bar.orientation : undefined,
+      chartType === 'equalizer' || chartType === 'graded' ? graphInput.sparkline.equalizer.value_buckets : undefined,
+      [graphInput.x_axis.labels.max_length, graphInput.x_axis.labels.offset, graphInput.x_axis.labels.styles['font-size'], graphInput.x_axis.labels.styles['text-anchor'], graphInput.x_axis.tickmarks_major.size],
+      [graphInput.y_axis.lower_bound, graphInput.y_axis.upper_bound, graphInput.y_axis.labels.offset, graphInput.y_axis.labels.styles['font-size'], graphInput.y_axis.tickmarks_major.size],
       chartType === 'graded' ? gradeValues : undefined,
       chartType === 'graded' ? gradeRanks.map((rank) => [rank.rank, rank.value, rank.rangeMin, rank.rangeMax]) : undefined,
       chartType === 'state_bands' ? stateMap.map : undefined,
     ]);
     this.geometryConfigChanged = this.geometryConfigChanged || this.geometryInputSignature !== geometryInputSignature;
     this.geometryInputSignature = geometryInputSignature;
-    this.config = config;
+    this.input = graphInput;
     this.width = width;
     this.height = height;
     // graphArea is the complete SVG viewport; the tool supplies only the
@@ -182,18 +182,18 @@ export default class SparklineGraph {
     }
     // Real-time represents one current value. Historical graphs use their
     // configured duration and bins to position values on the time axis.
-    if (this.config.period.type === 'real_time') {
+    if (this.input.period.type === 'real_time') {
       this.points = 1;
       this.hours = 1;
     } else {
-      const period = this.config.period[this.config.period.type];
+      const period = this.input.period[this.input.period.type];
       this.points = period.bins.per_hour;
       this.hours = period.duration.hour;
     }
-    this.aggregateFuncName = this.config.sparkline.state_values.aggregate_func;
-    this._smoothing = this.config.sparkline.state_values?.smoothing;
-    this._logarithmic = this.config.sparkline.state_values?.logarithmic;
-    this._groupBy = this.config.period.group_by;
+    this.aggregateFuncName = this.input.sparkline.state_values.aggregate_func;
+    this._smoothing = this.input.sparkline.state_values?.smoothing;
+    this._logarithmic = this.input.sparkline.state_values?.logarithmic;
+    this._groupBy = this.input.period.group_by;
     this.gradeValues = gradeValues;
     this.gradeRanks = gradeRanks;
     this.stateMap = { ...stateMap };
@@ -213,7 +213,7 @@ export default class SparklineGraph {
    * @returns {object} Stored min, average, max and matching timestamps.
    */
   updateStatistics(series, statisticsRange, currentStateTime) {
-    if (this.config.period.type === 'real_time') {
+    if (this.input.period.type === 'real_time') {
       const state = Number(series[0].state);
       this.statistics = {
         min: state,
@@ -345,7 +345,7 @@ export default class SparklineGraph {
   setGraphAreas(axisMargin, configuredMargin, bucketCount, sharedChartGeometryMargin = undefined) {
     const previousAxisArea = this.axisArea;
     const previousDataArea = this.dataArea;
-    const chartType = this.config.sparkline.show.chart_type;
+    const chartType = this.input.sparkline.show.chart_type;
     let rendersDots = chartType === 'dots';
     let chartTop = 0;
     let chartRight = 0;
@@ -353,13 +353,13 @@ export default class SparklineGraph {
     let chartLeft = 0;
 
     if (chartType === 'line') {
-      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true;
+      rendersDots = this.input.sparkline.show.points === true || this.input.sparkline.line.show_dots === true;
     }
     if (chartType === 'radial') {
-      const radialVariant = this.config.sparkline.show.chart_variant;
-      rendersDots = radialVariant === 'dots' || this.config.sparkline.show.points === true || this.config.sparkline.line.show_dots === true || this.config.sparkline.area.show_dots === true;
-      if (radialVariant !== 'dots' && this.config.sparkline.show.line !== false) {
-        const lineExtent = this.config.geometry.line_width / 2;
+      const radialVariant = this.input.sparkline.show.chart_variant;
+      rendersDots = radialVariant === 'dots' || this.input.sparkline.show.points === true || this.input.sparkline.line.show_dots === true || this.input.sparkline.area.show_dots === true;
+      if (radialVariant !== 'dots' && this.input.sparkline.show.line !== false) {
+        const lineExtent = this.input.geometry.line_width / 2;
         chartTop = lineExtent;
         chartRight = lineExtent;
         chartBottom = lineExtent;
@@ -368,12 +368,12 @@ export default class SparklineGraph {
     }
 
     if (chartType === 'area') {
-      rendersDots = this.config.sparkline.show.points === true || this.config.sparkline.area.show_dots === true;
+      rendersDots = this.input.sparkline.show.points === true || this.input.sparkline.area.show_dots === true;
     }
 
     if (rendersDots) {
-      const radius = Utils.calculateSvgDimension(this.config.sparkline.dots.radius);
-      const inheritedStrokeWidth = this.config.geometry.line_width / 2;
+      const radius = Utils.calculateSvgDimension(this.input.sparkline.dots.radius);
+      const inheritedStrokeWidth = this.input.geometry.line_width / 2;
       const dotExtent = radius + inheritedStrokeWidth / 2;
       chartTop = Math.max(chartTop, dotExtent);
       chartRight = Math.max(chartRight, dotExtent);
@@ -386,7 +386,7 @@ export default class SparklineGraph {
       const configuredDataWidth = axisWidth - configuredMargin.l - configuredMargin.r;
       // N inclusive bucket centers span dataArea. Solving the final bar width
       // here keeps the first and last half-bars exactly inside axisArea.
-      const finalBarWidth = Math.max(1, (configuredDataWidth + this.config.geometry.column_spacing) / bucketCount - this.config.geometry.column_spacing);
+      const finalBarWidth = Math.max(1, (configuredDataWidth + this.input.geometry.column_spacing) / bucketCount - this.input.geometry.column_spacing);
       chartLeft = finalBarWidth / 2;
       chartRight = finalBarWidth / 2;
     }
@@ -589,7 +589,7 @@ export default class SparklineGraph {
 
     // State bands use exact transition timestamps and never aggregate or align
     // their visible history range to graph buckets.
-    if (this.config.sparkline.show.chart_type === 'state_bands') {
+    if (this.input.sparkline.show.chart_type === 'state_bands') {
       this.bucketConfigKey = undefined;
       this.statisticsGroups = [];
       this.processedRows = undefined;
@@ -617,23 +617,23 @@ export default class SparklineGraph {
     this.calendarBucketStartMs = undefined;
     this.calendarBucketCount = undefined;
     this.visibleBucketCount = undefined;
-    switch (this.config.period.type) {
+    switch (this.input.period.type) {
       case 'real_time':
         requiredNumOfPoints = 1;
         this.visibleBucketCount = requiredNumOfPoints;
         this.hours = 1;
         break;
       case 'calendar':
-        if (this.config.period?.calendar?.period === 'day') {
+        if (this.input.period?.calendar?.period === 'day') {
           const calendarStart = new Date(date);
           calendarStart.setHours(0, 0, 0, 0);
-          calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
+          calendarStart.setHours(calendarStart.getHours() + this.input.period.calendar.offset * 24 - (this.input.period.calendar.duration.hour - 24));
 
-          if (this.config.period.calendar.offset === 0 && this.config.period.calendar.full_day !== true) {
+          if (this.input.period.calendar.offset === 0 && this.input.period.calendar.full_day !== true) {
             this.calendarBucketCount = Math.ceil((this._endTime.getTime() - calendarStart.getTime()) / bucketMs);
             this.calendarBucketStartMs = this._endTime.getTime() - this.calendarBucketCount * bucketMs;
           } else {
-            this.calendarBucketCount = Math.round((this.config.period.calendar.duration.hour * ONE_HOUR) / bucketMs);
+            this.calendarBucketCount = Math.round((this.input.period.calendar.duration.hour * ONE_HOUR) / bucketMs);
             this.calendarBucketStartMs = calendarStart.getTime();
           }
 
@@ -658,11 +658,11 @@ export default class SparklineGraph {
     // The visible end and calendar bucket count can advance even when HA has
     // supplied no new rows. Geometry and paint settings are intentionally not
     // part of this key, so a resize with the same bins reuses the data result.
-    const chartType = this.config.sparkline.show.chart_type;
-    const graphFamily = chartType === 'radial' ? this.config.sparkline.show.chart_variant : chartType;
-    const showMinMax = graphFamily === 'line' ? this.config.sparkline.line.show.minmax === true : graphFamily === 'area' && this.config.sparkline.area.show.minmax === true;
+    const chartType = this.input.sparkline.show.chart_type;
+    const graphFamily = chartType === 'radial' ? this.input.sparkline.show.chart_variant : chartType;
+    const showMinMax = graphFamily === 'line' ? this.input.sparkline.line.show.minmax === true : graphFamily === 'area' && this.input.sparkline.area.show.minmax === true;
     const processedDataKey = JSON.stringify([
-      this.config.period,
+      this.input.period,
       this.hours,
       this.points,
       this.aggregateFuncName,
@@ -674,10 +674,10 @@ export default class SparklineGraph {
     ]);
     if (this.processedRows === this._history && this.processedDataKey === processedDataKey) return this.dataState;
 
-    const bucketStart = this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
-    const bucketConfigKey = JSON.stringify([this.config.period, this.hours, this.points, this.aggregateFuncName, graphFamily, showMinMax]);
-    const historicalBuckets = this.config.period.type === 'rolling_window'
-      || (this.config.period.type === 'calendar' && this.config.period.calendar.period === 'day');
+    const bucketStart = this.input.period.type === 'calendar' && this.input.period.calendar.period === 'day' ? this.calendarBucketStartMs : this._endTime.getTime() - this.hours * ONE_HOUR;
+    const bucketConfigKey = JSON.stringify([this.input.period, this.hours, this.points, this.aggregateFuncName, graphFamily, showMinMax]);
+    const historicalBuckets = this.input.period.type === 'rolling_window'
+      || (this.input.period.type === 'calendar' && this.input.period.calendar.period === 'day');
     // Only Graph decides whether its previous bins fit the new input. A full
     // source replacement or changed bin plan rebuilds them. A live delivery
     // names the earliest correction, so existing completed bins stay reusable.
@@ -719,7 +719,7 @@ export default class SparklineGraph {
         histGroups[0] = lower > 0 ? this._history.slice(0, lower) : undefined;
       }
     } else {
-      histGroups = this.config.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
+      histGroups = this.input.period.type === 'real_time' ? [this._history] : this._history.reduce((res, item) => this._reducer(res, item), []);
       this.bucketResults = new WeakMap();
     }
     histGroups.length = requiredNumOfPoints;
@@ -833,8 +833,8 @@ export default class SparklineGraph {
     this.coords = positionValues(this.processedValues);
     this.coordsMin = positionValues(this.processedMinValues);
     this.coordsMax = positionValues(this.processedMaxValues);
-    this.min = this.config.y_axis.lower_bound !== undefined ? Number(this.config.y_axis.lower_bound) : this.dataMin;
-    this.max = this.config.y_axis.upper_bound !== undefined ? Number(this.config.y_axis.upper_bound) : this.dataMax;
+    this.min = this.input.y_axis.lower_bound !== undefined ? Number(this.input.y_axis.lower_bound) : this.dataMin;
+    this.max = this.input.y_axis.upper_bound !== undefined ? Number(this.input.y_axis.upper_bound) : this.dataMax;
     this.buildAxisGeometry();
     this.geometryResultSignature = geometryResultSignature;
     this.geometryConfigChanged = false;
@@ -848,15 +848,15 @@ export default class SparklineGraph {
    * labels, tickmarks and grid rendering.
    */
   buildAxisGeometry() {
-    const fontSizeX = this.config.x_axis.labels.styles['font-size'];
-    const fontSizeY = this.config.y_axis.labels.styles['font-size'];
+    const fontSizeX = this.input.x_axis.labels.styles['font-size'];
+    const fontSizeY = this.input.y_axis.labels.styles['font-size'];
     const parsedFontSizeX = Number.parseFloat(fontSizeX);
     const parsedFontSizeY = Number.parseFloat(fontSizeY);
     const fontSizePixelsX = fontSizeX.endsWith('%') ? (parsedFontSizeX / 100) * FONT_SIZE : fontSizeX.endsWith('em') || fontSizeX.endsWith('rem') ? parsedFontSizeX * FONT_SIZE : parsedFontSizeX;
     const fontWidthPixels = fontSizePixelsX * 0.45;
     const fontHeightPixels = fontSizeY.endsWith('%') ? (parsedFontSizeY / 100) * FONT_SIZE * 0.85 : fontSizeY.endsWith('em') || fontSizeY.endsWith('rem') ? parsedFontSizeY * FONT_SIZE * 0.85 : parsedFontSizeY * 0.85;
     const xAxis = this.calculateXAxisGeometry(fontWidthPixels, fontSizePixelsX);
-    const yAxis = this.config.sparkline.show.chart_type === 'state_bands' ? this.calculateStateBandsYAxisGeometry() : this.calculateYAxisGeometry(fontHeightPixels);
+    const yAxis = this.input.sparkline.show.chart_type === 'state_bands' ? this.calculateStateBandsYAxisGeometry() : this.calculateYAxisGeometry(fontHeightPixels);
 
     this.min = yAxis.min;
     this.max = yAxis.max;
@@ -874,7 +874,7 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateXAxisGeometry(fontWidthPixels, fontSizePixels = fontWidthPixels / 0.45) {
-    const period = this.config.period[this.config.period.type];
+    const period = this.input.period[this.input.period.type];
     const now = new Date();
     const bucketMs = ONE_HOUR / this.points;
     let axisStart;
@@ -882,8 +882,8 @@ export default class SparklineGraph {
     let dataStart;
     let dataEnd;
 
-    if (this.config.sparkline.show.chart_type === 'state_bands') {
-      if (this.config.period.type === 'calendar') {
+    if (this.input.sparkline.show.chart_type === 'state_bands') {
+      if (this.input.period.type === 'calendar') {
         axisStart = new Date(now);
         axisStart.setHours(0, 0, 0, 0);
         axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
@@ -896,7 +896,7 @@ export default class SparklineGraph {
         dataStart = new Date(axisStart);
         dataEnd = new Date(axisEnd);
       }
-    } else if (this.config.period.type === 'calendar' && period.period === 'day') {
+    } else if (this.input.period.type === 'calendar' && period.period === 'day') {
       axisStart = new Date(now);
       axisStart.setHours(0, 0, 0, 0);
       axisStart.setHours(axisStart.getHours() + period.offset * 24 - (period.duration.hour - 24));
@@ -914,8 +914,8 @@ export default class SparklineGraph {
     const maxMs = axisEnd.getTime();
     const totalDuration = maxMs - minMs;
     const xProjectionDuration =
-      this.config.sparkline.show.chart_type === 'radial_barcode' ? totalDuration + bucketMs : totalDuration;
-    const approxLabelWidth = this.config.x_axis.labels.max_length * fontWidthPixels + fontSizePixels;
+      this.input.sparkline.show.chart_type === 'radial_barcode' ? totalDuration + bucketMs : totalDuration;
+    const approxLabelWidth = this.input.x_axis.labels.max_length * fontWidthPixels + fontSizePixels;
     const maxLabels = Math.floor(this.drawArea.width / approxLabelWidth);
     const effectiveMaxLabels = Math.max(maxLabels, 2);
     const minTimeStep = totalDuration / (effectiveMaxLabels - 1);
@@ -931,7 +931,7 @@ export default class SparklineGraph {
     // Binned graphs can only place ticks on bucket boundaries. Keep the
     // automatically selected density, unless its interval is incompatible
     // with bins.per_hour; then use the next compatible existing interval.
-    if (this.config.sparkline.show.chart_type !== 'state_bands') {
+    if (this.input.sparkline.show.chart_type !== 'state_bands') {
       while (selectedIndex < timeIntervals.length - 1 && (timeIntervals[selectedIndex] * this.points) % ONE_HOUR !== 0) {
         selectedIndex += 1;
       }
@@ -1015,7 +1015,7 @@ export default class SparklineGraph {
     // period ends at the exclusive boundary after the final bucket. Replace a
     // tick occupying the same endpoint and expose that actual period end so a
     // six-day axis can finish with the following midnight.
-    if (this.config.sparkline.show.chart_type !== 'state_bands' && this.config.period.type === 'calendar' && period.period === 'day') {
+    if (this.input.sparkline.show.chart_type !== 'state_bands' && this.input.period.type === 'calendar' && period.period === 'day') {
       const periodEnd = new Date(axisEnd.getTime() + bucketMs);
       const lastTick = ticks[ticks.length - 1];
 
@@ -1163,10 +1163,10 @@ export default class SparklineGraph {
    * @returns {object} Axis range, interval and ticks.
    */
   calculateYAxisGeometry(fontHeightPixels) {
-    const fixedLowerBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedLowerBound : this.config.y_axis.lower_bound !== undefined;
-    const fixedUpperBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedUpperBound : this.config.y_axis.upper_bound !== undefined;
-    let dataMin = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.lowerBound : fixedLowerBound ? Number(this.config.y_axis.lower_bound) : this.min;
-    let dataMax = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.upperBound : fixedUpperBound ? Number(this.config.y_axis.upper_bound) : this.max;
+    const fixedLowerBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedLowerBound : this.input.y_axis.lower_bound !== undefined;
+    const fixedUpperBound = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.fixedUpperBound : this.input.y_axis.upper_bound !== undefined;
+    let dataMin = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.lowerBound : fixedLowerBound ? Number(this.input.y_axis.lower_bound) : this.min;
+    let dataMax = this.sharedYAxisBounds !== undefined ? this.sharedYAxisBounds.upperBound : fixedUpperBound ? Number(this.input.y_axis.upper_bound) : this.max;
 
     if (dataMin === dataMax) {
       if (!fixedLowerBound) dataMin -= 1;
@@ -1174,7 +1174,7 @@ export default class SparklineGraph {
     }
 
     const minSpacePerLabel = fontHeightPixels * 1.5;
-    const axisLength = this.config.sparkline.show.chart_type === 'radial' ? this.getRadialGeometry().radialSize : this.drawArea.height;
+    const axisLength = this.input.sparkline.show.chart_type === 'radial' ? this.getRadialGeometry().radialSize : this.drawArea.height;
     const maxLabels = Math.floor(axisLength / minSpacePerLabel);
     const effectiveMaxLabels = Math.max(maxLabels, 2);
 
@@ -1206,7 +1206,7 @@ export default class SparklineGraph {
 
     // Without y labels there are no numeric endpoints to round. Divide the exact
     // data range evenly so optional grid lines and tickmarks remain visually regular.
-    if (!this.config.sparkline.show.labels.y) {
+    if (!this.input.sparkline.show.labels.y) {
       const interval = range / (effectiveMaxLabels - 1);
       const ticks = Array.from({ length: effectiveMaxLabels }, (_, index) => {
         const value = dataMin + interval * index;
@@ -1281,8 +1281,8 @@ export default class SparklineGraph {
    * @returns {Array<Array<object>>} Updated time buckets.
    */
   _reducer(res, item) {
-    const { type } = this.config.period;
-    const period = this.config.period[type];
+    const { type } = this.input.period;
+    const period = this.input.period[type];
 
     let hours = this.hours;
 
@@ -1490,7 +1490,7 @@ export default class SparklineGraph {
     if (coords.length === 1) {
       // Real-time charts represent one current value across their complete width.
       // Historical charts retain the configured time axis and occupy one bin.
-      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.input.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coords = [coords[0], [coords[0][X] + singletonWidth, 0, coords[0][V]]];
     }
     coords = this._calcY(coords);
@@ -1519,7 +1519,7 @@ export default class SparklineGraph {
   getPathMin() {
     let { coordsMin } = this;
     if (coordsMin.length === 1) {
-      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.input.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coordsMin = [coordsMin[0], [coordsMin[0][X] + singletonWidth, 0, coordsMin[0][V]]];
     }
     coordsMin = this._calcY(coordsMin);
@@ -1549,7 +1549,7 @@ export default class SparklineGraph {
   getPathMax() {
     let { coordsMax } = this;
     if (coordsMax.length === 1) {
-      const singletonWidth = this.config.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
+      const singletonWidth = this.input.period.type === 'real_time' ? this.drawArea.width : this.drawArea.width / (this.hours * this.points - 1);
       coordsMax = [coordsMax[0], [coordsMax[0][X] + singletonWidth, 0, coordsMax[0][V]]];
     }
     coordsMax = this._calcY(coordsMax);
@@ -1672,7 +1672,7 @@ export default class SparklineGraph {
    */
   getRadialGeometry() {
     const outerRadius = Math.min(this.drawArea.width, this.drawArea.height) / 2;
-    const radialConfig = this.config.sparkline[this.config.sparkline.show.chart_type];
+    const radialConfig = this.input.sparkline[this.input.sparkline.show.chart_type];
     const configuredRadialSize = Utils.calculateSvgDimension(radialConfig.size);
     const radialSize = Math.min(configuredRadialSize, outerRadius);
     const innerRadius = outerRadius - radialSize;
@@ -1956,7 +1956,7 @@ export default class SparklineGraph {
     const duration = rangeEnd.getTime() - rangeStart.getTime();
     const startFraction = (segmentStart.getTime() - rangeStart.getTime()) / duration;
     const endFraction = (segmentEnd.getTime() - rangeStart.getTime()) / duration;
-    const chartType = this.config.sparkline.show.chart_type;
+    const chartType = this.input.sparkline.show.chart_type;
 
     if (chartType === 'radial' || chartType === 'radial_barcode') {
       const radialGeometry = this.getRadialGeometry();
@@ -2071,7 +2071,7 @@ export default class SparklineGraph {
     const startAngle = radialGeometry.rotate;
     let runningAngle = startAngle;
     const clockWise = true;
-    const chartViz = this.config.sparkline.show.chart_viz;
+    const chartViz = this.input.sparkline.show.chart_viz;
     const halfAngleRadians = ((angleSize - columnSpacing * 2) * Math.PI) / 360;
     const roundedSideFactor = Math.sin(halfAngleRadians);
     let outerRoundFactor = 0;
@@ -2081,8 +2081,8 @@ export default class SparklineGraph {
     // ends on its two configured radii; rounded paths consume space per side.
     switch (chartViz) {
       case "flower":
-        outerRoundFactor = this.config.sparkline.show.chart_variant === "sunburst_inward" ? 0 : roundedSideFactor;
-        innerRoundFactor = this.config.sparkline.show.chart_variant === "sunburst_outward" ? 0 : roundedSideFactor;
+        outerRoundFactor = this.input.sparkline.show.chart_variant === "sunburst_inward" ? 0 : roundedSideFactor;
+        innerRoundFactor = this.input.sparkline.show.chart_variant === "sunburst_outward" ? 0 : roundedSideFactor;
         break;
       case "flower2":
         outerRoundFactor = roundedSideFactor;
@@ -2104,7 +2104,7 @@ export default class SparklineGraph {
       const value = !isBackground ? coord[V] : this.max;
       let ringWidth;
       let radius;
-      switch (this.config.sparkline.show?.chart_variant) {
+      switch (this.input.sparkline.show?.chart_variant) {
         case 'sunburst':
         case 'sunburst_centered':
           ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
@@ -2140,7 +2140,7 @@ export default class SparklineGraph {
         let ringWidth;
         let radius;
         const value = this.max;
-        switch (this.config.sparkline.show?.chart_variant) {
+        switch (this.input.sparkline.show?.chart_variant) {
           case 'sunburst':
           case 'sunburst_centered':
             ringWidth = ((this._logarithmic ? Math.log10(Math.max(1, value)) : value) - min) / wRatio;
@@ -2219,9 +2219,9 @@ export default class SparklineGraph {
       let rInnerY;
       let sweepFlagTest = '0';
 
-      if (['flower2', 'flower', 'rice_grain'].includes(this.config.sparkline.show?.chart_viz)) {
+      if (['flower2', 'flower', 'rice_grain'].includes(this.input.sparkline.show?.chart_viz)) {
         // Petal visualizations use the segment chord as their arc radius.
-        if (this.config.sparkline.show.chart_viz === 'flower' && this.config.sparkline.show.chart_variant === 'sunburst_inward') {
+        if (this.input.sparkline.show.chart_viz === 'flower' && this.input.sparkline.show.chart_variant === 'sunburst_inward') {
           rOuterX = segment.radius.x;
           rOuterY = segment.radius.y;
         } else {
@@ -2230,7 +2230,7 @@ export default class SparklineGraph {
           rOuterX = Math.sqrt(difX1 * difX1 + difY1 * difY1) / 2;
           rOuterY = rOuterX;
         }
-        if (this.config.sparkline.show.chart_viz === 'flower' && this.config.sparkline.show.chart_variant === 'sunburst_outward') {
+        if (this.input.sparkline.show.chart_viz === 'flower' && this.input.sparkline.show.chart_variant === 'sunburst_outward') {
           rInnerX = segment.radius2.x;
           rInnerY = segment.radius2.y;
         } else {
@@ -2238,7 +2238,7 @@ export default class SparklineGraph {
           const difY2 = Math.abs(segment.start2.y - segment.end2.y);
           rInnerX = Math.sqrt(difX2 * difX2 + difY2 * difY2) / 2;
           rInnerY = rInnerX;
-          sweepFlagTest = ['rice_grain', 'flower'].includes(this.config.sparkline.show.chart_viz) ? '1' : '0';
+          sweepFlagTest = ['rice_grain', 'flower'].includes(this.input.sparkline.show.chart_viz) ? '1' : '0';
         }
       } else {
         rOuterX = segment.radius.x;
@@ -2310,9 +2310,9 @@ export default class SparklineGraph {
       let rInnerY;
       let sweepFlagTest = '0';
 
-      if (['flower2', 'flower', 'rice_grain'].includes(this.config.sparkline.show?.chart_viz)) {
+      if (['flower2', 'flower', 'rice_grain'].includes(this.input.sparkline.show?.chart_viz)) {
         // Petal visualizations use the segment chord as their arc radius.
-        if (this.config.sparkline.show.chart_viz === 'flower' && this.config.sparkline.show.chart_variant === 'sunburst_inward') {
+        if (this.input.sparkline.show.chart_viz === 'flower' && this.input.sparkline.show.chart_variant === 'sunburst_inward') {
           rOuterX = segment.radius.x;
           rOuterY = segment.radius.y;
         } else {
@@ -2321,7 +2321,7 @@ export default class SparklineGraph {
           rOuterX = Math.sqrt(difX1 * difX1 + difY1 * difY1) / 2;
           rOuterY = rOuterX;
         }
-        if (this.config.sparkline.show.chart_viz === 'flower' && this.config.sparkline.show.chart_variant === 'sunburst_outward') {
+        if (this.input.sparkline.show.chart_viz === 'flower' && this.input.sparkline.show.chart_variant === 'sunburst_outward') {
           rInnerX = segment.radius2.x;
           rInnerY = segment.radius2.y;
         } else {
@@ -2329,7 +2329,7 @@ export default class SparklineGraph {
           const difY2 = Math.abs(segment.start2.y - segment.end2.y);
           rInnerX = Math.sqrt(difX2 * difX2 + difY2 * difY2) / 2;
           rInnerY = rInnerX;
-          sweepFlagTest = ['rice_grain', 'flower'].includes(this.config.sparkline.show.chart_viz) ? '1' : '0';
+          sweepFlagTest = ['rice_grain', 'flower'].includes(this.input.sparkline.show.chart_viz) ? '1' : '0';
         }
       } else {
         rOuterX = segment.radius.x;
@@ -2382,7 +2382,7 @@ export default class SparklineGraph {
     const segmentWidth = xRatio - Math.min(columnSpacing / 2, xRatio / 2);
     const yRatio = (max - min) / this.drawArea.height || 1;
 
-    switch (this.config.sparkline.show.chart_variant) {
+    switch (this.input.sparkline.show.chart_variant) {
       case 'audio':
         return coords.map((coord, i) => ({
           x: xRatio * i * total + xRatio * position + this.drawArea.x,
@@ -2520,7 +2520,7 @@ export default class SparklineGraph {
    */
   getBars(position, total, columnSpacing = 4, rowSpacing = 4) {
     const coords = this._calcY(this.coords);
-    if (this.config.sparkline.bar.orientation === 'horizontal') {
+    if (this.input.sparkline.bar.orientation === 'horizontal') {
       const bucketHeight = this.drawArea.height / coords.length;
       const barSlotHeight = bucketHeight / total;
       const height = Math.max(1, barSlotHeight - rowSpacing);
@@ -2602,20 +2602,20 @@ export default class SparklineGraph {
    */
   _updateEndTime() {
     this._endTime = new Date();
-    if (this.config.period.type === 'calendar') {
-      if (this.config.period.calendar.period === 'day' && (this.config.period.calendar.offset !== 0 || this.config.period.calendar.full_day === true)) {
+    if (this.input.period.type === 'calendar') {
+      if (this.input.period.calendar.period === 'day' && (this.input.period.calendar.offset !== 0 || this.input.period.calendar.full_day === true)) {
         // Historical days and shared day comparisons have a fixed local end.
         // The active day keeps its current-bin end unless a comparison needs
         // the complete 24-hour reference axis.
         const calendarStart = new Date(this._endTime);
         calendarStart.setHours(0, 0, 0, 0);
-        calendarStart.setHours(calendarStart.getHours() + this.config.period.calendar.offset * 24 - (this.config.period.calendar.duration.hour - 24));
-        this._endTime = new Date(calendarStart.getTime() + this.config.period.calendar.duration.hour * ONE_HOUR);
-      } else if (this.config.period.calendar.period === 'day') {
+        calendarStart.setHours(calendarStart.getHours() + this.input.period.calendar.offset * 24 - (this.input.period.calendar.duration.hour - 24));
+        this._endTime = new Date(calendarStart.getTime() + this.input.period.calendar.duration.hour * ONE_HOUR);
+      } else if (this.input.period.calendar.period === 'day') {
         this._endTime = this._snapToBin(this._endTime);
         this._endTime = new Date(this._endTime.getTime() + (60 / this.points) * 60 * 1000);
       }
-    } else if (this.config.period.type === 'rolling_window') {
+    } else if (this.input.period.type === 'rolling_window') {
       // Rolling window buckets are stored by their start time. _endTime is the
       // exclusive end of the active bucket, so 10:52 with 30-minute bins ends
       // at 11:00 and the last rendered bucket starts at 10:30.

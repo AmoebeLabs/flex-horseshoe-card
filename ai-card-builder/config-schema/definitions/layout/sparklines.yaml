@@ -89,10 +89,12 @@ definitions:
           description: Y-axis configuration.
           x-fhs-semantic-source: schema-context-v8
         series:
-          type: array
-          items:
-            $ref: layout.sparklineSeries
-          description: Additional sparkline series definitions.
+          anyOf:
+          - type: array
+            items:
+              $ref: layout.sparklineSeries
+          - $ref: common.javascript
+          description: Static series definitions or JavaScript returning the complete series array.
           x-fhs-semantic-source: schema-context-v8
         show: false
         color_stops: false
