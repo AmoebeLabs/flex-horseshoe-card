@@ -5,6 +5,7 @@ import ControlBase from './control-base.js';
 import ControlContent from './control-content.js';
 import IconTool from './icon-tool.js';
 import Merge from './merge.js';
+import Templates from './templates.js';
 import TextTool from './text-tool.js';
 import Utils from './utils.js';
 
@@ -248,11 +249,21 @@ export default class ControlButton extends ControlBase {
       config,
     );
     const selectedVizName = buttonConfig.show.item_viz;
-    buttonConfig[selectedVizName] = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG.viz_button, buttonConfig[selectedVizName]);
+    // Template context supplies defaults for concrete visualizations. Whole-value
+    // JavaScript stays source until the owning evaluator returns its object.
+    if (!forTemplateContext || !Templates.isJsTemplate(buttonConfig[selectedVizName])) {
+      buttonConfig[selectedVizName] = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG.viz_button, buttonConfig[selectedVizName]);
+    }
 
     // An explicit state map replaces the default map instead of concatenating
     // arrays through the normal deep-merge behavior.
-    buttonConfig.state_map = config.state_map === undefined ? DEFAULT_BUTTON_STATE_MAP : Merge.mergeDeep({}, config.state_map);
+    if (config.state_map === undefined) {
+      buttonConfig.state_map = DEFAULT_BUTTON_STATE_MAP;
+    } else if (forTemplateContext && Templates.isJsTemplate(config.state_map)) {
+      buttonConfig.state_map = config.state_map;
+    } else {
+      buttonConfig.state_map = Merge.mergeDeep({}, config.state_map);
+    }
 
     return buttonConfig;
   }
@@ -492,14 +503,19 @@ export default class ControlButton extends ControlBase {
       this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
-      this.contentIconTool.setState(entity, entityConfig);
+      // Child config may override the parent binding; publish its own HA state.
+      this.card.cardTools.setToolEntityState(
+        this.contentIconTool, this.card.resolvedEntityConfigs, this.card.entities,
+      );
     }
 
     if (this.contentTextTool) {
       this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
-      this.contentTextTool.setState(entity, entityConfig);
+      this.card.cardTools.setToolEntityState(
+        this.contentTextTool, this.card.resolvedEntityConfigs, this.card.entities,
+      );
     }
   }
 

@@ -523,12 +523,19 @@ definitions:
               - $ref: common.javascript
             description: Visibility/mode selectors for this tool. Exact supported keys are tool-specific.
             x-fhs-semantic-source: schema-context-v8
-          button:
+          viz_button:
             anyOf:
               - type: object
                 additionalProperties: true
               - $ref: common.javascript
-            description: "Button visualization/configuration for a type: button control."
+            description: "Button visualization settings for show.item_viz: viz_button. JavaScript returns the complete visualization object before preset completion."
+            x-fhs-semantic-source: runtime-or-schema-verified-v8
+          viz_line:
+            anyOf:
+              - type: object
+                additionalProperties: true
+              - $ref: common.javascript
+            description: "Line-indicator visualization settings for show.item_viz: viz_line. JavaScript returns the complete visualization object before preset completion."
             x-fhs-semantic-source: runtime-or-schema-verified-v8
     unevaluatedProperties: false
     description: Public FHS schema definition for layout controlButton.

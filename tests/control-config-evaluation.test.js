@@ -887,3 +887,382 @@ test('paint and HA option changes stay in runtime without rewriting canonical co
   assert.deepEqual(dynamicSelect.config.option_map, configBeforeHaOptions.option_map);
   assert.deepEqual(dynamicSelect.sourceConfig, sourceBeforeHaOptions);
 });
+
+test('Button and Select whole-value visualizations survive selector passes and switches', () => {
+  const visualizationTemplate = (name) => `[[[ constants.calls.${name} += 1; return {
+    animation: { duration: constants.values.${name}.duration, easing: "linear" },
+    indicator: { position: constants.values.${name}.position }
+  }; ]]]`;
+  const selectorTemplate = '[[[ constants.calls.selector += 1; return constants.itemViz; ]]]';
+  const passes = [
+    {
+      itemViz: 'viz_button',
+      values: {
+        viz_button: { duration: 311, position: 'bottom' },
+        viz_line: { duration: 412, position: 'top' },
+      },
+    },
+    {
+      itemViz: 'viz_line',
+      values: {
+        viz_button: { duration: 513, position: 'top' },
+        viz_line: { duration: 614, position: 'bottom' },
+      },
+    },
+  ];
+
+  for (const type of ['button', 'select']) {
+    const constants = {
+      itemViz: 'viz_button',
+      values: structuredClone(passes[0].values),
+      calls: { selector: 0, viz_button: 0, viz_line: 0 },
+    };
+    const harness = createHarness(constants);
+    const evaluations = recordTemplateEvaluations(harness.templates);
+    const control = createControl(type, {
+      id: `${type}-whole-value-visualization`,
+      entity_index: 0,
+      group: 'room',
+      xpos: 50,
+      ypos: 50,
+      show: {
+        item_variant: type === 'button' ? 'default' : 'segmented',
+        item_viz: selectorTemplate,
+        item_style: type === 'button' ? 'filled_square' : 'filled_round',
+      },
+      viz_button: visualizationTemplate('viz_button'),
+      viz_line: visualizationTemplate('viz_line'),
+    }, harness);
+    const sourceConfig = control.sourceConfig;
+    const sourceSnapshot = structuredClone(sourceConfig);
+    let previousConfig;
+
+    passes.forEach((pass, passIndex) => {
+      constants.itemViz = pass.itemViz;
+      constants.values = structuredClone(pass.values);
+      if (passIndex > 0) harness.card.evaluateJavascriptTemplates = true;
+
+      control.updateRuntimeConfig();
+
+      const staticHarness = createHarness();
+      const staticControl = createControl(type, {
+        id: `${type}-whole-value-visualization`,
+        entity_index: 0,
+        group: 'room',
+        xpos: 50,
+        ypos: 50,
+        show: {
+          item_variant: type === 'button' ? 'default' : 'segmented',
+          item_viz: pass.itemViz,
+          item_style: type === 'button' ? 'filled_square' : 'filled_round',
+        },
+        viz_button: {
+          animation: { duration: pass.values.viz_button.duration, easing: 'linear' },
+          indicator: { position: pass.values.viz_button.position },
+        },
+        viz_line: {
+          animation: { duration: pass.values.viz_line.duration, easing: 'linear' },
+          indicator: { position: pass.values.viz_line.position },
+        },
+      }, staticHarness);
+      staticControl.updateRuntimeConfig();
+
+      assert.deepEqual(control.config, staticControl.config, `${type} ${pass.itemViz} config`);
+      assert.deepEqual(control.geometry.svg, staticControl.geometry.svg, `${type} ${pass.itemViz} geometry`);
+      assert.equal(control.config.show.item_viz, pass.itemViz);
+      assert.deepEqual(constants.calls, {
+        selector: passIndex + 1,
+        viz_button: passIndex + 1,
+        viz_line: passIndex + 1,
+      });
+      assert.equal(evaluations.filter(({ javascript }) => javascript.includes('calls.selector')).length, passIndex + 1);
+      assert.equal(evaluations.filter(({ javascript }) => javascript.includes('calls.viz_button')).length, passIndex + 1);
+      assert.equal(evaluations.filter(({ javascript }) => javascript.includes('calls.viz_line')).length, passIndex + 1);
+      assert.strictEqual(control.sourceConfig, sourceConfig);
+      assert.deepEqual(control.sourceConfig, sourceSnapshot);
+      assert.equal(control.sourceConfig.show.item_viz, selectorTemplate);
+      assert.equal(control.sourceConfig.viz_button, visualizationTemplate('viz_button'));
+      assert.equal(control.sourceConfig.viz_line, visualizationTemplate('viz_line'));
+
+      if (previousConfig) assert.notStrictEqual(control.config, previousConfig);
+      previousConfig = control.config;
+    });
+  }
+});
+
+test('Button whole-value state_map matches static configuration without rewriting source', () => {
+  const stateMapTemplate = `[[[ constants.calls.stateMap += 1; return {
+    map: [
+      { state: constants.activeState, active: true },
+      { state: "default", active: false }
+    ]
+  }; ]]]`;
+  const constants = { activeState: 'on', calls: { stateMap: 0 } };
+  const harness = createHarness(constants);
+  const evaluations = recordTemplateEvaluations(harness.templates);
+  const button = createControl('button', {
+    id: 'whole-value-state-map',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    state_map: stateMapTemplate,
+  }, harness);
+  const sourceConfig = button.sourceConfig;
+  const sourceSnapshot = structuredClone(sourceConfig);
+  const staticHarness = createHarness();
+  const staticButton = createControl('button', {
+    id: 'whole-value-state-map',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    state_map: {
+      map: [
+        { state: 'on', active: true },
+        { state: 'default', active: false },
+      ],
+    },
+  }, staticHarness);
+
+  button.updateRuntimeConfig();
+  staticButton.updateRuntimeConfig();
+
+  assert.equal(constants.calls.stateMap, 1);
+  assert.equal(evaluations.filter(({ javascript }) => javascript.includes('calls.stateMap')).length, 1);
+  assert.deepEqual(button.config, staticButton.config);
+  assert.deepEqual(button.geometry.svg, staticButton.geometry.svg);
+  assert.equal(button.config.state_map.map[0].state, 'on');
+  button.setState(harness.entities[0], harness.entityConfigs[0]);
+  staticButton.setState(staticHarness.entities[0], staticHarness.entityConfigs[0]);
+  assert.equal(button.runtime.active, true);
+  assert.equal(button.runtime.active, staticButton.runtime.active);
+  assert.strictEqual(button.sourceConfig, sourceConfig);
+  assert.deepEqual(button.sourceConfig, sourceSnapshot);
+  assert.equal(button.sourceConfig.state_map, stateMapTemplate);
+
+  const selectorMap = { map: [{ state: 'custom', active: true }] };
+  const selectorOrientationTemplate = '[[[ constants.calls.orientation += 1; return item.state_map.map.length === 1 && item.state_map.map[0].state === "custom" ? "horizontal" : "vertical"; ]]]';
+  const selectorHarness = createHarness({ calls: { orientation: 0 } });
+  const selectorEvaluations = recordTemplateEvaluations(selectorHarness.templates);
+  const selectorButton = createControl('button', {
+    id: 'selector-sees-replacement-state-map',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    orientation: selectorOrientationTemplate,
+    state_map: selectorMap,
+  }, selectorHarness);
+  const staticSelectorHarness = createHarness();
+  const staticSelectorButton = createControl('button', {
+    id: 'selector-sees-replacement-state-map',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    orientation: 'horizontal',
+    state_map: selectorMap,
+  }, staticSelectorHarness);
+
+  selectorButton.updateRuntimeConfig();
+  staticSelectorButton.updateRuntimeConfig();
+
+  assert.equal(selectorHarness.constants.calls.orientation, 1);
+  assert.equal(selectorEvaluations.filter(({ javascript }) => javascript.includes('calls.orientation')).length, 1);
+  assert.equal(selectorButton.config.orientation, 'horizontal');
+  assert.deepEqual(selectorButton.config, staticSelectorButton.config);
+  assert.deepEqual(selectorButton.geometry.svg, staticSelectorButton.geometry.svg);
+  assert.equal(selectorButton.sourceConfig.orientation, selectorOrientationTemplate);
+});
+
+test('generated control children evaluate and publish state from their own bindings', () => {
+  const buttonContexts = [];
+  const buttonHarness = createHarness({
+    parentIndex: 0,
+    parentCalls: 0,
+    contexts: buttonContexts,
+  });
+  const buttonEvaluations = recordTemplateEvaluations(buttonHarness.templates);
+  const parentIndexTemplate = '[[[ constants.parentCalls += 1; return constants.parentIndex; ]]]';
+  const buttonIconTemplate = `[[[ constants.contexts.push({
+    kind: "button-icon", index: item.entity_index, entity: entity.entity_id, state
+  }); return "mdi:lightbulb"; ]]]`;
+  const buttonTextTemplate = `[[[ constants.contexts.push({
+    kind: "button-text", index: item.entity_index, entity: entity.entity_id, state
+  }); return entity.entity_id + ":" + state; ]]]`;
+  const button = createControl('button', {
+    id: 'button-direct-child-bindings',
+    entity_index: parentIndexTemplate,
+    group: 'room',
+    xpos: 50,
+    ypos: 50,
+    content: {
+      mode: 'content_horizontal',
+      content_horizontal: {
+        icon: { entity_index: 1, icon: buttonIconTemplate },
+        text: { entity_index: 2, text: buttonTextTemplate },
+      },
+    },
+  }, buttonHarness);
+  const buttonSource = button.sourceConfig;
+  const buttonSourceSnapshot = structuredClone(buttonSource);
+
+  button.updateRuntimeConfig();
+  button.setState(buttonHarness.entities[0], buttonHarness.entityConfigs[0]);
+
+  assert.equal(button.contentIconTool.entity_index, 1);
+  assert.equal(button.contentIconTool.config.icon, 'mdi:lightbulb');
+  assert.equal(button.contentTextTool.entity_index, 2);
+  assert.equal(button.contentTextTool.config.text[0].value, 'input_number.upper:80');
+  assert.deepEqual(buttonContexts, [
+    { kind: 'button-icon', index: 1, entity: 'input_number.lower', state: '20' },
+    { kind: 'button-text', index: 2, entity: 'input_number.upper', state: '80' },
+  ]);
+  assert.strictEqual(button.contentIconTool.runtime.entity, buttonHarness.entities[1]);
+  assert.strictEqual(button.contentIconTool.runtime.entityConfig, buttonHarness.entityConfigs[1]);
+  assert.strictEqual(button.contentTextTool.runtime.entity, buttonHarness.entities[2]);
+  assert.strictEqual(button.contentTextTool.runtime.entityConfig, buttonHarness.entityConfigs[2]);
+
+  buttonHarness.constants.parentIndex = 3;
+  buttonHarness.card.evaluateJavascriptTemplates = true;
+  button.updateRuntimeConfig();
+  button.setState(buttonHarness.entities[3], buttonHarness.entityConfigs[3]);
+
+  assert.equal(button.entity_index, 3);
+  assert.equal(button.contentIconTool.config.icon, 'mdi:lightbulb');
+  assert.equal(button.contentTextTool.config.text[0].value, 'input_number.upper:80');
+  assert.deepEqual(buttonContexts.slice(2), [
+    { kind: 'button-icon', index: 1, entity: 'input_number.lower', state: '20' },
+    { kind: 'button-text', index: 2, entity: 'input_number.upper', state: '80' },
+  ]);
+  assert.equal(buttonEvaluations.filter(({ javascript }) => javascript.includes('button-icon')).length, 2);
+  assert.equal(buttonEvaluations.filter(({ javascript }) => javascript.includes('button-text')).length, 2);
+  assert.strictEqual(button.contentIconTool.runtime.entity, buttonHarness.entities[1]);
+  assert.strictEqual(button.contentIconTool.runtime.entityConfig, buttonHarness.entityConfigs[1]);
+  assert.strictEqual(button.contentTextTool.runtime.entity, buttonHarness.entities[2]);
+  assert.strictEqual(button.contentTextTool.runtime.entityConfig, buttonHarness.entityConfigs[2]);
+  assert.strictEqual(button.sourceConfig, buttonSource);
+  assert.deepEqual(button.sourceConfig, buttonSourceSnapshot);
+  assert.equal(button.sourceConfig.entity_index, parentIndexTemplate);
+
+  const toggleContexts = [];
+  const toggleHarness = createHarness({ contexts: toggleContexts });
+  const toggleEvaluations = recordTemplateEvaluations(toggleHarness.templates);
+  const toggleIconTemplate = `[[[ constants.contexts.push({
+    index: item.entity_index, entity: entity.entity_id, state
+  }); return "mdi:lightbulb"; ]]]`;
+  const toggle = createControl('toggle', {
+    id: 'toggle-direct-icon-binding',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    content: {
+      mode: 'content_icon',
+      content_icon: {
+        icon: { entity_index: 2, icon: toggleIconTemplate },
+      },
+    },
+  }, toggleHarness);
+  toggle.updateRuntimeConfig();
+  toggle.setState(toggleHarness.entities[0], toggleHarness.entityConfigs[0]);
+
+  assert.equal(toggle.iconTool.entity_index, 2);
+  assert.deepEqual(toggleContexts, [
+    { index: 2, entity: 'input_number.upper', state: '80' },
+  ]);
+  assert.equal(toggleEvaluations.filter(({ javascript }) => javascript.includes('constants.contexts.push')).length, 1);
+  assert.strictEqual(toggle.iconTool.runtime.entity, toggleHarness.entities[2]);
+  assert.strictEqual(toggle.iconTool.runtime.entityConfig, toggleHarness.entityConfigs[2]);
+  assert.equal(toggle.sourceConfig.content.content_icon.icon.icon, toggleIconTemplate);
+
+  const selectContexts = [];
+  const selectHarness = createHarness({ contexts: selectContexts });
+  const selectEvaluations = recordTemplateEvaluations(selectHarness.templates);
+  const selectTextTemplate = (option) => `[[[ constants.contexts.push({
+    option: "${option}", index: item.entity_index, entity: entity.entity_id, state
+  }); return entity.entity_id + ":" + state; ]]]`;
+  const select = createControl('select', {
+    id: 'select-direct-option-text-bindings',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    option_map: [
+      { value: 'off', entity_index: 1, text: selectTextTemplate('off') },
+      { value: 'on', entity_index: 2, text: selectTextTemplate('on') },
+    ],
+  }, selectHarness);
+  select.updateRuntimeConfig();
+  select.setState(selectHarness.entities[0], selectHarness.entityConfigs[0]);
+
+  assert.deepEqual(select.optionTextTools.map((tool) => tool.entity_index), [1, 2]);
+  assert.deepEqual(select.optionTextTools.map((tool) => tool.config.text[0].value), [
+    'input_number.lower:20',
+    'input_number.upper:80',
+  ]);
+  assert.ok(selectContexts.some(({ option, index, entity, state }) =>
+    option === 'off' && index === 1 && entity === 'input_number.lower' && state === '20'));
+  assert.ok(selectContexts.some(({ option, index, entity, state }) =>
+    option === 'on' && index === 2 && entity === 'input_number.upper' && state === '80'));
+  assert.ok(selectEvaluations.filter(({ javascript }) => javascript.includes('constants.contexts.push'))
+    .every(({ entity_index }) => [1, 2].includes(entity_index)));
+  assert.strictEqual(select.optionTextTools[0].runtime.entity, selectHarness.entities[1]);
+  assert.strictEqual(select.optionTextTools[0].runtime.entityConfig, selectHarness.entityConfigs[1]);
+  assert.strictEqual(select.optionTextTools[1].runtime.entity, selectHarness.entities[2]);
+  assert.strictEqual(select.optionTextTools[1].runtime.entityConfig, selectHarness.entityConfigs[2]);
+  assert.equal(select.sourceConfig.option_map[0].text, selectTextTemplate('off'));
+
+  const numberContexts = [];
+  const numberHarness = createHarness({ contexts: numberContexts });
+  const numberEvaluations = recordTemplateEvaluations(numberHarness.templates);
+  const numberIconTemplate = `[[[ constants.contexts.push({
+    kind: "number-icon", index: item.entity_index, entity: entity.entity_id, state
+  }); return "mdi:minus"; ]]]`;
+  const numberTextTemplate = `[[[ constants.contexts.push({
+    kind: "number-text", index: item.entity_index, entity: entity.entity_id, state
+  }); return entity.entity_id + ":" + state; ]]]`;
+  const numberStateTemplate = `[[[ constants.contexts.push({
+    kind: "number-state", index: item.entity_index, entity: entity.entity_id, state
+  }); return "none"; ]]]`;
+  const number = createControl('number', {
+    id: 'number-generated-child-bindings',
+    entity_index: 0,
+    xpos: 50,
+    ypos: 50,
+    content: {
+      mode: 'content_horizontal',
+      content_horizontal: {
+        minus: {
+          mode: 'content_icon',
+          content_icon: { icon: { entity_index: 1, icon: numberIconTemplate } },
+        },
+        plus: {
+          mode: 'content_text',
+          content_text: { entity_index: 2, text: numberTextTemplate },
+        },
+        value: { entity_index: 3, show: { uom: numberStateTemplate } },
+      },
+    },
+  }, numberHarness);
+  number.updateRuntimeConfig();
+  number.setState(numberHarness.entities[0], numberHarness.entityConfigs[0]);
+
+  assert.equal(number.minusContentTool.entity_index, 1);
+  assert.equal(number.minusContentTool.config.icon, 'mdi:minus');
+  assert.equal(number.plusContentTool.entity_index, 2);
+  assert.equal(number.plusContentTool.config.text[0].value, 'input_number.upper:80');
+  assert.equal(number.valueStateTool.entity_index, 3);
+  assert.deepEqual(numberContexts, [
+    { kind: 'number-icon', index: 1, entity: 'input_number.lower', state: '20' },
+    { kind: 'number-text', index: 2, entity: 'input_number.upper', state: '80' },
+    { kind: 'number-state', index: 3, entity: 'sensor.override', state: 'idle' },
+  ]);
+  assert.equal(numberEvaluations.filter(({ javascript }) => javascript.includes('number-icon')).length, 1);
+  assert.equal(numberEvaluations.filter(({ javascript }) => javascript.includes('number-text')).length, 1);
+  assert.equal(numberEvaluations.filter(({ javascript }) => javascript.includes('number-state')).length, 1);
+  assert.strictEqual(number.minusContentTool.runtime.entity, numberHarness.entities[1]);
+  assert.strictEqual(number.minusContentTool.runtime.entityConfig, numberHarness.entityConfigs[1]);
+  assert.strictEqual(number.plusContentTool.runtime.entity, numberHarness.entities[2]);
+  assert.strictEqual(number.plusContentTool.runtime.entityConfig, numberHarness.entityConfigs[2]);
+  assert.strictEqual(number.valueStateTool.runtime.entity, numberHarness.entities[3]);
+  assert.strictEqual(number.valueStateTool.runtime.entityConfig, numberHarness.entityConfigs[3]);
+  assert.equal(number.sourceConfig.content.content_horizontal.minus.content_icon.icon.icon, numberIconTemplate);
+  assert.equal(number.sourceConfig.content.content_horizontal.plus.content_text.text, numberTextTemplate);
+  assert.equal(number.sourceConfig.content.content_horizontal.value.show.uom, numberStateTemplate);
+});

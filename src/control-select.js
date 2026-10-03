@@ -384,10 +384,14 @@ export default class ControlSelect extends ControlBase {
 
     // A named visualization inherits the complete button visualization before
     // its own config overrides are applied. Render code consumes one final viz.
-    selectConfig[selectedVizName] = Merge.mergeDeep(
-      DEFAULT_SELECT_CONFIG.viz_button,
-      selectConfig[selectedVizName],
-    );
+    // Whole-value JavaScript must reach evaluation as source, not as an object
+    // built from the template string's characters during context completion.
+    if (!forTemplateContext || !Templates.isJsTemplate(selectConfig[selectedVizName])) {
+      selectConfig[selectedVizName] = Merge.mergeDeep(
+        DEFAULT_SELECT_CONFIG.viz_button,
+        selectConfig[selectedVizName],
+      );
+    }
     if (forTemplateContext) return selectConfig;
 
     let selectedIndicatorPadding =
@@ -805,7 +809,10 @@ export default class ControlSelect extends ControlBase {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
       ));
-      textTool.setState(entity, entityConfig);
+      // Text and icon children follow the same effective option/tool binding.
+      this.card.cardTools.setToolEntityState(
+        textTool, this.card.resolvedEntityConfigs, this.card.entities,
+      );
     });
 
     this.optionIconTools.forEach((iconTool, optionIndex) => {

@@ -326,12 +326,14 @@ export default class ControlToggle extends ControlBase {
     if (this.iconTool) this.iconTool.updateRuntimeConfig();
   }
 
-  /** Publishes the toggle entity to the internal IconTool. */
+  /** Publishes the thumb icon's own binding after selecting the toggle state. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
     if (this.iconTool) {
-      this.iconTool.setState(entity, entityConfig);
+      this.card.cardTools.setToolEntityState(
+        this.iconTool, this.card.resolvedEntityConfigs, this.card.entities,
+      );
     }
   }
 
