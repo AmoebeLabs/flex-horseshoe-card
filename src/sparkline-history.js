@@ -43,7 +43,7 @@ export default class SparklineHistory {
       retryAt: 0,
       resynchronizationRequested: false,
     };
-    this.updateConfig(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled);
+    this.updateInputs(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled);
   }
 
   /**
@@ -57,7 +57,7 @@ export default class SparklineHistory {
    * @param {boolean} dayNightEnabled - Whether sun history belongs to this Sparkline.
    * @returns {object} History changes that affect GraphTool scheduling.
    */
-  updateConfig(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled) {
+  updateInputs(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled) {
     this.plotPeriod = plotPeriod;
     this.stateBandsStateMap = stateBandsStateMap;
     this.seriesItems = seriesItems;
@@ -682,7 +682,7 @@ export default class SparklineHistory {
         }
 
         const historyRows = history.length === 0 ? [] : history[0];
-        const rebuildGraphConfig = record.preserveGraphWhileLoading;
+        const rebuildGraphInput = record.preserveGraphWhileLoading;
         this.acceptHistoryRows(currentItem, historyRows, range);
         globalThis.clearTimeout(record.requestTimer);
         record.requestPromise = undefined;
@@ -702,7 +702,7 @@ export default class SparklineHistory {
           seriesId: item.id,
           rows: record.rows,
           range,
-          rebuildGraphConfig,
+          rebuildGraphInput,
         };
       },
       (error) => {

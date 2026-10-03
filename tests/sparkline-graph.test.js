@@ -44,7 +44,7 @@ const rounded = (value) => Number(value.toFixed(6));
 test('reports processed data independently from graph geometry', () => {
   const graph = Object.create(SparklineGraph.prototype);
   Object.assign(graph, {
-    config: { sparkline: { show: { chart_type: 'state_bands' } } },
+    input: { sparkline: { show: { chart_type: 'state_bands' } } },
     stateMap: {
       map: [
         { state: 'off', value: 0, display_label: 'Off' },
@@ -220,7 +220,7 @@ test('paint changes retain buckets and coordinates while label size changes only
 
   const paintConfig = structuredClone(config);
   paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
-  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, paintConfig, [], [], {});
+  graph.updateGraphInput(120, 100, axisMargin, configuredMargin, paintConfig, [], [], {});
   graph.update(rows);
   assert.strictEqual(graph.processedValues, values);
   assert.strictEqual(graph.coords, coords);
@@ -229,7 +229,7 @@ test('paint changes retain buckets and coordinates while label size changes only
 
   const labelConfig = structuredClone(paintConfig);
   labelConfig.x_axis.labels.styles['font-size'] = '16px';
-  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, labelConfig, [], [], {});
+  graph.updateGraphInput(120, 100, axisMargin, configuredMargin, labelConfig, [], [], {});
   graph.update(rows);
   assert.strictEqual(graph.processedValues, values);
   assert.notStrictEqual(graph.coords, coords);
@@ -239,7 +239,7 @@ test('paint changes retain buckets and coordinates while label size changes only
   const labelCoords = graph.coords;
   const localeConfig = structuredClone(labelConfig);
   localeConfig.labelLocale = 'nl-NL|UTC';
-  graph.updateGraphConfig(120, 100, axisMargin, configuredMargin, localeConfig, [], [], {});
+  graph.updateGraphInput(120, 100, axisMargin, configuredMargin, localeConfig, [], [], {});
   graph.update(rows);
   assert.strictEqual(graph.processedValues, values);
   assert.notStrictEqual(graph.coords, labelCoords);
@@ -267,7 +267,7 @@ test('processed buckets survive geometry changes but refresh for bins, source ro
   const processedValues = graph.processedValues;
   const resizedConfig = structuredClone(config);
   resizedConfig.y_axis.lower_bound = 0;
-  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, resizedConfig, [], [], {});
+  graph.updateGraphInput(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, resizedConfig, [], [], {});
   graph.processData(rows);
   graph.calculateGeometry();
   assert.equal(aggregationCount, 1);
@@ -280,7 +280,7 @@ test('processed buckets survive geometry changes but refresh for bins, source ro
 
   const rebinnedConfig = structuredClone(resizedConfig);
   rebinnedConfig.period.rolling_window.bins.per_hour = 2;
-  graph.updateGraphConfig(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, rebinnedConfig, [], [], {});
+  graph.updateGraphInput(180, 100, { l: 0, t: 0, r: 0, b: 0 }, { l: 10, t: 10, r: 10, b: 10 }, rebinnedConfig, [], [], {});
   graph.processData(rows);
   assert.equal(aggregationCount, 2);
 
@@ -302,11 +302,11 @@ test('switching through state bands cannot revive old numeric buckets', () => {
   const previousValues = graph.processedValues;
 
   const bandsConfig = createGraphConfig({ chartType: 'state_bands' });
-  graph.updateGraphConfig(120, 100, margin, margin, bandsConfig, [], [], { map: [{ state: 'low', value: 0 }, { state: 'high', value: 1 }] });
+  graph.updateGraphInput(120, 100, margin, margin, bandsConfig, [], [], { map: [{ state: 'low', value: 0 }, { state: 'high', value: 1 }] });
   graph.processData(rows);
   assert.deepEqual(graph.processedValues, []);
 
-  graph.updateGraphConfig(120, 100, margin, margin, lineConfig, [], [], {});
+  graph.updateGraphInput(120, 100, margin, margin, lineConfig, [], [], {});
   graph.processData(rows);
   assert.deepEqual(graph.processedValues, previousValues);
   assert.notStrictEqual(graph.processedValues, previousValues);
@@ -614,7 +614,7 @@ test('shared automatic bounds expand to major ticks while configured bounds stay
 
 test('automatic y bounds remain exact when y labels are hidden', () => {
   const graph = createGraph(createGraphConfig({ chartType: 'radial' }));
-  graph.config.sparkline.show.labels.y = false;
+  graph.input.sparkline.show.labels.y = false;
   graph.min = 22.5;
   graph.max = 25.1;
   graph.setSharedYAxisBounds(22.5, 25.1, false, false);
@@ -804,7 +804,7 @@ test('line and area min/max envelopes retain bucket extrema', () => {
         showAreaMinMax: !lineFamily,
       }),
     );
-    graph.config.sparkline.show.chart_variant = chartVariant;
+    graph.input.sparkline.show.chart_variant = chartVariant;
     graph._updateEndTime = () => {
       graph._endTime = new Date('2026-08-20T12:00:00.000Z');
     };
@@ -1262,7 +1262,7 @@ test('full-day calendar comparisons use the fixed end of the visible day', () =>
   try {
     const graph = Object.create(SparklineGraph.prototype);
     graph.points = 1;
-    graph.config = {
+    graph.input = {
       period: {
         type: 'calendar',
         calendar: { period: 'day', offset: 0, full_day: true, duration: { hour: 24 } },

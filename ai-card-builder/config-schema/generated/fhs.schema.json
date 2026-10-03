@@ -11010,11 +11010,18 @@
               "x-fhs-semantic-source": "schema-context-v8"
             },
             "series": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/layout.sparklineSeries"
-              },
-              "description": "Additional sparkline series definitions.",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/layout.sparklineSeries"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
+              "description": "Static series definitions or JavaScript returning the complete series array.",
               "x-fhs-semantic-source": "schema-context-v8"
             }
           },
@@ -11119,11 +11126,18 @@
                   "x-fhs-semantic-source": "schema-context-v8"
                 },
                 "series": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/layout.sparklineSeries"
-                  },
-                  "description": "Additional sparkline series definitions.",
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/layout.sparklineSeries"
+                      }
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
+                  "description": "Static series definitions or JavaScript returning the complete series array.",
                   "x-fhs-semantic-source": "schema-context-v8"
                 },
                 "show": false,

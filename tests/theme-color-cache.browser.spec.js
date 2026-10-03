@@ -374,8 +374,8 @@ test('palette replacement repaints retained single and multiple sparkline series
     const fixture = window.horseshoeCache;
     const tools = fixture.card.cardTools.getBySection('sparklines');
     return {
-      implicitSingle: !tools[0].sparklineSeries.hasExplicitSeries && tools[0].sparklineSeries.items.length === 1,
-      explicitMultiple: tools[1].sparklineSeries.hasExplicitSeries && tools[1].sparklineSeries.items.length === 2,
+      implicitSingle: tools[0].config.series[0].id === "default" && tools[0].sparklineSeries.items.length === 1,
+      explicitMultiple: tools[1].config.series.length === 2 && tools[1].sparklineSeries.items.length === 2,
       ownersRetained: fixture.retainedGraphPaint.every(({ tool, items }, index) => tool === tools[index] && items.every((saved, itemIndex) => {
         const item = tools[index].sparklineSeries.items[itemIndex];
         return saved.item === item && saved.graph === item.graph && saved.rows === item.rows

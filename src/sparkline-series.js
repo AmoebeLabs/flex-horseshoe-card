@@ -1,18 +1,16 @@
-import Merge from './merge.js';
 import SparklineGraph from './sparkline-graph.js';
-import Templates from './templates.js';
 import Utils from './utils.js';
 import { SPARKLINE_DATA_STATE, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 
 /**
  * Coordinates the graph engines belonging to one sparkline layout item.
  *
- * Existing YAML produces one implicit default item. Explicit series inherit the
- * sparkline item config and override only their own source and graph settings.
+ * GraphTool supplies complete canonical entries. Series retains their runtime
+ * items and coordinates shared bins, axis ranges and graph placement.
  */
 export default class SparklineSeries {
   /**
-   * Normalizes static config into stable series items before runtime state and
+   * Binds complete config to stable series items before runtime state and
    * history are attached. IDs are the identity used by request and tooltip code.
    *
    * @param {object} config - Validated sparkline layout item configuration.
@@ -25,76 +23,13 @@ export default class SparklineSeries {
   }
 
   /**
-   * Builds complete per-series configuration while retaining runtime history
-   * and graph state. Public YAML without series enters the same collection as
-   * one implicit item; explicit items override the normalized parent config.
+   * Rebinds canonical entries while retaining runtime history and graph state.
    *
    * @param {object} config - Validated static or runtime sparkline configuration.
    */
   updateConfig(config) {
-    const hasExplicitSeries = config.series !== undefined;
-    const configuredSeries = hasExplicitSeries ? config.series : [{ id: 'default', entity_index: config.entity_index }];
-    const ids = new Set();
-    const chartTypes = [];
-
-    configuredSeries.forEach((seriesConfig) => {
-      if (typeof seriesConfig.id !== 'string' || seriesConfig.id.length === 0) {
-        throw new Error('[sparklines] every series requires a non-empty id');
-      }
-      if (ids.has(seriesConfig.id)) {
-        throw new Error('[sparklines] series ids must be unique');
-      }
-      if (!Number.isInteger(seriesConfig.entity_index)) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' requires entity_index`);
-      }
-      if (typeof seriesConfig.y_axis === 'string') {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' uses y_axis for axis configuration; assign the series with y_axis_id`);
-      }
-      if (hasExplicitSeries && seriesConfig.period !== undefined) {
-        const periodType = config.period.type;
-        const periodOverride = seriesConfig.period[periodType];
-
-        // A series may carry offsets for calendar and rolling windows together.
-        // Only the parent-selected period branch is active for this sparkline.
-        if (periodOverride === undefined || Object.keys(periodOverride).some((key) => key !== 'offset')) {
-          throw new Error(`[sparklines] series '${seriesConfig.id}' period may only override ${periodType}.offset`);
-        }
-        if (!Number.isFinite(Number(periodOverride.offset))) {
-          throw new Error(`[sparklines] series '${seriesConfig.id}' period ${periodType}.offset must be numeric`);
-        }
-      }
-      const yAxisId = seriesConfig.y_axis_id ?? 'primary';
-      if (!['primary', 'secondary'].includes(yAxisId)) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' y_axis_id must be primary or secondary`);
-      }
-      const chartType = seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type;
-      if (hasExplicitSeries && !['line', 'area', 'dots', 'bar', 'radial'].includes(chartType)) {
-        throw new Error(`[sparklines] series '${seriesConfig.id}' chart_type must be line, area, dots, bar or radial`);
-      }
-      if (chartType === 'radial') {
-        const chartVariant = seriesConfig.sparkline?.show?.chart_variant ?? config.sparkline.show.chart_variant;
-        if (!['line', 'area', 'dots'].includes(chartVariant) && !Templates.isJsTemplate(chartVariant)) {
-          throw new Error(`[sparklines] radial series '${seriesConfig.id}' chart_variant must be line, area or dots`);
-        }
-        if (seriesConfig.sparkline?.radial !== undefined) {
-          throw new Error(`[sparklines] radial series '${seriesConfig.id}' uses the parent sparkline.radial geometry`);
-        }
-      }
-      chartTypes.push(chartType);
-      ids.add(seriesConfig.id);
-    });
-
-    if (chartTypes.includes('radial') && chartTypes.some((chartType) => chartType !== 'radial')) {
-      throw new Error('[sparklines] radial series cannot be combined with cartesian series');
-    }
-    if ((config.sparkline.show.chart_type === 'radial') !== chartTypes.every((chartType) => chartType === 'radial')) {
-      throw new Error('[sparklines] parent chart_type must be radial when its series are radial');
-    }
-
-    const seriesLayoutSignature = JSON.stringify(configuredSeries.map((seriesConfig) => [
-      seriesConfig.id,
-      seriesConfig.y_axis_id ?? 'primary',
-      seriesConfig.sparkline?.show?.chart_type ?? config.sparkline.show.chart_type,
+    const seriesLayoutSignature = JSON.stringify(config.series.map((seriesConfig) => [
+      seriesConfig.id, seriesConfig.y_axis_id, seriesConfig.sparkline.show.chart_type,
     ]));
     if (this.seriesLayoutSignature !== seriesLayoutSignature) {
       this.cartesianLayout = undefined;
@@ -102,52 +37,21 @@ export default class SparklineSeries {
     }
     this.seriesLayoutSignature = seriesLayoutSignature;
 
-    this.items = configuredSeries.map((seriesConfig) => {
-      const effectiveConfig = Merge.mergeDeep({}, config, seriesConfig);
+    // Canonical entries already contain inheritance and paint priority. Retain
+    // the runtime owner by ID while binding it to the newly published entry.
+    this.items = config.series.map((seriesConfig) => {
       const existingItem = this.items.find((item) => item.id === seriesConfig.id);
-      delete effectiveConfig.id;
-      delete effectiveConfig.series;
-
-      // A series-wide paint choice replaces the inherited shared choice for
-      // every layer unless that series explicitly configures the deeper layer.
-      const seriesItemStyle = seriesConfig.sparkline?.show?.item_style;
-      effectiveConfig.sparkline.line.show.item_style = seriesConfig.sparkline?.line?.show?.item_style
-        ?? seriesItemStyle
-        ?? config.sparkline.line.show.item_style;
-      effectiveConfig.sparkline.line.minmax.show.item_style = seriesConfig.sparkline?.line?.minmax?.show?.item_style
-        ?? seriesItemStyle
-        ?? config.sparkline.line.minmax.show.item_style;
-      effectiveConfig.sparkline.area.show.item_style = seriesConfig.sparkline?.area?.show?.item_style
-        ?? seriesItemStyle
-        ?? config.sparkline.area.show.item_style;
-      effectiveConfig.sparkline.area.minmax.show.item_style = seriesConfig.sparkline?.area?.minmax?.show?.item_style
-        ?? seriesItemStyle
-        ?? config.sparkline.area.minmax.show.item_style;
-
-      [
-        ['sparkline.show.item_style', effectiveConfig.sparkline.show.item_style],
-        ['sparkline.line.show.item_style', effectiveConfig.sparkline.line.show.item_style],
-        ['sparkline.line.minmax.show.item_style', effectiveConfig.sparkline.line.minmax.show.item_style],
-        ['sparkline.area.show.item_style', effectiveConfig.sparkline.area.show.item_style],
-        ['sparkline.area.minmax.show.item_style', effectiveConfig.sparkline.area.minmax.show.item_style],
-      ].forEach(([name, itemStyle]) => {
-        if (!['auto', 'fixed', 'colorstop', 'colorstopinterpolated', 'colorstopgradient'].includes(itemStyle) && !Templates.isJsTemplate(itemStyle)) {
-          throw new Error(`[sparklines] series '${seriesConfig.id}' ${name} must be auto, fixed, colorstop, colorstopinterpolated or colorstopgradient`);
-        }
-      });
-
       if (existingItem !== undefined) {
         existingItem.entity_index = seriesConfig.entity_index;
-        existingItem.y_axis_id = seriesConfig.y_axis_id ?? 'primary';
-        existingItem.config = effectiveConfig;
+        existingItem.y_axis_id = seriesConfig.y_axis_id;
+        existingItem.config = seriesConfig;
         return existingItem;
       }
-
       return {
         id: seriesConfig.id,
         entity_index: seriesConfig.entity_index,
-        y_axis_id: seriesConfig.y_axis_id ?? 'primary',
-        config: effectiveConfig,
+        y_axis_id: seriesConfig.y_axis_id,
+        config: seriesConfig,
         entity: undefined,
         entityConfig: undefined,
         graph: undefined,
@@ -156,11 +60,9 @@ export default class SparklineSeries {
         dataState: SPARKLINE_DATA_STATE.NOT_LOADED,
       };
     });
-    this.hasExplicitSeries = hasExplicitSeries;
     this.binPlan = undefined;
 
-    // Keep the collection state aligned when runtime config retains existing
-    // items. Every item must be current before the collection is current.
+    // Every retained item must be current before the collection is current.
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     this.dataState = currentItems.length !== this.items.length
@@ -169,7 +71,6 @@ export default class SparklineSeries {
         ? SPARKLINE_DATA_STATE.HAS_DATA
         : SPARKLINE_DATA_STATE.EMPTY;
   }
-
   /**
    * Returns item zero of the normalized collection. It supplies shared
    * presentation such as axes, pointer interaction, and existing statistics;
@@ -321,7 +222,7 @@ export default class SparklineSeries {
       const chartType = item.config.sparkline.show.chart_type;
       const rendersDots = chartType === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
       if (rendersDots) {
-        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
+        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.input.geometry.line_width / 4;
         sharedChartGeometryMargin.t = Math.max(sharedChartGeometryMargin.t, dotExtent);
         sharedChartGeometryMargin.r = Math.max(sharedChartGeometryMargin.r, dotExtent);
         sharedChartGeometryMargin.b = Math.max(sharedChartGeometryMargin.b, dotExtent);
@@ -426,10 +327,10 @@ export default class SparklineSeries {
       let extent = 0;
 
       if (variant !== 'dots' && item.config.sparkline.show.line !== false) {
-        extent = item.graph.config.geometry.line_width / 2;
+        extent = item.graph.input.geometry.line_width / 2;
       }
       if (variant === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true) {
-        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.config.geometry.line_width / 4;
+        const dotExtent = Utils.calculateSvgDimension(item.config.sparkline.dots.radius) + item.graph.input.geometry.line_width / 4;
         extent = Math.max(extent, dotExtent);
       }
 
@@ -459,16 +360,16 @@ export default class SparklineSeries {
    * @param {number} height - SVG graph height.
    * @param {object} axisMargin - Outer axis and label space.
    * @param {object} configuredMargin - User-configured inner margin.
-   * @param {object} graphConfig - Engine configuration for the active runtime state.
+   * @param {object} graphInput - Engine configuration for the active runtime state.
    * @param {Array<number>} gradeValues - Numeric grade boundaries.
    * @param {Array<object>} gradeRanks - Visual grade ranges.
    * @param {object} stateMap - State-band mapping for the graph engine.
    */
-  configureGraph(item, width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap) {
+  configureGraph(item, width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap) {
     if (item.graph === undefined) {
-      item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+      item.graph = new SparklineGraph(width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap);
     } else {
-      item.graph.updateGraphConfig(width, height, axisMargin, configuredMargin, graphConfig, gradeValues, gradeRanks, stateMap);
+      item.graph.updateGraphInput(width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap);
     }
     item.dataState = item.graph.dataState;
   }

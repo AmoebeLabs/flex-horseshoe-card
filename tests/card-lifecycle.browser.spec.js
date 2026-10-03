@@ -267,7 +267,7 @@ test('partial, empty and failed series do not publish retained statistics as new
   await page.waitForFunction(() => window.lifecycle.graph.sparklineSeries.items[1].requestState === 'loaded');
   expect(await page.evaluate(() => window.lifecycle.card.entities[3].state)).not.toBe('unavailable');
   expect(await page.evaluate(() => window.lifecycle.card.entities[11].state)).not.toBe('unavailable');
-  expect(await page.evaluate(() => window.lifecycle.graph.graphConfig.period.calendar.duration.hour)).toBe(14 * 24);
+  expect(await page.evaluate(() => window.lifecycle.graph.primaryGraph.input.period.calendar.duration.hour)).toBe(14 * 24);
   expect(await page.evaluate(() => window.lifecycle.counters.hass)).toBe(1);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.lifecycle.card.remove());

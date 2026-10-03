@@ -127,7 +127,7 @@ async function moveToBucket(page, index, radial = false) {
     await page.clock.runFor(34);
     return page.evaluate(() => {
       const graph = window.pointerRegression.graph;
-      return { visible: graph.tooltipVisible, index: graph.tooltip.index };
+      return { visible: graph.runtime.tooltipVisible, index: graph.runtime.tooltip.index };
     });
   }).toEqual({ visible: true, index: target.index });
   return target;
@@ -164,7 +164,7 @@ test('historical Cartesian hover shows its tooltip and indicator, then clears on
   expect(shown.indicator).toBe('visible');
 
   await page.mouse.move(8, 8);
-  await page.waitForFunction(() => !window.pointerRegression.graph.tooltipVisible);
+  await page.waitForFunction(() => !window.pointerRegression.graph.runtime.tooltipVisible);
   expect(await page.evaluate(() => ({
     tooltip: window.pointerRegression.graph.elements.tooltip.style.display,
     indicator: window.pointerRegression.graph.elements.activeIndicator.style.visibility,
@@ -228,9 +228,9 @@ test('pointer cancel and disconnect clear tracking; reconnect binds the rendered
   await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointermove', { cancelable: true, clientX: 450, clientY: 350 })));
   await page.clock.runFor(50);
   expect(await page.evaluate(() => ({
-    dragging: window.pointerRegression.graph.dragging,
-    tooltip: window.pointerRegression.graph.tooltipVisible,
-    pointer: window.pointerRegression.graph.pointerEvent,
+    dragging: window.pointerRegression.graph.runtime.dragging,
+    tooltip: window.pointerRegression.graph.runtime.tooltipVisible,
+    pointer: window.pointerRegression.graph.runtime.pointerEvent,
   }))).toEqual({ dragging: false, tooltip: false, pointer: undefined });
 
   await page.mouse.move(start.x, start.y);
@@ -242,9 +242,9 @@ test('pointer cancel and disconnect clear tracking; reconnect binds the rendered
     fixture.card.remove();
     window.dispatchEvent(new PointerEvent('pointermove', { cancelable: true, clientX: 460, clientY: 360 }));
     return {
-      dragging: fixture.graph.dragging,
-      pointer: fixture.graph.pointerEvent,
-      tooltip: fixture.graph.tooltipVisible,
+      dragging: fixture.graph.runtime.dragging,
+      pointer: fixture.graph.runtime.pointerEvent,
+      tooltip: fixture.graph.runtime.tooltipVisible,
       svgReady: fixture.oldRoot.dataset.pointerReady,
     };
   });
@@ -260,7 +260,7 @@ test('pointer cancel and disconnect clear tracking; reconnect binds the rendered
   await page.waitForFunction(() => window.pointerRegression.graph.elements.svg?.dataset.pointerReady === 'true');
   await page.clock.runFor(34);
   await moveToBucket(page, 8);
-  expect(await page.evaluate(() => window.pointerRegression.graph.tooltipVisible)).toBe(true);
+  expect(await page.evaluate(() => window.pointerRegression.graph.runtime.tooltipVisible)).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -268,7 +268,7 @@ test('real-time sparkline keeps its value tooltip without a time-selection indic
   const errors = await loadPointerCard(page, { realTime: true });
   await moveToBucket(page, 0);
   const result = await page.evaluate(() => ({
-    tooltipVisible: window.pointerRegression.graph.tooltipVisible,
+    tooltipVisible: window.pointerRegression.graph.runtime.tooltipVisible,
     tooltipDisplay: window.pointerRegression.graph.elements.tooltip.style.display,
     indicator: window.pointerRegression.graph.elements.svg.querySelector('.sparkline-active-indicator'),
     requestCount: window.pointerRegression.requests.length,

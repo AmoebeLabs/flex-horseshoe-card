@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import CardConfig from '../src/card-config.js';
+import SparklineGraphTool from '../src/sparkline-graph-tool.js';
 import SparklineSeries from '../src/sparkline-series.js';
 
 const graphConfig = {
@@ -33,10 +34,21 @@ const graphConfig = {
   },
 };
 
+const translateSeriesConfig = (config) => SparklineGraphTool.translateConfig(config);
+const createSeries = (config) => new SparklineSeries(translateSeriesConfig(config));
+
 test('series inherit and override referenced parent styles and color stops independently', () => {
   const config = structuredClone(graphConfig);
   const parentStyles = { stroke: '#1565c0', opacity: 0.8 };
   const seriesStyles = { stroke: '#ef6c00' };
+  const expectedParentStyles = {
+    fill: 'none',
+    stroke: parentStyles.stroke,
+    'stroke-width': 1,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    opacity: String(parentStyles.opacity),
+  };
   const parentColorStops = {
     scales: { default: { min: 0, max: 100 } },
     colors: [{ value: 0, color: '#111111' }, { value: 100, color: '#ffffff' }],
@@ -54,10 +66,10 @@ test('series inherit and override referenced parent styles and color stops indep
   ];
 
   new CardConfig({ hasJavascriptTemplates: () => false }).compileStaticValues(config);
-  const series = new SparklineSeries(config);
+  const series = createSeries(config);
 
-  assert.deepEqual(series.items[0].config.sparkline.line.styles, parentStyles);
-  assert.deepEqual(series.items[1].config.sparkline.line.styles, { ...parentStyles, ...seriesStyles });
+  assert.deepEqual(series.items[0].config.sparkline.line.styles, expectedParentStyles);
+  assert.deepEqual(series.items[1].config.sparkline.line.styles, { ...expectedParentStyles, ...seriesStyles });
   assert.deepEqual(series.items[0].config.sparkline.color_stops, parentColorStops);
   assert.deepEqual(series.items[1].config.sparkline.color_stops, parentColorStops);
   assert.notStrictEqual(
@@ -72,18 +84,22 @@ test('series inherit and override referenced parent styles and color stops indep
   series.items[0].config.sparkline.color_stops.colors[0].color = '#ff00ff';
   series.items[1].config.sparkline.line.styles.stroke = '#00ff00';
   assert.deepEqual(series.items[1].config.sparkline.color_stops, parentColorStops);
-  assert.deepEqual(series.items[0].config.sparkline.line.styles, parentStyles);
+  assert.deepEqual(series.items[0].config.sparkline.line.styles, expectedParentStyles);
   assert.deepEqual(config.constants.parentColorStops, parentColorStops);
   assert.deepEqual(config.constants.parentStyles, parentStyles);
   assert.deepEqual(config.constants.seriesStyles, seriesStyles);
 });
 
-test('normalizes existing sparkline config into one coordinator-owned default series', () => {
-  const series = new SparklineSeries(graphConfig);
+test('binds the canonical default entry to its graph', () => {
+  const translatedConfig = translateSeriesConfig(graphConfig);
+  const series = new SparklineSeries(translatedConfig);
+  const entry = translatedConfig.series[0];
 
   assert.equal(series.items.length, 1);
   assert.equal(series.primaryItem.id, 'default');
-  assert.deepEqual(series.primaryItem.config, graphConfig);
+  assert.strictEqual(series.primaryItem.config, entry);
+  assert.equal(entry.id, 'default');
+  assert.equal(entry.series, undefined);
   assert.deepEqual(series.primaryItem.rows, []);
   assert.equal(series.primaryItem.graph, undefined);
   assert.equal(series.primaryItem.requestState, 'not_loaded');
@@ -95,15 +111,15 @@ test('normalizes existing sparkline config into one coordinator-owned default se
     100,
     { t: 0, r: 0, b: 0, l: 0, x: 0, y: 0 },
     { t: 5, r: 5, b: 5, l: 5, x: 5, y: 5 },
-    graphConfig,
+    entry,
     [],
     [],
     {},
   );
   series.setRows(series.primaryItem, [{ state: 12 }]);
 
-  assert.deepEqual(series.primaryItem.config, graphConfig);
-  assert.equal(series.primaryItem.graph.config, graphConfig);
+  assert.strictEqual(series.primaryItem.config, entry);
+  assert.strictEqual(series.primaryItem.graph.input, entry);
   assert.deepEqual(series.primaryItem.rows, [{ state: 12 }]);
   assert.equal(series.updateGraphs()[0], 'has_data');
 
@@ -113,16 +129,16 @@ test('normalizes existing sparkline config into one coordinator-owned default se
 });
 
 test('runtime graph configuration keeps the same graph and its processed values', () => {
-  const series = new SparklineSeries(graphConfig);
+  const series = createSeries(graphConfig);
   const item = series.primaryItem;
   const margin = { t: 0, r: 0, b: 0, l: 0 };
-  series.configureGraph(item, 120, 100, margin, margin, graphConfig, [], [], {});
+  series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
   const graph = item.graph;
   const rows = [{ state: 12 }];
   graph.processData(rows);
   const processedValues = graph.processedValues;
 
-  series.configureGraph(item, 180, 100, margin, margin, structuredClone(graphConfig), [], [], {});
+  series.configureGraph(item, 180, 100, margin, margin, structuredClone(item.config), [], [], {});
   assert.strictEqual(item.graph, graph);
   assert.strictEqual(item.graph.processedValues, processedValues);
   assert.equal(item.graph.width, 180);
@@ -137,7 +153,7 @@ test('auto density reuses processed data until resizing changes its effective bi
     group_by: 'interval',
     rolling_window: { offset: 0, duration: { hour: 24 }, bins: { per_hour: 'auto', density: 'medium' } },
   };
-  const series = new SparklineSeries(config);
+  const series = createSeries(config);
   const margin = { t: 0, r: 0, b: 0, l: 0 };
   const rows = [
     { state: 4, last_changed: '2026-08-20T00:00:00.000Z' },
@@ -146,7 +162,7 @@ test('auto density reuses processed data until resizing changes its effective bi
 
   const useWidth = (width) => {
     config.width = width;
-    series.updateConfig(config);
+    series.updateConfig(translateSeriesConfig(config));
     const { perHour } = series.updateBinPlan();
     const effectiveConfig = structuredClone(series.primaryItem.config);
     effectiveConfig.period.rolling_window.bins.per_hour = perHour;
@@ -177,8 +193,8 @@ test('auto density reuses processed data until resizing changes its effective bi
 });
 
 
-test('normalizes explicit series in declaration order with independent graph settings', () => {
-  const series = new SparklineSeries({
+test('binds complete canonical entries in declaration order with independent graph settings', () => {
+  const translatedConfig = translateSeriesConfig({
     ...graphConfig,
     series: [
       { id: 'temperature', entity_index: 0, color: '#42a5f5' },
@@ -193,9 +209,14 @@ test('normalizes explicit series in declaration order with independent graph set
       },
     ],
   });
+  const series = new SparklineSeries(translatedConfig);
 
   assert.deepEqual(series.items.map((item) => item.id), ['temperature', 'humidity']);
   assert.deepEqual(series.items.map((item) => item.entity_index), [0, 1]);
+  assert.strictEqual(series.items[0].config, translatedConfig.series[0]);
+  assert.strictEqual(series.items[1].config, translatedConfig.series[1]);
+  assert.equal(series.items[0].config.id, 'temperature');
+  assert.equal(series.items[1].config.id, 'humidity');
   assert.equal(series.items[0].config.color, '#42a5f5');
   assert.equal(series.items[1].config.sparkline.show.chart_type, 'dots');
   assert.equal(series.items[1].config.sparkline.state_values.aggregate_func, 'max');
@@ -206,7 +227,7 @@ test('normalizes explicit series in declaration order with independent graph set
 });
 
 test('series inherit parent minmax settings and can override them independently', () => {
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
@@ -228,7 +249,7 @@ test('series inherit parent minmax settings and can override them independently'
 });
 
 test('series inherit the graph paint style and can override it independently', () => {
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
@@ -246,13 +267,13 @@ test('series inherit the graph paint style and can override it independently', (
   assert.equal(series.items[1].config.sparkline.line.show.item_style, 'colorstopgradient');
   assert.equal(series.items[1].config.sparkline.line.minmax.show.item_style, 'colorstopgradient');
   assert.throws(
-    () => new SparklineSeries({ ...graphConfig, sparkline: { ...graphConfig.sparkline, show: { ...graphConfig.sparkline.show, item_style: 'unknown' } } }),
+    () => createSeries({ ...graphConfig, sparkline: { ...graphConfig.sparkline, show: { ...graphConfig.sparkline.show, item_style: 'unknown' } } }),
     /sparkline\.show\.item_style must be/,
   );
 });
 
 test('series layer paint overrides remain independent from the series-wide choice', () => {
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     series: [
       {
@@ -276,18 +297,21 @@ test('series layer paint overrides remain independent from the series-wide choic
   assert.equal(series.primaryItem.config.sparkline.area.minmax.show.item_style, 'colorstopgradient');
 });
 
-test('implicit and explicit one-series configs produce the same effective graph config', () => {
-  const implicit = new SparklineSeries(graphConfig);
-  const explicit = new SparklineSeries({
+test('implicit and explicit single-series entries retain IDs and equivalent graph settings', () => {
+  const implicit = createSeries(graphConfig);
+  const explicit = createSeries({
     ...graphConfig,
     series: [{ id: 'temperature', entity_index: 0 }],
   });
 
-  assert.deepEqual(implicit.items[0].config, explicit.items[0].config);
+  assert.deepEqual(implicit.items[0].config.sparkline, explicit.items[0].config.sparkline);
+  assert.deepEqual(implicit.items[0].config.period, explicit.items[0].config.period);
+  assert.equal(implicit.items[0].config.id, 'default');
+  assert.equal(explicit.items[0].config.id, 'temperature');
   assert.equal(implicit.items[0].y_axis_id, 'primary');
   assert.equal(explicit.items[0].y_axis_id, 'primary');
-  assert.equal(implicit.hasExplicitSeries, false);
-  assert.equal(explicit.hasExplicitSeries, true);
+  assert.equal(implicit.items[0].config.series, undefined);
+  assert.equal(explicit.items[0].config.series, undefined);
 });
 
 test('stores one effective historical bin plan for implicit and explicit series', () => {
@@ -305,8 +329,8 @@ test('stores one effective historical bin plan for implicit and explicit series'
       },
     },
   };
-  const implicit = new SparklineSeries(historicalConfig);
-  const explicit = new SparklineSeries({
+  const implicit = createSeries(historicalConfig);
+  const explicit = createSeries({
     ...historicalConfig,
     series: [
       { id: 'line', entity_index: 0 },
@@ -323,8 +347,8 @@ test('stores one effective historical bin plan for implicit and explicit series'
 });
 
 test('real-time and state-band series do not expose a derived bin duration', () => {
-  const realTime = new SparklineSeries(graphConfig);
-  const stateBands = new SparklineSeries({
+  const realTime = createSeries(graphConfig);
+  const stateBands = createSeries({
     ...graphConfig,
     period: {
       type: 'rolling_window',
@@ -358,7 +382,7 @@ test('shared Cartesian scale processes historical rows once per real series grap
       { id: 'humidity', entity_index: 1 },
     ],
   };
-  const series = new SparklineSeries(config);
+  const series = createSeries(config);
   const values = [[4, 8], [10, 20]];
   const processingCounts = [];
 
@@ -401,7 +425,7 @@ test('Cartesian series reuse measured geometry for paint and remeasure changed l
     group_by: 'interval',
     rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
   };
-  const series = new SparklineSeries(config);
+  const series = createSeries(config);
   const margin = { t: 0, r: 0, b: 0, l: 0 };
   const rows = [
     { state: '4', last_changed: '2026-08-20T08:30:00.000Z' },
@@ -424,7 +448,7 @@ test('Cartesian series reuse measured geometry for paint and remeasure changed l
 
   const paintConfig = structuredClone(config);
   paintConfig.sparkline.line.styles = { opacity: 0.4 };
-  series.updateConfig(paintConfig);
+  series.updateConfig(translateSeriesConfig(paintConfig));
   series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
   assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, false);
   assert.strictEqual(item.graph.coords, coords);
@@ -433,7 +457,7 @@ test('Cartesian series reuse measured geometry for paint and remeasure changed l
 
   const labelConfig = structuredClone(paintConfig);
   labelConfig.x_axis.labels.styles['font-size'] = '16px';
-  series.updateConfig(labelConfig);
+  series.updateConfig(translateSeriesConfig(labelConfig));
   series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
   assert.equal(series.updateCartesianGraphs(measureAxisMargin, margin, 4, 4).geometryChanged, true);
   assert.notStrictEqual(item.graph.coords, coords);
@@ -446,7 +470,7 @@ test('Cartesian series reuse measured geometry for paint and remeasure changed l
 });
 
 test('runtime config updates keep rows and graph state on the same series item', () => {
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     series: [{ id: 'temperature', entity_index: 0, color: '#42a5f5' }],
   });
@@ -456,7 +480,7 @@ test('runtime config updates keep rows and graph state on the same series item',
   item.graph = graph;
   item.rows = history;
 
-  series.updateConfig({
+  const updatedConfig = translateSeriesConfig({
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
@@ -464,8 +488,10 @@ test('runtime config updates keep rows and graph state on the same series item',
     },
     series: [{ id: 'temperature', entity_index: 0, color: '#f9a825' }],
   });
+  series.updateConfig(updatedConfig);
 
   assert.equal(series.items[0], item);
+  assert.strictEqual(series.items[0].config, updatedConfig.series[0]);
   assert.equal(series.items[0].graph, graph);
   assert.equal(series.items[0].rows, history);
   assert.equal(series.items[0].config.color, '#f9a825');
@@ -475,7 +501,7 @@ test('runtime config updates keep rows and graph state on the same series item',
 });
 
 test('request state changes independently from retained processed data', () => {
-  const series = new SparklineSeries(graphConfig);
+  const series = createSeries(graphConfig);
   const item = series.primaryItem;
 
   item.dataState = 'has_data';
@@ -490,7 +516,7 @@ test('request state changes independently from retained processed data', () => {
 
 test('valid data and valid empty form one current multi-series result', () => {
   const processCalls = [];
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     series: [
       { id: 'temperature', entity_index: 0 },
@@ -498,7 +524,7 @@ test('valid data and valid empty form one current multi-series result', () => {
     ],
   });
   const graphFor = (state, min, max) => ({
-    config: { geometry: { line_width: 1 } },
+    input: { geometry: { line_width: 1 } },
     min,
     max,
     coords: state === 'has_data' ? [[0, 0, min], [100, 0, max]] : [],
@@ -533,7 +559,7 @@ test('valid data and valid empty form one current multi-series result', () => {
 });
 
 test('multi-series coordination waits while one item is not loaded', () => {
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     series: [
       { id: 'temperature', entity_index: 0 },
@@ -560,7 +586,7 @@ test('multi-series coordination waits while one item is not loaded', () => {
 
 test('rejects explicit series without stable unique entity-bound ids', () => {
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [
         { id: 'temperature', entity_index: 0 },
@@ -571,7 +597,7 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
   );
 
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [{ id: 'temperature' }],
     }),
@@ -579,7 +605,7 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
   );
 
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [{ id: 'temperature', entity_index: 0, y_axis_id: 'right' }],
     }),
@@ -587,7 +613,7 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
   );
 
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [{ id: 'temperature', entity_index: 0, y_axis: 'secondary' }],
     }),
@@ -596,7 +622,7 @@ test('rejects explicit series without stable unique entity-bound ids', () => {
 });
 
 test('allows cartesian line, area, dots and bar series with an offset-only period override', () => {
-  const bars = new SparklineSeries({
+  const bars = createSeries({
     ...graphConfig,
     period: {
       type: 'rolling_window',
@@ -619,7 +645,7 @@ test('allows cartesian line, area, dots and bar series with an offset-only perio
   assert.equal(bars.items[1].config.period.rolling_window.offset, -1);
 
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [{ id: 'different-duration', entity_index: 0, period: { real_time: { duration: { hour: 12 } } } }],
     }),
@@ -628,7 +654,7 @@ test('allows cartesian line, area, dots and bar series with an offset-only perio
 });
 
 test('accepts radial variants as one geometry family and rejects mixed geometry', () => {
-  const radial = new SparklineSeries({
+  const radial = createSeries({
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
@@ -643,7 +669,7 @@ test('accepts radial variants as one geometry family and rejects mixed geometry'
 
   assert.deepEqual(radial.items.map((item) => item.config.sparkline.show.chart_variant), ['line', 'area', 'dots']);
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       sparkline: {
         ...graphConfig.sparkline,
@@ -657,14 +683,14 @@ test('accepts radial variants as one geometry family and rejects mixed geometry'
     /radial series cannot be combined with cartesian series/,
   );
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       series: [{ id: 'radial', entity_index: 0, sparkline: { show: { chart_type: 'radial' } } }],
     }),
     /parent chart_type must be radial/,
   );
   assert.throws(
-    () => new SparklineSeries({
+    () => createSeries({
       ...graphConfig,
       sparkline: {
         ...graphConfig.sparkline,
@@ -686,7 +712,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
     min,
     max,
     coords: [[0, 0, min], [1, 0, max]],
-    config: {
+    input: {
       geometry: { line_width: lineWidth },
       y_axis: { lower_bound: undefined, upper_bound: undefined },
     },
@@ -712,7 +738,7 @@ test('radial series share scale bounds and one measured outer margin', () => {
       calls.push(['axis', this.min, this.max]);
     },
   });
-  const series = new SparklineSeries({
+  const series = createSeries({
     ...graphConfig,
     sparkline: {
       ...graphConfig.sparkline,
@@ -756,7 +782,7 @@ test('radial series retain shared geometry when only their color changes', () =>
     rolling_window: { offset: 0, duration: { hour: 4 }, bins: { per_hour: 1 } },
   };
   config.sparkline.show.chart_type = 'radial';
-  const series = new SparklineSeries(config);
+  const series = createSeries(config);
   const item = series.primaryItem;
   const margin = { t: 0, r: 0, b: 0, l: 0 };
   const rows = [
@@ -778,7 +804,7 @@ test('radial series retain shared geometry when only their color changes', () =>
 
   const paintConfig = structuredClone(config);
   paintConfig.sparkline.line.styles = { opacity: 0.4, stroke: 'red' };
-  series.updateConfig(paintConfig);
+  series.updateConfig(translateSeriesConfig(paintConfig));
   series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
   assert.equal(series.updateRadialGraphs(measureAxisMargin, margin).geometryChanged, false);
   assert.strictEqual(item.graph.coords, coords);
