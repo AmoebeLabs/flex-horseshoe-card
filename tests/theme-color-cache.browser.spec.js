@@ -462,3 +462,175 @@ test('view theme observer repaints retained horseshoe colors from inherited CSS 
   expect(errors).toEqual([]);
   await page.evaluate(() => window.horseshoeCache.card.remove());
 });
+
+test('published JavaScript sparkline entities retain source and override palettes across updates and themes', async ({ page }) => {
+  const errors = await loadHorseshoeCacheCard(page, await readFile(new URL('../dist/flex-horseshoe-card.js', import.meta.url), 'utf8'));
+  const palettes = {
+    '/theme-color-cache-derived-series.json': paletteDocument({
+      light: {
+        'fhs-sys-derived-source-a': '#1565c0',
+        'fhs-sys-derived-source-b': '#ef6c00',
+        'fhs-sys-derived-override': '#6a1b9a',
+      },
+      dark: {
+        'fhs-sys-derived-source-a': '#90caf9',
+        'fhs-sys-derived-source-b': '#ffcc80',
+        'fhs-sys-derived-override': '#ce93d8',
+      },
+    }),
+  };
+  await page.route('**/theme-color-cache-derived-series.json', (route) => route.fulfill({
+    contentType: 'application/json', json: palettes[new URL(route.request().url()).pathname],
+  }));
+
+  await page.evaluate(() => {
+    const fixture = window.horseshoeCache;
+    const load = { ...fixture.hass.states['sensor.load'], state: '25' };
+    const comparison = {
+      ...load, entity_id: 'sensor.comparison', state: '75',
+      attributes: { ...load.attributes, friendly_name: 'Comparison' },
+    };
+    const colorStops = (variable) => ({ colors: { 0: `var(--fhs-sys-derived-${variable})` } });
+    fixture.hass = {
+      ...fixture.hass,
+      states: { ...fixture.hass.states, [load.entity_id]: load, [comparison.entity_id]: comparison },
+      themes: { ...fixture.hass.themes, theme: 'fhs-derived-global-light', darkMode: false },
+      callApi: (_method, path) => {
+        fixture.historyRequests.push(path);
+        const entityId = new URL(`http://fhs.test/${path}`).searchParams.get('filter_entity_id');
+        const entity = fixture.hass.states[entityId];
+        const now = Date.now();
+        const firstValue = Number(entity.state) + (entityId === 'sensor.load' ? -15 : -20);
+        return Promise.resolve([[firstValue, firstValue + 10].map((state, index) => ({
+          ...entity, state: String(state),
+          last_changed: new Date(now - (index === 0 ? 4 : 1) * 60 * 60 * 1000).toISOString(),
+        }))]);
+      },
+    };
+    fixture.historyRequests = [];
+    const config = {
+      ...fixture.config,
+      constants: { seriesEvaluations: 0 },
+      entities: [
+        { entity: load.entity_id, color_stops: colorStops('source-a') },
+        { entity: comparison.entity_id, color_stops: colorStops('source-b') },
+        { entity: 'fhs_sparkline.derived-palette_avg' },
+        { entity: 'fhs_sparkline.derived-palette_load_avg' },
+        { entity: 'fhs_sparkline.derived-palette_load_min', color_stops: colorStops('override') },
+      ],
+      palettes: { derived: 'http://fhs.test/theme-color-cache-derived-series.json' },
+      layout: {
+        ...fixture.config.layout,
+        rectangles: [
+          { id: 'primary-alias', entity_index: 2, xpos: 30, ypos: 20, width: 22, height: 12, show: { item_style: 'colorstop' } },
+          { id: 'derived-override', entity_index: 4, xpos: 70, ypos: 20, width: 22, height: 12, show: { item_style: 'colorstop' } },
+        ],
+        texts: [{ id: 'named-series', entity_index: 3, xpos: 50, ypos: 42, text: 'named', show: { item_style: 'colorstop' } }],
+        sparklines: [{
+          id: 'derived-palette', entity_index: 0, xpos: 50, ypos: 75, width: 80, height: 24,
+          period: { type: 'rolling_window', rolling_window: { duration: { hour: 24 }, bins: { per_hour: 1 } } },
+          sparkline: {
+            state_values: { aggregate_func: 'avg' },
+            show: { chart_type: 'line', line: true, grid: false, axis: false, labels: false },
+            line: { line_width: 1 },
+          },
+          series: '[[[ constants.seriesEvaluations += 1; return [{ id: "comparison", entity_index: 1 }, { id: "load", entity_index: 0 }]; ]]]',
+        }],
+      },
+    };
+    fixture.config = config;
+    fixture.card.setConfig(config);
+    fixture.card.hass = fixture.hass;
+  });
+
+  await page.waitForFunction(() => window.horseshoeCache.card.cardTools.getBySection('sparklines')[0]
+    .sparklineSeries.items.every((item) => item.requestState === 'loaded' && item.dataState === 'has_data'));
+  const renderedPaletteState = () => page.evaluate(() => {
+    const card = window.horseshoeCache.card;
+    const textTool = card.cardTools.getBySection('texts')[0];
+    const textElement = Array.from(card.shadowRoot.querySelectorAll('text[id]'))
+      .find((element) => element.id === textTool.textElementId);
+    return {
+      shapes: Array.from(card.shadowRoot.querySelectorAll('.rectangle-tool__fill')).map((element) => getComputedStyle(element).fill),
+      text: getComputedStyle(textElement).fill,
+      sourceEntityIndexes: card.resolvedEntityConfigs.slice(2).map((entityConfig) => entityConfig.source_entity_index),
+    };
+  });
+  const lightPaletteState = {
+    shapes: ['rgb(239, 108, 0)', 'rgb(106, 27, 154)'],
+    text: 'rgb(21, 101, 192)',
+    sourceEntityIndexes: [1, 0, 0],
+  };
+  const darkPaletteState = {
+    shapes: ['rgb(255, 204, 128)', 'rgb(206, 147, 216)'],
+    text: 'rgb(144, 202, 249)',
+    sourceEntityIndexes: [1, 0, 0],
+  };
+  await expect.poll(renderedPaletteState).toEqual(lightPaletteState);
+
+  // Count whole-series evaluations only while GraphTool owns its runtime update.
+  await page.evaluate(() => {
+    const fixture = window.horseshoeCache;
+    const graph = fixture.card.cardTools.getBySection('sparklines')[0];
+    fixture.seriesEvaluationBaseline = fixture.card.config.constants.seriesEvaluations;
+    fixture.graphOwnedSeriesEvaluations = 0;
+    const updateRuntimeConfig = graph.updateRuntimeConfig.bind(graph);
+    graph.updateRuntimeConfig = (...args) => {
+      const before = fixture.card.config.constants.seriesEvaluations;
+      const result = updateRuntimeConfig(...args);
+      fixture.graphOwnedSeriesEvaluations += fixture.card.config.constants.seriesEvaluations - before;
+      return result;
+    };
+  });
+
+  await page.evaluate(async () => {
+    const fixture = window.horseshoeCache;
+    fixture.hass = {
+      ...fixture.hass,
+      states: {
+        ...fixture.hass.states,
+        'sensor.load': { ...fixture.hass.states['sensor.load'], state: '65' },
+        'sensor.comparison': { ...fixture.hass.states['sensor.comparison'], state: '35' },
+      },
+    };
+    fixture.card.hass = fixture.hass;
+    await fixture.card.updateComplete;
+    await new Promise((done) => requestAnimationFrame(done));
+    await fixture.card.updateComplete;
+  });
+  const updatedSources = await page.evaluate(() => window.horseshoeCache.card.entities.slice(0, 2).map((entity) => entity.state));
+  expect(updatedSources).toEqual(['65', '35']);
+  await expect.poll(renderedPaletteState).toEqual(lightPaletteState);
+
+  await page.evaluate(() => {
+    const fixture = window.horseshoeCache;
+    fixture.hass = {
+      ...fixture.hass,
+      themes: { ...fixture.hass.themes, theme: 'fhs-derived-global-dark', darkMode: true },
+    };
+    fixture.card.hass = fixture.hass;
+  });
+  await expect.poll(renderedPaletteState).toEqual(darkPaletteState);
+
+  await page.evaluate(() => {
+    const fixture = window.horseshoeCache;
+    fixture.hass = {
+      ...fixture.hass,
+      themes: { ...fixture.hass.themes, theme: 'fhs-derived-global-light', darkMode: false },
+    };
+    fixture.card.hass = fixture.hass;
+  });
+  await expect.poll(renderedPaletteState).toEqual(lightPaletteState);
+
+  const seriesEvaluations = await page.evaluate(() => {
+    const fixture = window.horseshoeCache;
+    return {
+      actual: fixture.card.config.constants.seriesEvaluations - fixture.seriesEvaluationBaseline,
+      graphOwned: fixture.graphOwnedSeriesEvaluations,
+    };
+  });
+  expect(seriesEvaluations.actual).toBe(seriesEvaluations.graphOwned);
+  expect(seriesEvaluations.graphOwned).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.horseshoeCache.card.remove());
+});

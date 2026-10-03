@@ -56,8 +56,11 @@ export default class CardEntities {
     return this.getItemColorStop(item, colorStops, config, entities)?.color;
   }
 
-  /** Evaluates entity templates and links local sparkline entities to graphs. */
-  buildRuntimeEntityConfigs(config, evaluateJavascript) {
+  /**
+   * Evaluates entity templates and links local Sparkline entities to their sources.
+   * Presentation rebuilds use already published series to retain final bindings.
+   */
+  buildRuntimeEntityConfigs(config, evaluateJavascript, sparklineGraphTools = []) {
     if (config.dev.debug) console.log('resolving entity config for', config.entities);
     const evaluatedEntityConfigs = config.entities.map((entityConfig, index) => {
       const item = { entity_index: index };
@@ -70,7 +73,13 @@ export default class CardEntities {
       return ColorStops.normalize(entityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
     });
     const sparklineEntityTypes = ['min_time', 'max_time', 'bin_duration', 'aggregate_func', 'duration', 'min', 'avg', 'max'];
-    const sparklineConfigs = config.layout.sparklines ?? [];
+    const sparklineConfigs = (config.layout.sparklines ?? []).map((sparklineConfig) => {
+      if (!Templates.isJsTemplate(sparklineConfig.series)) return sparklineConfig;
+      // GraphTool evaluates whole-series JS. After publication its current
+      // series provide the source binding for both entity metadata and paint.
+      const graphTool = sparklineGraphTools.find((tool) => tool.config.id === sparklineConfig.id);
+      return graphTool === undefined ? sparklineConfig : graphTool.config;
+    });
 
     const resolvedEntityConfigs = evaluatedEntityConfigs.map((entityConfig) => {
       if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
@@ -185,6 +194,11 @@ export default class CardEntities {
               }
             });
           });
+        }
+        // Explicit derived stops take priority. Otherwise paint follows the
+        // same published source as metadata, before inherited config is copied.
+        if (entityConfig.color_stops === undefined) {
+          this.paint.colorStops[entityIndex] = this.paint.colorStops[seriesConfig.entity_index];
         }
         const { attribute: _attribute, name: _name, ...sourceEntityConfig } = resolvedEntityConfigs[seriesConfig.entity_index];
         entityConfig = { ...sourceEntityConfig, ...entityConfig, source_entity_index: seriesConfig.entity_index };

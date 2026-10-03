@@ -445,11 +445,12 @@ for (const javascriptSeries of [false, true]) {
 }
 
 test('CardEntities publishes primary and named statistics from whole-value JavaScript series without evaluating the source again', (context) => {
-  const expression = '[[[ constants.seriesEvaluations += 1; return [{ id: "comparison_room", entity_index: 1, name: entity.entity_id }, { id: "parent_room", entity_index: 0 }, { id: "parent_room_bin", entity_index: 0 }]; ]]]';
+  const expression = '[[[ constants.seriesEvaluations += 1; return [{ id: "comparison_room", entity_index: constants.comparisonSource, name: entity.entity_id }, { id: "parent_room", entity_index: 0 }, { id: "parent_room_bin", entity_index: 0 }]; ]]]';
   const source = makeSparklineSource(expression);
   source.period = { type: 'real_time' };
   const fixture = createSparklineFixture(source);
   const { card, cardConfig, cardTools, entities, templates, tool, restoreWindow } = fixture;
+  cardConfig.constants.comparisonSource = 1;
   context.after(() => {
     if (tool.sparklineHistory) tool.sparklineHistory.disconnected();
     restoreWindow();
@@ -457,12 +458,15 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
 
   entities[0].attributes = { reading: 11, friendly_name: 'Parent power', unit_of_measurement: 'W', device_class: 'power' };
   entities[1].attributes = { reading: 22, friendly_name: 'Comparison temperature', unit_of_measurement: 'C', device_class: 'temperature' };
+  const parentStops = { modes: { light: { 0: '#1565c0' }, dark: { 0: '#90caf9' } } };
+  const comparisonStops = { modes: { light: { 0: '#ef6c00' }, dark: { 0: '#ffcc80' } } };
+  const derivedStops = { modes: { light: { 0: '#6a1b9a' }, dark: { 0: '#ce93d8' } } };
   cardConfig.entities = [
-    { entity: 'sensor.parent', attribute: 'reading', name: 'Configured parent name', decimals: 1, color: '#1565c0' },
-    { entity: 'sensor.comparison', attribute: 'reading', name: 'Configured comparison name', decimals: 2, color: '#ef6c00' },
+    { entity: 'sensor.parent', attribute: 'reading', name: 'Configured parent name', decimals: 1, color: '#1565c0', color_stops: parentStops },
+    { entity: 'sensor.comparison', attribute: 'reading', name: 'Configured comparison name', decimals: 2, color: '#ef6c00', color_stops: comparisonStops },
     { entity: 'fhs_sparkline.canonical-sparkline_avg' },
     { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_avg' },
-    { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_min' },
+    { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_min', color_stops: derivedStops },
     { entity: 'fhs_sparkline.canonical-sparkline_parent_room_max' },
     { entity: 'fhs_sparkline.canonical-sparkline_comparison_room_bin_duration' },
     { entity: 'fhs_sparkline.canonical-sparkline_bin_duration' },
@@ -525,10 +529,63 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
     undefined, 'comparison_room', 'comparison_room', 'parent_room',
   ]);
   assert.equal(cardConfig.constants.seriesEvaluations, 1);
+  const paletteSources = [1, 1, 4, 0, 1, 1, 1, 0];
+  paletteSources.forEach((sourceIndex, index) => {
+    assert.strictEqual(cardEntities.paint.colorStops[index + 2], cardEntities.paint.colorStops[sourceIndex]);
+  });
+  assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, 'light'));
+
+  // The ordinary presentation phase rebuilds entity config after publication.
+  // It must use published series binding, without evaluating the series again.
+  const presentationConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true, [tool]);
+  assert.deepEqual(presentationConfigs.slice(2).map((entry) => entry.source_entity_index), [1, 1, 1, 0, 1, 1, 1, 0]);
+  paletteSources.forEach((sourceIndex, index) => {
+    assert.strictEqual(cardEntities.paint.colorStops[index + 2], cardEntities.paint.colorStops[sourceIndex]);
+  });
+  assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, 'light'));
   const publishedEntities = entities.slice(2);
-  assert.deepEqual(cardEntities.updateSparklineEntities(resolvedConfigs, entities, [tool]), []);
+  assert.deepEqual(cardEntities.updateSparklineEntities(presentationConfigs, entities, [tool]), []);
   publishedEntities.forEach((entity, index) => assert.strictEqual(entities[index + 2], entity));
   assert.equal(cardConfig.constants.seriesEvaluations, 1);
+
+  for (const mode of ['dark', 'light']) {
+    card.cardTheme.activeColorStopMode = mode;
+    const sourceConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true);
+    cardEntities.updateSparklineEntities(sourceConfigs, entities, [tool]);
+    paletteSources.forEach((sourceIndex, index) => {
+      assert.strictEqual(cardEntities.paint.colorStops[index + 2], cardEntities.paint.colorStops[sourceIndex]);
+    });
+    const rebuiltConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true, [tool]);
+    assert.deepEqual(rebuiltConfigs.slice(2).map((entry) => entry.source_entity_index), [1, 1, 1, 0, 1, 1, 1, 0]);
+    paletteSources.forEach((sourceIndex, index) => {
+      assert.strictEqual(cardEntities.paint.colorStops[index + 2], cardEntities.paint.colorStops[sourceIndex]);
+    });
+    assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, mode));
+    assert.equal(cardConfig.constants.seriesEvaluations, 1);
+  }
+
+  // A later source update may move the same named series to another entity.
+  // Rebinding must follow current producer output, not the previous palette.
+  for (const sourceIndex of [0, 1]) {
+    cardConfig.constants.comparisonSource = sourceIndex;
+    const sourceConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true);
+    card.resolvedEntityConfigs = sourceConfigs;
+    const evaluations = cardConfig.constants.seriesEvaluations;
+    cardTools.updateSparklineRuntimeConfig();
+    cardTools.setSparklineEntityStates(sourceConfigs, entities);
+    cardEntities.updateSparklineEntities(sourceConfigs, entities, [tool]);
+    assert.equal(sourceConfigs[2].source_entity_index, sourceIndex);
+    assert.equal(sourceConfigs[3].source_entity_index, sourceIndex);
+    assert.strictEqual(cardEntities.paint.colorStops[2], cardEntities.paint.colorStops[sourceIndex]);
+    assert.strictEqual(cardEntities.paint.colorStops[3], cardEntities.paint.colorStops[sourceIndex]);
+    const rebuiltConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true, [tool]);
+    assert.equal(rebuiltConfigs[2].source_entity_index, sourceIndex);
+    assert.equal(rebuiltConfigs[3].source_entity_index, sourceIndex);
+    assert.strictEqual(cardEntities.paint.colorStops[2], cardEntities.paint.colorStops[sourceIndex]);
+    assert.strictEqual(cardEntities.paint.colorStops[3], cardEntities.paint.colorStops[sourceIndex]);
+    assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, 'light'));
+    assert.equal(cardConfig.constants.seriesEvaluations, evaluations + 1);
+  }
 });
 
 test('parent JavaScript selector inheritance matches static series without per-series reevaluation', (context) => {
