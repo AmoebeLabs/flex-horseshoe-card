@@ -1,15 +1,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import ColorStops from '../src/color-stops.js';
 import { GaugeScale } from '../src/horseshoe-geometry.js';
 import { buildLabelStopItems } from '../src/horseshoe-labels.js';
 import { PathValueMapper } from '../src/path-ranges.js';
 
-function createLabelConfig(labelsAt) {
+/** Builds a configured value mapper from runtime scale and state owners. */
+function createLabelRuntime(config) {
+  const scale = new GaugeScale({ ...config.horseshoe_scale, type: 'linear' });
+  const stateMap = config.state_map;
+
   return {
+    scale,
+    stateMap,
+    mappedState: undefined,
+    valueMapper: new PathValueMapper({
+      scale,
+      barMode: config.bar_mode,
+      zeroRatio: 0,
+      stateMode: config.horseshoe_state.mode,
+      stateMap: stateMap.map,
+    }, 50),
+  };
+}
+
+/** Keeps authored settings, runtime mapping, and active palette in their owners. */
+function createLabelFixture(labelsAt) {
+  const config = {
     show: { labels_at: labelsAt },
     bar_mode: 'normal',
-    mapped_state: { state: 'medium', value: 1 },
     horseshoe_scale: { min: 0, max: 100 },
     horseshoe_state: { mode: 'value' },
     horseshoe_tickmarks: { ticks_major: { ticksize: 25 } },
@@ -19,23 +39,17 @@ function createLabelConfig(labelsAt) {
       stringstate_level: { state_map: { map: [] }, before: { styles: {} }, current: { styles: {} }, after: { styles: {} } },
     },
     state_map: { map: [] },
-    colorstops: {
+    color_stops: {
       colors: [
         { value: 20, color: 'green' },
         { value: 60, color: 'orange', label: 'warning' },
       ],
     },
   };
-}
+  const runtime = createLabelRuntime(config);
+  const paint = { colorStops: ColorStops.normalize(config.color_stops, 'light') };
 
-function createMapper(config) {
-  return new PathValueMapper({
-    scale: new GaugeScale({ ...config.horseshoe_scale, type: 'linear' }),
-    barMode: config.bar_mode,
-    zeroRatio: 0,
-    stateMode: config.horseshoe_state.mode,
-    stateMap: config.state_map.map,
-  }, 50);
+  return { config, runtime, paint };
 }
 
 test('numeric label choices select min/max, zero, color stops, major ticks, or both', () => {
@@ -48,27 +62,35 @@ test('numeric label choices select min/max, zero, color stops, major ticks, or b
   ];
 
   cases.forEach(({ labelsAt, expected }) => {
-    const config = createLabelConfig(labelsAt);
-    assert.deepEqual(buildLabelStopItems(config, createMapper(config)).map((label) => label.text), expected);
+    const { config, runtime, paint } = createLabelFixture(labelsAt);
+    assert.deepEqual(
+      buildLabelStopItems(config, runtime, paint).map((label) => label.text),
+      expected,
+    );
   });
 });
 
 test('distance_min removes labels that are too close in scale values', () => {
-  const config = createLabelConfig('ticks_major');
+  const { config, runtime, paint } = createLabelFixture('ticks_major');
   config.horseshoe_labels.distance_min = 40;
 
-  assert.deepEqual(buildLabelStopItems(config, createMapper(config)).map((label) => label.text), ['0', '50', '100']);
+  assert.deepEqual(
+    buildLabelStopItems(config, runtime, paint).map((label) => label.text),
+    ['0', '50', '100'],
+  );
 });
 
-test('mapped-state labels retain configured text and relation styles', () => {
-  const config = createLabelConfig('stringstate');
+test('mapped-state labels use runtime semantics and configured text and relation styles', () => {
+  const { config, paint } = createLabelFixture('stringstate');
   config.horseshoe_scale = { min: 0, max: 3 };
   config.horseshoe_state.mode = 'stringstate_mode';
-  config.state_map.map = [
-    { state: 'low', value: 0, color: 'green' },
-    { state: 'medium', value: 1, color: 'orange' },
-    { state: 'high', value: 2, color: 'red' },
-  ];
+  config.state_map = {
+    map: [
+      { state: 'low', value: 0 },
+      { state: 'medium', value: 1 },
+      { state: 'high', value: 2 },
+    ],
+  };
   config.horseshoe_labels.stringstate_mode = {
     state_map: {
       map: [{
@@ -84,8 +106,16 @@ test('mapped-state labels retain configured text and relation styles', () => {
     current: { styles: { 'font-weight': 'bold' } },
     after: { styles: { 'font-weight': 'normal' } },
   };
+  const runtime = createLabelRuntime(config);
+  runtime.mappedState = runtime.stateMap.map[1];
 
-  const labels = buildLabelStopItems(config, createMapper(config));
+  assert.equal(Object.hasOwn(config, 'mapped_state'), false);
+  assert.equal(Object.hasOwn(config, 'colorstops'), false);
+  assert.equal(runtime.scale.min, 0);
+  assert.equal(runtime.scale.max, 3);
+  assert.equal(runtime.mappedState.state, 'medium');
+
+  const labels = buildLabelStopItems(config, runtime, paint);
 
   assert.deepEqual(labels.map((label) => label.text), ['low', 'Comfortable', 'high']);
   assert.deepEqual(labels.map((label) => label.relation), ['before', 'current', 'after']);

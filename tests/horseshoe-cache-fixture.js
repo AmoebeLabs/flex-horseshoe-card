@@ -65,7 +65,7 @@ export async function loadHorseshoeCacheCard(page, bundle) {
     window.horseshoeCache = { card, hass, config };
   });
   await page.waitForFunction(() => window.horseshoeCache.card.cardTools.getBySection('horseshoes')
-    .every((gauge) => gauge.pathGeometry.isReady() && gauge.stateGradient && gauge.pathElements.labels.length > 0));
+    .every((gauge) => gauge.geometry.pathGeometry.isReady() && gauge.paint.stateGradient && gauge.geometry.pathElements.labels.length > 0));
   await page.evaluate(async () => {
     await window.horseshoeCache.card.updateComplete;
     await new Promise((done) => requestAnimationFrame(done));

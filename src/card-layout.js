@@ -22,7 +22,7 @@ export default class CardLayout {
   }
 
   /** Initializes groups, SVG definitions, aspect ratio, and static dimensions. */
-  setConfig(config, horseshoes) {
+  setConfig(config) {
     config.layout.groups ??= [];
     config.layout.gradients ??= {};
     config.layout.clips ??= {};
@@ -42,15 +42,6 @@ export default class CardLayout {
     this.viewBox.width = aspectRatioParts[0] * SVG_DEFAULT_DIMENSIONS;
     this.viewBox.height = aspectRatioParts[1] * SVG_DEFAULT_DIMENSIONS;
 
-    if (horseshoes) {
-      horseshoes.forEach((item) => {
-        item.svg = this.calculateSvgCoordinatesInGroup(item);
-        item.svg.radius = Utils.calculateSvgDimension(item.radius);
-        item.svg.tickmarksRadius = Utils.calculateSvgDimension(item.tickmarks_radius);
-        item.svg.rotateX = item.svg.xpos;
-        item.svg.rotateY = item.svg.ypos;
-      });
-    }
   }
 
   /** Evaluates dynamic groups and records every descendant affected by a change. */

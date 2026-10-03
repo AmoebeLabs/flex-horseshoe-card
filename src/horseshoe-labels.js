@@ -9,16 +9,16 @@ function getMappedStateRelation(index, currentIndex) {
 }
 
 /** Returns the label configuration belonging to the active string-state mode. */
-function getStringstateLabelConfig(runtimeConfig) {
-  const mode = runtimeConfig.horseshoe_state.mode;
-  return runtimeConfig.horseshoe_labels[mode];
+function getStringstateLabelConfig(config) {
+  const mode = config.horseshoe_state.mode;
+  return config.horseshoe_labels[mode];
 }
 
 /** Builds labels for the signed branch occupying an absolute horseshoe. */
-function buildAbsoluteLabelStopItems(runtimeConfig, valueMapper) {
-  const labelsAt = runtimeConfig.show.labels_at;
+function buildAbsoluteLabelStopItems(config, valueMapper, colorStops) {
+  const labelsAt = config.show.labels_at;
   const magnitudeMax = valueMapper.getActiveMagnitudeMax();
-  const activeColorStops = valueMapper.getActiveColorStops(runtimeConfig.colorstops.colors);
+  const activeColorStops = valueMapper.getActiveColorStops(colorStops.colors);
   const toLabelStop = (magnitude, role, extra = {}) => ({
     value: valueMapper.magnitudeToSourceValue(magnitude),
     text: String(magnitude),
@@ -50,7 +50,7 @@ function buildAbsoluteLabelStopItems(runtimeConfig, valueMapper) {
   }
 
   if (labelsAt === 'ticks_major' || labelsAt === 'both') {
-    const ticksize = Number(runtimeConfig.horseshoe_tickmarks.ticks_major.ticksize);
+    const ticksize = Number(config.horseshoe_tickmarks.ticks_major.ticksize);
     const tickLabels = buildTickValues(0, magnitudeMax, ticksize, 0).map((magnitude, index, values) => (
       toLabelStop(magnitude, index === 0 ? 'min' : index === values.length - 1 ? 'max' : 'tick-major')
     ));
@@ -60,7 +60,7 @@ function buildAbsoluteLabelStopItems(runtimeConfig, valueMapper) {
   const uniqueStops = labelStops
     .sort((stopA, stopB) => stopA.magnitude - stopB.magnitude)
     .filter((stop, index, stops) => stops.findIndex((candidate) => candidate.magnitude === stop.magnitude) === index);
-  const distanceMin = Number(runtimeConfig.horseshoe_labels.distance_min);
+  const distanceMin = Number(config.horseshoe_labels.distance_min);
   const visibleStops = [];
 
   uniqueStops.forEach((stop) => {
@@ -80,16 +80,17 @@ function buildAbsoluteLabelStopItems(runtimeConfig, valueMapper) {
  * Builds the configured labels in value space. Path placement is performed
  * later by path-elements using the same value mapper as the state and ticks.
  */
-export function buildLabelStopItems(runtimeConfig, valueMapper) {
-  const labelsAt = runtimeConfig.show.labels_at;
+export function buildLabelStopItems(config, runtime, paint) {
+  const labelsAt = config.show.labels_at;
+  const valueMapper = runtime.valueMapper;
 
-  if (runtimeConfig.bar_mode === 'absolute' && labelsAt !== 'segment' && labelsAt !== 'stringstate') {
-    return buildAbsoluteLabelStopItems(runtimeConfig, valueMapper);
+  if (config.bar_mode === 'absolute' && labelsAt !== 'segment' && labelsAt !== 'stringstate') {
+    return buildAbsoluteLabelStopItems(config, valueMapper, paint.colorStops);
   }
 
-  const min = Number(runtimeConfig.horseshoe_scale.min);
-  const max = Number(runtimeConfig.horseshoe_scale.max);
-  const colorStops = runtimeConfig.colorstops.colors;
+  const min = runtime.scale.min;
+  const max = runtime.scale.max;
+  const colorStops = paint.colorStops.colors;
   let labelStops = [];
 
   if (labelsAt === 'minmax') {
@@ -121,8 +122,8 @@ export function buildLabelStopItems(runtimeConfig, valueMapper) {
   }
 
   if (labelsAt === 'ticks_major') {
-    const ticksize = Number(runtimeConfig.horseshoe_tickmarks.ticks_major.ticksize);
-    const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const ticksize = Number(config.horseshoe_tickmarks.ticks_major.ticksize);
+    const bidirectional = config.bar_mode === 'bidirectional' || config.bar_mode === 'bidirectional_symmetrical' || config.bar_mode === 'bidirectional_linear';
     const tickAnchor = bidirectional ? 0 : min;
     labelStops = buildTickValues(min, max, ticksize, tickAnchor).map((value, index, values) => ({
       value,
@@ -144,8 +145,8 @@ export function buildLabelStopItems(runtimeConfig, valueMapper) {
           { value: max, text: String(max), role: 'max' },
         ]
       : [];
-    const ticksize = Number(runtimeConfig.horseshoe_tickmarks.ticks_major.ticksize);
-    const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+    const ticksize = Number(config.horseshoe_tickmarks.ticks_major.ticksize);
+    const bidirectional = config.bar_mode === 'bidirectional' || config.bar_mode === 'bidirectional_symmetrical' || config.bar_mode === 'bidirectional_linear';
     const tickAnchor = bidirectional ? 0 : min;
     const tickLabels = buildTickValues(min, max, ticksize, tickAnchor).map((value) => ({
       value,
@@ -156,10 +157,10 @@ export function buildLabelStopItems(runtimeConfig, valueMapper) {
   }
 
   if (labelsAt === 'segment' || labelsAt === 'stringstate') {
-    const stateMap = runtimeConfig.state_map.map;
-    const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(runtimeConfig.mapped_state.value));
-    const stringstateMode = runtimeConfig.horseshoe_state.mode === 'stringstate_mode' || runtimeConfig.horseshoe_state.mode === 'stringstate_level';
-    const stringstateLabels = stringstateMode ? getStringstateLabelConfig(runtimeConfig) : undefined;
+    const stateMap = runtime.stateMap.map;
+    const currentIndex = stateMap.findIndex((item) => Number(item.value) === Number(runtime.mappedState.value));
+    const stringstateMode = config.horseshoe_state.mode === 'stringstate_mode' || config.horseshoe_state.mode === 'stringstate_level';
+    const stringstateLabels = stringstateMode ? getStringstateLabelConfig(config) : undefined;
 
     labelStops = stateMap.map((item, index) => {
       const relation = getMappedStateRelation(index, currentIndex);
@@ -183,7 +184,7 @@ export function buildLabelStopItems(runtimeConfig, valueMapper) {
     });
   }
 
-  const bidirectional = runtimeConfig.bar_mode === 'bidirectional' || runtimeConfig.bar_mode === 'bidirectional_symmetrical' || runtimeConfig.bar_mode === 'bidirectional_linear';
+  const bidirectional = config.bar_mode === 'bidirectional' || config.bar_mode === 'bidirectional_symmetrical' || config.bar_mode === 'bidirectional_linear';
   const validStops = labelStops
     .filter((stop) => {
       const value = Number(stop.value);
@@ -191,7 +192,7 @@ export function buildLabelStopItems(runtimeConfig, valueMapper) {
     })
     .sort((stopA, stopB) => Number(stopA.value) - Number(stopB.value))
     .filter((stop, index, stops) => stops.findIndex((candidate) => Number(candidate.value) === Number(stop.value)) === index);
-  const distanceMin = Number(runtimeConfig.horseshoe_labels.distance_min);
+  const distanceMin = Number(config.horseshoe_labels.distance_min);
   const visibleStops = [];
 
   validStops.forEach((stop) => {

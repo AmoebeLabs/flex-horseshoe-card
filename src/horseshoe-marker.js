@@ -22,13 +22,13 @@ export default class HorseshoeStateMarker {
    * Path geometry supplies the same tangent and normal used by static markers.
    *
    * @param {TransformedPathGeometry} pathGeometry - Bound path in final card coordinates.
-   * @param {object} pathConfig - Normalized path geometry including the arc center.
+   * @param {object} pathInput - Normalized path geometry including the arc center.
    * @param {object} markerConfig - Normalized path marker configuration.
    * @param {number} progress - Current animated position in 0..100 path space.
    * @param {object} stateStyles - Calculated horseshoe state appearance.
    * @returns {TemplateResult} Marker SVG or its hidden source loader.
    */
-  render(pathGeometry, pathConfig, markerConfig, progress, stateStyles) {
+  render(pathGeometry, pathInput, markerConfig, progress, stateStyles) {
     let marker;
     let markerLength;
     let markerWidth;
@@ -58,7 +58,7 @@ export default class HorseshoeStateMarker {
       markerWidth = markerLength / Number(markerConfig.aspectratio);
       rotation = marker.rotation + Number(markerConfig.rotate);
     } else {
-      const center = pathGeometry.pointInCardCoordinates({ x: pathConfig.cx, y: pathConfig.cy });
+      const center = pathGeometry.pointInCardCoordinates({ x: pathInput.cx, y: pathInput.cy });
       const statePoint = pathGeometry.pointAtProgress(progress);
       const deltaX = statePoint.x - center.x;
       const deltaY = statePoint.y - center.y;

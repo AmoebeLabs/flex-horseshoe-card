@@ -1,4 +1,6 @@
 import SparklineGraph from './sparkline-graph.js';
+import ColorStops from './color-stops.js';
+import Merge from './merge.js';
 import Utils from './utils.js';
 import { SPARKLINE_DATA_STATE, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 
@@ -14,20 +16,22 @@ export default class SparklineSeries {
    * history are attached. IDs are the identity used by request and tooltip code.
    *
    * @param {object} config - Validated sparkline layout item configuration.
+   * @param {object|undefined} sourceConfig - Raw source evaluated for this publication.
    */
-  constructor(config) {
+  constructor(config, sourceConfig) {
     this.items = [];
     this.binPlan = undefined;
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
-    this.updateConfig(config);
+    this.updateConfig(config, sourceConfig);
   }
 
   /**
    * Rebinds canonical entries while retaining runtime history and graph state.
    *
    * @param {object} config - Validated static or runtime sparkline configuration.
+   * @param {object|undefined} sourceConfig - Raw source evaluated for this publication.
    */
-  updateConfig(config) {
+  updateConfig(config, sourceConfig) {
     const seriesLayoutSignature = JSON.stringify(config.series.map((seriesConfig) => [
       seriesConfig.id, seriesConfig.y_axis_id, seriesConfig.sparkline.show.chart_type,
     ]));
@@ -37,21 +41,29 @@ export default class SparklineSeries {
     }
     this.seriesLayoutSignature = seriesLayoutSignature;
 
-    // Canonical entries already contain inheritance and paint priority. Retain
-    // the runtime owner by ID while binding it to the newly published entry.
+    // Bind canonical entries by ID, and keep only the explicitly authored
+    // legacy series override needed to compose each item's active palette.
     this.items = config.series.map((seriesConfig) => {
       const existingItem = this.items.find((item) => item.id === seriesConfig.id);
       if (existingItem !== undefined) {
         existingItem.entity_index = seriesConfig.entity_index;
         existingItem.y_axis_id = seriesConfig.y_axis_id;
         existingItem.config = seriesConfig;
+        if (sourceConfig !== undefined) {
+          delete existingItem.paint.colorStopsOverride;
+          const authoredSeries = sourceConfig.series?.find((entry) => entry.id === seriesConfig.id);
+          if (authoredSeries?.sparkline?.colorstops !== undefined) {
+            existingItem.paint.colorStopsOverride = structuredClone(authoredSeries.sparkline.colorstops);
+          }
+        }
         return existingItem;
       }
-      return {
+      const item = {
         id: seriesConfig.id,
         entity_index: seriesConfig.entity_index,
         y_axis_id: seriesConfig.y_axis_id,
         config: seriesConfig,
+        paint: {},
         entity: undefined,
         entityConfig: undefined,
         graph: undefined,
@@ -59,6 +71,11 @@ export default class SparklineSeries {
         requestState: SPARKLINE_REQUEST_STATE.NOT_LOADED,
         dataState: SPARKLINE_DATA_STATE.NOT_LOADED,
       };
+      const authoredSeries = sourceConfig?.series?.find((entry) => entry.id === seriesConfig.id);
+      if (authoredSeries?.sparkline?.colorstops !== undefined) {
+        item.paint.colorStopsOverride = structuredClone(authoredSeries.sparkline.colorstops);
+      }
+      return item;
     });
     this.binPlan = undefined;
 
@@ -71,6 +88,32 @@ export default class SparklineSeries {
         ? SPARKLINE_DATA_STATE.HAS_DATA
         : SPARKLINE_DATA_STATE.EMPTY;
   }
+
+  /** Rebuilds each stable item's active palette from its public definition and authored legacy override. */
+  updatePalettePaint(parentColorStops, colorStopMode) {
+    this.items.forEach((item) => {
+      const publicColorStops = item.config.sparkline.color_stops;
+      const inheritedColorStops = publicColorStops !== undefined
+        ? ColorStops.normalize(publicColorStops, colorStopMode)
+        : parentColorStops;
+      item.paint.colorStops = item.paint.colorStopsOverride !== undefined
+        ? Merge.mergeDeep({}, inheritedColorStops, item.paint.colorStopsOverride)
+        : inheritedColorStops;
+    });
+  }
+
+  /** Identifies palette inputs that affect numeric scales, grades or ranks, excluding color-only changes. */
+  getPaletteCalculationSignature(parentColorStops) {
+    return JSON.stringify([
+      [parentColorStops.scales, parentColorStops.colors.map((stop) => [stop.value, stop.rank, stop.state])],
+      this.items.map((item) => [
+        item.id,
+        item.paint.colorStops.scales,
+        item.paint.colorStops.colors.map((stop) => [stop.value, stop.rank, stop.state]),
+      ]),
+    ]);
+  }
+
   /**
    * Returns item zero of the normalized collection. It supplies shared
    * presentation such as axes, pointer interaction, and existing statistics;
