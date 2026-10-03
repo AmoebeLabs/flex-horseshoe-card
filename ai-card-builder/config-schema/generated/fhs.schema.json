@@ -5766,41 +5766,62 @@
             "viz_button": {
               "anyOf": [
                 {
-                  "type": "object",
-                  "additionalProperties": true
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
+                  "description": "Button-style visualization configuration for select segments.",
+                  "x-fhs-semantic-source": "schema-context-v8"
                 },
                 {
-                  "$ref": "#/$defs/common.javascript"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
+                  "description": "Button visualization settings for show.item_viz: viz_button. JavaScript returns the complete visualization object before preset completion.",
+                  "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
                 }
-              ],
-              "description": "Button-style visualization configuration for select segments.",
-              "x-fhs-semantic-source": "schema-context-v8"
+              ]
             },
             "viz_line": {
               "anyOf": [
                 {
-                  "type": "object",
-                  "additionalProperties": true
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
+                  "description": "Line-style visualization configuration for select segments.",
+                  "x-fhs-semantic-source": "schema-context-v8"
                 },
                 {
-                  "$ref": "#/$defs/common.javascript"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "$ref": "#/$defs/common.javascript"
+                    }
+                  ],
+                  "description": "Line-indicator visualization settings for show.item_viz: viz_line. JavaScript returns the complete visualization object before preset completion.",
+                  "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
                 }
-              ],
-              "description": "Line-style visualization configuration for select segments.",
-              "x-fhs-semantic-source": "schema-context-v8"
-            },
-            "button": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": true
-                },
-                {
-                  "$ref": "#/$defs/common.javascript"
-                }
-              ],
-              "description": "Configuration field `button` for layout control. Its accepted shape and values are defined by this schema node.",
-              "x-fhs-semantic-source": "schema-contract-v8"
+              ]
             },
             "values": {
               "anyOf": [
@@ -5861,6 +5882,19 @@
                 }
               ],
               "description": "Configuration field `interaction` for layout control. Its accepted shape and values are defined by this schema node.",
+              "x-fhs-semantic-source": "schema-contract-v8"
+            },
+            "button": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
+              "description": "Configuration field `button` for layout control. Its accepted shape and values are defined by this schema node.",
               "x-fhs-semantic-source": "schema-contract-v8"
             }
           },
@@ -6743,7 +6777,7 @@
               "description": "Visibility/mode selectors for this tool. Exact supported keys are tool-specific.",
               "x-fhs-semantic-source": "schema-context-v8"
             },
-            "button": {
+            "viz_button": {
               "anyOf": [
                 {
                   "type": "object",
@@ -6753,7 +6787,20 @@
                   "$ref": "#/$defs/common.javascript"
                 }
               ],
-              "description": "Button visualization/configuration for a type: button control.",
+              "description": "Button visualization settings for show.item_viz: viz_button. JavaScript returns the complete visualization object before preset completion.",
+              "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
+            },
+            "viz_line": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "$ref": "#/$defs/common.javascript"
+                }
+              ],
+              "description": "Line-indicator visualization settings for show.item_viz: viz_line. JavaScript returns the complete visualization object before preset completion.",
               "x-fhs-semantic-source": "runtime-or-schema-verified-v8"
             }
           }

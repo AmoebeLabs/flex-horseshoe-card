@@ -116,6 +116,9 @@ export default class ControlBase extends BaseTool {
       // Selectors establish the preset/defaults visible through item. Reuse their
       // evaluated values in the remaining pass, so each expression runs once.
       const selectorContext = Merge.mergeDeep(this.translateControlConfig({}, true), sourceConfig);
+      // Selectors see the authored state map as a complete replacement, just as
+      // the final translator does after evaluation.
+      if (sourceConfig.state_map !== undefined) selectorContext.state_map = sourceConfig.state_map;
       const orientation = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.orientation);
       const show = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.show);
       sourceConfig = this.translateControlConfig({ ...sourceConfig, orientation, show }, true);

@@ -110,6 +110,25 @@ for control_type, show_value in control_javascript_cases:
         + "\n".join(e.message for e in control_errors)
     )
 
+# Button visualization names must be described, not merely accepted through
+# permissive shared properties. Whole-value JavaScript has the same contract.
+button_properties = schema["$defs"]["layout.controlButton"]["allOf"][1]["properties"]
+for visualization in ("viz_button", "viz_line"):
+    assert visualization in button_properties
+    for value in ({"animation": {"duration": 350}}, "[[[ return { animation: { duration: 350 } }; ]]]"):
+        button_card = {
+            "type": "custom:flex-horseshoe-card",
+            "layout": {"controls": [{
+                "type": "button", "show": {"item_viz": visualization}, visualization: value,
+            }]},
+        }
+        assert not list(validator.iter_errors(button_card)), f"Button visualization rejected: {visualization}"
+    invalid_button = {
+        "type": "custom:flex-horseshoe-card",
+        "layout": {"controls": [{"type": "button", visualization: 42}]},
+    }
+    assert list(validator.iter_errors(invalid_button)), f"Numeric visualization accepted: {visualization}"
+
 for control_type in ("toggle", "select", "number", "button", "slider"):
     dynamic_type_card = {
         "type": "custom:flex-horseshoe-card",

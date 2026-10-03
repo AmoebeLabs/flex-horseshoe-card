@@ -5,6 +5,7 @@ import ControlContent from '../src/control-content.js';
 import ControlSelect from '../src/control-select.js';
 import ControlTool from '../src/control-tool.js';
 import BaseTool from '../src/base-tool.js';
+import CardTools from '../src/card-tools.js';
 
 const createContext = () => ({
   templates: {
@@ -17,6 +18,7 @@ const createContext = () => ({
     },
     entities: [{ entity_id: 'sensor.test', state: '', attributes: {} }],
     resolvedEntityConfigs: [{}],
+    cardTools: { setToolEntityState: CardTools.prototype.setToolEntityState },
     cardLayout: {
       changedGroupIds: new Set(),
       calculateSvgCoordinatesInGroup: (config) => ({

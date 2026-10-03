@@ -3,12 +3,16 @@ import assert from 'node:assert/strict';
 import ControlBase from '../src/control-base.js';
 import ControlToggle from '../src/control-toggle.js';
 import Templates from '../src/templates.js';
+import CardTools from '../src/card-tools.js';
 
 const createContext = () => {
   let groupXOffset = 0;
   let colorMode = 'light';
   const card = {
     config: {},
+    entities: [],
+    resolvedEntityConfigs: [],
+    cardTools: { setToolEntityState: CardTools.prototype.setToolEntityState },
     cardLayout: {
       changedGroupIds: new Set(),
       calculateSvgCoordinatesInGroup: (config) => ({
@@ -114,6 +118,8 @@ test('Toggle static and valid JavaScript config produce equivalent active preset
   assert.equal(javascriptToggle.iconTool.haIconPath.sourceClosed, false);
 
   const entity = { entity_id: 'switch.test', state: 'on', attributes: {} };
+  javascriptContext.card.entities = [entity];
+  javascriptContext.card.resolvedEntityConfigs = [{ entity: 'switch.test' }];
   javascriptToggle.setState(entity, { entity: 'switch.test' });
   assert.strictEqual(javascriptToggle.iconTool.runtime.entity, entity);
 });
@@ -123,6 +129,8 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   const context = createContext();
   const toggle = new ControlToggle(createToggleConfig('mdi:lightbulb'), 0, templates, 'test-card', context.card);
   const entity = { entity_id: 'switch.test', state: 'off', attributes: {} };
+  context.card.entities = [entity];
+  context.card.resolvedEntityConfigs = [{ entity: 'switch.test' }];
 
   toggle.updateRuntimeConfig();
   toggle.setState(entity, { entity: 'switch.test' });

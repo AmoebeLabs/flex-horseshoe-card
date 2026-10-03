@@ -416,9 +416,17 @@ export default class ControlNumber extends ControlBase {
           : contentConfig.plus.tap_action,
     });
 
-    this.minusContentTool.setState(entity, entityConfig);
-    this.plusContentTool.setState(entity, entityConfig);
-    this.valueStateTool.setState(entity, entityConfig);
+    // Commands remain bound to the Number control. Generated presentation tools
+    // independently publish the entity selected by their completed config.
+    this.card.cardTools.setToolEntityState(
+      this.minusContentTool, this.card.resolvedEntityConfigs, this.card.entities,
+    );
+    this.card.cardTools.setToolEntityState(
+      this.plusContentTool, this.card.resolvedEntityConfigs, this.card.entities,
+    );
+    this.card.cardTools.setToolEntityState(
+      this.valueStateTool, this.card.resolvedEntityConfigs, this.card.entities,
+    );
     if (this.valueMeasurementSignature !== this.valueStateTool.geometry.textMeasurementSignature) {
       this.valueMeasurementSignature = this.valueStateTool.geometry.textMeasurementSignature;
       this.valueMeasurementPass = 0;
