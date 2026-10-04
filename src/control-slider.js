@@ -338,14 +338,6 @@ export default class ControlSlider extends ControlBase {
     if (this.valueSeparatorTool) this.valueSeparatorTool.updateRuntimeConfig();
   }
 
-  /** Includes range/thumb geometry, availability and each optional displayed value. */
-  hasPresentationChanged() {
-    const changed = super.hasPresentationChanged([this.runtime.values, this.runtime.scale, this.runtime.available]);
-    const children = [...this.valueStateTools];
-    if (this.valueSeparatorTool) children.push(this.valueSeparatorTool);
-    const childChanges = children.map((tool) => tool.hasPresentationChanged());
-    return changed || childChanges.some(Boolean);
-  }
 
   /** Resolves scale metadata and current values from the configured entities. */
   setState(entity, entityConfig) {

@@ -712,14 +712,6 @@ export default class ControlSelect extends ControlBase {
       .forEach((iconTool) => iconTool.updateRuntimeConfig());
   }
 
-  /** Includes the selected segment and all option labels, icons and visual children. */
-  hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.runtime.selectedIndex);
-    const children = [...this.optionContentVisuals, ...this.optionTextTools, ...this.optionIconTools]
-      .filter((tool) => tool !== undefined);
-    const childChanges = children.map((tool) => tool.hasPresentationChanged());
-    return changed || childChanges.some(Boolean);
-  }
 
   /** Selects the active option and publishes state plus visual styles. */
   setState(entity, entityConfig) {

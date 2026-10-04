@@ -991,14 +991,6 @@ export default class TextTool extends BaseTool {
     });
   }
 
-  /** Includes each part's displayed text and final source/animation/color-stop paint. */
-  hasPresentationChanged() {
-    // Animation styles have been activated since setState(). Use their final
-    // font metrics before deciding whether this presentation needs a render.
-    this.updateTextMeasurement();
-    const parts = this.getRenderedTextParts(this.runtime.textParts, true).map((part) => [part.value, part.new_line, part.dx, part.dy, part.renderStyles]);
-    return super.hasPresentationChanged(parts);
-  }
 
   /** Renders visible and measurement text using the same final part styles. */
   render() {
