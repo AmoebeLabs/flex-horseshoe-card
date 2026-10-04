@@ -33,7 +33,6 @@ import CardLayout from './card-layout.js';
 import ConfigHelper from './config-helper.js';
 import Templates from './templates.js';
 import { computeDomain } from './frontend_mods/common/entity/compute_domain.ts';
-import StateTool from './state-tool.js';
 import ControlTool from './control-tool.js';
 import SameAs from './same-as.js';
 import Compounds from './compounds.js';
@@ -86,8 +85,6 @@ class FlexHorseshoeCard extends LitElement {
       () => this.updatePalettePaint(),
     );
     this.cardEntities = new CardEntities(this.templates, this.cardTheme);
-    this.entitiesStr = [];
-    this.attributesStr = [];
     this.childCards = new ChildCards(this);
     this.cardAnimations = new CardAnimations();
     this.runtimeEntityConfigs = [];
@@ -187,7 +184,7 @@ class FlexHorseshoeCard extends LitElement {
     const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
 
-    this.updateSourceEntities(localeChanged || entityDisplayChanged || themeChanged || this.cardHasJavascript, hassBecameAvailable);
+    this.updateSourceEntities(localeChanged || entityDisplayChanged || themeChanged, hassBecameAvailable);
   }
 
   /**
@@ -195,7 +192,7 @@ class FlexHorseshoeCard extends LitElement {
    * calculates graphs and forwards their derived values to ordinary tools.
    * Local inputs enter here with the existing HA context and shared array.
    *
-   * @param {boolean} contextChanged - Metadata or JavaScript context changed.
+   * @param {boolean} contextChanged - Local input, display metadata, locale or theme changed.
    * @param {boolean} hassBecameAvailable - First external HA delivery.
    */
   updateSourceEntities(contextChanged, hassBecameAvailable) {
@@ -210,25 +207,37 @@ class FlexHorseshoeCard extends LitElement {
     let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
     const configuredEntityCount = this.config.entities.length;
 
-    this.runtimeEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
+    for (let index = 0; index < configuredEntityCount; index += 1) {
+      const activeEntityConfig = this.runtimeEntityConfigs[index];
       const entity = activeEntityConfig.local ? this.entities[index] : hass.states[activeEntityConfig.entity];
 
-      if (!entity) return;
+      if (!entity) continue;
       if (this.entities[index] !== entity) configuredEntityStateChanged = true;
       this.entities[index] = entity;
-    });
+    }
 
     // Entity state, display metadata, locale and theme changes publish a new
     // Hass context to every context-dependent card domain during this pass.
     const hassContextChanged = configuredEntityStateChanged || contextChanged;
+
+    // Unrelated HA traffic still reaches child cards and connection owners in
+    // setHass(). FHS config and tools run only for declared inputs, supported
+    // context changes, or work retained by an asynchronous owner.
+    if (!hassContextChanged && !this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate())) {
+      if (performanceEnabled) {
+        performance.measure(`FHS:${this.cardId}:setHass`, {
+          start: setHassPerformanceStart,
+          end: performance.now(),
+        });
+      }
+      return;
+    }
 
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
     if (hassContextChanged) {
       this.runtimeEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
-    } else {
-      this.runtimeEntityConfigs = this.runtimeEntityConfigs.slice(0, configuredEntityCount);
     }
 
     // An evaluated entity config may select a different entity. Publish the final entity list
@@ -257,47 +266,6 @@ class FlexHorseshoeCard extends LitElement {
         start: groupsPerformanceStart,
         end: performance.now(),
       });
-    }
-
-    // Source/context changes run the forward data phases. Reconnect work is
-    // reported by the owners that retained data across the connection change.
-    let sourceUpdateRequired = hassContextChanged
-      || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
-
-    this.runtimeEntityConfigs.forEach((entityConfig, index) => {
-      const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
-
-      if (!entity) return;
-
-      this.entities[index] = entity;
-
-      const newStateStr = StateTool.buildState(entity.state, entityConfig, this._hass, entity);
-
-      if (newStateStr !== this.entitiesStr[index]) {
-        this.entitiesStr[index] = newStateStr;
-        sourceUpdateRequired = true;
-      }
-
-      // eslint-disable-next-line prefer-object-has-own
-      if (entityConfig.attribute && Object.prototype.hasOwnProperty.call(entity.attributes, entityConfig.attribute)) {
-        const newAttributeStr = StateTool.buildState(entity.attributes[entityConfig.attribute], entityConfig, this._hass, entity);
-
-        if (newAttributeStr !== this.attributesStr[index]) {
-          this.attributesStr[index] = newAttributeStr;
-          sourceUpdateRequired = true;
-        }
-      }
-    });
-
-    if (!sourceUpdateRequired) {
-      if (performanceEnabled) {
-        performance.measure(`FHS:${this.cardId}:setHass`, {
-          start: setHassPerformanceStart,
-          end: performance.now(),
-        });
-      }
-
-      return;
     }
 
     // Home Assistant availability is a distinct one-time lifecycle phase.
@@ -375,15 +343,11 @@ class FlexHorseshoeCard extends LitElement {
     }
 
     // A JavaScript entity config may select a different ordinary source. Keep
-    // formatted values and action targets aligned with that final selection.
+    // shared entities and action targets aligned with that final selection.
     this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : this._hass.states[entityConfig.entity];
       if (!entity) return;
       this.entities[index] = entity;
-      this.entitiesStr[index] = StateTool.buildState(entity.state, entityConfig, this._hass, entity);
-      if (entityConfig.attribute && Object.hasOwn(entity.attributes, entityConfig.attribute)) {
-        this.attributesStr[index] = StateTool.buildState(entity.attributes[entityConfig.attribute], entityConfig, this._hass, entity);
-      }
     });
     this.actions.setHassAndEntities(this._hass, this.runtimeEntityConfigs, this.entities);
     this.cardTools.updateRuntimeConfig();

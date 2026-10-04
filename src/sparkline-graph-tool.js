@@ -1715,13 +1715,17 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Reports whether reconnect handling requires the next setHass pass.
+   * Reports retained request work and changes to the enabled day/night source.
    *
-   * @returns {boolean} True when existing history must be fetched again.
+   * @returns {boolean} True when this graph needs the next Home Assistant pass.
    */
   requiresHassUpdate() {
     if (this.hasJavascript && !this.runtimeConfigInitialized) return true;
-    return this.sparklineHistory.requiresHassUpdate();
+    // Day/night owns its sun input even when the user does not display sun.sun
+    // as a card entity. Arbitrary JavaScript still follows declared entities.
+    return this.sparklineHistory.requiresHassUpdate()
+      || (this.config.sparkline.show.day_night
+        && this.sparklineHistory.dayNightRecord.sunEntity !== this.card._hass.states['sun.sun']);
   }
 
   /**
