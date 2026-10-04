@@ -58,5 +58,12 @@ P21-I retains the historical 40 warm-up updates and 5 repetitions of 200 updates
 - Horseshoe paint reads use the current `gauge.paint.stateGradient` owner. SVG measurement hooks use `gauge.geometry.pathGeometry.pathElement`; the removed `getPathElement()` API is not used.
 - The original three-gauge Horseshoe fixture is preserved for gradient and animation measurements. Linear, spline, and ranked-state mapping use three additional one-gauge cards in the same scenario page, so all mapping types have separately attributable CPU and operation evidence.
 - Counter passes fail if required methods or fixture operations are missing. The presentation-diff method is reported only when present because Plan 21 intentionally removes that render-only API.
+- Mapping and scale identities in P21-I are observations, not pass/fail requirements. The measured mapping-cache decision removes `runtime.mappingKey`; theme-only updates must still retain path geometry and SVG measurements. No workload or timing loop changed for this decision.
+
+## Mapping Cache Diagnostic
+
+`node tests/performance-mapping-cache.mjs` measures the immutable baseline's normal `setState()` route with an unchanged input. It compares cache hits with deliberately forced mapping-key misses in cached/miss/miss/cached order. Each pass has 40 warm-ups and 1,000 measured updates; linear, spline and ranked fixtures are identical to P21-I. This is a targeted cache decision, not the final before/after comparison.
+
+The raw diagnostic is `performance-results/2026.10.04-plan21-mapping-cache-diagnostic.json`. The mapping key did avoid mapper reconstruction, but the representative workloads showed no consistent material CPU saving. Plan 21 therefore calculates this mapping directly while retaining expensive path and measurement caches.
 
 Keep the benchmark inputs, browser version, page size, update counts, and bundle references unchanged for comparisons. Record any future workload adaptation in this file and in the corresponding result metadata before comparing numbers.

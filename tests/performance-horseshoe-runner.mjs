@@ -12,7 +12,7 @@ const REPETITIONS = 5;
 const UPDATES_PER_REPETITION = 200;
 const MEASURED_UPDATES = REPETITIONS * UPDATES_PER_REPETITION;
 
-async function openHorseshoePage(browser, build) {
+export async function openHorseshoePage(browser, build) {
   const page = await browser.newPage({ viewport: { ...DEFAULT_VIEWPORT }, deviceScaleFactor: 1 });
   page.setDefaultTimeout(120000);
   const browserErrors = [];
@@ -34,7 +34,7 @@ async function openHorseshoePage(browser, build) {
   return { page, browserErrors };
 }
 
-async function createMappingCards(page) {
+export async function createMappingCards(page) {
   await page.evaluate(() => {
     const fixture = window.horseshoeCache;
     const source = structuredClone(fixture.config);
@@ -354,11 +354,9 @@ async function runHorseshoeBuild(browser, browserVersion, build) {
     await synchronizeMappingEntityStates(page);
     const theme = await measureThemeOnly(page);
     const paint = await measureGradientAndPaint(page);
-    if (theme.mapperPreserved.some((preserved) => !preserved)
-      || theme.scalePreserved.some((preserved) => !preserved)
-      || theme.pathGeometryPreserved.some((preserved) => !preserved)
+    if (theme.pathGeometryPreserved.some((preserved) => !preserved)
       || theme.pathMeasurementPreserved.some((preserved) => !preserved)) {
-      throw new Error(`Theme-only update replaced a mapping or path cache: ${JSON.stringify(theme)}`);
+      throw new Error(`Theme-only update replaced a path geometry or measurement cache: ${JSON.stringify(theme)}`);
     }
     if (paint.paint.pointReads.some((count) => count === 0) || paint.paint.lengthReads.some((count) => count !== 0)) {
       throw new Error(`Paint workload did not exercise cached path sampling as expected: ${JSON.stringify(paint.paint)}`);
