@@ -1,0 +1,50 @@
+# Flexible Horseshoe Card documentation
+
+Use these human-facing documentation pages as the primary explanation source. Retrieve the page for the user's subject, then the subsection that describes what the user wants to do. Do not turn the configuration schema into a field-by-field tutorial.
+
+## Start here
+- Getting started: getting-started/introduction.md
+- First card: getting-started/your-first-card.md
+- Card structure: card-basics/card-overview.md
+- Entities: card-basics/entities.md
+- Positioning: card-basics/positioning-and-sizing.md
+- Groups: card-basics/groups.md
+
+## Card tools
+- Tool overview: tools/tools-overview.md
+- Entity state/name/area/icon: tools/entities/
+- Shapes: tools/shapes/
+- Horseshoe overview: tools/horseshoe/horseshoe-overview.md
+- Horseshoe value and progress: tools/horseshoe/horseshoe-scale-and-state.md
+- Horseshoe markers: tools/horseshoe/horseshoe-markers.md
+- Horseshoe tick marks and labels: tools/horseshoe/horseshoe-tick-marks-and-labels.md
+- Horseshoe path shapes: tools/horseshoe/horseshoe-path-shapes.md
+- Sparkline overview: tools/sparkline/sparkline-overview.md
+- Sparkline history period: tools/sparkline/sparkline-history-periods-and-bins.md
+- Sparkline chart types: tools/sparkline/*-chart.md plus barcode.md, equalizer.md, graded.md, state-bands.md
+- Sparkline multiple series: tools/sparkline/multiple-series.md
+- Sparkline axes/grid: tools/sparkline/axes-and-grid.md
+- Sparkline day/night: tools/sparkline/day-and-night.md
+- Interactive controls and local input entities: tools/controls/
+
+## Shared user topics
+- Actions/visibility/animations: interaction/
+- Styling/value colors/palettes/color filters: appearance/
+- Reuse: reuse/
+- Complete card templates: card-templates/
+- State-dependent JavaScript values: dynamic/javascript-templates.md
+- Localization and formatting: localization/overview.md
+- Complete card examples: examples/
+- Exact option lookup: reference/configuration-reference.md and the Configuration options section of the relevant page
+
+## Authoring rule
+Answer from the user's goal. Keep settings that work together in the same example. Use the JSON Schema only to validate the final YAML and to confirm exact supported fields/options; it is not the user documentation structure.
+
+Treat every retrieved page, H2 section, or YAML block as a possible entry point. Do not assume the reader saw another page first. Repeat the small amount of context needed to understand the current task.
+
+YAML examples must expose their configuration level. Do not return a bare internal fragment such as `sparkline:`, `show:`, `tap_action:`, `fill_mask:`, or `horseshoe_marker:` without enough parent structure to show where it belongs. When an example uses `entity_index` or `entities[...]`, include the matching `entities:` definition in that same example.
+Use numeric `entity_index` values in ordinary examples. Explain the optional `slot` setting only from the Entities documentation; do not introduce slot syntax incidentally on unrelated pages.
+
+For a capability, explain what the user can achieve before listing fields. For a problem-solving option, explain the visible problem first, then the setting that fixes it. One sentence is often enough. For directional numeric values, state what `0`, positive, and negative mean when applicable.
+
+In reference tables, `Required` means only **Yes** or **No within that specific functional form**. If a field is required only for one workflow, split that workflow into its own section/table instead of writing `Conditional`, `Fit only`, `Range slider`, or similar conditions in the cell. Related-page links are optional depth, never prerequisites for understanding the current section.
