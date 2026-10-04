@@ -267,7 +267,7 @@ export default class ControlContent {
     // visualizations retain their own styles and color-stop state at all times.
     this.childTools.forEach((child) => {
       if (child.type === 'icon' || child.type === 'text') {
-        child.tool.setPaintStyles(Merge.mergeDeep(
+        child.tool.setEffectiveStyles(Merge.mergeDeep(
           ConfigHelper.toStyleDict(visualState[child.type].styles),
           ConfigHelper.toStyleDict(child.tool.config.styles),
           { transition: `fill ${transition}, color ${transition}, opacity ${transition}`, 'pointer-events': 'none' },

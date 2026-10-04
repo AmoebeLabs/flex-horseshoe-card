@@ -62,7 +62,7 @@ export default class BaseTool {
     this.defaultEntityIndex = defaultEntityIndex;
     this.colorStopPaintDefaults = colorStopPaintDefaults;
 
-    this.runtime = { entity: undefined, entityConfig: undefined };
+    this.runtime = { entity: undefined, entityConfig: undefined, effectiveStyles: undefined };
     this.configChanged = true;
     this.configurationChanged = true;
     this.groupChanged = false;
@@ -262,7 +262,7 @@ export default class BaseTool {
    * @returns {object} Style dictionary ready for styleMap().
    */
   getStyles(baseStyles) {
-    const itemStyleDict = ConfigHelper.toStyleDict(this.paint?.styles ?? this.config.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(this.runtime.effectiveStyles ?? this.config.styles);
     const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
@@ -281,10 +281,8 @@ export default class BaseTool {
    *
    * @param {object|undefined} styles - Complete parent-resolved styles, or undefined to clear them.
    */
-  setPaintStyles(styles) {
-    this.paint ??= {};
-    if (styles === undefined) delete this.paint.styles;
-    else this.paint.styles = styles;
+  setEffectiveStyles(styles) {
+    this.runtime.effectiveStyles = styles;
   }
 
   /**

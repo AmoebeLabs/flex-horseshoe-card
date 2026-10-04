@@ -1724,7 +1724,7 @@ export default class SparklineGraphTool extends BaseTool {
     // Day/night owns its sun input even when the user does not display sun.sun
     // as a card entity. Arbitrary JavaScript still follows declared entities.
     return this.sparklineHistory.requiresHassUpdate()
-      || (this.config.sparkline.show.day_night
+      || (this.sparklineHistory.dayNightEnabled
         && this.sparklineHistory.dayNightRecord.sunEntity !== this.card._hass.states['sun.sun']);
   }
 

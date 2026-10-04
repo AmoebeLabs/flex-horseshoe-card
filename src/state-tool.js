@@ -342,8 +342,8 @@ export default class StateTool extends BaseTool {
   }
 
   /** Publishes effective styles and updates measurement only when its signature changes. */
-  setPaintStyles(styles) {
-    super.setPaintStyles(styles);
+  setEffectiveStyles(styles) {
+    super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
   }
 
