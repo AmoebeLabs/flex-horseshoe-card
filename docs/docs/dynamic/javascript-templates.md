@@ -39,11 +39,12 @@ The value returned by the template becomes the value of that YAML setting.
 
 ## :material-horseshoe: Use another entity from the same card
 
-Slots keep the reference readable:
+Use the entity's index in the card's `entities` list:
 
 ```yaml linenums="1"
 entities:
   - entity: input_boolean.example  # Entity used by this example
+  - entity: input_boolean.show_reading
 
 layout:
   states:
@@ -60,9 +61,12 @@ layout:
 ```
 ## :material-horseshoe: Read another Home Assistant entity
 
-Read another entity when a dynamic value depends on Home Assistant data that is not the item’s own selected entity.
+Read another entity when a dynamic value depends on Home Assistant data that is not the item's own selected entity. Include it in `entities` so its changes update the card:
 
 ```yaml linenums="1"
+entities:
+  - entity: sensor.outdoor_temperature
+
 layout:
   texts:
     - xpos: 50  # Horizontal center of the text
@@ -73,7 +77,13 @@ layout:
           return states['sensor.outdoor_temperature'].state;
         ]]]
 ```
-Include entities that should trigger card updates in the card's `entities` list.
+Every entity that should update a JavaScript value belongs in the card's
+[`entities` list](../card-basics/entities.md), even when no item displays it
+directly. This includes entities read through `states` or `hass.states`.
+An unlisted entity can still be read, but its changes alone do not update the
+card. Its latest value is read when a listed entity or another supported card
+context changes. Theme and light/dark changes also update theme-dependent
+templates.
 
 ## :material-horseshoe: Calculate a value from a state
 

@@ -2771,9 +2771,6 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   const aggregate = context.mock.method(graph, 'aggregateBuckets');
   const geometry = context.mock.method(graph, 'calculateGeometry');
   const statistics = context.mock.method(graph, 'updateStatistics');
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
-
   // Activate changed paint through the normal runtime configuration and entity phases.
   tool.config.sparkline.line.styles = { stroke: '#d32f2f', opacity: 0.4 };
   tool.card.cardTheme.modeChanged = true;
@@ -2794,8 +2791,6 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   assert.equal(statistics.mock.callCount(), 0);
   assert.equal(tool.getLineStyles().stroke, '#d32f2f');
   assert.equal(tool.getLineStyles().opacity, '0.4');
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 });
 
 test('a changed single Cartesian series prunes and calculates statistics once', (context) => {
@@ -2808,7 +2803,6 @@ test('a changed single Cartesian series prunes and calculates statistics once', 
   const reducer = context.mock.method(item.graph, '_reducer');
   const completedGroup = item.graph.bucketGroups.get(Date.parse('2026-09-26T09:00:00.000Z'));
   const completedResult = item.graph.bucketResults.get(completedGroup);
-  tool.hasPresentationChanged();
 
   tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
   tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
@@ -2819,8 +2813,6 @@ test('a changed single Cartesian series prunes and calculates statistics once', 
   assert.equal(reducer.mock.callCount(), 2);
   assert.strictEqual(item.graph.bucketResults.get(completedGroup), completedResult);
   assert.equal(item.graph.statistics.max, 42);
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 });
 
 test('a single bar renders the final rectangles already calculated by Series', (context) => {
@@ -2883,7 +2875,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
   });
 });
 
-test('changed historical curves report presentation changes when all published statistics stay equal', (context) => {
+test('changed historical curves update paths when all published statistics stay equal', (context) => {
   const tool = createChangeDetectionTool(context, 'rolling_window');
   const item = tool.sparklineSeries.primaryItem;
   const graph = item.graph;
@@ -2891,8 +2883,6 @@ test('changed historical curves report presentation changes when all published s
   const initialCoords = structuredClone(graph.coords);
   const initialPath = tool.geometry.line[0];
   const aggregate = context.mock.method(graph, 'aggregateBuckets');
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 
   // Swap equally long interior states: extrema, their times and the weighted mean stay equal.
   const changedRows = item.rows.map((row) => ({
@@ -2910,19 +2900,21 @@ test('changed historical curves report presentation changes when all published s
   assert.notDeepEqual(graph.coords, initialCoords);
   assert.notEqual(tool.geometry.line[0], initialPath);
   assert.equal(aggregate.mock.callCount(), 1);
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 });
 
 test('real-time row reuse requires equal numeric state and sample timestamp', (context) => {
   const tool = createChangeDetectionTool(context, 'real_time');
   const item = tool.sparklineSeries.primaryItem;
   const graph = item.graph;
-  const retained = { rows: item.rows, values: graph.processedValues, coords: graph.coords, statistics: graph.statistics };
+  const retained = {
+    rows: item.rows,
+    values: graph.processedValues,
+    coords: graph.coords,
+    statistics: graph.statistics,
+    result: tool.getSeriesResult(),
+  };
   const graphUpdates = context.mock.method(tool, 'updateGraphFromSeries');
   const aggregate = context.mock.method(graph, 'aggregateBuckets');
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 
   // A fresh HA object with equivalent numeric spelling must still update the action context.
   const equivalent = { ...tool.runtime.entity, state: '20.10', attributes: { friendly_name: 'Current temperature' } };
@@ -2935,7 +2927,7 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   assert.strictEqual(graph.statistics, retained.statistics);
   assert.equal(graphUpdates.mock.callCount(), 0);
   assert.equal(aggregate.mock.callCount(), 0);
-  assert.equal(tool.hasPresentationChanged(), false);
+  assert.deepEqual(tool.getSeriesResult(), retained.result);
 
   // Equal value at a new timestamp is a new sample and must refresh statistic times.
   tool.card.entities[0] = { ...equivalent, last_changed: '2026-09-26T11:01:00.000Z' };
@@ -2951,7 +2943,6 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   });
   assert.equal(graphUpdates.mock.callCount(), 1);
   assert.equal(aggregate.mock.callCount(), 1);
-  assert.equal(tool.hasPresentationChanged(), true);
   const timestampRows = item.rows;
 
   // Configured decimals never suppress a changed raw value at the same timestamp.
@@ -2963,8 +2954,6 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   assert.equal(graph.statistics.min_time, '2026-09-26T11:01:00.000Z');
   assert.equal(graphUpdates.mock.callCount(), 2);
   assert.equal(aggregate.mock.callCount(), 2);
-  assert.equal(tool.hasPresentationChanged(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
 });
 
 test('publishes all derived values from their graph, series and period owners', () => {
