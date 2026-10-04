@@ -1,0 +1,263 @@
+{
+  "diagnostic": true,
+  "baseline": "16692192a33dd3423387ea99087c7d4b9447d5f8",
+  "browser": "153.0.8010.12",
+  "node": "v20.20.2",
+  "warmup": 40,
+  "measuredUpdates": 1000,
+  "order": "cached, forced miss, forced miss, cached",
+  "results": [
+    {
+      "mapping": "linear",
+      "forceMiss": false,
+      "batchesMs": [
+        10.80000114440918,
+        8.299999237060547,
+        6.5,
+        5.200000762939453,
+        4.69999885559082
+      ],
+      "mapperBuilds": 0,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 36.147999999999996,
+        "TaskDuration": 36.086,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 1
+    },
+    {
+      "mapping": "linear",
+      "forceMiss": true,
+      "batchesMs": [
+        4.899999618530273,
+        4.80000114440918,
+        4.799999237060547,
+        4.299999237060547,
+        4.30000114440918
+      ],
+      "mapperBuilds": 1000,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 23.762999999999998,
+        "TaskDuration": 23.681,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 2
+    },
+    {
+      "mapping": "linear",
+      "forceMiss": true,
+      "batchesMs": [
+        4.69999885559082,
+        4.400001525878906,
+        4.5,
+        4.399999618530273,
+        4.100000381469727
+      ],
+      "mapperBuilds": 1000,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 22.603,
+        "TaskDuration": 22.471,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 3
+    },
+    {
+      "mapping": "linear",
+      "forceMiss": false,
+      "batchesMs": [
+        3.799999237060547,
+        4.100000381469727,
+        3.799999237060547,
+        4.200000762939453,
+        3.700000762939453
+      ],
+      "mapperBuilds": 0,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 20.255000000000003,
+        "TaskDuration": 20.153000000000002,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 4
+    },
+    {
+      "mapping": "spline",
+      "forceMiss": false,
+      "batchesMs": [
+        4.899999618530273,
+        5,
+        4.700000762939453,
+        4.5,
+        4.600000381469727
+      ],
+      "mapperBuilds": 0,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 24.194999999999997,
+        "TaskDuration": 24.101999999999997,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 1
+    },
+    {
+      "mapping": "spline",
+      "forceMiss": true,
+      "batchesMs": [
+        5.600000381469727,
+        4.899999618530273,
+        4.900001525878906,
+        4.799999237060547,
+        4.200000762939453
+      ],
+      "mapperBuilds": 1000,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 24.687,
+        "TaskDuration": 24.604999999999997,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 2
+    },
+    {
+      "mapping": "spline",
+      "forceMiss": true,
+      "batchesMs": [
+        4.100000381469727,
+        4,
+        4.200000762939453,
+        4,
+        4
+      ],
+      "mapperBuilds": 1000,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 20.703,
+        "TaskDuration": 20.599000000000004,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 3
+    },
+    {
+      "mapping": "spline",
+      "forceMiss": false,
+      "batchesMs": [
+        3.8999996185302734,
+        3.6999988555908203,
+        3.5,
+        3.6000003814697266,
+        3.700000762939453
+      ],
+      "mapperBuilds": 0,
+      "value": 25,
+      "cpuMs": {
+        "ThreadTime": 18.903999999999996,
+        "TaskDuration": 18.768,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 4
+    },
+    {
+      "mapping": "ranked",
+      "forceMiss": false,
+      "batchesMs": [
+        6.299999237060547,
+        5.600000381469727,
+        6,
+        6,
+        5.899999618530273
+      ],
+      "mapperBuilds": 0,
+      "value": 2.5,
+      "cpuMs": {
+        "ThreadTime": 30.378,
+        "TaskDuration": 30.266000000000002,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 1
+    },
+    {
+      "mapping": "ranked",
+      "forceMiss": true,
+      "batchesMs": [
+        8,
+        7.5,
+        7,
+        6.700000762939453,
+        6.599998474121094
+      ],
+      "mapperBuilds": 1000,
+      "value": 2.5,
+      "cpuMs": {
+        "ThreadTime": 36.309,
+        "TaskDuration": 36.183,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 2
+    },
+    {
+      "mapping": "ranked",
+      "forceMiss": true,
+      "batchesMs": [
+        6.899999618530273,
+        5.899999618530273,
+        6,
+        5.5,
+        5.600000381469727
+      ],
+      "mapperBuilds": 1000,
+      "value": 2.5,
+      "cpuMs": {
+        "ThreadTime": 30.681,
+        "TaskDuration": 30.529999999999998,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 3
+    },
+    {
+      "mapping": "ranked",
+      "forceMiss": false,
+      "batchesMs": [
+        6,
+        6.700000762939453,
+        6.599998474121094,
+        7.100000381469727,
+        7.100000381469727
+      ],
+      "mapperBuilds": 0,
+      "value": 2.5,
+      "cpuMs": {
+        "ThreadTime": 34.308,
+        "TaskDuration": 34.141999999999996,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0
+      },
+      "pass": 4
+    }
+  ]
+}

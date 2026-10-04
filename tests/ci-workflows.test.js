@@ -100,10 +100,12 @@ test('browser jobs and local commands use the permanent browser matrix', () => {
     '**/theme-color-cache.browser.spec.js', '**/async-results.browser.spec.js',
     '**/config-ref.browser.spec.js', '**/tool-geometry.browser.spec.js',
     '**/tool-config-evaluation.browser.spec.js',
+    '**/plan21-update.browser.spec.js',
   ]);
   assert.deepEqual(browserConfig.projects[2].testMatch, [
     '**/svg-geometry.browser.spec.js', '**/sparkline-pointer.browser.spec.js',
     '**/config-ref.browser.spec.js', '**/tool-geometry.browser.spec.js',
     '**/tool-config-evaluation.browser.spec.js',
+    '**/plan21-update.browser.spec.js',
   ]);
 });

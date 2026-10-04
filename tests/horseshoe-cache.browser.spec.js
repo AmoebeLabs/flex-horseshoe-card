@@ -147,15 +147,12 @@ test('dynamic Horseshoe stays inert until first hass publication across disconne
     const { card, gauge, iconPath } = window.horseshoeLifecycle;
     gauge.updated();
     const rendered = gauge.render().strings.join('');
-    const presentationChanged = gauge.hasPresentationChanged();
     card.cardTools.updatePalettePaint();
     return {
       connected: card.cardTools.connectedToCard,
       dynamic: gauge.hasJavascript,
       initialized: gauge.runtimeConfigInitialized,
       rendered,
-      presentationChanged,
-      presentationSignatureUntouched: gauge.presentationSignature === undefined,
       noPathInput: gauge.geometry.pathInput === undefined,
       noPathDefinition: gauge.geometry.pathDefinition === undefined,
       noValueMapper: gauge.runtime.valueMapper === undefined,
@@ -169,8 +166,6 @@ test('dynamic Horseshoe stays inert until first hass publication across disconne
     dynamic: true,
     initialized: false,
     rendered: '',
-    presentationChanged: false,
-    presentationSignatureUntouched: true,
     noPathInput: true,
     noPathDefinition: true,
     noValueMapper: true,

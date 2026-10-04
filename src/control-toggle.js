@@ -329,12 +329,6 @@ export default class ControlToggle extends ControlBase {
     }
   }
 
-  /** Includes the selected on/off appearance and optional thumb icon. */
-  hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.runtime.entity.state === 'on');
-    const iconChanged = this.iconTool && this.iconTool.hasPresentationChanged();
-    return changed || iconChanged;
-  }
 
   /** Runs the normal IconTool post-render lifecycle. */
   updated() {

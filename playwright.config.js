@@ -39,6 +39,7 @@ export default defineConfig({
         '**/config-ref.browser.spec.js',
         '**/tool-geometry.browser.spec.js',
         '**/tool-config-evaluation.browser.spec.js',
+        '**/plan21-update.browser.spec.js',
       ],
     },
     {
@@ -51,6 +52,7 @@ export default defineConfig({
         '**/config-ref.browser.spec.js',
         '**/tool-geometry.browser.spec.js',
         '**/tool-config-evaluation.browser.spec.js',
+        '**/plan21-update.browser.spec.js',
       ],
     },
   ],

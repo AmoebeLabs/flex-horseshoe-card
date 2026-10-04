@@ -1715,13 +1715,17 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Reports whether reconnect handling requires the next setHass pass.
+   * Reports retained request work and changes to the enabled day/night source.
    *
-   * @returns {boolean} True when existing history must be fetched again.
+   * @returns {boolean} True when this graph needs the next Home Assistant pass.
    */
   requiresHassUpdate() {
     if (this.hasJavascript && !this.runtimeConfigInitialized) return true;
-    return this.sparklineHistory.requiresHassUpdate();
+    // Day/night owns its sun input even when the user does not display sun.sun
+    // as a card entity. Arbitrary JavaScript still follows declared entities.
+    return this.sparklineHistory.requiresHassUpdate()
+      || (this.sparklineHistory.dayNightEnabled
+        && this.sparklineHistory.dayNightRecord.sunEntity !== this.card._hass.states['sun.sun']);
   }
 
   /**
@@ -2171,41 +2175,6 @@ export default class SparklineGraphTool extends BaseTool {
     }
   }
 
-  /**
-   * Compares graph presentation independently from published min/mean/max.
-   * Loading/empty states, bin coordinates and live color choices can change
-   * while every derived numeric value remains equal.
-   *
-   * @returns {boolean} Whether the graph or one legend label needs rendering.
-   */
-  hasPresentationChanged() {
-    if (this.hasJavascript && !this.runtimeConfigInitialized) return false;
-    const seriesPresentation = this.sparklineSeries.items.map((item) => {
-      const presentation = [item.requestState, item.dataState, item.entityConfig.color];
-      if (this.runtime.periodDurationAvailable) {
-        const { graph, config } = item;
-        const paintModes = [config.sparkline.show.item_style, config.sparkline.line.show.item_style,
-          config.sparkline.line.minmax.show.item_style, config.sparkline.area.show.item_style,
-          config.sparkline.area.minmax.show.item_style];
-        const value = this.getEntityNumericState(item, item.entity);
-        const liveColors = paintModes.map((mode) => {
-          if (mode === 'colorstop' || mode === 'colorstopinterpolated') {
-            return Colors.calculateStrokeColor(value, item.paint.colorStops, mode === 'colorstopinterpolated', this.card.cardTheme.colorContext);
-          }
-          return undefined;
-        });
-        // Graph increments its data revision and changes its geometry signature
-        // when these results change. Compare those reports rather than stringify
-        // every coordinate and bucket again during each HA presentation pass.
-        presentation.push(graph.processedDataRevision, graph.geometryResultSignature,
-          graph.statistics, graph.geometryInputSignature, liveColors);
-      }
-      return presentation;
-    });
-    const changed = super.hasPresentationChanged([seriesPresentation, this.runtime.legendTextSignature]);
-    const legendChanges = this.legendTextTools.map((tool) => tool.hasPresentationChanged());
-    return changed || legendChanges.some(Boolean);
-  }
 
   /**
    * Refreshes retained single-series paint after palette loading. A graph with

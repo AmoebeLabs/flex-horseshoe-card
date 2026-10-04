@@ -778,7 +778,7 @@ test('dynamic controls tolerate render and lifecycle calls before their first pu
   button.disconnected();
 });
 
-test('paint and HA option changes stay in runtime without rewriting canonical config', () => {
+test('effective styles and HA option changes stay in runtime without rewriting canonical config', () => {
   const buttonHarness = createHarness();
   const button = createControl('button', {
     id: 'paint-button',
@@ -795,18 +795,18 @@ test('paint and HA option changes stay in runtime without rewriting canonical co
   const buttonTextSourceStyles = structuredClone(buttonText.sourceConfig.styles);
 
   button.setState({ ...buttonHarness.entities[0], state: 'off' }, buttonHarness.entityConfigs[0]);
-  const inactivePaint = structuredClone(buttonText.paint.styles);
+  const inactiveStyles = structuredClone(buttonText.runtime.effectiveStyles);
   assert.equal(button.runtime.active, false);
   assert.equal(button.runtime.stateMapItem.active, false);
   button.setState({ ...buttonHarness.entities[0], state: 'on' }, buttonHarness.entityConfigs[0]);
 
   assert.equal(button.runtime.active, true);
   assert.equal(button.runtime.stateMapItem.active, true);
-  assert.notDeepEqual(buttonText.paint.styles, inactivePaint);
+  assert.notDeepEqual(buttonText.runtime.effectiveStyles, inactiveStyles);
   assert.deepEqual(button.config, buttonConfigSnapshot);
   assert.deepEqual(buttonText.config.styles, buttonTextConfigStyles);
   assert.deepEqual(buttonText.sourceConfig.styles, buttonTextSourceStyles);
-  assert.ok(buttonText.paint.styles.fill);
+  assert.ok(buttonText.runtime.effectiveStyles.fill);
 
   const paintSelectHarness = createHarness();
   const paintSelect = createControl('select', {
@@ -826,11 +826,11 @@ test('paint and HA option changes stay in runtime without rewriting canonical co
   const selectedText = paintSelect.getContentTools().find((tool) => Array.isArray(tool.config.text));
   const selectedTextConfigStyles = structuredClone(selectedText.config.styles);
   const selectedTextSourceStyles = structuredClone(selectedText.sourceConfig.styles);
-  const unselectedPaint = structuredClone(selectedText.paint.styles);
+  const unselectedStyles = structuredClone(selectedText.runtime.effectiveStyles);
   paintSelect.setState({ ...paintSelectHarness.entities[0], state: 'on' }, paintSelectHarness.entityConfigs[0]);
 
   assert.equal(paintSelect.runtime.selectedIndex, 1);
-  assert.notDeepEqual(selectedText.paint.styles, unselectedPaint);
+  assert.notDeepEqual(selectedText.runtime.effectiveStyles, unselectedStyles);
   assert.deepEqual(paintSelect.config, selectConfigSnapshot);
   assert.deepEqual(selectedText.config.styles, selectedTextConfigStyles);
   assert.deepEqual(selectedText.sourceConfig.styles, selectedTextSourceStyles);

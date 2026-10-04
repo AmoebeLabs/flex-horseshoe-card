@@ -934,7 +934,7 @@ test('CardAnimations matches entity state and preserves reused styles and icons'
   };
   const templates = { hasJavascriptTemplates: () => false };
 
-  animations.update(config, [{ state: 'on' }], templates, true);
+  assert.equal(animations.update(config, [{ state: 'on' }], templates, true), undefined);
 
   assert.deepEqual(animations.styles.lines.status, { stroke: 'red', opacity: '0.5' });
   assert.deepEqual(animations.styles.polygons.surface, { fill: 'green' });

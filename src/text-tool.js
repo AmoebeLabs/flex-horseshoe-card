@@ -530,7 +530,7 @@ export default class TextTool extends BaseTool {
 
   /**
    * Invalidates measurements from the same effective text styles used by render.
-   * Parent paint and source animations can change font metrics without changing
+   * Parent-selected styles and source animations can change font metrics without changing
    * displayed text. Equal inputs leave the current async measurement untouched.
    */
   updateTextMeasurement() {
@@ -576,8 +576,8 @@ export default class TextTool extends BaseTool {
   }
 
   /** Publishes complete parent paint and refreshes its measurement inputs. */
-  setPaintStyles(styles) {
-    super.setPaintStyles(styles);
+  setEffectiveStyles(styles) {
+    super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
   }
 
@@ -991,14 +991,6 @@ export default class TextTool extends BaseTool {
     });
   }
 
-  /** Includes each part's displayed text and final source/animation/color-stop paint. */
-  hasPresentationChanged() {
-    // Animation styles have been activated since setState(). Use their final
-    // font metrics before deciding whether this presentation needs a render.
-    this.updateTextMeasurement();
-    const parts = this.getRenderedTextParts(this.runtime.textParts, true).map((part) => [part.value, part.new_line, part.dx, part.dy, part.renderStyles]);
-    return super.hasPresentationChanged(parts);
-  }
 
   /** Renders visible and measurement text using the same final part styles. */
   render() {

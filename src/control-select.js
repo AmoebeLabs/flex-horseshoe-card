@@ -712,14 +712,6 @@ export default class ControlSelect extends ControlBase {
       .forEach((iconTool) => iconTool.updateRuntimeConfig());
   }
 
-  /** Includes the selected segment and all option labels, icons and visual children. */
-  hasPresentationChanged() {
-    const changed = super.hasPresentationChanged(this.runtime.selectedIndex);
-    const children = [...this.optionContentVisuals, ...this.optionTextTools, ...this.optionIconTools]
-      .filter((tool) => tool !== undefined);
-    const childChanges = children.map((tool) => tool.hasPresentationChanged());
-    return changed || childChanges.some(Boolean);
-  }
 
   /** Selects the active option and publishes state plus visual styles. */
   setState(entity, entityConfig) {
@@ -802,7 +794,7 @@ export default class ControlSelect extends ControlBase {
           ? viz.selected
           : viz.unselected;
 
-      textTool.setPaintStyles(Merge.mergeDeep(
+      textTool.setEffectiveStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.text.styles),
         ConfigHelper.toStyleDict(textTool.config.styles),
         {
@@ -822,7 +814,7 @@ export default class ControlSelect extends ControlBase {
         optionIndex === this.runtime.selectedIndex
           ? viz.selected
           : viz.unselected;
-      iconTool.setPaintStyles(Merge.mergeDeep(
+      iconTool.setEffectiveStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.icon.styles),
         ConfigHelper.toStyleDict(iconTool.config.styles),
         {

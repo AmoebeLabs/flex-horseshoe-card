@@ -62,7 +62,7 @@ export default class BaseTool {
     this.defaultEntityIndex = defaultEntityIndex;
     this.colorStopPaintDefaults = colorStopPaintDefaults;
 
-    this.runtime = { entity: undefined, entityConfig: undefined };
+    this.runtime = { entity: undefined, entityConfig: undefined, effectiveStyles: undefined };
     this.configChanged = true;
     this.configurationChanged = true;
     this.groupChanged = false;
@@ -70,7 +70,6 @@ export default class BaseTool {
     // Static config already exists; this marks completion of the first runtime-config update.
     this.runtimeConfigInitialized = false;
     this.evaluatedConfigSignature = undefined;
-    this.presentationSignature = undefined;
   }
 
   /**
@@ -255,28 +254,6 @@ export default class BaseTool {
     return false;
   }
 
-  /**
-   * Compares the final visible item after entities, groups and animations are current.
-   * Each specialized tool supplies its displayed content; raw entity state stays
-   * available separately for actions, color stops and graph calculations.
-   *
-   * @param {*} content - Tool-owned text, geometry or child presentation results.
-   * @returns {boolean} Whether this item's effective presentation changed.
-   */
-  hasPresentationChanged(content) {
-    const styles = this.getStyles({});
-    this.applyColorStops(styles);
-    const signature = JSON.stringify([
-      this.config,
-      this.getRenderStyles(styles),
-      this.card.cardLayout.groupManager.getGroupChainForItem(this.config),
-      this.card.cardTheme.getActiveColorStopMode(),
-      content,
-    ]);
-    const changed = signature !== this.presentationSignature;
-    this.presentationSignature = signature;
-    return changed;
-  }
 
   /**
    * Resolves configured styles and animation styles into one style object.
@@ -285,7 +262,7 @@ export default class BaseTool {
    * @returns {object} Style dictionary ready for styleMap().
    */
   getStyles(baseStyles) {
-    const itemStyleDict = ConfigHelper.toStyleDict(this.paint?.styles ?? this.config.styles);
+    const itemStyleDict = ConfigHelper.toStyleDict(this.runtime.effectiveStyles ?? this.config.styles);
     const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
 
     return {
@@ -304,10 +281,8 @@ export default class BaseTool {
    *
    * @param {object|undefined} styles - Complete parent-resolved styles, or undefined to clear them.
    */
-  setPaintStyles(styles) {
-    this.paint ??= {};
-    if (styles === undefined) delete this.paint.styles;
-    else this.paint.styles = styles;
+  setEffectiveStyles(styles) {
+    this.runtime.effectiveStyles = styles;
   }
 
   /**

@@ -298,10 +298,6 @@ export default class StateTool extends BaseTool {
     this.textElementId = `${this.cardId}-state-${this.index}`;
   }
 
-  /** Compares displayed text and unit independently from the raw numeric state. */
-  hasPresentationChanged() {
-    return super.hasPresentationChanged([this.runtime.state, this.runtime.uom]);
-  }
 
   /** Updates state configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
@@ -346,8 +342,8 @@ export default class StateTool extends BaseTool {
   }
 
   /** Publishes effective styles and updates measurement only when its signature changes. */
-  setPaintStyles(styles) {
-    super.setPaintStyles(styles);
+  setEffectiveStyles(styles) {
+    super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
   }
 

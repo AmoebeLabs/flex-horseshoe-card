@@ -505,18 +505,6 @@ export default class HorseshoeGauge extends BaseTool {
     }
   }
 
-  /** Compares the mapped value and painted ranges while retaining the path animator. */
-  hasPresentationChanged() {
-    if (this.hasJavascript && !this.runtimeConfigInitialized) return false;
-    return super.hasPresentationChanged([
-      this.runtime.value,
-      this.paint.paintedStateRanges,
-      this.paint.scaleRanges,
-      this.paint.stateLayer,
-      this.paint.backgroundLayer,
-      this.paint.markerStyles,
-    ]);
-  }
 
   /**
    * Maps the entity through the shared state resolver, then builds path-independent
@@ -525,32 +513,22 @@ export default class HorseshoeGauge extends BaseTool {
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    // Active colors are deliberately absent from this key. A light/dark palette
-    // switch reuses semantic mapping; changed thresholds/ranks still rebuild it.
-    const mappingKey = JSON.stringify([
-      entity.state, entity.attributes[entityConfig.attribute], entityConfig.attribute,
-      this.config.state_map, this.config.horseshoe_scale, this.config.bar_mode,
-      this.config.zero_ratio, this.config.horseshoe_state.mode,
-      this.card._hass.locale,
-      this.paint.sourceColorStops.colors.map(({ color, styles, ...mapping }) => mapping),
-    ]);
-    if (mappingKey !== this.runtime.mappingKey) {
-      const stateData = getGaugeStateData(this.config, entity, entityConfig, this.paint.sourceColorStops);
-      this.runtime.stateMap = this.buildStateMapDisplayLabels(stateData.stateMap, entity);
-      const displayMappedState = this.runtime.stateMap.map.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
-      this.runtime.mappedState = displayMappedState ? { ...stateData.mappedState, ...displayMappedState } : stateData.mappedState;
-      this.runtime.rawState = stateData.rawState;
-      this.runtime.value = stateData.value;
-      this.runtime.scale = new GaugeScale(stateData.scale);
-      this.runtime.valueMapper = new PathValueMapper({
-        scale: this.runtime.scale,
-        barMode: this.config.bar_mode,
-        zeroRatio: this.config.zero_ratio,
-        stateMode: this.config.horseshoe_state.mode,
-        stateMap: this.runtime.stateMap.map,
-      }, this.runtime.value);
-      this.runtime.mappingKey = mappingKey;
-    }
+    // Map the current input directly; path geometry and SVG measurements retain
+    // their own caches independently of this inexpensive value calculation.
+    const stateData = getGaugeStateData(this.config, entity, entityConfig, this.paint.sourceColorStops);
+    this.runtime.stateMap = this.buildStateMapDisplayLabels(stateData.stateMap, entity);
+    const displayMappedState = this.runtime.stateMap.map.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
+    this.runtime.mappedState = displayMappedState ? { ...stateData.mappedState, ...displayMappedState } : stateData.mappedState;
+    this.runtime.rawState = stateData.rawState;
+    this.runtime.value = stateData.value;
+    this.runtime.scale = new GaugeScale(stateData.scale);
+    this.runtime.valueMapper = new PathValueMapper({
+      scale: this.runtime.scale,
+      barMode: this.config.bar_mode,
+      zeroRatio: this.config.zero_ratio,
+      stateMode: this.config.horseshoe_state.mode,
+      stateMap: this.runtime.stateMap.map,
+    }, this.runtime.value);
     const palette = buildGaugeColorStops(this.config, this.runtime, this.paint.sourceColorStops);
     this.paint.colorStops = palette.colorStops;
     this.paint.colorStopsMinMax = palette.minMax;

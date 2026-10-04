@@ -95,16 +95,6 @@ export default class IconTool extends BaseTool {
     this.haIconPath.disconnected();
   }
 
-  /** Includes state-map icon selection and Home Assistant's state-dependent icon paint. */
-  hasPresentationChanged() {
-    const stateMapItem = this.runtime.stateMapItem;
-    const renderItem = stateMapItem ? Merge.mergeDeep(this.config, stateMapItem) : this.config;
-    return super.hasPresentationChanged([
-      this.buildIcon(stateMapItem, renderItem),
-      stateMapItem,
-      this.runtime.entity ? Colors.getHaEntityIconStyle(this.runtime.entity) : undefined,
-    ]);
-  }
 
   /** Identifies the HA inputs which determine one entity/attribute icon. */
   getEntityIconKey(entity, entityConfig) {
@@ -467,10 +457,10 @@ export default class IconTool extends BaseTool {
     defaultIconColor.color = haStyle.color;
     defaultIconColor.filter = haStyle.filter;
 
-    let configStyle = ConfigHelper.toStyleDict(this.paint?.styles ?? renderItem.styles);
-    // Parent paint already contains the complete child style map. The selected
+    let configStyle = ConfigHelper.toStyleDict(this.runtime.effectiveStyles ?? renderItem.styles);
+    // Parent-selected styles contain the complete child style map. The selected
     // state-map styles still take precedence before color stops and animation.
-    if (this.paint?.styles) Object.assign(configStyle, ConfigHelper.toStyleDict(smItem?.styles));
+    if (this.runtime.effectiveStyles) Object.assign(configStyle, ConfigHelper.toStyleDict(smItem?.styles));
     const stateStyle =
       this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
     // A selected state map creates a render item; its palette still belongs to

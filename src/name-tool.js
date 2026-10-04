@@ -81,15 +81,11 @@ export default class NameTool extends BaseTool {
   }
 
   /** Publishes effective styles and updates measurement only when its signature changes. */
-  setPaintStyles(styles) {
-    super.setPaintStyles(styles);
+  setEffectiveStyles(styles) {
+    super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
   }
 
-  /** Reports changes to the formatted entity name and its effective paint/layout. */
-  hasPresentationChanged() {
-    return super.hasPresentationChanged(this.runtime.name);
-  }
 
   /**
    * Measures the actual rendered text and requests one geometry correction render.
