@@ -356,12 +356,6 @@ export default class ControlBase extends BaseTool {
     }
   }
 
-  /** Includes the optional label's own text and paint in the parent render decision. */
-  hasPresentationChanged(content) {
-    const changed = super.hasPresentationChanged(content);
-    const labelChanged = this.labelTextTool !== undefined && this.labelTextTool.hasPresentationChanged();
-    return changed || labelChanged;
-  }
 
   /** Initializes a literal label or its explicitly configured entity. */
   setStaticState() {

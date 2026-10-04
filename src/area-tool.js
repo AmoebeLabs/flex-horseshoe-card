@@ -86,10 +86,6 @@ export default class AreaTool extends BaseTool {
     this.updateTextMeasurement();
   }
 
-  /** Reports changes to the formatted area and its effective paint/layout. */
-  hasPresentationChanged() {
-    return super.hasPresentationChanged(this.runtime.area);
-  }
 
   /**
    * Measures the actual rendered text and requests one geometry correction render.

@@ -94,7 +94,6 @@ class FlexHorseshoeCard extends LitElement {
     this.sourceCardStyles = undefined;
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
-    this.cardPresentationSignature = undefined;
     this.iconCache = {};
     this.iconBoundsCache = {};
     this.svgUrlCache = {};
@@ -317,8 +316,8 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Activates presentation consumers after source/derived publication, then
-   * selects animations from the final entity array and schedules one render.
+   * Activates configuration and animations from the final entity array, then
+   * assigns tool state and measures text using those final styles.
    * Both synchronous source changes and asynchronous graph results finish here.
    *
    * @param {boolean} contextChanged - Source or external HA context changed.
@@ -350,22 +349,17 @@ class FlexHorseshoeCard extends LitElement {
     });
     this.actions.setHassAndEntities(this._hass, this.runtimeEntityConfigs, this.entities);
     this.cardTools.updateRuntimeConfig();
-    this.cardTools.setRuntimeEntityStates(this.runtimeEntityConfigs, this.entities);
-    this.cardTools.updateSparklinePresentation();
 
     const animationsPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
-    const animationsChanged = this.cardAnimations.update(this.config, this.entities, this.templates, this.evaluateJavascriptTemplates);
+    this.cardAnimations.update(this.config, this.entities, this.templates, this.evaluateJavascriptTemplates);
     if (this.dev.performance === true) {
       performance.measure(`FHS:${this.cardId}:animations`, { start: animationsPerformanceStart, end: performance.now() });
     }
 
-    // Source work and a changed derived value are not themselves proof that the
-    // DOM changed. Compare final tool output after animation styles are current.
-    const toolsChanged = this.cardTools.hasPresentationChanged();
-    const cardPresentationSignature = JSON.stringify([this.activeCardStyles, this.cardLayout.viewBox, this.config.color_filter]);
-    const cardStylesChanged = cardPresentationSignature !== this.cardPresentationSignature;
-    this.cardPresentationSignature = cardPresentationSignature;
-    const renderRequired = toolsChanged || cardStylesChanged || animationsChanged;
+    // State assignment also refreshes measurement-sensitive text. Select
+    // animation styles first so ordinary and nested text use their final fonts.
+    this.cardTools.setRuntimeEntityStates(this.runtimeEntityConfigs, this.entities);
+    this.cardTools.updateSparklinePresentation();
 
     this.evaluateJavascriptTemplates = false;
     this.cardInputEntities.markStateHandled();
@@ -373,8 +367,9 @@ class FlexHorseshoeCard extends LitElement {
     this.homeAssistant.markLocaleHandled();
     this.homeAssistant.markEntityDisplayHandled();
     this.cardTheme.markModeHandled();
-    if (renderRequired) this.requestUpdate();
-    return renderRequired;
+    // A relevant runtime pass publishes current bindings; Lit reconciles any
+    // equal values. Data, geometry and measurement owners retain their caches.
+    this.requestUpdate();
   }
 
   /**
@@ -482,7 +477,6 @@ class FlexHorseshoeCard extends LitElement {
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);
       this.entityConfigsInitialized = false;
-      this.cardPresentationSignature = undefined;
       this.cardLayout.setConfig(this.config);
 
       // Replacement ends the old tools' lifetimes before any new owner is made.

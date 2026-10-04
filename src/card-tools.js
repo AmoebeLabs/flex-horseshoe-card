@@ -108,21 +108,6 @@ export default class CardTools {
       .sort((firstTool, secondTool) => firstTool.zpos - secondTool.zpos || firstTool.renderIndex - secondTool.renderIndex);
   }
 
-  /**
-   * Collects tool-owned presentation results after the complete source/derived
-   * and animation pass. Every tool compares its output, even after an earlier
-   * tool reported a change; CardTools does not interpret graph or entity data.
-   *
-   * @returns {boolean} Whether any current tool needs the card to render.
-   */
-  hasPresentationChanged() {
-    let changed = false;
-    this.getRenderableTools().forEach((tool) => {
-      const toolChanged = tool.hasPresentationChanged();
-      changed = changed || toolChanged;
-    });
-    return changed;
-  }
 
   /** Updates only sparkline runtime config before derived sparkline entities exist. */
   updateSparklineRuntimeConfig() {

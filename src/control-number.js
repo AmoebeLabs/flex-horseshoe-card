@@ -433,13 +433,6 @@ export default class ControlNumber extends ControlBase {
     }
   }
 
-  /** Includes both commands and the formatted value without losing child paint changes. */
-  hasPresentationChanged() {
-    const changed = super.hasPresentationChanged();
-    const childChanges = this.getContentTools()
-      .map((tool) => tool.hasPresentationChanged());
-    return changed || childChanges.some(Boolean);
-  }
 
   /** Runs child measurement lifecycles after the complete control rendered. */
   updated() {

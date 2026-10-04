@@ -8,7 +8,7 @@ import ts from 'typescript';
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('main.js', source, ts.ScriptTarget.Latest, true);
 const cardClass = parsed.statements.find((node) => ts.isClassDeclaration(node));
-const methods = cardClass.members.filter((node) => ['setHass', 'updateSourceEntities'].includes(node.name?.getText(parsed)));
+const methods = cardClass.members.filter((node) => ['setHass', 'updateSourceEntities', 'updateEntityPresentation'].includes(node.name?.getText(parsed)));
 // eslint-disable-next-line no-new-func
 const mainMethods = new Function(`return ({${methods.map((node) => node.getText(parsed)).join(',')}});`)();
 
@@ -97,4 +97,34 @@ test('retained owner work enters the runtime route without reevaluating unchange
   assert.equal(calls.tools, 1);
   assert.equal(calls.presentation, 1);
   assert.equal(card.evaluateJavascriptTemplates, false);
+});
+
+test('animation styles precede state/legend measurement and every accepted result requests a render', () => {
+  for (const contextChanged of [false, true]) {
+    const order = [];
+    const entity = { state: '20.4' };
+    const card = {
+      dev: { performance: false }, config: {}, entities: [entity],
+      runtimeEntityConfigs: [{ local: true }], _hass: {},
+      cardStylesHaveJavascript: false,
+      actions: { setHassAndEntities() {} },
+      cardTools: {
+        updateRuntimeConfig() { order.push('config'); },
+        setRuntimeEntityStates() {
+          assert.equal(card.fontSize, '2em');
+          order.push('state/measurement');
+        },
+        updateSparklinePresentation() { order.push('legend/measurement'); },
+      },
+      cardAnimations: { update() { card.fontSize = '2em'; order.push('animations'); } },
+      cardInputEntities: { markStateHandled() {} },
+      cardLayout: { markGroupsHandled() {} },
+      homeAssistant: { markLocaleHandled() {}, markEntityDisplayHandled() {} },
+      cardTheme: { markModeHandled() {} },
+      requestUpdate() { order.push('render request'); },
+    };
+    mainMethods.updateEntityPresentation.call(card, contextChanged, []);
+    assert.deepEqual(order, ['config', 'animations', 'state/measurement', 'legend/measurement', 'render request']);
+    assert.equal(card.evaluateJavascriptTemplates, false);
+  }
 });
