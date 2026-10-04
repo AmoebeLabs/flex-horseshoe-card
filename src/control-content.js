@@ -257,7 +257,7 @@ export default class ControlContent {
   }
 
   /**
-   * Applies parent visual styling and publishes each inherited or overridden entity.
+   * Applies parent visual styling and assigns each child's inherited or overridden entity.
    *
    * @param {object} visualState - Active/inactive or selected/unselected visual state.
    * @param {string} transition - Parent control transition string.
@@ -273,9 +273,8 @@ export default class ControlContent {
           { transition: `fill ${transition}, color ${transition}, opacity ${transition}`, 'pointer-events': 'none' },
         ));
       }
-      this.card.cardTools.setToolEntityState(
-        child.tool,
-        this.card.resolvedEntityConfigs,
+      child.tool.setEntities(
+        this.card.runtimeEntityConfigs,
         this.card.entities,
       );
     });

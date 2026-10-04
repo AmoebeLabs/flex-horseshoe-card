@@ -75,7 +75,6 @@
   "layout.horseshoePath": "layout/horseshoes.yaml",
   "layout.horseshoeScale": "layout/horseshoes.yaml",
   "layout.horseshoeMarker": "layout/horseshoes.yaml",
-  "layout.horseshoes_v2": "layout/horseshoes_v2.yaml",
   "layout.icons": "layout/icons.yaml",
   "layout.icon": "layout/icons.yaml",
   "layout.lines": "layout/lines.yaml",

@@ -1321,12 +1321,12 @@ export default class SparklineGraphTool extends BaseTool {
   }
 
   /**
-   * Builds the config object consumed by SparklineGraph without changing the
-   * engine's expected naming.
+   * Supplies each series with the shared plot window, graph dimensions and
+   * its own presentation settings before the engine calculates coordinates.
    *
-   * @param {object} config - Sparkline layout config.
+   * @param {object} item - Series with current config and active color stops.
    * @param {number|undefined} sharedBinsPerHour - Coordinator-resolved bin density shared by all items.
-   * @returns {object} Engine config.
+   * @returns {object} Graph calculation input.
    */
   buildGraphInput(item, sharedBinsPerHour) {
     const config = item.config;
@@ -1388,7 +1388,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   /** Updates graph configuration and geometry before entity data is assigned. */
   updateRuntimeConfig() {
-    const firstDynamicPublication = this.hasJavascript && !this.activeConfigInitialized;
+    const firstDynamicPublication = this.hasJavascript && !this.runtimeConfigInitialized;
     super.updateRuntimeConfig();
 
     // Keep a changed layout pending while a larger history range loads. Apply
@@ -1448,7 +1448,7 @@ export default class SparklineGraphTool extends BaseTool {
 
     if (this.config.sparkline.show.chart_type === 'state_bands') {
       const entity = this.card.entities[this.entity_index];
-      const entityConfig = this.card.resolvedEntityConfigs[this.entity_index];
+      const entityConfig = this.card.runtimeEntityConfigs[this.entity_index];
       this.runtime.stateBandsStateMap = {
         ...this.config.sparkline.state_map,
         map: this.config.sparkline.state_map.map.map((entry) => {
@@ -1679,7 +1679,7 @@ export default class SparklineGraphTool extends BaseTool {
 
   /** Ends history and pointer work while preserving accepted graph data. */
   disconnected() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     this.sparklineHistory.disconnected();
     this.legendTextTools.forEach((tool) => tool.disconnected());
     this.sparklineSeries.items.forEach((item) => {
@@ -1693,7 +1693,7 @@ export default class SparklineGraphTool extends BaseTool {
    * the DOM. The next normal Home Assistant state pass performs the fetch.
    */
   connected() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     this.sparklineHistory.connected();
     this.legendTextTools.forEach((tool) => tool.connected());
     this.sparklineSeries.items.forEach((item) => {
@@ -1720,7 +1720,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} True when existing history must be fetched again.
    */
   requiresHassUpdate() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return true;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return true;
     return this.sparklineHistory.requiresHassUpdate();
   }
 
@@ -2179,7 +2179,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {boolean} Whether the graph or one legend label needs rendering.
    */
   hasPresentationChanged() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return false;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return false;
     const seriesPresentation = this.sparklineSeries.items.map((item) => {
       const presentation = [item.requestState, item.dataState, item.entityConfig.color];
       if (this.runtime.periodDurationAvailable) {
@@ -2212,7 +2212,7 @@ export default class SparklineGraphTool extends BaseTool {
    * no processed data has no gradient to refresh; series render their own paint.
    */
   updatePalettePaint() {
-    if (!this.activeConfigInitialized) return;
+    if (!this.runtimeConfigInitialized) return;
     this.sparklineSeries.updatePalettePaint(this.paint.colorStops, this.card.cardTheme.getActiveColorStopMode());
     const paletteCalculationSignature = this.sparklineSeries.getPaletteCalculationSignature(this.paint.colorStops);
     this.runtime.paletteCalculationChanged = this.runtime.paletteCalculationSignature !== paletteCalculationSignature;
@@ -2445,7 +2445,7 @@ export default class SparklineGraphTool extends BaseTool {
     if (rawValue === undefined) return { label, value: '', uom: '' };
 
     const sourceEntity = this.card.entities[this.entity_index];
-    const sourceEntityConfig = this.card.resolvedEntityConfigs[this.entity_index];
+    const sourceEntityConfig = this.card.runtimeEntityConfigs[this.entity_index];
     const sourceFormatter = Object.create(StateTool.prototype);
 
     // Read precision and unit from the source entity's normal StateTool output.
@@ -2970,7 +2970,7 @@ export default class SparklineGraphTool extends BaseTool {
    * tracking continues outside the graph and through Safari touch behavior.
    */
   attachPointerHandlers() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     const currentSvg = this.card.shadowRoot.getElementById(`sparkline-${this.cardId}-${this.index}`);
     // Stop the old interaction before any of its DOM references are replaced.
     if (currentSvg !== this.pointerSvgElement) this.detachPointerHandlers();
@@ -5867,7 +5867,7 @@ export default class SparklineGraphTool extends BaseTool {
    * width as a measured ellipsis limit rather than shrinking the font.
    */
   updateLegendTextTools() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     const legend = this.config.sparkline.legend;
     if (!this.config.sparkline.show.legend) {
       this.legendTextTools.forEach((tool) => tool.disconnected());
@@ -5962,7 +5962,7 @@ export default class SparklineGraphTool extends BaseTool {
   * Width-based ellipsis is resolved only after SVG has measured each label.
   */
   updated() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     const legendTextMeasurementWasPending = this.legendTextTools.some((textTool) => textTool.widthOverflowPending);
 
     this.legendTextTools.forEach((textTool) => textTool.updated());
@@ -6031,7 +6031,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the sparkline.
    */
   renderSvg() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     // Every historical mode remains empty until its first Home Assistant
     // history response is accepted. Current entity state is never a placeholder.
     if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA) {
@@ -6187,7 +6187,7 @@ export default class SparklineGraphTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the sparkline.
    */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     return this.renderItemLayers(this.renderSvg());
   }
 }

@@ -45,7 +45,7 @@ function createChangeDetectionTool(context, periodType) {
     evaluateJavascriptTemplates: false,
     dev: { debug: false, fakeData: false },
     entities: [entity],
-    resolvedEntityConfigs: [{ decimals: 0 }],
+    runtimeEntityConfigs: [{ decimals: 0 }],
     _hass: {
       locale: { language: 'en', time_format: '24' },
       config: { time_zone: 'UTC' },
@@ -97,7 +97,7 @@ function createChangeDetectionTool(context, periodType) {
   tool.updateRuntimeConfig();
   const item = tool.sparklineSeries.primaryItem;
   item.entity = entity;
-  item.entityConfig = card.resolvedEntityConfigs[0];
+  item.entityConfig = card.runtimeEntityConfigs[0];
   tool.sparklineHistory.bindSeriesEntity(item);
   if (periodType !== 'real_time') {
     tool.sparklineHistory.acceptHistoryRows(
@@ -106,11 +106,11 @@ function createChangeDetectionTool(context, periodType) {
       tool.sparklineHistory.getSeriesRange(item),
     );
   }
-  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  tool.setEntities(card.runtimeEntityConfigs, card.entities);
   // Commit initial measured axis margins before counting later configuration work.
   card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
-  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  tool.setEntities(card.runtimeEntityConfigs, card.entities);
   card.cardTheme.modeChanged = false;
   return tool;
 }
@@ -1239,7 +1239,7 @@ test('radial arc labels retain the configured multi-series legend', (context) =>
     dev: { debug: false },
     config: {},
     entities: [],
-    resolvedEntityConfigs: [],
+    runtimeEntityConfigs: [],
     cardAnimations: { styles: { texts: {} } },
     cardLayout: {
       changedGroupIds: new Set(),
@@ -1365,15 +1365,12 @@ test('accepted history keeps request exclusion active through direct result publ
       setRequestState(item, requestState) {
         item.requestState = requestState;
       },
-      setRows(item, rows) {
-        item.rows = rows;
-      },
     },
     sparklineHistory: history,
     card: {
       dev: { debug: false },
       _hass: hass,
-      resolvedEntityConfigs: [],
+      runtimeEntityConfigs: [],
       entities: [],
       requestUpdate() {},
       cardTools: { getBySection: () => [tool] },
@@ -1473,7 +1470,7 @@ test('an accepted History result queued at disconnect cannot enter the GraphTool
       requestUpdate() {},
       cardTools: { getBySection: () => [tool] },
       cardEntities: { updateSparklineEntities: () => pipelineCalls.push('entities') },
-      resolvedEntityConfigs: [],
+      runtimeEntityConfigs: [],
       entities: [],
       updateSparklineResult: () => pipelineCalls.push('result'),
     },
@@ -1533,7 +1530,7 @@ test('accepted multi-day history builds and renders the configured line minmax e
     evaluateJavascriptTemplates: false,
     dev: { debug: false, fakeData: false },
     entities: [entity],
-    resolvedEntityConfigs: [{}],
+    runtimeEntityConfigs: [{}],
     _hass: {
       locale: { language: 'en', time_format: 'language' },
       config: { time_zone: 'UTC' },
@@ -1624,7 +1621,7 @@ test('accepted empty history becomes loaded request state with empty processed d
     evaluateJavascriptTemplates: false,
     dev: { debug: false, fakeData: false },
     entities: [entity],
-    resolvedEntityConfigs: [{}],
+    runtimeEntityConfigs: [{}],
     _hass: {
       locale: { language: 'en', time_format: 'language' },
       config: { time_zone: 'UTC' },
@@ -2781,7 +2778,7 @@ test('paint-only configuration retains accepted rows, graph calculations and pat
   tool.config.sparkline.line.styles = { stroke: '#d32f2f', opacity: 0.4 };
   tool.card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   tool.card.cardTheme.modeChanged = false;
   tool.updatePalettePaint();
 
@@ -2814,7 +2811,7 @@ test('a changed single Cartesian series prunes and calculates statistics once', 
   tool.hasPresentationChanged();
 
   tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   assert.equal(prune.mock.callCount(), 1);
   assert.equal(statistics.mock.callCount(), 1);
   assert.equal(aggregate.mock.callCount(), 1);
@@ -2832,11 +2829,11 @@ test('a single bar renders the final rectangles already calculated by Series', (
   tool.config.series[0].sparkline.show.chart_type = 'bar';
   tool.card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   tool.card.cardTheme.modeChanged = false;
   const bars = context.mock.method(tool.primaryGraph, 'getBars');
   tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   // The first pass measures outer half-bars; the second supplies final SVG
   // rectangles. Single-item presentation must not add a third calculation.
   assert.equal(bars.mock.callCount(), 2);
@@ -2854,7 +2851,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
     tool.config.series[0].sparkline[chartType].show.minmax = true;
     tool.card.cardTheme.modeChanged = true;
     tool.updateRuntimeConfig();
-    tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+    tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
     tool.card.cardTheme.modeChanged = false;
     const graph = tool.primaryGraph;
     const linePath = context.mock.method(graph, 'getPath');
@@ -2865,7 +2862,7 @@ test('a single bar renders the final rectangles already calculated by Series', (
     const points = context.mock.method(graph, 'calculateYCoordinates');
 
     tool.card.entities[0] = { ...tool.runtime.entity, state: '42', last_changed: '2026-09-26T11:30:00.000Z' };
-    tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+    tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
     assert.equal(tool.geometry.line[0], tool.geometry.linePath);
     assert.equal(tool.geometry.areaMinMax[0], tool.geometry.areaMinMaxPath);
     assert.ok(tool.geometry.areaMinMaxPath.length > 0);
@@ -2903,7 +2900,7 @@ test('changed historical curves report presentation changes when all published s
     last_changed: row.last_changed,
   }));
   tool.sparklineHistory.acceptHistoryRows(item, changedRows, tool.sparklineHistory.getSeriesRange(item));
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
 
   assert.deepEqual(tool.getSeriesResult(), initialResult);
   assert.deepEqual(
@@ -2930,7 +2927,7 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
   // A fresh HA object with equivalent numeric spelling must still update the action context.
   const equivalent = { ...tool.runtime.entity, state: '20.10', attributes: { friendly_name: 'Current temperature' } };
   tool.card.entities[0] = equivalent;
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   assert.strictEqual(tool.runtime.entity, equivalent);
   assert.strictEqual(item.rows, retained.rows);
   assert.strictEqual(graph.processedValues, retained.values);
@@ -2942,7 +2939,7 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
 
   // Equal value at a new timestamp is a new sample and must refresh statistic times.
   tool.card.entities[0] = { ...equivalent, last_changed: '2026-09-26T11:01:00.000Z' };
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   assert.notStrictEqual(item.rows, retained.rows);
   assert.deepEqual(item.rows, [{ state: 20.1, last_changed: '2026-09-26T11:01:00.000Z' }]);
   assert.deepEqual(graph.statistics, {
@@ -2959,7 +2956,7 @@ test('real-time row reuse requires equal numeric state and sample timestamp', (c
 
   // Configured decimals never suppress a changed raw value at the same timestamp.
   tool.card.entities[0] = { ...tool.card.entities[0], state: '20.4' };
-  tool.setEntities(tool.card.resolvedEntityConfigs, tool.card.entities);
+  tool.setEntities(tool.card.runtimeEntityConfigs, tool.card.entities);
   assert.notStrictEqual(item.rows, timestampRows);
   assert.deepEqual(graph.processedValues, [20.4]);
   assert.equal(graph.statistics.avg, 20.4);

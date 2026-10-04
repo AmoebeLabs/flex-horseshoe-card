@@ -1,6 +1,6 @@
 /**
  * Converts the original scale_tickmarks shorthand at the configuration boundary.
- * Both horseshoe implementations consume the same normalized tickmark contract.
+ * The gauge then consumes the completed major/minor tick configuration.
  */
 export function applyLegacyScaleTickmarkConfig(horseshoeConfig) {
   if (horseshoeConfig.show?.scale_tickmarks !== true) return horseshoeConfig;
@@ -76,8 +76,8 @@ export function buildTickValues(min, max, ticksize, anchor) {
  * only used when the new show.tickmarks setting is absent, preserving older
  * configurations without making the legacy key the primary API.
  */
-export function getTickmarkVisibility(runtimeConfig) {
-  const configuredTickmarks = runtimeConfig?.show?.tickmarks;
+export function getTickmarkVisibility(config) {
+  const configuredTickmarks = config?.show?.tickmarks;
 
   if (configuredTickmarks && typeof configuredTickmarks === 'object') {
     return {
@@ -86,7 +86,7 @@ export function getTickmarkVisibility(runtimeConfig) {
     };
   }
 
-  const enabled = configuredTickmarks ?? runtimeConfig?.show?.ticks;
+  const enabled = configuredTickmarks ?? config?.show?.ticks;
 
   return {
     major: enabled,

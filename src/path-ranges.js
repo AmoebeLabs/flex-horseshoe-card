@@ -22,24 +22,8 @@ export class PathValueMapper {
   }
 
   /**
-   * Selects the signed scale branch used by absolute value mapping.
-   *
-   * @param {number} value - Current signed source value.
-   * @returns {boolean} Whether the visible absolute branch changed.
-   */
-  setActiveValue(value) {
-    const nextSign = Number(value) < 0 ? -1 : 1;
-    const changed = this.barMode === 'absolute' && nextSign !== this.absoluteSign;
-
-    this.absoluteSign = nextSign;
-
-    return changed;
-  }
-
-  /**
-   * Converts a source value to its legacy normalized ratio. Path consumers use
-   * valueToProgress(); this ratio remains available while the V2 horseshoe is
-   * connected to the shared mapper.
+   * Maps a source value to a 0..1 ratio using the selected absolute or signed
+   * scale branch. Path progress converts this ratio to percentages.
    *
    * @param {number} value - Source value to map.
    * @returns {number} Normalized 0..1 ratio.

@@ -77,12 +77,6 @@ definitions:
           $ref: layout.horseshoe
         description: Current horseshoe/progress gauge items.
         x-fhs-semantic-source: schema-context-v8
-      horseshoes_v2:
-        type: array
-        items:
-          $ref: layout.horseshoe
-        description: Compatibility alias for horseshoe items.
-        x-fhs-semantic-source: schema-context-v8
       states:
         type: array
         items:

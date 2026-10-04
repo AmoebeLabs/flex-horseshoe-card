@@ -168,7 +168,7 @@ test('BaseTool clones source before applying its explicit translator without sub
   assert.equal(tool.sourceConfig.translatedX, undefined);
   assert.equal(tool.config.translatedX, 20);
 
-  tool.activeConfigInitialized = true;
+  tool.runtimeConfigInitialized = true;
   card.cardLayout.changedGroupIds.add('room');
   card.cardTheme.modeChanged = true;
   tool.updateRuntimeConfig();
@@ -332,7 +332,7 @@ test('Icon state-map rendering retains its own palette before entity fallback', 
     card.cardAnimations.styles.iconsIcon = {};
     card.config.entities = [{ entity: 'sensor.test' }];
     card.entities = [{ entity_id: 'sensor.test', state: '50', attributes: {} }];
-    card.resolvedEntityConfigs = card.config.entities;
+    card.runtimeEntityConfigs = card.config.entities;
     card.cardEntities = new CardEntities({}, card.cardTheme);
     card.cardEntities.paint.colorStops[0] = paletteCase.entity === undefined
       ? undefined : ColorStops.normalize(paletteCase.entity, 'fixed');
@@ -343,7 +343,7 @@ test('Icon state-map rendering retains its own palette before entity fallback', 
       state_map: { map: [{ state: '50', styles: { opacity: '0.6' } }] },
     }, 0, { hasJavascriptTemplates: () => false }, 'card', card);
     tool.updateRuntimeConfig();
-    tool.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+    tool.setState(card.entities[0], card.runtimeEntityConfigs[0]);
     assert.equal(tool.runtime.stateMapItem.state, '50');
     let renderedStyles;
     // Observe the actual Icon and BaseTool composition with conflicting palettes.
@@ -362,7 +362,7 @@ test('Icon applies state-map styles after parent paint, then color stops and ani
   const card = createToolCard();
   card.cardAnimations.styles.iconsIcon = {};
   card.cardAnimations.styles.icons.highlight = { opacity: '0.9', 'stroke-width': '7' };
-  card.resolvedEntityConfigs = [{}];
+  card.runtimeEntityConfigs = [{}];
   card.entities = [];
   let activeStop;
   card.cardEntities = { paint: { colorStops: [[]] }, getItemColorStop: () => activeStop };
@@ -513,7 +513,7 @@ test('Sparkline tooltip formatters consume StateTool runtime value and unit', ()
   const entityConfig = { entity: 'sensor.pressure' };
   const card = {
     entities: [entity],
-    resolvedEntityConfigs: [entityConfig],
+    runtimeEntityConfigs: [entityConfig],
     _hass: {
       locale: { language: 'en-US' },
       localize: (key) => (key.endsWith('.mean') ? 'mean' : 'maximum'),

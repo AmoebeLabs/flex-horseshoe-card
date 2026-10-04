@@ -75,7 +75,7 @@ test('dynamic Control selectors publish before children and switch with live ent
     await page.waitForFunction((value) => {
       const controls = window.controlConfigEvaluationCard.cardTools.sections.controls;
       return controls.length === 5 && controls.every((tool) =>
-        tool.activeConfigInitialized && tool.config.width === (value === '0' ? 36 : 44));
+        tool.runtimeConfigInitialized && tool.config.width === (value === '0' ? 36 : 44));
     }, value);
     const result = await page.evaluate(() => {
       const card = window.controlConfigEvaluationCard;
@@ -155,7 +155,7 @@ test('dynamic tool config waits for hass, then publishes selectors, group geomet
     window.toolConfigEvaluationCard = card;
     return {
       renderedTools: card.shadowRoot.querySelectorAll('.line-tool, .rectangle-tool, .polygon-tool').length,
-      groupCount: card.cardLayout.activeGroupConfigs.length,
+      groupCount: card.cardLayout.runtimeGroupConfigs.length,
     };
   });
 
@@ -216,7 +216,7 @@ test('dynamic tool config waits for hass, then publishes selectors, group geomet
       fillMask: rectangle.config.fill_mask,
       polygonSides: polygon.config.sides,
       polygonTop: polygon.config.top,
-      group: card.cardLayout.activeGroupConfigs[0],
+      group: card.cardLayout.runtimeGroupConfigs[0],
       themeMode: card.cardTheme.getActiveColorStopMode(),
       renderedCount: rendered.length,
       invalidAttributes,
@@ -278,7 +278,7 @@ test('dynamic tool config waits for hass, then publishes selectors, group geomet
       lineGeometry: line.geometry.svg,
       fillMask: rectangle.config.fill_mask,
       polygon: polygon.config,
-      group: card.cardLayout.activeGroupConfigs[0],
+      group: card.cardLayout.runtimeGroupConfigs[0],
       themeMode: card.cardTheme.getActiveColorStopMode(),
       invalidAttributes: rendered.flatMap((element) => [...element.attributes]
         .map((attribute) => attribute.value)

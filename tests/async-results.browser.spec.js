@@ -109,7 +109,7 @@ test('external SVG publication stays with the current connected placeholder', as
       }
       disconnectedCallback() { this.externalSvgSources.disconnected(); }
       setSource(source) {
-        this.externalSvgSources.setConfig();
+        this.externalSvgSources.clearPendingRequests();
         this.source = source;
         this.renderPlaceholder();
         this.externalSvgSources.inject();
@@ -280,7 +280,7 @@ test('TextTool drops stale font measurements and resumes current SVG text on rec
       constructor() {
         super();
         this.card = {
-          config: {}, entities: [], resolvedEntityConfigs: [], evaluateJavascriptTemplates: true,
+          config: {}, entities: [], runtimeEntityConfigs: [], evaluateJavascriptTemplates: true,
           cardTheme: {
             modeChanged: false,
             getActiveColorStopMode: () => 'light',

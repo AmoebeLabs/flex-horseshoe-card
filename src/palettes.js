@@ -35,9 +35,9 @@ export default class Palette {
    * @param {object} palettes - Palette names mapped to resource URLs.
    * @returns {Promise<object>} Loaded palettes by name.
    */
-  static async loadAll(palettes = {}) {
+  static async loadAll(palettes) {
     const entries = await Promise.all(
-      Object.entries(palettes || {}).map(async ([name, url]) => {
+      Object.entries(palettes).map(async ([name, url]) => {
         const palette = await this.load(url);
         return [name, palette];
       }),

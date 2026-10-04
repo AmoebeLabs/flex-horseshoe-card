@@ -433,11 +433,6 @@ export default class SparklineSeries {
     item.requestState = requestState;
   }
 
-  /** Replaces the current normalized rows for one coordinator-owned item. */
-  setRows(item, rows) {
-    item.rows = rows;
-  }
-
   /** Runs all initialized graph engines against their own normalized rows. */
   updateGraphs() {
     const dataStates = this.items.map((item) => {

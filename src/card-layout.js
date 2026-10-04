@@ -15,8 +15,8 @@ export default class CardLayout {
     this.cardId = cardId;
     this.viewBox = { width: SVG_VIEW_BOX, height: SVG_VIEW_BOX };
     this.sourceGroupConfigs = [];
-    this.activeGroupConfigs = [];
-    this.activeGroupSignatures = {};
+    this.runtimeGroupConfigs = [];
+    this.evaluatedGroupSignatures = {};
     this.groupsHaveJavascript = false;
     this.changedGroupIds = new Set();
   }
@@ -29,11 +29,11 @@ export default class CardLayout {
     config.layout.masks ??= {};
 
     this.sourceGroupConfigs = config.layout.groups;
-    this.activeGroupConfigs = this.sourceGroupConfigs;
-    this.activeGroupSignatures = {};
+    this.runtimeGroupConfigs = this.sourceGroupConfigs;
+    this.evaluatedGroupSignatures = {};
     this.groupsHaveJavascript = this.sourceGroupConfigs.some((group) => this.templates.hasJavascriptTemplates(group));
     this.changedGroupIds.clear();
-    this.groupManager = new GroupManager(this.activeGroupConfigs);
+    this.groupManager = new GroupManager(this.runtimeGroupConfigs);
     this.masksClips = new MasksClips(config, this.cardId, this);
 
     // Card-level aspectratio remains valid, while layout.aspectratio takes precedence.
@@ -50,26 +50,26 @@ export default class CardLayout {
     // groups afterward. Retain both changes until all tools consumed the pass.
     if (!configuredEntityStateChanged || !this.groupsHaveJavascript) return;
 
-    const nextActiveGroupConfigs = [...this.activeGroupConfigs];
+    const newGroupConfigs = [...this.runtimeGroupConfigs];
     const directlyChangedGroupIds = new Set();
 
     this.sourceGroupConfigs.forEach((sourceGroupConfig, groupIndex) => {
       if (!this.templates.hasJavascriptTemplates(sourceGroupConfig)) return;
 
       const groupId = String(sourceGroupConfig.id);
-      const activeGroupConfig = this.templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, { resolveKeys: true });
-      const activeGroupSignature = JSON.stringify(activeGroupConfig);
-      nextActiveGroupConfigs[groupIndex] = activeGroupConfig;
-      if (activeGroupSignature !== this.activeGroupSignatures[groupId]) {
-        this.activeGroupSignatures[groupId] = activeGroupSignature;
+      const newGroupConfig = this.templates.getJsTemplateOrValue(sourceGroupConfig, sourceGroupConfig, { resolveKeys: true });
+      const evaluatedGroupSignature = JSON.stringify(newGroupConfig);
+      newGroupConfigs[groupIndex] = newGroupConfig;
+      if (evaluatedGroupSignature !== this.evaluatedGroupSignatures[groupId]) {
+        this.evaluatedGroupSignatures[groupId] = evaluatedGroupSignature;
         directlyChangedGroupIds.add(groupId);
       }
     });
 
     if (directlyChangedGroupIds.size === 0) return;
 
-    this.activeGroupConfigs = nextActiveGroupConfigs;
-    this.groupManager = new GroupManager(this.activeGroupConfigs);
+    this.runtimeGroupConfigs = newGroupConfigs;
+    this.groupManager = new GroupManager(this.runtimeGroupConfigs);
 
     // A changed parent changes the effective position, visibility, and scale of all descendants.
     Object.keys(this.groupManager.groups).forEach((groupId) => {

@@ -162,7 +162,7 @@ export default class RectangleTool extends BaseTool {
    */
   render() {
     // Defer the initial dynamic surface until runtime config has been published.
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
     // Text dimensions become exact after the preceding render. Recalculate the
     // path here so the correction render immediately uses the measured size.

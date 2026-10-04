@@ -141,15 +141,6 @@ export default class CardTemplates {
     );
     const localConfig = Merge.mergeDeep({}, configPart);
 
-    // if (configPart.template?.name || typeof configPart.template === 'string') {
-    //   console.log('[FHS templates] compileTemplateUse', {
-    //     templateName,
-    //     templateType: template.template.type,
-    //     templateVariables,
-    //     templateConfig,
-    //   });
-    // }
-
     delete localConfig.template;
 
     return CardTemplates.mergeTemplateConfig(templateConfig, localConfig);

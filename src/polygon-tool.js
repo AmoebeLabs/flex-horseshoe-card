@@ -116,7 +116,7 @@ export default class PolygonTool extends BaseTool {
    */
   render() {
     // The first HA pass completes dynamic sides/top before a polygon can be drawn.
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
     const polygonStyles = {
       fill: 'var(--primary-background-color)',

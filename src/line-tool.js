@@ -171,7 +171,7 @@ export default class LineTool extends BaseTool {
    */
   render() {
     // The first HA pass publishes dynamic config before its coordinates are usable.
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
     const lineStyles = {
       'stroke-linecap': 'round',

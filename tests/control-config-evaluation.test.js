@@ -62,7 +62,7 @@ function createHarness(constants = {}) {
   const card = {
     config: cardConfig,
     entities,
-    resolvedEntityConfigs: entityConfigs,
+    runtimeEntityConfigs: entityConfigs,
     evaluateJavascriptTemplates: false,
     cardLayout: {
       changedGroupIds: new Set(),
@@ -103,14 +103,6 @@ function createHarness(constants = {}) {
       getItemWidth: (width) => width,
       getItemHeight: (height) => height,
       getItemGeometry: () => ({ xpos: 50, ypos: 50, width: 20, height: 10 }),
-      setToolEntityState(tool, configs, states) {
-        const entityIndex = tool.entity_index;
-        if (entityIndex === undefined) {
-          tool.setStaticState();
-          return;
-        }
-        tool.setState(states[entityIndex], configs[entityIndex]);
-      },
     },
     iconCache: { 'mdi:lightbulb': 'M 3 3 L 21 21' },
     iconBoundsCache: {},
@@ -390,14 +382,14 @@ test('selector fields run once per requested pass and retain one current signatu
   assert.equal(toggle.config.show.item_style, 'ha');
   assert.ok(toggle.geometry.svg);
   const firstConfig = toggle.config;
-  const firstSignature = toggle.activeConfigSignature;
+  const firstSignature = toggle.evaluatedConfigSignature;
   assert.equal(typeof firstSignature, 'string');
 
   harness.card.evaluateJavascriptTemplates = true;
   toggle.updateRuntimeConfig();
   assert.deepEqual(constants.calls, { style: 2, orientation: 2, width: 2 });
   assert.strictEqual(toggle.config, firstConfig);
-  assert.equal(toggle.activeConfigSignature, firstSignature);
+  assert.equal(toggle.evaluatedConfigSignature, firstSignature);
 
   constants.style = 'ios';
   constants.orientation = 'vertical';
@@ -408,16 +400,16 @@ test('selector fields run once per requested pass and retain one current signatu
   assert.equal(toggle.config.show.item_style, 'ios');
   assert.equal(toggle.config.orientation, 'vertical');
   assert.equal(toggle.config.width, 44);
-  assert.notEqual(toggle.activeConfigSignature, firstSignature);
+  assert.notEqual(toggle.evaluatedConfigSignature, firstSignature);
   const iosGeometry = toggle.geometry.svg;
-  const iosSignature = toggle.activeConfigSignature;
+  const iosSignature = toggle.evaluatedConfigSignature;
 
   constants.style = 'industrial';
   toggle.updateRuntimeConfig();
   assert.deepEqual(constants.calls, { style: 4, orientation: 4, width: 4 });
   assert.equal(toggle.config.show.item_style, 'industrial');
   assert.notStrictEqual(toggle.geometry.svg, iosGeometry);
-  assert.notEqual(toggle.activeConfigSignature, iosSignature);
+  assert.notEqual(toggle.evaluatedConfigSignature, iosSignature);
 
   const industrialConfig = toggle.config;
   harness.card.evaluateJavascriptTemplates = false;
@@ -477,7 +469,7 @@ test('Button and shared Select child templates evaluate once in each child conte
   assert.equal(oldExplicit.entity_index, 2);
   assert.equal(oldInherited.config.text[0].value, '0:switch.main');
   assert.equal(oldExplicit.config.text[0].value, '2:input_number.upper');
-  assert.ok(button.activeConfigSignature.includes(childTemplate));
+  assert.ok(button.evaluatedConfigSignature.includes(childTemplate));
   assert.equal(buttonEvaluations.filter(({ javascript }) => javascript.includes('calls.child')).length, 2);
   assert.ok(buttonEvaluations.filter(({ javascript }) => javascript.includes('calls.child'))
     .every(({ id }) => id !== button.id));

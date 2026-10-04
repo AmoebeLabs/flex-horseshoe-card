@@ -3674,11 +3674,6 @@
           "description": "Current horseshoe/progress gauge items.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
-        "horseshoes_v2": {
-          "$ref": "#/$defs/layout.horseshoes_v2",
-          "description": "Compatibility alias for horseshoe items.",
-          "x-fhs-semantic-source": "schema-context-v8"
-        },
         "states": {
           "$ref": "#/$defs/layout.states",
           "description": "Entity-state text items.",
@@ -4775,14 +4770,6 @@
             "$ref": "#/$defs/layout.horseshoe"
           },
           "description": "Current horseshoe/progress gauge items.",
-          "x-fhs-semantic-source": "schema-context-v8"
-        },
-        "horseshoes_v2": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/layout.horseshoe"
-          },
-          "description": "Compatibility alias for horseshoe items.",
           "x-fhs-semantic-source": "schema-context-v8"
         },
         "states": {
@@ -7920,16 +7907,6 @@
       },
       "additionalProperties": false,
       "description": "Public FHS schema definition for layout horseshoeMarker.",
-      "x-fhs-semantic-source": "schema-semantic-pass-v8"
-    },
-    "layout.horseshoes_v2": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/layout.horseshoe"
-      },
-      "deprecated": true,
-      "x-fhs-prefer": "horseshoes",
-      "description": "Public FHS schema definition for layout horseshoes v2.",
       "x-fhs-semantic-source": "schema-semantic-pass-v8"
     },
     "layout.icons": {

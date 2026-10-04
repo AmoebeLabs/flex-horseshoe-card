@@ -9,8 +9,8 @@ export default class ExternalSvgSources {
     this.closed = false;
   }
 
-  /** Supersedes injections started for the previous card configuration. */
-  setConfig() {
+  /** Keeps earlier injections from writing into targets replaced by new config. */
+  clearPendingRequests() {
     this.requests.clear();
   }
 

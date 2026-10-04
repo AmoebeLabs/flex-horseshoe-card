@@ -1,28 +1,10 @@
 import { SVG_DEFAULT_DIMENSIONS } from './const.js';
 
 /**
- * Shared value/dimension calculations and access to the active Lovelace view.
+ * Shared SVG dimension calculations and access to the active Lovelace view.
  */
 
 export default class Utils {
-  /**
-   * Maps a state value to a clipped fraction of its configured scale. The
-   * existing initial/zero-value behavior supplies a zero fraction until a
-   * nonzero numeric state is available.
-   *
-   * @param {number} argStart - Scale start.
-   * @param {number} argEnd - Scale end.
-   * @param {number} argVal - State value.
-   * @returns {number} Fraction from zero through one.
-   */
-
-  static calculateValueBetween(argStart, argEnd, argVal) {
-    if (isNaN(argVal)) return 0;
-    if (!argVal) return 0;
-
-    return (Math.min(Math.max(argVal, argStart), argEnd) - argStart) / (argEnd - argStart);
-  }
-
   /**
    * Converts a dimension in card percentage units into the shared SVG scale.
    *

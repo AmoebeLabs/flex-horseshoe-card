@@ -77,7 +77,7 @@ function createHorseshoeFixture(source) {
     evaluateJavascriptTemplates: true,
     dev: { debug: false, fakeData: false },
     entities,
-    resolvedEntityConfigs: entityConfigs,
+    runtimeEntityConfigs: entityConfigs,
     _hass: hass,
     cardAnimations: { styles: { horseshoes: {} } },
     cardLayout: {
@@ -300,7 +300,7 @@ test('dynamic visibility stays factory-retained and construction waits to genera
 
   assert.equal(fixture.tools.length, 1);
   assert.equal(tool.hasJavascript, true);
-  assert.equal(tool.activeConfigInitialized, false);
+  assert.equal(tool.runtimeConfigInitialized, false);
   assert.equal(tool.render().strings.join(''), '');
   assert.equal(fixture.cardConfig.constants.showEvaluations, 0);
   assert.equal(fixture.cardConfig.constants.pathEvaluations, 0);

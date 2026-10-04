@@ -1,4 +1,4 @@
-/** Owns the current Home Assistant object and connection-ready lifecycle. */
+/** Tracks Home Assistant display context and connection-ready lifecycle. */
 export default class HomeAssistant {
   /**
    * Creates the card's Home Assistant lifecycle state. The ready callback keeps
@@ -7,7 +7,6 @@ export default class HomeAssistant {
    * @param {Function} notifyToolsConnected - Notifies tools after websocket readiness.
    */
   constructor(notifyToolsConnected) {
-    this.hass = undefined;
     this.localeSignature = undefined;
     this.localeChanged = false;
     this.entityDisplayContext = undefined;
@@ -19,13 +18,12 @@ export default class HomeAssistant {
   }
 
   /**
-   * Stores the current hass object, records locale changes and moves the ready
-   * listener to the active websocket connection.
+   * Records locale changes and moves the ready listener to the active websocket
+   * connection.
    */
   setHass(hass) {
     const localeSignature = JSON.stringify(hass.locale);
 
-    this.hass = hass;
     this.localeChanged = localeSignature !== this.localeSignature;
     this.localeSignature = localeSignature;
 

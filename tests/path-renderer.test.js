@@ -10,7 +10,7 @@ import {
   buildWavePathDefinition,
 } from '../src/path-generators.js';
 import { renderNormalizedPathBands } from '../src/path-mask-renderer.js';
-import { renderPathStrokeLayers } from '../src/path-renderer.js';
+import { renderPathStrokeLayers } from './fixtures/path-renderer.js';
 
 const pathDefinitions = [
   buildArcPathDefinition({

@@ -101,7 +101,6 @@ export default class ControlBase extends BaseTool {
       translateControlConfig ? (value) => ControlBase.completeConfig(translateControlConfig(value)) : undefined);
     this.translateControlConfig = translateControlConfig;
 
-    this.hasControlLabel = controlConfig.label !== undefined;
     this.labelTextTool = undefined;
     this.controlHassAvailable = false;
     this.controlConnected = false;
@@ -112,7 +111,7 @@ export default class ControlBase extends BaseTool {
   updateRuntimeConfig() {
     let sourceConfig = this.sourceConfig;
     if (this.translateControlConfig && this.hasJavascript
-      && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
+      && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       // Selectors establish the preset/defaults visible through item. Reuse their
       // evaluated values in the remaining pass, so each expression runs once.
       const selectorContext = Merge.mergeDeep(this.translateControlConfig({}, true), sourceConfig);
@@ -124,8 +123,6 @@ export default class ControlBase extends BaseTool {
       sourceConfig = this.translateControlConfig({ ...sourceConfig, orientation, show }, true);
     }
     super.updateRuntimeConfig(sourceConfig, { resolveKeys: true, preserve: ControlBase.isChildConfigPath });
-    this.hasControlLabel = this.config.label !== undefined;
-
     if (!['visible', 'hidden', 'unavailable'].includes(this.config.visibility)) {
       throw Error(`[controls] Invalid visibility '${this.config.visibility}' [visible, hidden, unavailable]`);
     }
@@ -209,7 +206,7 @@ export default class ControlBase extends BaseTool {
    * normal TextTool and therefore owns text parts, fitting, wrapping and styles.
    */
   createControlLabelTextTool(controlWidth, controlHeight) {
-    if (!this.hasControlLabel) {
+    if (this.config.label === undefined) {
       // Removing a configured label ends its child lifetime and rendered content.
       if (this.labelTextTool) this.labelTextTool.disconnected();
       this.labelTextTool = undefined;
@@ -354,7 +351,7 @@ export default class ControlBase extends BaseTool {
 
       this.labelTextTool.setState(
         this.card.entities[labelEntityIndex],
-        this.card.resolvedEntityConfigs[labelEntityIndex],
+        this.card.runtimeEntityConfigs[labelEntityIndex],
       );
     }
   }
@@ -369,9 +366,8 @@ export default class ControlBase extends BaseTool {
   /** Initializes a literal label or its explicitly configured entity. */
   setStaticState() {
     if (this.labelTextTool) {
-      this.card.cardTools.setToolEntityState(
-        this.labelTextTool,
-        this.card.resolvedEntityConfigs,
+      this.labelTextTool.setEntities(
+        this.card.runtimeEntityConfigs,
         this.card.entities,
       );
     }

@@ -29,7 +29,6 @@ The structure mirrors public FHS YAML. `common/` contains only shared building b
 - `layout/groups.yaml`
 - `layout/hlines.yaml`
 - `layout/horseshoes.yaml`
-- `layout/horseshoes_v2.yaml`
 - `layout/icons.yaml`
 - `layout/lines.yaml`
 - `layout/masks.yaml`

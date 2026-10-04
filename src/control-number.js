@@ -417,15 +417,15 @@ export default class ControlNumber extends ControlBase {
     });
 
     // Commands remain bound to the Number control. Generated presentation tools
-    // independently publish the entity selected by their completed config.
-    this.card.cardTools.setToolEntityState(
-      this.minusContentTool, this.card.resolvedEntityConfigs, this.card.entities,
+    // independently receive the entity selected by their completed config.
+    this.minusContentTool.setEntities(
+      this.card.runtimeEntityConfigs, this.card.entities,
     );
-    this.card.cardTools.setToolEntityState(
-      this.plusContentTool, this.card.resolvedEntityConfigs, this.card.entities,
+    this.plusContentTool.setEntities(
+      this.card.runtimeEntityConfigs, this.card.entities,
     );
-    this.card.cardTools.setToolEntityState(
-      this.valueStateTool, this.card.resolvedEntityConfigs, this.card.entities,
+    this.valueStateTool.setEntities(
+      this.card.runtimeEntityConfigs, this.card.entities,
     );
     if (this.valueMeasurementSignature !== this.valueStateTool.geometry.textMeasurementSignature) {
       this.valueMeasurementSignature = this.valueStateTool.geometry.textMeasurementSignature;
@@ -467,7 +467,7 @@ export default class ControlNumber extends ControlBase {
 
   /** Renders fixed slots and centers the measured state/UOM bounding box. */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     const contentConfig = this.config.content[this.config.content.mode];
     const geometry = this.geometry;
     const backgroundWidth = Utils.calculateSvgDimension(this.config.width);
