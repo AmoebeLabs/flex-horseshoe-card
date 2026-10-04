@@ -51,6 +51,23 @@ P21-G and P21-H retain 7 warm-up updates and 15 measured updates per run. Their 
 
 P21-I retains the historical 40 warm-up updates and 5 repetitions of 200 updates for gradient and path-paint loops. The mapping matrix uses the same warm-up/measurement counts for linear numeric, spline numeric, and rank-state input. It records `GaugeScale`/`PathValueMapper` identity replacement/reuse and mapping-key changes along with direct `setState` wall timings and CDP CPU. The theme-only pass publishes the current mapping state to `hass` before changing only `themes.darkMode`, so it does not accidentally include state changes from the direct mapping loop. It records whether mapper, scale, path geometry, and path measurement owners are retained.
 
+The recovered I harness currently captures both `pathCache.before` and `pathCache.after` after the animation-sampling loop. Do not use their equality as evidence that the cache stayed bounded during that loop. Separate browser regressions cover retained cache behavior; the I owner-identity and SVG-read counters remain useful independently of those snapshots. A future harness correction must record this observation change before new comparisons.
+
+## Recorded Plan 21 Comparison
+
+The complete final run is `performance-results/2026.10.04-plan21-comparison.json`, comparing baseline `16692192a33dd3423387ea99087c7d4b9447d5f8` with candidate `7ea93e4e7f461b7ba6bdd2dcd525b1ad5375e747`. Its interpretation, timing limitations, operation counts and source-size changes are in `../ideas/2026.10.04-21-update-render-results.md`. The original frozen baseline and targeted mapping diagnostic remain separate, unchanged artifacts.
+
+For an order-balanced H-only follow-up, reuse the existing workload in baseline/candidate/candidate/baseline order:
+
+```sh
+node tests/performance-history-abba.mjs \
+  --baseline=16692192a33dd3423387ea99087c7d4b9447d5f8 \
+  --candidate=7ea93e4 \
+  --output=tests/performance-results/2026.10.04-plan21-history-abba.json
+```
+
+This diagnostic uses the same runner, fixture, seven warm-ups and 15 measured updates, with separate fresh timing/counter pages for each of the four runs. Its artifact supplements the original A-I comparison rather than replacing it. Compare median/mean wall time, CDP CPU/layout and operations per run; an individual slow batch does not establish a structural cache regression.
+
 ## Harness Adaptations
 
 - The recovered update script's absolute Playwright path was replaced with the repository package import. Its historical version-label loop was replaced by explicit SHA/working bundle selection.
