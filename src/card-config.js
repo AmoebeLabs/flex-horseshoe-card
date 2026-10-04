@@ -354,33 +354,6 @@ export default class CardConfig {
       .filter((entityConfig) => entityConfig.disabled !== true);
   }
 
-  /** Records JavaScript-template metadata and returns the card-level flag. */
-  detectJavascriptTemplates(config) {
-    let cardHasJavascript = false;
-
-    config.entities.forEach((entityConfig) => {
-      if (this.templates.detectJavascriptTemplates(entityConfig)) cardHasJavascript = true;
-    });
-    VISIBLE_LAYOUT_SECTIONS.forEach((section) => {
-      const items = config.layout[section];
-      if (!Array.isArray(items)) return;
-      items.forEach((item) => {
-        if (this.templates.detectJavascriptTemplates(item)) cardHasJavascript = true;
-      });
-    });
-    config.layout.groups.forEach((group) => {
-      if (this.templates.detectJavascriptTemplates(group)) cardHasJavascript = true;
-    });
-    if (config.animations) {
-      Object.values(config.animations).forEach((animationItems) => {
-        animationItems.forEach((animationItem) => {
-          if (this.templates.detectJavascriptTemplates(animationItem)) cardHasJavascript = true;
-        });
-      });
-    }
-    if (config.styles && this.templates.detectJavascriptTemplates(config.styles)) cardHasJavascript = true;
-    return cardHasJavascript;
-  }
 
   /**
    * Builds named slots for the final flat configured entity list.

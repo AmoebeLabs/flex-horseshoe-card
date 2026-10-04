@@ -94,7 +94,6 @@ class FlexHorseshoeCard extends LitElement {
     this.sourceCardStyles = undefined;
     this.activeCardStyles = undefined;
     this.cardStylesHaveJavascript = false;
-    this.cardHasJavascript = false;
     this.cardPresentationSignature = undefined;
     this.iconCache = {};
     this.iconBoundsCache = {};
@@ -449,7 +448,9 @@ class FlexHorseshoeCard extends LitElement {
       this.cardInputEntities.validateConfig(config);
       this.cardConfig.validateActionConfigs(config);
 
-      this.cardHasJavascript = this.cardConfig.detectJavascriptTemplates(config);
+      // Mark component sources once; each owner evaluates its own templates
+      // only when declared card inputs or supported context change.
+      this.templates.detectJavascriptTemplates(config);
 
       // Runtime entity templates now receive the final entity-slot map.
       const resolvedEntitiesConfig = this.cardEntities.buildRuntimeEntityConfigs(config, false);
