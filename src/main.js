@@ -181,6 +181,9 @@ class FlexHorseshoeCard extends LitElement {
     const entityDisplayChanged = this.homeAssistant.entityDisplayChanged;
     const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
+    // Actions always use the current HA client, even when this delivery does
+    // not require configuration, tool or render work.
+    this.actions.setHassAndEntities(hass, this.runtimeEntityConfigs, this.entities);
 
     this.updateSourceEntities(localeChanged || entityDisplayChanged || themeChanged, hassBecameAvailable);
   }
@@ -203,7 +206,7 @@ class FlexHorseshoeCard extends LitElement {
     // Capture every configured Home Assistant entity before evaluating dynamic config.
     // Object identity changes when HA publishes a new state or attribute set.
     let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
-    const configuredEntityCount = this.config.entities.length;
+    const configuredEntityCount = this.runtimeEntityConfigs.length;
 
     for (let index = 0; index < configuredEntityCount; index += 1) {
       const activeEntityConfig = this.runtimeEntityConfigs[index];
