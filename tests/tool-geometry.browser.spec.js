@@ -325,7 +325,7 @@ test('measured Name, Area, State and TextTool geometry drive Rectangle fit', asy
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('complete parent paint updates measured geometry and Rectangle fit without mutating config.styles', async ({ page }) => {
+test('complete parent effective styles update measured geometry and Rectangle fit without mutating config.styles', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.tool' }],
@@ -360,7 +360,7 @@ test('complete parent paint updates measured geometry and Rectangle fit without 
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
     const name = card.cardTools.sections.names[0];
-    name.setPaintStyles({ ...name.config.styles, 'font-size': '2em', fill: '#d32f2f' });
+    name.setEffectiveStyles({ ...name.config.styles, 'font-size': '2em', fill: '#d32f2f' });
     card.requestUpdate();
   });
   await page.waitForFunction((previous) => {
@@ -381,7 +381,7 @@ test('complete parent paint updates measured geometry and Rectangle fit without 
       height: name.geometry.measuredHeight,
       rectangleWidth: card.cardTools.sections.rectangles[0].geometry.svg.width,
       configStyles: name.config.styles,
-      paintStyles: name.paint.styles,
+      effectiveStyles: name.runtime.effectiveStyles,
       computedFontSize: getComputedStyle(name.textElement.firstElementChild).fontSize,
       computedFill: getComputedStyle(name.textElement.firstElementChild).fill,
       effectiveFontSize: name.getStyles({ 'font-size': '1.5em' })['font-size'],
@@ -392,7 +392,7 @@ test('complete parent paint updates measured geometry and Rectangle fit without 
   expect(after.height).toBeGreaterThan(before.height * 1.5);
   expect(after.rectangleWidth).toBeCloseTo((after.width + 4) * 2, 2);
   expect(after.configStyles).toEqual(before.configStyles);
-  expect(after.paintStyles).toEqual({ 'font-size': '2em', fill: '#d32f2f' });
+  expect(after.effectiveStyles).toEqual({ 'font-size': '2em', fill: '#d32f2f' });
   expect(after.computedFontSize).not.toBe('');
   expect(after.computedFill).toBe('rgb(211, 47, 47)');
   expect(after.effectiveFontSize).toBe('2em');
@@ -400,7 +400,7 @@ test('complete parent paint updates measured geometry and Rectangle fit without 
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('TextTool parent paint replaces configured styles and clearing restores them', async ({ page }) => {
+test('TextTool parent effective styles replace configured styles and clearing restores them', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.tool' }],
@@ -431,7 +431,7 @@ test('TextTool parent paint replaces configured styles and clearing restores the
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
     const textTool = card.cardTools.sections.texts[0];
-    textTool.setPaintStyles({ 'font-size': '2em', fill: '#d32f2f' });
+    textTool.setEffectiveStyles({ 'font-size': '2em', fill: '#d32f2f' });
     card.requestUpdate();
   });
   await page.waitForFunction((previous) => {
@@ -450,18 +450,18 @@ test('TextTool parent paint replaces configured styles and clearing restores the
       fill: computed.fill,
       stroke: computed.stroke,
       configStyles: tool.config.styles,
-      paintStyles: tool.paint.styles,
+      effectiveStyles: tool.runtime.effectiveStyles,
     };
   });
   expect(Number.parseFloat(painted.fontSize)).toBeGreaterThan(Number.parseFloat(before.fontSize) * 1.5);
   expect(painted.fill).toBe('rgb(211, 47, 47)');
   expect(painted.stroke).toBe('none');
   expect(painted.configStyles).toEqual(before.configStyles);
-  expect(painted.paintStyles).toEqual({ 'font-size': '2em', fill: '#d32f2f' });
+  expect(painted.effectiveStyles).toEqual({ 'font-size': '2em', fill: '#d32f2f' });
 
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
-    card.cardTools.sections.texts[0].setPaintStyles(undefined);
+    card.cardTools.sections.texts[0].setEffectiveStyles(undefined);
     card.requestUpdate();
   });
   await page.waitForFunction((previous) => {
@@ -480,19 +480,19 @@ test('TextTool parent paint replaces configured styles and clearing restores the
       fill: computed.fill,
       stroke: computed.stroke,
       configStyles: tool.config.styles,
-      paintStyles: tool.paint?.styles,
+      effectiveStyles: tool.runtime.effectiveStyles,
     };
   });
   expect(cleared.fontSize).toBe(before.fontSize);
   expect(cleared.fill).toBe(before.fill);
   expect(cleared.stroke).toBe(before.stroke);
   expect(cleared.configStyles).toEqual(before.configStyles);
-  expect(cleared.paintStyles).toBeUndefined();
+  expect(cleared.effectiveStyles).toBeUndefined();
   expect(errors).toEqual([]);
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('TextTool outer font paint remeasures width tokens and keeps Rectangle fit on exact bounds', async ({ page }) => {
+test('TextTool outer effective font styles remeasure width tokens and keep Rectangle fit on exact bounds', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.tool' }],
@@ -541,7 +541,7 @@ test('TextTool outer font paint remeasures width tokens and keeps Rectangle fit 
 
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
-    card.cardTools.sections.texts[0].setPaintStyles({ 'font-size': '2em', fill: '#d32f2f' });
+    card.cardTools.sections.texts[0].setEffectiveStyles({ 'font-size': '2em', fill: '#d32f2f' });
     card.requestUpdate();
   });
   await page.waitForFunction((previous) => {
@@ -591,7 +591,7 @@ test('TextTool outer font paint remeasures width tokens and keeps Rectangle fit 
     const card = window.toolGeometryFixture.card;
     const tool = card.cardTools.sections.texts[0];
     const revision = tool.widthOverflowRevision;
-    tool.setPaintStyles({ ...tool.paint.styles });
+    tool.setEffectiveStyles({ ...tool.runtime.effectiveStyles });
     card.requestUpdate();
     await card.updateComplete;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -666,7 +666,7 @@ test('TextTool referenced source font changes invalidate width tokens for equal 
   await page.evaluate(() => {
     const { card, hass } = window.toolGeometryFixture;
     const source = card.cardTools.sections.names[0];
-    source.setPaintStyles({ 'font-size': '2em' });
+    source.setEffectiveStyles({ 'font-size': '2em' });
     const changedAt = new Date(Date.now() + 1000).toISOString();
     const nextToolState = {
       ...hass.states['sensor.tool'],
@@ -715,7 +715,7 @@ test('TextTool referenced source font changes invalidate width tokens for equal 
       },
       rectangle,
       sourceStyles: source.config.styles,
-      sourcePaintStyles: source.paint.styles,
+      sourceEffectiveStyles: source.runtime.effectiveStyles,
     };
   });
   expect(after.visibleText).toBe(before.visibleText);
@@ -729,12 +729,12 @@ test('TextTool referenced source font changes invalidate width tokens for equal 
   expect(after.rectangle.width).toBeCloseTo((after.geometry.width + 4) * 2, 2);
   expect(after.rectangle.height).toBeCloseTo((after.geometry.height + 2) * 2, 2);
   expect(after.sourceStyles).toEqual(before.sourceStyles);
-  expect(after.sourcePaintStyles).toEqual({ 'font-size': '2em' });
+  expect(after.sourceEffectiveStyles).toEqual({ 'font-size': '2em' });
   expect(errors).toEqual([]);
   await page.evaluate(() => window.toolGeometryFixture.card.remove());
 });
 
-test('Icon state-map styles remain visible over complete parent paint', async ({ page }) => {
+test('Icon state-map styles remain visible over complete parent effective styles', async ({ page }) => {
   const errors = await loadToolCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.icon' }],
@@ -762,7 +762,7 @@ test('Icon state-map styles remain visible over complete parent paint', async ({
     const configured = structuredClone(icon.config.styles);
     // Reproduce the Control order: parent visual state, authored child styles,
     // then transition. Publish that whole result without changing child config.
-    icon.setPaintStyles({
+    icon.setEffectiveStyles({
       fill: '#43a047',
       color: '#43a047',
       cursor: 'crosshair',
@@ -791,7 +791,7 @@ test('Icon state-map styles remain visible over complete parent paint', async ({
 
   await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
-    card.cardTools.sections.icons[0].setPaintStyles(undefined);
+    card.cardTools.sections.icons[0].setEffectiveStyles(undefined);
     card.requestUpdate();
   });
   await page.waitForFunction(() => window.toolGeometryFixture.card.shadowRoot

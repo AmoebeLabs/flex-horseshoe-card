@@ -535,19 +535,6 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
   });
   assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, 'light'));
 
-  // The ordinary presentation phase rebuilds entity config after publication.
-  // It must use published series binding, without evaluating the series again.
-  const presentationConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true, [tool]);
-  assert.deepEqual(presentationConfigs.slice(2).map((entry) => entry.source_entity_index), [1, 1, 1, 0, 1, 1, 1, 0]);
-  paletteSources.forEach((sourceIndex, index) => {
-    assert.strictEqual(cardEntities.paint.colorStops[index + 2], cardEntities.paint.colorStops[sourceIndex]);
-  });
-  assert.deepEqual(cardEntities.paint.colorStops[4], ColorStops.normalize(derivedStops, 'light'));
-  const publishedEntities = entities.slice(2);
-  assert.deepEqual(cardEntities.updateSparklineEntities(presentationConfigs, entities, [tool]), []);
-  publishedEntities.forEach((entity, index) => assert.strictEqual(entities[index + 2], entity));
-  assert.equal(cardConfig.constants.seriesEvaluations, 1);
-
   for (const mode of ['dark', 'light']) {
     card.cardTheme.activeColorStopMode = mode;
     const sourceConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true);
@@ -663,7 +650,6 @@ test('dynamic Sparkline stays inert before publication and initializes from Card
   assert.equal(tool.sparklineSeries, undefined);
   assert.equal(tool.sparklineHistory, undefined);
   assert.equal(tool.requiresHassUpdate(), true);
-  assert.equal(tool.hasPresentationChanged(), false);
   assert.equal(tool.renderSvg().strings.join(''), '');
   assert.equal(tool.render().strings.join(''), '');
 
@@ -675,7 +661,6 @@ test('dynamic Sparkline stays inert before publication and initializes from Card
   cardTools.connected();
   cardTools.firstUpdated(new Map());
   cardTools.updatePalettePaint();
-  cardTools.updateSparklinePresentation();
   cardTools.hassAvailable();
   assert.equal(tool.legendTextTools.length, 0);
   cardTools.disconnected();

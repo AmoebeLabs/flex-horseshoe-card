@@ -28,7 +28,7 @@ async function loadCard(page, config) {
     const power = {
       entity_id: 'sensor.power',
       state: '20.1',
-      attributes: { friendly_name: 'Power', unit_of_measurement: 'W' },
+      attributes: { friendly_name: 'Power', unit_of_measurement: 'W', voltage: '120.1' },
       last_changed: changedAt,
       last_updated: changedAt,
     };
@@ -56,13 +56,16 @@ async function loadCard(page, config) {
         { type: 'value', value: value ?? state.state },
         { type: 'unit', value: state.attributes.unit_of_measurement },
       ],
+      formatEntityAttributeValueToParts: (state, attribute) => [
+        { type: 'value', value: state.attributes[attribute] },
+      ],
     };
     card.setConfig(cardConfig);
     document.querySelector('#host').append(card);
     card.hass = hass;
-    window.changeDetection = { card, hass, renderCount: 0 };
+    window.changeDetection = { card, hass, renderCount: 0, requestCount: 0 };
   }, config);
-  await page.waitForFunction(() => window.changeDetection.card.shadowRoot.querySelector('.state__value').textContent.trim() === '20');
+  await page.waitForFunction(() => window.changeDetection.card.shadowRoot.querySelector('.state__value') !== null);
   await settleCardRendering(page);
   await page.evaluate(() => {
     const { card } = window.changeDetection;
@@ -71,11 +74,16 @@ async function loadCard(page, config) {
       window.changeDetection.renderCount += 1;
       return render(...args);
     };
+    const requestUpdate = card.requestUpdate.bind(card);
+    card.requestUpdate = (...args) => {
+      window.changeDetection.requestCount += 1;
+      return requestUpdate(...args);
+    };
   });
   return pageErrors;
 }
 
-/** Waits for card updates and DOM-measurement follow-ups before render counts are read. */
+/** Waits for card updates and DOM-measurement follow-ups before output is read. */
 async function settleCardRendering(page) {
   await page.evaluate(() => window.changeDetection.card.updateComplete);
   await page.clock.runFor(34);
@@ -98,7 +106,25 @@ async function deliverState(page, entityId, state) {
   await settleCardRendering(page);
 }
 
-test('equal rounded text with fixed paint skips rendering, then changed rounded text renders', async ({ page }) => {
+/** Delivers an HA attribute-only update while preserving the entity state. */
+async function deliverAttribute(page, entityId, attribute, value) {
+  await page.evaluate(({ entityId, attribute, value }) => {
+    const { card, hass } = window.changeDetection;
+    const entity = hass.states[entityId];
+    const nextHass = {
+      ...hass,
+      states: {
+        ...hass.states,
+        [entityId]: { ...entity, attributes: { ...entity.attributes, [attribute]: value } },
+      },
+    };
+    window.changeDetection.hass = nextHass;
+    card.hass = nextHass;
+  }, { entityId, attribute, value });
+  await settleCardRendering(page);
+}
+
+test('rounded text and fixed paint stay correct across relevant updates', async ({ page }) => {
   const errors = await loadCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.power', decimals: 0 }],
@@ -117,23 +143,33 @@ test('equal rounded text with fixed paint skips rendering, then changed rounded 
   expect(initial.text).toBe('20');
   expect(initial.fill).toBe('rgb(21, 101, 192)');
 
-  // The raw measurement changes, but rounded text and fixed paint do not.
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  // Relevant raw data updates still reach Lit even while displayed text stays rounded.
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await deliverState(page, 'sensor.power', '20.4');
   const stillRounded = await page.evaluate(() => {
     const value = window.changeDetection.card.shadowRoot.querySelector('.state__value');
     return {
       text: value.textContent.trim(),
       fill: getComputedStyle(value).fill,
+      rawState: window.changeDetection.card.entities[0].state,
       renders: window.changeDetection.renderCount,
+      requests: window.changeDetection.requestCount,
     };
   });
   expect(stillRounded.text).toBe('20');
   expect(stillRounded.fill).toBe(initial.fill);
-  expect(stillRounded.renders).toBe(0);
+  expect(stillRounded.rawState).toBe('20.4');
+  expect(stillRounded.requests).toBeGreaterThan(0);
+  expect(stillRounded.renders).toBeGreaterThan(0);
 
-  // Crossing the rounding boundary changes visible text and must render.
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  // Crossing the rounding boundary changes the visible text.
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await deliverState(page, 'sensor.power', '20.6');
   const roundedUp = await page.evaluate(() => {
     const value = window.changeDetection.card.shadowRoot.querySelector('.state__value');
@@ -141,11 +177,48 @@ test('equal rounded text with fixed paint skips rendering, then changed rounded 
       text: value.textContent.trim(),
       fill: getComputedStyle(value).fill,
       renders: window.changeDetection.renderCount,
+      requests: window.changeDetection.requestCount,
     };
   });
   expect(roundedUp.text).toBe('21');
   expect(roundedUp.fill).toBe(initial.fill);
+  expect(roundedUp.requests).toBeGreaterThan(0);
   expect(roundedUp.renders).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.changeDetection.card.remove());
+});
+
+test('configured HA attribute updates refresh the state tool output', async ({ page }) => {
+  const errors = await loadCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [{ entity: 'sensor.power', attribute: 'voltage', decimals: 0 }],
+    layout: {
+      states: [{
+        id: 'voltage', entity_index: 0, xpos: 50, ypos: 50,
+        show: { uom: 'none' },
+      }],
+    },
+  });
+  expect(await page.evaluate(() => window.changeDetection.card.shadowRoot.querySelector('.state__value').textContent.trim())).toBe('120');
+
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
+  await deliverAttribute(page, 'sensor.power', 'voltage', '121.2');
+  const updated = await page.evaluate(() => {
+    const card = window.changeDetection.card;
+    return {
+      text: card.shadowRoot.querySelector('.state__value').textContent.trim(),
+      voltage: card.cardTools.sections.states[0].runtime.entity.attributes.voltage,
+      requests: window.changeDetection.requestCount,
+      renders: window.changeDetection.renderCount,
+    };
+  });
+  expect(updated.text).toBe('121');
+  expect(updated.voltage).toBe('121.2');
+  expect(updated.requests).toBeGreaterThan(0);
+  expect(updated.renders).toBeGreaterThan(0);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.changeDetection.card.remove());
 });
@@ -176,7 +249,10 @@ test('raw color-stop threshold changes paint and renders while rounded text stay
   expect(initial.fill).toBe('rgb(21, 101, 192)');
 
   // Raw 20.4 crosses 20.25 even though both measurements display as 20.
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await deliverState(page, 'sensor.power', '20.4');
   const crossed = await page.evaluate(() => {
     const value = window.changeDetection.card.shadowRoot.querySelector('.state__value');
@@ -184,17 +260,19 @@ test('raw color-stop threshold changes paint and renders while rounded text stay
       text: value.textContent.trim(),
       fill: getComputedStyle(value).fill,
       renders: window.changeDetection.renderCount,
+      requests: window.changeDetection.requestCount,
     };
   });
   expect(crossed.text).toBe('20');
   expect(crossed.fill).toBe('rgb(102, 187, 106)');
   expect(crossed.fill).not.toBe(initial.fill);
+  expect(crossed.requests).toBeGreaterThan(0);
   expect(crossed.renders).toBeGreaterThan(0);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.changeDetection.card.remove());
 });
 
-test('inline state paint, unit and group output render at equal rounded text, then equal output skips', async ({ page }) => {
+test('inline state paint, unit and group output stay current at equal rounded text', async ({ page }) => {
   const errors = await loadCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.power', decimals: 0 }],
@@ -233,7 +311,10 @@ test('inline state paint, unit and group output render at equal rounded text, th
     state: '20', stateUnit: 'W', inline: ['20', 'W'], inlineFill: 'rgb(21, 101, 192)', groupX: 40,
   });
 
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await page.evaluate(() => {
     const { card, hass } = window.changeDetection;
     const power = {
@@ -256,6 +337,7 @@ test('inline state paint, unit and group output render at equal rounded text, th
       inlineFill: getComputedStyle(inline.querySelector('.text-tool__part')).fill,
       groupX: window.changeDetection.card.cardLayout.runtimeGroupConfigs[0].xpos,
       renders: window.changeDetection.renderCount,
+      requests: window.changeDetection.requestCount,
     };
   });
   expect(changed.state).toBe('20');
@@ -263,9 +345,13 @@ test('inline state paint, unit and group output render at equal rounded text, th
   expect(changed.inline).toEqual(['20', 'kW']);
   expect(changed.inlineFill).toBe('rgb(102, 187, 106)');
   expect(changed.groupX).toBe(60);
+  expect(changed.requests).toBeGreaterThan(0);
   expect(changed.renders).toBeGreaterThan(0);
 
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await deliverState(page, 'sensor.power', '20.49');
   const equalOutput = await page.evaluate(() => {
     const root = window.changeDetection.card.shadowRoot;
@@ -277,17 +363,23 @@ test('inline state paint, unit and group output render at equal rounded text, th
       inlineFill: getComputedStyle(inline.querySelector('.text-tool__part')).fill,
       groupX: window.changeDetection.card.cardLayout.runtimeGroupConfigs[0].xpos,
       renders: window.changeDetection.renderCount,
+      requests: window.changeDetection.requestCount,
+      rawState: window.changeDetection.card.entities[0].state,
     };
   });
-  expect(equalOutput).toEqual({
-    state: '20', stateUnit: 'kW', inline: ['20', 'kW'],
-    inlineFill: 'rgb(102, 187, 106)', groupX: 60, renders: 0,
-  });
+  expect(equalOutput.state).toBe('20');
+  expect(equalOutput.stateUnit).toBe('kW');
+  expect(equalOutput.inline).toEqual(['20', 'kW']);
+  expect(equalOutput.inlineFill).toBe('rgb(102, 187, 106)');
+  expect(equalOutput.groupX).toBe(60);
+  expect(equalOutput.rawState).toBe('20.49');
+  expect(equalOutput.requests).toBeGreaterThan(0);
+  expect(equalOutput.renders).toBeGreaterThan(0);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.changeDetection.card.remove());
 });
 
-test('JavaScript text updates from an HA sensor outside config.entities', async ({ page }) => {
+test('undeclared JavaScript state reads wait for the next legitimate card update', async ({ page }) => {
   const errors = await loadCard(page, {
     type: 'custom:flex-horseshoe-card',
     entities: [{ entity: 'sensor.power', decimals: 0 }],
@@ -302,14 +394,67 @@ test('JavaScript text updates from an HA sensor outside config.entities', async 
   const initialText = await page.evaluate(() => window.changeDetection.card.shadowRoot.querySelector('text[id$="-text-0"]').textContent.trim());
   expect(initialText).toBe('outside=8');
 
-  // This template reads the HA state map, not a configured entity slot.
-  await page.evaluate(() => { window.changeDetection.renderCount = 0; });
+  // An arbitrary state-map read is readable, but does not subscribe the card.
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
+  await deliverState(page, 'sensor.external', '9');
+  const ignored = await page.evaluate(() => ({
+    text: window.changeDetection.card.shadowRoot.querySelector('text[id$="-text-0"]').textContent.trim(),
+    renders: window.changeDetection.renderCount,
+    requests: window.changeDetection.requestCount,
+    externalState: window.changeDetection.hass.states['sensor.external'].state,
+  }));
+  expect(ignored.text).toBe('outside=8');
+  expect(ignored.externalState).toBe('9');
+  expect(ignored.requests).toBe(0);
+  expect(ignored.renders).toBe(0);
+
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
+  await deliverState(page, 'sensor.power', '20.4');
+  const refreshed = await page.evaluate(() => ({
+    text: window.changeDetection.card.shadowRoot.querySelector('text[id$="-text-0"]').textContent.trim(),
+    requests: window.changeDetection.requestCount,
+    renders: window.changeDetection.renderCount,
+  }));
+  expect(refreshed.text).toBe('outside=9');
+  expect(refreshed.requests).toBeGreaterThan(0);
+  expect(refreshed.renders).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+  await page.evaluate(() => window.changeDetection.card.remove());
+});
+
+test('declared external JavaScript state reads update immediately', async ({ page }) => {
+  const errors = await loadCard(page, {
+    type: 'custom:flex-horseshoe-card',
+    entities: [
+      { entity: 'sensor.power', decimals: 0 },
+      { entity: 'sensor.external' },
+    ],
+    layout: {
+      states: [{ id: 'power', entity_index: 0, xpos: 50, ypos: 40, show: { uom: 'none' } }],
+      texts: [{
+        id: 'external-reading', xpos: 50, ypos: 70,
+        text: '[[[ return "outside=" + states["sensor.external"].state; ]]]',
+      }],
+    },
+  });
+  await page.evaluate(() => {
+    window.changeDetection.renderCount = 0;
+    window.changeDetection.requestCount = 0;
+  });
   await deliverState(page, 'sensor.external', '9');
   const updated = await page.evaluate(() => ({
     text: window.changeDetection.card.shadowRoot.querySelector('text[id$="-text-0"]').textContent.trim(),
+    requests: window.changeDetection.requestCount,
     renders: window.changeDetection.renderCount,
   }));
   expect(updated.text).toBe('outside=9');
+  expect(updated.requests).toBeGreaterThan(0);
   expect(updated.renders).toBeGreaterThan(0);
   expect(errors).toEqual([]);
   await page.evaluate(() => window.changeDetection.card.remove());

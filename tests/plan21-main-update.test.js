@@ -36,7 +36,7 @@ function makeCard({ dynamic = false, pending = false } = {}) {
       updateSparklineEntities: () => [],
     },
     cardLayout: { updateGroups() { calls.groups += 1; } },
-    actions: { setHassAndEntities() {} },
+    actions: { setHassAndEntities(value) { card.actionHass = value; } },
     cardTools: {
       getRenderableTools: () => [{ hasJavascript: dynamic, requiresHassUpdate: () => pending }],
       hassAvailable() { calls.availability += 1; },
@@ -56,6 +56,7 @@ for (const dynamic of [false, true]) {
     card.setHass(nextHass);
     assert.deepEqual(calls, { templates: 1, ha: 1, children: 1, config: 0, groups: 0, tools: 0, presentation: 0, availability: 0 });
     assert.strictEqual(card.childHass, nextHass);
+    assert.strictEqual(card.actionHass, nextHass);
     assert.strictEqual(card._hass, nextHass);
   });
 }
@@ -81,6 +82,7 @@ test('theme, local-input and initial-delivery context remain relevant', () => {
     if (kind === 'initial') {
       card._hass = undefined;
       card.entityConfigsInitialized = false;
+      card.runtimeEntityConfigs = [];
     }
     card.setHass(hass);
     assert.equal(calls.config, 1, kind);

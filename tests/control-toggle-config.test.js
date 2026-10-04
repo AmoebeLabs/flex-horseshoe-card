@@ -122,7 +122,7 @@ test('Toggle static and valid JavaScript config produce equivalent active preset
   assert.strictEqual(javascriptToggle.iconTool.runtime.entity, entity);
 });
 
-test('Toggle group and theme refreshes retain geometry, presentation, and nested child forwarding', () => {
+test('Toggle group and theme refreshes retain geometry, runtime state, and nested child forwarding', () => {
   const templates = createStaticTemplates();
   const context = createContext();
   const toggle = new ControlToggle(createToggleConfig('mdi:lightbulb'), 0, templates, 'test-card', context.card);
@@ -134,8 +134,8 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   toggle.setState(entity, { entity: 'switch.test' });
   toggle.hassAvailable();
   toggle.connected();
-  assert.equal(toggle.hasPresentationChanged(), true);
-  assert.equal(toggle.hasPresentationChanged(), false);
+  assert.strictEqual(toggle.runtime.entity, entity);
+  assert.equal(toggle.runtime.entity.state, 'off');
 
   const initialX = toggle.geometry.svg.x;
   context.setGroupXOffset(18);
@@ -152,8 +152,8 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.equal(toggle.iconTool.haIconPath.sourceClosed, false);
   toggle.iconTool.requiresHassUpdate = () => true;
   assert.equal(toggle.requiresHassUpdate(), true);
-  assert.equal(toggle.hasPresentationChanged(), true);
-  assert.equal(toggle.hasPresentationChanged(), false);
+  assert.strictEqual(toggle.runtime.entity, entity);
+  assert.strictEqual(toggle.iconTool.runtime.entity, entity);
 
   const groupRefreshedSvg = structuredClone(toggle.geometry.svg);
   context.card.cardLayout.changedGroupIds.clear();
@@ -179,8 +179,7 @@ test('Toggle group and theme refreshes retain geometry, presentation, and nested
   assert.strictEqual(toggle.iconTool.runtime.entity, entity);
   assert.equal(toggle.iconTool.iconClosed, false);
   assert.equal(toggle.iconTool.haIconPath.sourceClosed, false);
-  assert.equal(toggle.hasPresentationChanged(), true);
-  assert.equal(toggle.hasPresentationChanged(), false);
+  assert.equal(toggle.runtime.entity.state, 'off');
 
   toggle.disconnected();
   assert.equal(toggle.iconTool.iconClosed, true);
