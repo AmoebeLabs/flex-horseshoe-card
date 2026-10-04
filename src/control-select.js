@@ -794,7 +794,7 @@ export default class ControlSelect extends ControlBase {
           ? viz.selected
           : viz.unselected;
 
-      textTool.setPaintStyles(Merge.mergeDeep(
+      textTool.setEffectiveStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.text.styles),
         ConfigHelper.toStyleDict(textTool.config.styles),
         {
@@ -814,7 +814,7 @@ export default class ControlSelect extends ControlBase {
         optionIndex === this.runtime.selectedIndex
           ? viz.selected
           : viz.unselected;
-      iconTool.setPaintStyles(Merge.mergeDeep(
+      iconTool.setEffectiveStyles(Merge.mergeDeep(
         ConfigHelper.toStyleDict(optionStyle.icon.styles),
         ConfigHelper.toStyleDict(iconTool.config.styles),
         {

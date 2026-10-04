@@ -530,7 +530,7 @@ export default class TextTool extends BaseTool {
 
   /**
    * Invalidates measurements from the same effective text styles used by render.
-   * Parent paint and source animations can change font metrics without changing
+   * Parent-selected styles and source animations can change font metrics without changing
    * displayed text. Equal inputs leave the current async measurement untouched.
    */
   updateTextMeasurement() {
@@ -576,8 +576,8 @@ export default class TextTool extends BaseTool {
   }
 
   /** Publishes complete parent paint and refreshes its measurement inputs. */
-  setPaintStyles(styles) {
-    super.setPaintStyles(styles);
+  setEffectiveStyles(styles) {
+    super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
   }
 

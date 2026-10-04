@@ -462,14 +462,14 @@ export default class ControlButton extends ControlBase {
     if (this.contentVisual) this.contentVisual.setState(visualState, transition);
 
     if (this.contentIconTool) {
-      this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
+      this.contentIconTool.setEffectiveStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
       }));
       this.contentIconTool.setStaticState();
     }
 
     if (this.contentTextTool) {
-      this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
+      this.contentTextTool.setEffectiveStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: 'fill ' + transition + ', color ' + transition + ', opacity ' + transition,
       }));
       this.contentTextTool.setStaticState();
@@ -492,7 +492,7 @@ export default class ControlButton extends ControlBase {
     if (this.contentVisual) this.contentVisual.setState(visualState, transition);
 
     if (this.contentIconTool) {
-      this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
+      this.contentIconTool.setEffectiveStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
       // Child config may override the parent binding; assign its own HA state.
@@ -502,7 +502,7 @@ export default class ControlButton extends ControlBase {
     }
 
     if (this.contentTextTool) {
-      this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
+      this.contentTextTool.setEffectiveStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
       this.contentTextTool.setEntities(

@@ -269,7 +269,7 @@ test('BaseTool group scale origin uses geometry while retaining the legacy SVG f
   assert.strictEqual(receivedGeometry, tool.config.svg);
 });
 
-test('BaseTool uses complete parent-resolved paint styles without mutating configured styles', () => {
+test('BaseTool uses complete parent-resolved effective styles without mutating configured styles', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = createToolCard();
   card.cardAnimations.styles.rectangles.highlight = { stroke: 'animated' };
@@ -286,7 +286,7 @@ test('BaseTool uses complete parent-resolved paint styles without mutating confi
     ConfigHelper.toStyleDict(tool.config.styles),
     { transition: 'fill 250ms ease' },
   );
-  tool.setPaintStyles(parentStyles);
+  tool.setEffectiveStyles(parentStyles);
   assert.deepEqual(tool.getStyles({ fill: 'base', opacity: 1 }), {
     fill: 'configured',
     opacity: '0.7',
@@ -298,7 +298,7 @@ test('BaseTool uses complete parent-resolved paint styles without mutating confi
 
   // A complete replacement may deliberately omit properties; the child does
   // not merge its configured styles back into that parent-owned result.
-  tool.setPaintStyles({ stroke: 'paint', 'font-size': '20px' });
+  tool.setEffectiveStyles({ stroke: 'paint', 'font-size': '20px' });
   assert.deepEqual(tool.getStyles({ fill: 'base', opacity: 1 }), {
     fill: 'base',
     opacity: 1,
@@ -307,14 +307,14 @@ test('BaseTool uses complete parent-resolved paint styles without mutating confi
   });
   assert.equal(card.requestUpdates, 0);
 
-  tool.setPaintStyles(undefined);
+  tool.setEffectiveStyles(undefined);
   assert.deepEqual(tool.getStyles({ fill: 'base', opacity: 1 }), {
     fill: 'configured',
     opacity: 1,
     stroke: 'animated',
     'font-size': '12px',
   });
-  assert.equal(tool.paint.styles, undefined);
+  assert.equal(tool.runtime.effectiveStyles, undefined);
   assert.deepEqual(tool.config.styles, originalConfigStyles);
   assert.equal(card.requestUpdates, 0);
 });
@@ -357,7 +357,7 @@ test('Icon state-map rendering retains its own palette before entity fallback', 
   }
 });
 
-test('Icon applies state-map styles after parent paint, then color stops and animation', () => {
+test('Icon applies state-map styles after parent effective styles, then color stops and animation', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = createToolCard();
   card.cardAnimations.styles.iconsIcon = {};
@@ -400,7 +400,7 @@ test('Icon applies state-map styles after parent paint, then color stops and ani
   tool.renderItemLayers = (content) => content;
   tool.actionHandler = () => undefined;
 
-  tool.setPaintStyles(parentStyles);
+  tool.setEffectiveStyles(parentStyles);
   tool.render();
   assert.equal(renderedStyles.fill, '#d32f2f');
   assert.equal(renderedStyles.color, '#d32f2f');
@@ -427,7 +427,7 @@ test('Icon applies state-map styles after parent paint, then color stops and ani
   assert.equal(renderedStyles.cursor, 'crosshair');
 
   tool.setStaticState();
-  tool.setPaintStyles(undefined);
+  tool.setEffectiveStyles(undefined);
   tool.render();
   assert.equal(renderedStyles.fill, '#d32f2f');
   assert.equal(renderedStyles.color, '#d32f2f');
@@ -438,17 +438,17 @@ test('Icon applies state-map styles after parent paint, then color stops and ani
   assert.deepEqual(parentStyles, parentSnapshot);
 });
 
-test('reapplying identical measured-text paint does not invalidate exact geometry', () => {
+test('reapplying identical effective text styles does not invalidate exact geometry', () => {
   const templates = { hasJavascriptTemplates: () => false };
   const card = createToolCard();
   const tool = new NameTool({ id: 'name', xpos: 50, ypos: 50 }, 0, templates, 'card', card);
   const styles = { 'font-size': '1.25em', fill: '#123456' };
   tool.runtime.name = 'Stable label';
-  tool.setPaintStyles(styles);
+  tool.setEffectiveStyles(styles);
   tool.geometry.hasExactMeasurement = true;
   const signature = tool.geometry.textMeasurementSignature;
 
-  tool.setPaintStyles(structuredClone(styles));
+  tool.setEffectiveStyles(structuredClone(styles));
 
   assert.equal(tool.geometry.textMeasurementSignature, signature);
   assert.equal(tool.geometry.hasExactMeasurement, true);
