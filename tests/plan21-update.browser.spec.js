@@ -27,7 +27,8 @@ const zeroWork = Object.fromEntries(workKeys.map((key) => [key, 0]));
 async function loadPlan21Cards(page, specs) {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  await page.clock.install({ time: now });
+  // Leave transport time before the fixed pause target, including on Firefox.
+  await page.clock.install({ time: new Date(now.getTime() - 60_000) });
   await page.clock.pauseAt(now);
   await page.route('http://fhs.test/**', (route) => route.fulfill({
     contentType: 'text/html',
@@ -610,7 +611,10 @@ test('nested Text measurement receives the selected animation font styles', asyn
   expect(after.revision).toBeGreaterThan(before.revision);
   expect(Number.parseFloat(after.fontSize)).toBeCloseTo(Number.parseFloat(before.fontSize) * 2, 2);
   expect(after.tokenWidth).toBeGreaterThan(before.tokenWidth);
-  expect(after.text).toMatch(/^Nest.*\.\.\.$/);
+  // Font metrics differ across browsers; the visible prefix may be shorter,
+  // but it must remain a prefix of the source followed by the configured ellipsis.
+  expect(after.text).toMatch(/^N.*\.\.\.$/);
+  expect('Nested text follows its final animated font size'.startsWith(after.text.slice(0, -3))).toBe(true);
   expect(after.updatePhases.indexOf('runtime-config')).toBeLessThan(after.updatePhases.indexOf('animations'));
   expect(after.updatePhases.indexOf('animations')).toBeLessThan(after.updatePhases.indexOf('runtime-states'));
   expect(after.measurementAfterAnimation).toBe(true);

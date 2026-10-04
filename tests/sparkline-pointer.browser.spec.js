@@ -55,7 +55,8 @@ async function loadPointerCard(page, { runtimeChartType = false, realTime = fals
     };
     const config = {
       type: 'custom:flex-horseshoe-card',
-      entities: [{ entity: entity.entity_id }],
+      // The chart selector is a declared JavaScript input, separate from its data source.
+      entities: [{ entity: entity.entity_id }, { entity: chartMode.entity_id }],
       layout: {
         sparklines: [{
           id: 'pointer-history', entity_index: 0, xpos: 50, ypos: 50, width: 88, height: 72,

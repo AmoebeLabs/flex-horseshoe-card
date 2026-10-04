@@ -424,7 +424,7 @@ test('Horseshoe publishes geometry, runtime, and paint through canonical owners 
   });
 });
 
-test('color-only light/dark/light changes retain semantic runtime identities', () => {
+test('color-only light/dark/light changes preserve mapping results and retain path geometry', () => {
   const fixture = createHorseshoeFixture({
     id: 'palette-identity-gauge',
     entity_index: 0,
@@ -456,7 +456,8 @@ test('color-only light/dark/light changes retain semantic runtime identities', (
   tool.setState(entity, entityConfig);
   const stateMap = tool.runtime.stateMap;
   const scale = tool.runtime.scale;
-  const valueMapper = tool.runtime.valueMapper;
+  const progress = [0, 20, 60, 100].map((value) => tool.runtime.valueMapper.valueToProgress(value));
+  const pathGeometry = tool.geometry.pathGeometry;
   const colors = [tool.paint.colorStops.colors[0].color];
 
   ['dark', 'light'].forEach((mode) => {
@@ -464,9 +465,13 @@ test('color-only light/dark/light changes retain semantic runtime identities', (
     tool.updateRuntimeConfig();
     tool.setState(entity, entityConfig);
     colors.push(tool.paint.colorStops.colors[0].color);
-    assert.equal(tool.runtime.stateMap, stateMap);
-    assert.equal(tool.runtime.scale, scale);
-    assert.equal(tool.runtime.valueMapper, valueMapper);
+    // Mapping is calculated directly; output equality and retained expensive
+    // path geometry matter here, not mapper/scale object identity.
+    assert.deepEqual(tool.runtime.stateMap, stateMap);
+    assert.deepEqual(tool.runtime.scale, scale);
+    assert.deepEqual([0, 20, 60, 100].map((value) => tool.runtime.valueMapper.valueToProgress(value)), progress);
+    assert.equal(tool.runtime.value, 60);
+    assert.strictEqual(tool.geometry.pathGeometry, pathGeometry);
   });
 
   assert.notEqual(colors[0], colors[1]);
