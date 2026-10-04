@@ -173,7 +173,7 @@ test('keeps only the background track for non-numeric entity states', () => {
       state: 'unavailable',
       attributes: { min: 0, max: 100, step: 1 },
     }],
-    resolvedEntityConfigs: [{}],
+    runtimeEntityConfigs: [{}],
     cardLayout: {
       calculateSvgCoordinatesInGroup: (config) => ({
         xpos: config.xpos,
@@ -195,11 +195,11 @@ test('keeps only the background track for non-numeric entity states', () => {
     card,
   );
 
-  slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  slider.setState(card.entities[0], card.runtimeEntityConfigs[0]);
   assert.equal(slider.runtime.available, false);
 
   card.entities[0].state = '40';
-  slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  slider.setState(card.entities[0], card.runtimeEntityConfigs[0]);
   assert.equal(slider.runtime.available, true);
   assert.deepEqual(slider.runtime.values, [40]);
 });
@@ -211,7 +211,7 @@ test('reads and updates a configured numeric entity attribute', () => {
       state: 'on',
       attributes: { brightness: 128 },
     }],
-    resolvedEntityConfigs: [{ attribute: 'brightness' }],
+    runtimeEntityConfigs: [{ attribute: 'brightness' }],
     cardLayout: {
       calculateSvgCoordinatesInGroup: (config) => ({
         xpos: config.xpos,
@@ -234,12 +234,12 @@ test('reads and updates a configured numeric entity attribute', () => {
     card,
   );
 
-  slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  slider.setState(card.entities[0], card.runtimeEntityConfigs[0]);
   assert.equal(slider.runtime.available, true);
   assert.deepEqual(slider.runtime.values, [128]);
 
   delete card.entities[0].attributes.brightness;
-  slider.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  slider.setState(card.entities[0], card.runtimeEntityConfigs[0]);
   assert.equal(slider.runtime.available, false);
 });
 

@@ -60,7 +60,7 @@ test('binds an active path before geometry-dependent output becomes ready', () =
   assert.equal(geometry.bindPathElement(pathElement), true);
   assert.equal(geometry.isReady(), true);
   assert.equal(geometry.getPathDefinition(), definition);
-  assert.equal(geometry.getPathElement(), pathElement);
+  assert.equal(geometry.pathElement, pathElement);
   assert.equal(geometry.getTotalLength(), 100);
   assert.equal(measurement.calls, 1);
   assert.equal(requestedRenders, 1);

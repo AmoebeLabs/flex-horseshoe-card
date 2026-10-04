@@ -13,10 +13,7 @@ export default class CardTheme {
     this.redrawGradients = redrawGradients;
     this.updateCard = updateCard;
     this.hass = undefined;
-    this.name = undefined;
-    this.nameChanged = false;
     this.modeChanged = false;
-    this.darkMode = false;
     this.palettes = {};
     this.palettesLoaded = false;
     this.paletteConfig = {};
@@ -57,18 +54,16 @@ export default class CardTheme {
     // a partial view theme still inherits variables from the global selection.
     const globalThemeName = hass.themes.theme;
     const viewThemeName = this.viewElement ? (this.viewElement.theme ?? null) : null;
-    const themeDarkMode = hass.themes.darkMode === true;
-    this.nameChanged = this.colorContext.globalThemeName !== globalThemeName || this.colorContext.viewThemeName !== viewThemeName;
-    this.modeChanged = this.darkMode !== themeDarkMode;
+    const mode = hass.themes.darkMode === true ? 'dark' : 'light';
+    const nameChanged = this.colorContext.globalThemeName !== globalThemeName || this.colorContext.viewThemeName !== viewThemeName;
+    this.modeChanged = this.colorContext.mode !== mode;
     const themeSourceChanged = this.colorContext.themeSource !== hass.themes;
 
-    if (!this.nameChanged && !this.modeChanged && !themeSourceChanged) return false;
+    if (!nameChanged && !this.modeChanged && !themeSourceChanged) return false;
 
-    this.name = viewThemeName ?? globalThemeName;
-    this.darkMode = themeDarkMode;
     this.colorContext.globalThemeName = globalThemeName;
     this.colorContext.viewThemeName = viewThemeName;
-    this.colorContext.mode = themeDarkMode ? 'dark' : 'light';
+    this.colorContext.mode = mode;
     this.colorContext.themeSource = hass.themes;
     Colors.getThemeRevision(hass.themes);
     this.applyPalettes();

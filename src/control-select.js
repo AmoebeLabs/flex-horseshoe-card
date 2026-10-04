@@ -810,8 +810,8 @@ export default class ControlSelect extends ControlBase {
         },
       ));
       // Text and icon children follow the same effective option/tool binding.
-      this.card.cardTools.setToolEntityState(
-        textTool, this.card.resolvedEntityConfigs, this.card.entities,
+      textTool.setEntities(
+        this.card.runtimeEntityConfigs, this.card.entities,
       );
     });
 
@@ -829,9 +829,8 @@ export default class ControlSelect extends ControlBase {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
       ));
-      this.card.cardTools.setToolEntityState(
-        iconTool,
-        this.card.resolvedEntityConfigs,
+      iconTool.setEntities(
+        this.card.runtimeEntityConfigs,
         this.card.entities,
       );
     });
@@ -871,7 +870,7 @@ export default class ControlSelect extends ControlBase {
 
   /** Renders background, segments, moving indicator, content and hit areas. */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     if (!this.optionsInitialized) return this.renderControl(svg``);
 
     const viz = this.config[this.config.show.item_viz];

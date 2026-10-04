@@ -64,10 +64,8 @@ test('reports processed data independently from graph geometry', () => {
   });
 
   assert.equal(graph.update(), 'not_loaded');
-  graph.history = [];
-  assert.equal(graph.update(), 'empty');
-  graph.history = [{ state: 1 }];
-  assert.equal(graph.update(), 'has_data');
+  assert.equal(graph.update([]), 'empty');
+  assert.equal(graph.update([{ state: 1 }]), 'has_data');
   assert.deepEqual(graph.xAxis, { start: new Date(0), end: new Date(1) });
 });
 

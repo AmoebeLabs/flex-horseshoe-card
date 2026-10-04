@@ -511,17 +511,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Stores normalized source rows for the next graph update.
-   *
-   * @param {Array<object>} data - History rows prepared by SparklineGraphTool.
-   */
-  set history(data) {
-    this._history = data;
-  }
-
-  /**
-   * Keeps the existing combined entry point for callers that have not yet
-   * separated data updates from geometry updates.
+   * Processes source rows and calculates drawing geometry when bins contain
+   * data. Both stages retain their own change tracking and reuse.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
    * @param {object|undefined} rowsUpdate - Source changes, or a complete snapshot when omitted.

@@ -130,12 +130,10 @@ const SWITCH_STYLES = {
     checked: {
       track: { styles: { fill: '#34C759', opacity: '1.0' } },
       thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-      icon: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
     },
     unchecked: {
       track: { styles: { fill: '#E9E9EA', opacity: '1.0' } },
       thumb: { styles: { fill: '#FFFFFF', opacity: '1.0' } },
-      icon: { styles: { fill: '#8E8E93', opacity: '0.8' } }, // Keep the off-state icon visually secondary.
     },
   },
 
@@ -166,12 +164,10 @@ const SWITCH_STYLES = {
     checked: {
       track: { styles: { fill: 'var(--switch-checked-track-color, #4ad66d)' } },
       thumb: { styles: { fill: 'var(--switch-checked-button-color, #ffffff)' } },
-      icon: { styles: { fill: 'var(--primary-color, #2196F3)' } },
     },
     unchecked: {
       track: { styles: { fill: 'var(--switch-unchecked-track-color, #9b9b9b)', opacity: '0.6' } }, // Dim the track in the off state.
       thumb: { styles: { fill: 'var(--switch-unchecked-button-color, #ffffff)' } },
-      icon: { styles: { fill: '#757575', opacity: '0.5' } },
     },
   },
 
@@ -191,12 +187,10 @@ const SWITCH_STYLES = {
     checked: {
       track: { styles: { fill: '#D32F2F', stroke: '#FFCDD2', 'stroke-width': '0.5' } }, // The checked outline reinforces the industrial state.
       thumb: { styles: { fill: '#FFFFFF' } },
-      icon: { styles: { fill: '#D32F2F' } },
     },
     unchecked: {
       track: { styles: { fill: '#212121' } },
       thumb: { styles: { fill: '#B0BEC5' } },
-      icon: { styles: { fill: '#455A64' } },
     },
   },
 };
@@ -331,9 +325,7 @@ export default class ControlToggle extends ControlBase {
     super.setState(entity, entityConfig);
 
     if (this.iconTool) {
-      this.card.cardTools.setToolEntityState(
-        this.iconTool, this.card.resolvedEntityConfigs, this.card.entities,
-      );
+      this.iconTool.setEntities(this.card.runtimeEntityConfigs, this.card.entities);
     }
   }
 
@@ -479,7 +471,7 @@ export default class ControlToggle extends ControlBase {
 
   /** Renders the prepared toggle visualization inside the shared control shell. */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     const toggle = svg`
       <g
         transform="${this.getGroupScaleTransform()}"

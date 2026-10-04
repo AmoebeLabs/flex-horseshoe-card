@@ -122,7 +122,7 @@ test('simple shapes follow moved group geometry, scale and flip while Icon retai
   });
   await page.waitForFunction(() => {
     const card = window.toolGeometryFixture?.card;
-    return card?.cardLayout?.activeGroupConfigs?.[0]?.xpos === 40
+    return card?.cardLayout?.runtimeGroupConfigs?.[0]?.xpos === 40
       && card.shadowRoot.querySelector('.icon-position');
   });
 
@@ -204,7 +204,7 @@ test('simple shapes follow moved group geometry, scale and flip while Icon retai
   const movedPositions = await page.evaluate(() => {
     const card = window.toolGeometryFixture.card;
     return {
-      group: [card.cardLayout.activeGroupConfigs[0].xpos, card.cardLayout.activeGroupConfigs[0].ypos],
+      group: [card.cardLayout.runtimeGroupConfigs[0].xpos, card.cardLayout.runtimeGroupConfigs[0].ypos],
       polygon: [card.cardTools.sections.polygons[0].geometry.svg.xpos, card.cardTools.sections.polygons[0].geometry.svg.ypos],
     };
   });

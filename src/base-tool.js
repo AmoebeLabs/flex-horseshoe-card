@@ -49,7 +49,7 @@ export default class BaseTool {
     config.zpos ??= this.defaultZpos;
     config.dzpos ??= 0;
 
-    // Keep the compiled source independent of geometry and paint added to the active config.
+    // Preserve the template-visible source while geometry and paint change independently.
     this.sourceConfig = structuredClone(config);
     this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
     // Static config can be translated immediately. Dynamic source stays intact
@@ -67,8 +67,9 @@ export default class BaseTool {
     this.configurationChanged = true;
     this.groupChanged = false;
     this.themeModeChanged = false;
-    this.activeConfigInitialized = false;
-    this.activeConfigSignature = undefined;
+    // Static config already exists; this marks completion of the first runtime-config update.
+    this.runtimeConfigInitialized = false;
+    this.evaluatedConfigSignature = undefined;
     this.presentationSignature = undefined;
   }
 
@@ -78,26 +79,25 @@ export default class BaseTool {
    */
   updateRuntimeConfig(sourceConfig = this.sourceConfig, templateOptions = { resolveKeys: true }, templateContext = sourceConfig) {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
-    this.configurationChanged = !this.activeConfigInitialized;
+    this.configurationChanged = !this.runtimeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
     this.themeModeChanged = this.card.cardTheme.modeChanged;
-    // The existing family tools still use this combined signal until their own plans.
+    // Consumers that depend on more than one category use this combined change signal.
     this.configChanged = this.configurationChanged || this.groupChanged || this.themeModeChanged;
 
-    // Static tools retain their active config. JavaScript-backed tools evaluate
+    // Static tools retain their current config. JavaScript-backed tools evaluate
     // a new local config during the same hass updates as before.
     let newConfig = this.config;
     let evaluatedSourceConfig = sourceConfig;
-    if (this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
+    if (this.hasJavascript && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       const evaluatedConfig = this.templates.getJsTemplateOrValue(templateContext, sourceConfig, templateOptions);
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
 
-      // Keep the current active object when JavaScript produced the same config. Tool-specific
-      // normalization and geometry use configChanged during the remaining runtime-config phase.
-      if (evaluatedConfigSignature !== this.activeConfigSignature) {
+      // Equivalent JS results skip translation; the same pass still handles group and theme changes.
+      if (evaluatedConfigSignature !== this.evaluatedConfigSignature) {
         newConfig = evaluatedConfig;
         evaluatedSourceConfig = evaluatedConfig;
-        this.activeConfigSignature = evaluatedConfigSignature;
+        this.evaluatedConfigSignature = evaluatedConfigSignature;
         this.configurationChanged = true;
         this.configChanged = true;
       }
@@ -145,7 +145,7 @@ export default class BaseTool {
     // reapplies its evaluated part binding after updating each inline source tool.
     if (this.configurationChanged) this.entity_index = this.config.entity_index ?? this.defaultEntityIndex;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
-    this.activeConfigInitialized = true;
+    this.runtimeConfigInitialized = true;
   }
 
   /**

@@ -117,15 +117,6 @@ export default class PathGeometry {
   }
 
   /**
-   * Returns the currently bound SVG geometry element for later point sampling.
-   *
-   * @returns {SVGPathElement} Active rendered master path.
-   */
-  getPathElement() {
-    return this.pathElement;
-  }
-
-  /**
    * Starts a moving-state drawing pass. Equal inputs reuse its latest samples;
    * a new position replaces those samples instead of accumulating old frames.
    * Transformed geometry uses this same owner and therefore shares these samples.

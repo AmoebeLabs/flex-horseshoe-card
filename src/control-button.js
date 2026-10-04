@@ -503,9 +503,9 @@ export default class ControlButton extends ControlBase {
       this.contentIconTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.icon.styles), ConfigHelper.toStyleDict(this.contentIconTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
-      // Child config may override the parent binding; publish its own HA state.
-      this.card.cardTools.setToolEntityState(
-        this.contentIconTool, this.card.resolvedEntityConfigs, this.card.entities,
+      // Child config may override the parent binding; assign its own HA state.
+      this.contentIconTool.setEntities(
+        this.card.runtimeEntityConfigs, this.card.entities,
       );
     }
 
@@ -513,8 +513,8 @@ export default class ControlButton extends ControlBase {
       this.contentTextTool.setPaintStyles(Merge.mergeDeep(ConfigHelper.toStyleDict(visualState.text.styles), ConfigHelper.toStyleDict(this.contentTextTool.config.styles), {
         transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
       }));
-      this.card.cardTools.setToolEntityState(
-        this.contentTextTool, this.card.resolvedEntityConfigs, this.card.entities,
+      this.contentTextTool.setEntities(
+        this.card.runtimeEntityConfigs, this.card.entities,
       );
     }
   }
@@ -549,7 +549,7 @@ export default class ControlButton extends ControlBase {
    * Renders state visualization, child content and one authoritative hit area.
    */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     const vizName = this.config.show.item_viz;
     const viz = this.config[vizName];
     const visualState = this.runtime.active ? viz.active : viz.inactive;

@@ -32,10 +32,6 @@ definitions:
         $ref: layout.horseshoes
         description: Current horseshoe/progress gauge items.
         x-fhs-semantic-source: schema-context-v8
-      horseshoes_v2:
-        $ref: layout.horseshoes_v2
-        description: Compatibility alias for horseshoe items.
-        x-fhs-semantic-source: schema-context-v8
       states:
         $ref: layout.states
         description: Entity-state text items.

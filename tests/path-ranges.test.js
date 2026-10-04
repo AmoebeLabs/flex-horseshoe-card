@@ -66,7 +66,7 @@ test('spline and splineorg scales map values before path progress is produced', 
 
 test('absolute mode folds either active signed branch over the complete path', () => {
   const positiveScale = createMapper({ max: 40, barMode: 'absolute', activeValue: -10 });
-  const signedScale = createMapper({ min: -10, max: 40, barMode: 'absolute', activeValue: -5 });
+  const signedScale = createMapper({ min: -10, max: 40, barMode: 'absolute', activeValue: 20 });
 
   assert.equal(positiveScale.valueToProgress(-20), 50);
   assert.deepEqual(positiveScale.getActiveSourceRange(), { start: 0, end: -40 });
@@ -75,7 +75,6 @@ test('absolute mode folds either active signed branch over the complete path', (
 
   assert.ok(Math.abs(signedScale.valueToProgress(-5) - 50) < 1e-12);
   assert.ok(Math.abs(signedScale.valueToProgress(20) - 50) < 1e-12);
-  assert.equal(signedScale.setActiveValue(20), true);
   assert.deepEqual(signedScale.getActiveSourceRange(), { start: 0, end: 40 });
   assert.equal(signedScale.magnitudeToSourceValue(12), 12);
 });

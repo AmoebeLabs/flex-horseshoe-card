@@ -15,7 +15,7 @@ test('moving gradients and markers keep browser samples and SVG output bounded',
       const fullGeometry = gauge.paint.scaleGradient.geometry;
       const stateRanges = gauge.paint.stateGradient.ranges;
       const staticElements = gauge.geometry.pathElements;
-      const master = geometry.getPathElement();
+      const master = geometry.pathElement;
       const nativeLength = master.getTotalLength.bind(master);
       let lengthReads = 0;
       master.getTotalLength = () => { lengthReads += 1; return nativeLength(); };
@@ -152,7 +152,7 @@ test('dynamic Horseshoe stays inert until first hass publication across disconne
     return {
       connected: card.cardTools.connectedToCard,
       dynamic: gauge.hasJavascript,
-      initialized: gauge.activeConfigInitialized,
+      initialized: gauge.runtimeConfigInitialized,
       rendered,
       presentationChanged,
       presentationSignatureUntouched: gauge.presentationSignature === undefined,
@@ -188,7 +188,7 @@ test('dynamic Horseshoe stays inert until first hass publication across disconne
     await card.updateComplete;
     return {
       disconnected,
-      initialized: gauge.activeConfigInitialized,
+      initialized: gauge.runtimeConfigInitialized,
       pathPublished: gauge.config.path.radius === 25 && typeof gauge.geometry.pathDefinition.d === 'string',
       valuePublished: gauge.runtime.value === 25 && Boolean(gauge.runtime.valueMapper),
       animatorCreated: Boolean(gauge.stateAnimator),

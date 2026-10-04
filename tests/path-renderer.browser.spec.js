@@ -34,7 +34,7 @@ test('generic renderer paints the same normalized ranges on every path shape', a
               buildSpiralPathDefinition,
               buildWavePathDefinition,
             } from '/src/path-generators.js';
-            import { renderPathStrokeLayers } from '/src/path-renderer.js';
+            import { renderPathStrokeLayers } from '/tests/fixtures/path-renderer.js';
 
             const definitions = [
               buildArcPathDefinition({

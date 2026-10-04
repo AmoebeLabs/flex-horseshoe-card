@@ -173,7 +173,7 @@ test('theme and palette changes repaint retained horseshoe paint without history
         fixture.paletteOnlyMetrics.pathGradientGeometry += 1;
         return getGradientGeometry(...args);
       };
-      const path = geometry.getPathElement();
+      const path = geometry.pathElement;
       const getTotalLength = path.getTotalLength.bind(path);
       path.getTotalLength = (...args) => {
         fixture.paletteOnlyMetrics.pathLength += 1;
@@ -553,7 +553,7 @@ test('published JavaScript sparkline entities retain source and override palette
     return {
       shapes: Array.from(card.shadowRoot.querySelectorAll('.rectangle-tool__fill')).map((element) => getComputedStyle(element).fill),
       text: getComputedStyle(textElement).fill,
-      sourceEntityIndexes: card.resolvedEntityConfigs.slice(2).map((entityConfig) => entityConfig.source_entity_index),
+      sourceEntityIndexes: card.runtimeEntityConfigs.slice(2).map((entityConfig) => entityConfig.source_entity_index),
     };
   });
   const lightPaletteState = {

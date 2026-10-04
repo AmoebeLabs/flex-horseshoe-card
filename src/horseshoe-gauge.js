@@ -29,14 +29,13 @@ const PATH_TYPES = ['arc', 'line', 'rectangle', 'polygon', 'wave', 'spiral', 'in
  */
 export default class HorseshoeGauge extends BaseTool {
   /**
-   * Constructs gauges from the current section, its v2 alias, and the original
-   * root-level configuration.
+   * Constructs gauges from the current section and the original root-level
+   * configuration.
    */
   static setConfig(config, templates, cardId, card) {
     const legacyConfig = HorseshoeGauge.getLegacyRootConfig(config);
     const horseshoes = [
       ...(legacyConfig ? [legacyConfig] : []),
-      ...(Array.isArray(config.layout?.horseshoes_v2) ? config.layout.horseshoes_v2 : []),
       ...(Array.isArray(config.layout?.horseshoes) ? config.layout.horseshoes : []),
     ];
 
@@ -142,7 +141,7 @@ export default class HorseshoeGauge extends BaseTool {
   updatePalettePaint() {
     // A palette can finish before the gauge has received its first entity.
     // That first state pass will calculate paint from the already applied colors.
-    if ((this.hasJavascript && !this.activeConfigInitialized) || !this.runtime.valueMapper) return;
+    if ((this.hasJavascript && !this.runtimeConfigInitialized) || !this.runtime.valueMapper) return;
 
     const palette = buildGaugeColorStops(this.config, this.runtime, this.paint.sourceColorStops);
     this.paint.colorStops = palette.colorStops;
@@ -163,7 +162,7 @@ export default class HorseshoeGauge extends BaseTool {
     // Existing templates see the original index/group/palette context. This
     // temporary view supplies that context to the single BaseTool evaluation;
     // neither sourceConfig nor current config stores derived palette or layout.
-    const evaluateJavascript = this.hasJavascript && (!this.activeConfigInitialized || this.card.evaluateJavascriptTemplates);
+    const evaluateJavascript = this.hasJavascript && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates);
     const templateContext = evaluateJavascript ? {
       ...this.sourceConfig,
       index: this.index,
@@ -508,7 +507,7 @@ export default class HorseshoeGauge extends BaseTool {
 
   /** Compares the mapped value and painted ranges while retaining the path animator. */
   hasPresentationChanged() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return false;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return false;
     return super.hasPresentationChanged([
       this.runtime.value,
       this.paint.paintedStateRanges,
@@ -1338,7 +1337,7 @@ export default class HorseshoeGauge extends BaseTool {
 
   /** Binds the committed master centerline for gradients, tickmarks, labels, badges, and markers. */
   updated() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     const pathId = `${this.cardId}-horseshoe-${this.index}`;
     const masterPath = this.card.shadowRoot.getElementById(`${pathId}-master`);
     const newlyBound = this.geometry.pathGeometry.bindPathElement(masterPath);

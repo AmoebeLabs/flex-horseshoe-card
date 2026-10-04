@@ -369,7 +369,7 @@ export default class ControlSlider extends ControlBase {
 
     const entitySliderValues = this.config.values.map((sliderValueConfig) => {
       const sliderEntity = this.card.entities[sliderValueConfig.entity_index];
-      const sliderEntityConfig = this.card.resolvedEntityConfigs[sliderValueConfig.entity_index];
+      const sliderEntityConfig = this.card.runtimeEntityConfigs[sliderValueConfig.entity_index];
       return Number(sliderEntityConfig.attribute === undefined
         ? sliderEntity.state
         : sliderEntity.attributes[sliderEntityConfig.attribute]);
@@ -385,14 +385,14 @@ export default class ControlSlider extends ControlBase {
         const sliderValueConfig = this.config.values[valueIndex];
         valueTool.setState(
           this.card.entities[sliderValueConfig.entity_index],
-          this.card.resolvedEntityConfigs[sliderValueConfig.entity_index],
+          this.card.runtimeEntityConfigs[sliderValueConfig.entity_index],
         );
       });
       if (this.valueSeparatorTool) {
         const separatorEntityIndex = this.config.values[0].entity_index;
         this.valueSeparatorTool.setState(
           this.card.entities[separatorEntityIndex],
-          this.card.resolvedEntityConfigs[separatorEntityIndex],
+          this.card.runtimeEntityConfigs[separatorEntityIndex],
         );
       }
       return;
@@ -446,7 +446,7 @@ export default class ControlSlider extends ControlBase {
   publishSliderValuesToStateTools() {
     this.valueStateTools.forEach((valueTool, valueIndex) => {
       const sliderValueConfig = this.config.values[valueIndex];
-      const sliderEntityConfig = this.card.resolvedEntityConfigs[sliderValueConfig.entity_index];
+      const sliderEntityConfig = this.card.runtimeEntityConfigs[sliderValueConfig.entity_index];
       let transientValue = { state: String(this.runtime.values[valueIndex]) };
 
       if (sliderEntityConfig.attribute !== undefined) {
@@ -464,7 +464,7 @@ export default class ControlSlider extends ControlBase {
       );
       valueTool.setState(
         transientEntity,
-        this.card.resolvedEntityConfigs[sliderValueConfig.entity_index],
+        this.card.runtimeEntityConfigs[sliderValueConfig.entity_index],
       );
     });
 
@@ -472,7 +472,7 @@ export default class ControlSlider extends ControlBase {
       const separatorEntityIndex = this.config.values[0].entity_index;
       this.valueSeparatorTool.setState(
         this.card.entities[separatorEntityIndex],
-        this.card.resolvedEntityConfigs[separatorEntityIndex],
+        this.card.runtimeEntityConfigs[separatorEntityIndex],
       );
     }
   }
@@ -933,7 +933,7 @@ export default class ControlSlider extends ControlBase {
 
   /** Renders child values and the selected slider visualization. */
   render() {
-    if (this.hasJavascript && !this.activeConfigInitialized) return svg``;
+    if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
     const control = svg`
       <g id="${this.cardId}-${this.id}-slider" class="slider-control"
         transform="${this.getGroupScaleTransform()}"

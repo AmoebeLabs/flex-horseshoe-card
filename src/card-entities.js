@@ -81,7 +81,7 @@ export default class CardEntities {
       return graphTool === undefined ? sparklineConfig : graphTool.config;
     });
 
-    const resolvedEntityConfigs = evaluatedEntityConfigs.map((entityConfig) => {
+    const runtimeEntityConfigs = evaluatedEntityConfigs.map((entityConfig) => {
       if (!entityConfig.entity.startsWith('fhs_sparkline.')) return entityConfig;
       let matchedSparkline;
       let matchedSeries;
@@ -151,13 +151,13 @@ export default class CardEntities {
       return localEntityConfig;
     });
 
-    this.paint.colorStops = resolvedEntityConfigs.map((entityConfig, entityIndex) => {
+    this.paint.colorStops = runtimeEntityConfigs.map((entityConfig, entityIndex) => {
       if (evaluatedEntityConfigs[entityIndex].color_stops !== undefined) return sourceColorStops[entityIndex];
       if (entityConfig.source_entity_index !== undefined) return sourceColorStops[entityConfig.source_entity_index];
       return undefined;
     });
 
-    return resolvedEntityConfigs;
+    return runtimeEntityConfigs;
   }
 
   /**
@@ -166,9 +166,9 @@ export default class CardEntities {
    *
    * @returns {Array<number>} Indexes whose published entity content changed.
    */
-  updateSparklineEntities(resolvedEntityConfigs, entities, sparklineGraphTools) {
+  updateSparklineEntities(runtimeEntityConfigs, entities, sparklineGraphTools) {
     const changedEntityIndexes = [];
-    resolvedEntityConfigs.forEach((entityConfig, entityIndex) => {
+    runtimeEntityConfigs.forEach((entityConfig, entityIndex) => {
       if (!entityConfig.sparkline_entity_type) return;
       // A completion supplies only its affected graph. Other graphs retain
       // their published outputs until their own source/result changes.
@@ -200,13 +200,13 @@ export default class CardEntities {
         if (entityConfig.color_stops === undefined) {
           this.paint.colorStops[entityIndex] = this.paint.colorStops[seriesConfig.entity_index];
         }
-        const { attribute: _attribute, name: _name, ...sourceEntityConfig } = resolvedEntityConfigs[seriesConfig.entity_index];
+        const { attribute: _attribute, name: _name, ...sourceEntityConfig } = runtimeEntityConfigs[seriesConfig.entity_index];
         entityConfig = { ...sourceEntityConfig, ...entityConfig, source_entity_index: seriesConfig.entity_index };
-        resolvedEntityConfigs[entityIndex] = entityConfig;
+        runtimeEntityConfigs[entityIndex] = entityConfig;
       }
       const sparklineResult = graphTool.getSeriesResult(entityConfig.sparkline_series_id);
       const sourceEntity = entities[entityConfig.source_entity_index];
-      const sourceConfig = resolvedEntityConfigs[entityConfig.source_entity_index];
+      const sourceConfig = runtimeEntityConfigs[entityConfig.source_entity_index];
       const entityType = entityConfig.sparkline_entity_type;
       let state;
       let unitOfMeasurement = sourceEntity.attributes.unit_of_measurement;

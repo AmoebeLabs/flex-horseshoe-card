@@ -90,7 +90,7 @@ class FlexHorseshoeCard extends LitElement {
     this.attributesStr = [];
     this.childCards = new ChildCards(this);
     this.cardAnimations = new CardAnimations();
-    this.resolvedEntityConfigs = [];
+    this.runtimeEntityConfigs = [];
     this.entitySlots = { flat: [], default: [] };
     this.entityConfigsInitialized = false;
     this.evaluateJavascriptTemplates = false;
@@ -210,7 +210,7 @@ class FlexHorseshoeCard extends LitElement {
     let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
     const configuredEntityCount = this.config.entities.length;
 
-    this.resolvedEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
+    this.runtimeEntityConfigs.slice(0, configuredEntityCount).forEach((activeEntityConfig, index) => {
       const entity = activeEntityConfig.local ? this.entities[index] : hass.states[activeEntityConfig.entity];
 
       if (!entity) return;
@@ -225,20 +225,20 @@ class FlexHorseshoeCard extends LitElement {
     // Evaluate every marked entity config exactly once for this configured state update.
     // Static entity configs retain their compiled source object.
     if (hassContextChanged) {
-      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
+      this.runtimeEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
     } else {
-      this.resolvedEntityConfigs = this.resolvedEntityConfigs.slice(0, configuredEntityCount);
+      this.runtimeEntityConfigs = this.runtimeEntityConfigs.slice(0, configuredEntityCount);
     }
 
     // An evaluated entity config may select a different entity. Publish the final entity list
     // before tools, animations and card styles receive their JavaScript context.
-    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+    this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
 
       if (entity) this.entities[index] = entity;
     });
-    this.actions.setHassAndEntities(hass, this.resolvedEntityConfigs, this.entities);
+    this.actions.setHassAndEntities(hass, this.runtimeEntityConfigs, this.entities);
 
     if (performanceEnabled) {
       performance.measure(`FHS:${this.cardId}:entities`, {
@@ -264,7 +264,7 @@ class FlexHorseshoeCard extends LitElement {
     let sourceUpdateRequired = hassContextChanged
       || this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate());
 
-    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+    this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
 
       if (!entity) return;
@@ -311,9 +311,9 @@ class FlexHorseshoeCard extends LitElement {
     // Producers consume source configuration once. Publish their outputs before
     // activating presentation consumers against the final shared entity values.
     this.cardTools.updateSparklineRuntimeConfig();
-    this.cardTools.setSparklineEntityStates(this.resolvedEntityConfigs, this.entities);
+    this.cardTools.setSparklineEntityStates(this.runtimeEntityConfigs, this.entities);
     const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
-      this.resolvedEntityConfigs, this.entities, this.cardTools.getBySection('sparklines'),
+      this.runtimeEntityConfigs, this.entities, this.cardTools.getBySection('sparklines'),
     );
     if (performanceEnabled && this.performanceUpdateStart === undefined) {
       this.performanceUpdateStart = setHassPerformanceStart;
@@ -344,7 +344,7 @@ class FlexHorseshoeCard extends LitElement {
    */
   updateSparklineResult(graphTool) {
     const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
-      this.resolvedEntityConfigs, this.entities, [graphTool],
+      this.runtimeEntityConfigs, this.entities, [graphTool],
     );
     this.updateEntityPresentation(false, changedEntityIndexes);
   }
@@ -363,7 +363,7 @@ class FlexHorseshoeCard extends LitElement {
     // JavaScript consumers can observe any derived entry in the shared array.
     // Their existing active-config comparison limits actual layout changes.
     if (changedEntityIndexes.length > 0) {
-      this.resolvedEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true, this.cardTools.getBySection('sparklines'));
+      this.runtimeEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true, this.cardTools.getBySection('sparklines'));
       this.cardLayout.updateGroups(true);
     }
     const cardStylesPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
@@ -376,7 +376,7 @@ class FlexHorseshoeCard extends LitElement {
 
     // A JavaScript entity config may select a different ordinary source. Keep
     // formatted values and action targets aligned with that final selection.
-    this.resolvedEntityConfigs.forEach((entityConfig, index) => {
+    this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : this._hass.states[entityConfig.entity];
       if (!entity) return;
       this.entities[index] = entity;
@@ -385,9 +385,9 @@ class FlexHorseshoeCard extends LitElement {
         this.attributesStr[index] = StateTool.buildState(entity.attributes[entityConfig.attribute], entityConfig, this._hass, entity);
       }
     });
-    this.actions.setHassAndEntities(this._hass, this.resolvedEntityConfigs, this.entities);
+    this.actions.setHassAndEntities(this._hass, this.runtimeEntityConfigs, this.entities);
     this.cardTools.updateRuntimeConfig();
-    this.cardTools.setRuntimeEntityStates(this.resolvedEntityConfigs, this.entities);
+    this.cardTools.setRuntimeEntityStates(this.runtimeEntityConfigs, this.entities);
     this.cardTools.updateSparklinePresentation();
 
     const animationsPerformanceStart = this.dev.performance === true ? performance.now() : undefined;
@@ -512,7 +512,7 @@ class FlexHorseshoeCard extends LitElement {
 
       this.config = config;
       this.stopGradientUpdate();
-      this.externalSvgSources.setConfig();
+      this.externalSvgSources.clearPendingRequests();
       this.sourceCardStyles = this.config.styles;
       this.activeCardStyles = this.sourceCardStyles;
       this.cardStylesHaveJavascript = this.templates.hasJavascriptTemplates(this.sourceCardStyles);

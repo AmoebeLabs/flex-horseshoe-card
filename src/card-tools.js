@@ -145,20 +145,10 @@ export default class CardTools {
     this.sections.sparklines.forEach((tool) => tool.updateLegendTextTools());
   }
 
-  /**
-   * Assigns the current entity and evaluated entity config to one tool.
-   *
-   * Controls use this for their visual child tools, while the section lifecycle
-   * below uses the same path for normal top-level tools.
-   */
-  setToolEntityState(tool, entityConfigs, entities) {
-    tool.setEntities(entityConfigs, entities);
-  }
-
   /** Assigns entity data to every tool in the requested sections. */
   setEntityStates(sectionNames, entityConfigs, entities) {
     sectionNames.forEach((section) => {
-      this.sections[section].forEach((tool) => this.setToolEntityState(tool, entityConfigs, entities));
+      this.sections[section].forEach((tool) => tool.setEntities(entityConfigs, entities));
     });
   }
 

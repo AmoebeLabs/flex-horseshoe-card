@@ -241,7 +241,7 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
     evaluateJavascriptTemplates: true,
     dev: { debug: false, fakeData: false },
     entities: [entity],
-    resolvedEntityConfigs: [{}],
+    runtimeEntityConfigs: [{}],
     _hass: {
       locale: { language: 'en', time_format: '24' },
       config: { time_zone: 'UTC' },
@@ -285,7 +285,7 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
 
   const item = tool.sparklineSeries.primaryItem;
   item.entity = entity;
-  item.entityConfig = card.resolvedEntityConfigs[0];
+  item.entityConfig = card.runtimeEntityConfigs[0];
   tool.sparklineHistory.bindSeriesEntity(item);
   if (periodType !== 'real_time') {
     const historyDay = offset === 0 ? '2026-09-26' : '2026-09-25';
@@ -295,7 +295,7 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
     }));
     tool.sparklineHistory.acceptHistoryRows(item, rows, tool.sparklineHistory.getSeriesRange(item));
   }
-  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  tool.setEntities(card.runtimeEntityConfigs, card.entities);
 
   const svg = new PointerNode({ left: 0, top: 0, width: tool.geometry.svg.width, height: tool.geometry.svg.height });
   const container = new PointerNode({ left: 0, top: 0, width: 300, height: 300 });
@@ -339,7 +339,7 @@ function createPointerFixture(context, pointerWindow, { chartType = 'line', peri
       card.cardTheme.modeChanged = true;
       tool.updateRuntimeConfig();
       card.cardTheme.modeChanged = false;
-      tool.setEntities(card.resolvedEntityConfigs, card.entities);
+      tool.setEntities(card.runtimeEntityConfigs, card.entities);
       tool.attachPointerHandlers();
     },
   };
@@ -629,7 +629,7 @@ test('a normal radial data refresh recomputes the active selection through the r
     last_changed: `2026-09-26T${String(8 + index).padStart(2, '0')}:00:00.000Z`,
   }));
   tool.sparklineHistory.acceptHistoryRows(item, changedRows, tool.sparklineHistory.getSeriesRange(item));
-  tool.setEntities(card.resolvedEntityConfigs, card.entities);
+  tool.setEntities(card.runtimeEntityConfigs, card.entities);
 
   assert.deepEqual(radialEvents, [pointerEvent]);
   assert.notDeepEqual(item.graph.coords.map((point) => point[2]), priorValues);
@@ -649,7 +649,7 @@ test('accepted empty radial data clears the active selection and tooltip', (cont
   assert.notEqual(tool.runtime.activePoint, undefined);
 
   tool.sparklineHistory.acceptHistoryRows(item, [], tool.sparklineHistory.getSeriesRange(item));
-  tool.setEntities(fixture.card.resolvedEntityConfigs, fixture.card.entities);
+  tool.setEntities(fixture.card.runtimeEntityConfigs, fixture.card.entities);
 
   assert.equal(tool.sparklineSeries.dataState, 'empty');
   assert.equal(tool.runtime.hovering, false);

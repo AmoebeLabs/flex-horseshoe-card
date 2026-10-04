@@ -565,14 +565,6 @@ const CardStyles = css`
       .card--filter-none {
       }
 
-      .horseshoe__svg__group {
-        /*
-          * Was transform: translateY(15%).
-          * After fixing SVG viewBox/namespace parsing, this offset became visible
-          * and moved the horseshoe down.
-          * A nice 6 year old bug ;-)
-          */
-      }
 
       .line__horizontal {
         stroke: var(--primary-text-color);

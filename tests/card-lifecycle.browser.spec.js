@@ -118,7 +118,7 @@ test('one HA and history pass publishes all values to StateTool, JS, groups and 
       counters, published, avg, sameArray: card.entities === entities,
       stateTools: stateTools.map((tool) => tool.runtime.state),
       text: card.shadowRoot.textContent,
-      groupX: card.cardLayout.activeGroupConfigs[0].xpos,
+      groupX: card.cardLayout.runtimeGroupConfigs[0].xpos,
       opacity: card.activeCardStyles.opacity,
       animationOpacity: card.cardAnimations.styles.states[0].opacity,
     };

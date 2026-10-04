@@ -120,7 +120,7 @@ test('committed path elements are found when the generated card id starts with a
   ]);
 });
 
-test('original root fields and the horseshoes_v2 alias enter the same gauge implementation', () => {
+test('original root fields still enter the current gauge implementation', () => {
   const rootConfig = {
     entity_index: 0,
     xpos: 50,
@@ -129,20 +129,7 @@ test('original root fields and the horseshoes_v2 alias enter the same gauge impl
     horseshoe_scale: { min: 0, max: 100 },
     layout: {},
   };
-  const aliasConfig = {
-    layout: {
-      horseshoes_v2: [{
-        entity_index: 0,
-        xpos: 50,
-        ypos: 50,
-        radius: 40,
-        horseshoe_scale: { min: 0, max: 100 },
-      }],
-    },
-  };
-
   assert.equal(HorseshoeGauge.setConfig(rootConfig, createTemplates(), 'card', createCard()).length, 1);
-  assert.equal(HorseshoeGauge.setConfig(aliasConfig, createTemplates(), 'card', createCard()).length, 1);
 });
 
 test('legacy scale tickmarks enter the path engine through the shared configuration conversion', () => {

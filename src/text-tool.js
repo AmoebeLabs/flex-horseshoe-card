@@ -17,11 +17,8 @@ const TEXT_SOURCE_SECTIONS = {
 };
 
 /**
- * Standalone multipart SVG text tool.
- *
- * The public `text` value is normalized into independently evaluated parts.
- * This keeps literal text simple while preserving the rendering model needed
- * for future references to name, area and state items.
+ * Evaluates outer Text config and independently scoped parts, resolves inline
+ * and referenced Name/Area/State sources, then owns text layout and SVG rendering.
  */
 export default class TextTool extends BaseTool {
   /**
@@ -257,7 +254,7 @@ export default class TextTool extends BaseTool {
       if (part.inline_source_index !== undefined) {
         sourceTool.setState(
           this.card.entities[part.entity_index],
-          this.card.resolvedEntityConfigs[part.entity_index],
+          this.card.runtimeEntityConfigs[part.entity_index],
         );
       }
       const entityIndex = sourceTool ? sourceTool.entity_index : part.entity_index;

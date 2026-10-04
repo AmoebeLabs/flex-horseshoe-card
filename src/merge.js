@@ -21,14 +21,7 @@ export default class Merge {
         const oVal = obj[key];
         if (Array.isArray(pVal) && Array.isArray(oVal)) {
           /* eslint no-param-reassign: 0 */
-          // Only if pVal is empty???
-
-          // #TODO:
-          // Should check for .id to match both arrays ?!?!?!?!
-          // Only concat if no ID or match found, otherwise mergeDeep ??
-          //
-          // concatenate and then reduce/merge the array based on id's if present??
-          //
+          // Preserve array order and clone incoming object entries while concatenating.
           prev[key] = pVal.concat(...oVal.map((item) => (isObject(item) ? this.mergeDeep(Array.isArray(item) ? [] : {}, item) : item)));
         } else if (isObject(pVal) && isObject(oVal)) {
           prev[key] = this.mergeDeep(pVal, oVal);

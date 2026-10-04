@@ -72,7 +72,7 @@ function createSparklineFixture(source) {
     evaluateJavascriptTemplates: true,
     dev: { debug: false, fakeData: false },
     entities,
-    resolvedEntityConfigs: entityConfigs,
+    runtimeEntityConfigs: entityConfigs,
     _hass: hass,
     cardAnimations: { styles: { sparklines: [] } },
     cardLayout: {
@@ -478,7 +478,7 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
   card.cardEntities = cardEntities;
 
   const resolvedConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true);
-  card.resolvedEntityConfigs = resolvedConfigs;
+  card.runtimeEntityConfigs = resolvedConfigs;
   assert.equal(resolvedConfigs.length, cardConfig.entities.length);
   assert.equal(cardConfig.constants.seriesEvaluations, 0);
   assert.equal(resolvedConfigs[6].sparkline_series_id, 'comparison_room');
@@ -569,7 +569,7 @@ test('CardEntities publishes primary and named statistics from whole-value JavaS
   for (const sourceIndex of [0, 1]) {
     cardConfig.constants.comparisonSource = sourceIndex;
     const sourceConfigs = cardEntities.buildRuntimeEntityConfigs(cardConfig, true);
-    card.resolvedEntityConfigs = sourceConfigs;
+    card.runtimeEntityConfigs = sourceConfigs;
     const evaluations = cardConfig.constants.seriesEvaluations;
     cardTools.updateSparklineRuntimeConfig();
     cardTools.setSparklineEntityStates(sourceConfigs, entities);

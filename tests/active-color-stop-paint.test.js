@@ -31,7 +31,7 @@ function createCard(themeMode = 'light') {
     },
     config: { entities: [{ entity: 'sensor.test' }] },
     entities: [{ state: 'on', attributes: {} }],
-    resolvedEntityConfigs: [{ entity: 'sensor.test' }],
+    runtimeEntityConfigs: [{ entity: 'sensor.test' }],
     evaluateJavascriptTemplates: false,
     requestUpdate() {},
     _hass: { localize: (key) => key },
@@ -242,7 +242,7 @@ test('Text parts use their own state-map and referenced paint, then entity fallb
   }, 0, Templates, 'card', card);
 
   tool.updateRuntimeConfig();
-  tool.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  tool.setState(card.entities[0], card.runtimeEntityConfigs[0]);
   const rendered = tool.getRenderedTextParts(tool.runtime.textParts, false);
 
   assert.deepEqual(selectedPalettes.slice(-4).map((palette) => palette.colors[0].color), [
@@ -279,7 +279,7 @@ test('Text wrap fanout retains the same part paint owner', () => {
   }, 0, Templates, 'card', card);
 
   tool.updateRuntimeConfig();
-  tool.setState(card.entities[0], card.resolvedEntityConfigs[0]);
+  tool.setState(card.entities[0], card.runtimeEntityConfigs[0]);
 
   assert.deepEqual(tool.runtime.textParts.map((part) => part.value), ['alpha', 'beta']);
   assert.strictEqual(tool.runtime.textParts[0].paint, tool.runtime.textParts[1].paint);

@@ -1,9 +1,9 @@
 import { svg } from 'lit';
 
-import { renderNormalizedPathBands } from './path-mask-renderer.js';
+import { renderNormalizedPathBands } from '../../src/path-mask-renderer.js';
 
 /**
- * Renders one path centerline as a background track and normalized painted
+ * Arranges test paths with a background track and normalized painted
  * ranges. Every visible layer reuses the same complete path definition;
  * pathLength="100" makes range placement independent from actual path length.
  *
@@ -12,7 +12,7 @@ import { renderNormalizedPathBands } from './path-mask-renderer.js';
  * @param {object} foreground - Shared foreground opacity and border configuration.
  * @param {Array<object>} paintedRanges - Normalized ranges from buildPaintedRanges().
  * @param {string} pathId - Stable DOM namespace for this rendered path.
- * @returns {TemplateResult} Generic SVG path layers.
+ * @returns {TemplateResult} SVG fixture for the production mask renderer.
  */
 export function renderPathStrokeLayers(pathDefinition, background, foreground, paintedRanges, pathId) {
   const backgroundRange = {

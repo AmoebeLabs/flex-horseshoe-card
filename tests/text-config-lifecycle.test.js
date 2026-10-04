@@ -10,7 +10,7 @@ function createHarness(evaluate) {
     state: index === 0 ? 'on' : `state-${index}`,
     attributes: { friendly_name: `friendly-${index}` },
   }));
-  const resolvedEntityConfigs = entities.map((_entity, index) => ({ name: `entity-${index}` }));
+  const runtimeEntityConfigs = entities.map((_entity, index) => ({ name: `entity-${index}` }));
   const localizations = [];
   const card = {
     cardLayout: {
@@ -30,7 +30,7 @@ function createHarness(evaluate) {
     },
     config: {},
     entities,
-    resolvedEntityConfigs,
+    runtimeEntityConfigs,
     evaluateJavascriptTemplates: true,
     _hass: {
       localize(key) {
@@ -171,7 +171,7 @@ test('outer and part JavaScript use separate exact calls and item contexts', () 
     }, 0, harness.templates, 'card', harness.card);
 
     tool.updateRuntimeConfig();
-    tool.setState(harness.card.entities[0], harness.card.resolvedEntityConfigs[0]);
+    tool.setState(harness.card.entities[0], harness.card.runtimeEntityConfigs[0]);
 
     assert.deepEqual(harness.calls.map(({ item, value }) => [
       Object.hasOwn(value, 'type') ? 'part' : 'outer', item.id, item.entity_index,
@@ -243,7 +243,7 @@ test('inline source config precedes part evaluation and uses each evaluated enti
     assert.equal(sourceTool.config.entity_index, expectedEntityIndex);
     const sourceConfigBeforeState = sourceTool.config;
 
-    tool.setState(harness.card.entities[0], harness.card.resolvedEntityConfigs[0]);
+    tool.setState(harness.card.entities[0], harness.card.runtimeEntityConfigs[0]);
 
     assert.deepEqual(harness.events.map((event) => {
       if (event.phase) return event.phase;
@@ -282,7 +282,7 @@ test('state-map localization and referenced source text reach displayed output',
   }, 0, harness.templates, 'card', harness.card);
 
   localized.updateRuntimeConfig();
-  localized.setState(harness.card.entities[0], harness.card.resolvedEntityConfigs[0]);
+  localized.setState(harness.card.entities[0], harness.card.runtimeEntityConfigs[0]);
 
   assert.deepEqual(harness.localizations, ['text.ready']);
   assert.deepEqual(localized.runtime.textParts.map(({ value }) => value), ['localized:text.ready']);

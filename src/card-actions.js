@@ -13,14 +13,14 @@ export default class CardActions {
     this.element = element;
     this.inputEntities = inputEntities;
     this.hass = undefined;
-    this.resolvedEntityConfigs = undefined;
+    this.runtimeEntityConfigs = undefined;
     this.entities = undefined;
   }
 
   /** Publishes current Home Assistant and entity data after every hass update. */
-  setHassAndEntities(hass, resolvedEntityConfigs, entities) {
+  setHassAndEntities(hass, runtimeEntityConfigs, entities) {
     this.hass = hass;
-    this.resolvedEntityConfigs = resolvedEntityConfigs;
+    this.runtimeEntityConfigs = runtimeEntityConfigs;
     this.entities = entities;
   }
 
@@ -29,7 +29,7 @@ export default class CardActions {
     let gestureConfig = itemConfig?.[actionProperty];
 
     if (gestureConfig === undefined && entityIndex !== undefined) {
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entityConfig = this.runtimeEntityConfigs[entityIndex];
       gestureConfig = entityConfig[actionProperty];
 
       if (gestureConfig === undefined && actionProperty === 'tap_action') {
@@ -49,7 +49,7 @@ export default class CardActions {
 
       if (entityIndex === undefined) return true;
 
-      const entityConfig = this.resolvedEntityConfigs[entityIndex];
+      const entityConfig = this.runtimeEntityConfigs[entityIndex];
       const targetIndex = entityConfig.source_entity_index ?? entityIndex;
       return this.entities[targetIndex].entity_id.startsWith('fhs_');
     });
@@ -70,7 +70,7 @@ export default class CardActions {
   getActionEntityId(entityIndex, actionConfig) {
     if (actionConfig.entity) return actionConfig.entity;
     if (entityIndex === undefined) return undefined;
-    const entityConfig = this.resolvedEntityConfigs[entityIndex];
+    const entityConfig = this.runtimeEntityConfigs[entityIndex];
     const targetIndex = entityConfig.source_entity_index ?? entityIndex;
     return this.entities[targetIndex].entity_id;
   }

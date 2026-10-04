@@ -116,7 +116,7 @@ test('binds the canonical default entry to its graph', () => {
     [],
     {},
   );
-  series.setRows(series.primaryItem, [{ state: 12 }]);
+  series.primaryItem.rows = [{ state: 12 }];
 
   assert.strictEqual(series.primaryItem.config, entry);
   assert.strictEqual(series.primaryItem.graph.input, entry);
@@ -391,11 +391,11 @@ test('shared Cartesian scale processes historical rows once per real series grap
     item.graph._updateEndTime = () => {
       item.graph._endTime = new Date('2026-08-20T12:00:00.000Z');
     };
-    series.setRows(item, values[index].map((value, valueIndex) => ({
+    item.rows = values[index].map((value, valueIndex) => ({
       state: String(value),
       haState: String(value),
       last_changed: `2026-08-20T0${valueIndex + 8}:30:00.000Z`,
-    })));
+    }));
     const processData = item.graph.processData.bind(item.graph);
     processingCounts[index] = 0;
     item.graph.processData = (rows) => {
@@ -434,7 +434,7 @@ test('Cartesian series reuse measured geometry for paint and remeasure changed l
   const item = series.primaryItem;
   series.configureGraph(item, 120, 100, margin, margin, item.config, [], [], {});
   item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
-  series.setRows(item, rows);
+  item.rows = rows;
   let measurements = 0;
   const measureAxisMargin = () => {
     measurements += 1;
@@ -791,7 +791,7 @@ test('radial series retain shared geometry when only their color changes', () =>
   ];
   series.configureGraph(item, 120, 120, margin, margin, item.config, [], [], {});
   item.graph._updateEndTime = () => { item.graph._endTime = new Date('2026-08-20T12:00:00.000Z'); };
-  series.setRows(item, rows);
+  item.rows = rows;
   let measurements = 0;
   const measureAxisMargin = () => {
     measurements += 1;

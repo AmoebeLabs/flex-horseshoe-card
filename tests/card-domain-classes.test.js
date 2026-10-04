@@ -1153,7 +1153,7 @@ test('CardTools closes old tools before releasing them and activates replacement
   ]);
 });
 
-test('CardTools assigns entity state to nested control tools through the same lifecycle path', () => {
+test('CardTools forwards current entity data to the tools in runtime sections', () => {
   const cardTools = new CardTools({}, {}, 'card');
   const calls = [];
   const childTool = {
@@ -1161,13 +1161,11 @@ test('CardTools assigns entity state to nested control tools through the same li
     setEntities: (configs, entities) => calls.push([entities[1].state, configs[1].entity]),
   };
 
-  cardTools.setToolEntityState(
-    childTool,
+  cardTools.sections.states = [childTool];
+  cardTools.setRuntimeEntityStates(
     [{ entity: 'sensor.first' }, { entity: 'sensor.second' }],
     [{ state: '10' }, { state: '20' }],
   );
-
-  assert.deepEqual(calls, [['20', 'sensor.second']]);
 
   assert.deepEqual(calls, [['20', 'sensor.second']]);
 });
@@ -1189,7 +1187,7 @@ test('BaseTool reads theme changes from CardTheme during runtime config updates'
   );
   assert.equal(tool.entity_index, undefined);
 
-  tool.activeConfigInitialized = true;
+  tool.runtimeConfigInitialized = true;
   tool.configChanged = false;
 
   tool.updateRuntimeConfig();
@@ -1208,7 +1206,7 @@ test('BaseTool distinguishes group changes from configuration and theme changes'
     evaluateJavascriptTemplates: false,
   };
   const tool = new BaseTool({ id: 'shape', group: 'room' }, 0, templates, 'card', card, 'rectangles');
-  tool.activeConfigInitialized = true;
+  tool.runtimeConfigInitialized = true;
 
   tool.updateRuntimeConfig();
 

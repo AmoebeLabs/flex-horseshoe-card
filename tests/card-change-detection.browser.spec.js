@@ -226,7 +226,7 @@ test('inline state paint, unit and group output render at equal rounded text, th
       stateUnit: root.querySelector('.state__uom').textContent.trim(),
       inline: [...inline.querySelectorAll('.text-tool__part')].map((part) => part.textContent.trim()),
       inlineFill: getComputedStyle(inline.querySelector('.text-tool__part')).fill,
-      groupX: window.changeDetection.card.cardLayout.activeGroupConfigs[0].xpos,
+      groupX: window.changeDetection.card.cardLayout.runtimeGroupConfigs[0].xpos,
     };
   });
   expect(initial).toEqual({
@@ -254,7 +254,7 @@ test('inline state paint, unit and group output render at equal rounded text, th
       stateUnit: root.querySelector('.state__uom').textContent.trim(),
       inline: [...inline.querySelectorAll('.text-tool__part')].map((part) => part.textContent.trim()),
       inlineFill: getComputedStyle(inline.querySelector('.text-tool__part')).fill,
-      groupX: window.changeDetection.card.cardLayout.activeGroupConfigs[0].xpos,
+      groupX: window.changeDetection.card.cardLayout.runtimeGroupConfigs[0].xpos,
       renders: window.changeDetection.renderCount,
     };
   });
@@ -275,7 +275,7 @@ test('inline state paint, unit and group output render at equal rounded text, th
       stateUnit: root.querySelector('.state__uom').textContent.trim(),
       inline: [...inline.querySelectorAll('.text-tool__part')].map((part) => part.textContent.trim()),
       inlineFill: getComputedStyle(inline.querySelector('.text-tool__part')).fill,
-      groupX: window.changeDetection.card.cardLayout.activeGroupConfigs[0].xpos,
+      groupX: window.changeDetection.card.cardLayout.runtimeGroupConfigs[0].xpos,
       renders: window.changeDetection.renderCount,
     };
   });
