@@ -15,6 +15,7 @@ jobs:
               "feat": "feature",
               "fix": "fix",
               "breaking": "breaking",
+              "breaking-dev": "breaking-dev",
               "refactor": "refactor",
               "test": "test",
               "docs": "documentation",
