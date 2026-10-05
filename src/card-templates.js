@@ -12,8 +12,8 @@ export default class CardTemplates {
    * Applies the configured root template to the current card config.
    *
    * The card config wins over the template config. Template variables replace
-   * [[name]] placeholders inside the selected template body before the normal
-   * FHS config pipeline continues.
+   * [[name]] placeholders inside the selected template body before FHS continues
+   * compiling the card's entities and layout.
    *
    * @param {object} config - Card config that may contain `template`.
    * @param {object} card - FHS card instance used to access Lovelace templates.
@@ -34,7 +34,8 @@ export default class CardTemplates {
         });
       }
 
-      // Replace the input config in-place so setConfig can continue with the normal pipeline.
+      // Replace the config in place so the compiled template becomes the config
+      // used by the rest of setConfig().
       Object.keys(config).forEach((key) => delete config[key]);
       Object.entries(compiledConfig).forEach(([key, value]) => {
         config[key] = value;
@@ -46,10 +47,9 @@ export default class CardTemplates {
       card,
     );
 
-    // A card template may own local entities without changing the positional
-    // contract of entities supplied by the card instance. Matching explicit
-    // entities keep their index and override individual default fields;
-    // defaults that are not configured explicitly are appended afterwards.
+    // Merge template default_entities underneath matching configured HA or FHS
+    // entities, so explicit fields take precedence. Append unmatched defaults
+    // after the configured entities before filtering and assigning entity slots.
     if (compiledTemplateParts.default_entities !== undefined) {
       const defaultEntitiesById = {};
 

@@ -1,34 +1,35 @@
 import { SVGInjector } from "@tanem/svg-injector";
 
-/** Owns pending external SVG placeholders shared by icons and state markers. */
+/** Loads external SVG files used by Icons and state markers in this card. */
 export default class ExternalSvgSources {
-  /** Keeps each injection tied to its real target node and this card lifetime. */
+  /** Starts request tracking for the SVG placeholders rendered by this card. */
   constructor(card) {
     this.card = card;
     this.requests = new Map();
     this.closed = false;
   }
 
-  /** Keeps earlier injections from writing into targets replaced by new config. */
+  /** Forgets pending SVG loads when a new card config replaces their placeholders. */
   clearPendingRequests() {
     this.requests.clear();
   }
 
-  /** Allows the next committed render to load its actual SVG placeholders. */
+  /** Allows external SVG loading again after the card reconnects. */
   connected() {
     this.closed = false;
   }
 
-  /** Invalidates non-cancellable injector callbacks without touching live DOM. */
+  /** Ignores unfinished SVG loads after the card disconnects. */
   disconnected() {
     this.closed = true;
     this.requests.clear();
   }
 
   /**
-   * Loads on detached staging nodes, then publishes only into the original
-   * current placeholder. The library's own DOM replacement is isolated from
-   * Lit until this owner has accepted the result.
+   * Loads each external SVG in a detached element first. Replace the matching
+   * placeholder in the card only when it still exists and still points to the
+   * same URL. This prevents an older async load from replacing a newer Icon or
+   * state marker after Lit has rendered again.
    */
   inject() {
     if (this.closed) return;
@@ -50,8 +51,9 @@ export default class ExternalSvgSources {
         afterEach: (error, injectedSvg) => {
           if (this.requests.get(element) !== request) return;
           this.requests.delete(element);
-          // A retained detached parent can still have children. Test the real
-          // target's membership, source and connection before committing it.
+          // The detached loading element can still exist after Lit has replaced the
+          // real placeholder. Only use this result when the original placeholder is
+          // still inside this card and still requests the same SVG URL.
           if (this.closed || !element.isConnected || !this.card.shadowRoot.contains(element) || element.dataset.src !== url) return;
           if (error) {
             console.error('[FHC SVG icon]', url, error);
@@ -70,7 +72,7 @@ export default class ExternalSvgSources {
   }
 }
 
-/** Runs the shared card source owner after an icon/marker render is committed. */
+/** Loads external SVG files after Lit has rendered their Icon or state-marker placeholders. */
 export function injectExternalSvgSources(card) {
   card.externalSvgSources.inject();
 }

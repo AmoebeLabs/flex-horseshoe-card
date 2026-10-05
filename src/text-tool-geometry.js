@@ -1,8 +1,10 @@
 /**
- * Returns effective geometry for a text tool, using its SVG measurement when available.
+ * Returns the SVG center and size used by a Name, Area, State or Text item.
+ * After the browser measures its rendered text, use that measured center and
+ * size. Before then, use the configured SVG position and estimated text size.
  *
- * @param {object} tool - Name, area, state, or standalone text tool.
- * @returns {{xpos: number, ypos: number, width: number, height: number}} Text geometry.
+ * @param {object} tool - NameTool, AreaTool, StateTool or TextTool.
+ * @returns {{xpos: number, ypos: number, width: number, height: number}} Text center and size in SVG units.
  */
 export default function getTextToolGeometry(tool) {
   const { geometry } = tool;

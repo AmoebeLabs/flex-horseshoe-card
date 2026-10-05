@@ -2,12 +2,11 @@ import { nothing, svg } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 
 /**
- * Renders final tickmark, label, badge, and marker coordinates without deriving geometry.
- * Badge layers precede labels, while markers remain independently styleable
- * above the static scale annotations.
+ * Draws Horseshoe ticks, label badges, labels and markers at their calculated
+ * Path positions. Badges sit behind their text; markers sit above scale labels.
  *
  * @param {object} elements - Positioned tickmarks, labels, badges, and markers.
- * @param {string} pathItemId - Stable DOM namespace for label guide paths.
+ * @param {string} pathItemId - Horseshoe ID used to link text to its label paths.
  * @returns {TemplateResult} Tick, badge, label, and marker SVG layers.
  */
 export function renderPathElements(elements, pathItemId) {

@@ -261,7 +261,7 @@ export class GaugeScale {
     if (config.type === 'spline') {
       const minValue = Number(config.min);
       const maxValue = Number(config.max);
-      // The default spline owns its endpoints: scale min is position 0 and scale max is position 1.
+      // The default spline places scale min at position 0 and scale max at position 1.
       // Anchors exactly on min/max are ignored here so they cannot collapse the usable arc range.
       const innerAnchors = anchors.filter((point) => point.value > minValue && point.value < maxValue);
 

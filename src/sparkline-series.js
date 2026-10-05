@@ -5,18 +5,16 @@ import Utils from './utils.js';
 import { SPARKLINE_DATA_STATE, SPARKLINE_REQUEST_STATE } from './sparkline-state.js';
 
 /**
- * Coordinates the graph engines belonging to one sparkline layout item.
- *
- * GraphTool supplies complete canonical entries. Series retains their runtime
- * items and coordinates shared bins, axis ranges and graph placement.
+ * Keeps the Series used by one FHS Sparkline and their SparklineGraph instances.
+ * It shares binning, axis ranges and chart placement so the graphs line up.
  */
 export default class SparklineSeries {
+
   /**
-   * Binds complete config to stable series items before runtime state and
-   * history are attached. IDs are the identity used by request and tooltip code.
+   * Creates the Series items for this Sparkline config.
    *
-   * @param {object} config - Validated sparkline layout item configuration.
-   * @param {object|undefined} sourceConfig - Raw source evaluated for this publication.
+   * @param {object} config - Current Sparkline config with translated Series entries.
+   * @param {object|undefined} sourceConfig - Original config containing authored per-Series color-stop overrides.
    */
   constructor(config, sourceConfig) {
     this.items = [];
@@ -26,23 +24,24 @@ export default class SparklineSeries {
   }
 
   /**
-   * Rebinds canonical entries while retaining runtime history and graph state.
+   * Applies the current Series configs while keeping History rows and graphs
+   * for Series whose IDs remain in the Sparkline config.
    *
-   * @param {object} config - Validated static or runtime sparkline configuration.
-   * @param {object|undefined} sourceConfig - Raw source evaluated for this publication.
+   * @param {object} config - Current Sparkline config with translated Series entries.
+   * @param {object|undefined} sourceConfig - Original config used to read authored `sparkline.colorstops` overrides.
    */
   updateConfig(config, sourceConfig) {
     const seriesLayoutSignature = JSON.stringify(config.series.map((seriesConfig) => [
       seriesConfig.id, seriesConfig.y_axis_id, seriesConfig.sparkline.show.chart_type,
     ]));
+    // A changed Series ID, axis or chart type changes how the shared graph is laid out.
     if (this.seriesLayoutSignature !== seriesLayoutSignature) {
       this.cartesianLayout = undefined;
       this.radialLayout = undefined;
     }
     this.seriesLayoutSignature = seriesLayoutSignature;
 
-    // Bind canonical entries by ID, and keep only the explicitly authored
-    // legacy series override needed to compose each item's active palette.
+    // Reuse the item with the same ID so its HA History rows and graph survive config updates.
     this.items = config.series.map((seriesConfig) => {
       const existingItem = this.items.find((item) => item.id === seriesConfig.id);
       if (existingItem !== undefined) {
@@ -79,7 +78,8 @@ export default class SparklineSeries {
     });
     this.binPlan = undefined;
 
-    // Every retained item must be current before the collection is current.
+    // An empty History response is complete; the Sparkline stays loading only
+    // while at least one configured Series has no current result.
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
     this.dataState = currentItems.length !== this.items.length
@@ -89,7 +89,13 @@ export default class SparklineSeries {
         : SPARKLINE_DATA_STATE.EMPTY;
   }
 
-  /** Rebuilds each stable item's active palette from its public definition and authored legacy override. */
+  /**
+   * Applies the HA theme's color stops and each Series' configured overrides.
+   * A per-Series `sparkline.colorstops` override is merged last.
+   *
+   * @param {object} parentColorStops - Normalized color stops from the parent Sparkline.
+   * @param {string} colorStopMode - Active HA theme mode used to normalize Series color stops.
+   */
   updatePalettePaint(parentColorStops, colorStopMode) {
     this.items.forEach((item) => {
       const publicColorStops = item.config.sparkline.color_stops;
@@ -102,7 +108,13 @@ export default class SparklineSeries {
     });
   }
 
-  /** Identifies palette inputs that affect numeric scales, grades or ranks, excluding color-only changes. */
+  /**
+   * Returns the color-stop inputs that can change Sparkline grade positions
+   * or rank ordering; changing only stop colors does not move graph data.
+   *
+   * @param {object} parentColorStops - Normalized color stops from the parent Sparkline.
+   * @returns {string} Comparison value for color-stop scales, numeric values, ranks and states.
+   */
   getPaletteCalculationSignature(parentColorStops) {
     return JSON.stringify([
       [parentColorStops.scales, parentColorStops.colors.map((stop) => [stop.value, stop.rank, stop.state])],
@@ -115,20 +127,18 @@ export default class SparklineSeries {
   }
 
   /**
-   * Returns item zero of the normalized collection. It supplies shared
-   * presentation such as axes, pointer interaction, and existing statistics;
-   * its data, history, and graph lifecycle is identical to every other item.
+   * Returns the first Series used for unqualified `fhs_sparkline.*` values and
+   * Sparkline statistics. Its graph supplies shared x-axis ticks and pointer input.
    */
   get primaryItem() {
     return this.items[0];
   }
 
   /**
-   * Converts one effective series density into a concrete number of hourly
-   * buckets. Every value used here is complete after configuration merging.
+   * Chooses the History bins per hour for a Series, including automatic density.
    *
-   * @param {object} config - Effective series configuration.
-   * @returns {number} Concrete bins per hour.
+   * @param {object} config - Sparkline config for this Series.
+   * @returns {number} Configured or automatically selected History bins per hour.
    */
   calculateBinsPerHour(config) {
     const periodConfig = config.period[config.period.type];
@@ -153,6 +163,8 @@ export default class SparklineSeries {
       high: 0.5,
     };
     const graphType = config.sparkline.show.chart_type;
+    // Automatic bins use only as much detail as the chart width and density can show.
+    // Radial charts can use only their visible arc; other chart types use the full width.
     const availableWidth = ['radial', 'radial_barcode'].includes(graphType) ? SparklineGraph.calculateRadialArcLength(config.width, config.height, config.sparkline.radial.arc_degrees) : config.width;
     const widthUnitsPerBin = widthUnitsPerBinByGraphType[graphType] * densityFactor[periodConfig.bins.density];
     const maximumBinsPerHour = availableWidth / widthUnitsPerBin / periodConfig.duration.hour;
@@ -164,12 +176,11 @@ export default class SparklineSeries {
   }
 
   /**
-   * Stores the effective bin layout shared by every graph in this collection.
-   * The most space-demanding historical series limits the collection so graph
-   * coordinates, ticks and pointer buckets remain aligned. Real-time and state
-   * bands do not expose a derived bin duration.
+   * Chooses one History bin plan for all historical Series in this Sparkline.
+   * The lowest bins-per-hour choice keeps their time buckets aligned. Real-time
+   * has no History plan, and state_bands has no calculated bin duration.
    *
-   * @returns {object} Effective bins per hour and derived bin duration.
+   * @returns {object} Shared bins per hour and bin duration in hours.
    */
   updateBinPlan() {
     const historicalItems = this.items.filter((item) => item.config.period.type !== 'real_time');
@@ -180,6 +191,7 @@ export default class SparklineSeries {
     }
 
     if (historicalItems[0].config.sparkline.show.chart_type === 'state_bands') {
+      // State bands use a fixed per-hour request plan and have no calculated bin duration.
       this.binPlan = { perHour: 1, durationHours: undefined };
       return this.binPlan;
     }
@@ -190,15 +202,14 @@ export default class SparklineSeries {
   }
 
   /**
-   * Updates every graph and applies the geometry shared by the collection.
-   * Axis margins are measured by the Lit tool; bounds, plot extents, and bar
-   * slots are coordinated here before the tool builds its SVG presentation.
+   * Processes History rows and lays out the Cartesian Series in one shared chart.
+   * Series on the same primary or secondary axis use common value bounds.
    *
-   * @param {Function} measureAxisMargin - Reads shared axes and labels after graph data exists.
-   * @param {object} configuredMargin - User-configured plot margin.
-   * @param {number} columnSpacing - Horizontal spacing between grouped bars.
-   * @param {number} rowSpacing - Vertical spacing used by bar geometry.
-   * @returns {object} Shared processed-data state, axes, and final margin state.
+   * @param {Function} measureAxisMargin - Measures space needed by the visible axis labels.
+   * @param {object} configuredMargin - Configured space around the chart area.
+   * @param {number} columnSpacing - Space between columns in bar charts.
+   * @param {number} rowSpacing - Space between grouped bars.
+   * @returns {object} Current data state, shared axes and whether chart geometry changed.
    */
   updateCartesianGraphs(measureAxisMargin, configuredMargin, columnSpacing, rowSpacing) {
     this.items.forEach((item) => {
@@ -207,6 +218,8 @@ export default class SparklineSeries {
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    // Empty History is ready but contributes no graph; if every Series is empty,
+    // return without drawing a chart.
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
       this.cartesianLayout = undefined;
       this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
@@ -216,10 +229,10 @@ export default class SparklineSeries {
       };
     }
 
-    // Paint-only updates retain the measured axes and path coordinates. Every
-    // series must agree before reusing a shared plot layout.
     const dataItemIds = JSON.stringify(dataItems.map((item) => item.id));
     const layoutInputs = JSON.stringify([configuredMargin, columnSpacing, rowSpacing]);
+    // Paint-only changes need no new axes or SVG coordinates; reuse the measured
+    // layout while every Series' data and chart geometry remain unchanged.
     if (this.cartesianLayout !== undefined && this.cartesianLayout.dataItemIds === dataItemIds && this.cartesianLayout.layoutInputs === layoutInputs && dataItems.every((item) => !item.graph.processedDataChanged && !item.graph.geometryConfigChanged)) {
       this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
       return { dataState: this.dataState, ...this.cartesianLayout, geometryChanged: false };
@@ -239,6 +252,7 @@ export default class SparklineSeries {
 
     const axisMargin = measureAxisMargin(axisGraphs);
 
+    // Graphs sharing an axis use the same low and high values so their lines align.
     [primaryItems, secondaryItems].forEach((axisItems) => {
       if (axisItems.length === 0) return;
 
@@ -256,11 +270,12 @@ export default class SparklineSeries {
     dataItems.forEach((item) => {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, { t: 0, r: 0, b: 0, l: 0 });
     });
-    // Bar overflow needs positions at the measured axis margin before the
-    // shared visual extent is known. Other chart families wait for final area.
+    // First place bars against the measured axis area; their overflow sets the
+    // extra left and right margins shared by the chart.
     barItems.forEach((item) => item.graph.calculateGeometry());
 
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
+    // Keep the widest dots inside the same drawing area used by every Series.
     dataItems.forEach((item) => {
       const chartType = item.config.sparkline.show.chart_type;
       const rendersDots = chartType === 'dots' || item.config.sparkline.show.points === true || item.config.sparkline.line.show_dots === true || item.config.sparkline.area.show_dots === true;
@@ -289,10 +304,11 @@ export default class SparklineSeries {
       item.graph.setGraphAreas(axisMargin, configuredMargin, item.graph.coords.length, sharedChartGeometryMargin);
       item.graph.calculateGeometry();
     });
+    // Recalculate bar positions inside the final shared chart area.
     barItems.forEach((item) => {
       item.bars = item.graph.getBars(item.barPosition, item.barTotal, columnSpacing, rowSpacing);
       if (this.items.length === 1 && item.config.period.type === 'real_time' && item.config.sparkline.bar.orientation === 'vertical') {
-        // The one-value vertical bar uses the whole drawing area as its slot.
+        // A single live value uses the full drawing area as its slot; center its bar.
         item.bars[0].x = item.graph.drawArea.x + (item.graph.drawArea.width - item.bars[0].width) / 2;
       }
     });
@@ -303,13 +319,11 @@ export default class SparklineSeries {
   }
 
   /**
-   * Coordinates radial graph engines without deriving polar coordinates here.
-   * Every axis group receives one shared value range; SparklineGraph then maps
-   * those values and the shared bins into its own radial geometry.
+   * Processes History rows and lays out the radial Series around one shared center.
    *
-   * @param {Function} measureAxisMargin - Measures optional radial labels and ticks.
-   * @param {object} configuredMargin - User-configured plot margin.
-   * @returns {object} Shared readiness, axes and final radial margin state.
+   * @param {Function} measureAxisMargin - Measures space needed by the visible axis labels.
+   * @param {object} configuredMargin - Configured space around the chart area.
+   * @returns {object} Current data state, shared axes and whether chart geometry changed.
    */
   updateRadialGraphs(measureAxisMargin, configuredMargin) {
     this.items.forEach((item) => {
@@ -318,6 +332,8 @@ export default class SparklineSeries {
 
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     const dataItems = this.items.filter((item) => item.dataState === SPARKLINE_DATA_STATE.HAS_DATA);
+    // Empty History is ready but contributes no radial graph; if every Series
+    // is empty, return without drawing a chart.
     if (currentItems.length !== this.items.length || dataItems.length === 0) {
       this.radialLayout = undefined;
       this.dataState = currentItems.length === this.items.length ? SPARKLINE_DATA_STATE.EMPTY : SPARKLINE_DATA_STATE.NOT_LOADED;
@@ -329,6 +345,7 @@ export default class SparklineSeries {
 
     const dataItemIds = JSON.stringify(dataItems.map((item) => item.id));
     const layoutInputs = JSON.stringify(configuredMargin);
+    // Reuse the shared center and measured axes when Series data and chart geometry are unchanged.
     if (this.radialLayout !== undefined && this.radialLayout.dataItemIds === dataItemIds && this.radialLayout.layoutInputs === layoutInputs && dataItems.every((item) => !item.graph.processedDataChanged && !item.graph.geometryConfigChanged)) {
       this.dataState = SPARKLINE_DATA_STATE.HAS_DATA;
       return { dataState: this.dataState, ...this.radialLayout, geometryChanged: false };
@@ -346,6 +363,7 @@ export default class SparklineSeries {
       secondary: secondaryItems.length > 0 ? secondaryItems[0].graph : undefined,
     };
 
+    // Radial graphs sharing an axis use the same low and high values.
     [primaryItems, secondaryItems].forEach((axisItems) => {
       if (axisItems.length === 0) return;
 
@@ -362,9 +380,8 @@ export default class SparklineSeries {
 
     const axisMargin = measureAxisMargin(axisGraphs);
     const sharedChartGeometryMargin = { t: 0, r: 0, b: 0, l: 0 };
-
-    // Every radial renderer uses one center and outer radius. Reserve the
-    // largest visible line or dot extent for the complete collection.
+    // Every radial Series shares one center and outer radius. Reserve the
+    // largest line or dot extent so no graph exceeds that common drawing area.
     dataItems.forEach((item) => {
       const variant = item.config.sparkline.show.chart_variant;
       let extent = 0;
@@ -394,19 +411,18 @@ export default class SparklineSeries {
   }
 
   /**
-   * Updates the graph for one series after static or runtime config changed.
-   * Keeping its instance also keeps the processed bins available when the
-   * effective source and bucket plan have not changed.
+   * Creates or updates this Series' SparklineGraph with its current SVG size and drawing config.
+   * Updating the existing graph lets it keep processed History values when its inputs are unchanged.
    *
-   * @param {object} item - Coordinator-owned series item.
-   * @param {number} width - SVG graph width.
-   * @param {number} height - SVG graph height.
-   * @param {object} axisMargin - Outer axis and label space.
-   * @param {object} configuredMargin - User-configured inner margin.
-   * @param {object} graphInput - Engine configuration for the active runtime state.
-   * @param {Array<number>} gradeValues - Numeric grade boundaries.
-   * @param {Array<object>} gradeRanks - Visual grade ranges.
-   * @param {object} stateMap - State-band mapping for the graph engine.
+   * @param {object} item - Series item receiving the graph.
+   * @param {number} width - Width of the Sparkline drawing area in SVG units.
+   * @param {number} height - Height of the Sparkline drawing area in SVG units.
+   * @param {object} axisMargin - Space reserved for axis labels.
+   * @param {object} configuredMargin - Configured chart margins.
+   * @param {object} graphInput - Current translated config used by SparklineGraph.
+   * @param {number[]} gradeValues - Numeric color-stop values used by graded charts.
+   * @param {Array<object>} gradeRanks - Rank values used by rank-order charts.
+   * @param {object} stateMap - State labels and colors used by state-band charts.
    */
   configureGraph(item, width, height, axisMargin, configuredMargin, graphInput, gradeValues, gradeRanks, stateMap) {
     if (item.graph === undefined) {
@@ -417,7 +433,7 @@ export default class SparklineSeries {
     item.dataState = item.graph.dataState;
   }
 
-  /** Removes graph geometry while a dynamic period has no valid duration. */
+  /** Removes SparklineGraphs and resets shared layouts when the period has no valid duration. */
   clearGraphs() {
     this.cartesianLayout = undefined;
     this.radialLayout = undefined;
@@ -428,17 +444,19 @@ export default class SparklineSeries {
     this.dataState = SPARKLINE_DATA_STATE.NOT_LOADED;
   }
 
-  /** Stores the request state reported by the History owner for one item. */
+  /** Stores the HA History request state without changing the Series' graph data state. */
   setRequestState(item, requestState) {
     item.requestState = requestState;
   }
 
-  /** Runs all initialized graph engines against their own normalized rows. */
+  /** Updates each SparklineGraph, returns per-Series states and stores the combined Sparkline state. */
   updateGraphs() {
     const dataStates = this.items.map((item) => {
       item.dataState = item.graph.update(item.rows, item.rowsUpdate);
       return item.dataState;
     });
+    // A completed empty History response is current; the Sparkline is empty only
+    // when every Series is current and none has values.
     const currentItems = this.items.filter((item) => [SPARKLINE_DATA_STATE.HAS_DATA, SPARKLINE_DATA_STATE.EMPTY].includes(item.dataState));
     this.dataState = currentItems.length !== this.items.length
       ? SPARKLINE_DATA_STATE.NOT_LOADED

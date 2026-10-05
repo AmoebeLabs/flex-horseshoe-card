@@ -70,6 +70,7 @@ export default class ArcTool extends BaseTool {
 
   /**
    * Builds the closed chord arc path: curved outer edge, straight line back to the start.
+   * A full turn uses two arcs to draw a complete circle.
    *
    * @returns {string} SVG path data for this arc.
    */

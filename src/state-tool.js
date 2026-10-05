@@ -19,19 +19,19 @@ import { getDefaultFormatOptions, getNumberFormatOptions, numberFormatToLocale }
  */
 export default class StateTool extends BaseTool {
   /**
-   * Converts a raw entity value before locale formatting. Configured converters
-   * run first, then decimals follow the entity metadata unless YAML overrides them.
+   * Applies a configured converter to a raw HA state or attribute value before
+   * Home Assistant formats it into visible value and unit parts.
    *
    * @param {*} inState - Raw entity state or configured attribute value.
-   * @param {object} entityConfig - Resolved entity formatting configuration.
+   * @param {object} entityConfig - HA entity config containing the entity id, converter and attribute settings.
    * @param {object} hass - Current Home Assistant object.
    * @param {object} stateObj - Home Assistant state object.
-   * @returns {*} Converted and formatted display state.
+   * @returns {*} Converted value passed to the Home Assistant formatter.
    */
   static buildState(inState, entityConfig, hass, stateObj) {
-    // Keep undefined as state. Do NOT change this one!!
+    // Keep an absent value undefined so it stays distinct from the text "undefined".
     if (typeof inState === 'undefined') return inState;
-    // inState seems to be null when light is off!
+    // HA light attributes can be null while the light is off; keep that value null.
     if (inState === null) return inState;
 
     // New in v2.5.1: Check for built-in state converters
@@ -223,7 +223,6 @@ export default class StateTool extends BaseTool {
                   hsl.h = entity.attributes.color.h || entity.attributes.color.hue;
                   hsl.s = entity.attributes.color.s || entity.attributes.color.saturation;
                   // Convert HSL value to RGB
-                  // HERE
                   let { r, g, b } = Colors.hslToRgb(hsl);
                   if (converter === 'rgb_csv') {
                     inState = `${r},${g},${b}`;
@@ -307,7 +306,7 @@ export default class StateTool extends BaseTool {
   }
 
   /**
-   * Updates runtime entity context and displayed state/UOM text.
+   * Stores the HA entity and rebuilds the displayed State value and unit.
    *
    * @param {object} entity - Home Assistant entity state object for this state.
    * @param {object} entityConfig - Entity configuration for this state.
@@ -320,7 +319,7 @@ export default class StateTool extends BaseTool {
     this.updateTextMeasurement();
   }
 
-  /** Estimates complete state/UOM geometry and invalidates exact bounds on text or paint changes. */
+  /** Refreshes estimated state and unit bounds when their text or styles change. */
   updateTextMeasurement() {
     // Include state and derived UOM styles because either can affect the measured text box.
     const styles = this.getStyles({ 'font-size': '1em' });
@@ -341,7 +340,7 @@ export default class StateTool extends BaseTool {
     }
   }
 
-  /** Publishes effective styles and updates measurement only when its signature changes. */
+  /** Applies the supplied styles and refreshes State measurement inputs. */
   setEffectiveStyles(styles) {
     super.setEffectiveStyles(styles);
     this.updateTextMeasurement();

@@ -104,8 +104,9 @@ const CIRCULAR_SLIDER_CONFIG = {
 /** Numeric single/range slider with linear HA and circular visualizations. */
 export default class ControlSlider extends ControlBase {
   /**
-   * Completes slider visualization, scale/action metadata and value bindings.
-   * The template-context pass supplies visualization defaults without consuming JS.
+   * Applies the selected linear or circular visualization defaults and creates
+   * one entity value binding for a single Slider or two for a range Slider.
+   * The template-context call adds those defaults before JavaScript is evaluated.
    */
   static translateConfig(config, forTemplateContext = false) {
     const selectedConfig = Merge.mergeDeep(DEFAULT_SLIDER_CONFIG, config);
@@ -195,7 +196,7 @@ export default class ControlSlider extends ControlBase {
     return sliderConfig;
   }
 
-  /** Captures source; state, dragging and display values have one runtime owner. */
+  /** Stores Slider config and initializes its values, displayed values and drag state. */
   constructor(config, index, templates, cardId, card) {
     super(Merge.mergeDeep({
       orientation: DEFAULT_SLIDER_CONFIG.orientation,
@@ -369,9 +370,9 @@ export default class ControlSlider extends ControlBase {
     const sliderWasAvailable = this.runtime.available;
     this.runtime.available = entitySliderValues.every((sliderValue) => Number.isFinite(sliderValue));
 
-    // Keep the background track visible for unknown/unavailable entities, but
-    // publish their real state to the optional value tools and render no active
-    // slider or interaction surface.
+    // When a configured value is nonnumeric, retain the background track and
+    // update optional State labels from HA. Active geometry and pointer/keyboard
+    // interaction use runtime.available.
     if (!this.runtime.available) {
       this.valueStateTools.forEach((valueTool, valueIndex) => {
         const sliderValueConfig = this.config.values[valueIndex];
@@ -434,7 +435,7 @@ export default class ControlSlider extends ControlBase {
     this.publishSliderValuesToStateTools();
   }
 
-  /** Sends transient slider values through normal StateTool formatting. */
+  /** Updates the value labels through StateTool so HA units and formatting remain in use. */
   publishSliderValuesToStateTools() {
     this.valueStateTools.forEach((valueTool, valueIndex) => {
       const sliderValueConfig = this.config.values[valueIndex];

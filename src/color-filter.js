@@ -227,7 +227,7 @@ export default class ColorFilter {
    * Maps a color onto one hue while preserving source lightness.
    *
    * @param {object} rgbColor - Culori RGB color.
-   * @param {string} monochromeColor - Target color family.
+   * @param {object} filter - Monochrome color, amount and preserve_neutral settings.
    * @param {LitElement} card - Card element used to resolve CSS variables.
    * @returns {object} Monochrome RGB color.
    */
@@ -254,7 +254,7 @@ export default class ColorFilter {
    * Maps a color between two configured colors using source lightness as the position.
    *
    * @param {object} rgbColor - Culori RGB color.
-   * @param {object} duotone - Dark and light endpoint colors.
+   * @param {object} filter - Duotone endpoint colors, amount and preserve_neutral settings.
    * @param {LitElement} card - Card element used to resolve CSS variables.
    * @returns {object} Duotone RGB color.
    */

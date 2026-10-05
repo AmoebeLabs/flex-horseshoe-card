@@ -202,7 +202,8 @@ const NUMBER_STYLE_PRESETS = {
 export default class ControlNumber extends ControlBase {
   /**
    * Completes number presets and content shorthands after evaluation.
-   * The template-context pass preserves child source and exposes existing defaults.
+   * JavaScript templates see the Number defaults through item; button content
+   * keeps its templates until Text or Icon evaluates them.
    */
   static translateConfig(config, forTemplateContext = false) {
     const normalizedConfig = Merge.mergeDeep({}, config);
@@ -247,7 +248,7 @@ export default class ControlNumber extends ControlBase {
     return numberConfig;
   }
 
-  /** Captures authored config and creates children only from concrete configuration. */
+  /** Stores Number config; JavaScript-configured content waits for HA evaluation. */
   constructor(config, index, templates, cardId, card) {
     super(Merge.mergeDeep({
       orientation: DEFAULT_NUMBER_CONFIG.orientation,
@@ -389,7 +390,7 @@ export default class ControlNumber extends ControlBase {
     this.getContentTools().forEach((tool) => tool.updateRuntimeConfig());
   }
 
-  /** Publishes entity state and builds automatic increment/decrement actions. */
+  /** Updates the displayed HA or FHS number value and builds its button actions. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
@@ -416,8 +417,9 @@ export default class ControlNumber extends ControlBase {
           : contentConfig.plus.tap_action,
     });
 
-    // Commands remain bound to the Number control. Generated presentation tools
-    // independently receive the entity selected by their completed config.
+    // Default increment/decrement actions target the Number entity; configured
+    // actions can select another target. The buttons' Text and Icon content can
+    // also display a different entity selected in the content config.
     this.minusContentTool.setEntities(
       this.card.runtimeEntityConfigs, this.card.entities,
     );
@@ -434,7 +436,7 @@ export default class ControlNumber extends ControlBase {
   }
 
 
-  /** Runs child measurement lifecycles after the complete control rendered. */
+  /** Measures the number text and loads button icons after rendering. */
   updated() {
     super.updated();
     if (this.minusContentTool) this.minusContentTool.updated();

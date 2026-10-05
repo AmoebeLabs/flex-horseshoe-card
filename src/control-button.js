@@ -228,7 +228,7 @@ const BUTTON_STYLE_PRESETS = {
 export default class ControlButton extends ControlBase {
   /**
    * Completes the selected button preset after its selectors are evaluated.
-   * The template-context pass supplies the same defaults visible through item.
+   * JavaScript templates see the button defaults through item before evaluation.
    */
   static translateConfig(config, forTemplateContext = false) {
     const selectedConfig = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG, config);
@@ -249,8 +249,8 @@ export default class ControlButton extends ControlBase {
       config,
     );
     const selectedVizName = buttonConfig.show.item_viz;
-    // Template context supplies defaults for concrete visualizations. Whole-value
-    // JavaScript stays source until the owning evaluator returns its object.
+    // Add button defaults to a configured visualization. A JavaScript template
+    // replacing the whole visualization must be evaluated before adding them.
     if (!forTemplateContext || !Templates.isJsTemplate(buttonConfig[selectedVizName])) {
       buttonConfig[selectedVizName] = Merge.mergeDeep(DEFAULT_BUTTON_CONFIG.viz_button, buttonConfig[selectedVizName]);
     }
@@ -268,7 +268,7 @@ export default class ControlButton extends ControlBase {
     return buttonConfig;
   }
 
-  /** Captures authored config; dynamic controls create children after publication. */
+  /** Stores button config; JavaScript-configured content waits for HA evaluation. */
   constructor(config, index, templates, cardId, card) {
     super(Merge.mergeDeep({
       orientation: DEFAULT_BUTTON_CONFIG.orientation,
@@ -295,8 +295,8 @@ export default class ControlButton extends ControlBase {
    * chooses one completed content dictionary and controls only its inner layout.
    */
   createButtonContentTools() {
-    // Dynamic JavaScript config may rebuild the stack; release child-owned
-    // history subscriptions and timers before replacing it.
+    // Changing button content can replace embedded Sparklines. Stop their
+    // History subscriptions and timers before creating the new content.
     this.getContentTools().forEach((tool) => tool.disconnected());
     const contentMode = this.config.content.mode;
     const contentConfig = this.config.content[contentMode];
@@ -307,7 +307,7 @@ export default class ControlButton extends ControlBase {
     let contentHeight = this.config.height - contentConfig.padding.y * 2;
     let contentYpos = this.config.ypos;
 
-    // A line visualization owns one edge of the button. Remove that strip from
+    // A line indicator occupies one edge of the button. Remove that strip from
     // the content bounds and center all content in the remaining area.
     if (this.config.show.item_viz === 'viz_line') {
       const vizLine = this.config.viz_line;
@@ -477,7 +477,7 @@ export default class ControlButton extends ControlBase {
   }
 
 
-  /** Selects active/inactive visualization and publishes state to child tools. */
+  /** Selects active/inactive button styles and updates its Text and Icon states. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
@@ -512,7 +512,7 @@ export default class ControlButton extends ControlBase {
   }
 
   /**
-   * Runs ordinary child-tool post-render lifecycles.
+   * Measures button text and finishes loading icons after the button is rendered.
    */
   updated() {
     super.updated();
@@ -538,7 +538,7 @@ export default class ControlButton extends ControlBase {
   }
 
   /**
-   * Renders state visualization, child content and one authoritative hit area.
+   * Draws the button, its content and the area that handles presses and actions.
    */
   render() {
     if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;

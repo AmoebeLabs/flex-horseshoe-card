@@ -6,25 +6,25 @@ import actionHandler from './action-handler.js';
 import { DEFAULT_RENDER_INDEX, DEFAULT_ZPOS } from './const.js';
 
 /**
- * Shared configuration and lifecycle for layout tools. Each tool keeps its
- * derived geometry and displayed content separate from the current config.
- * The injected Templates instance supplies the
- * persistent card-wide context shared by tools belonging to this card.
+ * Gives layout tools the same JavaScript-config evaluation, HA entity binding,
+ * style and action handling. Each tool calculates its own shape and content.
  */
 export default class BaseTool {
+
   /**
-   * Stores this tool's normalized config and references to its parent card context.
+   * Keeps the authored item config for JavaScript templates and connects the tool
+   * to the card's entities, groups, animations and SVG identifiers.
    *
-   * @param {object} config - Static item config after card-level refs, calc, ids, and same_as handling.
-   * @param {number} index - Item index inside its layout section.
-   * @param {object} templates - Template resolver shared with the card.
-   * @param {string} cardId - Stable card id for generated SVG ids.
-   * @param {LitElement} card - Parent card instance with shared render helpers.
-   * @param {string} animationSection - Animation bucket name for this tool type.
-   * @param {string} zposSection - Layer bucket name for zpos defaults.
-   * @param {number|undefined} defaultEntityIndex - Entity index selected by tools whose content is entity-bound by definition.
-   * @param {object|undefined} colorStopPaintDefaults - Tool-specific fill and stroke defaults.
-   * @param {Function|undefined} translateConfig - Pure tool-specific normalization after source capture/evaluation.
+   * @param {object} config - Layout item after card templates, refs and calc expressions.
+   * @param {number} index - Position within the tool's layout section.
+   * @param {object} templates - This card's JavaScript template evaluator.
+   * @param {string} cardId - Card identifier used to keep SVG ids distinct.
+   * @param {LitElement} card - FHS card containing the tool.
+   * @param {string} animationSection - Tool section whose animation styles apply.
+   * @param {string} zposSection - Tool section supplying the default drawing order.
+   * @param {number|undefined} defaultEntityIndex - Default entity for an entity-bound tool.
+   * @param {object|undefined} colorStopPaintDefaults - Default fill/stroke switches for color-stop modes.
+   * @param {Function|undefined} translateConfig - Tool-specific config completion after evaluation.
    */
   constructor(
     config,
@@ -49,11 +49,11 @@ export default class BaseTool {
     config.zpos ??= this.defaultZpos;
     config.dzpos ??= 0;
 
-    // Preserve the template-visible source while geometry and paint change independently.
+    // Keep [[[ ... ]]] intact for later HA updates. Static config can be completed
+    // now; JavaScript values must be evaluated before tool-specific completion.
     this.sourceConfig = structuredClone(config);
     this.hasJavascript = templates.hasJavascriptTemplates(this.sourceConfig);
-    // Static config can be translated immediately. Dynamic source stays intact
-    // until the normal runtime pass evaluates it before translation and publication.
+
     this.translateConfig = translateConfig;
     this.config = translateConfig && !this.hasJavascript ? translateConfig(config) : config;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
@@ -67,32 +67,35 @@ export default class BaseTool {
     this.configurationChanged = true;
     this.groupChanged = false;
     this.themeModeChanged = false;
-    // Static config already exists; this marks completion of the first runtime-config update.
+
     this.runtimeConfigInitialized = false;
     this.evaluatedConfigSignature = undefined;
   }
 
   /**
-   * Updates the runtime configuration after main has published the current
-   * Home Assistant template context and before entity data is assigned.
+   * Evaluates changed JavaScript config before the tool receives its HA entity.
+   * Group movement and light/dark changes are tracked separately so geometry and
+   * colors can change even when JavaScript returns the same config.
+   *
+   * @param {object} sourceConfig - Authored fields to evaluate for this tool.
+   * @param {object} templateOptions - Options controlling JavaScript key evaluation.
+   * @param {object} templateContext - Item/entity context exposed to the templates.
    */
   updateRuntimeConfig(sourceConfig = this.sourceConfig, templateOptions = { resolveKeys: true }, templateContext = sourceConfig) {
     const activeGroupId = this.config.group ?? this.sourceConfig.group ?? 'card';
     this.configurationChanged = !this.runtimeConfigInitialized;
     this.groupChanged = this.card.cardLayout.changedGroupIds.has(activeGroupId);
     this.themeModeChanged = this.card.cardTheme.modeChanged;
-    // Consumers that depend on more than one category use this combined change signal.
+
     this.configChanged = this.configurationChanged || this.groupChanged || this.themeModeChanged;
 
-    // Static tools retain their current config. JavaScript-backed tools evaluate
-    // a new local config during the same hass updates as before.
     let newConfig = this.config;
     let evaluatedSourceConfig = sourceConfig;
     if (this.hasJavascript && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
       const evaluatedConfig = this.templates.getJsTemplateOrValue(templateContext, sourceConfig, templateOptions);
       const evaluatedConfigSignature = JSON.stringify(evaluatedConfig);
 
-      // Equivalent JS results skip translation; the same pass still handles group and theme changes.
+      // Equal template values reuse the completed config rather than normalizing it again.
       if (evaluatedConfigSignature !== this.evaluatedConfigSignature) {
         newConfig = evaluatedConfig;
         evaluatedSourceConfig = evaluatedConfig;
@@ -102,13 +105,12 @@ export default class BaseTool {
       }
     }
 
-    // Reevaluate from source, not from last render's derived data. Static config
-    // was translated at construction and needs no second translation on first hass.
     if (newConfig !== this.config && this.translateConfig) {
       newConfig = this.translateConfig(newConfig);
     }
 
-    // Keep the authored definitions in config while publishing only their active mode to paint.
+    // Select the light/dark color list without replacing the authored mode lists.
+    // Sparkline stores its palette inside sparkline; Horseshoe also accepts colorstops.
     if (this.configurationChanged || this.themeModeChanged) {
       let colorStopsDefinition = newConfig.color_stops;
       const hasSparklinePalette = newConfig.sparkline !== undefined;
@@ -130,42 +132,29 @@ export default class BaseTool {
       }
     }
 
-    // Entity-level color stops remain passive until the layout item selects a color-stop mode.
     if (this.configurationChanged && this.colorStopPaintDefaults
       && (newConfig.color_stops
         || ['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(newConfig.show?.item_style))) {
       this.normalizeLayoutItemColorStopMode(newConfig);
     }
 
-    // Multipart tools finish their own evaluation contexts and child bindings
-    // here, so state processing always sees the complete current configuration.
+    // Text evaluates its parts with their individual entity contexts here. Finish
+    // those parts and inline entity bindings before setState() reads the config.
     this.config = this.completeRuntimeConfig(newConfig, this.configurationChanged ? evaluatedSourceConfig : undefined);
-    // Bind from the published config before state assignment. Multipart Text
-    // reapplies its evaluated part binding after updating each inline source tool.
+
     if (this.configurationChanged) this.entity_index = this.config.entity_index ?? this.defaultEntityIndex;
     this.zpos = Number(this.config.zpos) + Number(this.config.dzpos);
     this.runtimeConfigInitialized = true;
   }
 
-  /**
-   * Completes context-dependent fields before the runtime route publishes config.
-   * Constructors use the explicit pure translator instead of this runtime hook.
-   *
-   * @param {object} newConfig - Evaluated and translated configuration.
-   * @param {object|undefined} evaluatedSourceConfig - Local pre-translation source published with this config, or undefined when config is unchanged.
-   * @returns {object} Complete current configuration.
-   */
+  /** Lets Text finish its parts before storing the config used for state and rendering. */
   completeRuntimeConfig(newConfig, evaluatedSourceConfig) {
     return newConfig;
   }
 
   /**
-   * Normalizes the public layout-item color-stop selector at the runtime-config boundary.
-   *
-   * Both single-color paint dictionaries are completed here so renderers only consume final config.
-   *
-   * @param {object} item - Layout item or multipart text item with normalized color stops.
-   * @param {object} paintDefaults - Semantic fill and stroke defaults for this tool.
+   * Completes the fill/stroke switches for the configured color-stop modes. A tool's
+   * defaults decide whether a selected color paints its fill, stroke or both.
    */
   normalizeLayoutItemColorStopMode(item, paintDefaults = this.colorStopPaintDefaults) {
     item.show ??= {};
@@ -193,25 +182,15 @@ export default class BaseTool {
     });
   }
 
-  /**
-   * Stores the runtime entity data for this tool after its active configuration
-   * has been prepared by updateRuntimeConfig().
-   *
-   * @param {object} entity - Home Assistant entity state object for this tool.
-   * @param {object} entityConfig - Entity configuration for this tool.
-   */
+  /** Stores the selected HA entity and its card config for formatting and coloring. */
   setState(entity, entityConfig) {
     this.runtime.entity = entity;
     this.runtime.entityConfig = entityConfig;
   }
 
   /**
-   * Receives all card entities through the common tool lifecycle. Ordinary
-   * tools select their configured entity_index; composite tools can override
-   * this method and bind their own child items.
-   *
-   * @param {Array<object>} entityConfigs - Active entity configurations.
-   * @param {Array<object>} entities - Current Home Assistant entity states.
+   * Selects this tool's entity_index from the card's current entities. Items
+   * without an entity use their static content; multipart tools select their own parts.
    */
   setEntities(entityConfigs, entities) {
     if (this.entity_index === undefined) {
@@ -224,43 +203,33 @@ export default class BaseTool {
     if (entity && entityConfig) this.setState(entity, entityConfig);
   }
 
-  /** Activates configuration that does not depend on an entity state. */
+  /** Refreshes an item whose content comes from config rather than an HA entity. */
   setStaticState() {}
 
-  /** Called once when Home Assistant context first becomes available to this tool. */
+  /** Called when this card first has Home Assistant data for the tool. */
   hassAvailable() {}
 
-  /** Called when the parent card is attached to the DOM. */
+  /** Starts tool work when the card enters the dashboard DOM. */
   connected() {}
 
-  /** Called when the parent card is removed from the DOM. */
+  /** Stops tool timers and listeners when the card leaves the dashboard DOM. */
   disconnected() {}
 
-  /** Called after the parent card's first Lit update. */
+  /** Called once after the tool's initial SVG has been rendered. */
   firstUpdated() {}
 
-  /** Called after every completed Lit update of the parent card. */
+  /** Lets tools measure rendered SVG and attach listeners after each card render. */
   updated() {}
 
-  /** Called after the Home Assistant websocket reconnects. */
+  /** Lets tools refresh data after the Home Assistant websocket reconnects. */
   hassConnected() {}
 
-  /**
-   * Reports whether this tool requires the next Home Assistant state pass.
-   *
-   * @returns {boolean} True when setHass must update this tool.
-   */
+  /** Returns whether the tool needs work even when the configured HA entities are unchanged. */
   requiresHassUpdate() {
     return false;
   }
 
-
-  /**
-   * Resolves configured styles and animation styles into one style object.
-   *
-   * @param {object} baseStyles - Tool-specific base styles.
-   * @returns {object} Style dictionary ready for styleMap().
-   */
+  /** Combines tool defaults, configured or parent-selected styles, then animation styles. */
   getStyles(baseStyles) {
     const itemStyleDict = ConfigHelper.toStyleDict(this.runtime.effectiveStyles ?? this.config.styles);
     const animationStyle = ConfigHelper.toStyleDict(this.card.cardAnimations.styles[this.animationSection]?.[this.config.animation_id] ?? {});
@@ -273,26 +242,15 @@ export default class BaseTool {
   }
 
   /**
-   * Publishes the complete effective child style map after the parent's existing
-   * style merge. It replaces configured styles at the child render boundary;
-   * this is not a partial override. The child still applies its own state-map,
-   * color-stop and animation layers afterwards. Passing undefined restores the
-   * configured styles.
-   *
-   * @param {object|undefined} styles - Complete parent-resolved styles, or undefined to clear them.
+   * Uses a complete style selection from a Control or containing Text item in
+   * place of this tool's configured styles. Passing undefined restores those
+   * styles; the tool can still apply its own state_map, color stops and animations.
    */
   setEffectiveStyles(styles) {
     this.runtime.effectiveStyles = styles;
   }
 
-  /**
-   * Builds the color-filter cascade for this tool in visual context order.
-   *
-   * This only exposes the configured filters; renderers decide when to apply them.
-   *
-   * @param {Array<object>} extraFilters - Extra filters such as layer or segment filters.
-   * @returns {Array<object>} Ordered color_filter configs.
-   */
+  /** Orders color filters from the card through enclosing groups to this tool and its layers. */
   getColorFilterCascade(extraFilters = []) {
     const groupFilters = this.card.cardLayout.groupManager
       .getGroupChainForItem(this.config)
@@ -306,16 +264,7 @@ export default class BaseTool {
     ];
   }
 
-  /**
-   * Applies the resolved color-filter cascade to a final style dictionary.
-   *
-   * This helper is intentionally not wired into renderers yet; it exists so the
-   * final render step can be tested explicitly before any broad integration.
-   *
-   * @param {object} styles - Final render style dictionary.
-   * @param {Array<object>} extraFilters - Extra filters such as layer or segment filters.
-   * @returns {object} Render style dictionary with filtered color properties.
-   */
+  /** Applies color filters and turns named gradients into this card's SVG references. */
   getRenderStyles(styles, extraFilters = []) {
     const filteredStyles = ColorFilter.applyToStyles(styles, this.getColorFilterCascade(extraFilters), this.card);
 
@@ -323,17 +272,15 @@ export default class BaseTool {
   }
 
   /**
-   * Applies the selected color-stop result to the configured SVG paint properties.
-   *
-   * @param {object} styles - Mutable style dictionary.
-   * @param {object} item - Runtime item containing the normalized mode dictionaries.
-   * @param {Array<string>} fillProperties - Renderer properties representing logical fill.
+   * Adds the selected color-stop styles and colors to an SVG item. The configured
+   * mode controls fill and stroke separately; Text can supply another property
+   * name when its visible color is stored somewhere other than fill.
    */
   applyColorStops(styles, item = this.config, fillProperties = ['fill'], explicitColorStops) {
     if (!['colorstop', 'colorstopsegments', 'colorstopinterpolated'].includes(item.show?.item_style)) return;
 
-    // Multipart items use their explicit palette or entity fallback; the outer
-    // Text palette is not an implicit palette for an independently bound part.
+    // A Text part uses its own palette or its entity's palette. This keeps a part
+    // bound to another entity from taking the containing Text's colors.
     const configuredColorStops = explicitColorStops ?? (item === this.config ? this.paint?.colorStops : undefined);
     const colorStops = configuredColorStops ?? this.card.cardEntities.paint.colorStops[item.entity_index];
     const activeStop = this.card.cardEntities.getItemColorStop(item, colorStops, this.card.config, this.card.entities);
@@ -351,13 +298,7 @@ export default class BaseTool {
     }
   }
 
-  /**
-   * Applies the existing SVG text ellipsis behavior used by text layout tools.
-   *
-   * @param {string} text - Text to shorten.
-   * @param {number} ellipsis - Maximum character count.
-   * @returns {string} Original or shortened text.
-   */
+  /** Replaces the trailing text with '...' when the configured character limit is exceeded. */
   textEllipsis(text, ellipsis) {
     if (ellipsis && ellipsis < text.length) {
       return text.slice(0, ellipsis - 1).concat('...');
@@ -366,56 +307,30 @@ export default class BaseTool {
     return text;
   }
 
-  /**
-   * Converts item coordinates to SVG coordinates within the item's group.
-   *
-   * @param {object} config - Static or runtime item config.
-   * @returns {object} SVG coordinates.
-   */
+  /** Converts card-percentage coordinates into SVG coordinates in the configured group. */
   calculateSvgDimensions(config = this.config) {
     return this.card.cardLayout.calculateSvgCoordinatesInGroup(config);
   }
 
-  /**
-   * Returns the SVG transform for the configured group and item flip settings.
-   *
-   * @param {object} [item=this.config] - Runtime item config.
-   * @returns {string} SVG transform value.
-   */
+  /** Returns the group scale and item flip transforms for this tool's SVG. */
   getGroupScaleTransform(item = this.config) {
     return this.card.cardLayout.getGroupScaleTransform(item);
   }
 
-  /**
-   * Returns the SVG style needed for group scale origin.
-   *
-   * @param {object} [item=this.config] - Runtime item config.
-   * @returns {string} SVG style value.
-   */
+  /** Places the SVG transform origin at the tool center or the scaled group center. */
   getGroupScaleStyle(item = this.config) {
-    // Migrated tools pass their geometry explicitly. The remaining families
-    // retain their existing SVG storage until their own migration plans.
+
     return this.card.cardLayout.getGroupScaleStyle(item, this.geometry ? this.geometry.svg : item.svg);
   }
 
-  /**
-   * Wraps this tool's rendered SVG content in configured clip and mask layers.
-   *
-   * The actual scoped ids live in MasksClips. Tools only know the user-facing
-   * `clip` and `mask` names from their runtime config.
-   *
-   * @param {TemplateResult} content - Rendered SVG content for this tool.
-   * @param {object} item - Runtime config that may contain clip/mask names.
-   * @returns {TemplateResult} Wrapped or unchanged SVG content.
-   */
+  /** Applies the configured masks, clip and group visibility to the tool's SVG content. */
   renderItemLayers(content, item = this.config) {
     let result = content;
 
     if (item.mask) {
       const maskIds = Array.isArray(item.mask) ? item.mask : [item.mask];
 
-      // Multiple masks must be nested, not painted into one SVG mask. Nesting makes
-      // each mask constrain the previous result, which is the useful combined effect.
+      // Apply masks one after another so only the area allowed by every mask remains.
       maskIds.forEach((maskId) => {
         this.card.cardLayout.masksClips.getMaskUseIds(maskId, item, this.zposSection).forEach((svgMaskId) => {
           result = svg`<g mask="url(#${svgMaskId})">${result}</g>`;
@@ -427,9 +342,8 @@ export default class BaseTool {
       result = svg`<g clip-path="url(#${this.card.cardLayout.masksClips.getClipUseId(item.clip, item, this.zposSection)})">${result}</g>`;
     }
 
-    // Hidden tools remain in the SVG and in every normal lifecycle phase. This
-    // preserves text measurement, fit references, history and runtime state,
-    // while the outer layer guarantees no visible or pointer-active descendant.
+    // Keep hidden Text measurable and hidden graphs up to date, while hiding all
+    // their SVG content and preventing clicks on any nested item.
     if (!this.card.cardLayout.groupManager.isItemVisible(item)) {
       result = svg`
         <g
@@ -445,16 +359,12 @@ export default class BaseTool {
     return result;
   }
 
-  /** Returns the shared gesture directive configured for this layout item. */
+  /** Connects this item's tap, hold and double-tap settings to the gesture handler. */
   actionHandler() {
     return actionHandler(this.card.actions.getActionHandlerOptions(this.config, this.entity_index));
   }
 
-  /**
-   * Routes a normalized gesture together with this exact item and entity index.
-   *
-   * @param {CustomEvent} event - Gesture event from the shared action handler.
-   */
+  /** Runs the gesture action for this exact layout item and its selected entity. */
   handleAction(event) {
     this.card.actions.handleAction(event, this.config, this.entity_index);
   }

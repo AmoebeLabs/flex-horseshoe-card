@@ -248,11 +248,11 @@ export default class ControlSelect extends ControlBase {
   }
 
   /**
-   * Completes one explicit or entity-derived option map.
+   * Completes configured options from `option_map` or Home Assistant.
    *
-   * State identifies the selected segment, value feeds actions, and text is
-   * presentation. Keeping those roles separate lets one map handle translated
-   * labels and services whose accepted value differs from the reported state.
+   * `state` is matched against the HA entity to select a segment, `value` is
+   * sent by its action, and `text` is the visible label. They can differ for
+   * translated labels or entities that accept a value different from their state.
    */
   static normalizeOptionMap(optionMap, selectConfig) {
     if (!Array.isArray(optionMap) || optionMap.length === 0) {
@@ -287,11 +287,11 @@ export default class ControlSelect extends ControlBase {
   }
 
   /**
-   * Replaces exact option(path) values inside one option's gesture configs.
+   * Replaces exact `option(path)` values in one option's gesture actions.
    *
-   * For example, data.hvac_mode: option(value) receives the raw option value.
-   * References are not interpolated into surrounding strings, preserving the
-   * referenced property's original datatype.
+   * The Control evaluates JavaScript action templates before this step. For
+   * example, `data.hvac_mode: option(value)` receives the option's raw value,
+   * and each exact reference retains the referenced property's data type.
    */
   static buildOptionActionConfig(option) {
     const replaceOptionReferences = (value) => {
@@ -382,10 +382,9 @@ export default class ControlSelect extends ControlBase {
     );
     const selectedVizName = selectConfig.show.item_viz;
 
-    // A named visualization inherits the complete button visualization before
-    // its own config overrides are applied. Render code consumes one final viz.
-    // Whole-value JavaScript must reach evaluation as source, not as an object
-    // built from the template string's characters during context completion.
+    // Start the selected visualization with viz_button defaults, then apply its
+    // own settings. Rendering uses only that selected visualization. Keep a
+    // whole-value JavaScript template intact until the Control evaluates it.
     if (!forTemplateContext || !Templates.isJsTemplate(selectConfig[selectedVizName])) {
       selectConfig[selectedVizName] = Merge.mergeDeep(
         DEFAULT_SELECT_CONFIG.viz_button,
@@ -441,7 +440,10 @@ export default class ControlSelect extends ControlBase {
     return selectConfig;
   }
 
-  /** Captures select source without interpreting dynamic options or selectors. */
+  /**
+   * Stores Select config. JavaScript fields are evaluated at runtime, and
+   * Home Assistant options come from the selected entity.
+   */
   constructor(config, index, templates, cardId, card) {
     const usesEntityOptions = config.option_map === undefined;
     super(Merge.mergeDeep({
@@ -532,9 +534,9 @@ export default class ControlSelect extends ControlBase {
     }
     contentOffsetY += (contentPaddingTop - contentPaddingBottom) / 2;
 
-    // Each segment owns one content parent. Selection still belongs to the
-    // select entity, while option.entity_index becomes the inherited visual
-    // entity for every child in this one segment.
+    // Give each segment its own content stack. The Select entity determines the
+    // selected option; option.entity_index supplies the HA entity inherited by
+    // that segment's visual children.
     if (contentConfig.items !== undefined) {
       this.optionTextTools = [];
       this.optionIconTools = [];
@@ -688,8 +690,8 @@ export default class ControlSelect extends ControlBase {
 
     if (this.configurationChanged || this.groupChanged) {
       this.geometry.svg = this.calculateSvgDimensions(this.config);
-      // Changed parent defaults invalidate HA-derived option inheritance once.
-      // The next state pass rebuilds from HA options, even when that list is unchanged.
+      // Use the changed Select defaults to rebuild HA-provided options on the
+      // next entity update, even when Home Assistant's options list is unchanged.
       if (this.configurationChanged && this.usesEntityOptions) this.entityOptionsSignature = undefined;
       if (this.configurationChanged && !this.usesEntityOptions) {
         this.runtime.options = this.config.option_map;
@@ -713,13 +715,13 @@ export default class ControlSelect extends ControlBase {
   }
 
 
-  /** Selects the active option and publishes state plus visual styles. */
+  /** Matches the HA state or attribute to an option and updates segment styles and entities. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    // Entity-driven selects publish their segment definitions through the same
-    // attributes.options contract as Home Assistant select entities. Option and
-    // display-label changes rebuild the segment children once in this lifecycle.
+    // Without option_map, use entity.attributes.options and set each HA option
+    // as both its state and action value. Rebuild segment tools when options or
+    // their visible labels change.
     let optionsChanged = false;
 
     if (this.usesEntityOptions) {
@@ -788,6 +790,8 @@ export default class ControlSelect extends ControlBase {
       contentVisual.setState(optionStyle, transition);
     });
 
+    // Each option's entity_index supplies its Text and Icon data; the Select
+    // entity above determines the selected or unselected styles.
     this.optionTextTools.forEach((textTool, optionIndex) => {
       const optionStyle =
         optionIndex === this.runtime.selectedIndex
@@ -801,7 +805,6 @@ export default class ControlSelect extends ControlBase {
           transition: `fill ${transition}, color ${transition}, opacity ${transition}`,
         },
       ));
-      // Text and icon children follow the same effective option/tool binding.
       textTool.setEntities(
         this.card.runtimeEntityConfigs, this.card.entities,
       );
@@ -828,7 +831,7 @@ export default class ControlSelect extends ControlBase {
     });
   }
 
-  /** Runs child TextTool and IconTool post-render lifecycle hooks. */
+  /** Lets option Text and Icon tools finish their post-render measurement and setup. */
   updated() {
     super.updated();
     this.optionContentVisuals.forEach((contentVisual) =>
@@ -916,7 +919,8 @@ export default class ControlSelect extends ControlBase {
       segmentWidth - indicatorLeftPadding - indicatorRightPadding;
     let indicatorHeight;
 
-    // Indicator geometry is entirely selected by the active visualization preset.
+    // The selected viz_button or viz_line settings provide indicator position,
+    // padding, thickness and radius.
     switch (viz.indicator.position) {
       case "fill":
         indicatorY = trackY + indicatorPaddingTop;

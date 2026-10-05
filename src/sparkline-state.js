@@ -1,4 +1,4 @@
-/** Request lifecycle owned by SparklineHistory and reported per Series item. */
+/** History request status used to decide whether each Sparkline Series needs loading. */
 export const SPARKLINE_REQUEST_STATE = Object.freeze({
   NOT_LOADED: 'not_loaded',
   NOT_REQUIRED: 'not_required',
@@ -8,7 +8,7 @@ export const SPARKLINE_REQUEST_STATE = Object.freeze({
   CLOSED: 'closed',
 });
 
-/** Processed-data outcome owned by each SparklineGraph. */
+/** Distinguishes waiting for History, graph data to draw, and a successful empty response. */
 export const SPARKLINE_DATA_STATE = Object.freeze({
   NOT_LOADED: 'not_loaded',
   HAS_DATA: 'has_data',

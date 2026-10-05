@@ -8,9 +8,9 @@ const PATH_ANIMATION_EASING = {
 };
 
 /**
- * Animates normalized state progress inside one explicitly bound state layer.
- * The gauge supplies the state updater after the master path has been measured.
- * Each transition owns its scheduled frames until it completes or is replaced.
+ * Moves the Horseshoe progress and marker together along its measured Path.
+ * A new HA value starts from the position currently on screen. Replacing or
+ * disconnecting the Horseshoe cancels the previous animation's pending frames.
  */
 export default class PathStateAnimator {
   /**
@@ -35,10 +35,10 @@ export default class PathStateAnimator {
   }
 
   /**
-   * Binds the mutable state-layer mount and paints its current progress. Static
-   * siblings remain owned by the normal renderer and are never passed here.
+   * Connects the SVG group used for Horseshoe progress and markers, then draws
+   * their current position. The scale, labels and background keep their usual render.
    *
-   * @param {Element} stateLayerElement - Dedicated DOM mount for state-dependent path output.
+   * @param {Element} stateLayerElement - SVG group containing the moving progress and marker.
    */
   bindStateLayer(stateLayerElement) {
     const continueTransition = this.animating && this.stateLayerElement !== stateLayerElement;
@@ -96,8 +96,8 @@ export default class PathStateAnimator {
     this.animating = true;
     const easing = PATH_ANIMATION_EASING[this.animation.easing];
 
-    // Progress drives the state paint and marker together along the measured
-    // path. Replaced transitions relinquish their frame and completion work.
+    // Draw progress and marker at the same interpolated Path position each frame.
+    // A new target cancels callbacks from the previous animation.
     const updateAnimationFrame = (timestamp) => {
       if (this.animationNumber !== animationNumber) return;
       this.frame = undefined;
@@ -111,8 +111,8 @@ export default class PathStateAnimator {
       this.currentProgress = this.fromProgress + (this.toProgress - this.fromProgress) * easedProgress;
       this.updateStateLayer(this.stateLayerElement, this.currentProgress);
 
-      // Painting can close the gauge or start another transition. Only the
-      // transition that still owns the mount may schedule its next frame.
+      // Drawing can disconnect the Horseshoe or start another animation. Schedule
+      // another frame only while this is still the animation being displayed.
       if (this.animationNumber !== animationNumber) return;
 
       if (linearProgress < 1) {

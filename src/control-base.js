@@ -12,8 +12,10 @@ import Templates from './templates.js';
  */
 export default class ControlBase extends BaseTool {
   /**
-   * Adds shared visibility, gesture and label defaults at the config boundary.
-   * Concrete source objects retain nested expressions for their owning pass.
+   * Adds Control visibility, unavailable styling, gesture haptics and label
+   * defaults. The authored config keeps its JavaScript action templates. When
+   * called on the evaluated config, this adds haptics to action objects;
+   * `action: none` stays unchanged and explicit YAML haptics take precedence.
    */
   static completeConfig(config) {
     const DEFAULT_CONTROL_CONFIG = {
@@ -31,8 +33,9 @@ export default class ControlBase extends BaseTool {
     };
     const controlConfig = Merge.mergeDeep(DEFAULT_CONTROL_CONFIG, config);
 
-    // Complete every configured control gesture, including actions nested in
-    // number buttons and select options. Explicit YAML remains the final value.
+    // Keep authored JavaScript action templates intact. On the evaluated config,
+    // add haptics to Control, Number-button and Select-option actions; skip `none`
+    // and let explicit YAML haptics take precedence.
     const addControlHaptics = (value) => {
       if (Array.isArray(value)) {
         value.forEach((entry) => addControlHaptics(entry));
@@ -80,8 +83,9 @@ export default class ControlBase extends BaseTool {
         bottom: { 'text-anchor': 'middle', 'dominant-baseline': 'central' },
       };
 
-      // Whole-value templates keep their source until the owning runtime pass.
-      // Concrete style dictionaries may contain nested templates without losing them.
+      // The Control evaluates JavaScript label positions and whole styles values
+      // before applying alignment. Convert CSS keys in styles objects while
+      // preserving any JavaScript values they contain.
       if (!Templates.isJsTemplate(controlConfig.label.position)
         && !Templates.isJsTemplate(controlConfig.label.styles)) {
         controlConfig.label.styles = Merge.mergeDeep(
@@ -94,7 +98,7 @@ export default class ControlBase extends BaseTool {
     return controlConfig;
   }
 
-  /** Captures source and uses one subtype translator for concrete config. */
+  /** Keeps the authored Control config and applies its type-specific defaults. */
   constructor(config, index, templates, cardId, card, translateControlConfig) {
     const controlConfig = ControlBase.completeConfig(config);
     super(controlConfig, index, templates, cardId, card, 'controls', 'controls', undefined, { fill: true, stroke: false },
@@ -107,16 +111,17 @@ export default class ControlBase extends BaseTool {
     this.controlDisconnected = false;
   }
 
-  /** Evaluates parent-owned Control fields before completing current configuration. */
+  /** Evaluates Control selectors before the remaining config and child templates. */
   updateRuntimeConfig() {
     let sourceConfig = this.sourceConfig;
     if (this.translateControlConfig && this.hasJavascript
       && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates)) {
-      // Selectors establish the preset/defaults visible through item. Reuse their
-      // evaluated values in the remaining pass, so each expression runs once.
+      // Control translators use orientation and show to choose visual defaults.
+      // Evaluate those selectors once, then pass their values into the remaining
+      // config evaluation.
       const selectorContext = Merge.mergeDeep(this.translateControlConfig({}, true), sourceConfig);
-      // Selectors see the authored state map as a complete replacement, just as
-      // the final translator does after evaluation.
+      // Let orientation and show templates inspect the authored state_map as a
+      // whole, matching the map used by the completed Control config.
       if (sourceConfig.state_map !== undefined) selectorContext.state_map = sourceConfig.state_map;
       const orientation = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.orientation);
       const show = this.templates.getJsTemplateOrValue(selectorContext, selectorContext.show);
@@ -135,11 +140,12 @@ export default class ControlBase extends BaseTool {
   }
 
   /**
-   * Keeps generated visual source in its own template context. Layout fields
-   * such as padding, margins and icon size belong to the parent Control.
+   * Leaves Text, Icon and option-content fields for their generated tools to
+   * evaluate with their own HA entity. The Control evaluates layout settings
+   * such as label placement, padding, margins and icon size.
    *
    * @param {Array<string|number>} path - Field address in the parent source.
-   * @returns {boolean} Whether this field is evaluated by a generated child.
+   * @returns {boolean} Whether a generated Text, Icon or content tool evaluates this field.
    */
   static isChildConfigPath(path) {
     const [section, branch, field, item, property] = path;
@@ -202,12 +208,13 @@ export default class ControlBase extends BaseTool {
   /**
    * Creates the label TextTool at one physical side of the complete control.
    *
-   * Width and height use normal card configuration units. The label remains a
-   * normal TextTool and therefore owns text parts, fitting, wrapping and styles.
+   * The Control's width and height place the label beyond its selected side.
+   * TextTool handles the label's parts, fitting, wrapping and styles.
    */
   createControlLabelTextTool(controlWidth, controlHeight) {
     if (this.config.label === undefined) {
-      // Removing a configured label ends its child lifetime and rendered content.
+      // Disconnect the old label TextTool to stop pending measurements before
+      // removing its rendered text.
       if (this.labelTextTool) this.labelTextTool.disconnected();
       this.labelTextTool = undefined;
       return;
@@ -256,8 +263,8 @@ export default class ControlBase extends BaseTool {
       },
     );
 
-    // TextTool source parts render as their own tspans. Publish the control-label
-    // styles to those parts so explicit part styles remain the final override.
+    // Each TextTool part renders as its own SVG <tspan>. Apply the shared label
+    // styles before each part's styles so a part-specific font or color wins.
     const labelTextParts = Array.isArray(labelConfig.text) ? labelConfig.text : [labelConfig.text];
     labelConfig.text = labelTextParts.map((part) => {
       if (typeof part !== 'object') {
@@ -267,15 +274,16 @@ export default class ControlBase extends BaseTool {
         };
       }
 
-      // TextTool evaluates each part in its own context before combining styles.
-      // Keep that source intact and apply the shared label styles first.
+      // Keep each part's styles for TextTool to evaluate with that part's
+      // entity_index, then apply the shared label styles before those overrides.
       return {
         ...part,
         styles: [labelConfig.styles, part.styles],
       };
     });
 
-    // Styles now live on exactly one SVG level; em values must not compound.
+    // TextTool puts part styles on each <tspan>. Remove the outer copy so em
+    // font sizes are inherited and applied only once.
     delete labelConfig.styles;
 
     delete labelConfig.position;
@@ -289,7 +297,7 @@ export default class ControlBase extends BaseTool {
     else if (this.controlDisconnected) this.labelTextTool.disconnected();
   }
 
-  /** Gives rebuilt content the lifecycle already reached by this control. */
+  /** Gives rebuilt content tools the Control's current HA and DOM connection state. */
   activateContentTools() {
     this.getContentTools().forEach((tool) => {
       if (this.controlHassAvailable) tool.hassAvailable();
@@ -315,7 +323,7 @@ export default class ControlBase extends BaseTool {
     this.getContentTools().forEach((tool) => tool.connected());
   }
 
-  /** Closes every nested owner, including direct icon/text/state content. */
+  /** Disconnects the label and every nested Text, Icon, State or visual tool. */
   disconnected() {
     this.controlConnected = false;
     this.controlDisconnected = true;
@@ -341,7 +349,7 @@ export default class ControlBase extends BaseTool {
   }
 
   /**
-   * Publishes the exact configured label entity to its TextTool.
+   * Assigns the label TextTool the HA entity and config selected by its entity_index.
    */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
@@ -367,7 +375,7 @@ export default class ControlBase extends BaseTool {
     }
   }
 
-  /** Runs TextTool measurement and overflow lifecycle after rendering. */
+  /** Lets the label TextTool measure rendered text and finish wrapping or ellipsis. */
   updated() {
     if (this.labelTextTool) this.labelTextTool.updated();
   }

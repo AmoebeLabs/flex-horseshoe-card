@@ -9,7 +9,7 @@ import ControlToggle from './control-toggle.js';
  */
 export default class ControlTool {
   /**
-   * Compiles subtype-owned control configuration before entity resolution.
+   * Removes disabled Select options before named entity slots are assigned.
    *
    * @param {object} config Full card configuration after static values.
    * @param {object} templates Shared template evaluator.

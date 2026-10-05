@@ -4,15 +4,13 @@ const CARD_GROUP_ID = 'card';
 const GROUP_CENTER = 50;
 
 /**
- * Resolves layout groups into an effective parent tree.
- *
- * The public card helpers still ask for one item at a time. This class keeps the
- * parent-chain logic in the configuration layer, so render tools can continue to
- * use the same coordinate and transform helpers without knowing about parents.
+ * Calculates group centers by adding each enclosing group's position. Tools
+ * use these centers to draw and scale their items, and the enclosing group list
+ * to check visibility and select color filters.
  */
 export default class GroupManager {
   /**
-   * Stores the configured group tree and computes the effective group positions.
+   * Stores layout.groups and calculates their centers, including parent offsets.
    *
    * @param {Array<object>} groups - layout.groups from the normalized card config.
    */
@@ -41,10 +39,10 @@ export default class GroupManager {
   }
 
   /**
-   * Returns the effective group for an item, using the card root when no group is configured.
+   * Returns the item's group with parent offsets applied, or the card root group.
    *
    * @param {object} item - Layout item that can reference a group.
-   * @returns {object} Effective group config.
+   * @returns {object} Group config with its calculated center.
    */
   getGroupForItem(item) {
     return this.getGroup(item?.group ?? CARD_GROUP_ID);
@@ -92,7 +90,7 @@ export default class GroupManager {
    *
    * @param {string} groupId - Group id from layout.groups or the implicit card root.
    * @param {Array<string>} resolving - Parent stack used to detect cycles.
-   * @returns {object} Effective group config.
+   * @returns {object} Group config with its calculated center.
    */
   getGroup(groupId, resolving = []) {
     if (this.resolvedGroups[groupId]) {
@@ -114,7 +112,7 @@ export default class GroupManager {
     const xpos = parent ? parent.xpos + group.xpos - GROUP_CENTER : group.xpos;
     const ypos = parent ? parent.ypos + group.ypos - GROUP_CENTER : group.ypos;
 
-    // Keep the original group properties, but expose effective coordinates to existing render code.
+    // Keep configured group settings together with the center after parent offsets.
     const resolvedGroup = {
       ...group,
       id: groupId,
@@ -133,7 +131,7 @@ export default class GroupManager {
   }
 
   /**
-   * Converts item coordinates into effective SVG coordinates after parent group offsets.
+   * Adds the group center to the item's position and converts it to SVG units.
    *
    * @param {object} item - Layout item with xpos/ypos and optional group.
    * @returns {object} SVG coordinate object.
@@ -175,7 +173,7 @@ export default class GroupManager {
    * Builds the SVG style needed by the existing scale transform.
    *
    * @param {object} item - Layout item configuration.
-   * @param {object} svg - Tool-owned SVG coordinates used when the item itself is flipped.
+   * @param {object} svg - Tool's SVG center used as the origin for an item flip.
    * @returns {string} SVG style value.
    */
   getGroupScaleStyle(item, svg = item.svg) {

@@ -1,10 +1,10 @@
 import ConfigHelper from './config-helper.js';
 
-/** Owns evaluated animation styles and state-trigger matching. */
+/** Selects configured animation styles when an HA entity matches an animation state. */
 export default class CardAnimations {
   /**
-   * Creates stable style maps per renderable section so matching state
-   * animations can update entries without replacing domain references.
+   * Keeps animation styles for each tool section. Tools read the selected
+   * animation_id when combining their configured and animated styles.
    */
   constructor() {
     this.styles = {

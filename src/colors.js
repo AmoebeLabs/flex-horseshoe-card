@@ -63,8 +63,8 @@ export default class Colors {
       return colorBucket;
     }
 
-    // Older asynchronous work may still render, but must not replace the cache
-    // already published for a newer HA theme source.
+    // A delayed render using an older HA theme must leave the newer theme's
+    // cached color conversions intact.
     if (themeRevision < colorBucket.themeRevision) return undefined;
 
     const paletteDocumentsChanged = colorContext.paletteSources.length !== colorBucket.paletteDocuments.length
@@ -75,8 +75,9 @@ export default class Colors {
       || themeRevision !== colorBucket.themeRevision
       || paletteDocumentsChanged
     ) {
-      // Cards with a matching context share one active mode/source/document set.
-      // A context transition clears only that shared bucket, once.
+      // Cards using the same HA themes and palette URLs share one color cache.
+      // When light/dark mode, the theme or loaded palette documents change,
+      // clear only that shared cache.
       colorBucket.mode = colorContext.mode;
       colorBucket.themeRevision = themeRevision;
       colorBucket.paletteDocuments = colorContext.paletteSources.map((source) => source.palette);
@@ -130,7 +131,7 @@ export default class Colors {
    * @param {number} state - Current value.
    * @param {object} colorStops - Ordered numeric stops and colors.
    * @param {boolean} gradient - Whether to interpolate between adjacent stops.
-   * @param {object} colorContext - Card-owned CSS scope for conversion.
+   * @param {object} colorContext - This card's theme and inherited CSS used for conversion.
    * @returns {string|undefined} Selected or interpolated color.
    */
   static calculateStrokeColor(state, colorStops, gradient, colorContext) {
@@ -177,7 +178,7 @@ export default class Colors {
    * including a nested fallback after the top-level comma.
    *
    * @param {string} argColor - CSS variable expression.
-   * @param {object} colorContext - Card-owned CSS scope for this conversion.
+   * @param {object} colorContext - This card's theme and inherited CSS used for conversion.
    * @returns {string} Resolved CSS color or configured fallback.
    */
   static getColorVariable(argColor, colorContext) {
@@ -221,7 +222,7 @@ export default class Colors {
    * @param {string} argColorA - Start color.
    * @param {string} argColorB - End color.
    * @param {number} argValue - Fraction from the start to the end color.
-   * @param {object} colorContext - Card-owned CSS scope for variable colors.
+   * @param {object} colorContext - This card's HA theme and inherited CSS colors.
    * @returns {string|undefined} Interpolated eight-digit hex color.
    */
 
@@ -271,7 +272,7 @@ export default class Colors {
    * modern CSS colors for gradient interpolation.
    *
    * @param {string} argColor - CSS color value to convert.
-   * @param {object} colorContext - Card-owned CSS scope for this conversion.
+   * @param {object} colorContext - This card's theme and inherited CSS used for conversion.
    * @returns {Array<number>} Red, green, blue, and alpha channel values.
    */
   static colorToRGBA(argColor, colorContext) {

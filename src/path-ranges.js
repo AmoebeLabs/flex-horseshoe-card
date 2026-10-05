@@ -1,13 +1,13 @@
 import { clamp } from './frontend_mods/common/number/clamp.ts';
 
 /**
- * Maps source values and state modes into value-based 0..100 path ranges. This
- * layer knows scale and state meaning, but never receives SVG or paint data.
+ * Converts Horseshoe values into 0..100 Path positions using the selected scale
+ * and bar_mode. String-state modes divide the Path into equal state_map slots.
  */
 export class PathValueMapper {
   /**
-   * Stores one normalized value-mapping contract and selects its initial active
-   * absolute branch.
+   * Keeps the Horseshoe scale and state_map. For absolute mode, the current
+   * value's sign selects the negative or positive part of the scale.
    *
    * @param {object} config - Scale, bar mode, zero position, and state mapping.
    * @param {number} activeValue - Current source value.
@@ -153,9 +153,8 @@ export class PathValueMapper {
   }
 
   /**
-   * Divides the active source branch at configured stop values. The resulting
-   * intervals contain only source meaning and normalized path progress; color
-   * selection remains the responsibility of the paint layer.
+   * Divides the Horseshoe scale at its color-stop values. Each interval keeps
+   * its scale values and 0..100 positions for the gauge to select its color.
    *
    * @param {Array<number>} stopValues - Configured source values.
    * @returns {Array<object>} Ordered color-stop intervals in 0..100 space.
@@ -181,8 +180,9 @@ export class PathValueMapper {
   }
 
   /**
-   * Builds value ranges for the current source or ranked state. Equal state
-   * slots retain their before/current/after relation without adding paint data.
+   * Builds the visible progress range for a numeric value or state_map entry.
+   * String-state slots record before/current/after so the gauge can choose their
+   * configured styles; level mode also activates all slots before the current one.
    *
    * @param {number} value - Current numeric or ranked source value.
    * @returns {Array<object>} Value ranges in normalized 0..100 path space.
@@ -237,17 +237,17 @@ export class PathValueMapper {
 }
 
 /**
- * Converts ordered value ranges into drawable 0..100 ranges. This is the
- * single policy for clipping, internal and endpoint gaps, endpoint caps, and
- * normalized dash placement on every path shape.
+ * Prepares Horseshoe ranges for drawing: clip to the visible progress, leave
+ * configured gaps and choose the first/last end caps. Dash positions use the
+ * same 0..100 scale for every Path shape.
  *
  * @param {Array<object>} ranges - Ordered path-independent ranges.
  * @param {object} config - Normalized paint, clip, gap, and cap configuration.
  * @returns {Array<object>} Visible painted ranges with normalized dash data.
  */
 export function buildPaintedRanges(ranges, config) {
-  // Clip first so the first and last visible intervals own the real visible
-  // endpoints, including a state ending partway through a color-stop interval.
+  // Clip first so the end caps follow the visible progress, including when the
+  // current value ends partway through a color-stop interval.
   const clippedRanges = ranges
     .map((range, index) => ({
       range,

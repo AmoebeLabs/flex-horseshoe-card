@@ -54,7 +54,7 @@ export default class AreaTool extends BaseTool {
   }
 
   /**
-   * Updates runtime entity context and displayed area text.
+   * Stores the HA entity and updates the displayed Area text.
    *
    * @param {object} entity - Home Assistant entity state object for this area.
    * @param {object} entityConfig - Entity configuration for this area.
@@ -67,7 +67,7 @@ export default class AreaTool extends BaseTool {
     this.updateTextMeasurement();
   }
 
-  /** Estimates area geometry and invalidates exact bounds when text or paint changes. */
+  /** Refreshes the estimated Area bounds when its text or styles change. */
   updateTextMeasurement() {
     const styles = this.getStyles({ 'font-size': '1em' });
     const measurementSignature = `${this.runtime.area}|${JSON.stringify(styles)}`;
@@ -80,7 +80,7 @@ export default class AreaTool extends BaseTool {
     }
   }
 
-  /** Publishes effective styles and updates measurement only when its signature changes. */
+  /** Applies the supplied styles and refreshes Area measurement inputs. */
   setEffectiveStyles(styles) {
     super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
@@ -139,7 +139,7 @@ export default class AreaTool extends BaseTool {
    * Returns the current area as a standard text part for standalone rendering
    * or composition by TextTool.
    *
-   * @param {object} options - Source-style selection and final part overrides.
+   * @param {object} options - Whether to include Area styles and any Text-part style overrides.
    * @returns {Array<object>} One area text part.
    */
   getTextParts(options) {

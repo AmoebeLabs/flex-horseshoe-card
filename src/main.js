@@ -44,37 +44,27 @@ import { version } from '../package.json';
 console.info(`%c FLEX-HORSESHOE-CARD %c Version ${version} `, 'color: white; font-weight: bold; background: darkgreen', 'color: darkgreen; font-weight: bold; background: white');
 
 /**
- * Lovelace owns configuration and Home Assistant state delivery; Lit owns DOM
- * connection and rendering. These entry points keep config compilation, entity
- * updates and post-render DOM work in their corresponding lifecycle phases.
+ * Lovelace card combining SVG tools and embedded HA cards. Updates Sparklines
+ * before other tools so fhs_sparkline.* values are current when templates run.
  */
 class FlexHorseshoeCard extends LitElement {
-  /**
-   * Assembles the per-card domains and their callbacks once. Lovelace config,
-   * Home Assistant updates and Lit rendering then reuse these same objects for the
-   * complete custom-element lifecycle.
-   */
+
+  /** Sets up the shared entities, templates, tool sections and asynchronous SVG loads. */
   constructor() {
     super();
 
-    // A card-specific id scopes generated SVG definitions and their references
-    // to this card inside the shared dashboard document.
     this.cardId = Math.random().toString(36).substr(2, 9);
     this._hass = undefined;
 
-    // Templates retains this array reference for the complete card lifecycle.
-    // Entity updates replace array entries, and the shared reference gives every
-    // tool the current data throughout the card lifecycle.
+    // Templates and tools keep this same array while HA and local FHS values change.
     this.entities = [];
     this.templates = new Templates(this.entities);
 
-    // These domains own configuration, tools, HA connection state and local input
-    // behavior. Main only orders their Lovelace, hass and Lit lifecycle phases.
     this.cardLayout = new CardLayout(this.templates, this.cardId);
     this.cardTools = new CardTools(this, this.templates, this.cardId);
     this.homeAssistant = new HomeAssistant(() => this.cardTools.hassConnected());
     this.cardInputEntities = new CardInputEntities(this.cardId, this.entities, () => {
-      // Before HA availability, retain the input for the first source pass.
+
       if (this._hass !== undefined) this.updateSourceEntities(true, false);
     });
     this.actions = new CardActions(this, this.cardInputEntities);
@@ -112,23 +102,17 @@ class FlexHorseshoeCard extends LitElement {
     this.performanceRenderStart = undefined;
   }
 
-  /** Lit adopts this shared stylesheet into every card shadow root once per class. */
   static styles = CardStyles;
 
-  /**
-   * Home Assistant lifecycle: Lovelace assigns a new hass object whenever global
-   * state, services, themes or user data change.
-   */
+  /** Receives Home Assistant updates from Lovelace. */
   set hass(hass) {
     this.setHass(hass);
   }
 
   /**
-   * Recalculates gradients after theme CSS variables are present in the DOM.
-   *
-   * updateComplete waits for Lit's current commit; requestAnimationFrame then
-   * lets the browser apply new theme variables before the follow-up render reads
-   * palette colors and rebuilds gradients.
+   * Refreshes palette colors after Lit has rendered and the browser has applied
+   * theme CSS. Newer requests supersede a pending frame so old colors cannot
+   * repaint a card after a theme change or dashboard removal.
    */
   async _updateGradientsAfterRender() {
     this.stopGradientUpdate();
@@ -146,8 +130,8 @@ class FlexHorseshoeCard extends LitElement {
       if (this.gradientUpdate !== update || this.gradientsClosed) return;
       this.gradientUpdate = undefined;
       this.gradientsNeedUpdate = false;
-      // The same settled CSS context feeds every retained paint owner. Data,
-      // coordinates and animation progress stay untouched by this follow-up.
+
+      // Read inherited CSS colors now, then refresh tool palettes before rendering.
       if (this.cardTheme.finishPaintUpdate()) this.cardTools.updatePalettePaint();
       this.requestUpdate();
     } catch (error) {
@@ -157,7 +141,7 @@ class FlexHorseshoeCard extends LitElement {
     }
   }
 
-  /** Cancels the follow-up render scheduled for old theme/configuration DOM. */
+  /** Cancels a palette refresh and releases its frame wait when replaced or disconnected. */
   stopGradientUpdate() {
     const update = this.gradientUpdate;
     if (update) {
@@ -168,8 +152,8 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Publishes one external Home Assistant context, then forwards its sources
-   * through the same data sequence used by local FHS inputs.
+   * Gives templates, embedded cards and actions the newest HA data, then checks
+   * whether configured entities, formatting or theme changes require an FHS update.
    */
   setHass(hass) {
     const hassBecameAvailable = this._hass === undefined;
@@ -181,20 +165,19 @@ class FlexHorseshoeCard extends LitElement {
     const entityDisplayChanged = this.homeAssistant.entityDisplayChanged;
     const themeChanged = this.cardTheme.updateHass(hass);
     this.childCards.setHass(hass);
-    // Actions always use the current HA client, even when this delivery does
-    // not require configuration, tool or render work.
+
     this.actions.setHassAndEntities(hass, this.runtimeEntityConfigs, this.entities);
 
     this.updateSourceEntities(localeChanged || entityDisplayChanged || themeChanged, hassBecameAvailable);
   }
 
   /**
-   * Publishes source entries, activates source-dependent configuration, then
-   * calculates graphs and forwards their derived values to ordinary tools.
-   * Local inputs enter here with the existing HA context and shared array.
+   * Updates configured HA/local entities and Sparkline data before other tools.
+   * Unrelated HA traffic skips config evaluation and rendering unless a tool
+   * still needs work, such as a History refresh after websocket reconnect.
    *
-   * @param {boolean} contextChanged - Local input, display metadata, locale or theme changed.
-   * @param {boolean} hassBecameAvailable - First external HA delivery.
+   * @param {boolean} contextChanged - Local input, theme, locale or HA formatting changed.
+   * @param {boolean} hassBecameAvailable - This is the first HA update for the card.
    */
   updateSourceEntities(contextChanged, hassBecameAvailable) {
     const hass = this._hass;
@@ -203,8 +186,8 @@ class FlexHorseshoeCard extends LitElement {
 
     const entitiesPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
-    // Capture every configured Home Assistant entity before evaluating dynamic config.
-    // Object identity changes when HA publishes a new state or attribute set.
+    // HA replaces entity objects when their state or attributes change. Comparing
+    // those references also catches updates whose formatted value stays the same.
     let configuredEntityStateChanged = this.cardInputEntities.stateChanged || !this.entityConfigsInitialized;
     const configuredEntityCount = this.runtimeEntityConfigs.length;
 
@@ -217,13 +200,8 @@ class FlexHorseshoeCard extends LitElement {
       this.entities[index] = entity;
     }
 
-    // Entity state, display metadata, locale and theme changes publish a new
-    // Hass context to every context-dependent card domain during this pass.
     const hassContextChanged = configuredEntityStateChanged || contextChanged;
 
-    // Unrelated HA traffic still reaches child cards and connection owners in
-    // setHass(). FHS config and tools run only for declared inputs, supported
-    // context changes, or work retained by an asynchronous owner.
     if (!hassContextChanged && !this.cardTools.getRenderableTools().some((tool) => tool.requiresHassUpdate())) {
       if (performanceEnabled) {
         performance.measure(`FHS:${this.cardId}:setHass`, {
@@ -234,15 +212,13 @@ class FlexHorseshoeCard extends LitElement {
       return;
     }
 
-    // Evaluate every marked entity config exactly once for this configured state update.
-    // Static entity configs retain their compiled source object.
+    // Entity templates can choose another sensor. Evaluate them before selecting
+    // the final entities used by groups, tools and action targets.
     if (hassContextChanged) {
       this.runtimeEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true);
       this.entityConfigsInitialized = true;
     }
 
-    // An evaluated entity config may select a different entity. Publish the final entity list
-    // before tools, animations and card styles receive their JavaScript context.
     this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : hass.states[entityConfig.entity];
 
@@ -257,9 +233,8 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
-    // Groups are complete runtime components. Evaluate marked groups before tools,
-    // rebuild the manager only for changed results, and mark every dependent descendant.
     const groupsPerformanceStart = performanceEnabled ? performance.now() : undefined;
+    // Group templates can move, hide or scale nested tools; update groups first.
     this.cardLayout.updateGroups(hassContextChanged);
 
     if (performanceEnabled) {
@@ -269,16 +244,14 @@ class FlexHorseshoeCard extends LitElement {
       });
     }
 
-    // Home Assistant availability is a distinct one-time lifecycle phase.
     if (hassBecameAvailable) this.cardTools.hassAvailable();
 
-    // Every Hass context change re-evaluates JavaScript-backed tool configuration.
     this.evaluateJavascriptTemplates = hassContextChanged;
 
     const toolsPerformanceStart = performanceEnabled ? performance.now() : undefined;
 
-    // Producers consume source configuration once. Publish their outputs before
-    // activating presentation consumers against the final shared entity values.
+    // Sparkline can change fhs_sparkline.* values used by Text, State, Horseshoe
+    // and Controls. Store those values before evaluating their templates.
     this.cardTools.updateSparklineRuntimeConfig();
     this.cardTools.setSparklineEntityStates(this.runtimeEntityConfigs, this.entities);
     const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
@@ -305,11 +278,9 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Continues one processed Sparkline result into its derived values, ordinary
-   * tools and animations. The graph has already consumed its History/Series
-   * input; this phase publishes its output to presentation consumers.
-   *
-   * @param {SparklineGraphTool} graphTool - Graph whose current result changed.
+   * Updates tools using fhs_sparkline.* when a History request changes status or
+   * graph rows change at a response or bin boundary. Refresh their text and styles
+   * from the Sparkline's current statistics and request state.
    */
   updateSparklineResult(graphTool) {
     const changedEntityIndexes = this.cardEntities.updateSparklineEntities(
@@ -319,18 +290,17 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Activates configuration and animations from the final entity array, then
-   * assigns tool state and measures text using those final styles.
-   * Both synchronous source changes and asynchronous graph results finish here.
+   * Updates styles, animations and displayed content after the shared entity
+   * values are current, whether they came from HA or a completed History request.
    *
-   * @param {boolean} contextChanged - Source or external HA context changed.
-   * @param {Array<number>} changedEntityIndexes - Changed derived outputs.
+   * @param {boolean} contextChanged - Configured HA/FHS entity, theme, locale or HA formatting changed.
+   * @param {Array<number>} changedEntityIndexes - fhs_sparkline.* entries whose value/metadata changed.
    */
   updateEntityPresentation(contextChanged, changedEntityIndexes) {
     this.evaluateJavascriptTemplates = contextChanged || changedEntityIndexes.length > 0;
 
-    // JavaScript consumers can observe any derived entry in the shared array.
-    // Their existing active-config comparison limits actual layout changes.
+    // Entity and group templates may read any fhs_sparkline.* entry. Reevaluate
+    // them with the new graph values before binding the remaining tools.
     if (changedEntityIndexes.length > 0) {
       this.runtimeEntityConfigs = this.cardEntities.buildRuntimeEntityConfigs(this.config, true, this.cardTools.getBySection('sparklines'));
       this.cardLayout.updateGroups(true);
@@ -343,8 +313,6 @@ class FlexHorseshoeCard extends LitElement {
       performance.measure(`FHS:${this.cardId}:card-styles`, { start: cardStylesPerformanceStart, end: performance.now() });
     }
 
-    // A JavaScript entity config may select a different ordinary source. Keep
-    // shared entities and action targets aligned with that final selection.
     this.runtimeEntityConfigs.forEach((entityConfig, index) => {
       const entity = entityConfig.local ? this.entities[index] : this._hass.states[entityConfig.entity];
       if (!entity) return;
@@ -359,8 +327,8 @@ class FlexHorseshoeCard extends LitElement {
       performance.measure(`FHS:${this.cardId}:animations`, { start: animationsPerformanceStart, end: performance.now() });
     }
 
-    // State assignment also refreshes measurement-sensitive text. Select
-    // animation styles first so ordinary and nested text use their final fonts.
+    // Animations can change fonts. Choose their styles before Text measures its
+    // displayed parts, and then refresh legends with the final entity values.
     this.cardTools.setRuntimeEntityStates(this.runtimeEntityConfigs, this.entities);
     this.cardTools.updateSparklinePresentation();
 
@@ -370,25 +338,21 @@ class FlexHorseshoeCard extends LitElement {
     this.homeAssistant.markLocaleHandled();
     this.homeAssistant.markEntityDisplayHandled();
     this.cardTheme.markModeHandled();
-    // A relevant runtime pass publishes current bindings; Lit reconciles any
-    // equal values. Data, geometry and measurement owners retain their caches.
+
+    // Lit reuses unchanged DOM values; graph calculations and text measurements
+    // repeat only when the inputs they use have changed.
     this.requestUpdate();
   }
 
-  /**
-   * Schedules current palette paints after the existing DOM/CSS follow-up.
-   */
+  /** Schedules a refresh when an external palette becomes available. */
   updatePalettePaint() {
     this._updateGradientsAfterRender();
   }
 
   /**
-   * Lovelace lifecycle: compiles and validates one user-facing card configuration.
-   *
-   * Lovelace calls setConfig when it creates the card or replaces its YAML/config.
-   * The order remains explicit because each phase consumes the previous phase:
-   * templates, static values, controls, slots, inheritance, runtime entities and
-   * finally concrete tool instances.
+   * Compiles a Lovelace config into entities, groups and layout tools. Named
+   * templates and calc expressions are expanded before disabled items, slots
+   * and same_as references are finalized; tools then keep their own JS source.
    */
   setConfig(config) {
     const performanceEnabled = config.dev?.performance === true;
@@ -402,7 +366,8 @@ class FlexHorseshoeCard extends LitElement {
       } else {
         this.removeAttribute('embedded');
       }
-      // A root template may create required sections such as entities and layout.
+
+      // A card template can supply the required entities and layout sections.
       CardTemplates.compile(config, this);
       this.templates.beginConfig(config);
 
@@ -427,15 +392,15 @@ class FlexHorseshoeCard extends LitElement {
         config.entities = [];
       }
 
-      // Compile static syntax before controls and disabled templates inspect config.
+      // Compile constants before Control and disabled-item expressions read them.
       this.cardConfig.assignLayoutItemIds(config);
       this.cardConfig.compileStaticValues(config);
 
-      // Entity disabled templates use finalized constants but run before entity slots exist.
       ControlTool.compileConfig(config, this.templates);
       this.cardConfig.removeDisabledEntityConfigs(config);
 
-      // `entity_index: sensors[1]` remains symbolic through compound/same_as expansion.
+      // Keep named entity addresses usable while compounds and same_as expand,
+      // then convert the completed bindings into the shared entity array indexes.
       this.entitySlots = this.cardConfig.buildEntitySlots(config.entities);
       this.templates.setEntitySlots(this.entitySlots);
       this.cardConfig.normalizeEntityIndexAddresses(config);
@@ -446,11 +411,9 @@ class FlexHorseshoeCard extends LitElement {
       this.cardInputEntities.validateConfig(config);
       this.cardConfig.validateActionConfigs(config);
 
-      // Mark component sources once; each owner evaluates its own templates
-      // only when declared card inputs or supported context change.
+      // Detect JS once so each tool evaluates only its own authored fields later.
       this.templates.detectJavascriptTemplates(config);
 
-      // Runtime entity templates now receive the final entity-slot map.
       const resolvedEntitiesConfig = this.cardEntities.buildRuntimeEntityConfigs(config, false);
       this.cardInputEntities.initializeEntities(resolvedEntitiesConfig);
 
@@ -482,7 +445,7 @@ class FlexHorseshoeCard extends LitElement {
       this.entityConfigsInitialized = false;
       this.cardLayout.setConfig(this.config);
 
-      // Replacement ends the old tools' lifetimes before any new owner is made.
+      // Stop the old tools' timers, listeners and measurements before replacement.
       this.cardTools.clearTools();
       this.cardTools.setHorseshoeConfig(config);
 
@@ -491,11 +454,12 @@ class FlexHorseshoeCard extends LitElement {
       this.childCards.setConfig(this.config.cards ?? []).catch((error) => console.error('[FHC child cards]', error));
 
       if (this._hass !== undefined) this.cardTools.hassAvailable();
-      // A live YAML edit does not cause another DOM connection callback.
-      // Node binding still happens after Lit commits the replacement render.
+
+      // Editing YAML on a mounted card does not trigger connectedCallback again.
+      // Let replacement tools start now and bind their SVG after the next render.
       if (this.isConnected) this.cardTools.connected();
-      // HA can initialize a new card before its first DOM connection. Preserve
-      // that startup route; replacement after an actual disconnect stays closed.
+
+      // A removed card keeps replacement tools stopped until it reconnects.
       else if (this.cardTools.disconnectedFromCard) this.cardTools.disconnected();
 
       if (performanceEnabled) {
@@ -518,10 +482,7 @@ class FlexHorseshoeCard extends LitElement {
     }
   }
 
-  /**
-   * Lit/custom-element lifecycle: runs when the card enters the DOM.
-   * Event listeners and tool connections may be attached from this point onward.
-   */
+  /** Starts input synchronization, History, icon loads and tool listeners on dashboard entry. */
   connectedCallback() {
     super.connectedCallback();
     this.gradientsClosed = false;
@@ -529,37 +490,28 @@ class FlexHorseshoeCard extends LitElement {
     this.childCards.connected();
     this.externalSvgSources.connected();
 
-    // Global FHS input events synchronize card-scoped representations between
-    // cards while they are present together in the dashboard DOM.
+    // FHS input events synchronize local values between cards on the dashboard.
     this.cardInputEntities.connected();
 
-    // The HA connection emits `ready` after websocket reconnects. Tools use that
-    // signal to request fresh history for the reconnected session.
+    // HA emits ready after reconnecting; Sparklines can then refresh History.
     this.homeAssistant.connected();
 
-    // Visual tools may own timers or nested lifecycle-aware content. Forwarding
-    // connection here keeps those resources tied to the parent card's DOM life.
     this.cardTools.connected();
     if (this.gradientsNeedUpdate && !this.gradientUpdate) this._updateGradientsAfterRender();
-    // Reused cards may keep the same SVG nodes. Commit once so their tools
-    // can rebind animation layers and pointer listeners after cleanup.
+
+    // A reused card can retain SVG nodes. Render once so tools reattach listeners
+    // and measured animation paths that were released on dashboard removal.
     this.requestUpdate();
   }
 
-  /**
-   * Lit/custom-element lifecycle: runs when the card leaves the DOM.
-   * Card-owned listeners are detached so reconnecting does not duplicate them.
-   */
+  /** Stops dashboard listeners, timers, drags and pending SVG/palette work on removal. */
   disconnectedCallback() {
     this.gradientsClosed = true;
     this.stopGradientUpdate();
-    // Dashboard and websocket listener lifetimes follow the card's DOM
-    // connection lifecycle.
+
     this.cardInputEntities.disconnected();
     this.homeAssistant.disconnected();
 
-    // Sparkline timers, active slider pointer listeners and nested visual
-    // resources must stop even when disconnection happens during interaction.
     this.cardTools.disconnected();
     this.cardTheme.disconnected();
     this.childCards.disconnected();
@@ -567,10 +519,7 @@ class FlexHorseshoeCard extends LitElement {
     super.disconnectedCallback();
   }
 
-  /**
-   * Lit lifecycle: returns the DOM template whenever Lit schedules a render.
-   * This method describes output only; DOM measurements happen after rendering.
-   */
+  /** Draws the SVG tools, HTML tooltips and embedded HA cards with the current card styles. */
   render() {
     const performanceEnabled = this.dev.performance === true;
     const renderPerformanceStart = performanceEnabled ? performance.now() : undefined;
@@ -595,10 +544,7 @@ class FlexHorseshoeCard extends LitElement {
     return cardTemplate;
   }
 
-  /**
-   * Leaves SVG width and height unset so the browser scales the configured
-   * viewBox to the card width while preserving CardLayout's aspect ratio.
-   */
+  /** Uses the configured viewBox ratio while the browser scales SVG to the card width. */
   _renderSvg() {
     return svg`
         <svg xmlns="http://www/w3.org/2000/svg" xmlns:xlink="http://www/w3.org/1999/xlink"
@@ -612,33 +558,19 @@ class FlexHorseshoeCard extends LitElement {
       `;
   }
 
-  /**
-   * Sorts all tool sections together so zpos can place, for example, a control
-   * above a line even though those tools originate from different config arrays.
-   *
-   * @returns {TemplateResult} Sorted SVG layout tool templates.
-   */
+  /** Draws all sections together in zpos order, allowing any tool to overlap another. */
   _renderLayoutTools() {
     return svg`
       ${this.cardTools.getSortedRenderableTools().map((tool) => tool.render())}
     `;
   }
 
-  /**
-   * Renders sparkline tooltips in an HTML layer outside SVG.
-   *
-   * The HTML overlay uses viewport pointer coordinates and remains visible when
-   * tooltip content extends beyond the graph's SVG bounds.
-   */
+  /** Draws tooltips in HTML so they can extend beyond a Sparkline's SVG bounds. */
   _renderSparklineTooltips() {
     return html` <div class="sparkline-tooltip-layer">${this.cardTools.getBySection('sparklines').map((sparklineGraphTool) => sparklineGraphTool.renderTooltip())}</div> `;
   }
 
-  /**
-   * Lit lifecycle: runs once after Lit creates and commits the initial DOM.
-   *
-   * @param {Map} changedProperties - Lit changed properties map.
-   */
+  /** Lets tools initialize once their first SVG elements exist. */
   firstUpdated(changedProperties) {
     super.firstUpdated?.(changedProperties);
 
@@ -646,8 +578,8 @@ class FlexHorseshoeCard extends LitElement {
   }
 
   /**
-   * Lit lifecycle: runs after every committed render, including the first one.
-   * Tools can now read rendered DOM and attach handlers to replaced SVG elements.
+   * Lets tools measure Text, read Path lengths and bind pointer listeners after
+   * rendering. Optional timing includes follow-up renders requested by measurements.
    */
   updated(changedProperties) {
     const performanceEnabled = this.dev.performance === true;
@@ -681,16 +613,12 @@ class FlexHorseshoeCard extends LitElement {
         this.performanceUpdateStart = undefined;
       }
 
-      // Text measurement can request one follow-up Lit update from a tool's updated callback.
+      // Exact Text measurements can require one more render to fit or position it.
       if (this.isUpdatePending) this.performanceUpdateStart = updatedPerformanceEnd;
     }
   }
 
-
-  /**
-   * Returns Lovelace's masonry-layout estimate. The actual rendered height still
-   * follows CardLayout's SVG aspect ratio.
-   */
+  /** Gives Lovelace a masonry height estimate; the SVG aspect ratio sets actual height. */
   getCardSize() {
     return 4;
   }
