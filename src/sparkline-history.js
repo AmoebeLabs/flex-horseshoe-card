@@ -5,22 +5,23 @@ const DAY_MS = 24 * HOUR_MS;
 const HISTORY_RETRY_MS = 30 * 1000;
 
 /**
- * Owns the source records and time windows used by one Sparkline tool.
+ * Keeps Home Assistant History rows for a Sparkline's Series and optional
+ * `sun.sun` day/night background.
  *
- * The parent period determines one shared plot window. Each normalized Series
- * item supplies its effective source period, so an offset changes the requested
- * timestamps without introducing another timeline inside the graph engine.
+ * Covered time ranges reuse rows already returned by HA. Timers advance active
+ * graph bins and request History when a calendar period reaches a new day.
  */
 export default class SparklineHistory {
+
   /**
-   * Creates stable record storage for the normalized Series collection.
+   * Creates the History caches and applies the first Sparkline settings.
    *
-   * @param {object} plotPeriod - Parent period defining the shared timeline.
-   * @param {object} stateBandsStateMap - Valid categorical states and graph values.
-   * @param {Array<object>} seriesItems - Normalized Sparkline Series items.
-   * @param {boolean} periodDurationAvailable - Whether the evaluated graph period can be used.
-   * @param {boolean} dayNightEnabled - Whether this History owner also maintains sun history.
-   * @param {object} events - GraphTool continuations for due requests and elapsed bins.
+   * @param {object} plotPeriod - Sparkline period that sets the shared graph time range.
+   * @param {object} stateBandsStateMap - Configured state_map for categorical Sparkline values.
+   * @param {Array<object>} seriesItems - Current Sparkline Series and their entity settings.
+   * @param {boolean} periodDurationAvailable - Whether the evaluated duration is ready for an HA History request.
+   * @param {boolean} dayNightEnabled - Whether this Sparkline requests sun.sun History for its background.
+   * @param {object} events - Callbacks into SparklineGraphTool for bin changes and History requests.
    */
   constructor(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled, events) {
     this.seriesRecords = new Map();
@@ -47,15 +48,20 @@ export default class SparklineHistory {
   }
 
   /**
-   * Applies evaluated period and state-map configuration while retaining records
-   * for Series IDs that still exist.
+   * Applies current Sparkline settings while keeping rows for Series IDs that remain configured.
    *
-   * @param {object} plotPeriod - Parent period defining the shared timeline.
-   * @param {object} stateBandsStateMap - Valid categorical states and graph values.
-   * @param {Array<object>} seriesItems - Current normalized Sparkline Series items.
-   * @param {boolean} periodDurationAvailable - Whether the evaluated graph period can be used.
-   * @param {boolean} dayNightEnabled - Whether sun history belongs to this Sparkline.
-   * @returns {object} History changes that affect GraphTool scheduling.
+   * When a new period needs HA rows outside the saved range, the graph keeps its
+   * existing rows until History returns data for the new period. A changed
+   * Sparkline period also clears sun.sun rows for the previous day/night range.
+   * A smaller period can reuse retained rows; removing a Series cancels its
+   * retry timer and makes any late response stale, even if that ID is later reused.
+   *
+   * @param {object} plotPeriod - Current Sparkline period and shared graph range.
+   * @param {object} stateBandsStateMap - Current state_map for categorical graphs.
+   * @param {Array<object>} seriesItems - Current Sparkline Series items.
+   * @param {boolean} periodDurationAvailable - Whether the current period can be requested from HA.
+   * @param {boolean} dayNightEnabled - Whether the Sparkline shows day/night shading.
+   * @returns {{periodChanged: boolean}} Whether a Series History period changed.
    */
   updateInputs(plotPeriod, stateBandsStateMap, seriesItems, periodDurationAvailable, dayNightEnabled) {
     this.plotPeriod = plotPeriod;
@@ -68,7 +74,7 @@ export default class SparklineHistory {
     const activeIds = new Set(seriesItems.map((item) => item.id));
     this.seriesRecords.forEach((record, id) => {
       if (!activeIds.has(id)) {
-        // Removing a Series also makes every completion created for that source stale.
+
         record.requestNumber += 1;
         globalThis.clearTimeout(record.requestTimer);
         this.seriesRecords.delete(id);
@@ -123,8 +129,7 @@ export default class SparklineHistory {
       const requestedRangeIsMissing = item.config.period.type !== 'real_time'
         && periodDurationAvailable
         && !this.acceptedHistoryContainsRange(item.id, this.getSeriesRange(item), item.config.period.type);
-      // A smaller period can be rebuilt directly from the retained source rows.
-      // Only a period outside the accepted range requires Home Assistant history.
+
       record.resynchronizationRequested = requestedRangeIsMissing;
       record.preserveGraphWhileLoading = requestedRangeIsMissing && record.rows !== undefined;
       if (item.config.period.type === 'real_time') record.requestState = SPARKLINE_REQUEST_STATE.NOT_REQUIRED;
@@ -135,8 +140,7 @@ export default class SparklineHistory {
 
     const dayNightPeriodSignature = JSON.stringify([dayNightEnabled, plotPeriod]);
     if (dayNightPeriodSignature !== this.dayNightRecord.periodSignature) {
-      // A changed parent period selects another absolute sun range. The old
-      // completion and retry deadline cannot write into that replacement range.
+
       globalThis.clearTimeout(this.dayNightRecord.requestTimer);
       this.dayNightRecord.requestNumber += 1;
       this.dayNightRecord.rows = undefined;
@@ -156,12 +160,16 @@ export default class SparklineHistory {
   }
 
   /**
-   * Calculates one Series source range and its position on the parent timeline.
-   * Calendar days advance through local midnights, preserving 23-hour and
-   * 25-hour days; rolling windows retain exact elapsed-hour semantics.
+   * Selects HA History timestamps for one Series and the shared timestamps for its graph.
    *
-   * @param {object} item - Series item whose effective period selects the source.
-   * @returns {object} Absolute source and shared plot boundaries.
+   * The Sparkline period and parent offset set the visible graph range. A
+   * Series period offset selects another HA source range relative to that
+   * parent range, then maps those rows onto the same graph
+   * range. Calendar days follow local midnight, including 23- and 25-hour DST
+   * days; rolling periods use elapsed hours.
+   *
+   * @param {object} item - Series whose period selects its HA History range.
+   * @returns {object} HA source and visible Sparkline time boundaries.
    */
   getSeriesRange(item) {
     const sourcePeriod = item.config.period;
@@ -184,8 +192,6 @@ export default class SparklineHistory {
       const sourceEnd = new Date(plotEnd);
       const plotActiveEnd = new Date(now);
 
-      // The offset difference moves source timestamps to the selected day while
-      // the graph continues to receive timestamps on the one parent timeline.
       sourceStart.setDate(sourceStart.getDate() + offsetDifference);
       sourceEnd.setDate(sourceEnd.getDate() + offsetDifference);
       plotActiveEnd.setDate(plotActiveEnd.getDate() - offsetDifference);
@@ -203,8 +209,6 @@ export default class SparklineHistory {
       };
     }
 
-    // Rolling parent offsets move the visible timeline first. A Series override
-    // then selects its absolute source relative to that already-positioned plot.
     const plotEnd = new Date(now.getTime() + plotOffset * DAY_MS);
     const plotStart = new Date(plotEnd.getTime() - periodHours * HOUR_MS);
     const sourceStart = new Date(plotStart.getTime() + offsetDifference * DAY_MS);
@@ -225,12 +229,11 @@ export default class SparklineHistory {
   }
 
   /**
-   * Binds a Series record to the Home Assistant source that supplies its rows.
-   * Changing the entity or configured attribute invalidates accepted rows and
-   * every in-flight completion for the previous source.
+   * Clears this Series' saved History when its configured entity or attribute changes.
+   * Rows and pending responses from the previous HA source must not appear on the new Series.
    *
-   * @param {object} item - Series item with its current entity and entity config.
-   * @returns {boolean} True when an existing source was replaced.
+   * @param {object} item - Series with its current HA entity and entity settings.
+   * @returns {boolean} Whether the configured entity or attribute changed.
    */
   bindSeriesEntity(item) {
     const record = this.seriesRecords.get(item.id);
@@ -249,7 +252,10 @@ export default class SparklineHistory {
     return sourceChanged;
   }
 
-  /** Returns request and preservation facts consumed by GraphTool presentation. */
+  /**
+   * Returns whether this Series has a pending HA History request, its request
+   * state and retry time, and whether its current graph stays visible while loading.
+   */
   getRequestFacts(seriesId) {
     const record = this.seriesRecords.get(seriesId);
     return {
@@ -261,12 +267,12 @@ export default class SparklineHistory {
     };
   }
 
-  /** Returns whether accepted graph data must remain unchanged during a request. */
+  /** Returns whether any Series keeps its current graph while HA loads a missing range. */
   preservesGraphWhileLoading() {
     return this.seriesItems.some((item) => this.seriesRecords.get(item.id).preserveGraphWhileLoading);
   }
 
-  /** Reports request work that must enter the next normal card update pass. */
+  /** Returns whether a timer or accepted HA response needs another normal FHS setHass update. */
   requiresHassUpdate() {
     return this.dayNightRecord.resynchronizationRequested || this.seriesItems.some((item) => {
       const record = this.seriesRecords.get(item.id);
@@ -275,13 +281,11 @@ export default class SparklineHistory {
   }
 
   /**
-   * Schedules the next visible bucket and local-calendar boundary. Repeated HA
-   * state updates recalculate the same absolute deadlines instead of extending
-   * them, so normal entity traffic cannot postpone a graph transition.
+   * Starts timers for active Sparkline bins and the next local calendar midnight.
    *
-   * @param {string} chartType - Active parent chart type.
-   * @param {string|number} stateBandsInterval - Exact state-band update interval.
-   * @param {number} binsPerHour - Shared Series bin density.
+   * @param {string} chartType - Current Sparkline chart type.
+   * @param {string|number} stateBandsInterval - Configured state_bands update interval.
+   * @param {number} binsPerHour - Shared number of graph bins per hour.
    */
   scheduleTimeBoundaryUpdates(chartType, stateBandsInterval, binsPerHour) {
     this.refreshTiming = { chartType, stateBandsInterval, binsPerHour };
@@ -299,7 +303,12 @@ export default class SparklineHistory {
     this.scheduleNextCalendarBoundary();
   }
 
-  /** Schedules only the next active-source bin transition. */
+  /**
+   * Calls SparklineGraphTool just after the next active bin boundary so it can
+   * add the latest HA state. Wall-clock alignment keeps frequent HA updates
+   * from postponing the next graph bin. State bands use their configured
+   * update_interval; other charts use the shared Series bin density.
+   */
   scheduleNextBinBoundary() {
     globalThis.clearTimeout(this.binBoundaryTimer);
     this.binBoundaryTimer = undefined;
@@ -307,8 +316,6 @@ export default class SparklineHistory {
     const activeSourceExists = historicalItems.some((item) => item.entity !== undefined && this.getSeriesRange(item).sourceRangeIsActive);
     if (!activeSourceExists) return;
 
-    // State bands advance at their exact configured interval. Every numeric
-    // graph advances at the shared bin boundary selected by Series.
     const bucketMs = this.refreshTiming.chartType === 'state_bands'
       ? this.getIntervalMilliseconds(this.refreshTiming.stateBandsInterval)
       : HOUR_MS / this.refreshTiming.binsPerHour;
@@ -323,7 +330,10 @@ export default class SparklineHistory {
     }, delay);
   }
 
-  /** Schedules only the next local-calendar range transition. */
+  /**
+   * At local midnight, checks calendar Series and sun.sun ranges, then asks
+   * SparklineGraphTool to load any range that moved to another day.
+   */
   scheduleNextCalendarBoundary() {
     globalThis.clearTimeout(this.calendarRangeTimer);
     this.calendarRangeTimer = undefined;
@@ -337,8 +347,6 @@ export default class SparklineHistory {
     this.calendarRangeTimer = globalThis.setTimeout(() => {
       this.calendarRangeTimer = undefined;
 
-      // A local date transition changes absolute calendar ranges. History
-      // identifies exactly which retained sources no longer cover that day.
       this.seriesItems.forEach((item) => {
         if (item.config.period.type === 'real_time') return;
 
@@ -359,11 +367,10 @@ export default class SparklineHistory {
   }
 
   /**
-   * Schedules one retry or configured refresh against the current Series
-   * identity. Source/config replacement clears the timer before it can emit.
+   * Runs a Series History refresh or retry at its deadline, even if other HA states update meanwhile.
    *
-   * @param {object} item - Current normalized Series item.
-   * @param {number} requestAt - Absolute request deadline in milliseconds.
+   * @param {object} item - Current Sparkline Series item.
+   * @param {number} requestAt - Absolute refresh or retry deadline in milliseconds.
    */
   scheduleSeriesHistoryRequest(item, requestAt) {
     const record = this.seriesRecords.get(item.id);
@@ -378,10 +385,10 @@ export default class SparklineHistory {
   }
 
   /**
-   * Converts the configured history interval notation to milliseconds. The
-   * same conversion drives refresh deadlines now and timer scheduling later.
+   * Converts an FHS interval to milliseconds; a number means seconds, while
+   * strings can use ms, s/sec, m/min, or h/hour.
    *
-   * @param {string|number} interval - Configured SAK-style interval.
+   * @param {string|number} interval - State-bands update or History refresh interval.
    * @returns {number} Interval in milliseconds.
    */
   getIntervalMilliseconds(interval) {
@@ -398,9 +405,7 @@ export default class SparklineHistory {
   }
 
   /**
-   * Binds the current sun state and forecast to the separate day/night source.
-   * A changed HA sun value rebuilds presentation segments from retained history
-   * without modifying normal numeric Series records.
+   * Rebuilds day/night shading when HA's current sun state or sunrise/sunset forecast changes.
    *
    * @param {object} sunEntity - Current Home Assistant sun.sun entity.
    */
@@ -419,7 +424,7 @@ export default class SparklineHistory {
     if (this.dayNightRecord.rows !== undefined) this.buildDayNightSegments();
   }
 
-  /** Returns the parent plot range represented by the shared day/night layer. */
+  /** Returns the Sparkline plot range used for sun.sun History, without a Series offset. */
   getDayNightRange() {
     const range = this.getSeriesRange({ config: { period: this.plotPeriod } });
     return {
@@ -429,14 +434,14 @@ export default class SparklineHistory {
     };
   }
 
-  /** Returns the clipped sun intervals consumed by GraphTool rendering. */
+  /** Returns the day/night intervals SparklineGraphTool draws behind the graph. */
   getDayNightSegments() {
     return this.dayNightRecord.segments;
   }
 
   /**
-   * Converts historical horizon states and the current Sun forecast into
-   * continuous, clipped day/night periods on the parent plot timeline.
+   * Turns sun.sun History transitions into day and night graph segments.
+   * For today's calendar range, also uses HA's current state and next sunrise/sunset.
    */
   buildDayNightSegments() {
     const range = this.getDayNightRange();
@@ -487,12 +492,16 @@ export default class SparklineHistory {
   }
 
   /**
-   * Requests the separate sun history represented by the parent period. The
-   * accepted rows build only the background intervals and never enter numeric
-   * Series loading or bin processing.
+   * Reuses sun.sun History when it covers this Sparkline range; otherwise calls
+   * HA's History API and rebuilds the day/night background.
    *
-   * @param {object} hass - Home Assistant API client.
-   * @returns {object} Start decision and completion promise.
+   * Responses for a replaced period are discarded; if a calendar day changes
+   * during a request, History is requested again for the new day. A failed HA
+   * request waits 30 seconds before retrying. sun.sun rows build only the
+   * day/night background and never enter a Sparkline Series.
+   *
+   * @param {object} hass - Current Home Assistant object used for the API request.
+   * @returns {object} Whether a request started and, when available, its range and promise.
    */
   requestDayNightHistory(hass) {
     if (!this.connectedToCard) return { started: false };
@@ -576,20 +585,25 @@ export default class SparklineHistory {
       representedRange,
       range,
       promise: requestPromise,
-      // The presentation continuation runs in a later microtask. It must use
-      // this same request identity if the card closes between both callbacks.
+
       isCurrent: () => this.connectedToCard && record.requestNumber === requestNumber,
     };
   }
 
   /**
-   * Starts one HA history request when the source is missing, stale or due for
-   * refresh. History accepts matching rows itself; the returned promise only
-   * tells GraphTool what presentation work follows that result.
+   * Reuses saved HA rows when they cover this Series range; otherwise requests
+   * a missing range, a reconnect resynchronization, or a configured
+   * history.refresh_interval update, then converts returned rows for the graph.
+   * Waits for the configured period duration to be evaluated before calling HA.
    *
-   * @param {object} item - Bound Series item requesting its effective source.
-   * @param {object} hass - Home Assistant API client.
-   * @returns {object} Start decision, loading transition and completion promise.
+   * FHS waits for the current request before requesting that Series again. If a
+   * larger period needs more rows, keep the current graph visible until HA
+   * returns the matching History. Ignore responses after this card, Series
+   * entity or period changes. Failed requests wait 30 seconds before retrying.
+   *
+   * @param {object} item - Series whose entity and period select the HA History request.
+   * @param {object} hass - Current Home Assistant object used for the API request.
+   * @returns {object} Whether History is available and, when available, the selected range and request promise.
    */
   requestSeriesHistory(item, hass) {
     const record = this.seriesRecords.get(item.id);
@@ -732,15 +746,14 @@ export default class SparklineHistory {
       representedRange,
       range,
       promise: requestPromise,
-      // Record identity also distinguishes a removed and re-created Series ID.
-      // Keep this check here so GraphTool does not own another request counter.
+
       isCurrent: () => this.connectedToCard
         && this.seriesRecords.get(item.id) === record
         && record.requestNumber === requestNumber,
     };
   }
 
-  /** Builds the Home Assistant history API path for one absolute source range. */
+  /** Builds HA's history/period path for one entity and absolute range, requesting no attributes. */
   buildHistoryPath(entityId, start, end) {
     const startTime = encodeURIComponent(start.toISOString());
     const endTime = encodeURIComponent(end.toISOString());
@@ -749,13 +762,16 @@ export default class SparklineHistory {
     return `history/period/${startTime}?filter_entity_id=${filterEntityId}&end_time=${endTime}&minimal_response&no_attributes`;
   }
 
-  /** Marks an accepted result as published through the current GraphTool pipeline. */
+  /** Allows another History request after SparklineGraphTool has processed the accepted rows. */
   finishAcceptedResult(seriesId) {
     const record = this.seriesRecords.get(seriesId);
     record.acceptedResultPending = false;
   }
 
-  /** Invalidates requests while retaining accepted rows across a DOM disconnect. */
+  /**
+   * Stops History timers and makes pending HA responses harmless while the FHS
+   * card is detached, while retaining accepted rows for a later reconnect.
+   */
   disconnected() {
     this.connectedToCard = false;
     this.stopTimeBoundaryUpdates();
@@ -778,7 +794,11 @@ export default class SparklineHistory {
     this.dayNightRecord.resynchronizationRequested = false;
   }
 
-  /** Marks active accepted sources for refresh when their card reconnects. */
+  /**
+   * After the FHS card returns to the DOM or HA reports websocket `ready`, marks
+   * missing or active Series ranges and loaded sun.sun History for the next
+   * setHass pass. Cached Series rows remain available while HA returns updates.
+   */
   connected() {
     this.connectedToCard = true;
     this.seriesItems.forEach((item) => {
@@ -806,7 +826,7 @@ export default class SparklineHistory {
     }
   }
 
-  /** Stops wall-clock boundaries while retaining accepted source rows. */
+  /** Stops bin and midnight timers without clearing accepted HA History rows. */
   stopTimeBoundaryUpdates() {
     globalThis.clearTimeout(this.binBoundaryTimer);
     globalThis.clearTimeout(this.calendarRangeTimer);
@@ -814,23 +834,20 @@ export default class SparklineHistory {
     this.calendarRangeTimer = undefined;
   }
 
-  /** Returns whether this Series already has accepted source records. */
   hasRows(seriesId) {
     return this.seriesRecords.get(seriesId).rows !== undefined;
   }
 
-  /** Returns the prepared records consumed by SparklineGraph. */
   getRows(seriesId) {
     return this.seriesRecords.get(seriesId).rows;
   }
 
   /**
-   * Transfers accumulated source changes since the previous graph delivery.
-   * Several live insertions and pruning can belong to one delivery. History
-   * reports the earliest altered plot timestamp; Graph chooses the processing.
+   * Gives SparklineGraph the accumulated row changes, then starts a new change batch.
+   * Several live inserts or pruning steps can be collected before GraphTool reads them.
    *
-   * @param {string} seriesId - Stable normalized Series ID.
-   * @returns {object} Previous/current rows, replacement and earliest change.
+   * @param {string} seriesId - Configured Sparkline Series ID.
+   * @returns {object} Previous/current rows, replacement flag and earliest changed timestamp.
    */
   takeRowsUpdate(seriesId) {
     const record = this.seriesRecords.get(seriesId);
@@ -839,7 +856,6 @@ export default class SparklineHistory {
     return update;
   }
 
-  /** Removes accepted source and prepared records after a source identity change. */
   clearSeries(seriesId) {
     const record = this.seriesRecords.get(seriesId);
     globalThis.clearTimeout(record.requestTimer);
@@ -866,18 +882,18 @@ export default class SparklineHistory {
   }
 
   /**
-   * Stores a matching HA response, adds the live sample when applicable, and
-   * publishes normalized records on the shared plot timeline.
+   * Copies an HA History response in chronological order so live edits do not
+   * change HA's array. An empty response replaces old rows; active ranges then
+   * add the latest HA state before building graph rows.
    *
-   * @param {object} item - Bound Series item and its conversion configuration.
+   * @param {object} item - Series and entity settings for this History response.
    * @param {Array<object>} historyRows - Rows returned by Home Assistant.
-   * @param {object} range - Source and plot boundaries used by the request.
-   * @returns {Array<object>} Prepared rows consumed by SparklineGraph.
+   * @param {object} range - HA source and Sparkline plot boundaries for the request.
+   * @returns {Array<object>} Rows prepared for the Sparkline graph.
    */
   acceptHistoryRows(item, historyRows, range) {
     const record = this.seriesRecords.get(item.id);
-    // HA supplies history in chronological order. Copy the collection so live
-    // insertion and pruning retain that order without mutating the API response.
+
     record.sourceRows = historyRows.slice();
     record.sourceRowsChanged = true;
     record.sourceRowsReplaced = true;
@@ -895,13 +911,14 @@ export default class SparklineHistory {
   }
 
   /**
-   * Adds or replaces the current HA measurement in an active source range. A
-   * matching timestamp is one measurement, including when the history endpoint
-   * already returned that state.
+   * Adds the latest HA entity state or configured attribute to an active History range.
+   * A matching timestamp is one sample, including when HA History already
+   * returned it; a corrected value replaces that sample. Otherwise inserts
+   * delayed live states in timestamp order.
    *
-   * @param {object} item - Bound Series item with current HA entity state.
-   * @param {object} range - Current source and plot boundaries.
-   * @returns {Array<object>} Prepared rows after the current state is included.
+   * @param {object} item - Series with its current HA entity state.
+   * @param {object} range - Current HA source and Sparkline plot boundaries.
+   * @returns {Array<object>} Updated rows prepared for the Sparkline graph.
    */
   addCurrentEntityState(item, range) {
     const record = this.seriesRecords.get(item.id);
@@ -915,9 +932,7 @@ export default class SparklineHistory {
       state: currentState,
     };
     const currentTime = new Date(currentRow.last_changed).getTime();
-    // New live values normally follow the last retained measurement. Binary
-    // insertion also preserves the existing behavior for delayed measurements
-    // and a corrected value at an already-known timestamp.
+
     let lower = record.sourceRows.length;
     if (lower > 0 && new Date(record.sourceRows[lower - 1].last_changed).getTime() >= currentTime) {
       let upper = lower;
@@ -935,8 +950,8 @@ export default class SparklineHistory {
         record.sourceRowsChanged = true;
         record.sourceRowChanges.push({ previousRow, currentRow });
       } else if (record.preparedRowsBySource.has(previousRow)) {
-        // A fresh HA object with the same value/time refreshes source context
-        // while retaining its already converted graph measurement.
+        // HA can replace an entity while its value and time stay equal. Carry
+        // its converted row forward so a later correction can replace that row.
         record.preparedRowsBySource.set(currentRow, record.preparedRowsBySource.get(previousRow));
       }
     } else {
@@ -950,14 +965,17 @@ export default class SparklineHistory {
   }
 
   /**
-   * Publishes chronological numeric or categorical graph records. Retained
-   * measurements retain their converted values and projected timestamps. Live
-   * changes replace only their own prepared rows; a new source response or a
-   * changed offset/state map rebuilds the complete prepared collection.
+   * Converts HA History into graph rows, mapping state_map values for state_bands
+   * or numeric states for other charts. Keeps each HA timestamp in source_time
+   * and shifts plot_time so offset Series use the Sparkline's shared graph range.
+   * Unchanged HA measurements keep their converted graph rows; a new History
+   * response or changed Series offset/state_map converts the retained rows again.
+   * If a correction makes a previously valid state unusable, its old graph row
+   * is removed. Calendar offsets keep repeated winter-hour samples chronological.
    *
-   * @param {object} item - Bound Series item and graph configuration.
-   * @param {object} range - Source-to-plot offset information.
-   * @returns {Array<object>} Complete prepared graph records.
+   * @param {object} item - Series and chart settings used to convert HA rows.
+   * @param {object} range - HA source and shared Sparkline plot boundaries.
+   * @returns {Array<object>} Chronological rows prepared for the graph.
    */
   buildSeriesRows(item, range) {
     const record = this.seriesRecords.get(item.id);
@@ -965,9 +983,6 @@ export default class SparklineHistory {
     const conversionSignature = JSON.stringify([range.calendarOffsetDays, range.rollingOffsetDays, categorical, this.stateBandsStateMap]);
     if (!record.sourceRowsChanged && record.rowsConversionSignature === conversionSignature) return record.rows;
 
-    // Offset and categorical-map changes convert the retained history again.
-    // Ordinary live updates reuse every unchanged measurement's numeric value
-    // and projected timestamps, converting only the inserted/corrected row.
     const rebuildRows = record.sourceRowsReplaced || record.rowsConversionSignature !== conversionSignature;
     if (record.rowsConversionSignature !== conversionSignature) {
       record.preparedRowsBySource = new WeakMap();
@@ -978,9 +993,8 @@ export default class SparklineHistory {
 
     if (!rebuildRows) {
       rowsToConvert = [];
-      // Remove only corrected or expired measurements. Binary lookup uses plot
-      // time, with source time preserving the order of coincident projections
-      // during the repeated winter-time hour. Unaffected rows keep their identity.
+      // Calendar offsets can place repeated winter-hour samples at the same
+      // graph time. Use their original HA time to find the exact row to replace.
       record.sourceRowChanges.forEach(({ previousRow, currentRow }) => {
         if (previousRow !== undefined) {
           const previousPreparedRow = record.preparedRowsBySource.get(previousRow);
@@ -1013,8 +1027,6 @@ export default class SparklineHistory {
         if (range.calendarOffsetDays !== undefined) plotTime.setDate(plotTime.getDate() - range.calendarOffsetDays);
         else plotTime.setTime(plotTime.getTime() - range.rollingOffsetDays * DAY_MS);
 
-        // Include rejected measurements too: correcting a numeric state to an
-        // unavailable state removes its previous contribution at this timestamp.
         record.rowsUpdate.changedFrom = Math.min(record.rowsUpdate.changedFrom, plotTime.getTime());
 
         if (categorical) {
@@ -1044,8 +1056,7 @@ export default class SparklineHistory {
       if (preparedRow === undefined) return;
       if (rebuildRows) preparedRows.push(preparedRow);
       else {
-        // Publish a new array without walking retained measurements. The previous
-        // delivered array stays unchanged for Graph's incremental-data comparison.
+
         let lower = preparedRows.length;
         if (lower > 0 && preparedRows[lower - 1].last_changed >= preparedRow.last_changed) {
           let upper = lower;
@@ -1059,8 +1070,7 @@ export default class SparklineHistory {
           }
         }
         if (lower === preparedRows.length) {
-          // An append allocates the enlarged snapshot once. Copying first and then
-          // extending the copy would allocate and copy its backing storage twice.
+
           if (preparedRows === record.rows) preparedRows = record.rows.concat(preparedRow);
           else preparedRows.push(preparedRow);
         } else {
@@ -1070,16 +1080,11 @@ export default class SparklineHistory {
       }
     });
 
-    // Calendar projection preserves local clock times. Moving the repeated
-    // winter-time hour onto another day can reverse their plot order; restore
-    // that order once here so all graph consumers receive chronological rows.
     if (rebuildRows && range.calendarOffsetDays !== undefined
       && preparedRows.some((row, index) => index > 0 && row.last_changed < preparedRows[index - 1].last_changed)) {
       preparedRows.sort((first, second) => first.last_changed < second.last_changed ? -1 : first.last_changed > second.last_changed ? 1 : 0);
     }
 
-    // Equivalent source responses can still produce the same graph records.
-    // Retain their published array so Graph can reuse aggregated buckets.
     const previousRows = record.rows;
     const rowsUnchanged = preparedRows === previousRows || (rebuildRows && previousRows !== undefined
       && previousRows.length === preparedRows.length
@@ -1096,14 +1101,14 @@ export default class SparklineHistory {
   }
 
   /**
-   * Reports whether accepted history covers the requested absolute source range.
-   * Active windows receive live measurements separately and therefore require
-   * only the accepted older edge; closed calendar snapshots require both edges.
+   * Checks whether saved HA rows for this Series can supply the requested range.
+   * Live ranges need the saved older edge because current entity states are added
+   * separately; closed calendar ranges need both saved boundaries.
    *
-   * @param {string} seriesId - Stable normalized Series ID.
-   * @param {object} range - Requested source boundaries.
-   * @param {string} periodType - Active period type.
-   * @returns {boolean} True when the accepted source can be reused.
+   * @param {string} seriesId - Configured Sparkline Series ID.
+   * @param {object} range - Requested HA source boundaries.
+   * @param {string} periodType - Current Series period type.
+   * @returns {boolean} Whether saved History can be reused for this range.
    */
   acceptedHistoryContainsRange(seriesId, range, periodType) {
     const record = this.seriesRecords.get(seriesId);
@@ -1115,12 +1120,14 @@ export default class SparklineHistory {
   }
 
   /**
-   * Removes expired live source rows while retaining the state active at the
-   * first visible bucket, and returns the range used by graph statistics.
+   * Removes expired rows from an active Series while keeping the last earlier
+   * state needed to carry its value into the first visible Sparkline bin. A
+   * later wider active or calendar range requests HA rows again if pruning
+   * removed the older measurements it needs.
    *
-   * @param {object} item - Active Series item.
-   * @param {number} pointsPerHour - Shared bin density selected by Series.
-   * @returns {object} Plot timestamps used for visible statistics.
+   * @param {object} item - Active historical Series to trim.
+   * @param {number} pointsPerHour - Graph bin density used to find the visible start.
+   * @returns {{start: number, end: number}} Visible time range used for graph statistics.
    */
   pruneActiveRows(item, pointsPerHour) {
     const record = this.seriesRecords.get(item.id);
@@ -1137,9 +1144,6 @@ export default class SparklineHistory {
     if (range.calendarOffsetDays !== undefined) sourceRangeStart.setDate(sourceRangeStart.getDate() + range.calendarOffsetDays);
     else sourceRangeStart.setTime(sourceRangeStart.getTime() + range.rollingOffsetDays * DAY_MS);
 
-    // Keep the last measurement before the visible window so the first bucket
-    // still has its starting state. Sorted source storage lets an unchanged
-    // window skip pruning without copying or reconverting the complete history.
     let lower = 0;
     let upper = record.sourceRows.length;
     const oldestTime = sourceRangeStart.getTime();
@@ -1150,15 +1154,14 @@ export default class SparklineHistory {
     }
     const firstRetainedIndex = Math.max(0, lower - 1);
     if (firstRetainedIndex > 0) {
-      // Expiry removes only the old prefix, including skipped invalid states.
-      // Preparation then removes those exact rows from its own ordered collection.
+
       for (let index = 0; index < firstRetainedIndex; index++) {
         record.sourceRowChanges.push({ previousRow: record.sourceRows[index], currentRow: undefined });
       }
       record.sourceRows = record.sourceRows.slice(firstRetainedIndex);
       record.sourceRowsChanged = true;
     }
-    // The retained source covers the current window after older rows are pruned.
+
     record.sourceRangeStart = Math.max(record.sourceRangeStart, range.sourceStart.getTime());
     this.buildSeriesRows(item, range);
     item.rows = record.rows;

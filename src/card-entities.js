@@ -3,11 +3,17 @@ import Merge from './merge.js';
 import Colors from './colors.js';
 import Templates from './templates.js';
 
-/** Owns runtime entity configuration and derived fhs_sparkline states. */
+/**
+ * Builds runtime entity configs for FHS tools and updates configured
+ * `fhs_sparkline.*` entries from Sparkline results.
+ */
 export default class CardEntities {
+
   /**
-   * Stores the shared template and theme domains used while resolved entity
-   * configuration is rebuilt for each Home Assistant update.
+   * Stores the card's template evaluator and HA theme color context.
+   *
+   * @param {Templates} templates - Evaluates JavaScript in configured entities.
+   * @param {object} cardTheme - Supplies the active color-stop mode and CSS color context.
    */
   constructor(templates, cardTheme) {
     this.templates = templates;
@@ -16,8 +22,15 @@ export default class CardEntities {
   }
 
   /**
-   * Selects the complete color-stop entry for an item current entity value.
-   * Numeric stops use range logic; state stops use exact string matching.
+   * Finds a color stop from this FHS item's configured entity value.
+   * Uses its configured attribute when present, otherwise its HA state; state
+   * stops match as text and numeric stops use the configured numeric range.
+   *
+   * @param {object} item - FHS layout item with an entity index and display style.
+   * @param {object|undefined} colorStops - Normalized color stops for the item.
+   * @param {object} config - Current FHS card config.
+   * @param {Array<object>} entities - Current HA and card-local entity values.
+   * @returns {object|undefined} Matching state stop or numeric stop with its selected color.
    */
   getItemColorStop(item, colorStops, config, entities) {
     if (!colorStops) return undefined;
@@ -51,14 +64,22 @@ export default class CardEntities {
     return selectedStop ? { ...selectedStop, color } : undefined;
   }
 
-  /** Returns only the resolved color for existing renderers and callers. */
+  /** Returns the color selected for this FHS item's current entity value. */
   getItemColorFromStops(item, colorStops, config, entities) {
     return this.getItemColorStop(item, colorStops, config, entities)?.color;
   }
 
   /**
-   * Evaluates entity templates and links local Sparkline entities to their sources.
-   * Presentation rebuilds use already published series to retain final bindings.
+   * Evaluates configured entity templates and links `fhs_sparkline.*` entries
+   * to the HA entity and Series used for their Sparkline result.
+   *
+   * When `series` is JavaScript, use the Sparkline tool's evaluated Series list
+   * when available so the same expression is not evaluated twice.
+   *
+   * @param {object} config - FHS card config containing entity and Sparkline layouts.
+   * @param {boolean} evaluateJavascript - Whether to evaluate configured JavaScript templates.
+   * @param {Array<object>} sparklineGraphTools - Sparkline tools with their current evaluated Series config.
+   * @returns {Array<object>} Runtime entity configs in `config.entities` order.
    */
   buildRuntimeEntityConfigs(config, evaluateJavascript, sparklineGraphTools = []) {
     if (config.dev.debug) console.log('resolving entity config for', config.entities);
@@ -72,11 +93,12 @@ export default class CardEntities {
       if (entityConfig.color_stops === undefined) return undefined;
       return ColorStops.normalize(entityConfig.color_stops, this.cardTheme.getActiveColorStopMode());
     });
+    // Check `bin_duration` before `duration` so the longer result name stays intact.
     const sparklineEntityTypes = ['min_time', 'max_time', 'bin_duration', 'aggregate_func', 'duration', 'min', 'avg', 'max'];
     const sparklineConfigs = (config.layout.sparklines ?? []).map((sparklineConfig) => {
       if (!Templates.isJsTemplate(sparklineConfig.series)) return sparklineConfig;
-      // GraphTool evaluates whole-series JS. After publication its current
-      // series provide the source binding for both entity metadata and paint.
+      // The Sparkline tool evaluates whole-Series JavaScript in its item context.
+      // Reuse that Series list instead of evaluating the expression again here.
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === sparklineConfig.id);
       return graphTool === undefined ? sparklineConfig : graphTool.config;
     });
@@ -87,8 +109,6 @@ export default class CardEntities {
       let matchedSeries;
       let matchedType;
 
-      // Derived IDs are matched from the declared configuration instead of
-      // splitting underscores, so series IDs may contain underscores safely.
       sparklineConfigs.forEach((sparklineConfig) => {
         sparklineEntityTypes.forEach((entityType) => {
           if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${entityType}`) {
@@ -97,13 +117,12 @@ export default class CardEntities {
           }
         });
 
-        // Whole-array JS belongs to GraphTool's evaluation context. Bind the
-        // declared derived ID now; its source metadata follows canonical series
-        // after the producer publishes, without evaluating that expression here.
         if (Templates.isJsTemplate(sparklineConfig.series)) {
+          // Before the Series list is available, use a known result suffix to
+          // read the named Series ID from the local entity ID.
+          // updateSparklineEntities() adds the selected Series' HA config once
+          // SparklineGraphTool has evaluated the whole `series` template.
           const prefix = `fhs_sparkline.${sparklineConfig.id}_`;
-          // Primary aliases are already matched above. For named series the
-          // longer metric suffix wins, so bin_duration stays one metric.
           const entityType = matchedSparkline === sparklineConfig ? undefined : sparklineEntityTypes.find((type) => (
             entityConfig.entity.startsWith(prefix) && entityConfig.entity.endsWith(`_${type}`) && entityConfig.entity.length > prefix.length + type.length + 1
           ));
@@ -113,6 +132,8 @@ export default class CardEntities {
             matchedType = entityType;
           }
         } else if (sparklineConfig.series !== undefined) {
+          // Compare the complete configured ID instead of splitting at `_`;
+          // Series IDs may contain underscores or text such as `_bin`.
           sparklineConfig.series.forEach((seriesConfig) => {
             sparklineEntityTypes.forEach((entityType) => {
               if (entityConfig.entity === `fhs_sparkline.${sparklineConfig.id}_${seriesConfig.id}_${entityType}`) {
@@ -126,8 +147,8 @@ export default class CardEntities {
       });
       if (!matchedSparkline) throw new Error(`[entities] Unknown sparkline entity: ${entityConfig.entity}`);
 
-      // The unqualified graph alias describes its primary series, including
-      // explicit collections whose source is declared on the first series.
+      // A named result uses its Series entity; an unqualified result uses the
+      // first Series entity, or the Sparkline layout entity when no list exists.
       const sourceEntityIndex = matchedSeries !== undefined
         ? matchedSeries.entity_index
         : (matchedSparkline.series !== undefined && !Templates.isJsTemplate(matchedSparkline.series) ? matchedSparkline.series[0].entity_index : (matchedSparkline.entity_index ?? 0));
@@ -151,6 +172,8 @@ export default class CardEntities {
       return localEntityConfig;
     });
 
+    // Local Sparkline entities use their source entity's color stops unless
+    // their own config supplies a color-stop list.
     this.paint.colorStops = runtimeEntityConfigs.map((entityConfig, entityIndex) => {
       if (evaluatedEntityConfigs[entityIndex].color_stops !== undefined) return sourceColorStops[entityIndex];
       if (entityConfig.source_entity_index !== undefined) return sourceColorStops[entityConfig.source_entity_index];
@@ -161,17 +184,19 @@ export default class CardEntities {
   }
 
   /**
-   * Publishes changed local Sparkline values and their source metadata into
-   * the shared array. Equal results retain the entity object consumers know.
+   * Updates local `fhs_sparkline.*` entities from the current Sparkline results.
    *
-   * @returns {Array<number>} Indexes whose published entity content changed.
+   * @param {Array<object>} runtimeEntityConfigs - Current FHS entity configs.
+   * @param {Array<object>} entities - Shared HA and card-local entity values.
+   * @param {Array<object>} sparklineGraphTools - Sparkline tools with calculated results.
+   * @returns {number[]} Entity indexes whose state or HA metadata changed.
    */
   updateSparklineEntities(runtimeEntityConfigs, entities, sparklineGraphTools) {
     const changedEntityIndexes = [];
     runtimeEntityConfigs.forEach((entityConfig, entityIndex) => {
       if (!entityConfig.sparkline_entity_type) return;
-      // A completion supplies only its affected graph. Other graphs retain
-      // their published outputs until their own source/result changes.
+      // A History completion may include one Sparkline tool; leave local values
+      // for every other Sparkline unchanged until that graph updates.
       if (!sparklineGraphTools.some((tool) => tool.config.id === entityConfig.sparkline_id)) return;
       const graphTool = sparklineGraphTools.find((tool) => tool.config.id === entityConfig.sparkline_id);
       const labelMap = {
@@ -179,8 +204,10 @@ export default class CardEntities {
         duration: 'Duration', bin_duration: 'Bin duration', aggregate_func: 'Aggregate function',
       };
       if (Templates.isJsTemplate(graphTool.sourceConfig.series)) {
-        // Match complete published IDs, just as static arrays do above. Series
-        // IDs may contain metric-like suffixes such as _bin or _min themselves.
+        // A JavaScript Series list can change which HA entity backs a named
+        // Series. Follow the current list before copying its entity details.
+        // Match the full entity ID so underscores and suffix-like text can be
+        // part of the configured Series ID.
         let seriesConfig;
         if (entityConfig.sparkline_series_id === undefined) {
           seriesConfig = graphTool.config.series[0];
@@ -195,9 +222,8 @@ export default class CardEntities {
             });
           });
         }
-        // Explicit derived stops take priority. Otherwise paint follows the
-        // same published source as metadata, before inherited config is copied.
         if (entityConfig.color_stops === undefined) {
+          // Keep the Series palette on this local entity unless it has its own stops.
           this.paint.colorStops[entityIndex] = this.paint.colorStops[seriesConfig.entity_index];
         }
         const { attribute: _attribute, name: _name, ...sourceEntityConfig } = runtimeEntityConfigs[seriesConfig.entity_index];
@@ -215,17 +241,21 @@ export default class CardEntities {
       if (['min', 'avg', 'max', 'min_time', 'max_time'].includes(entityType)) {
         state = sparklineResult[entityType] === undefined ? 'unavailable' : sparklineResult[entityType];
         if (entityType === 'avg' && Number.isFinite(Number(state))) {
+          // Preserve the source sensor's decimal precision, including trailing zeroes.
           const sourceDecimals = sourceConfig.decimals !== undefined
             ? Number(sourceConfig.decimals)
             : Number(String(sourceEntity.state).includes('.') ? String(sourceEntity.state).split('.')[1].length : 0);
           state = Number(state).toFixed(sourceDecimals);
         }
         if (entityType === 'min_time' || entityType === 'max_time') {
+          // Timestamps are not measurements, so they have no sensor unit or device class.
           unitOfMeasurement = undefined;
           deviceClass = undefined;
         }
       }
 
+      // Show Sparkline durations in minutes below an hour, days from 24 hours,
+      // and hours between those ranges.
       if (entityType === 'duration') {
         if (sparklineResult.duration !== undefined) {
           const hours = sparklineResult.duration;
@@ -255,11 +285,14 @@ export default class CardEntities {
       }
 
       if (entityType === 'aggregate_func') {
+        // The aggregate function is a label, not a measured sensor value.
         state = sparklineResult.aggregate_func === undefined ? 'unavailable' : sparklineResult.aggregate_func;
         unitOfMeasurement = undefined;
         deviceClass = undefined;
       }
 
+      // Start with the source HA entity so its current name, timestamps and
+      // other attributes remain available, then add this Sparkline result.
       const nextEntity = Merge.mergeDeep(sourceEntity, {
         entity_id: entityConfig.entity,
         state: String(state),
@@ -274,8 +307,8 @@ export default class CardEntities {
           sparkline_series_id: entityConfig.sparkline_series_id,
         },
       });
-      // HA states and copied attributes are JSON data, just like the active
-      // configuration signatures. Include timestamps and metadata in equality.
+      // Compare copied HA timestamps and attributes as well as the state, so
+      // metadata-only changes reach FHS tools; keep the same object otherwise.
       if (JSON.stringify(entities[entityIndex]) !== JSON.stringify(nextEntity)) {
         entities[entityIndex] = nextEntity;
         changedEntityIndexes.push(entityIndex);

@@ -1,13 +1,16 @@
 /**
- * Owns the bind, measure, cache, and invalidation lifecycle for one active SVG
- * centerline. Path generators provide the definition; later geometry features
- * consume the bound element and its cached browser measurement.
+ * Keeps the rendered SVG path and its browser measurements for FHS Path-based
+ * drawing. The path length is measured once per path shape and reused. Fixed
+ * point/direction samples are also reused, while animation uses temporary samples
+ * that are replaced when the animated Path position changes.
  */
 export default class PathGeometry {
   /**
-   * Creates an initially unbound geometry lifecycle.
+   * Starts without a rendered SVG path. After a path has been measured,
+   * `requestRender` lets FHS render gradients and other shapes that need those
+   * exact browser measurements.
    *
-   * @param {Function} requestRender - Requests the controlled render that reveals geometry-dependent layers.
+   * @param {Function} requestRender - Requests another card render after the SVG path has been measured.
    */
   constructor(requestRender) {
     this.requestRender = requestRender;
@@ -24,19 +27,20 @@ export default class PathGeometry {
   }
 
   /**
-   * Activates a centerline definition and invalidates the current DOM binding
-   * only when its geometry signature changes.
+   * Stores a new SVG path definition. When the path shape changed, wait until
+   * Lit has rendered the new `<path>` before using browser measurements for it.
    *
-   * @param {object} pathDefinition - Stable centerline definition with d and signature fields.
-   * @returns {boolean} True when a new DOM binding is required.
+   * @param {object} pathDefinition - SVG path definition containing the `d` value and geometry signature.
+   * @returns {boolean} True when Lit must render and connect a new SVG path.
    */
   setPathDefinition(pathDefinition) {
     if (this.pathDefinition?.signature === pathDefinition.signature) {
       return false;
     }
 
-    // A different path must first be committed to the DOM. A previous measurement
-    // for the same signature can be reused after that new element binding.
+    // Lit must render the changed path before it can be measured. If this exact
+    // path shape was measured earlier, reuse those measurements after the new
+    // SVG element has been connected.
     this.pathDefinition = pathDefinition;
     this.pathElement = undefined;
     this.activeMeasurement = this.measurementCache.get(pathDefinition.signature);
@@ -47,12 +51,12 @@ export default class PathGeometry {
   }
 
   /**
-   * Binds the active definition to its rendered SVGPathElement and measures an
-   * unseen signature exactly once. The requested render is the only transition
-   * that makes geometry-dependent output eligible for display.
+   * Connects the current path definition to the SVG path rendered by Lit.
+   * Measure its browser length the first time this path shape is seen, then
+   * request another render so gradients and other path-based drawing can use it.
    *
-   * @param {SVGPathElement} pathElement - Rendered invisible master path.
-   * @returns {boolean} True when the binding completed during this call.
+   * @param {SVGPathElement} pathElement - Rendered invisible SVG path used for measurement.
+   * @returns {boolean} True when this call connected the rendered SVG path.
    */
   bindPathElement(pathElement) {
     if (this.bound && this.pathElement === pathElement) {
@@ -79,7 +83,7 @@ export default class PathGeometry {
     return true;
   }
 
-  /** Releases the DOM binding while retaining measurements for reconnect. */
+  /** Forgets the rendered SVG element on disconnect, but keeps measurements that can be reused after reconnecting. */
   unbindPathElement() {
     this.endTemporarySampling();
     this.temporarySamples.points.clear();
@@ -90,38 +94,38 @@ export default class PathGeometry {
   }
 
   /**
-   * Reports whether consumers may display output that depends on browser geometry.
+   * Returns whether the current SVG path has been rendered and connected.
    *
-   * @returns {boolean} True after the active rendered path has been bound.
+   * @returns {boolean} True when browser measurements for the current path can be used.
    */
   isReady() {
     return this.bound;
   }
 
   /**
-   * Returns the active stable centerline definition.
+   * Returns the SVG path definition currently used for measurement.
    *
-   * @returns {object} Active path definition.
+   * @returns {object} Current path definition.
    */
   getPathDefinition() {
     return this.pathDefinition;
   }
 
   /**
-   * Returns the cached browser length in SVG user units.
+   * Returns the browser-measured length of the current SVG path.
    *
-   * @returns {number} Actual centerline length.
+   * @returns {number} Path length in SVG units.
    */
   getTotalLength() {
     return this.activeMeasurement.totalLength;
   }
 
   /**
-   * Starts a moving-state drawing pass. Equal inputs reuse its latest samples;
-   * a new position replaces those samples instead of accumulating old frames.
-   * Transformed geometry uses this same owner and therefore shares these samples.
+   * Starts point and direction sampling for the current animated Path position.
+   * Reuse samples while the position is unchanged. When it changes, discard the
+   * previous frame's temporary samples so animation does not grow the cache forever.
    *
-   * @param {string} sampleKey - Effective progress and drawing-domain inputs.
+   * @param {string} sampleKey - Values that identify the current animated Path position.
    */
   beginTemporarySampling(sampleKey) {
     const key = JSON.stringify([this.pathDefinition.signature, sampleKey]);
@@ -133,18 +137,19 @@ export default class PathGeometry {
     this.sampleCache = this.temporarySamples;
   }
 
-  /** Restores fixed-layer sampling while retaining only the latest moving pass. */
+  /** Switches point and direction lookup back to the cached measurements for the fixed Path. */
   endTemporarySampling() {
     this.sampleCache = this.activeMeasurement;
   }
 
   /**
-   * Returns prepared adaptive gradient intervals and their endpoint coordinates.
-   * Full-path layers share the same layout regardless of color, width or reveal.
-   * A moving domain retains only its latest layout, rather than every frame.
+   * Splits the selected part of the Path into straight-enough sections for SVG
+   * linear gradients and returns the start/end coordinates for each section.
+   * A fixed full-Path gradient is cached; animation keeps only the current layout
+   * instead of caching every frame.
    *
-   * @param {object} config - Normalized domain and adaptive sampling settings.
-   * @returns {object} Prepared domain and geometry-only gradient ranges.
+   * @param {object} config - Path range and limits used to divide curved sections.
+   * @returns {object} Selected Path range and the calculated gradient sections.
    */
   getGradientGeometry(config) {
     const fullPath = config.mode === 'full';
@@ -163,15 +168,15 @@ export default class PathGeometry {
       return this.currentGradientGeometry;
     }
 
-    // The adaptive split depends on the measured trajectory and drawing domain.
-    // Paint and the full gradient's moving reveal reuse the resulting intervals.
+    // The measured Path shape, selected range and subdivision limits determine
+    // these sections. Changing colors can reuse the same gradient coordinates.
     const pendingIntervals = [{ start: domainStart, end: domainEnd }];
     const adaptiveIntervals = [];
     const pathLength = this.getTotalLength();
 
-    // Keep an arbitrarily long straight trajectory intact. Curves and corners
-    // are divided until each local linear gradient follows the centerline closely
-    // enough; color stops do not create additional SVG paths.
+    // Keep a straight Path as one section even when it is long. Split curves
+    // and corners until each SVG linear gradient follows the Path closely enough.
+    // Color stops change gradient colors, not the number of SVG Path sections.
     while (pendingIntervals.length) {
       const interval = pendingIntervals.pop();
       const midpoint = (interval.start + interval.end) / 2;
@@ -188,8 +193,8 @@ export default class PathGeometry {
       const chordAngle = Math.acos(Math.min(1, Math.max(-1, chordDotProduct))) * 180 / Math.PI;
       let longCurvedInterval = false;
 
-      // Long intervals need two extra samples to distinguish a genuinely straight
-      // trajectory from a curve whose start, middle, and end happen to align.
+      // For a long section, sample two extra points as well. A curve can have
+      // start, middle and end points that happen to lie on one straight line.
       if (intervalLength > config.maxSegmentLength) {
         const firstQuarterPoint = this.pointAtProgress((interval.start + midpoint) / 2);
         const thirdQuarterPoint = this.pointAtProgress((midpoint + interval.end) / 2);
@@ -246,11 +251,12 @@ export default class PathGeometry {
   }
 
   /**
-   * Returns a browser-measured coordinate at normalized path progress. The
-   * normalized-to-actual conversion remains private to this geometry boundary.
+   * Returns the browser-measured x/y position at a 0..100 position on the Path.
+   * Convert that percentage to the actual SVG path length here so callers can
+   * work only with FHS's 0..100 Path scale.
    *
-   * @param {number} progress - Position in normalized 0..100 path space.
-   * @returns {object} Point with x and y coordinates in SVG user units.
+   * @param {number} progress - Position from 0 to 100 along the Path.
+   * @returns {object} Measured x/y position in SVG units.
    */
   pointAtProgress(progress) {
     if (!this.sampleCache.points.has(progress)) {
@@ -267,13 +273,13 @@ export default class PathGeometry {
   }
 
   /**
-   * Returns the unit direction of path traversal at normalized progress. Open
-   * endpoints use a one-sided sample, ordinary positions and corners use a
-   * centered sample, and a closed seam samples across the end/start boundary.
-   * An exact cusp follows its outgoing branch.
+   * Returns the direction in which the Path travels at a 0..100 position.
+   * Open ends sample only the available side, normal positions sample around
+   * the requested point, and a closed Path samples across its end/start join.
+   * At a sharp cusp, prefer the direction leaving the cusp.
    *
-   * @param {number} progress - Position in normalized 0..100 path space.
-   * @returns {object} Unit tangent with x and y vector components.
+   * @param {number} progress - Position from 0 to 100 along the Path.
+   * @returns {object} Normalized x/y direction vector.
    */
   tangentAtProgress(progress) {
     if (!this.sampleCache.tangents.has(progress)) {
@@ -298,8 +304,9 @@ export default class PathGeometry {
       let vectorLength = Math.hypot(deltaX, deltaY);
       const cuspThreshold = sampleDistance / 100;
 
-      // Symmetrical samples coincide at an exact cusp. Select the outgoing
-      // branch first, then the incoming branch at an open path endpoint.
+      // At a sharp cusp, points sampled on both sides can be almost identical.
+      // Use the outgoing Path direction first; at an open end, fall back to the
+      // direction arriving at the cusp.
       if (vectorLength < cuspThreshold) {
         const cusp = this.pathElement.getPointAtLength(actualDistance);
         const outgoingDistance = this.pathDefinition.closed
@@ -331,13 +338,12 @@ export default class PathGeometry {
   }
 
   /**
-   * Returns the unit normal on the requested visual side relative to path
-   * traversal. SVG's downward y-axis is accounted for, and both sides are exact
-   * opposites.
+   * Returns a direction pointing left or right from the Path at a 0..100
+   * position. The calculation accounts for SVG's downward y-axis.
    *
-   * @param {number} progress - Position in normalized 0..100 path space.
-   * @param {'left'|'right'} side - Side relative to forward path traversal.
-   * @returns {object} Unit normal with x and y vector components.
+   * @param {number} progress - Position from 0 to 100 along the Path.
+   * @param {'left'|'right'} side - Side relative to the forward Path direction.
+   * @returns {object} Normalized x/y vector pointing away from the Path.
    */
   normalAtProgress(progress, side) {
     const tangent = this.tangentAtProgress(progress);
@@ -349,27 +355,27 @@ export default class PathGeometry {
 }
 
 /**
- * Presents measured path geometry in its final card coordinate system. Visual
- * path layers use the same affine matrix, while path elements consume the
- * transformed points and vectors directly and therefore inherit no SVG transform.
+ * Applies the card's position, scale, rotation and flip matrix to measurements
+ * from a Path. Callers receive final card coordinates directly, so SVG elements
+ * using these points do not need the same transform again.
  */
 export class TransformedPathGeometry {
-  /** Stores one bound geometry and its complete affine transform contract. */
+  /** Stores the measured Path and the matrix that converts it to final card coordinates. */
   constructor(pathGeometry, matrix) {
     this.pathGeometry = pathGeometry;
     this.matrix = matrix;
     this.transformedLength = undefined;
   }
 
-  /** Returns the unchanged topology metadata of the measured centerline. */
+  /** Returns the original Path definition; transforming coordinates does not change whether the Path is open or closed. */
   getPathDefinition() {
     return this.pathGeometry.getPathDefinition();
   }
 
   /**
-   * Approximates final visual length after non-uniform scaling. Normalized path
-   * progress remains owned by the original path; this length is used only to
-   * convert physical label-guide lengths into a local progress interval.
+   * Estimates the Path length after the card transform, including non-uniform
+   * scaling. FHS still uses the original 0..100 Path positions; this transformed
+   * length is only needed when a label guide specifies a physical length.
    */
   getTotalLength() {
     if (this.transformedLength === undefined) {
@@ -388,14 +394,14 @@ export class TransformedPathGeometry {
     return this.transformedLength;
   }
 
-  /** Maps one measured point through the final affine card transform. */
+  /** Returns one measured Path point after applying the card transform. */
   pointAtProgress(progress) {
     const point = this.pathGeometry.pointAtProgress(progress);
 
     return this.pointInCardCoordinates(point);
   }
 
-  /** Maps a source path coordinate through the final affine card transform. */
+  /** Applies the card transform to an x/y Path coordinate. */
   pointInCardCoordinates(point) {
     return {
       x: this.matrix.a * point.x + this.matrix.c * point.y + this.matrix.e,
@@ -403,7 +409,7 @@ export class TransformedPathGeometry {
     };
   }
 
-  /** Maps and normalizes the path traversal vector without applying translation. */
+  /** Applies card rotation/scale/flip to the Path direction and normalizes the result. */
   tangentAtProgress(progress) {
     const tangent = this.pathGeometry.tangentAtProgress(progress);
     const x = this.matrix.a * tangent.x + this.matrix.c * tangent.y;
@@ -414,8 +420,8 @@ export class TransformedPathGeometry {
   }
 
   /**
-   * Transforms the source-side normal so an offset path element follows the same
-   * rotate/flip as its path position without transforming the element itself.
+   * Applies card rotation, scale and flip to the left/right direction beside
+   * the Path. Translation is not used because this is a direction, not a position.
    */
   normalAtProgress(progress, side) {
     const normal = this.pathGeometry.normalAtProgress(progress, side);
@@ -428,15 +434,15 @@ export class TransformedPathGeometry {
 }
 
 /**
- * Samples one measured centerline into a parallel path definition. Background
- * bands use this when their configured offset differs from the primary path;
- * the same point/normal contract works for every admitted path shape.
+ * Builds a Path alongside an already measured Path by sampling points from
+ * 0..100 and moving each point left or right by the configured offset. Path
+ * background bands use this when they must run beside the main Path.
  *
- * @param {PathGeometry} pathGeometry - Bound source centerline.
- * @param {number} offset - Signed distance from the centerline in SVG units.
- * @param {'left'|'right'} side - Visual side relative to traversal.
- * @param {number} samples - Number of equal normalized intervals.
- * @returns {object} Stable sampled path definition.
+ * @param {PathGeometry} pathGeometry - Measured Path used as the starting shape.
+ * @param {number} offset - Distance in SVG units; positive uses the named side, negative uses its opposite.
+ * @param {'left'|'right'} side - Side of the Path on which to place the new Path.
+ * @param {number} samples - Number of equal 0..100 intervals used to build the new Path.
+ * @returns {object} SVG path definition for the offset Path.
  */
 export function buildOffsetPathDefinition(pathGeometry, offset, side, samples) {
   const sourceDefinition = pathGeometry.getPathDefinition();
