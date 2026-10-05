@@ -1,8 +1,8 @@
-/** Tracks Home Assistant display context and connection-ready lifecycle. */
+/** Tracks HA locale, entity formatters, registries, and websocket readiness for this card. */
 export default class HomeAssistant {
   /**
-   * Creates the card's Home Assistant lifecycle state. The ready callback keeps
-   * one stable function identity so websocket listeners can follow reconnects.
+   * Stores HA change flags and one stable ready callback so it can be removed
+   * from the old websocket and attached to the current one after reconnect.
    *
    * @param {Function} notifyToolsConnected - Notifies tools after websocket readiness.
    */
@@ -18,8 +18,7 @@ export default class HomeAssistant {
   }
 
   /**
-   * Records locale changes and moves the ready listener to the active websocket
-   * connection.
+   * Tracks locale and entity-formatting changes and follows the current websocket.
    */
   setHass(hass) {
     const localeSignature = JSON.stringify(hass.locale);
@@ -27,8 +26,9 @@ export default class HomeAssistant {
     this.localeChanged = localeSignature !== this.localeSignature;
     this.localeSignature = localeSignature;
 
-    // Entity presentation depends on HA formatter implementations and registry
-    // objects as well as locale. Their references identify that display context.
+    // Text shown for HA entities can change when the locale, formatters, entity,
+    // device, area, or floor registries change. Compare these references so FHS
+    // refreshes formatted names, attribute labels, states, and values.
     const entityDisplayContext = [
       hass.formatEntityName,
       hass.formatEntityAttributeName,
@@ -53,12 +53,12 @@ export default class HomeAssistant {
 
   }
 
-  /** Clears the locale marker after every context-dependent card domain ran. */
+  /** Clears the locale flag after FHS refreshes labels and values with the current HA locale. */
   markLocaleHandled() {
     this.localeChanged = false;
   }
 
-  /** Clears the entity-display marker after context-dependent tools ran. */
+  /** Clears the formatter flag after FHS refreshes HA entity names, attribute labels, and values. */
   markEntityDisplayHandled() {
     this.entityDisplayChanged = false;
   }
@@ -66,8 +66,8 @@ export default class HomeAssistant {
   /**
    * Attaches one ready listener while the card is present in the DOM.
    *
-   * Home Assistant emits ready after a websocket reconnect; CardTools then marks
-   * history-backed tools for resynchronization on the next hass pass.
+   * Home Assistant emits ready after a websocket reconnect; CardTools then tells
+   * Sparkline History to request updated rows on the next HA update.
    */
   connected() {
     this.connectedToDom = true;
@@ -75,8 +75,8 @@ export default class HomeAssistant {
   }
 
   /**
-   * The ready subscription follows the card's DOM lifetime because only attached
-   * cards need to resynchronize history and render the resulting update.
+   * Removes the HA ready listener when the card leaves the DOM. Reconnection
+   * attaches it again so Sparkline History can refresh its rows.
    */
   disconnected() {
     if (this.connection) this.connection.removeEventListener('ready', this.connectionReadyHandler);

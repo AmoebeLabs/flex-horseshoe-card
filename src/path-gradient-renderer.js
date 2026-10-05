@@ -4,15 +4,14 @@ import Colors from './colors.js';
 import { renderNormalizedPathBands } from './path-mask-renderer.js';
 
 /**
- * Builds an adaptive sequence of locally linear gradient strokes along one
- * measured centerline. Full gradients keep a static 0..100 color distribution
- * while their visible dash range moves; current gradients redistribute the
- * complete color sequence over the active range.
+ * Colors a Horseshoe Path with short SVG linear gradients that follow its
+ * curves. Full gradients keep colors at fixed 0..100 positions as progress
+ * moves; current gradients spread all configured colors over the visible range.
  *
  * @param {PathGeometry} pathGeometry - Bound browser-measured path geometry.
- * @param {object} config - Complete normalized gradient, range, cap, and cost config.
- * @param {object} colorContext - Card-owned CSS scope used for color-stop interpolation.
- * @returns {object} Gradient micro-ranges and the independently movable reveal range.
+ * @param {object} config - Gradient colors, visible range, caps and curve subdivision limits.
+ * @param {object} colorContext - This card's theme and inherited CSS used to interpolate colors.
+ * @returns {object} Colored gradient sections and the visible progress range.
  */
 export function buildAdaptivePathGradient(pathGeometry, config, colorContext) {
   const geometry = pathGeometry.getGradientGeometry(config);
@@ -93,17 +92,16 @@ export function setFullPathGradientRevealRange(gradient, range) {
 }
 
 /**
- * Renders adaptive gradient ranges through the same generic band, border, cap,
- * and transparency pipeline as solid ranges. Full gradients are clipped by a
- * normalized dash intersections so state-only updates do not rebuild colors
- * and self-intersections never reveal a different path position.
+ * Draws the visible gradient sections with their fill, border and end caps.
+ * Limit each section to the visible 0..100 progress range. At a crossing, this
+ * keeps another part of the Path hidden even when it occupies the same x/y point.
  *
  * @param {object} pathDefinition - Stable generated centerline definition.
  * @param {object} gradient - Result from buildAdaptivePathGradient().
  * @param {object} layer - Shared fill, border, and composite opacity configuration.
  * @param {string} layerId - Stable DOM namespace for gradient definitions.
  * @param {string} className - CSS class namespace for the rendered gradient.
- * @returns {TemplateResult} Generic path gradient bands.
+ * @returns {TemplateResult} SVG gradients and their visible Path bands.
  */
 export function renderAdaptivePathGradient(pathDefinition, gradient, layer, layerId, className) {
   const visibleRanges = gradient.ranges

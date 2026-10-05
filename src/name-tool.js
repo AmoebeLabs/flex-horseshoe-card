@@ -67,7 +67,7 @@ export default class NameTool extends BaseTool {
     this.updateTextMeasurement();
   }
 
-  /** Estimates name geometry and invalidates exact bounds when text or paint changes. */
+  /** Refreshes the estimated Name bounds when its text or styles change. */
   updateTextMeasurement() {
     const styles = this.getStyles({ 'font-size': '1.5em' });
     const measurementSignature = `${this.runtime.name}|${JSON.stringify(styles)}`;
@@ -80,7 +80,7 @@ export default class NameTool extends BaseTool {
     }
   }
 
-  /** Publishes effective styles and updates measurement only when its signature changes. */
+  /** Applies the supplied styles and refreshes Name measurement inputs. */
   setEffectiveStyles(styles) {
     super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
@@ -147,7 +147,7 @@ export default class NameTool extends BaseTool {
    * Returns the current name as a standard text part for standalone rendering
    * or composition by TextTool.
    *
-   * @param {object} options - Source-style selection and final part overrides.
+   * @param {object} options - Whether to include Name styles and any Text-part style overrides.
    * @returns {Array<object>} One name text part.
    */
   getTextParts(options) {

@@ -3,7 +3,7 @@ import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sec
 import SameAs from './same-as.js';
 import { DEFAULT_ZPOS } from './const.js';
 
-/** Owns validation and compilation of user-facing card configuration. */
+/** Expands card templates, constants and entity addresses into the config used by FHS tools. */
 export default class CardConfig {
   /**
    * Stores the card's template compiler used while raw YAML becomes validated
@@ -14,10 +14,8 @@ export default class CardConfig {
   }
 
   /**
-   * Creates the complete developer configuration consumed during runtime.
-   *
-   * This runs once at the configuration boundary. Runtime domains can therefore
-   * read both completed flags directly.
+   * Completes the debug and performance flags when the card config is loaded,
+   * so tools can read those switches directly on subsequent HA updates.
    */
   initializeDeveloperConfig(config) {
     config.dev = {
@@ -28,7 +26,7 @@ export default class CardConfig {
   }
 
   /**
-   * Adds the card-level values required by rendering and runtime domains.
+   * Adds the default card filter used by the rendered SVG.
    *
    * This mutates the compiled config so the Templates context can retain the
    * same config reference from compilation through rendering.
@@ -113,7 +111,7 @@ export default class CardConfig {
       return Object.keys(result).length > 0 ? result : undefined;
     };
 
-    /** Copies each ref's nested config so edits cannot change its source or other consumers. */
+    /** Gives each ref() its own nested config so edits cannot change the constant or another item. */
     const copyRefValue = (value) => {
       if (Array.isArray(value)) {
         return value.map((entry) => copyRefValue(entry));

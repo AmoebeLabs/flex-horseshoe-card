@@ -46,10 +46,9 @@ export default class CardTemplates {
       card,
     );
 
-    // A card template may own local entities without changing the positional
-    // contract of entities supplied by the card instance. Matching explicit
-    // entities keep their index and override individual default fields;
-    // defaults that are not configured explicitly are appended afterwards.
+    // Merge template default_entities underneath matching configured HA or FHS
+    // entities, so explicit fields take precedence. Append unmatched defaults
+    // after the configured entities before filtering and assigning entity slots.
     if (compiledTemplateParts.default_entities !== undefined) {
       const defaultEntitiesById = {};
 

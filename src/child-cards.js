@@ -6,9 +6,8 @@ const PLACEMENT_FIELDS = ['xpos', 'ypos', 'width', 'height', 'zpos', 'embedded',
 /**
  * Creates and positions normal Lovelace child cards inside FHS.
  *
- * The parent only owns the wrapper and the hass handoff. Each child remains a
- * normal card created by Home Assistant helpers and handles its own config,
- * template, state and Lit lifecycle.
+ * FHS positions each child and forwards HA data to it. Home Assistant's card
+ * helpers create the child, which handles its own config, state and rendering.
  */
 export default class ChildCards {
   /**
@@ -53,8 +52,8 @@ export default class ChildCards {
       const helpers = await window.loadCardHelpers();
       if (creationNumber !== this.creationNumber || this.disconnectedFromCard) return;
 
-      // Construct off-DOM. Only the complete current list receives hass and
-      // becomes visible; an obsolete creation never publishes partial children.
+      // Create every child before showing the new list. If config changes while
+      // HA helpers are loading, keep the old request from replacing the newer cards.
       const items = await Promise.all(
         cardsConfig.map(async (itemConfig, index) => {
           const childConfig = { ...itemConfig };
@@ -95,7 +94,7 @@ export default class ChildCards {
     }
   }
 
-  /** Cancels owned retry frames and releases their waiting continuations. */
+  /** Cancels pending frameless-card retries and finishes their frame waits. */
   cancelShellFrames() {
     this.shellFrames.forEach((complete, frame) => {
       cancelAnimationFrame(frame);
@@ -104,7 +103,7 @@ export default class ChildCards {
     this.shellFrames.clear();
   }
 
-  /** Reuses accepted children or resumes the latest interrupted configuration. */
+  /** Reuses existing children or retries card creation interrupted by dashboard removal. */
   connected() {
     if (!this.disconnectedFromCard) return;
     this.disconnectedFromCard = false;
@@ -120,7 +119,7 @@ export default class ChildCards {
     }
   }
 
-  /** Ends pending creation/publication and frameless work on old DOM nodes. */
+  /** Stops pending card creation and frameless-shell work when FHS leaves the dashboard. */
   disconnected() {
     if (this.disconnectedFromCard) return;
     this.disconnectedFromCard = true;
@@ -144,7 +143,7 @@ export default class ChildCards {
    * Removes native card shells after the current child DOM has rendered.
    *
    * @param {Array<object>} items - Accepted child list for this creation.
-   * @param {number} creationNumber - Creation which owns the pending DOM work.
+   * @param {number} creationNumber - Request number checked before changing child-card DOM.
    */
   async removeChildCardShells(items, creationNumber) {
     const findHaCard = (element) => {

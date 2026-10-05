@@ -5,9 +5,9 @@ import { getIconSource, HomeAssistantIconPath } from "./icon-source.js";
 import { buildPathElements } from "./path-elements.js";
 
 /**
- * Renders the current horseshoe state as one marker on measured path geometry.
- * The gauge supplies final coordinates and already calculated state appearance;
- * this renderer never interprets entity values or individual path shapes.
+ * Draws a marker at the Horseshoe's animated progress position. A path marker
+ * follows the local Path direction; a center marker points from the arc center
+ * toward that position. The gauge supplies the marker's calculated styles.
  */
 export default class HorseshoeStateMarker {
   /** Creates one reusable Home Assistant icon source for this horseshoe item. */

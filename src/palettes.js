@@ -66,13 +66,14 @@ export default class Palette {
   }
 
   /**
-   * Replaces owned variables, then applies current palettes in declaration order.
+   * Removes CSS variables from previous palettes, then applies current palettes
+   * in declaration order so later palettes take precedence.
    *
    * @param {Element} element - Card host receiving CSS variables.
    * @param {object} palettes - Loaded palettes by name.
    * @param {string} mode - Active palette mode.
-   * @param {Set<string>} previousVariables - Variables previously written by this owner.
-   * @returns {Set<string>} Variables owned by the current palette selection.
+   * @param {Set<string>} previousVariables - CSS variables previously written by this card's palettes.
+   * @returns {Set<string>} CSS variables written by the current palettes.
    */
   static applyAll(element, palettes, mode, previousVariables) {
     const variables = new Set();

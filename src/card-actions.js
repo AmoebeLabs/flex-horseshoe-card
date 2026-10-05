@@ -3,7 +3,7 @@ import { fireEvent } from './frontend_mods/common/dom/fire_event.js';
 
 const DEFAULT_TAP_ACTION = { action: 'more-info' };
 
-/** Owns gesture selection, entity targeting and action execution. */
+/** Selects configured tap/hold actions and runs them for HA or local FHS entities. */
 export default class CardActions {
   /**
    * Stores the card element and local input-entity service used by normalized
@@ -17,7 +17,7 @@ export default class CardActions {
     this.entities = undefined;
   }
 
-  /** Publishes current Home Assistant and entity data after every hass update. */
+  /** Keeps the latest HA data and entity bindings for subsequent gestures. */
   setHassAndEntities(hass, runtimeEntityConfigs, entities) {
     this.hass = hass;
     this.runtimeEntityConfigs = runtimeEntityConfigs;
@@ -81,8 +81,8 @@ export default class CardActions {
       case 'select-option': {
         const entityDomain = entityId.split('.')[0];
 
-        // The select control supplies one semantic option value. This action
-        // router owns the standard service translation for compatible entities.
+        // Send the selected option through the matching HA service or local FHS
+        // input setter, which converts local number values before storing them.
         switch (entityDomain) {
           case 'input_select':
           case 'select':

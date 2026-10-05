@@ -1,14 +1,12 @@
 /**
- * Places ticks, labels, badges, and directional markers around one measured
- * centerline. Every coordinate is derived from normalized progress plus the
- * browser-measured point, tangent, and normal contract; no path shape is known
- * or reconstructed here. Rotation and flips have already been applied to that
- * geometry. These items receive final coordinates so labels never inherit a path
- * transform and therefore remain readable.
+ * Places Horseshoe ticks, labels, badges and directional markers at 0..100
+ * positions on the measured Path. The point and direction at each position
+ * determine its offset beside the Path. Measured coordinates already include
+ * Horseshoe rotation and flip, so labels stay readable when the Path mirrors.
  *
  * @param {PathGeometry} pathGeometry - Bound browser-measured path geometry.
  * @param {object} config - Complete tickmark, label, badge, and marker configuration.
- * @returns {object} Final renderer-ready coordinates and label guide paths.
+ * @returns {object} Tick/marker coordinates, label positions and text guide paths.
  */
 export function buildPathElements(pathGeometry, config) {
   const pathDefinition = pathGeometry.getPathDefinition();

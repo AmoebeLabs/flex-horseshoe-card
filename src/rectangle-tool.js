@@ -8,8 +8,8 @@ import Utils from './utils.js';
  */
 export default class RectangleTool extends BaseTool {
   /**
-   * Captures rectangle source and builds dimensions immediately for static config.
-   * Dynamic dimensions follow the first evaluated runtime-config publication.
+   * Stores rectangle config and builds SVG dimensions immediately when the
+   * config is static. JavaScript values are evaluated before dimensions are built.
    *
    * @param {object} config - Static rectangle item config.
    * @param {number} index - Rectangle index inside layout.rectangles.
@@ -24,7 +24,7 @@ export default class RectangleTool extends BaseTool {
       ...config,
     };
 
-    // Referenced width and height use optional padding around the measured item.
+    // A referenced Name, Area, State or Text item can include padding around its current bounds.
     if (typeof rectangleConfig.width === 'object') {
       rectangleConfig.width = {
         padding: 0,
@@ -96,7 +96,7 @@ export default class RectangleTool extends BaseTool {
     let width;
     let height;
 
-    // fit replaces all four rectangle geometry fields with the measured text geometry.
+    // Use the referenced text item's current position and size, then add the configured fit padding.
     if (config.fit) {
       const itemGeometry = this.card.cardTools.getItemGeometry(config.fit);
 
@@ -115,16 +115,16 @@ export default class RectangleTool extends BaseTool {
     const radiusConfig = typeof config.radius === 'object' ? config.radius : { all: config.radius };
     const maxRadius = Math.min(height, width) / 2;
 
-    // Radius config values are still in card dimensions here. Convert once, after the fallback is chosen.
+    // Choose each corner's configured fallback before converting its radius to SVG units.
     const calculateRadius = (value) => Math.min(maxRadius, Math.max(0, Utils.calculateSvgDimension(value)));
 
-    // The path uses either the measured fit center or the configured rectangle center.
+    // Center the SVG path on the referenced text bounds or the configured rectangle position.
     svgDimensions.width = width;
     svgDimensions.height = height;
     svgDimensions.x = svgDimensions.xpos - width / 2;
     svgDimensions.y = svgDimensions.ypos - height / 2;
 
-    // Corner-specific values follow the reference tool: exact corner, then side, then axis, then all.
+    // For each corner, use its own radius first, then the side, top/bottom, and all-corners radius.
     svgDimensions.radiusTopLeft = calculateRadius(radiusConfig.top_left ?? radiusConfig.left ?? radiusConfig.top ?? radiusConfig.all);
     svgDimensions.radiusTopRight = calculateRadius(radiusConfig.top_right ?? radiusConfig.right ?? radiusConfig.top ?? radiusConfig.all);
     svgDimensions.radiusBottomLeft = calculateRadius(radiusConfig.bottom_left ?? radiusConfig.left ?? radiusConfig.bottom ?? radiusConfig.all);
@@ -161,11 +161,10 @@ export default class RectangleTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the rectangle.
    */
   render() {
-    // Defer the initial dynamic surface until runtime config has been published.
+    // FHS evaluates JavaScript rectangle settings with current HA data before drawing its SVG path.
     if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
-    // Text dimensions become exact after the preceding render. Recalculate the
-    // path here so the correction render immediately uses the measured size.
+    // After a referenced text item renders, use its browser-measured bounds on this rectangle render.
     this.geometry.svg = this.calculateSvgDimensions(this.config);
 
     const rectangleStyles = {
@@ -177,9 +176,8 @@ export default class RectangleTool extends BaseTool {
 
     this.applyColorStops(styles);
 
-    // Keep the configured border on the original rectangle path. The fill mask
-    // prevents the translucent fill and stroke from blending. A configured
-    // width can leave more or less of the card background between both layers.
+    // Draw the border on the full rectangle path and inset the fill with the
+    // mask. A wider mask leaves more of the card background between the layers.
     const path = this.buildRoundedRectanglePath();
     const strokeWidth = Number(styles['stroke-width']);
     const fillMaskInset = this.config.fill_mask === 'auto'

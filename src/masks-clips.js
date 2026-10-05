@@ -8,9 +8,9 @@ import { DEFINITION_SHAPE_SECTIONS, VISIBLE_LAYOUT_SECTIONS } from './layout-sec
 /**
  * Renders SVG clipPath and mask definitions from layout.clips and layout.masks.
  *
- * Clips and masks reuse the same shape-section config style as normal layout
- * tools. The module only renders definitions and item wrappers; it does not own
- * visible layout rendering.
+ * Clips and masks use rectangles, circles and arcs configured like layout
+ * shapes. Named definitions can apply to the whole card or follow each item's
+ * center through dxpos/dypos offsets.
  */
 export default class MasksClips {
   /**
@@ -75,8 +75,8 @@ export default class MasksClips {
   /**
    * Normalizes clip/mask definitions at construction time.
    *
-   * The renderer can then render the supported sections directly without adding
-   * fallback checks in the render path.
+   * Complete the supported shape lists and relative offsets before drawing
+   * the definitions used by layout tools.
    *
    * @param {object} definitions - layout.clips or layout.masks config.
    * @returns {object} Definitions with supported shape sections present.

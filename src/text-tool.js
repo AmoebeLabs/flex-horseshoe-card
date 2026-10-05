@@ -17,12 +17,13 @@ const TEXT_SOURCE_SECTIONS = {
 };
 
 /**
- * Evaluates outer Text config and independently scoped parts, resolves inline
- * and referenced Name/Area/State sources, then owns text layout and SVG rendering.
+ * Evaluates a Text item's config and text-part templates, reads inline or
+ * referenced Name/Area/State values, applies overflow and fit settings, and
+ * renders the resulting SVG text.
  */
 export default class TextTool extends BaseTool {
   /**
-   * Completes the template-visible source, retaining each part's own context.
+   * Keeps each Text part's `id` and `entity_index` for JavaScript evaluation.
    *
    * @param {object} config - Static text item config.
    * @param {number} index - Text index inside layout.texts.
@@ -73,8 +74,9 @@ export default class TextTool extends BaseTool {
     delete outerConfig.localize_tag;
     super(outerConfig, index, templates, cardId, card, 'texts', 'texts', undefined, { fill: true, stroke: false });
 
-    // BaseTool retains outer-only scheduling. Give the complete source a new
-    // identity so the Templates cache also sees each part's JavaScript.
+    // BaseTool checks JavaScript in the outer Text settings. Keep text parts in
+    // sourceConfig too so TextTool can evaluate their templates with each part's
+    // entity_index.
     this.sourceConfig = { ...this.sourceConfig, text: structuredClone(sourceTextParts) };
     this.textPartsHaveJavascript = this.sourceConfig.text.some((part) => this.templates.hasJavascriptTemplates(part));
     this.config.text = [];
@@ -167,7 +169,7 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Runs the shared outer route without recursively evaluating Text parts.
+   * Sends outer Text settings through BaseTool; each part uses its own id and entity_index.
    */
   updateRuntimeConfig() {
     const outerSource = { ...this.sourceConfig };
@@ -178,12 +180,12 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Completes parts and inline bindings before BaseTool publishes current config.
-   * Each part observes the source binding from the previous state pass, exactly
-   * as before; its evaluated binding then feeds the following state pass.
+   * Updates inline Name/Area/State tools, then evaluates each Text part with its
+   * own id and HA entity. A part's evaluated entity_index is used by the next
+   * setState() pass.
    *
-   * @param {object} newConfig - Current outer fields from the shared evaluator.
-   * @returns {object} Complete outer and part configuration.
+   * @param {object} newConfig - Outer Text settings after their JavaScript is evaluated.
+   * @returns {object} Text config containing the current evaluated parts.
    */
   completeRuntimeConfig(newConfig) {
     this.inlineTextSourceTools.filter((sourceTool) => sourceTool !== undefined)
@@ -197,7 +199,9 @@ export default class TextTool extends BaseTool {
           : undefined;
         const partContext = {
           ...sourcePart,
-          // Text templates address the containing text item unless a part has its own id.
+          // A part without an id uses the Text item's id. Name, Area and State
+          // parts use their source tool's entity_index; other parts use their
+          // own entity_index or the containing Text entity.
           id: sourcePart.id ?? newConfig.id,
           inline_source_index: sourcePart.id === undefined && sourceTool ? sourcePartIndex : undefined,
           entity_index: sourceTool
@@ -239,7 +243,7 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Activates state-map overrides and applies wrapping and ellipsis before rendering.
+   * Applies matching state_map values and prepares the resulting text for wrapping and ellipsis.
    *
    * @param {object} entity - Optional entity selected by the outer text item.
    * @param {object} entityConfig - Optional outer entity configuration.
@@ -265,8 +269,8 @@ export default class TextTool extends BaseTool {
         : undefined;
       const activePart = stateMapPart ? Merge.mergeDeep(part, stateMapPart) : { ...part };
 
-      // A Home Assistant localization key becomes ordinary text before the
-      // existing ellipsis, wrapping, fitting and SVG measurement pipeline.
+      // Resolve HA localization before applying ellipsis, wrapping, fitting and
+      // browser text measurement.
       if (activePart.localize_tag !== undefined) {
         activePart.value = this.card._hass.localize(activePart.localize_tag);
       }
@@ -310,8 +314,8 @@ export default class TextTool extends BaseTool {
             },
           };
 
-          // Positioning on the reference applies to its first generated part.
-          // StateTool owns the relative positioning of a following UOM part.
+          // Apply Text-part positioning to the first generated part. StateTool
+          // positions a following unit relative to the state value.
           if (sourcePartIndex === 0) {
             if (activePart.new_line !== undefined) referencedPart.new_line = activePart.new_line;
             if (activePart.dx !== undefined) referencedPart.dx = activePart.dx;
@@ -529,17 +533,18 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Invalidates measurements from the same effective text styles used by render.
-   * Parent-selected styles and source animations can change font metrics without changing
-   * displayed text. Equal inputs leave the current async measurement untouched.
+   * Recalculates Text bounds when visible parts, outer styles, animations or
+   * overflow settings change. A parent Control's selected styles and styles from
+   * Name, Area or State parts can change font metrics without changing the text.
    */
   updateTextMeasurement() {
     const textOverflow = this.config.text_overflow;
     const outerStyles = this.getStyles({ 'font-size': '1em' });
     this.applyColorStops(outerStyles);
 
-    // Color filters affect paint, not SVG text dimensions. Before filtering,
-    // source, state-map, color-stop and animation styles are already complete.
+    // Include styles from inline or referenced Name/Area/State tools, state_map,
+    // color stops, Text parts and animations. Card and group filters change SVG
+    // paint; font styles determine the browser's text-width measurements.
     const measurementParts = this.getRenderedTextParts(this.runtime.widthMeasurementParts, false);
     const selectedOverflowConfig = textOverflow?.mode === 'wrap' ? textOverflow.wrap : textOverflow?.ellipsis;
     if ((textOverflow?.mode === 'wrap' || textOverflow?.mode === 'ellipsis')
@@ -570,12 +575,12 @@ export default class TextTool extends BaseTool {
       const lineSpacing = textOverflow?.mode === 'wrap' ? textOverflow.wrap.dy : 1.2;
       this.geometry.estimatedHeight = this.geometry.textFontSize + ((lineLengths.length - 1) * this.geometry.textFontSize * lineSpacing);
 
-      // Rectangle fit keeps the previous measured geometry until updated()
-      // publishes the new exact text bounds. Initial rendering still uses the estimate.
+      // Keep the last browser-measured bounds while this Text waits for its new
+      // measurement. Before the first measurement, layout uses the estimate above.
     }
   }
 
-  /** Publishes complete parent paint and refreshes its measurement inputs. */
+  /** Applies styles selected by the parent Control or Select option and refreshes Text measurement inputs. */
   setEffectiveStyles(styles) {
     super.setEffectiveStyles(styles);
     this.updateTextMeasurement();
@@ -777,7 +782,7 @@ export default class TextTool extends BaseTool {
     this.setState(undefined, undefined);
   }
 
-  /** Releases the frame and font-wait publication belonging to the old text. */
+  /** Cancels browser width measurement scheduled for an earlier Text render. */
   stopWidthMeasurement() {
     const measurement = this.widthMeasurement;
     if (measurement) {
@@ -837,8 +842,8 @@ export default class TextTool extends BaseTool {
               measurement.frame = window.requestAnimationFrame(complete);
             });
 
-            // A newer render owns its own measurements. The old continuation
-            // must leave its scheduling flags, text and DOM bindings intact.
+            // Lit can replace the measurement tspans while fonts load. Only the
+            // measurement for the current Text render may update its visible lines.
             if (this.widthMeasurement !== measurement || this.textClosed) return;
             measurement.frame = undefined;
             measurement.completeFrame = undefined;
@@ -950,13 +955,13 @@ export default class TextTool extends BaseTool {
   }
 
   /**
-   * Builds final part paint after source animations and color stops are current.
-   * Rendering and change detection consume the same part output, including
-   * colors that can change while a formatted state remains equal.
+   * Applies styles from inline or referenced Name/Area/State tools, Text parts,
+   * animations and color stops to the SVG tspans. Rendering and measurement use
+   * the same text styles so font changes are noticed even when text is equal.
    *
    * @param {Array<object>} parts - Visible or measurement text parts.
-   * @param {boolean} filterPaint - Apply color filtering for render; measurement uses the same font styles without color processing.
-   * @returns {Array<object>} Parts with their effective SVG styles.
+   * @param {boolean} filterPaint - Whether to apply configured color filters and gradient references before SVG rendering.
+   * @returns {Array<object>} Text parts with their SVG styles.
    */
   getRenderedTextParts(parts, filterPaint) {
     return parts.map((part) => {

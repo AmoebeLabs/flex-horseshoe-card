@@ -65,8 +65,8 @@ export default class LineTool extends BaseTool {
   }
 
   /**
-   * Captures line source and builds coordinates immediately for static config.
-   * Dynamic coordinates follow the first evaluated runtime-config publication.
+   * Stores line config and calculates SVG endpoints immediately when the config
+   * is static. JavaScript values are evaluated before dynamic endpoints are built.
    *
    * @param {object} config - Static line item config.
    * @param {number} index - Line index across lines, hlines, and vlines.
@@ -170,7 +170,8 @@ export default class LineTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the line.
    */
   render() {
-    // The first HA pass publishes dynamic config before its coordinates are usable.
+    // FHS evaluates JavaScript line settings with current HA data before it
+    // calculates the SVG endpoints and draws the line.
     if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
     const lineStyles = {

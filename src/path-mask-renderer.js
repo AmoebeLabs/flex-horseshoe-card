@@ -10,7 +10,7 @@ import { styleMap } from 'lit/directives/style-map.js';
  * @param {object} range - Normalized range, dash placement, and endpoint caps.
  * @param {object} paint - Complete stroke color and width.
  * @param {string} className - CSS class namespace for the rendered stroke.
- * @returns {TemplateResult} One composed normalized path stroke.
+ * @returns {TemplateResult} SVG Path body and its separately drawn round ends.
  */
 export function renderNormalizedPathStroke(pathDefinition, range, paint, className) {
   // Safari flattens a round dash cap that ends exactly at the end of a curved
@@ -71,7 +71,7 @@ export function renderNormalizedPathStroke(pathDefinition, range, paint, classNa
  * @param {object} layer - Shared fill, border, and composite opacity configuration.
  * @param {string} layerId - Stable DOM namespace for masks and rendered paths.
  * @param {string} className - CSS class namespace for the rendered bands.
- * @returns {TemplateResult} Independently composited border and fill collections.
+ * @returns {TemplateResult} Path borders and fills with separate opacity settings.
  */
 export function renderNormalizedPathBands(pathDefinition, ranges, layer, layerId, className) {
   return svg`

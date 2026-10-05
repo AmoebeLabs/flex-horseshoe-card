@@ -171,7 +171,7 @@ const SWITCH_STYLES = {
     },
   },
 
-  // === 3. INDUSTRIEEL RETRO STYLE ===
+  // === 3. INDUSTRIAL RETRO STYLE ===
   industrial: {
     vbH: 26,
     vbW: 50,
@@ -226,7 +226,7 @@ export default class ControlToggle extends ControlBase {
     return toggleConfig;
   }
 
-  /** Captures source and leaves dynamic geometry/children to the first publication. */
+  /** Stores Toggle config; JavaScript-configured content waits for HA evaluation. */
   constructor(config, index, templates, cardId, card) {
     super(Merge.mergeDeep({
       orientation: DEFAULT_TOGGLE_CONFIG.orientation,
@@ -306,7 +306,7 @@ export default class ControlToggle extends ControlBase {
     };
   }
 
-  /** Rebuilds geometry/children for structural changes; otherwise updates retained child config. */
+  /** Repositions the Toggle and recreates its icon/label when config or group changes. */
   updateRuntimeConfig() {
     super.updateRuntimeConfig();
     if (this.configurationChanged || this.groupChanged) {
@@ -320,7 +320,7 @@ export default class ControlToggle extends ControlBase {
     if (this.iconTool) this.iconTool.updateRuntimeConfig();
   }
 
-  /** Publishes the thumb icon's own binding after selecting the toggle state. */
+  /** Selects the Toggle state and updates the thumb icon with its configured entity. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
@@ -330,7 +330,7 @@ export default class ControlToggle extends ControlBase {
   }
 
 
-  /** Runs the normal IconTool post-render lifecycle. */
+  /** Finishes loading the thumb icon after rendering. */
   updated() {
     super.updated();
     if (this.iconTool) {

@@ -15,11 +15,11 @@ import { injectExternalSvgSources } from "./icon-svg-source.js";
  */
 export default class IconTool extends BaseTool {
   /**
-   * Stores static icon config and initializes icon cache ids.
+   * Stores the initial Icon config and creates the id for its hidden HA icon.
    *
-   * @param {object} config - Static icon item config.
+   * @param {object} config - Initial icon item config from layout.icons.
    * @param {number} index - Icon index inside layout.icons.
-   * @param {object} templates - Template resolver shared with the card.
+   * @param {object} templates - FHS JavaScript template evaluator shared with the card.
    * @param {string} cardId - Stable card id for generated SVG ids.
    * @param {LitElement} card - Parent card instance with shared render helpers.
    */
@@ -61,7 +61,7 @@ export default class IconTool extends BaseTool {
     }
   }
 
-  /** Stores the selected map entry once for the presentation and render phases. */
+  /** Stores the state_map entry matching the current HA entity state for this render. */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
     this.runtime.stateMapItem = this.getStateMapItem();
@@ -82,13 +82,13 @@ export default class IconTool extends BaseTool {
     this.iconRequest = undefined;
   }
 
-  /** Reactivates the concrete icon source after card reconnection. */
+  /** Allows HA icon path reads again after the card reconnects. */
   connected() {
     this.iconClosed = false;
     this.haIconPath.connected();
   }
 
-  /** Closes entity-icon publication and the hidden HA path polling loop. */
+  /** Prevents pending HA icon results from changing the card and stops hidden-icon path polling. */
   disconnected() {
     this.iconClosed = true;
     this.stopEntityIconRequest();
@@ -111,7 +111,7 @@ export default class IconTool extends BaseTool {
   }
 
   /**
-   * Returns a state_map entry for the current entity state.
+   * Returns the state_map entry matching the HA entity state, or its `default` entry.
    *
    * @returns {object|undefined} Matching state_map item.
    */
@@ -130,10 +130,11 @@ export default class IconTool extends BaseTool {
   }
 
   /**
-   * Builds the effective icon name or URL from animation, state_map, config, and Home Assistant.
+   * Chooses an icon from the animation, state_map, Icon config, or HA entity.
+   * HA entity and attribute icon helpers are used when those sources have no icon.
    *
    * @param {object} stateMapConfig - Matching state_map entry.
-   * @returns {string|undefined} Icon name or css url(...).
+   * @returns {string|undefined} HA icon name or CSS url(...) value.
    */
   buildIcon(stateMapConfig, item = this.config) {
     const entityAnimation =
@@ -191,8 +192,10 @@ export default class IconTool extends BaseTool {
     const pending = this.card.entitiesIconPending.get(iconId);
     if (pending && pending.key === key) return this.card.entitiesIcon[iconId];
 
-    // Changing source starts a new lookup immediately. Old finalizers compare
-    // the actual request entry, so they cannot clear this newer pending work.
+    // HA looks up translated entity and attribute icons asynchronously. Return the
+    // card cache while waiting, then render again if the current result changes it.
+    // Each request uses the current HA entity and attribute values, so a late reply
+    // cannot replace an icon selected by newer entity data.
     this.stopEntityIconRequest();
     const request = { id: iconId, key, owner: this };
     this.iconRequest = request;
@@ -240,6 +243,7 @@ export default class IconTool extends BaseTool {
         );
       })
       .finally(() => {
+        // Clear only this request's entry; an older completion must not clear a newer lookup.
         if (this.card.entitiesIconPending.get(iconId) === request) this.card.entitiesIconPending.delete(iconId);
         if (this.iconRequest === request) this.iconRequest = undefined;
       });
@@ -458,13 +462,13 @@ export default class IconTool extends BaseTool {
     defaultIconColor.filter = haStyle.filter;
 
     let configStyle = ConfigHelper.toStyleDict(this.runtime.effectiveStyles ?? renderItem.styles);
-    // Parent-selected styles contain the complete child style map. The selected
-    // state-map styles still take precedence before color stops and animation.
+    // A Control can pass styles selected for this child Icon. The matching
+    // state_map styles override them, then color stops and animation are applied.
     if (this.runtime.effectiveStyles) Object.assign(configStyle, ConfigHelper.toStyleDict(smItem?.styles));
     const stateStyle =
       this.card.cardAnimations.styles.icons[renderItem.animation_id] ?? {};
-    // A selected state map creates a render item; its palette still belongs to
-    // this icon's paint owner before the normal entity-palette fallback.
+    // A state_map can select another Icon config. Apply this Icon's color stops
+    // to it before falling back to the HA entity's icon colors.
     this.applyColorStops(configStyle, renderItem, ["fill", "color"], this.paint?.colorStops);
 
     configStyle = this.getRenderStyles(

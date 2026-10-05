@@ -3,7 +3,8 @@ import { normalizeFhsInputNumberConfig, clampFhsInputNumberValue, calculateFhsIn
 import { normalizeFhsInputSelectConfig } from './fhs-input-select.js';
 
 /**
- * Owns local FHS input configuration, shared storage, events and state changes.
+ * Keeps local FHS number, boolean and select states. Global inputs synchronize
+ * between dashboard cards and can persist their values in browser storage.
  */
 export default class CardInputEntities {
   static numbers = new Map();
@@ -26,8 +27,8 @@ export default class CardInputEntities {
 
   /**
    * @param {string} cardId Unique card identifier used in debug output.
-   * @param {Array<object>} entities Card-owned entity state array.
-   * @param {Function} updateCard Propagates published local sources to the card.
+   * @param {Array<object>} entities This card's shared HA and local entity array.
+   * @param {Function} updateCard Refreshes the card after a local input changes.
    */
   constructor(cardId, entities, updateCard) {
     this.cardId = cardId;
@@ -210,7 +211,7 @@ export default class CardInputEntities {
   /**
    * Listens for global FHS input changes while this card is in the DOM.
    *
-   * Global FHS inputs publish their state through window events. This card
+   * Global FHS inputs send their state through window events. This card
    * updates its local entity record through the normal hass pipeline.
    */
   connected() {
@@ -222,8 +223,8 @@ export default class CardInputEntities {
   /**
    * Stops global input delivery while the card is detached.
    *
-   * Removing the exact constructor-owned handler makes the window subscription
-   * follow this card instance's Lit connection lifecycle.
+   * Remove the same event handler used on connection so a hidden dashboard card
+   * stops receiving global input changes and reconnects without duplicate listeners.
    */
   disconnected() {
     window.removeEventListener(CardInputEntities.numberEvent, this.eventHandler);

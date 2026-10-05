@@ -1,20 +1,20 @@
 /**
- * Normalizes every supported color-stop config shape into one runtime object.
+ * Converts FHS and SAK color_stops config into named scales and color entries
+ * used by Horseshoe, Sparkline, and other FHS tools.
  *
- * The renderer expects a predictable structure: a scales dictionary and a sorted
- * colors array. This class accepts the compact FHS shapes, SAK-style shapes,
+ * It accepts FHS lists and dictionaries, SAK scale/color blocks, JavaScript
  * template output, and optional light/dark mode blocks.
  */
 export default class ColorStops {
   /**
-   * Converts a raw color-stop config into the normalized runtime shape.
+   * Converts color_stops config or template output for the current HA color mode.
    *
    * @param {object|Array<object>|undefined} value - Raw color-stop config or template output.
    * @param {string|undefined} mode - Active color-stop mode, usually light or dark.
-   * @returns {{scales: object, colors: Array<object>}} Normalized color-stop config.
+   * @returns {{scales: object, colors: Array<object>}} Named scales and sorted color entries.
    */
   static normalize(value, mode) {
-    // No config means no scales and no color stops; callers can render their fixed color path.
+    // Without color_stops, FHS tools keep their configured colors instead of using a color scale.
     if (!value) {
       return {
         scales: {},
@@ -137,7 +137,7 @@ export default class ColorStops {
     //   - 10: red
     //   - 20: green
     if (Array.isArray(value)) {
-      // flatMap keeps both supported array shapes in one sequential flow.
+      // If any entry uses a state, keep the configured order; otherwise sort numeric stops by value.
       const normalizedEntries = value
         .flatMap((entry) => ColorStops.normalizeColorArrayEntry(entry))
         .filter(Boolean);
@@ -202,11 +202,11 @@ export default class ColorStops {
   }
 
   /**
-   * Normalizes a compact value/color pair into the canonical stop shape.
+   * Converts a numeric color-stop key and color into a `{ value, color }` entry.
    *
    * @param {string|number} rawValue - Color-stop value from an object key.
    * @param {string} color - Color configured for that value.
-   * @returns {object|null} Normalized color-stop entry or null when invalid.
+   * @returns {object|null} Numeric color-stop entry, or null when the key or color cannot be used.
    */
   static normalizeColorPair(rawValue, color) {
     const numericValue = Number(rawValue);
@@ -221,10 +221,10 @@ export default class ColorStops {
   }
 
   /**
-   * Normalizes an explicit color-stop entry while preserving extra metadata.
+   * Converts a `{state, color}` or `{value, color}` entry and keeps its other config fields.
    *
-   * Fields such as rank, state, label, or future metadata must survive because
-   * other runtime layers can use them after color-stop normalization.
+   * Horseshoe state selection uses `state` and `rank`, and Horseshoe labels use
+   * `label` after these entries are converted.
    *
    * @param {object} entry - Raw explicit color-stop entry.
    * @returns {object|null} Normalized color-stop entry or null when invalid.
@@ -279,7 +279,7 @@ export default class ColorStops {
   }
 
   /**
-   * Checks for plain object config blocks.
+   * Checks whether a value is an object other than an array.
    *
    * @param {*} value - Value to check.
    * @returns {boolean} True when the value is a non-array object.

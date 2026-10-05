@@ -23,9 +23,8 @@ import Utils from './utils.js';
 const PATH_TYPES = ['arc', 'line', 'rectangle', 'polygon', 'wave', 'spiral', 'infinity'];
 
 /**
- * Translates horseshoe configuration into the complete path and rendering data
- * consumed by the generic path engine. Compatibility, defaults, and validation end here;
- * path modules never inspect card configuration.
+ * Creates and renders the Horseshoe SVG path, state and scale bands, labels,
+ * tickmarks and marker from the configured shape and current HA entity.
  */
 export default class HorseshoeGauge extends BaseTool {
   /**
@@ -43,8 +42,8 @@ export default class HorseshoeGauge extends BaseTool {
       .filter(Boolean)
       .map((horseshoeConfig) => applyLegacyScaleTickmarkConfig(horseshoeConfig))
       .map((horseshoeConfig) => normalizeBaseConfig(horseshoeConfig))
-      // A statically disabled gauge needs no geometry or runtime configuration.
-      // Dynamic visibility remains source until the normal evaluation phase.
+      // Skip gauges whose static show.horseshoe setting is false. JavaScript
+      // visibility is evaluated before dynamic Horseshoe geometry is built.
       .map((horseshoeConfig, index) => ({ horseshoeConfig, index }))
       .filter(({ horseshoeConfig }) => horseshoeConfig.show.horseshoe !== false)
       .map(({ horseshoeConfig, index }) => new HorseshoeGauge(horseshoeConfig, index, templates, cardId, card));
@@ -89,7 +88,7 @@ export default class HorseshoeGauge extends BaseTool {
     return Object.keys(legacyConfig).length ? legacyConfig : undefined;
   }
 
-  /** Stores adapter state without creating geometry before runtime config exists. */
+  /** Initializes the state, colors, path measurements and animation for one Horseshoe. */
   constructor(config, index, templates, cardId, card) {
     super(config, index, templates, cardId, card, 'horseshoes', 'horseshoes', 0, undefined,
       (newConfig) => translateHorseshoeConfig(newConfig, card.cardTheme.getActiveColorStopMode()));
@@ -135,12 +134,12 @@ export default class HorseshoeGauge extends BaseTool {
   }
 
   /**
-   * Recolors the retained state after theme or palette variables have been applied.
-   * Source ranges, measured paths and the running animation keep their positions.
+   * Recolors the Horseshoe state, scale and gradients after HA theme or color-stop
+   * changes while keeping the current value, path measurements and animation progress.
    */
   updatePalettePaint() {
-    // A palette can finish before the gauge has received its first entity.
-    // That first state pass will calculate paint from the already applied colors.
+    // A palette can load before this Horseshoe receives its first HA entity.
+    // Its first setState() call then uses the colors already applied here.
     if ((this.hasJavascript && !this.runtimeConfigInitialized) || !this.runtime.valueMapper) return;
 
     const palette = buildGaugeColorStops(this.config, this.runtime, this.paint.sourceColorStops);
@@ -148,20 +147,18 @@ export default class HorseshoeGauge extends BaseTool {
     this.paint.colorStopsMinMax = palette.minMax;
     this.paint.activeColorStops = this.runtime.valueMapper.getActiveColorStops(this.paint.colorStops.colors);
     this.updateStateAndScalePaint();
-    // Binding a master path precedes building its gradients in updated(). Keep
-    // that first measured pass with its normal owner, even if a palette finishes
-    // in between those two lifecycle steps.
+    // A path-following gradient needs the browser-measured Horseshoe path. If a
+    // palette loads first, wait for updated() to bind and measure the path.
     if (this.geometry.pathGeometry.isReady() && this.measuredPaintReady) this.buildMeasuredGradientContracts(true);
   }
 
   /**
-   * Normalizes the established arc fields and the frozen path shape schema.
-   * Shape dimensions use card percentages and are converted to SVG units once.
+   * Applies the Horseshoe config and builds SVG path geometry from its shape,
+   * dimensions and group position. Shape dimensions are converted to SVG units.
    */
   updateRuntimeConfig() {
-    // Existing templates see the original index/group/palette context. This
-    // temporary view supplies that context to the single BaseTool evaluation;
-    // neither sourceConfig nor current config stores derived palette or layout.
+    // Horseshoe JavaScript can read this tool's index, current group_config and
+    // normalized colorstops while BaseTool evaluates the authored config.
     const evaluateJavascript = this.hasJavascript && (!this.runtimeConfigInitialized || this.card.evaluateJavascriptTemplates);
     const templateContext = evaluateJavascript ? {
       ...this.sourceConfig,
@@ -176,8 +173,8 @@ export default class HorseshoeGauge extends BaseTool {
     this.paint.sourceColorStops = ColorStops.ensureMinimumStops(
       { gap: 0, ...this.paint.colorStops }, this.config.horseshoe_scale.max,
     );
-    // Theme changes refresh active stops, but reuse the existing path and group
-    // transform. The state pass separately compares numeric mapping inputs.
+    // A light/dark theme can select different color stops while the SVG path and
+    // group position stay the same. updatePalettePaint() recolors the current value.
     if (!this.configurationChanged && !this.groupChanged && this.geometry.pathDefinition) return;
     const groupConfig = this.card.cardLayout.groupManager.getGroupForItem(this.config);
     this.geometry.group = groupConfig;
@@ -203,8 +200,8 @@ export default class HorseshoeGauge extends BaseTool {
         initialProgress: 0,
       });
     } else {
-      // Timing changes restart from the visible progress with the new settings.
-      // Paint-only changes leave the running transition on its existing clock.
+      // Restart from the visible progress when animation timing changes. Color
+      // and style changes keep the current transition timing.
       if (JSON.stringify(this.stateAnimator.animation) !== JSON.stringify(this.config.horseshoe_state.animation)) {
         this.stateAnimator.stopAnimation();
       }
@@ -229,11 +226,11 @@ export default class HorseshoeGauge extends BaseTool {
     const center = this.geometry.svg;
     const dimension = (value) => Utils.calculateSvgDimension(value);
 
-    // Every branch creates the complete config for one path generator. Shared item
-    // placement stays outside path; all shape-specific fields remain in path.
+    // Build the selected Horseshoe shape around its configured center and convert
+    // its shape-specific dimensions before calling the path generator.
     const pathInputKey = JSON.stringify([sourcePath, center.xpos, center.ypos]);
-    // Paint changes retain the generated centerline. Only shape or placement
-    // changes need to run the existing shape generator again.
+    // Color and style changes reuse the SVG path. Rebuild it when the shape or
+    // its center position changes.
     if (pathInputKey !== this.geometry.pathInputKey) {
       switch (sourcePath.type) {
         case 'arc': {
@@ -403,10 +400,9 @@ export default class HorseshoeGauge extends BaseTool {
       this.geometry.pathInputKey = pathInputKey;
     }
 
-    // Compose item flip/rotation and group scale/rotation into one affine
-    // matrix. Only path layers receive this SVG matrix. Path elements read
-    // the matching TransformedPathGeometry and renders final coordinates as a
-    // separate, untransformed sibling.
+    // Apply item flip/rotation and group scale/rotation to the Horseshoe path.
+    // Place tickmarks, labels, badges and markers at transformed Path positions;
+    // text and icon rotation follows each label or marker's own rules.
     const itemScaleX = this.config.flip === 'x' || this.config.flip === 'both' ? -1 : 1;
     const itemScaleY = this.config.flip === 'y' || this.config.flip === 'both' ? -1 : 1;
     const itemRadians = (Number(this.config.rotate) * Math.PI) / 180;
@@ -446,8 +442,8 @@ export default class HorseshoeGauge extends BaseTool {
       f: groupMatrix.b * itemMatrix.e + groupMatrix.d * itemMatrix.f + groupMatrix.f,
     };
     this.geometry.transform = `matrix(${matrix.a} ${matrix.b} ${matrix.c} ${matrix.d} ${matrix.e} ${matrix.f})`;
-    // Stop using the old state mount before replacing its measured master path.
-    // The new binding receives the current state through the normal render cycle.
+    // Stop the current state animation before replacing its SVG path. The next
+    // render binds the animation to the new path.
     if (this.geometry.pathGeometry.getPathDefinition()?.signature !== this.geometry.pathDefinition.signature) {
       this.stateAnimator.unbindStateLayer();
     }
@@ -507,14 +503,14 @@ export default class HorseshoeGauge extends BaseTool {
 
 
   /**
-   * Maps the entity through the shared state resolver, then builds path-independent
-   * value and painted ranges for all non-gradient scale and state modes.
+   * Updates the Horseshoe value, mapped state, colors, painted ranges and
+   * animation progress from the current HA entity.
    */
   setState(entity, entityConfig) {
     super.setState(entity, entityConfig);
 
-    // Map the current input directly; path geometry and SVG measurements retain
-    // their own caches independently of this inexpensive value calculation.
+    // An HA state change updates the gauge value and colors while reusing the
+    // current SVG path and its browser measurements.
     const stateData = getGaugeStateData(this.config, entity, entityConfig, this.paint.sourceColorStops);
     this.runtime.stateMap = this.buildStateMapDisplayLabels(stateData.stateMap, entity);
     const displayMappedState = this.runtime.stateMap.map.find((entry) => entry.state === stateData.mappedState?.state && Number(entry.value) === Number(stateData.mappedState?.value));
@@ -533,8 +529,8 @@ export default class HorseshoeGauge extends BaseTool {
     this.paint.colorStops = palette.colorStops;
     this.paint.colorStopsMinMax = palette.minMax;
 
-    // Range placement uses the configured band appearance. Color selection is
-    // shared with later palette updates after these normalized ranges are stored.
+    // The configured state width, line caps and segment gap set the Horseshoe
+    // band positions. Apply color selection after building those ranges.
     const stateStyles = this.config.horseshoe_state.styles;
     const scaleStyles = this.config.horseshoe_scale.styles;
     const stateMode = this.config.show.horseshoe_style;
@@ -642,9 +638,8 @@ export default class HorseshoeGauge extends BaseTool {
   }
 
   /**
-   * Applies the configured state and scale colors to their stored source ranges.
-   * Both an entity update and a palette update use this same color/filter policy;
-   * clipping, gaps, caps and animation progress remain owned by the range pass.
+   * Updates colors for Horseshoe state and scale ranges, borders and the marker
+   * after HA entity or color-stop changes. Band positions and animation progress stay put.
    */
   updateStateAndScalePaint() {
     const rawStateStyles = this.config.horseshoe_state.styles;
@@ -657,8 +652,8 @@ export default class HorseshoeGauge extends BaseTool {
     let markerColor = stateStyles.fill;
     this.paint.stateSegmentPaints = [];
 
-    // Mapped states keep their own source value even when an inactive segment
-    // is transparent. Changing a palette therefore recolors every retained slot.
+    // Keep color-stop mapping for every configured state, including inactive
+    // transparent bands, so later theme changes can recolor each state.
     if (this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level') {
       this.paint.paintedStateRanges.forEach((range) => {
         const mappedState = this.runtime.stateMap.map.find((entry) => Number(entry.value) === Number(range.sourceValue));
@@ -703,8 +698,8 @@ export default class HorseshoeGauge extends BaseTool {
       });
     }
 
-    // Borders and the marker have independently configured paint. Their colors
-    // follow the same filter cascade while explicit marker styles stay last.
+    // Apply the configured filters to the Horseshoe borders and marker. Explicit
+    // marker styles are applied last and can override the state color.
     if ('stroke' in stateStyles) this.paint.stateLayer.border.color = stateStyles.stroke;
     if ('stroke' in scaleStyles) this.paint.backgroundLayer.border.color = scaleStyles.stroke;
     this.paint.statePaints = [{
@@ -720,8 +715,8 @@ export default class HorseshoeGauge extends BaseTool {
   }
 
   /**
-   * Adds Home Assistant's translated state or attribute text to mapped labels.
-   * Explicit labels remain authoritative, exactly as in the current horseshoe.
+   * Adds Home Assistant's formatted entity state or attribute to mapped labels.
+   * A label configured in state_map takes priority over the formatted text.
    */
   buildStateMapDisplayLabels(stateMap, entity) {
     if (stateMap.type === 'rank_state') return stateMap;
@@ -741,21 +736,19 @@ export default class HorseshoeGauge extends BaseTool {
   }
 
   /**
-   * Builds browser-measured gradient contracts after value ranges are known.
-   * Full gradients retain value positions; current gradients distribute their
-   * selected colors over only the currently visible state range.
+   * Builds color gradients along the browser-measured Horseshoe path after the
+   * value ranges are known. Full-path gradients follow configured values;
+   * current-value gradients spread colors across the visible state band.
    *
-   * @param {boolean} paintOnly - Reuse retained gradient coordinates and static layout.
-   */
+   * @param {boolean} paintOnly - True for color-only updates that reuse measured path positions.
+  */
   buildMeasuredGradientContracts(paintOnly) {
-    // External palettes may still be loading when the first measured paths are
-    // built. Unresolved colors must leave these keys open for the palette-driven
-    // update, matching the established horseshoe cache lifecycle.
+    // Clear the flag before this build; color lookup sets it when a CSS value
+    // is unavailable, including a palette variable whose JSON is still loading.
     Colors.unresolvedColor = false;
 
-    // The moving gradient may currently end between the last source value and
-    // its target. Recolor that exact prepared domain instead of sampling the
-    // target again or changing the running animation's visible position.
+    // While the state is moving, recolor the range currently shown on the
+    // Horseshoe path so the gradient stays aligned with the visible state band.
     const retainedStateGradient = this.paint.stateGradient;
     const retainedScaleGradient = this.paint.scaleGradient;
     const retainedBackgroundLayers = this.paint.backgroundLayers;
@@ -811,8 +804,8 @@ export default class HorseshoeGauge extends BaseTool {
     const rebuildScaleAndBackgroundLayers = paintOnly || scaleAndBackgroundLayoutKey !== this.paint.scaleAndBackgroundLayoutKey;
     const rebuildPathElements = paintOnly || pathElementsKey !== this.geometry.pathElementsKey;
 
-    // A full-path gradient keeps its color layout when only the value moves.
-    // The new target updates its reveal; animation uses that same prepared layout.
+    // An entity value change moves the visible band along a full-path gradient;
+    // the configured color stops keep their positions on the Horseshoe path.
     if (stateMode === 'colorstopgradient' && !rebuildStateGradient) {
       setFullPathGradientRevealRange(this.paint.stateGradient, stateClip);
     }
@@ -1019,8 +1012,8 @@ export default class HorseshoeGauge extends BaseTool {
               linecap,
             });
           }
-          // Normal state work and palette-only work share this paint selection.
-          // The latter retains the already clipped band endpoints and caps.
+          // Use the same background color after HA state and palette changes.
+          // Keep the background band's path endpoints and line caps in place.
           ranges.forEach((range) => {
             const color = background.mode === 'colorstopsegments'
               ? Colors.calculateStrokeColor(range.sourceValue, this.paint.colorStops, false, this.card.cardTheme.colorContext)
@@ -1141,9 +1134,8 @@ export default class HorseshoeGauge extends BaseTool {
         this.geometry.pathElementSources = { ticks, labels };
       }
 
-      // Source values and unfiltered styles are stored beside the static layout.
-      // Recoloring uses that same paint policy without rebuilding tick values,
-      // label stops or their measured guide paths.
+      // Keep each tick's HA value and each label's configured styles so color
+      // changes can recolor them at their current positions on the path.
       const ticks = this.geometry.pathElementSources.ticks.map((tick) => {
         const tickConfig = tick.layer === 'major' ? this.config.horseshoe_tickmarks.ticks_major : this.config.horseshoe_tickmarks.ticks_minor;
         let color = tickConfig.color ?? tick.styles.fill;
@@ -1181,8 +1173,8 @@ export default class HorseshoeGauge extends BaseTool {
         this.geometry.pathElements = buildPathElements(this.geometry.transformedPathGeometry, { ticks, labels, markers: [] });
         this.geometry.pathElementsGeometryKey = elementsGeometryKey;
       } else {
-        // Color and opacity changes update paint on the prepared coordinates.
-        // Label guide paths and tick endpoints remain the existing result.
+        // Color and opacity changes update tick and label styles while their
+        // measured positions on the Horseshoe path stay the same.
         const tickPaint = new Map(ticks.map((tick) => [tick.id, tick.styles]));
         const labelPaint = new Map(labels.map((label) => [label.id, label]));
         this.geometry.pathElements = {
@@ -1205,7 +1197,8 @@ export default class HorseshoeGauge extends BaseTool {
       this.paint.scaleAndBackgroundLayoutKey = scaleAndBackgroundLayoutKey;
       this.geometry.pathElementsKey = pathElementsKey;
     } else {
-      // Leave failed palette colors retryable on the next normal measured pass.
+      // Keep comparison keys unset while a CSS color or external palette JSON
+      // is unavailable, so palette completion retries the gradient build.
       this.paint.stateGradientKey = undefined;
       this.paint.scaleAndBackgroundLayoutKey = undefined;
       this.geometry.pathElementsKey = undefined;
@@ -1215,13 +1208,12 @@ export default class HorseshoeGauge extends BaseTool {
   }
 
   /**
-   * Renders one animated value progress into the dedicated state mount. Only
-   * normalized clipping changes; master geometry and static layers are absent
-   * from this contract and cannot be rebuilt by an animation frame.
+   * Renders the animated Horseshoe state at one progress value, updating its
+   * visible path range and marker position while reusing the measured SVG path.
    */
   renderStateAtProgress(progress, pathId) {
-    // The marker and current gradient share samples for this drawing pass.
-    // Fixed labels, ticks and full gradients retain their separate cache.
+    // Measure path positions for the moving state band and marker together.
+    // Fixed labels, tickmarks and full-scale gradients keep their measurements.
     this.geometry.pathGeometry.beginTemporarySampling(JSON.stringify([progress, this.runtime.valueMapper.zeroProgress, this.config.bar_mode]));
     try {
       const discreteState = this.config.horseshoe_state.mode === 'segment' || this.config.horseshoe_state.mode === 'stringstate_mode' || this.config.horseshoe_state.mode === 'stringstate_level';
@@ -1284,8 +1276,8 @@ export default class HorseshoeGauge extends BaseTool {
         }
       }
 
-      // Progress uses the path transform; the marker uses already transformed
-      // coordinates so its text/image source is rotated but never mirrored.
+      // The Horseshoe path transform sets progress direction. The marker uses
+      // transformed coordinates to rotate its icon while keeping it upright.
       return svg`
         <g class="horseshoe__state-progress" transform=${this.geometry.transform}>${progressLayer}</g>
         ${this.config.show.state_marker
@@ -1302,18 +1294,18 @@ export default class HorseshoeGauge extends BaseTool {
     this.stateMarker.haIconPath.connected();
   }
 
-  /** Stops animation, marker loading and old DOM bindings on disconnect. */
+  /** Stops the state animation and HA icon loading when the card disconnects. */
   disconnected() {
     this.stateMarker.haIconPath.disconnected();
     if (this.stateAnimator) {
       this.stateAnimator.unbindStateLayer();
       this.runtime.displayProgress = this.stateAnimator.currentProgress;
     }
-    // Retain measurements, but bind the actual master node again after reconnect.
+    // Keep the path-length measurements, then bind the newly rendered SVG path after reconnect.
     this.geometry.pathGeometry.unbindPathElement();
   }
 
-  /** Binds the committed master centerline for gradients, tickmarks, labels, badges, and markers. */
+  /** Binds the rendered Horseshoe SVG path used to measure gradients, tickmarks, labels, badges and markers. */
   updated() {
     if (this.hasJavascript && !this.runtimeConfigInitialized) return;
     const pathId = `${this.cardId}-horseshoe-${this.index}`;

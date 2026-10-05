@@ -1,8 +1,8 @@
 /**
- * Describes a configured icon source without making layout or rendering choices.
+ * Classifies icon config as an HA icon name, SVG URL, or other image URL.
  *
- * @param {string} icon - Home Assistant icon name or CSS url(...) value.
- * @returns {{type: "ha-icon"|"svg-url"|"image-url", value: string}} Source type and normalized value.
+ * @param {string} icon - HA icon name or CSS `url(...)` value.
+ * @returns {{type: "ha-icon"|"svg-url"|"image-url", value: string}} Icon type and icon name or URL.
  */
 export function getIconSource(icon) {
   const urlMatch = icon.trim().match(/^url\(['"]?(.+?)['"]?\)$/i);
@@ -17,11 +17,11 @@ export function getIconSource(icon) {
 }
 
 /**
- * Loads the SVG path exposed by Home Assistant's ha-icon component into the
- * existing card-wide icon cache. One loader instance owns one hidden ha-icon.
+ * Reads the SVG path from the HA `<ha-icon>` rendered for an Icon or Horseshoe
+ * state marker and stores paths and optional rotated bounds in card-wide caches.
  */
 export class HomeAssistantIconPath {
-  /** Stores the source element id and current asynchronous request state. */
+  /** Creates a reader for an HA icon rendered inside this card. */
   constructor(card, sourceId, pathLoaded = () => card.requestUpdate(), measureBounds = false) {
     this.card = card;
     this.elementId = `icon-${sourceId}`;
@@ -33,7 +33,7 @@ export class HomeAssistantIconPath {
     this.sourceClosed = false;
   }
 
-  /** Releases the polling timer/frame belonging to the previous icon source. */
+  /** Stops waiting for the previous HA icon's SVG path. */
   stopReadingPath() {
     if (this.pathRead) {
       window.clearTimeout(this.pathRead.timer);
@@ -43,20 +43,20 @@ export class HomeAssistantIconPath {
     }
   }
 
-  /** Lets the next render read the current source, reusing accepted cache data. */
+  /** Reactivates SVG path reads after the card reconnects. */
   connected() {
     this.sourceClosed = false;
   }
 
-  /** Stops polling and invalidates callbacks still waiting for the old render. */
+  /** Stops waiting for HA to render the current hidden `<ha-icon>` after disconnect. */
   disconnected() {
     this.sourceClosed = true;
     this.stopReadingPath();
   }
 
   /**
-   * Returns a cached path or starts reading it from the hidden ha-icon rendered
-   * by the consumer. A source change cancels the previous polling loop.
+   * Returns a cached SVG path or reads it from the hidden `<ha-icon>` rendered
+   * by IconTool or a Horseshoe state marker. A different icon starts a new read.
    *
    * @param {string} icon - Home Assistant icon name.
    * @returns {string|undefined} SVG path data when available.
@@ -159,7 +159,8 @@ export class HomeAssistantIconPath {
       pathRead.timer = window.setTimeout(readIconPath, delay);
     };
 
-    // Wait until the consumer's hidden ha-icon has entered the shadow DOM.
+    // Wait for Lit to attach the hidden <ha-icon> before reading the SVG path HA
+    // renders inside it for IconTool or the Horseshoe state marker.
     const afterRender =
       this.card.updateComplete && typeof this.card.updateComplete.then === "function"
         ? this.card.updateComplete

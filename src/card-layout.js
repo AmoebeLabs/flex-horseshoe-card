@@ -4,11 +4,10 @@ import MasksClips from './masks-clips.js';
 import Utils from './utils.js';
 import { SVG_VIEW_BOX, SVG_DEFAULT_DIMENSIONS } from './const.js';
 
-/** Owns card geometry, runtime groups, the viewBox, and reusable SVG definitions. */
+/** Keeps layout groups, SVG viewBox size, and shared SVG definitions for this FHS card. */
 export default class CardLayout {
   /**
-   * Creates card geometry state and reusable SVG definition managers that share
-   * the card's template evaluator and id namespace.
+   * Stores the template evaluator and card id used by JavaScript groups and SVG definitions.
    */
   constructor(templates, cardId) {
     this.templates = templates;
@@ -21,7 +20,7 @@ export default class CardLayout {
     this.changedGroupIds = new Set();
   }
 
-  /** Initializes groups, SVG definitions, aspect ratio, and static dimensions. */
+  /** Sets layout groups and SVG definitions, then sizes the SVG viewBox from aspectratio. */
   setConfig(config) {
     config.layout.groups ??= [];
     config.layout.gradients ??= {};
@@ -44,10 +43,11 @@ export default class CardLayout {
 
   }
 
-  /** Evaluates dynamic groups and records every descendant affected by a change. */
+  /** Re-evaluates JavaScript in layout.groups when HA data or FHS entity values change. */
   updateGroups(configuredEntityStateChanged) {
-    // Source-dependent groups are evaluated before graphs, and derived-dependent
-    // groups afterward. Retain both changes until all tools consumed the pass.
+    // Group templates can use configured HA entities before Sparkline runs and
+    // fhs_sparkline.* values after it. Reevaluate at both points so group positions
+    // and visibility follow the values those templates use.
     if (!configuredEntityStateChanged || !this.groupsHaveJavascript) return;
 
     const newGroupConfigs = [...this.runtimeGroupConfigs];
@@ -71,7 +71,8 @@ export default class CardLayout {
     this.runtimeGroupConfigs = newGroupConfigs;
     this.groupManager = new GroupManager(this.runtimeGroupConfigs);
 
-    // A changed parent changes the effective position, visibility, and scale of all descendants.
+    // A changed parent can move, hide, or scale every nested group and its tools.
+    // Mark each affected group so its tools recalculate their SVG geometry.
     Object.keys(this.groupManager.groups).forEach((groupId) => {
       let currentGroupId = groupId;
       while (currentGroupId) {
@@ -86,12 +87,12 @@ export default class CardLayout {
     });
   }
 
-  /** Clears group invalidation after all tools have consumed it. */
+  /** Clears changed group IDs after their tools recalculate positions, scale, and visibility. */
   markGroupsHandled() {
     this.changedGroupIds.clear();
   }
 
-  /** Converts item coordinates through its effective parent group. */
+  /** Converts item coordinates to SVG coordinates using its parent groups. */
   calculateSvgCoordinatesInGroup(item) {
     return this.groupManager.calculateSvgCoordinatesInGroup(item);
   }

@@ -1,12 +1,13 @@
 import Colors from './colors.js';
 import Palette from './palettes.js';
 
-/** Owns Home Assistant theme state, color mode and loaded palettes. */
+/** Tracks HA themes and palettes and applies their colors to this card and nested FHS cards. */
 export default class CardTheme {
   static viewObservers = new WeakMap();
   /**
-   * Stores the card host and callbacks used to repaint after theme or palette
-   * changes. CSS inheritance and palette availability determine shared reuse.
+   * Keeps the card element needed to read inherited CSS colors and callbacks for
+   * refreshing colors after HA theme or palette changes. Color lookups use cached
+   * results only after this card's theme CSS and palettes are ready.
    */
   constructor(element, redrawGradients, updateCard) {
     this.element = element;
@@ -27,8 +28,8 @@ export default class CardTheme {
     this.childThemes = new Set();
     this.ownPaletteSources = [];
     this.paletteVariables = new Set();
-    // Every color consumer receives the host whose inherited CSS it must read.
-    // Theme/cache metadata is filled before these conversions become reusable.
+    // Color stops, gradients, and palettes can use CSS variables inherited by
+    // this card. Keep its element and active HA theme together for those lookups.
     this.colorContext = {
       element,
       globalThemeName: '',
@@ -72,8 +73,8 @@ export default class CardTheme {
   }
 
   /**
-   * Applies this card's palette variables and publishes the sources inherited by
-   * its nested cards. Removed keys fall back to the surrounding CSS environment.
+   * Applies this card's palette variables and makes parent and current palettes
+   * available to nested FHS cards. Removed variables fall back to surrounding CSS.
    */
   applyPalettes() {
     this.colorContext.cacheReady = false;
@@ -93,7 +94,7 @@ export default class CardTheme {
     });
   }
 
-  /** Makes conversions reusable only after current CSS and palettes are present. */
+  /** Allows cached color conversions after this card's HA theme and palettes are ready. */
   finishPaintUpdate() {
     if (!this.connectedToCard || !this.hasTheme || !this.palettesLoaded) return false;
     this.colorContext.cacheReady = true;
@@ -108,8 +109,8 @@ export default class CardTheme {
     this.palettesLoaded = false;
     this.colorContext.cacheReady = false;
 
-    // An empty selection also supersedes a pending load. A connected card with
-    // an existing HA context needs its paint completion after a live YAML edit.
+    // Choosing no palettes also makes any older request out of date. After a
+    // live YAML edit, refresh colors once this connected card has its HA theme.
     if (Object.keys(paletteConfig).length === 0) {
       const removedPalette = this.ownPaletteSources.length > 0;
       this.palettes = {};
@@ -122,14 +123,16 @@ export default class CardTheme {
     }
     if (this.disconnectedFromCard) return;
 
+    // A newer YAML config or card disconnection may happen while this fetch waits.
     let palettes;
     try {
       palettes = await Palette.loadAll(paletteConfig);
     } catch (error) {
       if (loadNumber !== this.paletteLoadNumber || this.disconnectedFromCard) return;
-      // The caller reports the active failure; a later call/reconnect can retry.
+      // Report the current load's error; a later config update or reconnect can retry.
       throw error;
     }
+    // Apply colors only when this is still the latest request for a connected card.
     if (loadNumber !== this.paletteLoadNumber || this.disconnectedFromCard) return;
 
     this.palettes = palettes;
@@ -140,7 +143,7 @@ export default class CardTheme {
     this.updateCard();
   }
 
-  /** Resumes only the current palette configuration interrupted by disconnect. */
+  /** Reuses loaded palettes and retries only when disconnect interrupted the current config load. */
   connected() {
     if (this.connectedToCard) return;
     const retryPalettes = this.disconnectedFromCard && this.palettesNeedLoading;
@@ -161,6 +164,7 @@ export default class CardTheme {
     }
     if (this.parentTheme) this.parentTheme.childThemes.add(this);
     if (this.viewElement) {
+      // Watch the HA view's style so nested cards refresh colors when its theme changes.
       let subscription = CardTheme.viewObservers.get(this.viewElement);
       if (!subscription) {
         subscription = { themes: new Set(), observer: undefined };
@@ -187,7 +191,7 @@ export default class CardTheme {
     }
   }
 
-  /** Invalidates pending publication while retaining successful shared sources. */
+  /** Prevents stale palette responses from changing colors and detaches this card from its HA view and parent FHS card. */
   disconnected() {
     if (this.disconnectedFromCard) return;
     this.disconnectedFromCard = true;
@@ -209,7 +213,7 @@ export default class CardTheme {
     }
   }
 
-  /** Clears the per-update mode marker after all runtime config was evaluated. */
+  /** Clears the HA light/dark mode flag after tools select their configured color-stop lists. */
   markModeHandled() {
     this.modeChanged = false;
   }

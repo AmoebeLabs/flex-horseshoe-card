@@ -4,7 +4,7 @@ import Templates from "./templates.js";
 import { clamp } from "./frontend_mods/common/number/clamp.ts";
 
 /**
- * Default animation configuration copied into normalized runtime state.
+ * Default timing and easing used by Horseshoe state animations.
  */
 const DEFAULT_STATE_ANIMATION = {
   enabled: true,
@@ -14,7 +14,7 @@ const DEFAULT_STATE_ANIMATION = {
 };
 
 /**
- * Applies the minimal base defaults needed before entity state is resolved.
+ * Adds a default entity index, bar mode and display settings before a Horseshoe receives its HA entity.
  */
 export function normalizeBaseConfig(config) {
   return {
@@ -59,7 +59,7 @@ export function normalizeLinecap(linecap) {
 const STRINGSTATE_RELATIONS = ["before", "current", "after"];
 
 /**
- * Normalizes string-state label role and state-map style dictionaries.
+ * Normalizes styles for the before, current and after labels in string-state modes.
  */
 function normalizeStringstateLabelConfig(config) {
   const normalized = {
@@ -110,7 +110,7 @@ function normalizeStringstateLabelConfig(config) {
 }
 
 /**
- * Computes the normalized zero position for bidirectional scales.
+ * Returns where value zero falls between the configured Horseshoe scale bounds.
  */
 export function getZeroRatio(horseshoeScale) {
   const min = Number(horseshoeScale.min);
@@ -124,9 +124,8 @@ export function getZeroRatio(horseshoeScale) {
 }
 
 /**
- * Completes public Horseshoe settings after template evaluation. Palette values
- * supply existing numeric defaults; active colors and SVG placement have their
- * own paint and geometry owners.
+ * Completes the Horseshoe config after JavaScript evaluation by filling scale,
+ * state, marker, label and tickmark settings used to draw the gauge.
  */
 export function translateHorseshoeConfig(config, colorStopMode) {
   const normalizedStops = { gap: 0, ...ColorStops.normalize(config.color_stops, colorStopMode) };
@@ -144,8 +143,7 @@ export function translateHorseshoeConfig(config, colorStopMode) {
     throw new Error("[V2] Missing horseshoe_scale");
   }
 
-  // The active color-stop template supplies the default value range. Explicit
-  // horseshoe scale values are merged afterward and therefore keep priority.
+  // Use the selected color-stop scale for missing bounds; explicit Horseshoe scale values take priority.
   const defaultColorStopScale = normalizedStops.scales.default ?? {};
   const horseshoeScale = {
     min: defaultColorStopScale.min ?? 0,
@@ -186,8 +184,7 @@ export function translateHorseshoeConfig(config, colorStopMode) {
     ...(config.horseshoe_state ?? {}),
   };
 
-  // A path marker has a useful zero-config circle. Center attachment represents
-  // a pointer from the arc center and therefore needs an explicit icon shape.
+  // A path-attached marker defaults to a circle. A marker attached to the center needs an icon.
   const markerSource = config.horseshoe_marker ?? {};
   const markerAttachTo = markerSource.attach_to ?? "path";
   const horseshoeMarker = {
@@ -287,7 +284,7 @@ export function translateHorseshoeConfig(config, colorStopMode) {
 
   const radius = config.radius ?? 45;
   const tickmarksRadius = config.tickmarks_radius ?? 43;
-  // The path generator owns complete circles, including their two arc commands.
+  // The path generator draws a 360-degree Horseshoe as a full circle using two SVG arc commands.
   const arcDegrees = config.arc_degrees ?? 260;
   const barMode = config.bar_mode ?? "normal";
   const supportedBarModes = [
@@ -491,9 +488,9 @@ export function getStateMapItem(stateMap, rawState, value) {
 }
 
 /**
- * Maps the configured entity state or attribute to a numeric path value and
- * current semantic state map. Ranked modes return their effective scale without
- * changing the configured scale or storing palette-derived colors in the map.
+ * Reads the configured HA entity state or attribute and returns its numeric
+ * Horseshoe value, matching state-map row and scale. Rank-state mapping gives
+ * each rank one scale slot while keeping configured scale bounds and map colors.
  */
 export function getGaugeStateData(config, entity, entityConfig, colorStops) {
   let value = entity.state;
@@ -510,8 +507,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
   );
 
   if (stringColorStops.length) {
-    // Convert the public state/color list once into the numeric runtime shape
-    // consumed by the existing state-map and horseshoe rendering pipeline.
+    // Give HA state color stops numeric Horseshoe values so state bands and labels can use them.
     const orderedStops = stringColorStops.some(
       (colorStop) => colorStop.rank !== undefined,
     )
@@ -533,7 +529,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
   }
 
   if (config.state_map?.type === "rank_state") {
-    // Numeric thresholds select the rank before its label slot is positioned.
+    // Find the color-stop rank selected by the HA numeric value before placing its state-map label.
     const sourceColorStops = colorStops;
     const numericValue = Number(value);
     let activeSourceStop =
@@ -566,8 +562,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
       }
     }
 
-    // Rank slots occupy the same value-space as the existing string-state bands.
-    // Only explicitly configured map colors belong to these semantic entries.
+    // Half-step values center rank labels in their state bands. Keep configured map colors separate from palette colors.
     const rankedStateMap = {
       ...config.state_map,
       map: config.state_map.map.map((entry, index) => ({
@@ -575,7 +570,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
         value: index + 0.5,
       })),
     };
-    // Keep the original value alongside the selected slot for state presentation.
+    // Keep the HA value beside the selected rank's Horseshoe value.
     const mappedStateIndex = rankedStateMap.map.findIndex(
       (entry) => String(entry.rank) === String(activeSourceStop.rank),
     );
@@ -583,7 +578,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
       ...rankedStateMap.map[mappedStateIndex],
       source_value: value,
     };
-    // Each rank occupies one slot in the effective render scale.
+    // Give each configured rank one slot on the Horseshoe scale.
     const rankedScale = {
       ...config.horseshoe_scale,
       min: 0,
@@ -598,7 +593,7 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
     };
   }
 
-  // State maps may replace textual entity states before the gauge receives its numeric value.
+  // Use the matching state-map value when an HA state or configured attribute maps to a numeric value.
   const mappedState = config.state_map
     ? getStateMapItem(config.state_map.map, entity.state, value)
     : undefined;
@@ -614,9 +609,9 @@ export function getGaugeStateData(config, entity, entityConfig, colorStops) {
 }
 
 /**
- * Builds the active render palette in the mapped state's value-space. Rank and
- * string mapping retain their semantic values when only theme colors change.
- * Explicit state-map colors keep priority over palette-derived rank colors.
+ * Converts HA state color stops to numeric Horseshoe values and adds palette
+ * colors for rank-state rows. Configured state-map colors take priority over
+ * colors supplied by matching color stops.
  */
 export function buildGaugeColorStops(config, runtime, sourceStops) {
   let colorStops = sourceStops;

@@ -13,9 +13,9 @@ const MOVE_TOLERANCE = 8;
  * action handler. Pointer events keep mouse and touch on one linear path, while
  * the click listener only suppresses the browser's follow-up click event.
  *
- * @param {Element} element - SVG or HTML element that owns the interaction.
+ * @param {Element} element - SVG or HTML element receiving the gestures.
  * @param {object} options - Enabled gestures for the current runtime config.
- * @returns {object} Gesture owner with stable listeners and explicit cleanup.
+ * @returns {object} Gesture tracking, listeners and disconnect function for this element.
  */
 function bindActionHandler(element, options) {
   const interactive = options.hasTap || options.hasHold || options.hasDoubleClick;
@@ -73,8 +73,8 @@ function bindActionHandler(element, options) {
     state.tapAction = undefined;
   };
 
-  // Cleanup invalidates timer identities as well as removing listeners. A
-  // callback already queued before cancellation stays inert after reconnect.
+  // Cancel delayed tap/hold actions when the element is removed. A callback
+  // already queued must stay cancelled even if the element reconnects later.
   state.disconnect = () => {
     state.connected = false;
     state.cancelPendingActions();
@@ -214,7 +214,7 @@ const actionHandler = directive(
       this.state = bindActionHandler(this.element, this.options);
     }
 
-    /** Produces no attribute value because update() owns the element listeners. */
+    /** Leaves the element's attributes unchanged; update() attaches gesture listeners. */
     render() {}
   },
 );

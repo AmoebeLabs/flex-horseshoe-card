@@ -1,7 +1,6 @@
 /**
- * Creates the shared stable definition consumed by browser geometry. The
- * generated path itself is the cache identity, so equivalent geometry reuses
- * one measurement regardless of which configuration produced it.
+ * Stores the SVG Path shape for browser measurement. Identical path commands
+ * share a measurement even when they came from different Horseshoe settings.
  *
  * @param {string} d - SVG centerline path data.
  * @param {boolean} closed - Whether the centerline returns to its start.
@@ -375,7 +374,7 @@ export function buildRectanglePathDefinition(config) {
     length: Math.hypot(x2 - x1, y2 - y1),
   });
   // Integers identify corner midpoints, not sharp corner coordinates. Each
-  // numbered side therefore owns both its straight edge and two half-corners.
+  // numbered side therefore includes its straight edge and two half-corners.
   const sides = [
     [
       arc(left + radii[0], top + radii[0], radii[0], 225, 270),

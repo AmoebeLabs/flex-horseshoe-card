@@ -1,18 +1,16 @@
-// templates.js
-
 export default class Templates {
   static javascriptTemplateFlags = new WeakMap();
 
   static javascriptFunctionCache = new Map();
 
   /**
-   * Creates one JavaScript template context for one card instance.
+   * Creates the JavaScript template context for one FHS card.
    *
-   * The entities array keeps the same identity for the complete card lifecycle.
-   * Home Assistant, config and entity slots are published when their lifecycle
-   * phase starts. Every tool reads those values from this persistent context.
+   * Templates read the current HA object, Lovelace config, entity values, and
+   * named entity_slots here. The shared entities array keeps its identity while
+   * HA and FHS entity values change.
    *
-   * @param {Array<object>} entities - Mutable runtime entity array owned by the card.
+   * @param {Array<object>} entities - Shared array of HA and FHS entity values used by card tools and templates.
    */
   constructor(entities) {
     this.context = {
@@ -24,49 +22,48 @@ export default class Templates {
   }
 
   /**
-   * Lovelace config lifecycle: starts a new setConfig pass and removes entity
-   * slots belonging to the previously compiled card config.
+   * Starts a new Lovelace config and clears named entity_slots from the previous
+   * card config.
    */
   beginConfig(config) {
     this.context.config = config;
     this.context.entity_slots = undefined;
   }
 
-  /** Publishes the final named slots after disabled entities have been removed. */
+  /** Stores the final named entity slots after disabled entries have been removed. */
   setEntitySlots(entitySlots) {
     this.context.entity_slots = entitySlots;
   }
 
   /**
-   * Home Assistant lifecycle: publishes the hass object received by the card's
-   * hass setter before runtime templates evaluate the update.
+   * Stores the latest HA object before the card evaluates templates for this update.
    */
   setHass(hass) {
     this.context.hass = hass;
   }
 
-  /** Records JavaScript syntax metadata by finalized config object identity. */
+  /** Records whether this config value contains [[[ ... ]]] JavaScript templates. */
   detectJavascriptTemplates(value) {
     return Templates.detectJavascriptTemplates(value);
   }
 
-  /** Reads JavaScript syntax metadata recorded for the supplied config object. */
+  /** Returns whether this config value contains [[[ ... ]]] JavaScript templates. */
   hasJavascriptTemplates(value) {
     return Templates.hasJavascriptTemplates(value);
   }
 
-  /** Evaluates a config value exclusively with this card evaluator context. */
+  /** Evaluates a tool's [[[ ... ]]] config using the current HA data and entity values. */
   getJsTemplateOrValue(item, value, options = {}) {
     return this._getJsTemplateOrValue(item, value, options, 0, []);
   }
 
   /**
-   * Detects JavaScript templates in one finalized config component.
+   * Scans a finalized FHS config value and its object keys for [[[ ... ]]] JavaScript.
    *
-   * This pass runs after ref(), calc() and same_as. A WeakMap stores flags beside
-   * the user config and preserves the public YAML/config shape.
-   * Arrays, object values and object keys are all included because templates may
-   * return complete config shapes and color stops support dynamic keys.
+   * This runs after FHS expands ref(), calc(), and same_as(), so templates those
+   * features add are included. Array entries, object values, and keys are scanned
+   * because templates can return config shapes and color stops can have dynamic keys.
+   * Keep the scan flags outside the Lovelace config so it gains no internal fields.
    *
    * @param {*} value - Finalized entity, layout item, animation, card style or group config.
    * @returns {boolean} True when this value or one of its descendants contains JavaScript.
@@ -103,10 +100,10 @@ export default class Templates {
   }
 
   /**
-   * Returns JavaScript metadata recorded for a finalized config component.
+   * Returns whether a previously scanned config value contains JavaScript.
    *
-   * @param {*} value - Previously scanned config component.
-   * @returns {boolean} True when the component contains JavaScript.
+   * @param {*} value - Config value previously passed to detectJavascriptTemplates.
+   * @returns {boolean} True when this value contains JavaScript.
    */
   static hasJavascriptTemplates(value) {
     if (typeof value === 'string') return Templates.isJsTemplate(value);
@@ -120,24 +117,24 @@ export default class Templates {
   }
 
   /**
-   * Resolves JavaScript templates inside supported config values.
+   * Evaluates JavaScript templates inside supported config values.
    *
-   * Accepts primitives, strings, arrays, and plain objects. Arrays are resolved
-   * entry-by-entry for YAML array style declarations, and object keys are also
-   * resolved unless `options.resolveKeys` is false. Full-string `[[[ ... ]]]`
-   * templates may return another supported shape, which is resolved again.
+   * Evaluates strings inside arrays and objects, including object keys when
+   * `options.resolveKeys` is true. A full-string `[[[ ... ]]]` template can return
+   * another array, object, or template string, which is evaluated the same way.
    *
-   * @param {object} item Card item context exposed to templates.
-   * @param {*} value Config value or nested config shape to resolve.
-   * @param {{ resolveKeys?: boolean }} [options={}] Resolution options.
-   * @returns {*} The resolved value, preserving null, undefined, and non-string primitives.
+   * @param {object} item - Tool or nested item exposed to its templates.
+   * @param {*} value - Config value or nested config shape to evaluate.
+   * @param {{ resolveKeys?: boolean }} [options={}] - Whether to evaluate object keys as well as values.
+   * @returns {*} Config value with its [[[ ... ]]] templates evaluated.
    */
 
   _getJsTemplateOrValue(item, value, options, depth, path) {
     const { resolveKeys = true, maxDepth = 10 } = options;
 
-    // Composite tools preserve child-owned fields until the child evaluates its
-    // own item context. Other template users keep the existing recursive route.
+    // Control leaves templates in nested Text, Icon, Name, Area, State, and value
+    // items for each generated tool to evaluate with that item's entity context.
+    // Other FHS templates are evaluated recursively here.
     if (options.preserve?.(path)) return value;
 
     if (depth >= maxDepth) return value;
@@ -188,7 +185,7 @@ export default class Templates {
   /**
    * Extracts the JavaScript body from a full template string.
    *
-   * @param {*} value Template-like value to trim and unwrap.
+   * @param {*} value - Full `[[[ ... ]]]` template string.
    * @returns {string} JavaScript body enclosed by the template markers.
    */
   static extractJsTemplateCode(value) {
@@ -196,15 +193,15 @@ export default class Templates {
   }
 
   /**
-   * Runs JavaScript template code with the current card and Home Assistant context.
+   * Runs an FHS JavaScript template with current Home Assistant data and card config.
    *
-   * Exposes `hass`, `config`, `entity`, `entities`, `states`, `constants`,
-   * `item`, and `user` to the template. Errors are logged only when dev debug is enabled and return
-   * `undefined`.
+   * Exposes `hass`, `config`, `entity`, `entities`, `states`, `state`, `constants`,
+   * `entity_slots`, `item`, and `user`. Errors are logged only when dev debug is
+   * enabled, and an evaluation error returns `undefined`.
    *
-   * @param {object} item Card item context used to pick the active entity.
-   * @param {string} javascript JavaScript function body to evaluate.
-   * @returns {*} Template return value, or undefined when evaluation fails.
+   * @param {object} item - Tool or nested item whose entity_index selects `entity` and `state`.
+   * @param {string} javascript - JavaScript function body to evaluate.
+   * @returns {*} Template value, or undefined when evaluation fails.
    */
   evaluateJsTemplate(item, javascript) {
     const {
@@ -313,7 +310,7 @@ export default class Templates {
   }
 
   /**
-   * Checks for plain object config shapes.
+   * Checks whether a value is an object other than an array.
    *
    * @param {*} value Value to test.
    * @returns {boolean} True for non-null objects that are not arrays.

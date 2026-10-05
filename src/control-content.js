@@ -21,7 +21,7 @@ export default class ControlContent {
    *
    * @param {object} contentConfig - Active content_horizontal/content_vertical config.
    * @param {string} direction - Stack direction: horizontal or vertical.
-   * @param {object} bounds - Parent-owned x/y center and width/height.
+   * @param {object} bounds - Parent Control or Select segment center, size and group.
    * @param {object} itemOverrides - Per-button or per-option overrides keyed by item id.
    * @param {number} parentEntityIndex - Entity inherited by every visual item.
    * @param {string} instanceId - Unique button or select-option content id.
@@ -109,10 +109,10 @@ export default class ControlContent {
 
   /** Divides the content box into equal cells and constructs every visual tool. */
   createVisualTools() {
-    // Rebuilding content ends every old child lifetime before new allocation.
+    // Disconnect existing visual tools before rebuilding the configured content.
     this.childTools.forEach((child) => child.tool.disconnected());
-    // Convert the parent-owned center and dimensions into the inner content box.
-    // Child tools receive final card coordinates, not local percentages.
+    // Convert the parent Control or Select segment center and size into the
+    // inner content box. Child tools receive their final card coordinates.
     const contentX = this.geometry.bounds.xpos - this.geometry.bounds.width / 2 + this.geometry.padding.left;
     const contentY = this.geometry.bounds.ypos - this.geometry.bounds.height / 2 + this.geometry.padding.top;
     const contentWidth = this.geometry.bounds.width - this.geometry.padding.left - this.geometry.padding.right;
@@ -139,9 +139,9 @@ export default class ControlContent {
       const yposc = itemY + itemHeight / 2;
       const childCardId = `${this.cardId}-${this.instanceId}-${item.id}`;
       const childId = `${this.instanceId}-${item.id}`;
-      // Tool implementations differ between ypos and yposc, so publish the same
-      // absolute center through both names. The enclosing control remains the
-      // sole pointer target regardless of child tool capabilities.
+      // FHS tools use either `ypos` or `yposc` for vertical placement, so give
+      // both the same absolute center. The enclosing Control or Select hit area
+      // handles pointer actions; visual children have their own actions disabled.
       const visualConfig = Merge.mergeDeep(
         item,
         {
@@ -153,7 +153,8 @@ export default class ControlContent {
           tap_action: { action: 'none' },
           hold_action: { action: 'none' },
           double_tap_action: { action: 'none' },
-          // Whole style templates belong to the generated child's evaluation.
+          // Keep whole style templates for the visual child to evaluate with its
+          // entity_index; convert style dictionaries before adding pointer rules.
           styles: Templates.isJsTemplate(item.styles) ? item.styles : Merge.mergeDeep(
             ConfigHelper.toStyleDict(item.styles),
             { 'pointer-events': 'none' },
@@ -163,8 +164,8 @@ export default class ControlContent {
       delete visualConfig.type;
       delete visualConfig.margin;
 
-      // Adapt each public content type to an existing FHS visual tool. This keeps
-      // state, color-stop, template, animation, and lifecycle behavior shared.
+      // Use the existing FHS visual tools for each content type, preserving their
+      // normal state, color-stop, template, animation and lifecycle behavior.
       let tool;
       switch (item.type) {
         case 'icon': {
@@ -263,8 +264,9 @@ export default class ControlContent {
    * @param {string} transition - Parent control transition string.
    */
   setState(visualState, transition) {
-    // Parent state colors apply only to semantic icon/text content. Data
-    // visualizations retain their own styles and color-stop state at all times.
+    // Selected/unselected Control colors apply to Icon and Text children; each
+    // child's configured styles can override those colors. Lines, Circles,
+    // Horseshoes and Sparklines keep their own styles and color stops.
     this.childTools.forEach((child) => {
       if (child.type === 'icon' || child.type === 'text') {
         child.tool.setEffectiveStyles(Merge.mergeDeep(

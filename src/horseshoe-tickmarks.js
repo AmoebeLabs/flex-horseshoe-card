@@ -1,6 +1,6 @@
 /**
- * Converts the original scale_tickmarks shorthand at the configuration boundary.
- * The gauge then consumes the completed major/minor tick configuration.
+ * Converts show.scale_tickmarks into major-tick settings for older Horseshoe
+ * cards, using their scale width, tick spacing and tickmark radius.
  */
 export function applyLegacyScaleTickmarkConfig(horseshoeConfig) {
   if (horseshoeConfig.show?.scale_tickmarks !== true) return horseshoeConfig;
@@ -69,12 +69,11 @@ export function buildTickValues(min, max, ticksize, anchor) {
 }
 
 /**
- * Resolves the enabled tickmark layers from the new tickmarks setting.
+ * Selects which Horseshoe tickmarks to draw from show.tickmarks.
  *
  * A boolean is the shorthand for both layers. An object allows major and
  * minor ticks to be controlled independently. The old show.ticks value is
- * only used when the new show.tickmarks setting is absent, preserving older
- * configurations without making the legacy key the primary API.
+ * used when show.tickmarks is absent, so older cards keep their tickmarks.
  */
 export function getTickmarkVisibility(config) {
   const configuredTickmarks = config?.show?.tickmarks;

@@ -16,11 +16,11 @@ import getTextToolGeometry from './text-tool-geometry.js';
 const RUNTIME_SECTIONS = ['horseshoes', 'names', 'areas', 'states', 'texts', 'rectangles', 'polygons', 'lines', 'circles', 'arcs', 'icons', 'controls'];
 const RENDER_SECTIONS = ['rectangles', 'polygons', 'circles', 'arcs', 'horseshoes', 'lines', 'icons', 'areas', 'names', 'states', 'texts', 'sparklines', 'controls'];
 
-/** Owns every configured layout tool and forwards their shared lifecycle phases. */
+/** Keeps tools for each configured layout section and forwards card updates to them. */
 export default class CardTools {
   /**
-   * Creates the section collections used to find and update the current tools.
-   * Configuration replacement closes their instances before assigning new ones.
+   * Creates the named layout sections for this card. Replacing config disconnects
+   * existing tools before new tools are created.
    */
   constructor(card, templates, cardId) {
     this.card = card;
@@ -34,7 +34,7 @@ export default class CardTools {
     };
   }
 
-  /** Closes every old owner before replacement can construct new resources. */
+  /** Disconnects existing tools before a new card config creates replacements. */
   clearTools() {
     this.getRenderableTools().forEach((tool) => tool.disconnected());
     this.connectedToCard = false;
@@ -77,21 +77,21 @@ export default class CardTools {
     return this.sections[section];
   }
 
-  /** Returns a configured number or the effective width of a referenced text tool. */
+  /** Returns configured width or measured/estimated Text width plus twice its configured padding. */
   getItemWidth(itemWidthConfig) {
     if (typeof itemWidthConfig === 'number') return itemWidthConfig;
     const item = this.sections[itemWidthConfig.section].find((tool) => tool.id === itemWidthConfig.item_id);
     return getTextToolGeometry(item).width + itemWidthConfig.padding * 2;
   }
 
-  /** Returns a configured number or the effective height of a referenced text tool. */
+  /** Returns configured height or measured/estimated Text height plus twice its configured padding. */
   getItemHeight(itemHeightConfig) {
     if (typeof itemHeightConfig === 'number') return itemHeightConfig;
     const item = this.sections[itemHeightConfig.section].find((tool) => tool.id === itemHeightConfig.item_id);
     return getTextToolGeometry(item).height + itemHeightConfig.padding * 2;
   }
 
-  /** Returns center and effective dimensions of one referenced text tool. */
+  /** Returns the referenced Text tool's SVG position and measured or estimated size. */
   getItemGeometry(fitConfig) {
     const item = this.sections[fitConfig.section].find((tool) => tool.id === fitConfig.item_id);
     return getTextToolGeometry(item);
@@ -102,30 +102,30 @@ export default class CardTools {
     return RENDER_SECTIONS.flatMap((section) => this.sections[section]);
   }
 
-  /** Sorts a fresh render list by layer and stable section render index. */
+  /** Sorts tools by zpos, keeping configured SVG section order when layers tie. */
   getSortedRenderableTools() {
     return this.getRenderableTools()
       .sort((firstTool, secondTool) => firstTool.zpos - secondTool.zpos || firstTool.renderIndex - secondTool.renderIndex);
   }
 
 
-  /** Updates only sparkline runtime config before derived sparkline entities exist. */
+  /** Evaluates Sparkline config before its fhs_sparkline.* values are calculated. */
   updateSparklineRuntimeConfig() {
     this.sections.sparklines.forEach((tool) => tool.updateRuntimeConfig());
   }
 
-  /** Updates every non-sparkline tool after derived sparkline entities are current. */
+  /** Updates non-Sparkline tools after fhs_sparkline.* entity values are current. */
   updateRuntimeConfig() {
     RUNTIME_SECTIONS.forEach((section) => this.sections[section].forEach((tool) => tool.updateRuntimeConfig()));
   }
 
-  /** Recolors retained graph and gauge layers after theme or palette changes. */
+  /** Recalculates Sparkline and Horseshoe colors after HA theme or palette changes. */
   updatePalettePaint() {
     this.sections.sparklines.forEach((tool) => tool.updatePalettePaint());
     this.sections.horseshoes.forEach((tool) => tool.updatePalettePaint());
   }
 
-  /** Updates graph legend consumers after the final entity publication. */
+  /** Updates Sparkline legend Text tools after all fhs_sparkline.* values are current. */
   updateSparklinePresentation() {
     this.sections.sparklines.forEach((tool) => tool.updateLegendTextTools());
   }
@@ -137,27 +137,26 @@ export default class CardTools {
     });
   }
 
-  /** Assigns entity data to the sparkline tools before derived entity calculation. */
+  /** Assigns HA and local entities to Sparkline tools before they calculate fhs_sparkline.* values. */
   setSparklineEntityStates(entityConfigs, entities) {
     this.setEntityStates(['sparklines'], entityConfigs, entities);
   }
 
-  /** Assigns entity data to every non-sparkline tool. */
+  /** Assigns current HA and local entity data to every non-Sparkline tool. */
   setRuntimeEntityStates(entityConfigs, entities) {
     this.setEntityStates(RUNTIME_SECTIONS, entityConfigs, entities);
   }
 
   /**
-   * Announces the first hass object once, after tool construction, so tools can
-   * initialize their HA-dependent resources in a distinct lifecycle phase.
+   * Gives each configured tool the first Home Assistant object after construction.
    */
   hassAvailable() {
     this.getRenderableTools().forEach((tool) => tool.hassAvailable());
   }
 
   /**
-   * Announces websocket readiness after reconnects so history-backed tools mark
-   * cached series for refresh during the next normal setHass pass.
+   * Reports websocket readiness so Sparkline History can refresh rows after an
+   * HA reconnect.
    */
   hassConnected() {
     if (!this.connectedToCard) return;
@@ -165,8 +164,8 @@ export default class CardTools {
   }
 
   /**
-   * Forwards DOM connection so history-backed and nested tools can mark their
-   * existing data for resynchronization after a card is reused.
+   * Notifies nested Control tools and Sparkline History when the card re-enters
+   * the DOM, so History can recheck HA rows and icon readers can resume.
    */
   connected() {
     if (this.connectedToCard) return;
@@ -176,8 +175,8 @@ export default class CardTools {
   }
 
   /**
-   * Forwards DOM disconnection so every tool releases owned timers, animation
-   * frames and global pointer listeners even during an active interaction.
+   * Notifies tools that the card left the DOM so they can stop timers and animation
+   * frames and remove pointer listeners, including during an active Control drag.
    */
   disconnected() {
     this.connectedToCard = false;

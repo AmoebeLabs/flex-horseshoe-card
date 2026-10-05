@@ -8,10 +8,10 @@ import Utils from './utils.js';
  * Layout polygon tool that renders one complete polygon surface.
  */
 export default class PolygonTool extends BaseTool {
-  /** Validates evaluated polygon fields and completes the public top position.
+  /** Validates evaluated polygon settings and sets the default top position from its side count.
    *
    * @param {object} config - Evaluated polygon item config.
-   * @returns {object} Valid polygon item config with its resolved top position.
+   * @returns {object} Valid polygon item config with its top position.
    */
   static translateConfig(config) {
     const sides = config.sides;
@@ -35,8 +35,8 @@ export default class PolygonTool extends BaseTool {
   }
 
   /**
-   * Captures polygon source and builds the path immediately for static config.
-   * Dynamic sides and top are evaluated before the first path is calculated.
+   * Stores polygon config and builds its SVG path immediately when the config
+   * is static. JavaScript values are evaluated before the path is calculated.
    *
    * @param {object} config - Static polygon item config.
    * @param {number} index - Polygon index inside layout.polygons.
@@ -76,7 +76,7 @@ export default class PolygonTool extends BaseTool {
   }
 
   /**
-   * Converts translated polygon config into canonical SVG and path geometry.
+   * Converts polygon config to its SVG center and generated path.
    *
    * @param {object} config - Static or evaluated runtime polygon config.
    * @returns {object} Polygon SVG center, path input, and generated path.
@@ -115,7 +115,8 @@ export default class PolygonTool extends BaseTool {
    * @returns {TemplateResult} SVG template for the polygon.
    */
   render() {
-    // The first HA pass completes dynamic sides/top before a polygon can be drawn.
+    // FHS evaluates JavaScript sides and top with current HA data before it
+    // builds the polygon's SVG path.
     if (this.hasJavascript && !this.runtimeConfigInitialized) return svg``;
 
     const polygonStyles = {
@@ -127,8 +128,8 @@ export default class PolygonTool extends BaseTool {
 
     this.applyColorStops(styles);
 
-    // Mask the fill at the inner half of the border. This keeps translucent
-    // fill and stroke from blending while preserving the configured outline.
+    // Inset the fill by half the outline so a translucent fill and stroke have
+    // a clean boundary while the configured border keeps its full width.
     const strokeWidth = Number(styles['stroke-width']);
     const fillMaskInset = this.config.fill_mask === 'auto' ? strokeWidth / 2 : this.config.fill_mask;
     // `top` can rotate the shape to any side position. A circle around the

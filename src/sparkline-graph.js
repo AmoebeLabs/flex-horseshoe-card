@@ -16,8 +16,8 @@ export const B = 3;
 export const ONE_HOUR = 1000 * 3600;
 
 /**
- * Converts normalized Home Assistant history into chart-independent buckets
- * and chart-specific SVG geometry. The relevant normalized config shape is:
+ * Turns Home Assistant History rows for one Sparkline Series into time buckets
+ * and SVG positions for the selected graph type. The relevant config shape is:
  *
  * period:
  *   type: rolling_window
@@ -27,14 +27,14 @@ export const ONE_HOUR = 1000 * 3600;
  * sparkline:
  *   state_values: { aggregate_func: avg }
  *
- * History supplies measurements and their changes. This engine keeps completed
- * bins and recalculates the bins affected by a live measurement or correction.
- * Series coordinates the drawing area and scales; GraphTool renders the results.
+ * Sparkline History supplies HA measurements and changed rows. SparklineGraph
+ * groups them into buckets and recalculates corrected or live buckets.
+ * SparklineSeries shares the graph area and axes; SparklineGraphTool draws the results.
  */
 export default class SparklineGraph {
   /**
-   * Returns the drawable circumference represented by a radial arc. Series
-   * uses this engine-owned measurement only to choose one shared auto density.
+   * Returns the length of a radial Sparkline's configured arc. SparklineSeries
+   * uses it to choose bins per hour when the graph uses automatic bin density.
    *
    * @param {number} width - Configured graph width.
    * @param {number} height - Configured graph height.
@@ -46,9 +46,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Creates the calculation engine for one normalized series. History supplies
-   * source rows, Series coordinates shared dimensions/scales, and GraphTool
-   * renders the bucket metadata and geometry retained by this engine.
+   * Creates graph calculations for one Sparkline Series from its config and
+   * drawing dimensions. SparklineGraphTool uses the resulting bins, axes and
+   * SVG coordinates to draw the graph.
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
@@ -102,9 +102,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Applies the current graph configuration without discarding its processed
-   * bins. The next data pass compares the effective period, bucket and source
-   * inputs before deciding whether those bins are still usable.
+   * Applies graph settings while keeping the processed History bins. The next
+   * data update compares the period, bin settings and History rows before reusing them.
    *
    * @param {number} width - SVG graph width.
    * @param {number} height - SVG graph height.
@@ -120,8 +119,8 @@ export default class SparklineGraph {
     const radial = chartType === 'radial';
     const radialBarcode = chartType === 'radial_barcode';
     const lineOrArea = chartType === 'line' || chartType === 'area' || radial;
-    // The coordinator can distinguish paint/size updates from a changed bucket
-    // calculation without inspecting or rebuilding the engine's processed data.
+    // SparklineSeries uses these settings to decide whether History bins must be
+    // rebuilt or only the graph's SVG positions need updating.
     const graphFamily = radial ? graphInput.sparkline.show.chart_variant : chartType;
     const dataConfigSignature = JSON.stringify([
       graphInput.period,
@@ -133,8 +132,8 @@ export default class SparklineGraph {
     ]);
     this.dataConfigChanged = this.dataConfigChanged || this.dataConfigSignature !== dataConfigSignature;
     this.dataConfigSignature = dataConfigSignature;
-    // Include only geometry used by the active renderer. Color-stop palettes,
-    // fill/stroke colors and opacity are consumed later by SVG paint.
+    // These settings determine axes, data positions and chart shapes.
+    // SparklineGraphTool applies color stops, fill, stroke and opacity when it paints the SVG.
     const geometryInputSignature = JSON.stringify([
       width,
       height,
@@ -173,8 +172,8 @@ export default class SparklineGraph {
     this.input = graphInput;
     this.width = width;
     this.height = height;
-    // graphArea is the complete SVG viewport; the tool supplies only the
-    // measured outer axis space for the next geometry calculation.
+    // graphArea is the full SVG size. SparklineGraphTool measures axis labels
+    // and passes their outer space to setGraphAreas().
     this.graphArea = { x: 0, y: 0, width, height };
     if (this.geometryConfigChanged) {
       this.setGraphAreas(axisMargin, configuredMargin, 0);
@@ -200,16 +199,13 @@ export default class SparklineGraph {
   }
 
   /**
-   * Stores the complete visible-period statistics for this graph's source
-   * chronological numeric series supplied by History. Historical averages
-   * retain the time weighting between Home Assistant state changes; each
-   * timestamp is converted once for extrema and duration calculations.
-   * Real-time graphs expose their one current
-   * value with the timestamp supplied by the coordinating tool.
+   * Calculates min, time-weighted average and max for the rows visible in this
+   * Sparkline. Historical averages account for how long each HA state lasted.
+   * Real-time graphs use the current entity value and its HA timestamp.
    *
-   * @param {Array<object>} series - Prepared source rows used by this graph.
-   * @param {object|undefined} statisticsRange - Active visible start/end timestamps.
-   * @param {string|undefined} currentStateTime - HA timestamp for a real-time value.
+   * @param {Array<object>} series - HA History rows or the current entity value.
+   * @param {object|undefined} statisticsRange - Visible start and end timestamps.
+   * @param {string|undefined} currentStateTime - HA timestamp for the current value.
    * @returns {object} Stored min, average, max and matching timestamps.
    */
   updateStatistics(series, statisticsRange, currentStateTime) {
@@ -231,8 +227,8 @@ export default class SparklineGraph {
     }
 
     if (series === this.processedRows && this.statisticsGroups.length > 0) {
-      // Completed source bins already have reusable summaries. Only the first
-      // and last intervals need clipping to the actual visible time window.
+      // Reuse the summaries for completed History bins and calculate the
+      // time-weighted average for the requested visible range.
       const rangeStart = statisticsRange ? statisticsRange.start : new Date(series[0].last_changed).getTime();
       const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
       let min = Infinity;
@@ -273,8 +269,8 @@ export default class SparklineGraph {
           weightedValue += result.weightedValue;
           weightedDuration += result.lastTime - result.firstTime;
         } else {
-          // A moving start can cut through the first bin. Reuse its measured
-          // intervals while excluding the portion before the visible window.
+          // When the visible start falls inside the first bin, weight each
+          // measurement only from that start onward.
           result.measurements.forEach((measurement, index) => {
             if (index === result.measurements.length - 1) return;
             const duration = Math.max(0, result.measurements[index + 1].time - Math.max(measurement.time, rangeStart));
@@ -297,8 +293,8 @@ export default class SparklineGraph {
       return this.statistics;
     }
 
-    // History retains source order while projecting timestamps onto the plot
-    // timeline. Reuse that order for the intervals between successive states.
+    // Sparkline History rows are already chronological. Use their order to
+    // calculate how long each HA state remained active.
     const measurements = series.map((item) => ({ item, value: Number(item.state), time: new Date(item.last_changed).getTime() }));
     const rangeStart = statisticsRange ? statisticsRange.start : measurements[0].time;
     const rangeEnd = statisticsRange ? statisticsRange.end : Date.now();
@@ -313,8 +309,8 @@ export default class SparklineGraph {
     let weightedValue = 0;
     let weightedDuration = 0;
 
-    // Each state contributes for the time it remained active inside the
-    // visible period; short-lived states therefore do not skew the average.
+    // Weight each HA state by how long it remained active in the visible
+    // period, so the average reflects duration.
     visibleSeries.forEach((measurement, index) => {
       const nextItemStart = index < visibleSeries.length - 1 ? visibleSeries[index + 1].time : rangeEnd;
       const startTime = Math.max(measurement.time, rangeStart);
@@ -331,8 +327,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Applies outer axis space and calculates the inner paint extent owned by
-   * the active chart. Bars reserve half a final bar at both time endpoints;
+   * Reserves space for axis labels and configured margins, then calculates the
+   * SVG area available to the selected graph shapes. Bars reserve half a final bar at both time endpoints;
    * dots reserve their radius and inherited stroke around every coordinate.
    * Other chart families use only the configured margin.
    *
@@ -492,9 +488,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Pins this graph to the y-range shared by the owning SparklineSeries
-   * coordinator. The engine still calculates its own ticks and paths, but all
-   * series convert values into the same SVG y coordinates.
+   * Uses the y-axis range shared by the other Series in this Sparkline. Each
+   * graph builds its own ticks and paths with values at the same SVG y positions.
    *
    * @param {number} lowerBound - Shared data or configured minimum.
    * @param {number} upperBound - Shared data or configured maximum.
@@ -511,8 +506,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Processes source rows and calculates drawing geometry when bins contain
-   * data. Both stages retain their own change tracking and reuse.
+   * Processes HA History rows and calculates SVG positions when the current
+   * History response contains data. Reuses bins and geometry when their inputs are unchanged.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
    * @param {object|undefined} rowsUpdate - Source changes, or a complete snapshot when omitted.
@@ -525,9 +520,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Builds bins from initial history, then reuses completed bins on live updates.
-   * Corrections replace the affected tail; moving windows retain the state active
-   * at their new start. Drawing dimensions are applied in a separate calculation.
+   * Builds bins from initial History, then reuses completed bins on live updates.
+   * Corrections recalculate affected bins; moving windows carry the state at
+   * their new start. Drawing dimensions are applied in a separate calculation.
    *
    * @param {Array<object>|undefined} history - Graph source rows.
    * @param {object|undefined} rowsUpdate - History delivery; omitted for a complete snapshot.
@@ -542,8 +537,8 @@ export default class SparklineGraph {
       return this.dataState;
     }
     if (this._history.length === 0) {
-      // Empty is a successful current result. Remove every processed value from
-      // the previous input so no consumer can mistake old geometry for data.
+      // A successful empty HA History response clears graph values, SVG
+      // coordinates, axes and statistics.
       this.processedValues = [];
       this.processedMinValues = [];
       this.processedMaxValues = [];
@@ -564,8 +559,7 @@ export default class SparklineGraph {
       this.calendarBucketCount = undefined;
       this.visibleBucketCount = undefined;
       this.dataState = SPARKLINE_DATA_STATE.EMPTY;
-      // An empty result has no remaining geometry to calculate. New rows or
-      // configuration will signal the next required pass through their owners.
+      // A later History response or graph-config change starts the next calculation.
       this.geometryConfigChanged = false;
       this.processedRows = this._history;
       this.processedDataKey = undefined;
@@ -578,8 +572,8 @@ export default class SparklineGraph {
       return this.dataState;
     }
 
-    // State bands use exact transition timestamps and never aggregate or align
-    // their visible history range to graph buckets.
+    // State Bands place each HA state change at its exact History timestamp
+    // across the configured time range.
     if (this.input.sparkline.show.chart_type === 'state_bands') {
       this.bucketConfigKey = undefined;
       this.statisticsGroups = [];
@@ -598,11 +592,11 @@ export default class SparklineGraph {
       return this.dataState;
     }
 
-    // Establish the time boundary before rows are assigned to buckets.
+    // Set the period end first; bucket indexes are measured back from this time.
     this._updateEndTime();
     const date = new Date();
 
-    // Determine the fixed number of visible slots before reducing history.
+    // Calculate how many History bins fit in the configured period.
     let requiredNumOfPoints;
     const bucketMs = ONE_HOUR / this.points;
     this.calendarBucketStartMs = undefined;
@@ -631,8 +625,8 @@ export default class SparklineGraph {
           requiredNumOfPoints = this.calendarBucketCount;
           this.visibleBucketCount = requiredNumOfPoints;
 
-          // A current series in a complete comparison day ends at its projected
-          // current time. Historical series retain every bucket through midnight.
+          // On a full-day axis, current-day data ends at its projected current
+          // bucket. Past-day data fills the period through midnight.
           if (this.activeDataEnd !== undefined) {
             this.visibleBucketCount = Math.ceil((this.activeDataEnd.getTime() - this.calendarBucketStartMs) / bucketMs);
           }
@@ -646,9 +640,8 @@ export default class SparklineGraph {
         break;
     }
 
-    // The visible end and calendar bucket count can advance even when HA has
-    // supplied no new rows. Geometry and paint settings are intentionally not
-    // part of this key, so a resize with the same bins reuses the data result.
+    // The graph's current time range advances between HA History updates.
+    // Check its end time and visible bucket count before reusing the bins.
     const chartType = this.input.sparkline.show.chart_type;
     const graphFamily = chartType === 'radial' ? this.input.sparkline.show.chart_variant : chartType;
     const showMinMax = graphFamily === 'line' ? this.input.sparkline.line.show.minmax === true : graphFamily === 'area' && this.input.sparkline.area.show.minmax === true;
@@ -669,9 +662,9 @@ export default class SparklineGraph {
     const bucketConfigKey = JSON.stringify([this.input.period, this.hours, this.points, this.aggregateFuncName, graphFamily, showMinMax]);
     const historicalBuckets = this.input.period.type === 'rolling_window'
       || (this.input.period.type === 'calendar' && this.input.period.calendar.period === 'day');
-    // Only Graph decides whether its previous bins fit the new input. A full
-    // source replacement or changed bin plan rebuilds them. A live delivery
-    // names the earliest correction, so existing completed bins stay reusable.
+    // Rebuild bins when History is replaced or the period and aggregation
+    // settings change. For a live update, start at its earliest changed row and
+    // keep completed bins before that time.
     const incremental = historicalBuckets && rowsUpdate !== undefined
       && rowsUpdate.rows === this._history && rowsUpdate.previousRows === this.processedRows
       && !rowsUpdate.replaced && this.bucketConfigKey === bucketConfigKey
@@ -680,8 +673,8 @@ export default class SparklineGraph {
     if (incremental) {
       histGroups = Array.from({ length: requiredNumOfPoints }, (_, index) => this.bucketGroups.get(bucketStart + index * bucketMs));
 
-      // Replace the affected tail with current source rows, including delayed
-      // samples and corrections. Binary lookup avoids scanning older history.
+      // Replace changed bins with current HA History rows, including delayed
+      // samples and corrections. Binary search finds the first changed bucket.
       if (rowsUpdate.changedFrom !== Infinity) {
         const changedIndex = Math.max(0, Math.min(requiredNumOfPoints - 1, Math.floor((rowsUpdate.changedFrom - bucketStart) / bucketMs)));
         const changedStart = bucketStart + changedIndex * bucketMs;
@@ -697,8 +690,8 @@ export default class SparklineGraph {
         changedRows.forEach((row) => this._reducer(histGroups, row));
       }
 
-      // Moving the window changes the first bin's starting state. Its latest
-      // raw sample is retained even when the new first bin contains no samples.
+      // Carry the latest earlier HA state into the new first bucket when that
+      // bucket has no History row.
       if (bucketStart !== this.bucketStart) {
         let lower = 0;
         let upper = this._history.length;
@@ -714,14 +707,14 @@ export default class SparklineGraph {
       this.bucketResults = new WeakMap();
     }
     histGroups.length = requiredNumOfPoints;
-    // Retain complete source groups for period statistics. The first plotted
-    // bin shows its latest state, while statistics still include earlier peaks.
+    // Keep all HA History rows in each bin for period statistics. The first
+    // plotted bucket uses its latest state, while statistics include earlier values.
     this.statisticsGroups = histGroups.slice();
     this.bucketGroups.clear();
     histGroups.forEach((group, index) => {
       if (group !== undefined) this.bucketGroups.set(bucketStart + index * bucketMs, group);
     });
-    // Preserve one preceding sample so its state carries into the first slot.
+    // Use the latest HA state in the first bucket for the first visible slot.
     if (histGroups[0] && histGroups[0].length) {
       const firstRow = histGroups[0][histGroups[0].length - 1];
       if (firstRow !== this.firstBucketRow) {
@@ -738,8 +731,8 @@ export default class SparklineGraph {
     this.dataMin = Math.min(...this.processedValues.map((value) => Number(value)));
     this.dataMax = Math.max(...this.processedValues.map((value) => Number(value)));
 
-    // Cached summaries disappear with expired/replaced raw groups. Tooltip
-    // metadata and the min/max envelope share those same computed extrema.
+    // The Sparkline tooltip and optional line/area envelope use the same
+    // History-bin min, average, max and count.
     this.bucketMeta = [];
     const firstResult = this.bucketResults.get(histGroups.find((group) => group !== undefined));
     let lastValue = ['delta', 'diff'].includes(this.aggregateFuncName) ? 0 : firstResult.last;
@@ -783,10 +776,9 @@ export default class SparklineGraph {
       }
     }
 
-    // Calculate min/max samples only for the active graph family.
-    // Line settings must not leak into area, and area settings must not leak into line.
+    // Calculate min/max samples when the selected line or area option requests them.
     if (['line', 'area'].includes(graphFamily) && showMinMax) {
-      // The envelope, rather than the aggregate line, defines the visible range.
+      // Use the min/max envelope to set the visible y-axis range.
       this.dataMin = Math.min(...this.processedMinValues.map((value) => Number(value)));
       this.dataMax = Math.max(...this.processedMaxValues.map((value) => Number(value)));
     }
@@ -802,8 +794,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Places already aggregated values in the current drawing area and builds
-   * axes from the final shared scale and margins.
+   * Calculates SVG positions and axes for the current bucket values, drawing
+   * area, shared y-axis scale and measured margins.
    */
   calculateGeometry() {
     const geometryResultSignature = JSON.stringify([
@@ -856,9 +848,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Projects time ticks onto the drawing area. Calendar graphs follow their
-   * local-day origin; rolling graphs use the retained bucket start times.
-   * The result supplies the same positions to labels, tickmarks and the grid.
+   * Calculates X-axis times and SVG positions for labels, tickmarks and grid
+   * lines. Calendar graphs follow local-day boundaries; rolling graphs use
+   * their first and last bucket times.
    *
    * @param {number} fontWidthPixels Average character width in pixels.
    * @param {number} fontSizePixels Configured label font size in pixels.
@@ -919,9 +911,8 @@ export default class SparklineGraph {
       selectedIndex -= 1;
     }
 
-    // Binned graphs can only place ticks on bucket boundaries. Keep the
-    // automatically selected density, unless its interval is incompatible
-    // with bins.per_hour; then use the next compatible existing interval.
+    // Place binned graph ticks on bucket boundaries. Keep the selected X-axis
+    // interval when it aligns with bins.per_hour; otherwise use the next one that does.
     if (this.input.sparkline.show.chart_type !== 'state_bands') {
       while (selectedIndex < timeIntervals.length - 1 && (timeIntervals[selectedIndex] * this.points) % ONE_HOUR !== 0) {
         selectedIndex += 1;
@@ -1032,8 +1023,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates categorical rows for state bands. Every row uses 10% top
-   * margin, 25% label, 15% middle margin, 40% band and 10% bottom margin.
+   * Calculates rows for the configured State Band state_map. Each row uses
+   * 10% top margin, 25% label, 15% middle margin, 40% band and 10% bottom margin.
    * Numeric state-map order is retained while the visual row order places the
    * lowest value at the bottom.
    *
@@ -1078,9 +1069,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Builds exact historical state periods inside the prepared categorical rows.
-   * The first known state is clipped to the visible start and unknown time is
-   * intentionally left empty.
+   * Builds State Band segments from exact HA state-change times and clips them
+   * to the Sparkline's visible data range.
    *
    * @returns {Array<object>} State rows containing their rendered segments.
    */
@@ -1122,8 +1112,8 @@ export default class SparklineGraph {
       this.stateBandSegments.push(segment);
     });
 
-    // Keep transition geometry separate from the rendered state segments. A
-    // transition exists only where two known states meet at the same time.
+    // Draw a transition where adjacent State Bands meet at the same History
+    // timestamp.
     this.stateBandTransitions = [];
     for (let index = 0; index < this.stateBandSegments.length - 1; index += 1) {
       const segment = this.stateBandSegments[index];
@@ -1146,9 +1136,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates the numeric range and tick positions for the y-axis so the tool
-   * can later render grid and labels from engine output instead of recalculating
-   * them a second time.
+   * Calculates numeric y-axis bounds and tick positions for SparklineGraphTool
+   * to draw grid lines and labels.
    *
    * @param {number} fontHeightPixels Label height in pixels.
    * @returns {object} Axis range, interval and ticks.
@@ -1195,8 +1184,8 @@ export default class SparklineGraph {
 
     const range = dataMax - dataMin;
 
-    // Without y labels there are no numeric endpoints to round. Divide the exact
-    // data range evenly so optional grid lines and tickmarks remain visually regular.
+    // When y-axis labels are hidden, space tickmarks evenly across the exact
+    // data range.
     if (!this.input.sparkline.show.labels.y) {
       const interval = range / (effectiveMaxLabels - 1);
       const ticks = Array.from({ length: effectiveMaxLabels }, (_, index) => {
@@ -1227,16 +1216,15 @@ export default class SparklineGraph {
 
     const interval = chosenStep * powerOfTen;
     const minorInterval = interval / 2;
-    // Visible y labels need clean endpoint values. Without y labels, retain the
-    // exact data range so the graph uses the complete available chart height or radial band.
+    // When y-axis labels are visible, round automatic bounds to clean interval
+    // values while keeping configured bounds exact.
     const min = fixedLowerBound ? dataMin : Math.floor(dataMin / interval) * interval;
     const max = fixedUpperBound ? dataMax : Math.ceil(dataMax / interval) * interval;
     const ticks = [];
     const majorStart = Math.ceil(min / interval) * interval;
 
-    // The scale bounds explain the visible range. Fill the remaining label
-    // positions with clean interval values, then retain an even selection when
-    // more clean ticks exist than the available axis length can display.
+    // Keep both y-axis bounds among the labels, then add clean interval values
+    // between them up to the space available.
     const interiorValues = [];
     for (let value = majorStart; value <= max + interval / 100; value += interval) {
       if (value > min + interval / 100 && value < max - interval / 100) interiorValues.push(value);
@@ -1292,9 +1280,8 @@ export default class SparklineGraph {
 
     let key;
     if (type === 'rolling_window') {
-      // Rolling windows use an exclusive end time. A sample inside the active
-      // 10:30-11:00 bucket must therefore land on the last bucket index, not
-      // one bucket earlier.
+      // Rolling windows end just after the active bucket. With 30-minute bins,
+      // a sample from 10:30 through 11:00 belongs in the final bucket.
       const bucketCount = hours * this.points;
       const ageInBuckets = (age / ONE_HOUR) * this.points;
       key = Math.max(0, Math.min(bucketCount - 1, Math.floor(bucketCount - ageInBuckets)));
@@ -1315,9 +1302,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Aggregates visible buckets while carrying the last raw state across gaps.
-   * The result contains values only, so changing drawing dimensions does not
-   * repeat this work.
+   * Aggregates visible History buckets and carries the last HA state across
+   * gaps. calculateGeometry() later turns these values into SVG positions.
    *
    * @param {Array<Array<object>>} history - Bucketed history rows.
    * @returns {Array<number>} One value for each visible bucket.
@@ -1345,9 +1331,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Calculates one source bin's value, extrema and time-weighted intervals.
-   * Plotting, tooltip metadata and period statistics share this stored result;
-   * unchanged bin groups return their existing result without reading rows.
+   * Calculates the value, extrema and time-weighted intervals for one History
+   * bin. The graph, tooltip and period statistics use this same summary.
    *
    * @param {Array<object>} items - Chronological numeric measurements in a bin.
    * @returns {object} Aggregate, extrema, timestamps and weighted intervals.
@@ -1413,7 +1398,7 @@ export default class SparklineGraph {
    * @returns {Array<Array<number>>} SVG coordinate tuples.
    */
   _calcY(coords) {
-    // Logarithmic graphs project values and bounds in the same domain.
+    // Apply the same base-10 logarithm to graph values and y-axis bounds.
     const max = this._logarithmic ? Math.log10(Math.max(1, this.max)) : this.max;
     const min = this._logarithmic ? Math.log10(Math.max(1, this.min)) : this.min;
 
@@ -1428,9 +1413,9 @@ export default class SparklineGraph {
 
       const coordY2 =
         val > 0
-          ? this.drawArea.height + this.drawArea.top * 1 - offset / yRatio - (val - Math.max(0, min)) / yRatio // - this.margin.y * 2
-          : this.drawArea.height + this.drawArea.top * 1 - (0 - min) / yRatio; // - this.margin.y * 4;
-      const coordY = this.drawArea.height + this.drawArea.y * 1 - (val - min) / yRatio; // - this.margin.y * 2;
+          ? this.drawArea.height + this.drawArea.top * 1 - offset / yRatio - (val - Math.max(0, min)) / yRatio
+          : this.drawArea.height + this.drawArea.top * 1 - (0 - min) / yRatio;
+      const coordY = this.drawArea.height + this.drawArea.y * 1 - (val - min) / yRatio;
 
       return [coord[X], coordY, coord[V], coordY2];
     });
@@ -1438,8 +1423,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Projects graph value tuples onto the current public drawing geometry.
-   * Consumers use this method after shared axis bounds and margins are set.
+   * Returns SVG y-coordinates for values using this graph's current y-axis
+   * bounds and drawing area.
    *
    * @param {Array<Array<number>>} coords - X/value tuples.
    * @returns {Array<Array<number>>} SVG coordinate tuples.
@@ -1455,7 +1440,7 @@ export default class SparklineGraph {
    * @returns {Array<number>} SVG y coordinates for the levels.
    */
   _calcLevelY(coord) {
-    // account for logarithmic graph
+    // Apply the logarithmic scale before placing equalizer levels.
     const max = this._logarithmic ? Math.log10(Math.max(1, this.max)) : this.max;
     const min = this._logarithmic ? Math.log10(Math.max(1, this.min)) : this.min;
 
@@ -1655,9 +1640,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Describes the polar plot shared by radial barcode, line, area and dots.
-   * History advances clockwise from the configured rotation at twelve o'clock;
-   * every renderer consumes these values instead of deriving its own angles.
+   * Calculates the radial layout used by radial barcode, line, area and dots.
+   * Sparkline buckets move clockwise from the configured rotation at twelve
+   * o'clock, and all radial graph types use the same angles.
    *
    * @returns {object} Center, radius, arc and bucket-angle geometry.
    */
@@ -1687,9 +1672,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Converts one value into its radius on the active y-scale. Zero is not
-   * special here: radial area asks for zero explicitly when it builds its
-   * baseline, while line and dots project their actual bucket values.
+   * Converts a value to its radius on the configured y-scale. Radial area uses
+   * zero for its baseline; lines and dots use each bucket's value.
    *
    * @param {number} value - Numeric bucket or axis value.
    * @returns {number} Radius measured from the radial center.
@@ -1769,9 +1753,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Projects graph buckets into the shared radial coordinate system. Tuple
-   * indexes remain compatible with normal graph coordinates; angle, radius and
-   * source bucket index are appended for radial rendering and interaction.
+   * Converts each graph bucket to SVG x/y, angle and radius values for radial
+   * drawing and pointer interaction.
    *
    * @returns {Array<Array<number>>} Radial x/y/value/angle/radius/index tuples.
    */
@@ -1860,8 +1843,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Creates an SVG arc at one radial scale radius. Full circles are split into
-   * two arcs because one SVG arc command cannot describe 360 degrees.
+   * Creates an SVG arc at one radial scale radius. Draws a full circle as two
+   * SVG arc commands because a single command spans less than 360 degrees.
    *
    * @param {number} radius - Radius measured from the graph center.
    * @param {number} startAngle - Clock-oriented start angle.
@@ -1932,9 +1915,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Maps an exact time interval onto the prepared graph geometry. Cartesian
-   * charts receive a full background rectangle or an internal top/bottom band;
-   * radial charts receive the matching annular sector. No graph bins are used.
+   * Converts an exact interval from sun.sun History to a background rectangle,
+   * chart band or radial ring aligned with its start and end times.
    *
    * @param {Date} segmentStart - Visible segment start.
    * @param {Date} segmentEnd - Visible segment end.
@@ -1994,8 +1976,7 @@ export default class SparklineGraph {
   }
 
   /**
-   * Maps a pointer in graph coordinates back to the radial history bucket.
-   * Points outside a partial arc have no bucket and therefore no tooltip.
+   * Returns the radial History bucket beneath a pointer inside the configured arc.
    *
    * @param {number} x - Pointer x inside the graph SVG.
    * @param {number} y - Pointer y inside the graph SVG.
@@ -2043,9 +2024,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Transforms graph buckets into annular geometry. Variants change whether
-   * value controls width, inner radius, outer radius, or neither; background
-   * mode completes every period slot to provide a continuous hit surface.
+   * Converts graph buckets to radial barcode segments. The selected variant
+   * uses each value to set segment width or its inner or outer radius; background
+   * mode fills the remaining time slots to draw a continuous radial ring.
    *
    * @param {Array<Array<number>>} coords - Graph bucket coordinates.
    * @param {boolean} isBackground - Whether to complete missing period slots.
@@ -2068,8 +2049,8 @@ export default class SparklineGraph {
     let outerRoundFactor = 0;
     let innerRoundFactor = 0;
 
-    // Every visualization owns its radial footprint. A regular bar already
-    // ends on its two configured radii; rounded paths consume space per side.
+    // Fit rounded radial barcode styles inside the configured radial band size.
+    // Petal and rice-grain edges need extra room at their inner and outer sides.
     switch (chartViz) {
       case "flower":
         outerRoundFactor = this.input.sparkline.show.chart_variant === "sunburst_inward" ? 0 : roundedSideFactor;
@@ -2453,8 +2434,8 @@ export default class SparklineGraph {
   }
 
   /**
-   * Maps every graph value to its configured grade rank and returns the reached
-   * traffic-light levels for each time bucket.
+   * Maps each graph value to its configured grade rank and returns the grade
+   * bars reached by that value.
    *
    * @returns {Array<object>} Graded column geometry.
    */
@@ -2495,7 +2476,7 @@ export default class SparklineGraph {
       return newCoord;
     });
     return levelCoords.map((coord, i) => ({
-      x: xRatio * i * total + xRatio * position + this.drawArea.x, // Remove start spacing + spacing,
+      x: xRatio * i * total + xRatio * position + this.drawArea.x,
       y: coord[Y],
       height: bucketHeight,
       width: xRatio - columnSpacing,
@@ -2585,9 +2566,9 @@ export default class SparklineGraph {
   }
 
   /**
-   * Sets the period end used by reducers. Calendar history ends at its fixed
-   * local boundary; rolling history ends at the exclusive boundary following
-   * the current bucket.
+   * Sets the end timestamp used to place History rows in visible buckets.
+   * Calendar periods end at their configured local boundary; rolling windows
+   * end just after the current bucket.
    *
    * @returns {void}
    */
@@ -2595,9 +2576,8 @@ export default class SparklineGraph {
     this._endTime = new Date();
     if (this.input.period.type === 'calendar') {
       if (this.input.period.calendar.period === 'day' && (this.input.period.calendar.offset !== 0 || this.input.period.calendar.full_day === true)) {
-        // Historical days and shared day comparisons have a fixed local end.
-        // The active day keeps its current-bin end unless a comparison needs
-        // the complete 24-hour reference axis.
+        // Offset days and full-day calendar graphs end at the configured local
+        // midnight after their visible period.
         const calendarStart = new Date(this._endTime);
         calendarStart.setHours(0, 0, 0, 0);
         calendarStart.setHours(calendarStart.getHours() + this.input.period.calendar.offset * 24 - (this.input.period.calendar.duration.hour - 24));
