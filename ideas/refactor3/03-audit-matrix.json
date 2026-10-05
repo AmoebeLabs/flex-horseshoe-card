@@ -1,0 +1,650 @@
+[
+  {
+    "module": "src/action-handler.js",
+    "kind": "support/runtime",
+    "current_role": "Lit action directive and listener state",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Local options/state are runtime concepts and do not masquerade as FHS tool configuration; lifecycle cleanup is explicit."
+  },
+  {
+    "module": "src/arc-tool.js",
+    "kind": "tool/simple shape",
+    "current_role": "Arc defaults and SVG arc geometry",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Low",
+    "target_plan": "15B",
+    "audit_finding": "Arc defaults are currently template-visible (radius 45 must remain visible to item before JS). Preserve that pre-source preparation; move derived SVG to geometry and keep arc math."
+  },
+  {
+    "module": "src/area-tool.js",
+    "kind": "tool/text-like",
+    "current_role": "Entity area text and measured text geometry",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "xpos/ypos defaults are applied before BaseTool and may be template-visible; preserve current JS context, then move displayed area to runtime and SVG/measurement fields to geometry."
+  },
+  {
+    "module": "src/base-tool.js",
+    "kind": "tool base",
+    "current_role": "Shared tool config/entity/lifecycle/presentation owner",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "15B;16B",
+    "audit_finding": "sourceConfig currently captures the prepared template-visible object. Make source preparation explicit, preserve JS item/context order, then use one post-evaluation translation route; geometry/paint/runtime stay separate."
+  },
+  {
+    "module": "src/card-actions.js",
+    "kind": "support/domain",
+    "current_role": "Action routing and execution",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Action configs are real configuration inputs and executable copies are local/transient; no parallel persistent config owner."
+  },
+  {
+    "module": "src/card-animations.js",
+    "kind": "support/paint",
+    "current_role": "State-triggered animation style owner",
+    "recommended_action": "KEEP; REVIEW",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Owns presentation output cleanly. Keep domain styles; only align vocabulary if final paint terminology makes a direct rename clearer."
+  },
+  {
+    "module": "src/card-config.js",
+    "kind": "support/config compiler",
+    "current_role": "Card-level static compilation/defaulting/validation",
+    "recommended_action": "RENAME; REVIEW",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Legitimate config owner. initializeCardRuntimeDefaults writes configuration defaults, so rename if retained; preserve proven compilation routines."
+  },
+  {
+    "module": "src/card-entities.js",
+    "kind": "support/runtime config",
+    "current_role": "Evaluated entity configuration and derived sparkline entities",
+    "recommended_action": "RENAME; REVIEW",
+    "risk": "Medium",
+    "target_plan": "20",
+    "audit_finding": "buildRuntimeEntityConfigs is semantically correct, while callers use resolvedEntityConfigs. Standardize one term; review theme-selected color-stop ownership."
+  },
+  {
+    "module": "src/card-input-entities.js",
+    "kind": "support/runtime",
+    "current_role": "Local FHS input entity owner",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "this.config is actual card configuration and entity state is separate runtime data."
+  },
+  {
+    "module": "src/card-layout.js",
+    "kind": "support/layout",
+    "current_role": "Groups, viewBox and reusable SVG definitions",
+    "recommended_action": "RENAME; REVIEW",
+    "risk": "Medium",
+    "target_plan": "20",
+    "audit_finding": "Own dynamic group source/current lifecycle is legitimate, but sourceGroupConfigs/activeGroupConfigs should be checked against canonical vocabulary and duplicate state."
+  },
+  {
+    "module": "src/card-styles.js",
+    "kind": "support/static",
+    "current_role": "Shared Lit CSS",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Static stylesheet only."
+  },
+  {
+    "module": "src/card-templates.js",
+    "kind": "support/config compiler",
+    "current_role": "Card template compilation",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Intentional config-time compiler before tool source boundaries."
+  },
+  {
+    "module": "src/card-theme.js",
+    "kind": "support/runtime/paint",
+    "current_role": "Theme, palette and color context lifecycle",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Clear owner of theme runtime and paint context; connected/disconnected lifecycle is already consistent."
+  },
+  {
+    "module": "src/card-tools.js",
+    "kind": "support/tool coordinator",
+    "current_role": "Tool construction and lifecycle forwarding",
+    "recommended_action": "ADAPT; CLEANUP",
+    "risk": "Low",
+    "target_plan": "15B-20",
+    "audit_finding": "Good lifecycle coordinator. Adapt geometry lookup to canonical tool.geometry; text-tool-geometry may become removable."
+  },
+  {
+    "module": "src/child-cards.js",
+    "kind": "support/domain",
+    "current_role": "Nested HA card creation and lifecycle",
+    "recommended_action": "KEEP; RENAME",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "cardsConfig is recognizable configuration and child items are runtime/domain data. Optional terminology cleanup only."
+  },
+  {
+    "module": "src/circle-tool.js",
+    "kind": "tool/simple shape",
+    "current_role": "Circle config and geometry",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Low",
+    "target_plan": "15B",
+    "audit_finding": "Radius/default preparation currently precedes BaseTool and may be template-visible. Preserve evaluation order, then move derived SVG to geometry; keep radius behavior."
+  },
+  {
+    "module": "src/color-filter.js",
+    "kind": "support/paint",
+    "current_role": "Color-filter normalization/application",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "16B;20",
+    "audit_finding": "Proven paint/conversion implementation; ownership at callers may change, algorithm should not."
+  },
+  {
+    "module": "src/color-stops.js",
+    "kind": "support/config+paint",
+    "current_role": "Color-stop normalization and light/dark selection",
+    "recommended_action": "ADAPT; REVIEW",
+    "risk": "Medium",
+    "target_plan": "16B",
+    "audit_finding": "Preserve proven normalization. Final active theme-selected result belongs to paint, but owner cutover is atomic across all families at end of Plan 19; no duplicate persistent owner."
+  },
+  {
+    "module": "src/colors.js",
+    "kind": "support/paint",
+    "current_role": "Color calculations and conversions",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Proven calculation library; explicitly outside functional rewrite scope."
+  },
+  {
+    "module": "src/compounds.js",
+    "kind": "support/config compiler",
+    "current_role": "Compile compounds into normal layout items",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Correct config-time compiler; output feeds normal tool source."
+  },
+  {
+    "module": "src/config-helper.js",
+    "kind": "support/helper",
+    "current_role": "Style/config conversion helpers",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Stateless helper with no ownership issue."
+  },
+  {
+    "module": "src/const.js",
+    "kind": "support/static",
+    "current_role": "Shared constants",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "No mutable architecture state."
+  },
+  {
+    "module": "src/control-base.js",
+    "kind": "tool/control base",
+    "current_role": "Common control defaults, label and lifecycle",
+    "recommended_action": "MERGE; MOVE",
+    "risk": "Medium",
+    "target_plan": "17B",
+    "audit_finding": "Common defaults/haptics/label completion may be template-visible today. Characterize and preserve order; migrate child presentation to the canonical paint route without config mutation."
+  },
+  {
+    "module": "src/control-button.js",
+    "kind": "tool/control",
+    "current_role": "Button presets, content and state visuals",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "17B",
+    "audit_finding": "Button defaults/presets precede BaseTool and may be JS-visible. Preserve source order; move SVG/selection to geometry/runtime and publish selected visual styles through child paint with unchanged merge priority."
+  },
+  {
+    "module": "src/control-content.js",
+    "kind": "support/control child owner",
+    "current_role": "Nested control visual stack",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "17B",
+    "audit_finding": "Resolve effective child source once. Replace runtime child config.styles mutation with the 16B paint.styles/setPaintStyles route, preserving exact merge priority and Text measurement effects."
+  },
+  {
+    "module": "src/control-number.js",
+    "kind": "tool/control",
+    "current_role": "Number stepper and child tools",
+    "recommended_action": "MOVE; RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "17B",
+    "audit_finding": "Defaults/presets and normalized source currently precede BaseTool and may be JS-visible. Preserve source/evaluation order; move numberGeometry to geometry and generated actions to runtime."
+  },
+  {
+    "module": "src/control-select.js",
+    "kind": "tool/control",
+    "current_role": "Select options and segment visuals",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "17B",
+    "audit_finding": "Select defaults/presets precede BaseTool and may be JS-visible. Preserve source order; HA options become runtime and selected child styles use paint with unchanged priority; shared color-stop cutover waits for Plan 19."
+  },
+  {
+    "module": "src/control-slider.js",
+    "kind": "tool/control",
+    "current_role": "Slider interaction and value state",
+    "recommended_action": "MOVE; RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "17B",
+    "audit_finding": "Defaults/variant completion precedes BaseTool and may be JS-visible. Preserve source/evaluation order; consolidate existing runtime values/scale/availability and move SVG to geometry without changing interaction math."
+  },
+  {
+    "module": "src/control-toggle.js",
+    "kind": "tool/control",
+    "current_role": "Toggle styles, content and state",
+    "recommended_action": "MERGE; REWORK",
+    "risk": "High",
+    "target_plan": "17B",
+    "audit_finding": "Toggle has template-visible constructor preparation plus a second post-super buildConfig route. Preserve current JS-visible source defaults, then unify post-evaluation completion and move SVG to geometry."
+  },
+  {
+    "module": "src/control-tool.js",
+    "kind": "support/dispatcher",
+    "current_role": "Control subtype compile and dispatch",
+    "recommended_action": "CLEANUP",
+    "risk": "Low",
+    "target_plan": "17B",
+    "audit_finding": "Active code is a dispatcher. Remove obsolete commented implementation in post-migration cleanup; retain routing."
+  },
+  {
+    "module": "src/fhs-input-number.js",
+    "kind": "support/config+runtime helper",
+    "current_role": "FHS input_number normalization and value math",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Proven config normalization and bounded runtime math; no persistent competing owner."
+  },
+  {
+    "module": "src/fhs-input-select.js",
+    "kind": "support/config helper",
+    "current_role": "FHS input_select normalization",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Pure config-time normalization."
+  },
+  {
+    "module": "src/group-manager.js",
+    "kind": "support/layout",
+    "current_role": "Group cascade and transforms",
+    "recommended_action": "KEEP; RENAME",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Clear layout owner. Update comments/parameters that describe items as active runtime config once canonical tool config is established."
+  },
+  {
+    "module": "src/home-assistant.js",
+    "kind": "support/runtime",
+    "current_role": "HA context and connection lifecycle",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Strong reference for consistent runtime ownership and connected/disconnected semantics."
+  },
+  {
+    "module": "src/horseshoe-gauge.js",
+    "kind": "tool/complex",
+    "current_role": "Gauge, path, paint and runtime coordinator",
+    "recommended_action": "REWORK",
+    "risk": "Very High",
+    "target_plan": "19",
+    "audit_finding": "Current source is prepared by Horseshoe normalization before BaseTool and may be JS-visible. Preserve that order while removing config swapping and separating geometry/runtime/paint."
+  },
+  {
+    "module": "src/horseshoe-geometry.js",
+    "kind": "support/calculation",
+    "current_role": "Gauge scales and splines",
+    "recommended_action": "KEEP; RENAME",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Proven geometry/math. Constructor config arguments can be made domain-specific if useful; calculations stay intact."
+  },
+  {
+    "module": "src/horseshoe-labels.js",
+    "kind": "support/presentation",
+    "current_role": "Horseshoe label construction",
+    "recommended_action": "ADAPT; RENAME",
+    "risk": "Medium",
+    "target_plan": "19",
+    "audit_finding": "Consumes runtimeConfig.mapped_state, demonstrating config/runtime conflation. Change contract to explicit config plus runtime/geometry inputs."
+  },
+  {
+    "module": "src/horseshoe-marker.js",
+    "kind": "support/presentation",
+    "current_role": "State marker rendering",
+    "recommended_action": "ADAPT; RENAME",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "pathConfig is really path input/geometry. Rename contract and consume canonical geometry/runtime/paint values."
+  },
+  {
+    "module": "src/horseshoe-state.js",
+    "kind": "support/config+runtime",
+    "current_role": "Gauge defaults, normalization and state mapping",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "19",
+    "audit_finding": "normalizeBaseConfig may contribute template-visible source values while normalizeRuntimeConfig/getGaugeStateData mix later config/runtime/paint. Preserve source order; split post-evaluation translation from runtime mapping/paint without changing algorithms."
+  },
+  {
+    "module": "src/horseshoe-tickmarks.js",
+    "kind": "support/presentation",
+    "current_role": "Tickmark visibility and geometry helpers",
+    "recommended_action": "ADAPT; RENAME",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Update contracts that currently expect mixed runtime config; preserve calculations."
+  },
+  {
+    "module": "src/icon-source.js",
+    "kind": "support/async",
+    "current_role": "HA icon source loader and cache",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "15B;20",
+    "audit_finding": "Async lifecycle is clean and domain-specific; tool should consume its results as runtime/presentation data."
+  },
+  {
+    "module": "src/icon-svg-source.js",
+    "kind": "support/async",
+    "current_role": "External SVG injector owner",
+    "recommended_action": "RENAME",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "setConfig only clears requests and does not set configuration; rename to a lifecycle-accurate action if touched."
+  },
+  {
+    "module": "src/icon-tool.js",
+    "kind": "tool/stateful",
+    "current_role": "Icon rendering, state-map and async source",
+    "recommended_action": "MOVE; RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "State-map separation is already good. Move SVG to geometry; selected map item may be runtime/local; avoid persistent merged render config."
+  },
+  {
+    "module": "src/layout-sections.js",
+    "kind": "support/static",
+    "current_role": "Canonical section registry",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Good shared registry and vocabulary source."
+  },
+  {
+    "module": "src/line-tool.js",
+    "kind": "tool/simple shape",
+    "current_role": "Line and legacy line translation plus geometry",
+    "recommended_action": "MOVE; RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "Classify defaults/legacy routing by current JS visibility. Preserve template-visible preparation before sourceConfig; move safe post-evaluation validation/normalization to translation and SVG to geometry."
+  },
+  {
+    "module": "src/main.js",
+    "kind": "card root",
+    "current_role": "Card compile/runtime orchestration",
+    "recommended_action": "RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "20",
+    "audit_finding": "Lifecycle order already proves config update before setState. Standardize resolvedEntityConfigs to runtimeEntityConfigs and keep tool-specific ownership out of root."
+  },
+  {
+    "module": "src/masks-clips.js",
+    "kind": "support/render/config",
+    "current_role": "Compiled gradients and clip/mask rendering",
+    "recommended_action": "KEEP; REVIEW",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Own this.config is legitimate full card config. Do not force tool lifecycle; review terminology only."
+  },
+  {
+    "module": "src/merge.js",
+    "kind": "support/utility",
+    "current_role": "Deep merge utility",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Core proven utility."
+  },
+  {
+    "module": "src/name-tool.js",
+    "kind": "tool/text-like",
+    "current_role": "Entity name and text measurement",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "xpos/ypos defaults are applied before BaseTool and may be template-visible; preserve that source order, move displayed name to runtime and SVG/measurement fields to geometry."
+  },
+  {
+    "module": "src/palettes.js",
+    "kind": "support/paint/cache",
+    "current_role": "Palette loading, cache and application",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Clear paint/cache domain."
+  },
+  {
+    "module": "src/path-animator.js",
+    "kind": "support/runtime",
+    "current_role": "Path state animation",
+    "recommended_action": "KEEP; RENAME",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Independent runtime lifecycle. Constructor config is animation options; optional semantic rename only."
+  },
+  {
+    "module": "src/path-elements-renderer.js",
+    "kind": "support/render",
+    "current_role": "Pure path element renderer",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19;20",
+    "audit_finding": "No persistent architecture state."
+  },
+  {
+    "module": "src/path-elements.js",
+    "kind": "support/geometry",
+    "current_role": "Path label/tick/marker calculations",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Pure geometry/domain calculations; preserve."
+  },
+  {
+    "module": "src/path-generators.js",
+    "kind": "support/geometry",
+    "current_role": "Path definition generators",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Proven path algorithms; explicitly preserve."
+  },
+  {
+    "module": "src/path-geometry.js",
+    "kind": "support/geometry/cache",
+    "current_role": "Path measurement, transform and cache",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Already has strong geometry vocabulary and ownership; reference-quality support module."
+  },
+  {
+    "module": "src/path-gradient-renderer.js",
+    "kind": "support/render/paint",
+    "current_role": "Gradient renderer",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Pure render/paint consumer."
+  },
+  {
+    "module": "src/path-mask-renderer.js",
+    "kind": "support/render",
+    "current_role": "Path mask/band renderer",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Pure renderer."
+  },
+  {
+    "module": "src/path-ranges.js",
+    "kind": "support/runtime/calculation",
+    "current_role": "Value-to-progress and range mapping",
+    "recommended_action": "RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "19",
+    "audit_finding": "Constructor config is domain options rather than tool config. Rename input contract; preserve mapping algorithms."
+  },
+  {
+    "module": "src/path-renderer.js",
+    "kind": "support/render",
+    "current_role": "Master path renderer",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "19",
+    "audit_finding": "Pure renderer."
+  },
+  {
+    "module": "src/polygon-tool.js",
+    "kind": "tool/simple shape",
+    "current_role": "Polygon validation and path geometry",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "fill_mask/radius defaults precede BaseTool and may be template-visible. Preserve source order; move derived SVG/pathInput/pathDefinition under geometry and keep validation/generator logic."
+  },
+  {
+    "module": "src/rectangle-tool.js",
+    "kind": "tool/simple shape",
+    "current_role": "Rectangle defaults, fit and measured geometry",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "Radius/fill-mask/fit sizing preparation precedes BaseTool and may be template-visible. Classify and preserve source order; move derived/fit SVG to geometry without changing measurement timing."
+  },
+  {
+    "module": "src/same-as.js",
+    "kind": "support/config compiler",
+    "current_role": "same_as compilation",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Correct config-time transformation before tool source."
+  },
+  {
+    "module": "src/sparkline-graph-tool.js",
+    "kind": "tool/complex",
+    "current_role": "Sparkline config, series/history/graph/render coordinator",
+    "recommended_action": "REWORK",
+    "risk": "Very High",
+    "target_plan": "18B",
+    "audit_finding": "Large pre-BaseTool completion must be classified by JS visibility, not moved wholesale. Preserve evaluation order, canonicalize complete series, then separate geometry/runtime/paint/graph input."
+  },
+  {
+    "module": "src/sparkline-graph.js",
+    "kind": "support/calculation",
+    "current_role": "Processed graph data and geometry engine",
+    "recommended_action": "RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "18B",
+    "audit_finding": "this.config is a derived graph calculation input, not tool public config. Rename to input/graphInput; preserve all graph math and signatures."
+  },
+  {
+    "module": "src/sparkline-history.js",
+    "kind": "support/history",
+    "current_role": "History requests, rows and time lifecycle",
+    "recommended_action": "RENAME; ADAPT",
+    "risk": "Medium",
+    "target_plan": "18B",
+    "audit_finding": "Strong domain owner, but updateConfig receives inputs rather than owning public config. Rename to updateInputs and retain history algorithms."
+  },
+  {
+    "module": "src/sparkline-series.js",
+    "kind": "support/runtime series",
+    "current_role": "Series identity, config merge and layout coordination",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "18B",
+    "audit_finding": "Builds persistent effectiveConfig by remerging parent+series. Canonical translation must publish complete config.series[]; Series keeps runtime identity/state/layout."
+  },
+  {
+    "module": "src/sparkline-state.js",
+    "kind": "support/constants",
+    "current_role": "Sparkline request/data/result enums",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Clear domain vocabulary; state here is an explicit state-machine concept."
+  },
+  {
+    "module": "src/state-tool.js",
+    "kind": "tool/text-like",
+    "current_role": "State formatting, UOM and measurement",
+    "recommended_action": "MOVE; RENAME",
+    "risk": "Medium",
+    "target_plan": "15B",
+    "audit_finding": "xpos/ypos/show.uom completion occurs before BaseTool and may be template-visible. Preserve source/evaluation order; move displayed state/UOM to runtime and SVG/measurements to geometry."
+  },
+  {
+    "module": "src/templates.js",
+    "kind": "support/evaluator",
+    "current_role": "JS template context and evaluation",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "16B;20",
+    "audit_finding": "Proven evaluator. Canonical tool translation must reuse it rather than replace it."
+  },
+  {
+    "module": "src/text-tool-geometry.js",
+    "kind": "support/geometry adapter",
+    "current_role": "Text geometry lookup adapter",
+    "recommended_action": "ADAPT; REMOVE?",
+    "risk": "Low",
+    "target_plan": "15B;16B",
+    "audit_finding": "Must remain as the single 15B compatibility adapter because TextTool migrates in 16B; remove/reduce only after Text exposes canonical geometry."
+  },
+  {
+    "module": "src/text-tool.js",
+    "kind": "tool/complex text",
+    "current_role": "Multipart text, source tools, state map and measurement",
+    "recommended_action": "REWORK",
+    "risk": "High",
+    "target_plan": "16B",
+    "audit_finding": "Unify parts under canonical config while preserving per-part JS context/order. Effective paint styles must participate in measurement invalidation; geometry adapter cleanup follows in 16B Pass B."
+  },
+  {
+    "module": "src/utils.js",
+    "kind": "support/utility",
+    "current_role": "Small shared calculations",
+    "recommended_action": "KEEP",
+    "risk": "Low",
+    "target_plan": "20",
+    "audit_finding": "Stateless utility module."
+  }
+]

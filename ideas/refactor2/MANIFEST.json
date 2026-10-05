@@ -1,0 +1,12 @@
+{
+  "revision": 3,
+  "revision_notes": [
+    "sourceConfig and this.config must not alias; transient candidate and derived-field rules added",
+    "config acceptance separated from group/layout and theme-derived invalidation",
+    "Sparkline effective series must be accepted after parent/series merge, including implicit series",
+    "Horseshoe activeItemConfig/runtimeConfig parallel general-config route must be removed",
+    "missing HA entity correctness fix is mandatory before Plan 20 completion",
+    "Sparkline parent and all effective series are accepted as one atomic candidate set and published together only after all validation succeeds",
+    "Plan 20 missing-entity regression test is unconditional because the fix is mandatory"
+  ]
+}

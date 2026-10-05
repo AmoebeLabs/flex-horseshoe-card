@@ -1,0 +1,38 @@
+{
+  "repository": "AmoebeLabs/flex-horseshoe-card",
+  "baseline_branch": "master",
+  "baseline_commit": "dd89eb08f029400730ce59a4112be34bba44deeb",
+  "audit_scope_product_modules": 72,
+  "baseline_metrics": {
+    "product_js_files": 72,
+    "code_lines": 23665,
+    "comment_only_lines": 5550,
+    "blank_lines": 3156,
+    "physical_lines": 32371,
+    "node_tests_at_plan18_acceptance": 507
+  },
+  "documents": [
+    "00-revision-v2.md",
+    "01-canonical-architecture-contract.md",
+    "02-current-master-audit.md",
+    "03-audit-matrix.csv",
+    "03-audit-matrix.json",
+    "04-migration-sequence.md",
+    "05-testing-and-verification.md",
+    "06-existing-plan-supersession.md",
+    "15B-simple-tool-reference.md",
+    "16B-canonical-config-lifecycle-and-text.md",
+    "17B-controls-canonical-architecture.md",
+    "18B-sparkline-canonical-series.md",
+    "19-horseshoe-path-canonical-architecture.md",
+    "20-whole-source-post-migration-audit.md",
+    "COMBINED-REPORT.md",
+    "PACKAGE-VALIDATION.md",
+    "README.md",
+    "SOURCES-AUDITED.txt",
+    "manifest.json"
+  ],
+  "revision": "v2",
+  "revision_notes": "Execution-order/JS context, atomic color-stop cutover, Text geometry adapter timing, concrete paint.styles child presentation contract.",
+  "audit_matrix_rows": 72
+}

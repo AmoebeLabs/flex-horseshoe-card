@@ -104,9 +104,16 @@ For correctly specified configuration, once `this.config` is published, consumer
 - nested public config has been normalized to the internal shape;
 - JavaScript-produced values followed the existing configuration route; no new error-recovery guarantee is implied.
 
+For nested Sparkline series, `SparklineSeries.updateConfig()` is the existing
+owner that checks raw overrides and builds effective series from the parent.
+Publishing the parent `this.config` does not create a new atomic acceptance or
+last-valid guarantee for that nested collection.
+
 Consumers therefore must not:
 
-- call `Number(...)` merely because a config number might still be a string;
+- call `Number(...)` merely to re-prove a value that its configuration owner
+  already converted; retain consumer conversion when numeric text is part of
+  established config/signature change detection;
 - call `Number.isFinite(...)` merely to re-prove a config field is numeric;
 - repeat enum/range validation;
 - apply a second default with `??`, `||` or equivalent;
@@ -199,7 +206,8 @@ Readability acceptance is qualitative but explicit:
 - renderers should render;
 - History should process history;
 - Graph should calculate graphs;
-- Series should coordinate series;
+- Series should own series override/effective configuration and coordinate
+  series runtime state;
 - Controls should handle actual control state/interactions;
 - Horseshoe should build/use accepted path/gauge configuration.
 
@@ -293,16 +301,27 @@ Separate the stable source from active tool configuration and remove redundant o
 
 | start | end | usage |
 | +---+ | +-+ | +---+ |
-| 86%    | %  | %    |
+| 86%   | 77% | 9%    |
 
 
 ### Plan 17 — Controls trusted config
 
 Move control configuration policing to the accepted-config boundary and finish shared child lifecycle forwarding.
 
+| start | end | usage |
+| +---+ | +-+ | +---+ |
+| 71%   | 64% | 7%    |
+
 ### Plan 18 — Sparkline trusted config
 
-Remove public-config validation/coercion from Series, History, Graph and presentation code.
+Keep raw-override and effective-series configuration with Series. Remove only
+proven duplicate config checks/conversions from History, Graph and presentation
+code without changing signatures or runtime behavior.
+
+
+| start | end | usage |
+| +---+ | +-+ | +---+ |
+| 59%   | 53% | 6%    |
 
 ### Plan 19 — Horseshoe/Path trusted config
 
@@ -325,7 +344,9 @@ The sequence is complete only when:
 - `sourceConfig` remains the stable re-evaluation source;
 - `this.config` is the active tool configuration after existing processing, consistently across tool families;
 - correctly specified static and JavaScript-produced configuration follow their established tool-level routes without new failure or recovery behavior;
-- no Series/History/Graph/renderer/control/Horseshoe consumer re-validates accepted public configuration;
+- Series owns its raw overrides and effective-series checks once; History,
+  Graph, renderer, control and Horseshoe consumers do not repeat already
+  completed public-configuration checks;
 - remaining checks are demonstrably runtime, async, algorithmic or consumer-semantic;
 - duplicated shared tool lifecycle/geometry boilerplate identified by the review is removed;
 - no temporary validation path remains;
