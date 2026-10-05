@@ -831,7 +831,7 @@ export default class ControlSelect extends ControlBase {
     });
   }
 
-  /** Runs child TextTool and IconTool post-render lifecycle hooks. */
+  /** Lets option Text and Icon tools finish their post-render measurement and setup. */
   updated() {
     super.updated();
     this.optionContentVisuals.forEach((contentVisual) =>

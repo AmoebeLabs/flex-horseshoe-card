@@ -75,8 +75,9 @@ export default class Colors {
       || themeRevision !== colorBucket.themeRevision
       || paletteDocumentsChanged
     ) {
-      // Cards with a matching context share one active mode/source/document set.
-      // A context transition clears only that shared bucket, once.
+      // Cards using the same HA themes and palette URLs share one color cache.
+      // When light/dark mode, the theme or loaded palette documents change,
+      // clear only that shared cache.
       colorBucket.mode = colorContext.mode;
       colorBucket.themeRevision = themeRevision;
       colorBucket.paletteDocuments = colorContext.paletteSources.map((source) => source.palette);

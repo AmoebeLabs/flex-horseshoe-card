@@ -967,8 +967,8 @@ export default class TextTool extends BaseTool {
     return parts.map((part) => {
       let renderPart = part;
 
-      // Source animations are resolved during render, after the animation
-      // pipeline has activated the styles for this exact state update.
+      // Read referenced tools' animation styles during rendering, after the
+      // current animation has selected the styles for this state update.
       if (part.source_reference) {
         const sourceTool = this.getTextSourceTool(
           part.source_reference,

@@ -54,7 +54,7 @@ export default class AreaTool extends BaseTool {
   }
 
   /**
-   * Updates runtime entity context and displayed area text.
+   * Stores the HA entity and updates the displayed Area text.
    *
    * @param {object} entity - Home Assistant entity state object for this area.
    * @param {object} entityConfig - Entity configuration for this area.

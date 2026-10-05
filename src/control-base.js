@@ -297,7 +297,7 @@ export default class ControlBase extends BaseTool {
     else if (this.controlDisconnected) this.labelTextTool.disconnected();
   }
 
-  /** Gives rebuilt content the lifecycle already reached by this control. */
+  /** Gives rebuilt content tools the Control's current HA and DOM connection state. */
   activateContentTools() {
     this.getContentTools().forEach((tool) => {
       if (this.controlHassAvailable) tool.hassAvailable();
@@ -375,7 +375,7 @@ export default class ControlBase extends BaseTool {
     }
   }
 
-  /** Runs TextTool measurement and overflow lifecycle after rendering. */
+  /** Lets the label TextTool measure rendered text and finish wrapping or ellipsis. */
   updated() {
     if (this.labelTextTool) this.labelTextTool.updated();
   }

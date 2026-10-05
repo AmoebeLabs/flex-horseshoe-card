@@ -164,8 +164,8 @@ export default class ControlContent {
       delete visualConfig.type;
       delete visualConfig.margin;
 
-      // Use the existing FHS visual tools for each content type, preserving their
-      // normal state, color-stop, template, animation and lifecycle behavior.
+      // Use the existing FHS visual tools so they keep their normal state,
+      // color-stop, template and animation handling.
       let tool;
       switch (item.type) {
         case 'icon': {

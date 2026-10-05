@@ -212,7 +212,7 @@ export default class CardInputEntities {
    * Listens for global FHS input changes while this card is in the DOM.
    *
    * Global FHS inputs send their state through window events. This card
-   * updates its local entity record through the normal hass pipeline.
+   * updates the matching local entity and processes it like any other entity change.
    */
   connected() {
     window.addEventListener(CardInputEntities.numberEvent, this.eventHandler);

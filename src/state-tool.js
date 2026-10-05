@@ -306,7 +306,7 @@ export default class StateTool extends BaseTool {
   }
 
   /**
-   * Updates runtime entity context and displayed state/UOM text.
+   * Stores the HA entity and rebuilds the displayed State value and unit.
    *
    * @param {object} entity - Home Assistant entity state object for this state.
    * @param {object} entityConfig - Entity configuration for this state.

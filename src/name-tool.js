@@ -54,7 +54,7 @@ export default class NameTool extends BaseTool {
   }
 
   /**
-   * Updates runtime entity context and displayed name text.
+   * Stores the HA entity and updates the displayed Name text.
    *
    * @param {object} entity - Home Assistant entity state object for this name.
    * @param {object} entityConfig - Entity configuration for this name.

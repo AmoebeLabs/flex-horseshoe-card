@@ -2175,12 +2175,12 @@ export default class SparklineGraphTool extends BaseTool {
    * Finds a radial bin from its clicked SVG element or the pointer's angle.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} event - Browser interaction event.
-   * @param {boolean} usePointerCoordinates - Reproject the event after graph bins change.
+   * @param {boolean} usePointerCoordinates - Recalculate the pointer position after graph bins change.
    * @returns {number} Radial bin index, or NaN when outside the configured arc.
    */
   getRadialPointIndexFromEvent(event, usePointerCoordinates) {
     // Use the saved barcode target during a gesture. After graph or layout
-    // changes, reproject the pointer coordinates against the current bins.
+    // changes, recalculate the pointer coordinates against the current bins.
     const barcodeBin = this.runtime.pointerEventTarget.closest?.('.sparkline-radial-barcode__bin, .sparkline-radial-barcode__bg-bin');
     if (barcodeBin && !usePointerCoordinates) {
       const pointIndex = Number(barcodeBin.dataset.pointIndex);
@@ -2610,7 +2610,7 @@ export default class SparklineGraphTool extends BaseTool {
    * Selects a Cartesian bucket, state band or radial bin under the pointer.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current browser interaction.
-   * @param {boolean} usePointerCoordinates - Reproject after data or graph geometry changes.
+   * @param {boolean} usePointerCoordinates - Recalculate the pointer position after data or graph geometry changes.
    */
   updateActivePointer(e, usePointerCoordinates) {
     this.runtime.pointerEvent = e;
@@ -2670,7 +2670,7 @@ export default class SparklineGraphTool extends BaseTool {
    * Finds and highlights the radial bin under the pointer or touch.
    *
    * @param {MouseEvent|TouchEvent|PointerEvent} e - Current browser interaction.
-   * @param {boolean} usePointerCoordinates - Reproject after data or graph geometry changes.
+   * @param {boolean} usePointerCoordinates - Recalculate the pointer position after data or graph geometry changes.
    */
   updateRadialActivePointer(e, usePointerCoordinates) {
     if (
@@ -2779,7 +2779,7 @@ export default class SparklineGraphTool extends BaseTool {
     }
   }
 
-  /** Reprojects the active marker and tooltip after graph, layout or mounted-SVG updates. */
+  /** Recalculates the active marker and tooltip position after graph, layout or SVG changes. */
   synchronizePointerPresentation() {
     if (!this.pointerSvgElement || (!this.runtime.hovering && !this.runtime.dragging)) return;
     if (this.sparklineSeries.dataState !== SPARKLINE_DATA_STATE.HAS_DATA
