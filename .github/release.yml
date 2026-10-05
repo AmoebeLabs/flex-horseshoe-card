@@ -22,7 +22,11 @@ changelog:
     - title: ♻️ Refactoring
       labels:
         - refactor
-      
+
+    - title: 🧪 Tests
+      labels:
+        - test
+
     - title: 🧰 Maintenance
       labels:
         - chore
@@ -35,4 +39,4 @@ changelog:
 
     - title: Other changes
       labels:
-        - "*"        
+        - "*"
